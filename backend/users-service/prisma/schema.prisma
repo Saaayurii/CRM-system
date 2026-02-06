@@ -1,0 +1,100 @@
+// ===========================================
+// Prisma Schema for Auth Service
+// ===========================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ===========================================
+// Account (Organization/Company - Multi-tenancy)
+// ===========================================
+model Account {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(255)
+  subdomain String?  @unique @db.VarChar(100)
+  settings  Json     @default("{}")
+  status    Int      @default(1) // 0-inactive, 1-active, 2-suspended
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  users User[]
+
+  @@map("accounts")
+}
+
+// ===========================================
+// Role
+// ===========================================
+model Role {
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(100)
+  code        String   @unique @db.VarChar(50)
+  description String?  @db.Text
+  permissions Json     @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  users User[]
+
+  @@map("roles")
+}
+
+// ===========================================
+// User
+// ===========================================
+model User {
+  id         Int     @id @default(autoincrement())
+  accountId  Int     @map("account_id")
+  roleId     Int?    @map("role_id")
+  name       String  @db.VarChar(255)
+  email      String  @unique @db.VarChar(255)
+  phone      String? @db.VarChar(50)
+  avatarUrl  String? @map("avatar_url") @db.VarChar(500)
+
+  // Status
+  availability Int     @default(1) // 0-offline, 1-online, 2-busy, 3-vacation, 4-sick
+  isActive     Boolean @default(true) @map("is_active")
+
+  // Authorization
+  passwordDigest String?   @map("password_digest") @db.VarChar(255)
+  confirmedAt    DateTime? @map("confirmed_at")
+  lastSignInAt   DateTime? @map("last_sign_in_at")
+  currentSignInAt DateTime? @map("current_sign_in_at")
+  signInCount    Int       @default(0) @map("sign_in_count")
+
+  // Refresh Token (added for JWT auth)
+  refreshToken          String?   @map("refresh_token") @db.VarChar(500)
+  refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at")
+
+  // Additional Info
+  position     String? @db.VarChar(255)
+  hireDate     DateTime? @map("hire_date") @db.Date
+  birthDate    DateTime? @map("birth_date") @db.Date
+  passportData Json?   @map("passport_data")
+  address      String? @db.Text
+
+  // Settings
+  settings             Json @default("{}")
+  notificationSettings Json @default("{}") @map("notification_settings")
+
+  // Timestamps
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @default(now()) @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  // Relations
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  role    Role?   @relation(fields: [roleId], references: [id])
+
+  @@index([accountId], name: "idx_users_account")
+  @@index([roleId], name: "idx_users_role")
+  @@index([email], name: "idx_users_email")
+  @@index([accountId, isActive], name: "idx_users_active")
+  @@map("users")
+}

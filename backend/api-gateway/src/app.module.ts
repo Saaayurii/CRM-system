@@ -7,6 +7,8 @@ import { JwtModule } from '@nestjs/jwt';
 import configuration from './config/configuration';
 import { ProxyModule } from './common/services/proxy.module';
 import { AuthGatewayModule } from './modules/auth/auth-gateway.module';
+import { UsersGatewayModule } from './modules/users/users-gateway.module';
+import { ProjectsGatewayModule } from './modules/projects/projects-gateway.module';
 import { HealthModule } from './modules/health/health.module';
 import { JwtStrategy } from './common/guards/jwt.strategy';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
@@ -48,6 +50,8 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 
     // Feature Modules
     AuthGatewayModule,
+    UsersGatewayModule,
+    ProjectsGatewayModule,
     HealthModule,
   ],
   providers: [

@@ -1,0 +1,122 @@
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  ForbiddenException,
+} from '@nestjs/common';
+import { UserRepository } from './repositories/user.repository';
+import { CreateUserDto, UpdateUserDto, UserResponseDto } from './dto';
+
+@Injectable()
+export class UsersService {
+  constructor(private readonly userRepository: UserRepository) {}
+
+  async findAll(
+    accountId: number,
+    page: number = 1,
+    limit: number = 20,
+  ): Promise<{ users: UserResponseDto[]; total: number; page: number; limit: number }> {
+    const skip = (page - 1) * limit;
+    const [users, total] = await Promise.all([
+      this.userRepository.findAll(accountId, { skip, take: limit }),
+      this.userRepository.count(accountId),
+    ]);
+
+    return {
+      users: users.map(this.toResponseDto),
+      total,
+      page,
+      limit,
+    };
+  }
+
+  async findById(id: number, requestingUserAccountId: number): Promise<UserResponseDto> {
+    const user = await this.userRepository.findById(id);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Check if requesting user has access to this user (same account)
+    if (user.accountId !== requestingUserAccountId) {
+      throw new ForbiddenException('Access denied');
+    }
+
+    return this.toResponseDto(user);
+  }
+
+  async findByRole(
+    accountId: number,
+    roleId: number,
+  ): Promise<UserResponseDto[]> {
+    const users = await this.userRepository.findByAccountAndRole(accountId, roleId);
+    return users.map(this.toResponseDto);
+  }
+
+  async create(
+    createUserDto: CreateUserDto,
+    requestingUserAccountId: number,
+  ): Promise<UserResponseDto> {
+    // Check if user can create users in this account
+    if (createUserDto.accountId !== requestingUserAccountId) {
+      throw new ForbiddenException('Cannot create users in another account');
+    }
+
+    // Check if email already exists
+    const existingUser = await this.userRepository.findByEmail(createUserDto.email);
+    if (existingUser) {
+      throw new ConflictException('User with this email already exists');
+    }
+
+    const user = await this.userRepository.create(createUserDto);
+    return this.toResponseDto(user);
+  }
+
+  async update(
+    id: number,
+    updateUserDto: UpdateUserDto,
+    requestingUserAccountId: number,
+  ): Promise<UserResponseDto> {
+    const user = await this.userRepository.findById(id);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Check if requesting user has access to this user
+    if (user.accountId !== requestingUserAccountId) {
+      throw new ForbiddenException('Access denied');
+    }
+
+    const updatedUser = await this.userRepository.update(id, updateUserDto);
+    return this.toResponseDto(updatedUser);
+  }
+
+  async remove(id: number, requestingUserAccountId: number): Promise<void> {
+    const user = await this.userRepository.findById(id);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Check if requesting user has access to this user
+    if (user.accountId !== requestingUserAccountId) {
+      throw new ForbiddenException('Access denied');
+    }
+
+    await this.userRepository.softDelete(id);
+  }
+
+  private toResponseDto(user: any): UserResponseDto {
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      position: user.position,
+      accountId: user.accountId,
+      roleId: user.roleId,
+      role: user.role,
+      isActive: user.isActive,
+      availability: user.availability,
+      createdAt: user.createdAt,
+    };
+  }
+}

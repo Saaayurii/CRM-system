@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(255)
+  subdomain String?  @unique @db.VarChar(100)
+  settings  Json     @default("{}")
+  status    Int      @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  projects Project[]
+  users    User[]
+
+  @@map("accounts")
+}
+
+model User {
+  id        Int     @id @default(autoincrement())
+  accountId Int     @map("account_id")
+  name      String  @db.VarChar(255)
+  email     String  @unique @db.VarChar(255)
+  isActive  Boolean @default(true) @map("is_active")
+
+  account         Account       @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  managedProjects Project[]     @relation("ProjectManager")
+  projectTeams    ProjectTeam[]
+
+  @@map("users")
+}
+
+model Project {
+  id               Int       @id @default(autoincrement())
+  accountId        Int?      @map("account_id")
+  name             String    @db.VarChar(255)
+  code             String?   @unique @db.VarChar(100)
+  description      String?   @db.Text
+  projectManagerId Int?      @map("project_manager_id")
+  clientName       String?   @map("client_name") @db.VarChar(255)
+  clientContact    Json?     @map("client_contact")
+  startDate        DateTime? @map("start_date") @db.Date
+  plannedEndDate   DateTime? @map("planned_end_date") @db.Date
+  actualEndDate    DateTime? @map("actual_end_date") @db.Date
+  budget           Decimal?  @db.Decimal(15, 2)
+  actualCost       Decimal?  @map("actual_cost") @db.Decimal(15, 2)
+  status           Int       @default(0) // 0-draft, 1-active, 2-paused, 3-completed, 4-cancelled
+  priority         Int       @default(2) // 1-low, 2-medium, 3-high, 4-critical
+  address          String?   @db.Text
+  coordinates      Json?
+  documents        Json      @default("[]")
+  settings         Json      @default("{}")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @default(now()) @updatedAt @map("updated_at")
+  deletedAt        DateTime? @map("deleted_at")
+
+  account        Account?      @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  projectManager User?         @relation("ProjectManager", fields: [projectManagerId], references: [id])
+  projectTeams   ProjectTeam[]
+
+  @@index([accountId], name: "idx_projects_account")
+  @@index([code], name: "idx_projects_code")
+  @@index([projectManagerId], name: "idx_projects_manager")
+  @@index([status], name: "idx_projects_status")
+  @@map("projects")
+}
+
+model ProjectTeam {
+  id        Int      @id @default(autoincrement())
+  projectId Int      @map("project_id")
+  userId    Int      @map("user_id")
+  role      String?  @db.VarChar(100)
+  joinedAt  DateTime @default(now()) @map("joined_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@map("project_teams")
+}

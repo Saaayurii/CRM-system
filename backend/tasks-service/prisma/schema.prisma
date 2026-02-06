@@ -1,0 +1,53 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Task {
+  id                  Int       @id @default(autoincrement())
+  accountId           Int?      @map("account_id")
+  projectId           Int?      @map("project_id")
+  constructionSiteId  Int?      @map("construction_site_id")
+  parentTaskId        Int?      @map("parent_task_id")
+  workTemplateId      Int?      @map("work_template_id")
+  title               String    @db.VarChar(255)
+  description         String?   @db.Text
+  taskType            String?   @map("task_type") @db.VarChar(100)
+  assignedToUserId    Int?      @map("assigned_to_user_id")
+  assignedToTeamId    Int?      @map("assigned_to_team_id")
+  createdByUserId     Int?      @map("created_by_user_id")
+  priority            Int       @default(2) // 1-low, 2-medium, 3-high, 4-critical
+  status              Int       @default(0) // 0-new, 1-in_progress, 2-review, 3-completed, 4-cancelled
+  startDate           DateTime? @map("start_date") @db.Date
+  dueDate             DateTime? @map("due_date") @db.Date
+  actualStartDate     DateTime? @map("actual_start_date")
+  actualEndDate       DateTime? @map("actual_end_date")
+  estimatedHours      Decimal?  @map("estimated_hours") @db.Decimal(8, 2)
+  actualHours         Decimal?  @map("actual_hours") @db.Decimal(8, 2)
+  locationDescription String?   @map("location_description") @db.Text
+  coordinates         Json?
+  progressPercentage  Int       @default(0) @map("progress_percentage")
+  completionNotes     String?   @map("completion_notes") @db.Text
+  dependencies        Json      @default("[]")
+  blockedBy           Json      @default("[]") @map("blocked_by")
+  attachments         Json      @default("[]")
+  tags                Json      @default("[]")
+  customFields        Json      @default("{}") @map("custom_fields")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @default(now()) @updatedAt @map("updated_at")
+  deletedAt           DateTime? @map("deleted_at")
+
+  parentTask Task?  @relation("TaskHierarchy", fields: [parentTaskId], references: [id])
+  subTasks   Task[] @relation("TaskHierarchy")
+
+  @@index([accountId], name: "idx_tasks_account")
+  @@index([projectId], name: "idx_tasks_project")
+  @@index([assignedToUserId], name: "idx_tasks_assigned_user")
+  @@index([assignedToTeamId], name: "idx_tasks_assigned_team")
+  @@index([status], name: "idx_tasks_status")
+  @@map("tasks")
+}
