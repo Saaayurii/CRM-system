@@ -1,10 +1,76 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { APP_GUARD, APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { PassportModule } from '@nestjs/passport';
+import { JwtModule } from '@nestjs/jwt';
+import configuration from './config/configuration';
+import { ProxyModule } from './common/services/proxy.module';
+import { AuthGatewayModule } from './modules/auth/auth-gateway.module';
+import { HealthModule } from './modules/health/health.module';
+import { JwtStrategy } from './common/guards/jwt.strategy';
+import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
+import { GatewayExceptionFilter } from './common/filters/gateway-exception.filter';
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 
 @Module({
-  imports: [],
-  controllers: [AppController],
-  providers: [AppService],
+  imports: [
+    // Configuration
+    ConfigModule.forRoot({
+      isGlobal: true,
+      load: [configuration],
+    }),
+
+    // Rate Limiting
+    ThrottlerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        throttlers: [
+          {
+            ttl: (configService.get<number>('rateLimit.ttl') || 60) * 1000,
+            limit: configService.get<number>('rateLimit.max') || 100,
+          },
+        ],
+      }),
+    }),
+
+    // Authentication
+    PassportModule.register({ defaultStrategy: 'jwt' }),
+    JwtModule.registerAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get<string>('jwt.accessSecret') || 'default-secret',
+      }),
+    }),
+
+    // Proxy Service
+    ProxyModule,
+
+    // Feature Modules
+    AuthGatewayModule,
+    HealthModule,
+  ],
+  providers: [
+    JwtStrategy,
+    // Global Guards
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+    // Global Filters
+    {
+      provide: APP_FILTER,
+      useClass: GatewayExceptionFilter,
+    },
+    // Global Interceptors
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: LoggingInterceptor,
+    },
+  ],
 })
 export class AppModule {}
