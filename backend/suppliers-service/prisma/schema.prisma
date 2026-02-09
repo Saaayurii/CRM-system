@@ -1,0 +1,184 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id          Int        @id @default(autoincrement())
+  suppliers   Supplier[]
+  supplierOrders SupplierOrder[]
+  contractors Contractor[]
+
+  @@map("accounts")
+}
+
+model Supplier {
+  id               Int       @id @default(autoincrement())
+  accountId        Int       @map("account_id")
+  name             String    @db.VarChar(255)
+  legalName        String?   @map("legal_name") @db.VarChar(255)
+  inn              String?   @db.VarChar(50)
+  kpp              String?   @db.VarChar(50)
+  contactPerson    String?   @map("contact_person") @db.VarChar(255)
+  phone            String?   @db.VarChar(50)
+  email            String?   @db.VarChar(255)
+  website          String?   @db.VarChar(255)
+  legalAddress     String?   @map("legal_address")
+  warehouseAddress String?   @map("warehouse_address")
+  paymentTerms     String?   @map("payment_terms") @db.VarChar(100)
+  deliveryTimeDays Int?      @map("delivery_time_days")
+  minOrderAmount   Decimal?  @map("min_order_amount") @db.Decimal(10, 2)
+  rating           Decimal?  @db.Decimal(3, 2)
+  reliabilityScore Int?      @map("reliability_score")
+  status           Int       @default(1)
+  isVerified       Boolean   @default(false) @map("is_verified")
+  notes            String?
+  documents        Json      @default("[]")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @default(now()) @updatedAt @map("updated_at")
+  deletedAt        DateTime? @map("deleted_at")
+
+  account           Account            @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  supplierMaterials SupplierMaterial[]
+  supplierOrders    SupplierOrder[]
+
+  @@map("suppliers")
+}
+
+model SupplierMaterial {
+  id               Int       @id @default(autoincrement())
+  supplierId       Int       @map("supplier_id")
+  materialId       Int?      @map("material_id")
+  supplierCode     String?   @map("supplier_code") @db.VarChar(100)
+  price            Decimal?  @db.Decimal(10, 2)
+  currency         String    @default("RUB") @db.VarChar(10)
+  minOrderQuantity Decimal?  @map("min_order_quantity") @db.Decimal(10, 2)
+  deliveryTimeDays Int?      @map("delivery_time_days")
+  isAvailable      Boolean   @default(true) @map("is_available")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  supplier     Supplier              @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  priceHistory SupplierPriceHistory[]
+
+  @@unique([supplierId, materialId])
+  @@map("supplier_materials")
+}
+
+model SupplierPriceHistory {
+  id                 Int       @id @default(autoincrement())
+  supplierMaterialId Int       @map("supplier_material_id")
+  price              Decimal?  @db.Decimal(10, 2)
+  validFrom          DateTime  @map("valid_from") @db.Date
+  validTo            DateTime? @map("valid_to") @db.Date
+  createdAt          DateTime  @default(now()) @map("created_at")
+
+  supplierMaterial SupplierMaterial @relation(fields: [supplierMaterialId], references: [id], onDelete: Cascade)
+
+  @@map("supplier_price_history")
+}
+
+model SupplierOrder {
+  id                   Int       @id @default(autoincrement())
+  accountId            Int       @map("account_id")
+  projectId            Int?      @map("project_id")
+  constructionSiteId   Int?      @map("construction_site_id")
+  supplierId           Int?      @map("supplier_id")
+  orderNumber          String    @unique @map("order_number") @db.VarChar(100)
+  orderDate            DateTime  @map("order_date") @db.Date
+  createdByUserId      Int?      @map("created_by_user_id")
+  approvedByUserId     Int?      @map("approved_by_user_id")
+  status               Int       @default(0)
+  expectedDeliveryDate DateTime? @map("expected_delivery_date") @db.Date
+  actualDeliveryDate   DateTime? @map("actual_delivery_date") @db.Date
+  subtotal             Decimal?  @db.Decimal(15, 2)
+  taxAmount            Decimal?  @map("tax_amount") @db.Decimal(15, 2)
+  deliveryCost         Decimal?  @map("delivery_cost") @db.Decimal(15, 2)
+  totalAmount          Decimal?  @map("total_amount") @db.Decimal(15, 2)
+  currency             String    @default("RUB") @db.VarChar(10)
+  deliveryAddress      String?   @map("delivery_address")
+  deliveryContact      String?   @map("delivery_contact") @db.VarChar(255)
+  deliveryNotes        String?   @map("delivery_notes")
+  paymentTerms         String?   @map("payment_terms") @db.VarChar(100)
+  paymentStatus        Int       @default(0) @map("payment_status")
+  notes                String?
+  documents            Json      @default("[]")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @default(now()) @updatedAt @map("updated_at")
+  deletedAt            DateTime? @map("deleted_at")
+
+  account  Account             @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  supplier Supplier?           @relation(fields: [supplierId], references: [id])
+  items    SupplierOrderItem[]
+
+  @@map("supplier_orders")
+}
+
+model SupplierOrderItem {
+  id                Int       @id @default(autoincrement())
+  supplierOrderId   Int       @map("supplier_order_id")
+  materialId        Int?      @map("material_id")
+  quantity          Decimal   @db.Decimal(10, 2)
+  unit              String?   @db.VarChar(50)
+  unitPrice         Decimal?  @map("unit_price") @db.Decimal(10, 2)
+  totalPrice        Decimal?  @map("total_price") @db.Decimal(10, 2)
+  deliveredQuantity Decimal   @default(0) @map("delivered_quantity") @db.Decimal(10, 2)
+  notes             String?
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  supplierOrder SupplierOrder @relation(fields: [supplierOrderId], references: [id], onDelete: Cascade)
+
+  @@map("supplier_order_items")
+}
+
+model Contractor {
+  id               Int       @id @default(autoincrement())
+  accountId        Int       @map("account_id")
+  name             String    @db.VarChar(255)
+  legalName        String?   @map("legal_name") @db.VarChar(255)
+  inn              String?   @db.VarChar(50)
+  kpp              String?   @db.VarChar(50)
+  contactPerson    String?   @map("contact_person") @db.VarChar(255)
+  phone            String?   @db.VarChar(50)
+  email            String?   @db.VarChar(255)
+  legalAddress     String?   @map("legal_address")
+  specialization   Json      @default("[]")
+  rating           Decimal?  @db.Decimal(3, 2)
+  reliabilityScore Int?      @map("reliability_score")
+  paymentTerms     String?   @map("payment_terms") @db.VarChar(100)
+  status           Int       @default(1)
+  isVerified       Boolean   @default(false) @map("is_verified")
+  notes            String?
+  documents        Json      @default("[]")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @default(now()) @updatedAt @map("updated_at")
+  deletedAt        DateTime? @map("deleted_at")
+
+  account     Account                @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  assignments ContractorAssignment[]
+
+  @@map("contractors")
+}
+
+model ContractorAssignment {
+  id                 Int       @id @default(autoincrement())
+  contractorId       Int       @map("contractor_id")
+  projectId          Int?      @map("project_id")
+  constructionSiteId Int?      @map("construction_site_id")
+  workType           String?   @map("work_type") @db.VarChar(255)
+  contractAmount     Decimal?  @map("contract_amount") @db.Decimal(15, 2)
+  startDate          DateTime? @map("start_date") @db.Date
+  endDate            DateTime? @map("end_date") @db.Date
+  status             Int       @default(0)
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  contractor Contractor @relation(fields: [contractorId], references: [id], onDelete: Cascade)
+
+  @@map("contractor_assignments")
+}

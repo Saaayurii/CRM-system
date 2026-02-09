@@ -1,0 +1,145 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(255)
+  status    Int      @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  inspections                  Inspection[]
+  inspectionChecklistTemplates InspectionChecklistTemplate[]
+  defects                      Defect[]
+  defectTemplates              DefectTemplate[]
+
+  @@map("accounts")
+}
+
+model Inspection {
+  id                 Int       @id @default(autoincrement())
+  accountId          Int       @map("account_id")
+  projectId          Int?      @map("project_id")
+  constructionSiteId Int?      @map("construction_site_id")
+  taskId             Int?      @map("task_id")
+  qualityStandardId  Int?      @map("quality_standard_id")
+  inspectionNumber   String    @unique @map("inspection_number") @db.VarChar(100)
+  inspectionType     String?   @map("inspection_type") @db.VarChar(100)
+  inspectorId        Int?      @map("inspector_id")
+  scheduledDate      DateTime? @map("scheduled_date") @db.Date
+  actualDate         DateTime? @map("actual_date") @db.Date
+  status             Int       @default(0)
+  result             String?   @db.VarChar(50)
+  inspectionArea     String?   @map("inspection_area") @db.VarChar(255)
+  description        String?   @db.Text
+  findings           String?   @db.Text
+  recommendations    String?   @db.Text
+  score              Int?
+  photos             Json      @default("[]")
+  documents          Json      @default("[]")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  account          Account                      @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  checklistResults InspectionChecklistResult[]
+  defects          Defect[]
+
+  @@index([accountId])
+  @@index([projectId])
+  @@index([constructionSiteId])
+  @@index([inspectorId])
+  @@map("inspections")
+}
+
+model InspectionChecklistTemplate {
+  id             Int      @id @default(autoincrement())
+  accountId      Int      @map("account_id")
+  name           String   @db.VarChar(255)
+  inspectionType String?  @map("inspection_type") @db.VarChar(100)
+  checklistItems Json     @default("[]") @map("checklist_items")
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
+
+  account          Account                     @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  checklistResults InspectionChecklistResult[]
+
+  @@map("inspection_checklist_templates")
+}
+
+model InspectionChecklistResult {
+  id                  Int      @id @default(autoincrement())
+  inspectionId        Int      @map("inspection_id")
+  checklistTemplateId Int?     @map("checklist_template_id")
+  results             Json     @default("[]")
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  inspection         Inspection                   @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+  checklistTemplate  InspectionChecklistTemplate?  @relation(fields: [checklistTemplateId], references: [id])
+
+  @@map("inspection_checklist_results")
+}
+
+model Defect {
+  id                    Int       @id @default(autoincrement())
+  accountId             Int       @map("account_id")
+  projectId             Int?      @map("project_id")
+  constructionSiteId    Int?      @map("construction_site_id")
+  taskId                Int?      @map("task_id")
+  inspectionId          Int?      @map("inspection_id")
+  defectNumber          String    @unique @map("defect_number") @db.VarChar(100)
+  defectType            String?   @map("defect_type") @db.VarChar(100)
+  category              String?   @db.VarChar(100)
+  severity              Int?
+  title                 String    @db.VarChar(255)
+  description           String?   @db.Text
+  locationDescription   String?   @map("location_description") @db.Text
+  coordinates           Json?
+  reportedByUserId      Int?      @map("reported_by_user_id")
+  assignedToUserId      Int?      @map("assigned_to_user_id")
+  verifiedByUserId      Int?      @map("verified_by_user_id")
+  status                Int       @default(0)
+  reportedDate          DateTime  @map("reported_date") @db.Date
+  dueDate               DateTime? @map("due_date") @db.Date
+  fixedDate             DateTime? @map("fixed_date") @db.Date
+  verifiedDate          DateTime? @map("verified_date") @db.Date
+  correctionDescription String?   @map("correction_description") @db.Text
+  correctionCost        Decimal?  @map("correction_cost") @db.Decimal(10, 2)
+  photos                Json      @default("[]")
+  documents             Json      @default("[]")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  account    Account     @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  inspection Inspection? @relation(fields: [inspectionId], references: [id])
+
+  @@index([accountId])
+  @@index([projectId])
+  @@index([constructionSiteId])
+  @@index([status])
+  @@map("defects")
+}
+
+model DefectTemplate {
+  id              Int      @id @default(autoincrement())
+  accountId       Int      @map("account_id")
+  defectType      String?  @map("defect_type") @db.VarChar(100)
+  category        String?  @db.VarChar(100)
+  title           String?  @db.VarChar(255)
+  description     String?  @db.Text
+  severity        Int?
+  typicalCost     Decimal? @map("typical_cost") @db.Decimal(10, 2)
+  fixInstructions String?  @map("fix_instructions") @db.Text
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@map("defect_templates")
+}

@@ -1,0 +1,271 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(255)
+  subdomain String?  @unique @db.VarChar(100)
+  settings  Json     @default("{}")
+  status    Int      @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  materialCategories MaterialCategory[]
+  materials          Material[]
+  materialRequests   MaterialRequest[]
+  warehouses         Warehouse[]
+  warehouseMovements WarehouseMovement[]
+  users              User[]
+
+  @@map("accounts")
+}
+
+model User {
+  id        Int     @id @default(autoincrement())
+  accountId Int     @map("account_id")
+  name      String  @db.VarChar(255)
+  email     String  @unique @db.VarChar(255)
+  isActive  Boolean @default(true) @map("is_active")
+
+  account                    Account             @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  requestedMaterialRequests  MaterialRequest[]   @relation("RequestedBy")
+  approvedMaterialRequests   MaterialRequest[]   @relation("ApprovedBy")
+  warehousesKept             Warehouse[]         @relation("WarehouseKeeper")
+  performedMovements         WarehouseMovement[] @relation("PerformedBy")
+  receivedMovements          WarehouseMovement[] @relation("ReceivedBy")
+  performedInventoryChecks   InventoryCheck[]    @relation("InventoryPerformedBy")
+
+  @@map("users")
+}
+
+model MaterialCategory {
+  id               Int      @id @default(autoincrement())
+  accountId        Int?     @map("account_id")
+  parentCategoryId Int?     @map("parent_category_id")
+  name             String   @db.VarChar(255)
+  code             String?  @db.VarChar(100)
+  description      String?  @db.Text
+  icon             String?  @db.VarChar(100)
+  sortOrder        Int      @default(0) @map("sort_order")
+  isActive         Boolean  @default(true) @map("is_active")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @default(now()) @updatedAt @map("updated_at")
+
+  account        Account?          @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  parentCategory MaterialCategory? @relation("CategoryParent", fields: [parentCategoryId], references: [id])
+  childCategories MaterialCategory[] @relation("CategoryParent")
+  materials      Material[]
+
+  @@map("material_categories")
+}
+
+model Material {
+  id            Int       @id @default(autoincrement())
+  accountId     Int?      @map("account_id")
+  categoryId    Int?      @map("category_id")
+  name          String    @db.VarChar(255)
+  code          String?   @unique @db.VarChar(100)
+  description   String?   @db.Text
+  unit          String?   @db.VarChar(50)
+  manufacturer  String?   @db.VarChar(255)
+  specifications Json     @default("{}") @db.JsonB
+  basePrice     Decimal?  @map("base_price") @db.Decimal(10, 2)
+  currency      String    @default("RUB") @db.VarChar(10)
+  minStockLevel Decimal?  @map("min_stock_level") @db.Decimal(10, 2)
+  maxStockLevel Decimal?  @map("max_stock_level") @db.Decimal(10, 2)
+  reorderPoint  Decimal?  @map("reorder_point") @db.Decimal(10, 2)
+  photos        Json      @default("[]") @db.JsonB
+  documents     Json      @default("[]") @db.JsonB
+  barcode       String?   @db.VarChar(100)
+  qrCode        String?   @map("qr_code") @db.VarChar(255)
+  isActive      Boolean   @default(true) @map("is_active")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  account              Account?              @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  category             MaterialCategory?     @relation(fields: [categoryId], references: [id])
+  alternativesFrom     MaterialAlternative[] @relation("MaterialFrom")
+  alternativesTo       MaterialAlternative[] @relation("MaterialTo")
+  materialRequestItems MaterialRequestItem[]
+  warehouseStock       WarehouseStock[]
+  warehouseMovements   WarehouseMovement[]
+
+  @@map("materials")
+}
+
+model MaterialAlternative {
+  id                    Int      @id @default(autoincrement())
+  materialId            Int      @map("material_id")
+  alternativeMaterialId Int      @map("alternative_material_id")
+  notes                 String?  @db.Text
+  createdAt             DateTime @default(now()) @map("created_at")
+
+  material            Material @relation("MaterialFrom", fields: [materialId], references: [id], onDelete: Cascade)
+  alternativeMaterial Material @relation("MaterialTo", fields: [alternativeMaterialId], references: [id], onDelete: Cascade)
+
+  @@map("material_alternatives")
+}
+
+model MaterialRequest {
+  id                   Int       @id @default(autoincrement())
+  accountId            Int?      @map("account_id")
+  projectId            Int?      @map("project_id")
+  constructionSiteId   Int?      @map("construction_site_id")
+  taskId               Int?      @map("task_id")
+  requestNumber        String    @unique @map("request_number") @db.VarChar(100)
+  requestedByUserId    Int?      @map("requested_by_user_id")
+  approvedByUserId     Int?      @map("approved_by_user_id")
+  status               Int       @default(0)
+  priority             Int       @default(2)
+  requestDate          DateTime  @map("request_date") @db.Date
+  neededByDate         DateTime? @map("needed_by_date") @db.Date
+  approvedDate         DateTime? @map("approved_date") @db.Date
+  purpose              String?   @db.Text
+  notes                String?   @db.Text
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  account       Account?              @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  requestedBy   User?                 @relation("RequestedBy", fields: [requestedByUserId], references: [id])
+  approvedBy    User?                 @relation("ApprovedBy", fields: [approvedByUserId], references: [id])
+  items         MaterialRequestItem[]
+
+  @@map("material_requests")
+}
+
+model MaterialRequestItem {
+  id                 Int      @id @default(autoincrement())
+  materialRequestId  Int      @map("material_request_id")
+  materialId         Int?     @map("material_id")
+  requestedQuantity  Decimal  @map("requested_quantity") @db.Decimal(10, 2)
+  approvedQuantity   Decimal? @map("approved_quantity") @db.Decimal(10, 2)
+  fulfilledQuantity  Decimal  @default(0) @map("fulfilled_quantity") @db.Decimal(10, 2)
+  unit               String?  @db.VarChar(50)
+  notes              String?  @db.Text
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @default(now()) @updatedAt @map("updated_at")
+
+  materialRequest MaterialRequest @relation(fields: [materialRequestId], references: [id], onDelete: Cascade)
+  material        Material?       @relation(fields: [materialId], references: [id])
+
+  @@map("material_request_items")
+}
+
+model Warehouse {
+  id                 Int      @id @default(autoincrement())
+  accountId          Int?     @map("account_id")
+  constructionSiteId Int?     @map("construction_site_id")
+  name               String   @db.VarChar(255)
+  code               String?  @db.VarChar(100)
+  warehouseType      String?  @map("warehouse_type") @db.VarChar(100)
+  address            String?  @db.Text
+  coordinates        Json?
+  warehouseKeeperId  Int?     @map("warehouse_keeper_id")
+  capacity           Decimal? @db.Decimal(10, 2)
+  areaSize           Decimal? @map("area_size") @db.Decimal(10, 2)
+  isActive           Boolean  @default(true) @map("is_active")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @default(now()) @updatedAt @map("updated_at")
+
+  account         Account?            @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  warehouseKeeper User?               @relation("WarehouseKeeper", fields: [warehouseKeeperId], references: [id])
+  stock           WarehouseStock[]
+  movements       WarehouseMovement[] @relation("WarehouseMovements")
+  movementsFrom   WarehouseMovement[] @relation("FromWarehouse")
+  movementsTo     WarehouseMovement[] @relation("ToWarehouse")
+  inventoryChecks InventoryCheck[]
+
+  @@map("warehouses")
+}
+
+model WarehouseStock {
+  id                Int      @id @default(autoincrement())
+  warehouseId       Int      @map("warehouse_id")
+  materialId        Int      @map("material_id")
+  quantity          Decimal  @default(0) @db.Decimal(10, 2)
+  reservedQuantity  Decimal  @default(0) @map("reserved_quantity") @db.Decimal(10, 2)
+  // available_quantity is a GENERATED column in DB, omitted from Prisma model
+  location          String?  @db.VarChar(100)
+  batchNumber       String?  @map("batch_number") @db.VarChar(100)
+  lastInventoryDate DateTime? @map("last_inventory_date") @db.Date
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at")
+
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  material  Material  @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  @@unique([warehouseId, materialId, batchNumber])
+  @@map("warehouse_stock")
+}
+
+model WarehouseMovement {
+  id                 Int      @id @default(autoincrement())
+  accountId          Int?     @map("account_id")
+  warehouseId        Int?     @map("warehouse_id")
+  materialId         Int?     @map("material_id")
+  movementType       String?  @map("movement_type") @db.VarChar(50)
+  quantity           Decimal  @db.Decimal(10, 2)
+  unit               String?  @db.VarChar(50)
+  fromWarehouseId    Int?     @map("from_warehouse_id")
+  toWarehouseId      Int?     @map("to_warehouse_id")
+  supplierOrderId    Int?     @map("supplier_order_id")
+  materialRequestId  Int?     @map("material_request_id")
+  taskId             Int?     @map("task_id")
+  performedByUserId  Int?     @map("performed_by_user_id")
+  receivedByUserId   Int?     @map("received_by_user_id")
+  movementDate       DateTime @default(now()) @map("movement_date")
+  batchNumber        String?  @map("batch_number") @db.VarChar(100)
+  notes              String?  @db.Text
+  documents          Json     @default("[]") @db.JsonB
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  account       Account?   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  warehouse     Warehouse? @relation("WarehouseMovements", fields: [warehouseId], references: [id])
+  material      Material?  @relation(fields: [materialId], references: [id])
+  fromWarehouse Warehouse? @relation("FromWarehouse", fields: [fromWarehouseId], references: [id])
+  toWarehouse   Warehouse? @relation("ToWarehouse", fields: [toWarehouseId], references: [id])
+  performedBy   User?      @relation("PerformedBy", fields: [performedByUserId], references: [id])
+  receivedBy    User?      @relation("ReceivedBy", fields: [receivedByUserId], references: [id])
+
+  @@map("warehouse_movements")
+}
+
+model InventoryCheck {
+  id                Int      @id @default(autoincrement())
+  warehouseId       Int      @map("warehouse_id")
+  checkNumber       String   @unique @map("check_number") @db.VarChar(100)
+  checkDate         DateTime @map("check_date") @db.Date
+  performedByUserId Int?     @map("performed_by_user_id")
+  status            Int      @default(0)
+  notes             String?  @db.Text
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at")
+
+  warehouse   Warehouse            @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  performedBy User?                @relation("InventoryPerformedBy", fields: [performedByUserId], references: [id])
+  items       InventoryCheckItem[]
+
+  @@map("inventory_checks")
+}
+
+model InventoryCheckItem {
+  id               Int      @id @default(autoincrement())
+  inventoryCheckId Int      @map("inventory_check_id")
+  materialId       Int?     @map("material_id")
+  expectedQuantity Decimal? @map("expected_quantity") @db.Decimal(10, 2)
+  actualQuantity   Decimal? @map("actual_quantity") @db.Decimal(10, 2)
+  // difference is a GENERATED column in DB, omitted from Prisma model
+  notes            String?  @db.Text
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  inventoryCheck InventoryCheck @relation(fields: [inventoryCheckId], references: [id], onDelete: Cascade)
+
+  @@map("inventory_check_items")
+}

@@ -1,0 +1,156 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id              Int              @id @default(autoincrement())
+  paymentAccounts PaymentAccount[]
+  payments        Payment[]
+  budgets         Budget[]
+  acts            Act[]
+
+  @@map("accounts")
+}
+
+model PaymentAccount {
+  id            Int       @id @default(autoincrement())
+  accountId     Int       @map("account_id")
+  name          String    @db.VarChar(255)
+  accountType   String?   @map("account_type") @db.VarChar(100)
+  bankName      String?   @map("bank_name") @db.VarChar(255)
+  accountNumber String?   @map("account_number") @db.VarChar(100)
+  currency      String?   @default("RUB") @db.VarChar(10)
+  balance       Decimal?  @default(0) @db.Decimal(15, 2)
+  isActive      Boolean?  @default(true) @map("is_active")
+  createdAt     DateTime? @default(now()) @map("created_at")
+  updatedAt     DateTime? @default(now()) @updatedAt @map("updated_at")
+
+  account  Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  payments Payment[]
+
+  @@map("payment_accounts")
+}
+
+model Payment {
+  id               Int       @id @default(autoincrement())
+  accountId        Int       @map("account_id")
+  paymentAccountId Int?      @map("payment_account_id")
+  projectId        Int?      @map("project_id")
+  paymentNumber    String    @unique @map("payment_number") @db.VarChar(100)
+  paymentType      String?   @map("payment_type") @db.VarChar(100)
+  category         String?   @db.VarChar(100)
+  counterpartyType String?   @map("counterparty_type") @db.VarChar(50)
+  supplierId       Int?      @map("supplier_id")
+  contractorId     Int?      @map("contractor_id")
+  userId           Int?      @map("user_id")
+  supplierOrderId  Int?      @map("supplier_order_id")
+  actId            Int?      @map("act_id")
+  amount           Decimal   @db.Decimal(15, 2)
+  currency         String?   @default("RUB") @db.VarChar(10)
+  paymentDate      DateTime  @map("payment_date") @db.Date
+  paymentMethod    String?   @map("payment_method") @db.VarChar(100)
+  status           Int?      @default(0)
+  description      String?
+  notes            String?
+  documents        Json?     @default("[]")
+  createdByUserId  Int?      @map("created_by_user_id")
+  approvedByUserId Int?      @map("approved_by_user_id")
+  createdAt        DateTime? @default(now()) @map("created_at")
+  updatedAt        DateTime? @default(now()) @updatedAt @map("updated_at")
+
+  account        Account         @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  paymentAccount PaymentAccount? @relation(fields: [paymentAccountId], references: [id])
+
+  @@map("payments")
+}
+
+model Budget {
+  id                 Int          @id @default(autoincrement())
+  accountId          Int          @map("account_id")
+  projectId          Int?         @map("project_id")
+  constructionSiteId Int?         @map("construction_site_id")
+  budgetName         String       @map("budget_name") @db.VarChar(255)
+  budgetPeriod       String?      @map("budget_period") @db.VarChar(100)
+  startDate          DateTime?    @map("start_date") @db.Date
+  endDate            DateTime?    @map("end_date") @db.Date
+  totalBudget        Decimal      @map("total_budget") @db.Decimal(15, 2)
+  allocatedAmount    Decimal?     @default(0) @map("allocated_amount") @db.Decimal(15, 2)
+  spentAmount        Decimal?     @default(0) @map("spent_amount") @db.Decimal(15, 2)
+  status             Int?         @default(1)
+  createdByUserId    Int?         @map("created_by_user_id")
+  approvedByUserId   Int?         @map("approved_by_user_id")
+  createdAt          DateTime?    @default(now()) @map("created_at")
+  updatedAt          DateTime?    @default(now()) @updatedAt @map("updated_at")
+
+  account Account      @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  items   BudgetItem[]
+
+  @@map("budgets")
+}
+
+model BudgetItem {
+  id              Int       @id @default(autoincrement())
+  budgetId        Int       @map("budget_id")
+  category        String?   @db.VarChar(100)
+  subcategory     String?   @db.VarChar(100)
+  description     String?
+  plannedAmount   Decimal   @map("planned_amount") @db.Decimal(15, 2)
+  allocatedAmount Decimal?  @default(0) @map("allocated_amount") @db.Decimal(15, 2)
+  spentAmount     Decimal?  @default(0) @map("spent_amount") @db.Decimal(15, 2)
+  createdAt       DateTime? @default(now()) @map("created_at")
+  updatedAt       DateTime? @default(now()) @updatedAt @map("updated_at")
+
+  budget Budget @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+
+  @@map("budget_items")
+}
+
+model Act {
+  id                 Int       @id @default(autoincrement())
+  accountId          Int       @map("account_id")
+  projectId          Int?      @map("project_id")
+  constructionSiteId Int?      @map("construction_site_id")
+  contractorId       Int?      @map("contractor_id")
+  actNumber          String    @unique @map("act_number") @db.VarChar(100)
+  actType            String?   @map("act_type") @db.VarChar(100)
+  actDate            DateTime  @map("act_date") @db.Date
+  subtotal           Decimal?  @db.Decimal(15, 2)
+  taxAmount          Decimal?  @map("tax_amount") @db.Decimal(15, 2)
+  totalAmount        Decimal?  @map("total_amount") @db.Decimal(15, 2)
+  currency           String?   @default("RUB") @db.VarChar(10)
+  status             Int?      @default(0)
+  preparedByUserId   Int?      @map("prepared_by_user_id")
+  approvedByUserId   Int?      @map("approved_by_user_id")
+  description        String?
+  notes              String?
+  documents          Json?     @default("[]")
+  createdAt          DateTime? @default(now()) @map("created_at")
+  updatedAt          DateTime? @default(now()) @updatedAt @map("updated_at")
+
+  account Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  items   ActItem[]
+
+  @@map("acts")
+}
+
+model ActItem {
+  id             Int       @id @default(autoincrement())
+  actId          Int       @map("act_id")
+  taskId         Int?      @map("task_id")
+  workTemplateId Int?      @map("work_template_id")
+  description    String
+  quantity       Decimal?  @db.Decimal(10, 2)
+  unit           String?   @db.VarChar(50)
+  unitPrice      Decimal?  @map("unit_price") @db.Decimal(10, 2)
+  totalPrice     Decimal?  @map("total_price") @db.Decimal(10, 2)
+  createdAt      DateTime? @default(now()) @map("created_at")
+
+  act Act @relation(fields: [actId], references: [id], onDelete: Cascade)
+
+  @@map("act_items")
+}

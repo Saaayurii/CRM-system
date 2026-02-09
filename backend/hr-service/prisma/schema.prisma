@@ -1,0 +1,167 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(255)
+  status    Int      @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  safetyIncidents SafetyIncident[]
+  safetyTrainings SafetyTraining[]
+
+  @@map("accounts")
+}
+
+model User {
+  id        Int     @id @default(autoincrement())
+  accountId Int     @map("account_id")
+  name      String  @db.VarChar(255)
+  email     String  @unique @db.VarChar(255)
+  isActive  Boolean @default(true) @map("is_active")
+
+  employeeDocuments     EmployeeDocument[]
+  timeOffRequests       TimeOffRequest[]
+  attendance            Attendance[]
+  safetyTrainingRecords SafetyTrainingRecord[]
+
+  @@map("users")
+}
+
+model EmployeeDocument {
+  id               Int       @id @default(autoincrement())
+  userId           Int       @map("user_id")
+  documentType     String?   @map("document_type") @db.VarChar(100)
+  documentNumber   String?   @map("document_number") @db.VarChar(100)
+  issueDate        DateTime? @map("issue_date") @db.Date
+  expiryDate       DateTime? @map("expiry_date") @db.Date
+  issuingAuthority String?   @map("issuing_authority") @db.VarChar(255)
+  fileUrl          String?   @map("file_url") @db.VarChar(500)
+  notes            String?   @db.Text
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("employee_documents")
+}
+
+model TimeOffRequest {
+  id               Int       @id @default(autoincrement())
+  userId           Int       @map("user_id")
+  requestType      String?   @map("request_type") @db.VarChar(100)
+  startDate        DateTime  @map("start_date") @db.Date
+  endDate          DateTime  @map("end_date") @db.Date
+  daysCount        Int?      @map("days_count")
+  reason           String?   @db.Text
+  status           Int       @default(0)
+  requestedAt      DateTime  @default(now()) @map("requested_at")
+  approvedByUserId Int?      @map("approved_by_user_id")
+  approvedAt       DateTime? @map("approved_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("time_off_requests")
+}
+
+model Attendance {
+  id                 Int       @id @default(autoincrement())
+  userId             Int       @map("user_id")
+  projectId          Int?      @map("project_id")
+  constructionSiteId Int?      @map("construction_site_id")
+  attendanceDate     DateTime  @map("attendance_date") @db.Date
+  checkInTime        DateTime? @map("check_in_time")
+  checkOutTime       DateTime? @map("check_out_time")
+  workedHours        Decimal?  @map("worked_hours") @db.Decimal(8, 2)
+  overtimeHours      Decimal?  @map("overtime_hours") @db.Decimal(8, 2)
+  status             String?   @db.VarChar(50)
+  notes              String?   @db.Text
+  createdAt          DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, attendanceDate])
+  @@index([userId])
+  @@index([attendanceDate])
+  @@map("attendance")
+}
+
+model SafetyIncident {
+  id                   Int      @id @default(autoincrement())
+  accountId            Int      @map("account_id")
+  projectId            Int?     @map("project_id")
+  constructionSiteId   Int?     @map("construction_site_id")
+  incidentNumber       String   @unique @map("incident_number") @db.VarChar(100)
+  incidentType         String?  @map("incident_type") @db.VarChar(100)
+  severity             Int?
+  incidentDate         DateTime @map("incident_date")
+  locationDescription  String?  @map("location_description") @db.Text
+  description          String   @db.Text
+  affectedUsers        Json     @default("[]") @map("affected_users")
+  rootCause            String?  @map("root_cause") @db.Text
+  contributingFactors  Json     @default("[]") @map("contributing_factors")
+  immediateActions     String?  @map("immediate_actions") @db.Text
+  correctiveActions    String?  @map("corrective_actions") @db.Text
+  preventiveActions    String?  @map("preventive_actions") @db.Text
+  reportedByUserId     Int?     @map("reported_by_user_id")
+  investigatedByUserId Int?     @map("investigated_by_user_id")
+  status               Int      @default(0)
+  photos               Json     @default("[]")
+  documents            Json     @default("[]")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @default(now()) @updatedAt @map("updated_at")
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@map("safety_incidents")
+}
+
+model SafetyTraining {
+  id             Int      @id @default(autoincrement())
+  accountId      Int      @map("account_id")
+  trainingName   String   @map("training_name") @db.VarChar(255)
+  trainingType   String?  @map("training_type") @db.VarChar(100)
+  description    String?  @db.Text
+  durationHours  Int?     @map("duration_hours")
+  validityMonths Int?     @map("validity_months")
+  isMandatory    Boolean  @default(true) @map("is_mandatory")
+  materials      Json     @default("[]")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
+
+  account         Account                @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  trainingRecords SafetyTrainingRecord[]
+
+  @@map("safety_trainings")
+}
+
+model SafetyTrainingRecord {
+  id                Int       @id @default(autoincrement())
+  userId            Int       @map("user_id")
+  safetyTrainingId  Int?      @map("safety_training_id")
+  trainingDate      DateTime  @map("training_date") @db.Date
+  trainerId         Int?      @map("trainer_id")
+  expiryDate        DateTime? @map("expiry_date") @db.Date
+  score             Int?
+  passed            Boolean?
+  certificateNumber String?   @map("certificate_number") @db.VarChar(100)
+  certificateUrl    String?   @map("certificate_url") @db.VarChar(500)
+  notes             String?   @db.Text
+  createdAt         DateTime  @default(now()) @map("created_at")
+
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  safetyTraining SafetyTraining? @relation(fields: [safetyTrainingId], references: [id])
+
+  @@index([userId])
+  @@index([expiryDate])
+  @@map("safety_training_records")
+}
