@@ -11,8 +11,6 @@ import {
 import { Logger, UseFilters, UseGuards } from '@nestjs/common';
 import { Server } from 'socket.io';
 import { ConfigService } from '@nestjs/config';
-import Redis from 'ioredis';
-import { createAdapter } from '@socket.io/redis-adapter';
 import { AuthenticatedSocket } from '../../common/interfaces/authenticated-socket.interface';
 import { WsJwtGuard } from '../../common/guards/ws-jwt.guard';
 import { WsExceptionFilter } from '../../common/filters/ws-exception.filter';
@@ -39,15 +37,8 @@ export class ChatGateway
     private readonly presenceService: PresenceService,
   ) {}
 
-  afterInit(server: Server) {
-    const redisHost = this.configService.get<string>('redis.host') || 'localhost';
-    const redisPort = this.configService.get<number>('redis.port') || 6379;
-
-    const pubClient = new Redis({ host: redisHost, port: redisPort });
-    const subClient = pubClient.duplicate();
-
-    server.adapter(createAdapter(pubClient, subClient) as any);
-    this.logger.log('WebSocket server initialized with Redis adapter');
+  afterInit() {
+    this.logger.log('WebSocket server initialized (Redis adapter via main.ts)');
   }
 
   async handleConnection(client: AuthenticatedSocket) {
