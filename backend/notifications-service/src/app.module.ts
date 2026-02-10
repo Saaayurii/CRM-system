@@ -5,7 +5,6 @@ import { APP_GUARD, APP_FILTER } from '@nestjs/core';
 import configuration from './config/configuration';
 import { DatabaseModule } from './database/database.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
-import { ChatModule } from './modules/chat/chat.module';
 import { HealthModule } from './modules/health/health.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { JwtStrategy } from './common/guards/jwt.strategy';
@@ -20,7 +19,6 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     PassportModule.register({ defaultStrategy: 'jwt' }),
     DatabaseModule,
     NotificationsModule,
-    ChatModule,
     HealthModule,
   ],
   providers: [

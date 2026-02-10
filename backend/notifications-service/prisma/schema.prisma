@@ -16,7 +16,6 @@ model Account {
 
   notifications Notification[]
   announcements Announcement[]
-  chatChannels  ChatChannel[]
 
   @@map("accounts")
 }
@@ -29,8 +28,6 @@ model User {
   isActive  Boolean @default(true) @map("is_active")
 
   notifications      Notification[]
-  chatChannelMembers ChatChannelMember[]
-  chatMessages       ChatMessage[]
 
   @@map("users")
 }
@@ -81,66 +78,3 @@ model Announcement {
   @@map("announcements")
 }
 
-model ChatChannel {
-  id                 Int      @id @default(autoincrement())
-  accountId          Int      @map("account_id")
-  channelType        String?  @map("channel_type") @db.VarChar(50)
-  name               String?  @db.VarChar(255)
-  description        String?  @db.Text
-  projectId          Int?     @map("project_id")
-  constructionSiteId Int?     @map("construction_site_id")
-  teamId             Int?     @map("team_id")
-  createdByUserId    Int?     @map("created_by_user_id")
-  isPrivate          Boolean  @default(false) @map("is_private")
-  settings           Json     @default("{}")
-  createdAt          DateTime @default(now()) @map("created_at")
-  updatedAt          DateTime @default(now()) @updatedAt @map("updated_at")
-
-  account  Account             @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  members  ChatChannelMember[]
-  messages ChatMessage[]
-
-  @@map("chat_channels")
-}
-
-model ChatChannelMember {
-  id         Int       @id @default(autoincrement())
-  channelId  Int       @map("channel_id")
-  userId     Int       @map("user_id")
-  role       String?   @db.VarChar(50)
-  joinedAt   DateTime  @default(now()) @map("joined_at")
-  lastReadAt DateTime? @map("last_read_at")
-  isMuted    Boolean   @default(false) @map("is_muted")
-
-  channel ChatChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([channelId, userId])
-  @@map("chat_channel_members")
-}
-
-model ChatMessage {
-  id               Int       @id @default(autoincrement())
-  channelId        Int       @map("channel_id")
-  userId           Int?      @map("user_id")
-  messageText      String?   @map("message_text") @db.Text
-  messageType      String    @default("text") @map("message_type") @db.VarChar(50)
-  attachments      Json      @default("[]")
-  replyToMessageId Int?      @map("reply_to_message_id")
-  reactions        Json      @default("{}")
-  isEdited         Boolean   @default(false) @map("is_edited")
-  editedAt         DateTime? @map("edited_at")
-  isDeleted        Boolean   @default(false) @map("is_deleted")
-  deletedAt        DateTime? @map("deleted_at")
-  createdAt        DateTime  @default(now()) @map("created_at")
-
-  channel        ChatChannel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  user           User?        @relation(fields: [userId], references: [id])
-  replyToMessage ChatMessage? @relation("MessageReplies", fields: [replyToMessageId], references: [id])
-  replies        ChatMessage[] @relation("MessageReplies")
-
-  @@index([channelId])
-  @@index([userId])
-  @@index([createdAt])
-  @@map("chat_messages")
-}
