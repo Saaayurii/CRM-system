@@ -9,6 +9,12 @@ import { ProxyModule } from './common/services/proxy.module';
 import { AuthGatewayModule } from './modules/auth/auth-gateway.module';
 import { UsersGatewayModule } from './modules/users/users-gateway.module';
 import { ProjectsGatewayModule } from './modules/projects/projects-gateway.module';
+import { MaterialsGatewayModule } from './modules/materials/materials-gateway.module';
+import { SuppliersGatewayModule } from './modules/suppliers/suppliers-gateway.module';
+import { FinanceGatewayModule } from './modules/finance/finance-gateway.module';
+import { InspectionsGatewayModule } from './modules/inspections/inspections-gateway.module';
+import { HrGatewayModule } from './modules/hr/hr-gateway.module';
+import { NotificationsGatewayModule } from './modules/notifications/notifications-gateway.module';
 import { HealthModule } from './modules/health/health.module';
 import { JwtStrategy } from './common/guards/jwt.strategy';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
@@ -52,6 +58,12 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
     AuthGatewayModule,
     UsersGatewayModule,
     ProjectsGatewayModule,
+    MaterialsGatewayModule,
+    SuppliersGatewayModule,
+    FinanceGatewayModule,
+    InspectionsGatewayModule,
+    HrGatewayModule,
+    NotificationsGatewayModule,
     HealthModule,
   ],
   providers: [
