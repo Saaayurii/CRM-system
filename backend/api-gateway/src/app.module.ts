@@ -15,6 +15,7 @@ import { FinanceGatewayModule } from './modules/finance/finance-gateway.module';
 import { InspectionsGatewayModule } from './modules/inspections/inspections-gateway.module';
 import { HrGatewayModule } from './modules/hr/hr-gateway.module';
 import { NotificationsGatewayModule } from './modules/notifications/notifications-gateway.module';
+import { ChatGatewayModule } from './modules/chat/chat-gateway.module';
 import { HealthModule } from './modules/health/health.module';
 import { JwtStrategy } from './common/guards/jwt.strategy';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
@@ -64,6 +65,7 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
     InspectionsGatewayModule,
     HrGatewayModule,
     NotificationsGatewayModule,
+    ChatGatewayModule,
     HealthModule,
   ],
   providers: [

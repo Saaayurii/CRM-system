@@ -32,6 +32,7 @@ export class ProxyService {
       inspections: this.configService.get<string>('services.inspections') || 'http://localhost:3008',
       hr: this.configService.get<string>('services.hr') || 'http://localhost:3009',
       notifications: this.configService.get<string>('services.notifications') || 'http://localhost:3010',
+      chat: this.configService.get<string>('services.chat') || 'http://localhost:3011',
     };
   }
 

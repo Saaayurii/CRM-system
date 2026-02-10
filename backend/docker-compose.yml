@@ -100,7 +100,8 @@ services:
       INSPECTIONS_SERVICE_URL: http://inspections-service:3008
       HR_SERVICE_URL: http://hr-service:3009
       NOTIFICATIONS_SERVICE_URL: http://notifications-service:3010
-      
+      CHAT_SERVICE_URL: http://chat-service:3011
+
       # Redis
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -464,6 +465,39 @@ services:
       - crm-network
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:3010/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ==========================================
+  # CHAT SERVICE (ЧАТ В РЕАЛЬНОМ ВРЕМЕНИ)
+  # ==========================================
+
+  chat-service:
+    build:
+      context: ./chat-service
+      dockerfile: Dockerfile
+    container_name: crm-chat-service
+    restart: unless-stopped
+    ports:
+      - "${CHAT_SERVICE_PORT:-3011}:3011"
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3011
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-construction_crm}?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-this-secret-key-in-production-access}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - crm-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3011/health"]
       interval: 30s
       timeout: 10s
       retries: 3
