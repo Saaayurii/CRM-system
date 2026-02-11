@@ -1,0 +1,36 @@
+generator client { provider = "prisma-client-js" }
+datasource db { provider = "postgresql"; url = env("DATABASE_URL") }
+
+model Account {
+  id Int @id @default(autoincrement())
+  name String @db.VarChar(255)
+  status Int @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  eventLogs EventLog[]
+  @@map("accounts")
+}
+
+model EventLog {
+  id Int @id @default(autoincrement())
+  accountId Int @map("account_id")
+  eventType String @map("event_type") @db.VarChar(100)
+  eventCategory String? @map("event_category") @db.VarChar(100)
+  action String @db.VarChar(100)
+  entityType String? @map("entity_type") @db.VarChar(100)
+  entityId Int? @map("entity_id")
+  userId Int? @map("user_id")
+  ipAddress String? @map("ip_address") @db.VarChar(50)
+  userAgent String? @map("user_agent") @db.Text
+  description String? @db.Text
+  changes Json?
+  metadata Json @default("{}")
+  projectId Int? @map("project_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  @@index([accountId])
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("event_log")
+}

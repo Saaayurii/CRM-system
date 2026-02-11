@@ -101,6 +101,18 @@ services:
       HR_SERVICE_URL: http://hr-service:3009
       NOTIFICATIONS_SERVICE_URL: http://notifications-service:3010
       CHAT_SERVICE_URL: http://chat-service:3011
+      CALENDAR_SERVICE_URL: http://calendar-service:3012
+      EQUIPMENT_SERVICE_URL: http://equipment-service:3013
+      DOCUMENTS_SERVICE_URL: http://documents-service:3014
+      REPORTS_SERVICE_URL: http://reports-service:3015
+      DICTIONARY_SERVICE_URL: http://dictionary-service:3016
+      AUDIT_SERVICE_URL: http://audit-service:3017
+      CLIENTS_SERVICE_URL: http://clients-service:3018
+      WIKI_SERVICE_URL: http://wiki-service:3019
+      TRAINING_SERVICE_URL: http://training-service:3020
+      AUTOMATION_SERVICE_URL: http://automation-service:3021
+      SETTINGS_SERVICE_URL: http://settings-service:3022
+      DASHBOARD_SERVICE_URL: http://dashboard-service:3023
 
       # Redis
       REDIS_HOST: redis
@@ -498,6 +510,366 @@ services:
       - crm-network
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:3011/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ==========================================
+  # CALENDAR SERVICE (КАЛЕНДАРЬ)
+  # ==========================================
+
+  calendar-service:
+    build:
+      context: ./calendar-service
+      dockerfile: Dockerfile
+    container_name: crm-calendar-service
+    restart: unless-stopped
+    ports:
+      - "${CALENDAR_SERVICE_PORT:-3012}:3012"
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3012
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-construction_crm}?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-this-secret-key-in-production-access}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - crm-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3012/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ==========================================
+  # EQUIPMENT SERVICE (ТЕХНИКА И ОБОРУДОВАНИЕ)
+  # ==========================================
+
+  equipment-service:
+    build:
+      context: ./equipment-service
+      dockerfile: Dockerfile
+    container_name: crm-equipment-service
+    restart: unless-stopped
+    ports:
+      - "${EQUIPMENT_SERVICE_PORT:-3013}:3013"
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3013
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-construction_crm}?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-this-secret-key-in-production-access}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - crm-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3013/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ==========================================
+  # DOCUMENTS SERVICE (ДОКУМЕНТЫ)
+  # ==========================================
+
+  documents-service:
+    build:
+      context: ./documents-service
+      dockerfile: Dockerfile
+    container_name: crm-documents-service
+    restart: unless-stopped
+    ports:
+      - "${DOCUMENTS_SERVICE_PORT:-3014}:3014"
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3014
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-construction_crm}?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-this-secret-key-in-production-access}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - crm-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3014/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ==========================================
+  # REPORTS SERVICE (ОТЧЁТЫ)
+  # ==========================================
+
+  reports-service:
+    build:
+      context: ./reports-service
+      dockerfile: Dockerfile
+    container_name: crm-reports-service
+    restart: unless-stopped
+    ports:
+      - "${REPORTS_SERVICE_PORT:-3015}:3015"
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3015
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-construction_crm}?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-this-secret-key-in-production-access}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - crm-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3015/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ==========================================
+  # DICTIONARY SERVICE (СПРАВОЧНИКИ)
+  # ==========================================
+
+  dictionary-service:
+    build:
+      context: ./dictionary-service
+      dockerfile: Dockerfile
+    container_name: crm-dictionary-service
+    restart: unless-stopped
+    ports:
+      - "${DICTIONARY_SERVICE_PORT:-3016}:3016"
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3016
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-construction_crm}?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-this-secret-key-in-production-access}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - crm-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3016/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ==========================================
+  # AUDIT SERVICE (АУДИТ)
+  # ==========================================
+
+  audit-service:
+    build:
+      context: ./audit-service
+      dockerfile: Dockerfile
+    container_name: crm-audit-service
+    restart: unless-stopped
+    ports:
+      - "${AUDIT_SERVICE_PORT:-3017}:3017"
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3017
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-construction_crm}?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-this-secret-key-in-production-access}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - crm-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3017/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ==========================================
+  # CLIENTS SERVICE (КЛИЕНТЫ)
+  # ==========================================
+
+  clients-service:
+    build:
+      context: ./clients-service
+      dockerfile: Dockerfile
+    container_name: crm-clients-service
+    restart: unless-stopped
+    ports:
+      - "${CLIENTS_SERVICE_PORT:-3018}:3018"
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3018
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-construction_crm}?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-this-secret-key-in-production-access}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - crm-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3018/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ==========================================
+  # WIKI SERVICE (БАЗА ЗНАНИЙ)
+  # ==========================================
+
+  wiki-service:
+    build:
+      context: ./wiki-service
+      dockerfile: Dockerfile
+    container_name: crm-wiki-service
+    restart: unless-stopped
+    ports:
+      - "${WIKI_SERVICE_PORT:-3019}:3019"
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3019
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-construction_crm}?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-this-secret-key-in-production-access}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - crm-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3019/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ==========================================
+  # TRAINING SERVICE (ОБУЧЕНИЕ)
+  # ==========================================
+
+  training-service:
+    build:
+      context: ./training-service
+      dockerfile: Dockerfile
+    container_name: crm-training-service
+    restart: unless-stopped
+    ports:
+      - "${TRAINING_SERVICE_PORT:-3020}:3020"
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3020
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-construction_crm}?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-this-secret-key-in-production-access}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - crm-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3020/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ==========================================
+  # AUTOMATION SERVICE (АВТОМАТИЗАЦИЯ)
+  # ==========================================
+
+  automation-service:
+    build:
+      context: ./automation-service
+      dockerfile: Dockerfile
+    container_name: crm-automation-service
+    restart: unless-stopped
+    ports:
+      - "${AUTOMATION_SERVICE_PORT:-3021}:3021"
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3021
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-construction_crm}?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-this-secret-key-in-production-access}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - crm-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3021/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ==========================================
+  # SETTINGS SERVICE (НАСТРОЙКИ)
+  # ==========================================
+
+  settings-service:
+    build:
+      context: ./settings-service
+      dockerfile: Dockerfile
+    container_name: crm-settings-service
+    restart: unless-stopped
+    ports:
+      - "${SETTINGS_SERVICE_PORT:-3022}:3022"
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3022
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-construction_crm}?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-this-secret-key-in-production-access}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - crm-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3022/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ==========================================
+  # DASHBOARD SERVICE (ДАШБОРД)
+  # ==========================================
+
+  dashboard-service:
+    build:
+      context: ./dashboard-service
+      dockerfile: Dockerfile
+    container_name: crm-dashboard-service
+    restart: unless-stopped
+    ports:
+      - "${DASHBOARD_SERVICE_PORT:-3023}:3023"
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3023
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-construction_crm}?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-this-secret-key-in-production-access}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - crm-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3023/health"]
       interval: 30s
       timeout: 10s
       retries: 3

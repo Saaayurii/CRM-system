@@ -1,0 +1,86 @@
+generator client { provider = "prisma-client-js" }
+datasource db { provider = "postgresql"; url = env("DATABASE_URL") }
+
+model Account {
+  id Int @id @default(autoincrement())
+  name String @db.VarChar(255)
+  status Int @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  trainingMaterials TrainingMaterial[]
+  knowledgeTests KnowledgeTest[]
+  @@map("accounts")
+}
+
+model TrainingMaterial {
+  id Int @id @default(autoincrement())
+  accountId Int @map("account_id")
+  title String @db.VarChar(255)
+  materialType String? @map("material_type") @db.VarChar(100)
+  content String? @db.Text
+  fileUrl String? @map("file_url") @db.VarChar(500)
+  category String? @db.VarChar(100)
+  difficultyLevel String? @map("difficulty_level") @db.VarChar(50)
+  durationMinutes Int? @map("duration_minutes")
+  description String? @db.Text
+  tags Json @default("[]")
+  createdByUserId Int? @map("created_by_user_id")
+  isPublished Boolean @default(false) @map("is_published")
+  viewCount Int @default(0) @map("view_count")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  progress TrainingProgress[]
+  @@map("training_materials")
+}
+
+model TrainingProgress {
+  id Int @id @default(autoincrement())
+  userId Int @map("user_id")
+  trainingMaterialId Int @map("training_material_id")
+  startedAt DateTime? @map("started_at")
+  completedAt DateTime? @map("completed_at")
+  progressPercentage Int @default(0) @map("progress_percentage")
+  lastPosition String? @map("last_position") @db.VarChar(100)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  trainingMaterial TrainingMaterial @relation(fields: [trainingMaterialId], references: [id], onDelete: Cascade)
+  @@unique([userId, trainingMaterialId])
+  @@map("training_progress")
+}
+
+model KnowledgeTest {
+  id Int @id @default(autoincrement())
+  accountId Int @map("account_id")
+  title String @db.VarChar(255)
+  testType String? @map("test_type") @db.VarChar(100)
+  description String? @db.Text
+  passingScore Int? @map("passing_score")
+  timeLimitMinutes Int? @map("time_limit_minutes")
+  isMandatory Boolean @default(false) @map("is_mandatory")
+  questions Json @default("[]")
+  createdByUserId Int? @map("created_by_user_id")
+  isActive Boolean @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  attempts TestAttempt[]
+  @@map("knowledge_tests")
+}
+
+model TestAttempt {
+  id Int @id @default(autoincrement())
+  knowledgeTestId Int @map("knowledge_test_id")
+  userId Int @map("user_id")
+  startedAt DateTime @map("started_at")
+  completedAt DateTime? @map("completed_at")
+  score Int?
+  passed Boolean?
+  answers Json?
+  attemptNumber Int @default(1) @map("attempt_number")
+  createdAt DateTime @default(now()) @map("created_at")
+  knowledgeTest KnowledgeTest @relation(fields: [knowledgeTestId], references: [id], onDelete: Cascade)
+  @@index([userId])
+  @@index([knowledgeTestId])
+  @@map("test_attempts")
+}

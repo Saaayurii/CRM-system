@@ -1,0 +1,38 @@
+generator client { provider = "prisma-client-js" }
+datasource db { provider = "postgresql"; url = env("DATABASE_URL") }
+
+model Account {
+  id Int @id @default(autoincrement())
+  name String @db.VarChar(255)
+  status Int @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  wikiPages WikiPage[]
+  @@map("accounts")
+}
+
+model WikiPage {
+  id Int @id @default(autoincrement())
+  accountId Int @map("account_id")
+  title String @db.VarChar(255)
+  slug String? @unique @db.VarChar(255)
+  content String? @db.Text
+  category String? @db.VarChar(100)
+  parentPageId Int? @map("parent_page_id")
+  version Int @default(1)
+  createdByUserId Int? @map("created_by_user_id")
+  updatedByUserId Int? @map("updated_by_user_id")
+  isPublic Boolean @default(true) @map("is_public")
+  allowedRoles Json @default("[]") @map("allowed_roles")
+  tags Json @default("[]")
+  attachments Json @default("[]")
+  viewCount Int @default(0) @map("view_count")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  parentPage WikiPage? @relation("WikiPageHierarchy", fields: [parentPageId], references: [id])
+  childPages WikiPage[] @relation("WikiPageHierarchy")
+  @@index([accountId])
+  @@index([category])
+  @@map("wiki_pages")
+}

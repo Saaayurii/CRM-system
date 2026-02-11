@@ -9,6 +9,7 @@ import { ProxyModule } from './common/services/proxy.module';
 import { AuthGatewayModule } from './modules/auth/auth-gateway.module';
 import { UsersGatewayModule } from './modules/users/users-gateway.module';
 import { ProjectsGatewayModule } from './modules/projects/projects-gateway.module';
+import { TasksGatewayModule } from './modules/tasks/tasks-gateway.module';
 import { MaterialsGatewayModule } from './modules/materials/materials-gateway.module';
 import { SuppliersGatewayModule } from './modules/suppliers/suppliers-gateway.module';
 import { FinanceGatewayModule } from './modules/finance/finance-gateway.module';
@@ -16,6 +17,18 @@ import { InspectionsGatewayModule } from './modules/inspections/inspections-gate
 import { HrGatewayModule } from './modules/hr/hr-gateway.module';
 import { NotificationsGatewayModule } from './modules/notifications/notifications-gateway.module';
 import { ChatGatewayModule } from './modules/chat/chat-gateway.module';
+import { CalendarGatewayModule } from './modules/calendar/calendar-gateway.module';
+import { EquipmentGatewayModule } from './modules/equipment/equipment-gateway.module';
+import { DocumentsGatewayModule } from './modules/documents/documents-gateway.module';
+import { ReportsGatewayModule } from './modules/reports/reports-gateway.module';
+import { DictionaryGatewayModule } from './modules/dictionary/dictionary-gateway.module';
+import { AuditGatewayModule } from './modules/audit/audit-gateway.module';
+import { ClientsGatewayModule } from './modules/clients/clients-gateway.module';
+import { WikiGatewayModule } from './modules/wiki/wiki-gateway.module';
+import { TrainingGatewayModule } from './modules/training/training-gateway.module';
+import { AutomationGatewayModule } from './modules/automation/automation-gateway.module';
+import { SettingsGatewayModule } from './modules/settings/settings-gateway.module';
+import { DashboardGatewayModule } from './modules/dashboard/dashboard-gateway.module';
 import { HealthModule } from './modules/health/health.module';
 import { JwtStrategy } from './common/guards/jwt.strategy';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
@@ -59,6 +72,7 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
     AuthGatewayModule,
     UsersGatewayModule,
     ProjectsGatewayModule,
+    TasksGatewayModule,
     MaterialsGatewayModule,
     SuppliersGatewayModule,
     FinanceGatewayModule,
@@ -66,6 +80,18 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
     HrGatewayModule,
     NotificationsGatewayModule,
     ChatGatewayModule,
+    CalendarGatewayModule,
+    EquipmentGatewayModule,
+    DocumentsGatewayModule,
+    ReportsGatewayModule,
+    DictionaryGatewayModule,
+    AuditGatewayModule,
+    ClientsGatewayModule,
+    WikiGatewayModule,
+    TrainingGatewayModule,
+    AutomationGatewayModule,
+    SettingsGatewayModule,
+    DashboardGatewayModule,
     HealthModule,
   ],
   providers: [

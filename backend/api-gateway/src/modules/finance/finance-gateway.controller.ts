@@ -246,4 +246,68 @@ export class FinanceGatewayController {
       data: body,
     });
   }
+
+  // Bonuses
+  @Get('bonuses')
+  @ApiOperation({ summary: 'Get all bonuses' })
+  @ApiQuery({ name: 'page', required: false }) @ApiQuery({ name: 'limit', required: false })
+  async findAllBonuses(@Req() req: Request, @Query('page') page?: number, @Query('limit') limit?: number) {
+    return this.proxyService.forward('finance', { method: 'GET', path: '/bonuses', headers: { authorization: req.headers.authorization || '' }, params: { page, limit } });
+  }
+
+  @Get('bonuses/:id')
+  @ApiOperation({ summary: 'Get bonus by ID' })
+  async findOneBonus(@Req() req: Request, @Param('id') id: string) {
+    return this.proxyService.forward('finance', { method: 'GET', path: `/bonuses/${id}`, headers: { authorization: req.headers.authorization || '' } });
+  }
+
+  @Post('bonuses')
+  @ApiOperation({ summary: 'Create bonus' })
+  async createBonus(@Req() req: Request, @Body() body: any) {
+    return this.proxyService.forward('finance', { method: 'POST', path: '/bonuses', headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' }, data: body });
+  }
+
+  @Put('bonuses/:id')
+  @ApiOperation({ summary: 'Update bonus' })
+  async updateBonus(@Req() req: Request, @Param('id') id: string, @Body() body: any) {
+    return this.proxyService.forward('finance', { method: 'PUT', path: `/bonuses/${id}`, headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' }, data: body });
+  }
+
+  @Delete('bonuses/:id')
+  @ApiOperation({ summary: 'Delete bonus' })
+  async removeBonus(@Req() req: Request, @Param('id') id: string) {
+    return this.proxyService.forward('finance', { method: 'DELETE', path: `/bonuses/${id}`, headers: { authorization: req.headers.authorization || '' } });
+  }
+
+  // Payroll
+  @Get('payroll')
+  @ApiOperation({ summary: 'Get all payroll records' })
+  @ApiQuery({ name: 'page', required: false }) @ApiQuery({ name: 'limit', required: false })
+  async findAllPayroll(@Req() req: Request, @Query('page') page?: number, @Query('limit') limit?: number) {
+    return this.proxyService.forward('finance', { method: 'GET', path: '/payroll', headers: { authorization: req.headers.authorization || '' }, params: { page, limit } });
+  }
+
+  @Get('payroll/:id')
+  @ApiOperation({ summary: 'Get payroll record by ID' })
+  async findOnePayroll(@Req() req: Request, @Param('id') id: string) {
+    return this.proxyService.forward('finance', { method: 'GET', path: `/payroll/${id}`, headers: { authorization: req.headers.authorization || '' } });
+  }
+
+  @Post('payroll')
+  @ApiOperation({ summary: 'Create payroll record' })
+  async createPayroll(@Req() req: Request, @Body() body: any) {
+    return this.proxyService.forward('finance', { method: 'POST', path: '/payroll', headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' }, data: body });
+  }
+
+  @Put('payroll/:id')
+  @ApiOperation({ summary: 'Update payroll record' })
+  async updatePayroll(@Req() req: Request, @Param('id') id: string, @Body() body: any) {
+    return this.proxyService.forward('finance', { method: 'PUT', path: `/payroll/${id}`, headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' }, data: body });
+  }
+
+  @Delete('payroll/:id')
+  @ApiOperation({ summary: 'Delete payroll record' })
+  async removePayroll(@Req() req: Request, @Param('id') id: string) {
+    return this.proxyService.forward('finance', { method: 'DELETE', path: `/payroll/${id}`, headers: { authorization: req.headers.authorization || '' } });
+  }
 }

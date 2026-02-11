@@ -1,0 +1,44 @@
+generator client { provider = "prisma-client-js" }
+datasource db { provider = "postgresql"; url = env("DATABASE_URL") }
+
+model Account {
+  id Int @id @default(autoincrement())
+  name String @db.VarChar(255)
+  status Int @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  automationRules AutomationRule[]
+  @@map("accounts")
+}
+
+model AutomationRule {
+  id Int @id @default(autoincrement())
+  accountId Int @map("account_id")
+  name String @db.VarChar(255)
+  description String? @db.Text
+  ruleType String? @map("rule_type") @db.VarChar(100)
+  triggerEvent String? @map("trigger_event") @db.VarChar(100)
+  triggerConditions Json @default("{}") @map("trigger_conditions")
+  actions Json @default("[]")
+  isActive Boolean @default(true) @map("is_active")
+  executionCount Int @default(0) @map("execution_count")
+  lastExecutedAt DateTime? @map("last_executed_at")
+  createdByUserId Int? @map("created_by_user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  executionLogs AutomationExecutionLog[]
+  @@map("automation_rules")
+}
+
+model AutomationExecutionLog {
+  id Int @id @default(autoincrement())
+  automationRuleId Int @map("automation_rule_id")
+  executedAt DateTime @default(now()) @map("executed_at")
+  triggerData Json? @map("trigger_data")
+  executionResult Json? @map("execution_result")
+  success Boolean?
+  errorMessage String? @map("error_message") @db.Text
+  automationRule AutomationRule @relation(fields: [automationRuleId], references: [id], onDelete: Cascade)
+  @@map("automation_execution_log")
+}

@@ -287,4 +287,56 @@ export class HrGatewayController {
       data: body,
     });
   }
+
+  // Teams
+  @Get('teams')
+  @ApiOperation({ summary: 'Get all teams' })
+  @ApiQuery({ name: 'page', required: false }) @ApiQuery({ name: 'limit', required: false })
+  async findAllTeams(@Req() req: Request, @Query('page') page?: number, @Query('limit') limit?: number) {
+    return this.proxyService.forward('hr', { method: 'GET', path: '/teams', headers: { authorization: req.headers.authorization || '' }, params: { page, limit } });
+  }
+
+  @Get('teams/:id')
+  @ApiOperation({ summary: 'Get team by ID' })
+  async findOneTeam(@Req() req: Request, @Param('id') id: string) {
+    return this.proxyService.forward('hr', { method: 'GET', path: `/teams/${id}`, headers: { authorization: req.headers.authorization || '' } });
+  }
+
+  @Post('teams')
+  @ApiOperation({ summary: 'Create team' })
+  async createTeam(@Req() req: Request, @Body() body: any) {
+    return this.proxyService.forward('hr', { method: 'POST', path: '/teams', headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' }, data: body });
+  }
+
+  @Put('teams/:id')
+  @ApiOperation({ summary: 'Update team' })
+  async updateTeam(@Req() req: Request, @Param('id') id: string, @Body() body: any) {
+    return this.proxyService.forward('hr', { method: 'PUT', path: `/teams/${id}`, headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' }, data: body });
+  }
+
+  @Delete('teams/:id')
+  @ApiOperation({ summary: 'Delete team' })
+  async removeTeam(@Req() req: Request, @Param('id') id: string) {
+    return this.proxyService.forward('hr', { method: 'DELETE', path: `/teams/${id}`, headers: { authorization: req.headers.authorization || '' } });
+  }
+
+  // Team Members
+  @Get('team-members')
+  @ApiOperation({ summary: 'Get all team members' })
+  @ApiQuery({ name: 'page', required: false }) @ApiQuery({ name: 'limit', required: false }) @ApiQuery({ name: 'teamId', required: false })
+  async findAllTeamMembers(@Req() req: Request, @Query('page') page?: number, @Query('limit') limit?: number, @Query('teamId') teamId?: number) {
+    return this.proxyService.forward('hr', { method: 'GET', path: '/team-members', headers: { authorization: req.headers.authorization || '' }, params: { page, limit, teamId } });
+  }
+
+  @Post('team-members')
+  @ApiOperation({ summary: 'Add team member' })
+  async addTeamMember(@Req() req: Request, @Body() body: any) {
+    return this.proxyService.forward('hr', { method: 'POST', path: '/team-members', headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' }, data: body });
+  }
+
+  @Delete('team-members/:id')
+  @ApiOperation({ summary: 'Remove team member' })
+  async removeTeamMember(@Req() req: Request, @Param('id') id: string) {
+    return this.proxyService.forward('hr', { method: 'DELETE', path: `/team-members/${id}`, headers: { authorization: req.headers.authorization || '' } });
+  }
 }

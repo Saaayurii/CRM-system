@@ -1,0 +1,16 @@
+generator client { provider = "prisma-client-js" }
+datasource db { provider = "postgresql"; url = env("DATABASE_URL") }
+
+model DashboardWidget {
+  id Int @id @default(autoincrement())
+  userId Int @map("user_id")
+  widgetType String? @map("widget_type") @db.VarChar(100)
+  title String? @db.VarChar(255)
+  configuration Json @default("{}")
+  position Int?
+  size String? @db.VarChar(50)
+  isVisible Boolean @default(true) @map("is_visible")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  @@map("dashboard_widgets")
+}
