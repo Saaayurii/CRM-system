@@ -1,0 +1,42 @@
+generator client { provider = "prisma-client-js" }
+datasource db { provider = "postgresql"; url = env("DATABASE_URL") }
+
+model Account {
+  id               Int               @id @default(autoincrement())
+  name             String            @db.VarChar(255)
+  status           Int               @default(1)
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @default(now()) @updatedAt @map("updated_at")
+  dictionaryValues DictionaryValue[]
+  @@map("accounts")
+}
+
+model DictionaryType {
+  id          Int               @id @default(autoincrement())
+  code        String            @unique @db.VarChar(100)
+  name        String            @db.VarChar(255)
+  description String?           @db.Text
+  isSystem    Boolean           @default(false) @map("is_system")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  values      DictionaryValue[]
+  @@map("dictionary_types")
+}
+
+model DictionaryValue {
+  id               Int            @id @default(autoincrement())
+  dictionaryTypeId Int            @map("dictionary_type_id")
+  accountId        Int            @map("account_id")
+  code             String?        @db.VarChar(100)
+  name             String         @db.VarChar(255)
+  description      String?        @db.Text
+  parentValueId    Int?           @map("parent_value_id")
+  sortOrder        Int            @default(0) @map("sort_order")
+  isActive         Boolean        @default(true) @map("is_active")
+  metadata         Json           @default("{}")
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @default(now()) @updatedAt @map("updated_at")
+  dictionaryType   DictionaryType @relation(fields: [dictionaryTypeId], references: [id], onDelete: Cascade)
+  account          Account        @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  @@unique([dictionaryTypeId, accountId, code])
+  @@map("dictionary_values")
+}

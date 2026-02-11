@@ -1,0 +1,63 @@
+generator client { provider = "prisma-client-js" }
+datasource db { provider = "postgresql"; url = env("DATABASE_URL") }
+
+model Account {
+  id Int @id @default(autoincrement())
+  name String @db.VarChar(255)
+  status Int @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  documents Document[]
+  documentTemplates DocumentTemplate[]
+  @@map("accounts")
+}
+
+model Document {
+  id Int @id @default(autoincrement())
+  accountId Int @map("account_id")
+  documentType String? @map("document_type") @db.VarChar(100)
+  title String @db.VarChar(255)
+  documentNumber String? @map("document_number") @db.VarChar(100)
+  description String? @db.Text
+  projectId Int? @map("project_id")
+  constructionSiteId Int? @map("construction_site_id")
+  supplierId Int? @map("supplier_id")
+  contractorId Int? @map("contractor_id")
+  version String? @db.VarChar(50)
+  parentDocumentId Int? @map("parent_document_id")
+  fileUrl String? @map("file_url") @db.VarChar(500)
+  fileSize Int? @map("file_size")
+  fileType String? @map("file_type") @db.VarChar(100)
+  issueDate DateTime? @map("issue_date") @db.Date
+  expiryDate DateTime? @map("expiry_date") @db.Date
+  status String? @db.VarChar(50)
+  uploadedByUserId Int? @map("uploaded_by_user_id")
+  approvedByUserId Int? @map("approved_by_user_id")
+  accessLevel String? @map("access_level") @db.VarChar(50)
+  allowedRoles Json @default("[]") @map("allowed_roles")
+  tags Json @default("[]")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  @@index([accountId])
+  @@index([projectId])
+  @@index([documentType])
+  @@map("documents")
+}
+
+model DocumentTemplate {
+  id Int @id @default(autoincrement())
+  accountId Int @map("account_id")
+  name String @db.VarChar(255)
+  templateType String? @map("template_type") @db.VarChar(100)
+  description String? @db.Text
+  templateContent String? @map("template_content") @db.Text
+  variables Json @default("[]")
+  isActive Boolean @default(true) @map("is_active")
+  createdByUserId Int? @map("created_by_user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  @@map("document_templates")
+}

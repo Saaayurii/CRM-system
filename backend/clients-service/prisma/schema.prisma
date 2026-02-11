@@ -1,0 +1,87 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(255)
+  status    Int      @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  clients   Client[]
+
+  @@map("accounts")
+}
+
+model Client {
+  id                Int      @id @default(autoincrement())
+  accountId         Int      @map("account_id")
+  clientType        String?  @map("client_type") @db.VarChar(50)
+  firstName         String?  @map("first_name") @db.VarChar(255)
+  lastName          String?  @map("last_name") @db.VarChar(255)
+  middleName        String?  @map("middle_name") @db.VarChar(255)
+  companyName       String?  @map("company_name") @db.VarChar(255)
+  legalName         String?  @map("legal_name") @db.VarChar(255)
+  inn               String?  @db.VarChar(50)
+  kpp               String?  @db.VarChar(50)
+  phone             String?  @db.VarChar(50)
+  email             String?  @db.VarChar(255)
+  address           String?  @db.Text
+  assignedManagerId Int?     @map("assigned_manager_id")
+  status            String?  @db.VarChar(50)
+  source            String?  @db.VarChar(100)
+  notes             String?  @db.Text
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at")
+
+  account      Account              @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  interactions ClientInteraction[]
+  portalAccess ClientPortalAccess[]
+
+  @@index([accountId])
+  @@index([assignedManagerId])
+  @@map("clients")
+}
+
+model ClientInteraction {
+  id              Int       @id @default(autoincrement())
+  clientId        Int       @map("client_id")
+  userId          Int?      @map("user_id")
+  interactionType String?   @map("interaction_type") @db.VarChar(100)
+  interactionDate DateTime  @map("interaction_date")
+  subject         String?   @db.VarChar(255)
+  notes           String?   @db.Text
+  outcome         String?   @db.VarChar(100)
+  nextAction      String?   @map("next_action") @db.VarChar(255)
+  nextActionDate  DateTime? @map("next_action_date") @db.Date
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@map("client_interactions")
+}
+
+model ClientPortalAccess {
+  id               Int       @id @default(autoincrement())
+  clientId         Int       @map("client_id")
+  projectId        Int       @map("project_id")
+  accessToken      String?   @unique @map("access_token") @db.VarChar(255)
+  canViewProgress  Boolean   @default(true) @map("can_view_progress")
+  canViewPhotos    Boolean   @default(true) @map("can_view_photos")
+  canViewDocuments Boolean   @default(false) @map("can_view_documents")
+  canViewFinancials Boolean  @default(false) @map("can_view_financials")
+  isActive         Boolean   @default(true) @map("is_active")
+  expiresAt        DateTime? @map("expires_at")
+  lastLoginAt      DateTime? @map("last_login_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@map("client_portal_access")
+}

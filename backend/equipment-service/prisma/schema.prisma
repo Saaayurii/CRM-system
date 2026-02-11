@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(255)
+  status    Int      @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  equipment Equipment[]
+  @@map("accounts")
+}
+
+model Equipment {
+  id                   Int       @id @default(autoincrement())
+  accountId            Int       @map("account_id")
+  name                 String    @db.VarChar(255)
+  equipmentType        String?   @map("equipment_type") @db.VarChar(100)
+  manufacturer         String?   @db.VarChar(255)
+  model                String?   @db.VarChar(255)
+  serialNumber         String?   @map("serial_number") @db.VarChar(100)
+  purchaseDate         DateTime? @map("purchase_date") @db.Date
+  purchaseCost         Decimal?  @map("purchase_cost") @db.Decimal(10, 2)
+  status               Int       @default(1)
+  currentLocation      String?   @map("current_location") @db.VarChar(255)
+  constructionSiteId   Int?      @map("construction_site_id")
+  assignedToUserId     Int?      @map("assigned_to_user_id")
+  lastMaintenanceDate  DateTime? @map("last_maintenance_date") @db.Date
+  nextMaintenanceDate  DateTime? @map("next_maintenance_date") @db.Date
+  maintenanceIntervalDays Int?   @map("maintenance_interval_days")
+  notes                String?   @db.Text
+  photos               Json      @default("[]")
+  documents            Json      @default("[]")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @default(now()) @updatedAt @map("updated_at")
+  account              Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  maintenanceRecords   EquipmentMaintenance[]
+  @@index([accountId])
+  @@index([constructionSiteId])
+  @@index([status])
+  @@map("equipment")
+}
+
+model EquipmentMaintenance {
+  id                  Int       @id @default(autoincrement())
+  equipmentId         Int       @map("equipment_id")
+  maintenanceType     String?   @map("maintenance_type") @db.VarChar(100)
+  maintenanceDate     DateTime  @map("maintenance_date") @db.Date
+  performedByUserId   Int?      @map("performed_by_user_id")
+  description         String?   @db.Text
+  cost                Decimal?  @db.Decimal(10, 2)
+  nextMaintenanceDate DateTime? @map("next_maintenance_date") @db.Date
+  documents           Json      @default("[]")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  equipment           Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  @@map("equipment_maintenance")
+}
