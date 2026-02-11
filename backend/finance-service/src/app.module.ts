@@ -7,6 +7,8 @@ import { DatabaseModule } from './database/database.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { BudgetsModule } from './modules/budgets/budgets.module';
 import { ActsModule } from './modules/acts/acts.module';
+import { BonusesModule } from './modules/bonuses/bonuses.module';
+import { PayrollModule } from './modules/payroll/payroll.module';
 import { HealthModule } from './modules/health/health.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { JwtStrategy } from './common/guards/jwt.strategy';
@@ -20,6 +22,8 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     PaymentsModule,
     BudgetsModule,
     ActsModule,
+    BonusesModule,
+    PayrollModule,
     HealthModule,
   ],
   providers: [

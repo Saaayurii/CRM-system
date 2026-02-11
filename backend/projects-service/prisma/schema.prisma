@@ -63,6 +63,8 @@ model Project {
   account        Account?      @relation(fields: [accountId], references: [id], onDelete: Cascade)
   projectManager User?         @relation("ProjectManager", fields: [projectManagerId], references: [id])
   projectTeams   ProjectTeam[]
+  constructionSites   ConstructionSite[]
+  userAssignments     UserProjectAssignment[] @relation("ProjectAssignments")
 
   @@index([accountId], name: "idx_projects_account")
   @@index([code], name: "idx_projects_code")
@@ -83,4 +85,58 @@ model ProjectTeam {
 
   @@unique([projectId, userId])
   @@map("project_teams")
+}
+
+model ConstructionSite {
+  id                Int       @id @default(autoincrement())
+  projectId         Int       @map("project_id")
+  name              String    @db.VarChar(255)
+  code              String?   @db.VarChar(100)
+  siteType          String?   @map("site_type") @db.VarChar(100)
+  address           String    @db.Text
+  coordinates       Json?
+  areaSize          Decimal?  @map("area_size") @db.Decimal(10, 2)
+  foremanId         Int?      @map("foreman_id")
+  status            Int       @default(0)
+  startDate         DateTime? @map("start_date") @db.Date
+  plannedEndDate    DateTime? @map("planned_end_date") @db.Date
+  actualEndDate     DateTime? @map("actual_end_date") @db.Date
+  description       String?   @db.Text
+  photos            Json      @default("[]")
+  documents         Json      @default("[]")
+  settings          Json      @default("{}")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @default(now()) @updatedAt @map("updated_at")
+  deletedAt         DateTime? @map("deleted_at")
+
+  project           Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([foremanId])
+  @@index([status])
+  @@map("construction_sites")
+}
+
+model UserProjectAssignment {
+  id                  Int       @id @default(autoincrement())
+  userId              Int       @map("user_id")
+  projectId           Int       @map("project_id")
+  constructionSiteId  Int?      @map("construction_site_id")
+  teamId              Int?      @map("team_id")
+  roleOnProject       String?   @map("role_on_project") @db.VarChar(100)
+  assignedAt          DateTime  @default(now()) @map("assigned_at")
+  removedAt           DateTime? @map("removed_at")
+  hourlyRate          Decimal?  @map("hourly_rate") @db.Decimal(10, 2)
+  dailyRate           Decimal?  @map("daily_rate") @db.Decimal(10, 2)
+  isActive            Boolean   @default(true) @map("is_active")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  project             Project   @relation("ProjectAssignments", fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([projectId])
+  @@index([constructionSiteId])
+  @@index([teamId])
+  @@map("user_project_assignments")
 }

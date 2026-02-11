@@ -1,0 +1,49 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(255)
+  status    Int      @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  calendarEvents CalendarEvent[]
+
+  @@map("accounts")
+}
+
+model CalendarEvent {
+  id                 Int       @id @default(autoincrement())
+  accountId          Int       @map("account_id")
+  projectId          Int?      @map("project_id")
+  constructionSiteId Int?      @map("construction_site_id")
+  taskId             Int?      @map("task_id")
+  title              String    @db.VarChar(255)
+  description        String?   @db.Text
+  eventType          String?   @map("event_type") @db.VarChar(100)
+  startDatetime      DateTime  @map("start_datetime")
+  endDatetime        DateTime? @map("end_datetime")
+  isAllDay           Boolean   @default(false) @map("is_all_day")
+  location           String?   @db.VarChar(255)
+  organizerId        Int?      @map("organizer_id")
+  participants       Json      @default("[]")
+  reminders          Json      @default("[]")
+  status             String?   @db.VarChar(50)
+  recurrenceRule     String?   @map("recurrence_rule") @db.VarChar(255)
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  account            Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
+  @@index([startDatetime])
+  @@index([projectId])
+  @@map("calendar_events")
+}

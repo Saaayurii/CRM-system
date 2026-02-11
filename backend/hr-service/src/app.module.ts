@@ -9,6 +9,8 @@ import { TimeOffModule } from './modules/time-off/time-off.module';
 import { AttendanceModule } from './modules/attendance/attendance.module';
 import { SafetyModule } from './modules/safety/safety.module';
 import { HealthModule } from './modules/health/health.module';
+import { TeamsModule } from './modules/teams/teams.module';
+import { TeamMembersModule } from './modules/team-members/team-members.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { JwtStrategy } from './common/guards/jwt.strategy';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -26,6 +28,8 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     AttendanceModule,
     SafetyModule,
     HealthModule,
+    TeamsModule,
+    TeamMembersModule,
   ],
   providers: [
     JwtStrategy,

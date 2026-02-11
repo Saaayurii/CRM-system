@@ -16,6 +16,7 @@ model Account {
 
   safetyIncidents SafetyIncident[]
   safetyTrainings SafetyTraining[]
+  teams           Team[]
 
   @@map("accounts")
 }
@@ -164,4 +165,40 @@ model SafetyTrainingRecord {
   @@index([userId])
   @@index([expiryDate])
   @@map("safety_training_records")
+}
+
+model Team {
+  id          Int       @id @default(autoincrement())
+  accountId   Int       @map("account_id")
+  name        String    @db.VarChar(255)
+  description String?   @db.Text
+  teamLeadId  Int?      @map("team_lead_id")
+  status      Int       @default(1)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  account     Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  members     TeamMember[]
+
+  @@index([accountId])
+  @@index([teamLeadId])
+  @@map("teams")
+}
+
+model TeamMember {
+  id          Int       @id @default(autoincrement())
+  teamId      Int       @map("team_id")
+  userId      Int       @map("user_id")
+  roleInTeam  String?   @map("role_in_team") @db.VarChar(100)
+  joinedAt    DateTime  @default(now()) @map("joined_at")
+  leftAt      DateTime? @map("left_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  team        Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@index([teamId])
+  @@index([userId])
+  @@map("team_members")
 }

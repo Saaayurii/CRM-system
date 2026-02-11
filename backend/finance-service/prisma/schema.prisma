@@ -13,6 +13,8 @@ model Account {
   payments        Payment[]
   budgets         Budget[]
   acts            Act[]
+  bonuses          Bonus[]
+  payrolls         Payroll[]
 
   @@map("accounts")
 }
@@ -153,4 +155,52 @@ model ActItem {
   act Act @relation(fields: [actId], references: [id], onDelete: Cascade)
 
   @@map("act_items")
+}
+
+model Bonus {
+  id              Int       @id @default(autoincrement())
+  accountId       Int       @map("account_id")
+  userId          Int?      @map("user_id")
+  projectId       Int?      @map("project_id")
+  bonusType       String?   @map("bonus_type") @db.VarChar(100)
+  amount          Decimal   @db.Decimal(10, 2)
+  currency        String    @default("RUB") @db.VarChar(10)
+  periodStart     DateTime? @map("period_start") @db.Date
+  periodEnd       DateTime? @map("period_end") @db.Date
+  description     String?   @db.Text
+  approvedByUserId Int?     @map("approved_by_user_id")
+  status          Int       @default(0)
+  paymentDate     DateTime? @map("payment_date") @db.Date
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  account         Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([projectId])
+  @@map("bonuses")
+}
+
+model Payroll {
+  id               Int       @id @default(autoincrement())
+  accountId        Int       @map("account_id")
+  userId           Int?      @map("user_id")
+  payrollPeriod    String?   @map("payroll_period") @db.VarChar(100)
+  baseSalary       Decimal?  @map("base_salary") @db.Decimal(10, 2)
+  bonusesAmount    Decimal?  @default(0) @map("bonuses_amount") @db.Decimal(10, 2)
+  deductionsAmount Decimal?  @default(0) @map("deductions_amount") @db.Decimal(10, 2)
+  totalAmount      Decimal?  @map("total_amount") @db.Decimal(10, 2)
+  workedHours      Decimal?  @map("worked_hours") @db.Decimal(8, 2)
+  overtimeHours    Decimal?  @map("overtime_hours") @db.Decimal(8, 2)
+  status           Int       @default(0)
+  paymentDate      DateTime? @map("payment_date") @db.Date
+  notes            String?   @db.Text
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  account          Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([payrollPeriod])
+  @@map("payroll")
 }

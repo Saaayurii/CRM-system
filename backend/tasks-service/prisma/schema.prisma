@@ -44,10 +44,60 @@ model Task {
   parentTask Task?  @relation("TaskHierarchy", fields: [parentTaskId], references: [id])
   subTasks   Task[] @relation("TaskHierarchy")
 
+  comments        TaskComment[]
+  timeLogs        TaskTimeLog[]
+  statusHistory   TaskStatusHistory[]
+
   @@index([accountId], name: "idx_tasks_account")
   @@index([projectId], name: "idx_tasks_project")
   @@index([assignedToUserId], name: "idx_tasks_assigned_user")
   @@index([assignedToTeamId], name: "idx_tasks_assigned_team")
   @@index([status], name: "idx_tasks_status")
   @@map("tasks")
+}
+
+model TaskComment {
+  id          Int      @id @default(autoincrement())
+  taskId      Int      @map("task_id")
+  userId      Int?     @map("user_id")
+  commentText String   @map("comment_text") @db.Text
+  attachments Json     @default("[]")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@map("task_comments")
+}
+
+model TaskTimeLog {
+  id              Int       @id @default(autoincrement())
+  taskId          Int       @map("task_id")
+  userId          Int?      @map("user_id")
+  startTime       DateTime  @map("start_time")
+  endTime         DateTime? @map("end_time")
+  durationMinutes Int?      @map("duration_minutes")
+  description     String?   @db.Text
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  task            Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@map("task_time_logs")
+}
+
+model TaskStatusHistory {
+  id              Int      @id @default(autoincrement())
+  taskId          Int      @map("task_id")
+  changedByUserId Int?     @map("changed_by_user_id")
+  oldStatus       Int?     @map("old_status")
+  newStatus       Int?     @map("new_status")
+  changeReason    String?  @map("change_reason") @db.Text
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  task            Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@map("task_status_history")
 }
