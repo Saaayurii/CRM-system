@@ -56,7 +56,13 @@ describe('ClientsController', () => {
       const result = await controller.findAll(1, 1, 20);
 
       expect(result).toEqual(mockPaginated);
-      expect(service.findAll).toHaveBeenCalledWith(1, 1, 20, undefined, undefined);
+      expect(service.findAll).toHaveBeenCalledWith(
+        1,
+        1,
+        20,
+        undefined,
+        undefined,
+      );
     });
 
     it('should pass optional filters to service', async () => {

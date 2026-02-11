@@ -10,7 +10,12 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { Request } from 'express';
 import { ProxyService } from '../../common/services/proxy.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -27,9 +32,14 @@ export class AutomationGatewayController {
   @ApiOperation({ summary: 'Get all automation rules' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
-  async findAllAutomationRules(@Req() req: Request, @Query('page') page?: number, @Query('limit') limit?: number) {
+  async findAllAutomationRules(
+    @Req() req: Request,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
     return this.proxyService.forward('automation', {
-      method: 'GET', path: '/automation-rules',
+      method: 'GET',
+      path: '/automation-rules',
       headers: { authorization: req.headers.authorization || '' },
       params: { page, limit },
     });
@@ -39,7 +49,8 @@ export class AutomationGatewayController {
   @ApiOperation({ summary: 'Get automation rule by ID' })
   async findOneAutomationRule(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('automation', {
-      method: 'GET', path: `/automation-rules/${id}`,
+      method: 'GET',
+      path: `/automation-rules/${id}`,
       headers: { authorization: req.headers.authorization || '' },
     });
   }
@@ -48,18 +59,30 @@ export class AutomationGatewayController {
   @ApiOperation({ summary: 'Create automation rule' })
   async createAutomationRule(@Req() req: Request, @Body() body: any) {
     return this.proxyService.forward('automation', {
-      method: 'POST', path: '/automation-rules',
-      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+      method: 'POST',
+      path: '/automation-rules',
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
       data: body,
     });
   }
 
   @Put('automation-rules/:id')
   @ApiOperation({ summary: 'Update automation rule' })
-  async updateAutomationRule(@Req() req: Request, @Param('id') id: string, @Body() body: any) {
+  async updateAutomationRule(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
     return this.proxyService.forward('automation', {
-      method: 'PUT', path: `/automation-rules/${id}`,
-      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+      method: 'PUT',
+      path: `/automation-rules/${id}`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
       data: body,
     });
   }
@@ -68,7 +91,8 @@ export class AutomationGatewayController {
   @ApiOperation({ summary: 'Delete automation rule' })
   async removeAutomationRule(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('automation', {
-      method: 'DELETE', path: `/automation-rules/${id}`,
+      method: 'DELETE',
+      path: `/automation-rules/${id}`,
       headers: { authorization: req.headers.authorization || '' },
     });
   }
@@ -78,9 +102,14 @@ export class AutomationGatewayController {
   @ApiOperation({ summary: 'Get all execution logs' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
-  async findAllExecutionLogs(@Req() req: Request, @Query('page') page?: number, @Query('limit') limit?: number) {
+  async findAllExecutionLogs(
+    @Req() req: Request,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
     return this.proxyService.forward('automation', {
-      method: 'GET', path: '/execution-logs',
+      method: 'GET',
+      path: '/execution-logs',
       headers: { authorization: req.headers.authorization || '' },
       params: { page, limit },
     });
@@ -90,7 +119,8 @@ export class AutomationGatewayController {
   @ApiOperation({ summary: 'Get execution log by ID' })
   async findOneExecutionLog(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('automation', {
-      method: 'GET', path: `/execution-logs/${id}`,
+      method: 'GET',
+      path: `/execution-logs/${id}`,
       headers: { authorization: req.headers.authorization || '' },
     });
   }
@@ -99,8 +129,12 @@ export class AutomationGatewayController {
   @ApiOperation({ summary: 'Create execution log' })
   async createExecutionLog(@Req() req: Request, @Body() body: any) {
     return this.proxyService.forward('automation', {
-      method: 'POST', path: '/execution-logs',
-      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+      method: 'POST',
+      path: '/execution-logs',
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
       data: body,
     });
   }

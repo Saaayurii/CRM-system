@@ -72,7 +72,11 @@ describe('TimeOffController', () => {
 
   describe('create', () => {
     it('should delegate to service.create with user.id', async () => {
-      const dto = { type: 'vacation', startDate: '2025-06-01', endDate: '2025-06-10' } as any;
+      const dto = {
+        type: 'vacation',
+        startDate: '2025-06-01',
+        endDate: '2025-06-10',
+      } as any;
       service.create.mockResolvedValue(mockTimeOff);
       const result = await controller.create(dto, mockUser);
       expect(result).toEqual(mockTimeOff);

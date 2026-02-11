@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service';
-import { CreateContractorDto, UpdateContractorDto, CreateContractorAssignmentDto } from '../dto';
+import {
+  CreateContractorDto,
+  UpdateContractorDto,
+  CreateContractorAssignmentDto,
+} from '../dto';
 
 @Injectable()
 export class ContractorRepository {
@@ -91,7 +95,10 @@ export class ContractorRepository {
     });
   }
 
-  async createAssignment(contractorId: number, data: CreateContractorAssignmentDto) {
+  async createAssignment(
+    contractorId: number,
+    data: CreateContractorAssignmentDto,
+  ) {
     return (this.prisma as any).contractorAssignment.create({
       data: {
         contractorId,

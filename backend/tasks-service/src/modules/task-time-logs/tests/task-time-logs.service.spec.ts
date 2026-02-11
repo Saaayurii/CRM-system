@@ -46,7 +46,13 @@ describe('TaskTimeLogsService', () => {
 
   describe('findAll', () => {
     it('should return paginated task time logs', async () => {
-      const mockResult = { data: [mockTimeLog], total: 1, page: 1, limit: 20, totalPages: 1 };
+      const mockResult = {
+        data: [mockTimeLog],
+        total: 1,
+        page: 1,
+        limit: 20,
+        totalPages: 1,
+      };
       repository.findAll.mockResolvedValue(mockResult);
 
       const result = await service.findAll(1, 20, { taskId: 1, userId: 1 });
@@ -61,7 +67,13 @@ describe('TaskTimeLogsService', () => {
     });
 
     it('should use default pagination when not provided', async () => {
-      const mockResult = { data: [], total: 0, page: 1, limit: 20, totalPages: 0 };
+      const mockResult = {
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 20,
+        totalPages: 0,
+      };
       repository.findAll.mockResolvedValue(mockResult);
 
       await service.findAll();
@@ -115,7 +127,10 @@ describe('TaskTimeLogsService', () => {
     it('should update and return the task time log', async () => {
       const updateDto = { description: 'Updated description' };
       repository.findById.mockResolvedValue(mockTimeLog);
-      repository.update.mockResolvedValue({ ...mockTimeLog, description: 'Updated description' });
+      repository.update.mockResolvedValue({
+        ...mockTimeLog,
+        description: 'Updated description',
+      });
 
       const result = await service.update(1, updateDto);
 
@@ -126,7 +141,9 @@ describe('TaskTimeLogsService', () => {
     it('should throw NotFoundException when time log not found for update', async () => {
       repository.findById.mockResolvedValue(null);
 
-      await expect(service.update(999, { description: 'test' })).rejects.toThrow(NotFoundException);
+      await expect(
+        service.update(999, { description: 'test' }),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 

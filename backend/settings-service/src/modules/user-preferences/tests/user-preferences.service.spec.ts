@@ -50,8 +50,12 @@ describe('UserPreferencesService', () => {
     it('should throw NotFoundException when user is not found', async () => {
       repository.findByUserId.mockResolvedValue(null);
 
-      await expect(service.getPreferences(999)).rejects.toThrow(NotFoundException);
-      await expect(service.getPreferences(999)).rejects.toThrow('User not found');
+      await expect(service.getPreferences(999)).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(service.getPreferences(999)).rejects.toThrow(
+        'User not found',
+      );
     });
 
     it('should pass the correct userId to the repository', async () => {
@@ -77,7 +81,10 @@ describe('UserPreferencesService', () => {
 
     it('should pass userId and dto correctly to repository', async () => {
       const dto = { notificationSettings: { email: false } };
-      repository.update.mockResolvedValue({ ...mockPreferences, notificationSettings: { email: false } });
+      repository.update.mockResolvedValue({
+        ...mockPreferences,
+        notificationSettings: { email: false },
+      });
 
       await service.updatePreferences(10, dto as any);
 
@@ -87,7 +94,9 @@ describe('UserPreferencesService', () => {
     it('should propagate repository errors', async () => {
       repository.update.mockRejectedValue(new Error('DB error'));
 
-      await expect(service.updatePreferences(1, {} as any)).rejects.toThrow('DB error');
+      await expect(service.updatePreferences(1, {} as any)).rejects.toThrow(
+        'DB error',
+      );
     });
   });
 });

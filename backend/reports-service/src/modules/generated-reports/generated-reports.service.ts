@@ -5,7 +5,9 @@ import { UpdateGeneratedReportDto } from './dto/update-generated-report.dto';
 
 @Injectable()
 export class GeneratedReportsService {
-  constructor(private readonly generatedReportRepository: GeneratedReportRepository) {}
+  constructor(
+    private readonly generatedReportRepository: GeneratedReportRepository,
+  ) {}
 
   async findAll(
     accountId: number,
@@ -13,7 +15,12 @@ export class GeneratedReportsService {
     limit: number,
     filters?: { projectId?: number; reportTemplateId?: number },
   ) {
-    return this.generatedReportRepository.findAll(accountId, page, limit, filters);
+    return this.generatedReportRepository.findAll(
+      accountId,
+      page,
+      limit,
+      filters,
+    );
   }
 
   async findById(id: number, accountId: number) {

@@ -67,7 +67,11 @@ describe('SupplierOrdersController', () => {
 
   describe('create', () => {
     it('should call service.create', async () => {
-      const dto = { accountId: 1, supplierId: 1, orderNumber: 'ORD-002' } as any;
+      const dto = {
+        accountId: 1,
+        supplierId: 1,
+        orderNumber: 'ORD-002',
+      } as any;
       service.create.mockResolvedValue(mockOrder);
 
       const result = await controller.create(mockUser, dto);

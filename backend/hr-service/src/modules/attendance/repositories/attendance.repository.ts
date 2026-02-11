@@ -50,12 +50,22 @@ export class AttendanceRepository {
       where: { id },
       data: {
         ...(dto.projectId !== undefined && { projectId: dto.projectId }),
-        ...(dto.constructionSiteId !== undefined && { constructionSiteId: dto.constructionSiteId }),
-        ...(dto.attendanceDate !== undefined && { attendanceDate: new Date(dto.attendanceDate) }),
-        ...(dto.checkInTime !== undefined && { checkInTime: dto.checkInTime ? new Date(dto.checkInTime) : null }),
-        ...(dto.checkOutTime !== undefined && { checkOutTime: dto.checkOutTime ? new Date(dto.checkOutTime) : null }),
+        ...(dto.constructionSiteId !== undefined && {
+          constructionSiteId: dto.constructionSiteId,
+        }),
+        ...(dto.attendanceDate !== undefined && {
+          attendanceDate: new Date(dto.attendanceDate),
+        }),
+        ...(dto.checkInTime !== undefined && {
+          checkInTime: dto.checkInTime ? new Date(dto.checkInTime) : null,
+        }),
+        ...(dto.checkOutTime !== undefined && {
+          checkOutTime: dto.checkOutTime ? new Date(dto.checkOutTime) : null,
+        }),
         ...(dto.workedHours !== undefined && { workedHours: dto.workedHours }),
-        ...(dto.overtimeHours !== undefined && { overtimeHours: dto.overtimeHours }),
+        ...(dto.overtimeHours !== undefined && {
+          overtimeHours: dto.overtimeHours,
+        }),
         ...(dto.status !== undefined && { status: dto.status }),
         ...(dto.notes !== undefined && { notes: dto.notes }),
       },

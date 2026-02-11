@@ -1,5 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException, ForbiddenException, ConflictException } from '@nestjs/common';
+import {
+  NotFoundException,
+  ForbiddenException,
+  ConflictException,
+} from '@nestjs/common';
 import { WarehousesService } from '../warehouses.service';
 import { WarehouseRepository } from '../repositories/warehouse.repository';
 
@@ -97,7 +101,9 @@ describe('WarehousesService', () => {
     it('should throw ForbiddenException when accountId mismatch', async () => {
       repository.findById.mockResolvedValue(mockWarehouse);
 
-      await expect(service.findById(1, 999)).rejects.toThrow(ForbiddenException);
+      await expect(service.findById(1, 999)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 
@@ -123,7 +129,10 @@ describe('WarehousesService', () => {
     it('should update a warehouse', async () => {
       const dto = { name: 'Updated WH' } as any;
       repository.findById.mockResolvedValue(mockWarehouse);
-      repository.update.mockResolvedValue({ ...mockWarehouse, name: 'Updated WH' });
+      repository.update.mockResolvedValue({
+        ...mockWarehouse,
+        name: 'Updated WH',
+      });
 
       const result = await service.update(1, dto, 1);
 
@@ -133,13 +142,17 @@ describe('WarehousesService', () => {
     it('should throw NotFoundException when not found', async () => {
       repository.findById.mockResolvedValue(null);
 
-      await expect(service.update(999, {} as any, 1)).rejects.toThrow(NotFoundException);
+      await expect(service.update(999, {} as any, 1)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should throw ForbiddenException when accountId mismatch', async () => {
       repository.findById.mockResolvedValue(mockWarehouse);
 
-      await expect(service.update(1, {} as any, 999)).rejects.toThrow(ForbiddenException);
+      await expect(service.update(1, {} as any, 999)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 
@@ -181,7 +194,13 @@ describe('WarehousesService', () => {
 
   describe('createMovement', () => {
     it('should create a warehouse movement', async () => {
-      const dto = { accountId: 1, warehouseId: 1, materialId: 1, movementType: 'in', quantity: 50 } as any;
+      const dto = {
+        accountId: 1,
+        warehouseId: 1,
+        materialId: 1,
+        movementType: 'in',
+        quantity: 50,
+      } as any;
       repository.createMovement.mockResolvedValue({ id: 1, ...dto });
 
       const result = await service.createMovement(dto, 1);
@@ -193,13 +212,19 @@ describe('WarehousesService', () => {
     it('should throw ForbiddenException when accountId mismatch', async () => {
       const dto = { accountId: 2, warehouseId: 1 } as any;
 
-      await expect(service.createMovement(dto, 1)).rejects.toThrow(ForbiddenException);
+      await expect(service.createMovement(dto, 1)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 
   describe('createInventoryCheck', () => {
     it('should create an inventory check', async () => {
-      const dto = { warehouseId: 1, checkNumber: 'CHK-002', checkDate: now.toISOString() } as any;
+      const dto = {
+        warehouseId: 1,
+        checkNumber: 'CHK-002',
+        checkDate: now.toISOString(),
+      } as any;
       repository.findById.mockResolvedValue(mockWarehouse);
       repository.findInventoryCheckByNumber.mockResolvedValue(null);
       repository.createInventoryCheck.mockResolvedValue({ id: 2, ...dto });
@@ -213,15 +238,21 @@ describe('WarehousesService', () => {
       const dto = { warehouseId: 999, checkNumber: 'CHK-002' } as any;
       repository.findById.mockResolvedValue(null);
 
-      await expect(service.createInventoryCheck(dto, 1)).rejects.toThrow(NotFoundException);
+      await expect(service.createInventoryCheck(dto, 1)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should throw ConflictException when check number exists', async () => {
       const dto = { warehouseId: 1, checkNumber: 'CHK-001' } as any;
       repository.findById.mockResolvedValue(mockWarehouse);
-      repository.findInventoryCheckByNumber.mockResolvedValue(mockInventoryCheck);
+      repository.findInventoryCheckByNumber.mockResolvedValue(
+        mockInventoryCheck,
+      );
 
-      await expect(service.createInventoryCheck(dto, 1)).rejects.toThrow(ConflictException);
+      await expect(service.createInventoryCheck(dto, 1)).rejects.toThrow(
+        ConflictException,
+      );
     });
   });
 });

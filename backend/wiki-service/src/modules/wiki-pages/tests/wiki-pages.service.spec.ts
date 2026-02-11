@@ -86,7 +86,11 @@ describe('WikiPagesService', () => {
 
   describe('create', () => {
     it('should create a new wiki page', async () => {
-      const createDto = { title: 'Test Page', content: 'Test content', category: 'general' };
+      const createDto = {
+        title: 'Test Page',
+        content: 'Test content',
+        category: 'general',
+      };
       repository.create.mockResolvedValue(mockWikiPage);
 
       const result = await service.create(1, 10, createDto as any);
@@ -113,7 +117,9 @@ describe('WikiPagesService', () => {
     it('should throw NotFoundException when updating non-existent page', async () => {
       repository.findById.mockResolvedValue(null);
 
-      await expect(service.update(999, 1, 10, updateDto as any)).rejects.toThrow(NotFoundException);
+      await expect(
+        service.update(999, 1, 10, updateDto as any),
+      ).rejects.toThrow(NotFoundException);
       expect(repository.update).not.toHaveBeenCalled();
     });
   });

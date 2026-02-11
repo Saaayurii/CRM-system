@@ -121,7 +121,9 @@ describe('AuthGatewayController', () => {
   describe('logoutAll', () => {
     it('should forward logout-all request with authorization header', async () => {
       const authorization = 'Bearer access-token';
-      const expectedResponse = { message: 'All sessions terminated successfully' };
+      const expectedResponse = {
+        message: 'All sessions terminated successfully',
+      };
 
       proxyService.forward.mockResolvedValue(expectedResponse);
 

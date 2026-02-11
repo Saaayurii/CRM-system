@@ -38,7 +38,11 @@ export class TeamsService {
     return members;
   }
 
-  async addMember(teamId: number, accountId: number, data: { userId: number; roleInTeam?: string }) {
+  async addMember(
+    teamId: number,
+    accountId: number,
+    data: { userId: number; roleInTeam?: string },
+  ) {
     const member = await this.repository.addMember(teamId, accountId, data);
     if (!member) throw new NotFoundException(`Team #${teamId} not found`);
     return member;

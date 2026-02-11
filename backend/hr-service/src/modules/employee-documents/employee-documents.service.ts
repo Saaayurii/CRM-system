@@ -12,7 +12,8 @@ export class EmployeeDocumentsService {
 
   async findById(id: number, userId: number) {
     const document = await this.repository.findById(id, userId);
-    if (!document) throw new NotFoundException(`Employee document #${id} not found`);
+    if (!document)
+      throw new NotFoundException(`Employee document #${id} not found`);
     return document;
   }
 
@@ -22,13 +23,15 @@ export class EmployeeDocumentsService {
 
   async update(id: number, userId: number, dto: UpdateEmployeeDocumentDto) {
     const document = await this.repository.update(id, userId, dto);
-    if (!document) throw new NotFoundException(`Employee document #${id} not found`);
+    if (!document)
+      throw new NotFoundException(`Employee document #${id} not found`);
     return document;
   }
 
   async delete(id: number, userId: number) {
     const document = await this.repository.delete(id, userId);
-    if (!document) throw new NotFoundException(`Employee document #${id} not found`);
+    if (!document)
+      throw new NotFoundException(`Employee document #${id} not found`);
     return document;
   }
 }

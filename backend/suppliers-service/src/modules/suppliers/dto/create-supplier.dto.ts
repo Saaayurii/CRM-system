@@ -21,7 +21,10 @@ export class CreateSupplierDto {
   @MaxLength(255)
   name: string;
 
-  @ApiPropertyOptional({ description: 'Legal name', example: 'ООО "СтройМатериалы"' })
+  @ApiPropertyOptional({
+    description: 'Legal name',
+    example: 'ООО "СтройМатериалы"',
+  })
   @IsString()
   @IsOptional()
   @MaxLength(255)
@@ -39,7 +42,10 @@ export class CreateSupplierDto {
   @MaxLength(50)
   kpp?: string;
 
-  @ApiPropertyOptional({ description: 'Contact person', example: 'Иванов Иван Иванович' })
+  @ApiPropertyOptional({
+    description: 'Contact person',
+    example: 'Иванов Иван Иванович',
+  })
   @IsString()
   @IsOptional()
   @MaxLength(255)
@@ -51,13 +57,19 @@ export class CreateSupplierDto {
   @MaxLength(50)
   phone?: string;
 
-  @ApiPropertyOptional({ description: 'Email', example: 'info@stroymaterials.ru' })
+  @ApiPropertyOptional({
+    description: 'Email',
+    example: 'info@stroymaterials.ru',
+  })
   @IsString()
   @IsOptional()
   @MaxLength(255)
   email?: string;
 
-  @ApiPropertyOptional({ description: 'Website', example: 'https://stroymaterials.ru' })
+  @ApiPropertyOptional({
+    description: 'Website',
+    example: 'https://stroymaterials.ru',
+  })
   @IsString()
   @IsOptional()
   @MaxLength(255)
@@ -99,7 +111,10 @@ export class CreateSupplierDto {
   @IsOptional()
   reliabilityScore?: number;
 
-  @ApiPropertyOptional({ description: 'Status (0-inactive, 1-active)', example: 1 })
+  @ApiPropertyOptional({
+    description: 'Status (0-inactive, 1-active)',
+    example: 1,
+  })
   @IsNumber()
   @IsOptional()
   status?: number;

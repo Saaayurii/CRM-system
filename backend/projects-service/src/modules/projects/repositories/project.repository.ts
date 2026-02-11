@@ -6,7 +6,10 @@ import { CreateProjectDto, UpdateProjectDto } from '../dto';
 export class ProjectRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(accountId: number, options?: { skip?: number; take?: number; status?: number }) {
+  async findAll(
+    accountId: number,
+    options?: { skip?: number; take?: number; status?: number },
+  ) {
     const where: any = {
       accountId,
       deletedAt: null,
@@ -63,7 +66,9 @@ export class ProjectRepository {
         clientName: data.clientName,
         clientContact: data.clientContact,
         startDate: data.startDate ? new Date(data.startDate) : null,
-        plannedEndDate: data.plannedEndDate ? new Date(data.plannedEndDate) : null,
+        plannedEndDate: data.plannedEndDate
+          ? new Date(data.plannedEndDate)
+          : null,
         budget: data.budget,
         priority: data.priority || 2,
         address: data.address,
@@ -80,8 +85,10 @@ export class ProjectRepository {
   async update(id: number, data: UpdateProjectDto) {
     const updateData: any = { ...data };
     if (data.startDate) updateData.startDate = new Date(data.startDate);
-    if (data.plannedEndDate) updateData.plannedEndDate = new Date(data.plannedEndDate);
-    if (data.actualEndDate) updateData.actualEndDate = new Date(data.actualEndDate);
+    if (data.plannedEndDate)
+      updateData.plannedEndDate = new Date(data.plannedEndDate);
+    if (data.actualEndDate)
+      updateData.actualEndDate = new Date(data.actualEndDate);
 
     return (this.prisma as any).project.update({
       where: { id },

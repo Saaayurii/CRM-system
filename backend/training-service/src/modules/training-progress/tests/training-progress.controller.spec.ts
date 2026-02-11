@@ -40,7 +40,9 @@ describe('TrainingProgressController', () => {
       ],
     }).compile();
 
-    controller = module.get<TrainingProgressController>(TrainingProgressController);
+    controller = module.get<TrainingProgressController>(
+      TrainingProgressController,
+    );
     service = module.get(TrainingProgressService);
   });
 

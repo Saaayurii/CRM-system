@@ -63,12 +63,16 @@ export class DocumentRepository {
     if (dto.expiryDate) {
       data.expiryDate = new Date(dto.expiryDate);
     }
-    return (this.prisma as any).document.updateMany({
-      where: { id, accountId },
-      data,
-    }).then(async () => {
-      return (this.prisma as any).document.findFirst({ where: { id, accountId } });
-    });
+    return (this.prisma as any).document
+      .updateMany({
+        where: { id, accountId },
+        data,
+      })
+      .then(async () => {
+        return (this.prisma as any).document.findFirst({
+          where: { id, accountId },
+        });
+      });
   }
 
   async delete(id: number, accountId: number) {

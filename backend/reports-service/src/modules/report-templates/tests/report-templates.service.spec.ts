@@ -73,13 +73,18 @@ describe('ReportTemplatesService', () => {
 
     it('should include correct error message in NotFoundException', async () => {
       repository.findById.mockResolvedValue(null);
-      await expect(service.findById(42, 1)).rejects.toThrow('Report template with ID 42 not found');
+      await expect(service.findById(42, 1)).rejects.toThrow(
+        'Report template with ID 42 not found',
+      );
     });
   });
 
   describe('create', () => {
     it('should create a report template', async () => {
-      const dto = { name: 'Weekly Report', description: 'Weekly summary' } as any;
+      const dto = {
+        name: 'Weekly Report',
+        description: 'Weekly summary',
+      } as any;
       repository.create.mockResolvedValue(mockTemplate);
       const result = await service.create(1, dto);
       expect(repository.create).toHaveBeenCalledWith(1, dto);
@@ -100,7 +105,9 @@ describe('ReportTemplatesService', () => {
 
     it('should throw NotFoundException when updating non-existent template', async () => {
       repository.findById.mockResolvedValue(null);
-      await expect(service.update(999, 1, {} as any)).rejects.toThrow(NotFoundException);
+      await expect(service.update(999, 1, {} as any)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 

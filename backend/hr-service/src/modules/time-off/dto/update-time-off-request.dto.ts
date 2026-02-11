@@ -3,7 +3,9 @@ import { PartialType } from '@nestjs/swagger';
 import { IsOptional, IsInt, IsDateString } from 'class-validator';
 import { CreateTimeOffRequestDto } from './create-time-off-request.dto';
 
-export class UpdateTimeOffRequestDto extends PartialType(CreateTimeOffRequestDto) {
+export class UpdateTimeOffRequestDto extends PartialType(
+  CreateTimeOffRequestDto,
+) {
   @ApiPropertyOptional()
   @IsOptional()
   @IsInt()

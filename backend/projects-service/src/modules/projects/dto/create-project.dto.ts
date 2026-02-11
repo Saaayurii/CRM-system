@@ -37,7 +37,10 @@ export class CreateProjectDto {
   @IsOptional()
   projectManagerId?: number;
 
-  @ApiPropertyOptional({ description: 'Client name', example: 'ООО Застройщик' })
+  @ApiPropertyOptional({
+    description: 'Client name',
+    example: 'ООО Застройщик',
+  })
   @IsString()
   @IsOptional()
   @MaxLength(255)
@@ -53,7 +56,10 @@ export class CreateProjectDto {
   @IsOptional()
   startDate?: string;
 
-  @ApiPropertyOptional({ description: 'Planned end date', example: '2024-12-31' })
+  @ApiPropertyOptional({
+    description: 'Planned end date',
+    example: '2024-12-31',
+  })
   @IsDateString()
   @IsOptional()
   plannedEndDate?: string;
@@ -63,7 +69,10 @@ export class CreateProjectDto {
   @IsOptional()
   budget?: number;
 
-  @ApiPropertyOptional({ description: 'Priority (1-low, 2-medium, 3-high, 4-critical)', example: 2 })
+  @ApiPropertyOptional({
+    description: 'Priority (1-low, 2-medium, 3-high, 4-critical)',
+    example: 2,
+  })
   @IsNumber()
   @IsOptional()
   priority?: number;

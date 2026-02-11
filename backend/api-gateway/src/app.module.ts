@@ -61,7 +61,8 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('jwt.accessSecret') || 'default-secret',
+        secret:
+          configService.get<string>('jwt.accessSecret') || 'default-secret',
       }),
     }),
 

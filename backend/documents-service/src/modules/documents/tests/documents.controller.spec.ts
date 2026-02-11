@@ -62,7 +62,11 @@ describe('DocumentsController', () => {
     it('should pass filters to service', async () => {
       service.findAll.mockResolvedValue(mockPaginatedResult);
       await controller.findAll(mockAccountId, 2, 10, 5, 'contract', 'active');
-      expect(service.findAll).toHaveBeenCalledWith(mockAccountId, 2, 10, { projectId: 5, documentType: 'contract', status: 'active' });
+      expect(service.findAll).toHaveBeenCalledWith(mockAccountId, 2, 10, {
+        projectId: 5,
+        documentType: 'contract',
+        status: 'active',
+      });
     });
   });
 

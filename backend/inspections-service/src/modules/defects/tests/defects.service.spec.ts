@@ -62,17 +62,35 @@ describe('DefectsService', () => {
 
   describe('findAll', () => {
     it('should return paginated defects', async () => {
-      const expected = { data: [mockDefect], total: 1, page: 1, limit: 20, totalPages: 1 };
+      const expected = {
+        data: [mockDefect],
+        total: 1,
+        page: 1,
+        limit: 20,
+        totalPages: 1,
+      };
       repository.findAll.mockResolvedValue(expected);
 
       const result = await service.findAll(1, 1, 20);
 
       expect(result).toEqual(expected);
-      expect(repository.findAll).toHaveBeenCalledWith(1, 1, 20, undefined, undefined);
+      expect(repository.findAll).toHaveBeenCalledWith(
+        1,
+        1,
+        20,
+        undefined,
+        undefined,
+      );
     });
 
     it('should pass status and projectId filters', async () => {
-      repository.findAll.mockResolvedValue({ data: [], total: 0, page: 1, limit: 20, totalPages: 0 });
+      repository.findAll.mockResolvedValue({
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 20,
+        totalPages: 0,
+      });
 
       await service.findAll(1, 1, 20, 1, 3);
 
@@ -99,8 +117,14 @@ describe('DefectsService', () => {
 
   describe('create', () => {
     it('should create a defect', async () => {
-      const dto = { title: 'New Defect', reportedDate: now.toISOString() } as any;
-      repository.create.mockResolvedValue({ ...mockDefect, title: 'New Defect' });
+      const dto = {
+        title: 'New Defect',
+        reportedDate: now.toISOString(),
+      } as any;
+      repository.create.mockResolvedValue({
+        ...mockDefect,
+        title: 'New Defect',
+      });
 
       const result = await service.create(1, dto);
 
@@ -145,13 +169,19 @@ describe('DefectsService', () => {
 
       const result = await service.update(1, 1, dto);
 
-      expect(repository.update).toHaveBeenCalledWith(1, 1, expect.objectContaining({ title: 'Updated' }));
+      expect(repository.update).toHaveBeenCalledWith(
+        1,
+        1,
+        expect.objectContaining({ title: 'Updated' }),
+      );
     });
 
     it('should throw NotFoundException when not found', async () => {
       repository.findById.mockResolvedValue(null);
 
-      await expect(service.update(999, 1, {} as any)).rejects.toThrow(NotFoundException);
+      await expect(service.update(999, 1, {} as any)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -162,7 +192,9 @@ describe('DefectsService', () => {
 
       const result = await service.delete(1, 1);
 
-      expect(result).toEqual({ message: 'Defect with ID 1 deleted successfully' });
+      expect(result).toEqual({
+        message: 'Defect with ID 1 deleted successfully',
+      });
       expect(repository.delete).toHaveBeenCalledWith(1, 1);
     });
 
@@ -175,7 +207,13 @@ describe('DefectsService', () => {
 
   describe('findAllTemplates', () => {
     it('should return paginated templates', async () => {
-      const expected = { data: [mockTemplate], total: 1, page: 1, limit: 20, totalPages: 1 };
+      const expected = {
+        data: [mockTemplate],
+        total: 1,
+        page: 1,
+        limit: 20,
+        totalPages: 1,
+      };
       repository.findAllTemplates.mockResolvedValue(expected);
 
       const result = await service.findAllTemplates(1, 1, 20);
@@ -196,19 +234,26 @@ describe('DefectsService', () => {
     it('should throw NotFoundException when template not found', async () => {
       repository.findTemplateById.mockResolvedValue(null);
 
-      await expect(service.findTemplateById(999, 1)).rejects.toThrow(NotFoundException);
+      await expect(service.findTemplateById(999, 1)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
   describe('createTemplate', () => {
     it('should create a defect template', async () => {
       const dto = { name: 'New Template' } as any;
-      repository.createTemplate.mockResolvedValue({ ...mockTemplate, name: 'New Template' });
+      repository.createTemplate.mockResolvedValue({
+        ...mockTemplate,
+        name: 'New Template',
+      });
 
       const result = await service.createTemplate(1, dto);
 
       expect(result).toBeDefined();
-      expect(repository.createTemplate).toHaveBeenCalledWith(expect.objectContaining({ accountId: 1, name: 'New Template' }));
+      expect(repository.createTemplate).toHaveBeenCalledWith(
+        expect.objectContaining({ accountId: 1, name: 'New Template' }),
+      );
     });
   });
 
@@ -219,13 +264,17 @@ describe('DefectsService', () => {
 
       const result = await service.deleteTemplate(1, 1);
 
-      expect(result).toEqual({ message: 'Defect template with ID 1 deleted successfully' });
+      expect(result).toEqual({
+        message: 'Defect template with ID 1 deleted successfully',
+      });
     });
 
     it('should throw NotFoundException when template not found', async () => {
       repository.findTemplateById.mockResolvedValue(null);
 
-      await expect(service.deleteTemplate(999, 1)).rejects.toThrow(NotFoundException);
+      await expect(service.deleteTemplate(999, 1)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });

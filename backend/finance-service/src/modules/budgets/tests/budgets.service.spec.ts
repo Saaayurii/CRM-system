@@ -98,7 +98,9 @@ describe('BudgetsService', () => {
 
     it('should throw NotFoundException when updating non-existent budget', async () => {
       repository.findById.mockResolvedValue(null);
-      await expect(service.update(999, 1, {} as any)).rejects.toThrow(NotFoundException);
+      await expect(service.update(999, 1, {} as any)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -129,7 +131,9 @@ describe('BudgetsService', () => {
 
     it('should throw NotFoundException when adding item to non-existent budget', async () => {
       repository.findById.mockResolvedValue(null);
-      await expect(service.createItem(999, 1, {} as any)).rejects.toThrow(NotFoundException);
+      await expect(service.createItem(999, 1, {} as any)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });

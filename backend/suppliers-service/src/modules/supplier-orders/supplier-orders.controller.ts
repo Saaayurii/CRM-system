@@ -19,7 +19,11 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { SupplierOrdersService } from './supplier-orders.service';
-import { CreateSupplierOrderDto, UpdateSupplierOrderDto, CreateSupplierOrderItemDto } from './dto';
+import {
+  CreateSupplierOrderDto,
+  UpdateSupplierOrderDto,
+  CreateSupplierOrderItemDto,
+} from './dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
 interface RequestUser {
@@ -39,20 +43,36 @@ export class SupplierOrdersController {
   @ApiOperation({ summary: 'Get all supplier orders' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
-  @ApiQuery({ name: 'status', required: false, type: Number, description: 'Order status (0-5)' })
-  @ApiResponse({ status: 200, description: 'Supplier orders retrieved successfully' })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    type: Number,
+    description: 'Order status (0-5)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Supplier orders retrieved successfully',
+  })
   async findAll(
     @CurrentUser() user: RequestUser,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
     @Query('status') status?: number,
   ) {
-    return this.supplierOrdersService.findAll(user.accountId, page || 1, limit || 20, status);
+    return this.supplierOrdersService.findAll(
+      user.accountId,
+      page || 1,
+      limit || 20,
+      status,
+    );
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get supplier order by ID' })
-  @ApiResponse({ status: 200, description: 'Supplier order retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Supplier order retrieved successfully',
+  })
   @ApiResponse({ status: 404, description: 'Supplier order not found' })
   async findOne(
     @CurrentUser() user: RequestUser,
@@ -63,30 +83,46 @@ export class SupplierOrdersController {
 
   @Post()
   @ApiOperation({ summary: 'Create new supplier order' })
-  @ApiResponse({ status: 201, description: 'Supplier order created successfully' })
+  @ApiResponse({
+    status: 201,
+    description: 'Supplier order created successfully',
+  })
   async create(
     @CurrentUser() user: RequestUser,
     @Body() createSupplierOrderDto: CreateSupplierOrderDto,
   ) {
-    return this.supplierOrdersService.create(createSupplierOrderDto, user.accountId);
+    return this.supplierOrdersService.create(
+      createSupplierOrderDto,
+      user.accountId,
+    );
   }
 
   @Put(':id')
   @ApiOperation({ summary: 'Update supplier order' })
-  @ApiResponse({ status: 200, description: 'Supplier order updated successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Supplier order updated successfully',
+  })
   @ApiResponse({ status: 404, description: 'Supplier order not found' })
   async update(
     @CurrentUser() user: RequestUser,
     @Param('id', ParseIntPipe) id: number,
     @Body() updateSupplierOrderDto: UpdateSupplierOrderDto,
   ) {
-    return this.supplierOrdersService.update(id, updateSupplierOrderDto, user.accountId);
+    return this.supplierOrdersService.update(
+      id,
+      updateSupplierOrderDto,
+      user.accountId,
+    );
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete supplier order (soft delete)' })
-  @ApiResponse({ status: 204, description: 'Supplier order deleted successfully' })
+  @ApiResponse({
+    status: 204,
+    description: 'Supplier order deleted successfully',
+  })
   @ApiResponse({ status: 404, description: 'Supplier order not found' })
   async remove(
     @CurrentUser() user: RequestUser,
@@ -104,6 +140,10 @@ export class SupplierOrdersController {
     @Param('id', ParseIntPipe) id: number,
     @Body() createItemDto: CreateSupplierOrderItemDto,
   ) {
-    return this.supplierOrdersService.addItem(id, createItemDto, user.accountId);
+    return this.supplierOrdersService.addItem(
+      id,
+      createItemDto,
+      user.accountId,
+    );
   }
 }

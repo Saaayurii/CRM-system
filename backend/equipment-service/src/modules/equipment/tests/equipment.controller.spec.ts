@@ -54,7 +54,13 @@ describe('EquipmentController', () => {
     it('should return paginated equipment with default params', async () => {
       service.findAll.mockResolvedValue(mockPaginatedResult);
       const result = await controller.findAll(mockUser);
-      expect(service.findAll).toHaveBeenCalledWith(1, 1, 20, undefined, undefined);
+      expect(service.findAll).toHaveBeenCalledWith(
+        1,
+        1,
+        20,
+        undefined,
+        undefined,
+      );
       expect(result).toEqual(mockPaginatedResult);
     });
 
@@ -96,7 +102,9 @@ describe('EquipmentController', () => {
 
   describe('delete', () => {
     it('should delete equipment', async () => {
-      const deleteResult = { message: 'Equipment with ID 1 deleted successfully' };
+      const deleteResult = {
+        message: 'Equipment with ID 1 deleted successfully',
+      };
       service.delete.mockResolvedValue(deleteResult);
       const result = await controller.delete(mockUser, 1);
       expect(service.delete).toHaveBeenCalledWith(1, 1);

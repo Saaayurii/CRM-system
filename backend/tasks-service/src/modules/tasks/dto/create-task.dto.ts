@@ -1,5 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsNumber, IsOptional, IsString, IsDateString, MaxLength, IsArray } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsDateString,
+  MaxLength,
+  IsArray,
+} from 'class-validator';
 
 export class CreateTaskDto {
   @ApiProperty({ example: 1 })
@@ -39,7 +47,10 @@ export class CreateTaskDto {
   @IsOptional()
   parentTaskId?: number;
 
-  @ApiPropertyOptional({ example: 2, description: '1-low, 2-medium, 3-high, 4-critical' })
+  @ApiPropertyOptional({
+    example: 2,
+    description: '1-low, 2-medium, 3-high, 4-critical',
+  })
   @IsNumber()
   @IsOptional()
   priority?: number;

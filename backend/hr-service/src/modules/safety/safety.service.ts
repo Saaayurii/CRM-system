@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { SafetyRepository } from './repositories/safety.repository';
 import {
   CreateSafetyIncidentDto,
@@ -22,7 +26,8 @@ export class SafetyService {
   async findIncidentById(id: number, accountId: number) {
     if (!accountId) throw new BadRequestException('accountId is required');
     const incident = await this.repository.findById(id, accountId);
-    if (!incident) throw new NotFoundException(`Safety incident #${id} not found`);
+    if (!incident)
+      throw new NotFoundException(`Safety incident #${id} not found`);
     return incident;
   }
 
@@ -31,17 +36,23 @@ export class SafetyService {
     return this.repository.create(accountId, dto);
   }
 
-  async updateIncident(id: number, accountId: number, dto: UpdateSafetyIncidentDto) {
+  async updateIncident(
+    id: number,
+    accountId: number,
+    dto: UpdateSafetyIncidentDto,
+  ) {
     if (!accountId) throw new BadRequestException('accountId is required');
     const incident = await this.repository.update(id, accountId, dto);
-    if (!incident) throw new NotFoundException(`Safety incident #${id} not found`);
+    if (!incident)
+      throw new NotFoundException(`Safety incident #${id} not found`);
     return incident;
   }
 
   async deleteIncident(id: number, accountId: number) {
     if (!accountId) throw new BadRequestException('accountId is required');
     const incident = await this.repository.delete(id, accountId);
-    if (!incident) throw new NotFoundException(`Safety incident #${id} not found`);
+    if (!incident)
+      throw new NotFoundException(`Safety incident #${id} not found`);
     return incident;
   }
 
@@ -55,7 +66,8 @@ export class SafetyService {
   async findTrainingById(id: number, accountId: number) {
     if (!accountId) throw new BadRequestException('accountId is required');
     const training = await this.repository.findTrainingById(id, accountId);
-    if (!training) throw new NotFoundException(`Safety training #${id} not found`);
+    if (!training)
+      throw new NotFoundException(`Safety training #${id} not found`);
     return training;
   }
 
@@ -64,17 +76,23 @@ export class SafetyService {
     return this.repository.createTraining(accountId, dto);
   }
 
-  async updateTraining(id: number, accountId: number, dto: UpdateSafetyTrainingDto) {
+  async updateTraining(
+    id: number,
+    accountId: number,
+    dto: UpdateSafetyTrainingDto,
+  ) {
     if (!accountId) throw new BadRequestException('accountId is required');
     const training = await this.repository.updateTraining(id, accountId, dto);
-    if (!training) throw new NotFoundException(`Safety training #${id} not found`);
+    if (!training)
+      throw new NotFoundException(`Safety training #${id} not found`);
     return training;
   }
 
   async deleteTraining(id: number, accountId: number) {
     if (!accountId) throw new BadRequestException('accountId is required');
     const training = await this.repository.deleteTraining(id, accountId);
-    if (!training) throw new NotFoundException(`Safety training #${id} not found`);
+    if (!training)
+      throw new NotFoundException(`Safety training #${id} not found`);
     return training;
   }
 

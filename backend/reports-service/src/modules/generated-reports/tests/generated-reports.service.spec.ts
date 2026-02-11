@@ -81,7 +81,9 @@ describe('GeneratedReportsService', () => {
 
     it('should include correct error message in NotFoundException', async () => {
       repository.findById.mockResolvedValue(null);
-      await expect(service.findById(42, 1)).rejects.toThrow('Generated report with ID 42 not found');
+      await expect(service.findById(42, 1)).rejects.toThrow(
+        'Generated report with ID 42 not found',
+      );
     });
   });
 
@@ -108,7 +110,9 @@ describe('GeneratedReportsService', () => {
 
     it('should throw NotFoundException when updating non-existent report', async () => {
       repository.findById.mockResolvedValue(null);
-      await expect(service.update(999, 1, {} as any)).rejects.toThrow(NotFoundException);
+      await expect(service.update(999, 1, {} as any)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 

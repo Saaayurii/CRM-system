@@ -14,13 +14,19 @@ export class UpdateUserDto {
   @MaxLength(255)
   name?: string;
 
-  @ApiPropertyOptional({ description: 'Phone number', example: '+7 999 123 4567' })
+  @ApiPropertyOptional({
+    description: 'Phone number',
+    example: '+7 999 123 4567',
+  })
   @IsString()
   @IsOptional()
   @MaxLength(50)
   phone?: string;
 
-  @ApiPropertyOptional({ description: 'Job position', example: 'Project Manager' })
+  @ApiPropertyOptional({
+    description: 'Job position',
+    example: 'Project Manager',
+  })
   @IsString()
   @IsOptional()
   @MaxLength(255)
@@ -36,7 +42,11 @@ export class UpdateUserDto {
   @IsOptional()
   isActive?: boolean;
 
-  @ApiPropertyOptional({ description: 'Availability status (0-offline, 1-online, 2-busy, 3-vacation, 4-sick)', example: 1 })
+  @ApiPropertyOptional({
+    description:
+      'Availability status (0-offline, 1-online, 2-busy, 3-vacation, 4-sick)',
+    example: 1,
+  })
   @IsNumber()
   @IsOptional()
   availability?: number;

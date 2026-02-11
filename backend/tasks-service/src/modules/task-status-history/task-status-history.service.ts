@@ -4,7 +4,9 @@ import { CreateTaskStatusHistoryDto } from './dto';
 
 @Injectable()
 export class TaskStatusHistoryService {
-  constructor(private readonly taskStatusHistoryRepository: TaskStatusHistoryRepository) {}
+  constructor(
+    private readonly taskStatusHistoryRepository: TaskStatusHistoryRepository,
+  ) {}
 
   async findAll(
     page: number = 1,
@@ -21,7 +23,8 @@ export class TaskStatusHistoryService {
 
   async findById(id: number) {
     const record = await this.taskStatusHistoryRepository.findById(id);
-    if (!record) throw new NotFoundException('Task status history record not found');
+    if (!record)
+      throw new NotFoundException('Task status history record not found');
     return record;
   }
 

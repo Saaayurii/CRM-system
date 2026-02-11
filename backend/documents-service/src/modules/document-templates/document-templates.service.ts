@@ -5,14 +5,19 @@ import { UpdateDocumentTemplateDto } from './dto/update-document-template.dto';
 
 @Injectable()
 export class DocumentTemplatesService {
-  constructor(private readonly documentTemplateRepository: DocumentTemplateRepository) {}
+  constructor(
+    private readonly documentTemplateRepository: DocumentTemplateRepository,
+  ) {}
 
   async findAll(accountId: number, page: number, limit: number) {
     return this.documentTemplateRepository.findAll(accountId, page, limit);
   }
 
   async findById(id: number, accountId: number) {
-    const template = await this.documentTemplateRepository.findById(id, accountId);
+    const template = await this.documentTemplateRepository.findById(
+      id,
+      accountId,
+    );
     if (!template) {
       throw new NotFoundException(`Document template with ID ${id} not found`);
     }

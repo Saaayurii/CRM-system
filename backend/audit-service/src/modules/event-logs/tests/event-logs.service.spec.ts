@@ -52,7 +52,13 @@ describe('EventLogsService', () => {
       const result = await service.findAll(1, 1, 20);
 
       expect(result).toEqual(mockPaginatedResult);
-      expect(repository.findAll).toHaveBeenCalledWith(1, 1, 20, undefined, undefined);
+      expect(repository.findAll).toHaveBeenCalledWith(
+        1,
+        1,
+        20,
+        undefined,
+        undefined,
+      );
     });
 
     it('should pass entityType filter', async () => {
@@ -60,7 +66,13 @@ describe('EventLogsService', () => {
 
       await service.findAll(1, 1, 20, 'client');
 
-      expect(repository.findAll).toHaveBeenCalledWith(1, 1, 20, 'client', undefined);
+      expect(repository.findAll).toHaveBeenCalledWith(
+        1,
+        1,
+        20,
+        'client',
+        undefined,
+      );
     });
 
     it('should pass userId filter', async () => {

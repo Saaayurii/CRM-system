@@ -52,7 +52,10 @@ describe('PresenceService', () => {
 
       await service.setUserOnline(10, 'socket-abc');
 
-      expect(mockRedis.sadd).toHaveBeenCalledWith('presence:user:10', 'socket-abc');
+      expect(mockRedis.sadd).toHaveBeenCalledWith(
+        'presence:user:10',
+        'socket-abc',
+      );
       expect(mockRedis.zadd).toHaveBeenCalledWith(
         'presence:online',
         expect.any(String),
@@ -69,7 +72,10 @@ describe('PresenceService', () => {
       const result = await service.removeConnection(10, 'socket-abc');
 
       expect(result).toBe(true);
-      expect(mockRedis.srem).toHaveBeenCalledWith('presence:user:10', 'socket-abc');
+      expect(mockRedis.srem).toHaveBeenCalledWith(
+        'presence:user:10',
+        'socket-abc',
+      );
     });
 
     it('should set user offline and return false if no connections remain', async () => {

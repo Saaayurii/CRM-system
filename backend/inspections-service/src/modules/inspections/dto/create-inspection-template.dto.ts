@@ -21,7 +21,10 @@ export class CreateInspectionTemplateDto {
   @MaxLength(100)
   inspectionType?: string;
 
-  @ApiPropertyOptional({ description: 'Checklist items (JSON array)', default: [] })
+  @ApiPropertyOptional({
+    description: 'Checklist items (JSON array)',
+    default: [],
+  })
   @IsOptional()
   @IsArray()
   checklistItems?: any[];

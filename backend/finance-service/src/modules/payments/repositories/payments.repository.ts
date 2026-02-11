@@ -29,19 +29,27 @@ export class PaymentsRepository {
     });
   }
 
-  async create(accountId: number, dto: CreatePaymentDto, createdByUserId: number) {
+  async create(
+    accountId: number,
+    dto: CreatePaymentDto,
+    createdByUserId: number,
+  ) {
     return (this.prisma as any).payment.create({
       data: { ...dto, accountId, createdByUserId },
     });
   }
 
   async update(id: number, accountId: number, dto: UpdatePaymentDto) {
-    return (this.prisma as any).payment.updateMany({
-      where: { id, accountId },
-      data: dto,
-    }).then(async () => {
-      return (this.prisma as any).payment.findFirst({ where: { id, accountId } });
-    });
+    return (this.prisma as any).payment
+      .updateMany({
+        where: { id, accountId },
+        data: dto,
+      })
+      .then(async () => {
+        return (this.prisma as any).payment.findFirst({
+          where: { id, accountId },
+        });
+      });
   }
 
   async delete(id: number, accountId: number) {

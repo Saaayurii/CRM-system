@@ -75,7 +75,11 @@ describe('KnowledgeTestsService', () => {
 
   describe('create', () => {
     it('should create a knowledge test', async () => {
-      const dto = { title: 'New Test', description: 'Description', questions: [] };
+      const dto = {
+        title: 'New Test',
+        description: 'Description',
+        questions: [],
+      };
       repository.create.mockResolvedValue({ ...mockTest, ...dto });
       const result = await service.create(1, dto as any);
       expect(result).toBeDefined();
@@ -95,7 +99,9 @@ describe('KnowledgeTestsService', () => {
 
     it('should throw NotFoundException when updating non-existent test', async () => {
       repository.findById.mockResolvedValue(null);
-      await expect(service.update(999, 1, { title: 'X' } as any)).rejects.toThrow(NotFoundException);
+      await expect(
+        service.update(999, 1, { title: 'X' } as any),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 

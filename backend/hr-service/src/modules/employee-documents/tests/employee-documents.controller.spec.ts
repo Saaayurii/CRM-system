@@ -43,7 +43,9 @@ describe('EmployeeDocumentsController', () => {
       ],
     }).compile();
 
-    controller = module.get<EmployeeDocumentsController>(EmployeeDocumentsController);
+    controller = module.get<EmployeeDocumentsController>(
+      EmployeeDocumentsController,
+    );
     service = module.get(EmployeeDocumentsService);
   });
 
@@ -82,7 +84,10 @@ describe('EmployeeDocumentsController', () => {
   describe('update', () => {
     it('should delegate to service.update', async () => {
       const dto = { title: 'Updated Contract' } as any;
-      service.update.mockResolvedValue({ ...mockDocument, title: 'Updated Contract' });
+      service.update.mockResolvedValue({
+        ...mockDocument,
+        title: 'Updated Contract',
+      });
       await controller.update(1, dto, mockUser);
       expect(service.update).toHaveBeenCalledWith(1, 1, dto);
     });

@@ -1,4 +1,10 @@
-import { IsString, IsOptional, IsBoolean, IsNumber, MaxLength } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsBoolean,
+  IsNumber,
+  MaxLength,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreatePaymentAccountDto {
@@ -25,7 +31,11 @@ export class CreatePaymentAccountDto {
   @MaxLength(100)
   accountNumber?: string;
 
-  @ApiPropertyOptional({ description: 'Currency', default: 'RUB', maxLength: 10 })
+  @ApiPropertyOptional({
+    description: 'Currency',
+    default: 'RUB',
+    maxLength: 10,
+  })
   @IsOptional()
   @IsString()
   @MaxLength(10)

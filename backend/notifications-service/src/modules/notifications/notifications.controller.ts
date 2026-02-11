@@ -126,11 +126,7 @@ export class NotificationsController {
     @CurrentUser('id') userId: number,
     @Body() dto: CreateAnnouncementDto,
   ) {
-    return this.notificationsService.createAnnouncement(
-      accountId,
-      userId,
-      dto,
-    );
+    return this.notificationsService.createAnnouncement(accountId, userId, dto);
   }
 
   @Get('announcements/:id')

@@ -62,7 +62,11 @@ describe('DashboardWidgetsService', () => {
     });
 
     it('should pass pagination parameters correctly', async () => {
-      repository.findAll.mockResolvedValue({ ...mockPaginated, page: 2, limit: 10 });
+      repository.findAll.mockResolvedValue({
+        ...mockPaginated,
+        page: 2,
+        limit: 10,
+      });
 
       await service.findAll(1, 2, 10);
 
@@ -84,7 +88,9 @@ describe('DashboardWidgetsService', () => {
       repository.findById.mockResolvedValue(null);
 
       await expect(service.findById(999, 1)).rejects.toThrow(NotFoundException);
-      await expect(service.findById(999, 1)).rejects.toThrow('Dashboard widget #999 not found');
+      await expect(service.findById(999, 1)).rejects.toThrow(
+        'Dashboard widget #999 not found',
+      );
     });
   });
 
@@ -104,7 +110,10 @@ describe('DashboardWidgetsService', () => {
     it('should update an existing widget', async () => {
       const dto = { title: 'Updated Widget' } as any;
       repository.findById.mockResolvedValue(mockWidget);
-      repository.update.mockResolvedValue({ ...mockWidget, title: 'Updated Widget' });
+      repository.update.mockResolvedValue({
+        ...mockWidget,
+        title: 'Updated Widget',
+      });
 
       const result = await service.update(1, 1, dto);
 
@@ -115,7 +124,9 @@ describe('DashboardWidgetsService', () => {
     it('should throw NotFoundException when updating non-existent widget', async () => {
       repository.findById.mockResolvedValue(null);
 
-      await expect(service.update(999, 1, {} as any)).rejects.toThrow(NotFoundException);
+      await expect(service.update(999, 1, {} as any)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 

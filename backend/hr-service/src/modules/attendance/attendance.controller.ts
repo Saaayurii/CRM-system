@@ -1,5 +1,20 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, ParseIntPipe } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  ParseIntPipe,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { AttendanceService } from './attendance.service';
 import { CreateAttendanceDto, UpdateAttendanceDto } from './dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -26,12 +41,19 @@ export class AttendanceController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    return this.service.findAll(user.id, Number(page) || 1, Number(limit) || 20);
+    return this.service.findAll(
+      user.id,
+      Number(page) || 1,
+      Number(limit) || 20,
+    );
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get attendance record by ID' })
-  findById(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: RequestUser) {
+  findById(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: RequestUser,
+  ) {
     return this.service.findById(id, user.id);
   }
 
@@ -53,7 +75,10 @@ export class AttendanceController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete attendance record' })
-  delete(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: RequestUser) {
+  delete(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: RequestUser,
+  ) {
     return this.service.delete(id, user.id);
   }
 }

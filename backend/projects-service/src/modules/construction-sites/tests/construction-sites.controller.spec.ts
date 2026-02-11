@@ -35,7 +35,9 @@ describe('ConstructionSitesController', () => {
       ],
     }).compile();
 
-    controller = module.get<ConstructionSitesController>(ConstructionSitesController);
+    controller = module.get<ConstructionSitesController>(
+      ConstructionSitesController,
+    );
     service = module.get(ConstructionSitesService);
   });
 
@@ -45,7 +47,13 @@ describe('ConstructionSitesController', () => {
 
   describe('findAll', () => {
     it('should call service.findAll with parsed parameters', async () => {
-      const mockResult = { data: [mockSite], total: 1, page: 1, limit: 20, totalPages: 1 };
+      const mockResult = {
+        data: [mockSite],
+        total: 1,
+        page: 1,
+        limit: 20,
+        totalPages: 1,
+      };
       service.findAll.mockResolvedValue(mockResult);
 
       const result = await controller.findAll(mockUser, '1', '20', '1', '0');
@@ -55,7 +63,13 @@ describe('ConstructionSitesController', () => {
     });
 
     it('should use defaults when query params are not provided', async () => {
-      const mockResult = { data: [], total: 0, page: 1, limit: 20, totalPages: 0 };
+      const mockResult = {
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 20,
+        totalPages: 0,
+      };
       service.findAll.mockResolvedValue(mockResult);
 
       await controller.findAll(mockUser);
@@ -77,7 +91,11 @@ describe('ConstructionSitesController', () => {
 
   describe('create', () => {
     it('should call service.create with dto', async () => {
-      const createDto = { projectId: 1, name: 'New Site', address: '456 Avenue' };
+      const createDto = {
+        projectId: 1,
+        name: 'New Site',
+        address: '456 Avenue',
+      };
       service.create.mockResolvedValue(mockSite);
 
       const result = await controller.create(mockUser, createDto);
@@ -101,7 +119,9 @@ describe('ConstructionSitesController', () => {
 
   describe('delete', () => {
     it('should call service.delete with id', async () => {
-      const mockResult = { message: 'Construction site with ID 1 deleted successfully' };
+      const mockResult = {
+        message: 'Construction site with ID 1 deleted successfully',
+      };
       service.delete.mockResolvedValue(mockResult);
 
       const result = await controller.delete(mockUser, 1);

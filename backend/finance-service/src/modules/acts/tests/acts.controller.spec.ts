@@ -97,7 +97,11 @@ describe('ActsController', () => {
 
   describe('createItem', () => {
     it('should delegate to service.createItem', async () => {
-      const dto = { description: 'Service item', quantity: 2, price: 100 } as any;
+      const dto = {
+        description: 'Service item',
+        quantity: 2,
+        price: 100,
+      } as any;
       const mockItem = { id: 1, actId: 1, ...dto };
       service.createItem.mockResolvedValue(mockItem);
       const result = await controller.createItem(1, dto, 1);

@@ -8,9 +8,11 @@ export const winstonConfig: WinstonModuleOptions = {
       format: winston.format.combine(
         winston.format.timestamp(),
         winston.format.colorize(),
-        winston.format.printf(({ timestamp, level, message, context, trace }) => {
-          return `${timestamp} [${context || 'Application'}] ${level}: ${message}${trace ? `\n${trace}` : ''}`;
-        }),
+        winston.format.printf(
+          ({ timestamp, level, message, context, trace }) => {
+            return `${timestamp} [${context || 'Application'}] ${level}: ${message}${trace ? `\n${trace}` : ''}`;
+          },
+        ),
       ),
     }),
     // File transport for errors

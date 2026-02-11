@@ -10,7 +10,12 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { Request } from 'express';
 import { ProxyService } from '../../common/services/proxy.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -27,9 +32,14 @@ export class TrainingGatewayController {
   @ApiOperation({ summary: 'Get all training materials' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
-  async findAllTrainingMaterials(@Req() req: Request, @Query('page') page?: number, @Query('limit') limit?: number) {
+  async findAllTrainingMaterials(
+    @Req() req: Request,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
     return this.proxyService.forward('training', {
-      method: 'GET', path: '/training-materials',
+      method: 'GET',
+      path: '/training-materials',
       headers: { authorization: req.headers.authorization || '' },
       params: { page, limit },
     });
@@ -39,7 +49,8 @@ export class TrainingGatewayController {
   @ApiOperation({ summary: 'Get training material by ID' })
   async findOneTrainingMaterial(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('training', {
-      method: 'GET', path: `/training-materials/${id}`,
+      method: 'GET',
+      path: `/training-materials/${id}`,
       headers: { authorization: req.headers.authorization || '' },
     });
   }
@@ -48,18 +59,30 @@ export class TrainingGatewayController {
   @ApiOperation({ summary: 'Create training material' })
   async createTrainingMaterial(@Req() req: Request, @Body() body: any) {
     return this.proxyService.forward('training', {
-      method: 'POST', path: '/training-materials',
-      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+      method: 'POST',
+      path: '/training-materials',
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
       data: body,
     });
   }
 
   @Put('training-materials/:id')
   @ApiOperation({ summary: 'Update training material' })
-  async updateTrainingMaterial(@Req() req: Request, @Param('id') id: string, @Body() body: any) {
+  async updateTrainingMaterial(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
     return this.proxyService.forward('training', {
-      method: 'PUT', path: `/training-materials/${id}`,
-      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+      method: 'PUT',
+      path: `/training-materials/${id}`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
       data: body,
     });
   }
@@ -68,7 +91,8 @@ export class TrainingGatewayController {
   @ApiOperation({ summary: 'Delete training material' })
   async removeTrainingMaterial(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('training', {
-      method: 'DELETE', path: `/training-materials/${id}`,
+      method: 'DELETE',
+      path: `/training-materials/${id}`,
       headers: { authorization: req.headers.authorization || '' },
     });
   }
@@ -78,9 +102,14 @@ export class TrainingGatewayController {
   @ApiOperation({ summary: 'Get all training progress records' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
-  async findAllTrainingProgress(@Req() req: Request, @Query('page') page?: number, @Query('limit') limit?: number) {
+  async findAllTrainingProgress(
+    @Req() req: Request,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
     return this.proxyService.forward('training', {
-      method: 'GET', path: '/training-progress',
+      method: 'GET',
+      path: '/training-progress',
       headers: { authorization: req.headers.authorization || '' },
       params: { page, limit },
     });
@@ -90,7 +119,8 @@ export class TrainingGatewayController {
   @ApiOperation({ summary: 'Get training progress by ID' })
   async findOneTrainingProgress(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('training', {
-      method: 'GET', path: `/training-progress/${id}`,
+      method: 'GET',
+      path: `/training-progress/${id}`,
       headers: { authorization: req.headers.authorization || '' },
     });
   }
@@ -99,18 +129,30 @@ export class TrainingGatewayController {
   @ApiOperation({ summary: 'Create training progress' })
   async createTrainingProgress(@Req() req: Request, @Body() body: any) {
     return this.proxyService.forward('training', {
-      method: 'POST', path: '/training-progress',
-      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+      method: 'POST',
+      path: '/training-progress',
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
       data: body,
     });
   }
 
   @Put('training-progress/:id')
   @ApiOperation({ summary: 'Update training progress' })
-  async updateTrainingProgress(@Req() req: Request, @Param('id') id: string, @Body() body: any) {
+  async updateTrainingProgress(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
     return this.proxyService.forward('training', {
-      method: 'PUT', path: `/training-progress/${id}`,
-      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+      method: 'PUT',
+      path: `/training-progress/${id}`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
       data: body,
     });
   }
@@ -119,7 +161,8 @@ export class TrainingGatewayController {
   @ApiOperation({ summary: 'Delete training progress' })
   async removeTrainingProgress(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('training', {
-      method: 'DELETE', path: `/training-progress/${id}`,
+      method: 'DELETE',
+      path: `/training-progress/${id}`,
       headers: { authorization: req.headers.authorization || '' },
     });
   }
@@ -129,9 +172,14 @@ export class TrainingGatewayController {
   @ApiOperation({ summary: 'Get all knowledge tests' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
-  async findAllKnowledgeTests(@Req() req: Request, @Query('page') page?: number, @Query('limit') limit?: number) {
+  async findAllKnowledgeTests(
+    @Req() req: Request,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
     return this.proxyService.forward('training', {
-      method: 'GET', path: '/knowledge-tests',
+      method: 'GET',
+      path: '/knowledge-tests',
       headers: { authorization: req.headers.authorization || '' },
       params: { page, limit },
     });
@@ -141,7 +189,8 @@ export class TrainingGatewayController {
   @ApiOperation({ summary: 'Get knowledge test by ID' })
   async findOneKnowledgeTest(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('training', {
-      method: 'GET', path: `/knowledge-tests/${id}`,
+      method: 'GET',
+      path: `/knowledge-tests/${id}`,
       headers: { authorization: req.headers.authorization || '' },
     });
   }
@@ -150,18 +199,30 @@ export class TrainingGatewayController {
   @ApiOperation({ summary: 'Create knowledge test' })
   async createKnowledgeTest(@Req() req: Request, @Body() body: any) {
     return this.proxyService.forward('training', {
-      method: 'POST', path: '/knowledge-tests',
-      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+      method: 'POST',
+      path: '/knowledge-tests',
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
       data: body,
     });
   }
 
   @Put('knowledge-tests/:id')
   @ApiOperation({ summary: 'Update knowledge test' })
-  async updateKnowledgeTest(@Req() req: Request, @Param('id') id: string, @Body() body: any) {
+  async updateKnowledgeTest(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
     return this.proxyService.forward('training', {
-      method: 'PUT', path: `/knowledge-tests/${id}`,
-      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+      method: 'PUT',
+      path: `/knowledge-tests/${id}`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
       data: body,
     });
   }
@@ -170,7 +231,8 @@ export class TrainingGatewayController {
   @ApiOperation({ summary: 'Delete knowledge test' })
   async removeKnowledgeTest(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('training', {
-      method: 'DELETE', path: `/knowledge-tests/${id}`,
+      method: 'DELETE',
+      path: `/knowledge-tests/${id}`,
       headers: { authorization: req.headers.authorization || '' },
     });
   }
@@ -180,9 +242,14 @@ export class TrainingGatewayController {
   @ApiOperation({ summary: 'Get all test attempts' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
-  async findAllTestAttempts(@Req() req: Request, @Query('page') page?: number, @Query('limit') limit?: number) {
+  async findAllTestAttempts(
+    @Req() req: Request,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
     return this.proxyService.forward('training', {
-      method: 'GET', path: '/test-attempts',
+      method: 'GET',
+      path: '/test-attempts',
       headers: { authorization: req.headers.authorization || '' },
       params: { page, limit },
     });
@@ -192,7 +259,8 @@ export class TrainingGatewayController {
   @ApiOperation({ summary: 'Get test attempt by ID' })
   async findOneTestAttempt(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('training', {
-      method: 'GET', path: `/test-attempts/${id}`,
+      method: 'GET',
+      path: `/test-attempts/${id}`,
       headers: { authorization: req.headers.authorization || '' },
     });
   }
@@ -201,8 +269,12 @@ export class TrainingGatewayController {
   @ApiOperation({ summary: 'Create test attempt' })
   async createTestAttempt(@Req() req: Request, @Body() body: any) {
     return this.proxyService.forward('training', {
-      method: 'POST', path: '/test-attempts',
-      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+      method: 'POST',
+      path: '/test-attempts',
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
       data: body,
     });
   }

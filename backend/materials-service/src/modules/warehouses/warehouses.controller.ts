@@ -46,13 +46,20 @@ export class WarehousesController {
   @ApiOperation({ summary: 'Get all warehouses' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
-  @ApiResponse({ status: 200, description: 'Warehouses retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Warehouses retrieved successfully',
+  })
   async findAll(
     @CurrentUser() user: RequestUser,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
   ) {
-    return this.warehousesService.findAll(user.accountId, page || 1, limit || 20);
+    return this.warehousesService.findAll(
+      user.accountId,
+      page || 1,
+      limit || 20,
+    );
   }
 
   @Get('warehouses/:id')
@@ -103,7 +110,10 @@ export class WarehousesController {
   // Warehouse Stock
   @Get('warehouses/:id/stock')
   @ApiOperation({ summary: 'Get warehouse stock' })
-  @ApiResponse({ status: 200, description: 'Warehouse stock retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Warehouse stock retrieved successfully',
+  })
   @ApiResponse({ status: 404, description: 'Warehouse not found' })
   async getStock(
     @CurrentUser() user: RequestUser,
@@ -115,7 +125,10 @@ export class WarehousesController {
   // Warehouse Movements
   @Post('warehouse-movements')
   @ApiOperation({ summary: 'Create warehouse movement' })
-  @ApiResponse({ status: 201, description: 'Warehouse movement created successfully' })
+  @ApiResponse({
+    status: 201,
+    description: 'Warehouse movement created successfully',
+  })
   async createMovement(
     @CurrentUser() user: RequestUser,
     @Body() createDto: CreateWarehouseMovementDto,
@@ -130,7 +143,10 @@ export class WarehousesController {
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'warehouseId', required: false, type: Number })
   @ApiQuery({ name: 'status', required: false, type: Number })
-  @ApiResponse({ status: 200, description: 'Inventory checks retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Inventory checks retrieved successfully',
+  })
   async findAllInventoryChecks(
     @CurrentUser() user: RequestUser,
     @Query('page') page?: number,
@@ -138,12 +154,20 @@ export class WarehousesController {
     @Query('warehouseId') warehouseId?: number,
     @Query('status') status?: number,
   ) {
-    return this.warehousesService.findAllInventoryChecks(page || 1, limit || 20, warehouseId, status);
+    return this.warehousesService.findAllInventoryChecks(
+      page || 1,
+      limit || 20,
+      warehouseId,
+      status,
+    );
   }
 
   @Get('inventory-checks/:id')
   @ApiOperation({ summary: 'Get inventory check by ID' })
-  @ApiResponse({ status: 200, description: 'Inventory check retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Inventory check retrieved successfully',
+  })
   @ApiResponse({ status: 404, description: 'Inventory check not found' })
   async findOneInventoryCheck(
     @CurrentUser() user: RequestUser,
@@ -154,24 +178,40 @@ export class WarehousesController {
 
   @Post('inventory-checks')
   @ApiOperation({ summary: 'Create new inventory check' })
-  @ApiResponse({ status: 201, description: 'Inventory check created successfully' })
-  @ApiResponse({ status: 409, description: 'Inventory check with this number already exists' })
+  @ApiResponse({
+    status: 201,
+    description: 'Inventory check created successfully',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Inventory check with this number already exists',
+  })
   async createInventoryCheck(
     @CurrentUser() user: RequestUser,
     @Body() createDto: CreateInventoryCheckDto,
   ) {
-    return this.warehousesService.createInventoryCheck(createDto, user.accountId);
+    return this.warehousesService.createInventoryCheck(
+      createDto,
+      user.accountId,
+    );
   }
 
   @Put('inventory-checks/:id')
   @ApiOperation({ summary: 'Update inventory check' })
-  @ApiResponse({ status: 200, description: 'Inventory check updated successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Inventory check updated successfully',
+  })
   @ApiResponse({ status: 404, description: 'Inventory check not found' })
   async updateInventoryCheck(
     @CurrentUser() user: RequestUser,
     @Param('id', ParseIntPipe) id: number,
     @Body() updateDto: UpdateInventoryCheckDto,
   ) {
-    return this.warehousesService.updateInventoryCheck(id, updateDto, user.accountId);
+    return this.warehousesService.updateInventoryCheck(
+      id,
+      updateDto,
+      user.accountId,
+    );
   }
 }

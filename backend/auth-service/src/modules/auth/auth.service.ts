@@ -8,7 +8,12 @@ import {
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
-import { AuthResponseDto, UserResponseDto, TokenResponseDto, MessageResponseDto } from './dto/auth-response.dto';
+import {
+  AuthResponseDto,
+  UserResponseDto,
+  TokenResponseDto,
+  MessageResponseDto,
+} from './dto/auth-response.dto';
 import { UserRepository } from './repositories/user.repository';
 import { RoleRepository } from './repositories/role.repository';
 import { AccountRepository } from './repositories/account.repository';
@@ -30,13 +35,17 @@ export class AuthService {
 
   async register(registerDto: RegisterDto): Promise<AuthResponseDto> {
     // Check if email already exists
-    const existingUser = await this.userRepository.findByEmail(registerDto.email);
+    const existingUser = await this.userRepository.findByEmail(
+      registerDto.email,
+    );
     if (existingUser) {
       throw new ConflictException('Email already exists');
     }
 
     // Verify account exists and is active
-    const account = await this.accountRepository.findById(registerDto.accountId);
+    const account = await this.accountRepository.findById(
+      registerDto.accountId,
+    );
     if (!account) {
       throw new NotFoundException('Account not found or inactive');
     }
@@ -48,7 +57,9 @@ export class AuthService {
     }
 
     // Hash password
-    const passwordDigest = await this.passwordService.hash(registerDto.password);
+    const passwordDigest = await this.passwordService.hash(
+      registerDto.password,
+    );
 
     // Create user
     const user = await this.userRepository.create({
@@ -146,7 +157,9 @@ export class AuthService {
   async refresh(refreshTokenDto: RefreshTokenDto): Promise<TokenResponseDto> {
     try {
       // Verify the refresh token
-      const payload = this.tokenService.verifyRefreshToken(refreshTokenDto.refreshToken);
+      const payload = this.tokenService.verifyRefreshToken(
+        refreshTokenDto.refreshToken,
+      );
 
       // Find user and verify refresh token matches
       const user = await this.userRepository.findById(payload.sub);
@@ -164,7 +177,10 @@ export class AuthService {
       }
 
       // Check if refresh token is expired
-      if (user.refreshTokenExpiresAt && new Date() > user.refreshTokenExpiresAt) {
+      if (
+        user.refreshTokenExpiresAt &&
+        new Date() > user.refreshTokenExpiresAt
+      ) {
         throw new UnauthorizedException('Refresh token expired');
       }
 

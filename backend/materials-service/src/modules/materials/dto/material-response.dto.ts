@@ -31,7 +31,7 @@ export class MaterialResponseDto {
   @ApiPropertyOptional()
   specifications?: Record<string, any>;
 
-  @ApiPropertyOptional({ example: 450.00 })
+  @ApiPropertyOptional({ example: 450.0 })
   basePrice?: number;
 
   @ApiPropertyOptional({ example: 'RUB' })

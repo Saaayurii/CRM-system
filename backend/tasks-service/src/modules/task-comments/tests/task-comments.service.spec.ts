@@ -44,7 +44,13 @@ describe('TaskCommentsService', () => {
 
   describe('findAll', () => {
     it('should return paginated task comments', async () => {
-      const mockResult = { data: [mockComment], total: 1, page: 1, limit: 20, totalPages: 1 };
+      const mockResult = {
+        data: [mockComment],
+        total: 1,
+        page: 1,
+        limit: 20,
+        totalPages: 1,
+      };
       repository.findAll.mockResolvedValue(mockResult);
 
       const result = await service.findAll(1, 20, { taskId: 1 });
@@ -58,7 +64,13 @@ describe('TaskCommentsService', () => {
     });
 
     it('should use default pagination when not provided', async () => {
-      const mockResult = { data: [], total: 0, page: 1, limit: 20, totalPages: 0 };
+      const mockResult = {
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 20,
+        totalPages: 0,
+      };
       repository.findAll.mockResolvedValue(mockResult);
 
       await service.findAll();
@@ -104,7 +116,10 @@ describe('TaskCommentsService', () => {
     it('should update and return the task comment', async () => {
       const updateDto = { commentText: 'Updated comment' };
       repository.findById.mockResolvedValue(mockComment);
-      repository.update.mockResolvedValue({ ...mockComment, commentText: 'Updated comment' });
+      repository.update.mockResolvedValue({
+        ...mockComment,
+        commentText: 'Updated comment',
+      });
 
       const result = await service.update(1, updateDto);
 
@@ -115,7 +130,9 @@ describe('TaskCommentsService', () => {
     it('should throw NotFoundException when comment not found for update', async () => {
       repository.findById.mockResolvedValue(null);
 
-      await expect(service.update(999, { commentText: 'test' })).rejects.toThrow(NotFoundException);
+      await expect(
+        service.update(999, { commentText: 'test' }),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 

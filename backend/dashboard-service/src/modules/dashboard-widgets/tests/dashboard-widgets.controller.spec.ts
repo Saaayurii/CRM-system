@@ -42,7 +42,9 @@ describe('DashboardWidgetsController', () => {
       ],
     }).compile();
 
-    controller = module.get<DashboardWidgetsController>(DashboardWidgetsController);
+    controller = module.get<DashboardWidgetsController>(
+      DashboardWidgetsController,
+    );
     service = module.get(DashboardWidgetsService);
   });
 

@@ -22,7 +22,9 @@ async function bootstrap() {
 
   const config = new DocumentBuilder()
     .setTitle('Suppliers Service API')
-    .setDescription('Suppliers & Contractors Management API for Construction CRM')
+    .setDescription(
+      'Suppliers & Contractors Management API for Construction CRM',
+    )
     .setVersion('1.0')
     .addBearerAuth()
     .build();

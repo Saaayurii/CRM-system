@@ -54,7 +54,12 @@ describe('TeamMembersService', () => {
       repository.findAll.mockResolvedValue(mockPaginatedResult);
       const result = await service.findAll(1, 20);
       expect(result).toEqual(mockPaginatedResult);
-      expect(repository.findAll).toHaveBeenCalledWith(1, 20, undefined, undefined);
+      expect(repository.findAll).toHaveBeenCalledWith(
+        1,
+        20,
+        undefined,
+        undefined,
+      );
     });
 
     it('should pass teamId and userId filters', async () => {
@@ -100,7 +105,9 @@ describe('TeamMembersService', () => {
 
     it('should throw NotFoundException when updating non-existent member', async () => {
       repository.update.mockResolvedValue(null);
-      await expect(service.update(999, {} as any)).rejects.toThrow(NotFoundException);
+      await expect(service.update(999, {} as any)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 

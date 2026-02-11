@@ -18,7 +18,13 @@ export class InspectionsService {
     status?: number,
     projectId?: number,
   ) {
-    return this.inspectionRepository.findAll(accountId, page, limit, status, projectId);
+    return this.inspectionRepository.findAll(
+      accountId,
+      page,
+      limit,
+      status,
+      projectId,
+    );
   }
 
   async findById(id: number, accountId: number) {
@@ -33,7 +39,9 @@ export class InspectionsService {
     return this.inspectionRepository.create({
       ...dto,
       accountId,
-      scheduledDate: dto.scheduledDate ? new Date(dto.scheduledDate) : undefined,
+      scheduledDate: dto.scheduledDate
+        ? new Date(dto.scheduledDate)
+        : undefined,
       actualDate: dto.actualDate ? new Date(dto.actualDate) : undefined,
     });
   }
@@ -59,9 +67,14 @@ export class InspectionsService {
   }
 
   async findTemplateById(id: number, accountId: number) {
-    const template = await this.inspectionRepository.findTemplateById(id, accountId);
+    const template = await this.inspectionRepository.findTemplateById(
+      id,
+      accountId,
+    );
     if (!template) {
-      throw new NotFoundException(`Inspection template with ID ${id} not found`);
+      throw new NotFoundException(
+        `Inspection template with ID ${id} not found`,
+      );
     }
     return template;
   }
@@ -73,7 +86,11 @@ export class InspectionsService {
     });
   }
 
-  async updateTemplate(id: number, accountId: number, dto: UpdateInspectionTemplateDto) {
+  async updateTemplate(
+    id: number,
+    accountId: number,
+    dto: UpdateInspectionTemplateDto,
+  ) {
     await this.findTemplateById(id, accountId);
     await this.inspectionRepository.updateTemplate(id, accountId, dto);
     return this.findTemplateById(id, accountId);
@@ -82,6 +99,8 @@ export class InspectionsService {
   async deleteTemplate(id: number, accountId: number) {
     await this.findTemplateById(id, accountId);
     await this.inspectionRepository.deleteTemplate(id, accountId);
-    return { message: `Inspection template with ID ${id} deleted successfully` };
+    return {
+      message: `Inspection template with ID ${id} deleted successfully`,
+    };
   }
 }

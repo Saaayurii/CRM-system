@@ -1,5 +1,11 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsDateString, IsInt, MaxLength } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsDateString,
+  IsInt,
+  MaxLength,
+} from 'class-validator';
 
 export class CreateTimeOffRequestDto {
   @ApiPropertyOptional({ maxLength: 100 })

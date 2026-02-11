@@ -30,7 +30,8 @@ export default () => ({
     finance: process.env.FINANCE_SERVICE_URL || 'http://localhost:3007',
     inspections: process.env.INSPECTIONS_SERVICE_URL || 'http://localhost:3008',
     hr: process.env.HR_SERVICE_URL || 'http://localhost:3009',
-    notifications: process.env.NOTIFICATIONS_SERVICE_URL || 'http://localhost:3010',
+    notifications:
+      process.env.NOTIFICATIONS_SERVICE_URL || 'http://localhost:3010',
     chat: process.env.CHAT_SERVICE_URL || 'http://localhost:3011',
     calendar: process.env.CALENDAR_SERVICE_URL || 'http://localhost:3012',
     equipment: process.env.EQUIPMENT_SERVICE_URL || 'http://localhost:3013',

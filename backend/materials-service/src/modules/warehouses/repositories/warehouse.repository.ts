@@ -13,7 +13,10 @@ export class WarehouseRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   // Warehouses
-  async findAll(accountId: number, options?: { skip?: number; take?: number; isActive?: boolean }) {
+  async findAll(
+    accountId: number,
+    options?: { skip?: number; take?: number; isActive?: boolean },
+  ) {
     const where: any = { accountId };
     if (options?.isActive !== undefined) {
       where.isActive = options.isActive;
@@ -148,7 +151,10 @@ export class WarehouseRepository {
   }
 
   // Inventory Checks
-  async findAllInventoryChecks(warehouseId?: number, options?: { skip?: number; take?: number; status?: number }) {
+  async findAllInventoryChecks(
+    warehouseId?: number,
+    options?: { skip?: number; take?: number; status?: number },
+  ) {
     const where: any = {};
     if (warehouseId !== undefined) where.warehouseId = warehouseId;
     if (options?.status !== undefined) where.status = options.status;
@@ -214,16 +220,17 @@ export class WarehouseRepository {
       data: {
         ...rest,
         checkDate: new Date(checkDate),
-        items: items && items.length > 0
-          ? {
-              create: items.map((item) => ({
-                materialId: item.materialId,
-                expectedQuantity: item.expectedQuantity,
-                actualQuantity: item.actualQuantity,
-                notes: item.notes,
-              })),
-            }
-          : undefined,
+        items:
+          items && items.length > 0
+            ? {
+                create: items.map((item) => ({
+                  materialId: item.materialId,
+                  expectedQuantity: item.expectedQuantity,
+                  actualQuantity: item.actualQuantity,
+                  notes: item.notes,
+                })),
+              }
+            : undefined,
       },
       include: {
         warehouse: {

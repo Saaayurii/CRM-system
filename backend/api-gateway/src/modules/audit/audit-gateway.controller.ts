@@ -8,7 +8,12 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { Request } from 'express';
 import { ProxyService } from '../../common/services/proxy.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -25,9 +30,14 @@ export class AuditGatewayController {
   @ApiOperation({ summary: 'Get all event logs' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
-  async findAllEventLogs(@Req() req: Request, @Query('page') page?: number, @Query('limit') limit?: number) {
+  async findAllEventLogs(
+    @Req() req: Request,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
     return this.proxyService.forward('audit', {
-      method: 'GET', path: '/event-logs',
+      method: 'GET',
+      path: '/event-logs',
       headers: { authorization: req.headers.authorization || '' },
       params: { page, limit },
     });
@@ -37,7 +47,8 @@ export class AuditGatewayController {
   @ApiOperation({ summary: 'Get event log by ID' })
   async findOneEventLog(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('audit', {
-      method: 'GET', path: `/event-logs/${id}`,
+      method: 'GET',
+      path: `/event-logs/${id}`,
       headers: { authorization: req.headers.authorization || '' },
     });
   }
@@ -46,8 +57,12 @@ export class AuditGatewayController {
   @ApiOperation({ summary: 'Create event log' })
   async createEventLog(@Req() req: Request, @Body() body: any) {
     return this.proxyService.forward('audit', {
-      method: 'POST', path: '/event-logs',
-      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+      method: 'POST',
+      path: '/event-logs',
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
       data: body,
     });
   }

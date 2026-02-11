@@ -1,5 +1,20 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, ParseIntPipe } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  ParseIntPipe,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { EmployeeDocumentsService } from './employee-documents.service';
 import { CreateEmployeeDocumentDto, UpdateEmployeeDocumentDto } from './dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -26,18 +41,28 @@ export class EmployeeDocumentsController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    return this.service.findAll(user.id, Number(page) || 1, Number(limit) || 20);
+    return this.service.findAll(
+      user.id,
+      Number(page) || 1,
+      Number(limit) || 20,
+    );
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get employee document by ID' })
-  findById(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: RequestUser) {
+  findById(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: RequestUser,
+  ) {
     return this.service.findById(id, user.id);
   }
 
   @Post()
   @ApiOperation({ summary: 'Create employee document' })
-  create(@Body() dto: CreateEmployeeDocumentDto, @CurrentUser() user: RequestUser) {
+  create(
+    @Body() dto: CreateEmployeeDocumentDto,
+    @CurrentUser() user: RequestUser,
+  ) {
     return this.service.create(user.id, dto);
   }
 
@@ -53,7 +78,10 @@ export class EmployeeDocumentsController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete employee document' })
-  delete(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: RequestUser) {
+  delete(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: RequestUser,
+  ) {
     return this.service.delete(id, user.id);
   }
 }

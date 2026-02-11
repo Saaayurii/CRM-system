@@ -83,7 +83,10 @@ describe('AttendanceController', () => {
   describe('update', () => {
     it('should delegate to service.update', async () => {
       const dto = { checkOut: '18:00' } as any;
-      service.update.mockResolvedValue({ ...mockAttendance, checkOut: '18:00' } as any);
+      service.update.mockResolvedValue({
+        ...mockAttendance,
+        checkOut: '18:00',
+      } as any);
       await controller.update(1, dto, mockUser);
       expect(service.update).toHaveBeenCalledWith(1, 1, dto);
     });

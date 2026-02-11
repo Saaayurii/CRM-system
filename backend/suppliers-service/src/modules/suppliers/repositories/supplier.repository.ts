@@ -1,12 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service';
-import { CreateSupplierDto, UpdateSupplierDto, CreateSupplierMaterialDto } from '../dto';
+import {
+  CreateSupplierDto,
+  UpdateSupplierDto,
+  CreateSupplierMaterialDto,
+} from '../dto';
 
 @Injectable()
 export class SupplierRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(accountId: number, options?: { skip?: number; take?: number; status?: number }) {
+  async findAll(
+    accountId: number,
+    options?: { skip?: number; take?: number; status?: number },
+  ) {
     const where: any = {
       accountId,
       deletedAt: null,

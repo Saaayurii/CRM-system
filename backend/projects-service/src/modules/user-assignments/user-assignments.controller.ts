@@ -34,7 +34,9 @@ interface RequestUser {
 @UseGuards(JwtAuthGuard)
 @Controller('user-assignments')
 export class UserAssignmentsController {
-  constructor(private readonly userAssignmentsService: UserAssignmentsService) {}
+  constructor(
+    private readonly userAssignmentsService: UserAssignmentsService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'Get all user project assignments with pagination' })

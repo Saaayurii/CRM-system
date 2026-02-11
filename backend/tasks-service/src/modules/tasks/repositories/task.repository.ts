@@ -6,17 +6,21 @@ import { CreateTaskDto, UpdateTaskDto } from '../dto';
 export class TaskRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(accountId: number, options?: {
-    skip?: number;
-    take?: number;
-    projectId?: number;
-    status?: number;
-    assignedToUserId?: number;
-  }) {
+  async findAll(
+    accountId: number,
+    options?: {
+      skip?: number;
+      take?: number;
+      projectId?: number;
+      status?: number;
+      assignedToUserId?: number;
+    },
+  ) {
     const where: any = { accountId, deletedAt: null };
     if (options?.projectId) where.projectId = options.projectId;
     if (options?.status !== undefined) where.status = options.status;
-    if (options?.assignedToUserId) where.assignedToUserId = options.assignedToUserId;
+    if (options?.assignedToUserId)
+      where.assignedToUserId = options.assignedToUserId;
 
     return (this.prisma as any).task.findMany({
       where,
@@ -93,7 +97,10 @@ export class TaskRepository {
     });
   }
 
-  async count(accountId: number, options?: { projectId?: number; status?: number }) {
+  async count(
+    accountId: number,
+    options?: { projectId?: number; status?: number },
+  ) {
     const where: any = { accountId, deletedAt: null };
     if (options?.projectId) where.projectId = options.projectId;
     if (options?.status !== undefined) where.status = options.status;

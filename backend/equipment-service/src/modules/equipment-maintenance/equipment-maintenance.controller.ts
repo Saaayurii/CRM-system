@@ -20,7 +20,10 @@ import {
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { EquipmentMaintenanceService } from './equipment-maintenance.service';
-import { CreateEquipmentMaintenanceDto, UpdateEquipmentMaintenanceDto } from './dto';
+import {
+  CreateEquipmentMaintenanceDto,
+  UpdateEquipmentMaintenanceDto,
+} from './dto';
 
 interface RequestUser {
   id: number;
@@ -34,7 +37,9 @@ interface RequestUser {
 @UseGuards(JwtAuthGuard)
 @Controller('equipment-maintenance')
 export class EquipmentMaintenanceController {
-  constructor(private readonly maintenanceService: EquipmentMaintenanceService) {}
+  constructor(
+    private readonly maintenanceService: EquipmentMaintenanceService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'Get all maintenance records with pagination' })

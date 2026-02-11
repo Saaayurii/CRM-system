@@ -6,11 +6,7 @@ import { CreateTaskCommentDto, UpdateTaskCommentDto } from '../dto';
 export class TaskCommentRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(options?: {
-    taskId?: number;
-    skip?: number;
-    take?: number;
-  }) {
+  async findAll(options?: { taskId?: number; skip?: number; take?: number }) {
     const where: any = {};
     if (options?.taskId) where.taskId = Number(options.taskId);
 
@@ -24,7 +20,10 @@ export class TaskCommentRepository {
       (this.prisma as any).taskComment.count({ where }),
     ]);
 
-    const page = options?.skip !== undefined && options?.take ? Math.floor(options.skip / options.take) + 1 : 1;
+    const page =
+      options?.skip !== undefined && options?.take
+        ? Math.floor(options.skip / options.take) + 1
+        : 1;
     const limit = options?.take || 20;
     const totalPages = Math.ceil(total / limit);
 

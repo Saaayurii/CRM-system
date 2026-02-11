@@ -7,12 +7,18 @@ export class CreateTaskStatusHistoryDto {
   @IsNotEmpty()
   taskId: number;
 
-  @ApiPropertyOptional({ example: 0, description: '0-new, 1-in_progress, 2-review, 3-completed, 4-cancelled' })
+  @ApiPropertyOptional({
+    example: 0,
+    description: '0-new, 1-in_progress, 2-review, 3-completed, 4-cancelled',
+  })
   @IsNumber()
   @IsOptional()
   oldStatus?: number;
 
-  @ApiPropertyOptional({ example: 1, description: '0-new, 1-in_progress, 2-review, 3-completed, 4-cancelled' })
+  @ApiPropertyOptional({
+    example: 1,
+    description: '0-new, 1-in_progress, 2-review, 3-completed, 4-cancelled',
+  })
   @IsNumber()
   @IsOptional()
   newStatus?: number;

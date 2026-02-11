@@ -55,7 +55,11 @@ describe('BonusesController', () => {
       service.findAll.mockResolvedValue(mockPaginatedResult);
       const result = await controller.findAll(1, 1, 20, 10, 2, 1);
       expect(result).toEqual(mockPaginatedResult);
-      expect(service.findAll).toHaveBeenCalledWith(1, 1, 20, { userId: 10, projectId: 2, status: 1 });
+      expect(service.findAll).toHaveBeenCalledWith(1, 1, 20, {
+        userId: 10,
+        projectId: 2,
+        status: 1,
+      });
     });
 
     it('should delegate to service.findAll without filters', async () => {

@@ -9,7 +9,12 @@ import {
   Query,
   ParseIntPipe,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { ReportTemplatesService } from './report-templates.service';
 import { CreateReportTemplateDto } from './dto/create-report-template.dto';
 import { UpdateReportTemplateDto } from './dto/update-report-template.dto';
@@ -19,7 +24,9 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 @ApiBearerAuth()
 @Controller('report-templates')
 export class ReportTemplatesController {
-  constructor(private readonly reportTemplatesService: ReportTemplatesService) {}
+  constructor(
+    private readonly reportTemplatesService: ReportTemplatesService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'Get all report templates' })

@@ -21,7 +21,10 @@ export class RegisterDto {
   @MaxLength(255)
   name: string;
 
-  @ApiProperty({ description: 'User email address', example: 'john@example.com' })
+  @ApiProperty({
+    description: 'User email address',
+    example: 'john@example.com',
+  })
   @IsEmail()
   @IsNotEmpty()
   @MaxLength(255)
@@ -39,13 +42,19 @@ export class RegisterDto {
   @IsNotEmpty()
   roleId: number;
 
-  @ApiPropertyOptional({ description: 'Phone number', example: '+7 999 123 4567' })
+  @ApiPropertyOptional({
+    description: 'Phone number',
+    example: '+7 999 123 4567',
+  })
   @IsString()
   @IsOptional()
   @MaxLength(50)
   phone?: string;
 
-  @ApiPropertyOptional({ description: 'Job position', example: 'Project Manager' })
+  @ApiPropertyOptional({
+    description: 'Job position',
+    example: 'Project Manager',
+  })
   @IsString()
   @IsOptional()
   @MaxLength(255)

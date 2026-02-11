@@ -33,7 +33,9 @@ describe('TaskStatusHistoryController', () => {
       ],
     }).compile();
 
-    controller = module.get<TaskStatusHistoryController>(TaskStatusHistoryController);
+    controller = module.get<TaskStatusHistoryController>(
+      TaskStatusHistoryController,
+    );
     service = module.get(TaskStatusHistoryService);
   });
 
@@ -43,7 +45,13 @@ describe('TaskStatusHistoryController', () => {
 
   describe('findAll', () => {
     it('should call service.findAll with correct parameters', async () => {
-      const mockResult = { data: [mockRecord], total: 1, page: 1, limit: 20, totalPages: 1 };
+      const mockResult = {
+        data: [mockRecord],
+        total: 1,
+        page: 1,
+        limit: 20,
+        totalPages: 1,
+      };
       service.findAll.mockResolvedValue(mockResult);
 
       const result = await controller.findAll(mockUser, 1, 20, 1);
@@ -53,12 +61,20 @@ describe('TaskStatusHistoryController', () => {
     });
 
     it('should use defaults when params not provided', async () => {
-      const mockResult = { data: [], total: 0, page: 1, limit: 20, totalPages: 0 };
+      const mockResult = {
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 20,
+        totalPages: 0,
+      };
       service.findAll.mockResolvedValue(mockResult);
 
       await controller.findAll(mockUser);
 
-      expect(service.findAll).toHaveBeenCalledWith(1, 20, { taskId: undefined });
+      expect(service.findAll).toHaveBeenCalledWith(1, 20, {
+        taskId: undefined,
+      });
     });
   });
 

@@ -30,7 +30,10 @@ export class CreateSupplierOrderDto {
   @IsOptional()
   supplierId?: number;
 
-  @ApiProperty({ description: 'Order number (unique)', example: 'ORD-2024-001' })
+  @ApiProperty({
+    description: 'Order number (unique)',
+    example: 'ORD-2024-001',
+  })
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
@@ -56,12 +59,18 @@ export class CreateSupplierOrderDto {
   @IsOptional()
   status?: number;
 
-  @ApiPropertyOptional({ description: 'Expected delivery date', example: '2024-02-15' })
+  @ApiPropertyOptional({
+    description: 'Expected delivery date',
+    example: '2024-02-15',
+  })
   @IsDateString()
   @IsOptional()
   expectedDeliveryDate?: string;
 
-  @ApiPropertyOptional({ description: 'Actual delivery date', example: '2024-02-14' })
+  @ApiPropertyOptional({
+    description: 'Actual delivery date',
+    example: '2024-02-14',
+  })
   @IsDateString()
   @IsOptional()
   actualDeliveryDate?: string;
@@ -97,7 +106,10 @@ export class CreateSupplierOrderDto {
   @IsOptional()
   deliveryAddress?: string;
 
-  @ApiPropertyOptional({ description: 'Delivery contact', example: 'Иванов И.И.' })
+  @ApiPropertyOptional({
+    description: 'Delivery contact',
+    example: 'Иванов И.И.',
+  })
   @IsString()
   @IsOptional()
   @MaxLength(255)

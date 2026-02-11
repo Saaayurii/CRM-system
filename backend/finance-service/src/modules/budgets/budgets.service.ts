@@ -20,7 +20,11 @@ export class BudgetsService {
     return budget;
   }
 
-  async create(accountId: number, dto: CreateBudgetDto, createdByUserId: number) {
+  async create(
+    accountId: number,
+    dto: CreateBudgetDto,
+    createdByUserId: number,
+  ) {
     return this.budgetRepository.create(accountId, dto, createdByUserId);
   }
 

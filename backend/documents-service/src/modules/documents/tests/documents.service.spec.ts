@@ -62,7 +62,11 @@ describe('DocumentsService', () => {
 
     it('should pass filters to repository', async () => {
       repository.findAll.mockResolvedValue(mockPaginatedResult);
-      const filters = { projectId: 10, documentType: 'contract', status: 'active' };
+      const filters = {
+        projectId: 10,
+        documentType: 'contract',
+        status: 'active',
+      };
       await service.findAll(1, 1, 20, filters);
       expect(repository.findAll).toHaveBeenCalledWith(1, 1, 20, filters);
     });
@@ -105,7 +109,9 @@ describe('DocumentsService', () => {
 
     it('should throw NotFoundException when updating non-existent document', async () => {
       repository.findById.mockResolvedValue(null);
-      await expect(service.update(999, 1, {} as any)).rejects.toThrow(NotFoundException);
+      await expect(service.update(999, 1, {} as any)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 

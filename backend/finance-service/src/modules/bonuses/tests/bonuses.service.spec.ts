@@ -104,7 +104,9 @@ describe('BonusesService', () => {
 
     it('should throw NotFoundException when updating non-existent bonus', async () => {
       repository.findById.mockResolvedValue(null);
-      await expect(service.update(999, 1, {} as any)).rejects.toThrow(NotFoundException);
+      await expect(service.update(999, 1, {} as any)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 

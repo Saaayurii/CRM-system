@@ -84,7 +84,9 @@ describe('SafetyService', () => {
     });
 
     it('should throw BadRequestException when accountId is falsy', async () => {
-      await expect(service.findAllIncidents(0, 1, 20)).rejects.toThrow(BadRequestException);
+      await expect(service.findAllIncidents(0, 1, 20)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -97,7 +99,9 @@ describe('SafetyService', () => {
 
     it('should throw NotFoundException when incident not found', async () => {
       repository.findById.mockResolvedValue(null);
-      await expect(service.findIncidentById(999, 1)).rejects.toThrow(NotFoundException);
+      await expect(service.findIncidentById(999, 1)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -114,14 +118,19 @@ describe('SafetyService', () => {
   describe('updateIncident', () => {
     it('should update and return the incident', async () => {
       const dto = { severity: 'high' } as any;
-      repository.update.mockResolvedValue({ ...mockIncident, severity: 'high' });
+      repository.update.mockResolvedValue({
+        ...mockIncident,
+        severity: 'high',
+      });
       const result = await service.updateIncident(1, 1, dto);
       expect(result.severity).toBe('high');
     });
 
     it('should throw NotFoundException when updating non-existent incident', async () => {
       repository.update.mockResolvedValue(null);
-      await expect(service.updateIncident(999, 1, {} as any)).rejects.toThrow(NotFoundException);
+      await expect(service.updateIncident(999, 1, {} as any)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -134,7 +143,9 @@ describe('SafetyService', () => {
 
     it('should throw NotFoundException when deleting non-existent incident', async () => {
       repository.delete.mockResolvedValue(null);
-      await expect(service.deleteIncident(999, 1)).rejects.toThrow(NotFoundException);
+      await expect(service.deleteIncident(999, 1)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -157,7 +168,9 @@ describe('SafetyService', () => {
 
     it('should throw NotFoundException when training not found', async () => {
       repository.findTrainingById.mockResolvedValue(null);
-      await expect(service.findTrainingById(999, 1)).rejects.toThrow(NotFoundException);
+      await expect(service.findTrainingById(999, 1)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 

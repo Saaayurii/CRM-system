@@ -78,13 +78,19 @@ describe('ExecutionLogService', () => {
 
     it('should include the id in the error message', async () => {
       repository.findById.mockResolvedValue(null);
-      await expect(service.findById(42)).rejects.toThrow('Execution log #42 not found');
+      await expect(service.findById(42)).rejects.toThrow(
+        'Execution log #42 not found',
+      );
     });
   });
 
   describe('create', () => {
     it('should create an execution log', async () => {
-      const dto = { automationRuleId: 1, status: 'success', triggeredBy: 'system' };
+      const dto = {
+        automationRuleId: 1,
+        status: 'success',
+        triggeredBy: 'system',
+      };
       repository.create.mockResolvedValue({ ...mockLog, ...dto });
       const result = await service.create(dto as any);
       expect(result).toBeDefined();

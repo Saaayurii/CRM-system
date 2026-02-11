@@ -1,5 +1,20 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, ParseIntPipe } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  ParseIntPipe,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { TeamMembersService } from './team-members.service';
 import { CreateTeamMemberDto, UpdateTeamMemberDto } from './dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -51,7 +66,10 @@ export class TeamMembersController {
 
   @Put(':id')
   @ApiOperation({ summary: 'Update team member' })
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateTeamMemberDto) {
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateTeamMemberDto,
+  ) {
     return this.service.update(id, dto);
   }
 

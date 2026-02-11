@@ -13,7 +13,8 @@ export class ClientPortalAccessService {
 
   async findById(id: number) {
     const r = await this.repo.findById(id);
-    if (!r) throw new NotFoundException(`Client portal access #${id} not found`);
+    if (!r)
+      throw new NotFoundException(`Client portal access #${id} not found`);
     return r;
   }
 

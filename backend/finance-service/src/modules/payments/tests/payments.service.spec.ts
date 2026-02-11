@@ -83,7 +83,9 @@ describe('PaymentsService', () => {
 
   describe('findAllPaymentAccounts', () => {
     it('should return paginated payment accounts', async () => {
-      paymentAccountsRepository.findAll.mockResolvedValue(mockPaginatedAccounts);
+      paymentAccountsRepository.findAll.mockResolvedValue(
+        mockPaginatedAccounts,
+      );
       const result = await service.findAllPaymentAccounts(1, 1, 20);
       expect(result).toEqual(mockPaginatedAccounts);
       expect(paymentAccountsRepository.findAll).toHaveBeenCalledWith(1, 1, 20);
@@ -99,7 +101,9 @@ describe('PaymentsService', () => {
 
     it('should throw NotFoundException when payment account not found', async () => {
       paymentAccountsRepository.findById.mockResolvedValue(null);
-      await expect(service.findPaymentAccountById(999, 1)).rejects.toThrow(NotFoundException);
+      await expect(service.findPaymentAccountById(999, 1)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -123,7 +127,9 @@ describe('PaymentsService', () => {
 
     it('should throw NotFoundException when deleting non-existent payment account', async () => {
       paymentAccountsRepository.findById.mockResolvedValue(null);
-      await expect(service.deletePaymentAccount(999, 1)).rejects.toThrow(NotFoundException);
+      await expect(service.deletePaymentAccount(999, 1)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -146,7 +152,9 @@ describe('PaymentsService', () => {
 
     it('should throw NotFoundException when payment not found', async () => {
       paymentsRepository.findById.mockResolvedValue(null);
-      await expect(service.findPaymentById(999, 1)).rejects.toThrow(NotFoundException);
+      await expect(service.findPaymentById(999, 1)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -170,7 +178,9 @@ describe('PaymentsService', () => {
 
     it('should throw NotFoundException when deleting non-existent payment', async () => {
       paymentsRepository.findById.mockResolvedValue(null);
-      await expect(service.deletePayment(999, 1)).rejects.toThrow(NotFoundException);
+      await expect(service.deletePayment(999, 1)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });

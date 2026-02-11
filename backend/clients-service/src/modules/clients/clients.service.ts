@@ -7,7 +7,13 @@ import { UpdateClientDto } from './dto/update-client.dto';
 export class ClientsService {
   constructor(private readonly repo: ClientsRepository) {}
 
-  async findAll(accountId: number, page: number, limit: number, status?: string, managerId?: number) {
+  async findAll(
+    accountId: number,
+    page: number,
+    limit: number,
+    status?: string,
+    managerId?: number,
+  ) {
     return this.repo.findAll(accountId, page, limit, status, managerId);
   }
 

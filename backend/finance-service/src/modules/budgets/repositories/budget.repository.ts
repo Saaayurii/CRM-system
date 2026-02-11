@@ -30,19 +30,27 @@ export class BudgetRepository {
     });
   }
 
-  async create(accountId: number, dto: CreateBudgetDto, createdByUserId: number) {
+  async create(
+    accountId: number,
+    dto: CreateBudgetDto,
+    createdByUserId: number,
+  ) {
     return (this.prisma as any).budget.create({
       data: { ...dto, accountId, createdByUserId },
     });
   }
 
   async update(id: number, accountId: number, dto: UpdateBudgetDto) {
-    return (this.prisma as any).budget.updateMany({
-      where: { id, accountId },
-      data: dto,
-    }).then(async () => {
-      return (this.prisma as any).budget.findFirst({ where: { id, accountId } });
-    });
+    return (this.prisma as any).budget
+      .updateMany({
+        where: { id, accountId },
+        data: dto,
+      })
+      .then(async () => {
+        return (this.prisma as any).budget.findFirst({
+          where: { id, accountId },
+        });
+      });
   }
 
   async delete(id: number, accountId: number) {

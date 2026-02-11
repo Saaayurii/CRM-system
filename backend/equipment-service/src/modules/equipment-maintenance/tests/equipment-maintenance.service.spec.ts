@@ -42,7 +42,9 @@ describe('EquipmentMaintenanceService', () => {
       ],
     }).compile();
 
-    service = module.get<EquipmentMaintenanceService>(EquipmentMaintenanceService);
+    service = module.get<EquipmentMaintenanceService>(
+      EquipmentMaintenanceService,
+    );
     repository = module.get(EquipmentMaintenanceRepository);
   });
 
@@ -106,13 +108,19 @@ describe('EquipmentMaintenanceService', () => {
       repository.update.mockResolvedValue(undefined);
       const dto = { description: 'Updated description' } as any;
       const result = await service.update(1, 1, dto);
-      expect(repository.update).toHaveBeenCalledWith(1, 1, expect.objectContaining({ description: 'Updated description' }));
+      expect(repository.update).toHaveBeenCalledWith(
+        1,
+        1,
+        expect.objectContaining({ description: 'Updated description' }),
+      );
       expect(result).toEqual(mockRecord);
     });
 
     it('should throw NotFoundException when updating non-existent record', async () => {
       repository.findById.mockResolvedValue(null);
-      await expect(service.update(999, 1, {} as any)).rejects.toThrow(NotFoundException);
+      await expect(service.update(999, 1, {} as any)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -122,7 +130,9 @@ describe('EquipmentMaintenanceService', () => {
       repository.delete.mockResolvedValue(undefined);
       const result = await service.delete(1, 1);
       expect(repository.delete).toHaveBeenCalledWith(1, 1);
-      expect(result).toEqual({ message: 'Equipment maintenance record with ID 1 deleted successfully' });
+      expect(result).toEqual({
+        message: 'Equipment maintenance record with ID 1 deleted successfully',
+      });
     });
 
     it('should throw NotFoundException when deleting non-existent record', async () => {

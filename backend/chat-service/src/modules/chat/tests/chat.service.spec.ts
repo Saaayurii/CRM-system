@@ -1,5 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException, ForbiddenException, ConflictException } from '@nestjs/common';
+import {
+  NotFoundException,
+  ForbiddenException,
+  ConflictException,
+} from '@nestjs/common';
 import { ChatService } from '../chat.service';
 import { ChatRepository } from '../repositories/chat.repository';
 
@@ -98,7 +102,9 @@ describe('ChatService', () => {
     it('should throw NotFoundException when channel not found', async () => {
       repository.findChannelById.mockResolvedValue(null);
 
-      await expect(service.findChannelById(999, 1)).rejects.toThrow(NotFoundException);
+      await expect(service.findChannelById(999, 1)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -138,7 +144,9 @@ describe('ChatService', () => {
     it('should throw NotFoundException if channel does not exist', async () => {
       repository.findChannelById.mockResolvedValue(null);
 
-      await expect(service.deleteChannel(999, 1)).rejects.toThrow(NotFoundException);
+      await expect(service.deleteChannel(999, 1)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -158,35 +166,55 @@ describe('ChatService', () => {
     it('should throw ConflictException if user is already a member', async () => {
       const dto = { userId: 20, role: 'member' };
       repository.findChannelById.mockResolvedValue(mockChannel);
-      repository.findChannelMember.mockResolvedValue({ id: 1, channelId: 1, userId: 20 });
+      repository.findChannelMember.mockResolvedValue({
+        id: 1,
+        channelId: 1,
+        userId: 20,
+      });
 
-      await expect(service.addChannelMember(1, 1, dto as any)).rejects.toThrow(ConflictException);
+      await expect(service.addChannelMember(1, 1, dto as any)).rejects.toThrow(
+        ConflictException,
+      );
     });
   });
 
   describe('editMessage', () => {
     it('should edit a message owned by the user', async () => {
       const dto = { messageText: 'Updated text' };
-      const editedMessage = { ...mockMessage, messageText: 'Updated text', isEdited: true };
+      const editedMessage = {
+        ...mockMessage,
+        messageText: 'Updated text',
+        isEdited: true,
+      };
       repository.findMessageById.mockResolvedValue(mockMessage);
       repository.updateMessage.mockResolvedValue(editedMessage);
 
       const result = await service.editMessage(1, 10, dto as any);
 
       expect(result.messageText).toBe('Updated text');
-      expect(repository.updateMessage).toHaveBeenCalledWith(1, expect.objectContaining({ isEdited: true }));
+      expect(repository.updateMessage).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({ isEdited: true }),
+      );
     });
 
     it('should throw NotFoundException if message does not exist', async () => {
       repository.findMessageById.mockResolvedValue(null);
 
-      await expect(service.editMessage(999, 10, { messageText: 'test' } as any)).rejects.toThrow(NotFoundException);
+      await expect(
+        service.editMessage(999, 10, { messageText: 'test' } as any),
+      ).rejects.toThrow(NotFoundException);
     });
 
     it('should throw ForbiddenException if user does not own the message', async () => {
-      repository.findMessageById.mockResolvedValue({ ...mockMessage, userId: 99 });
+      repository.findMessageById.mockResolvedValue({
+        ...mockMessage,
+        userId: 99,
+      });
 
-      await expect(service.editMessage(1, 10, { messageText: 'test' } as any)).rejects.toThrow(ForbiddenException);
+      await expect(
+        service.editMessage(1, 10, { messageText: 'test' } as any),
+      ).rejects.toThrow(ForbiddenException);
     });
   });
 
@@ -201,18 +229,31 @@ describe('ChatService', () => {
     });
 
     it('should throw ForbiddenException if user does not own the message', async () => {
-      repository.findMessageById.mockResolvedValue({ ...mockMessage, userId: 99 });
+      repository.findMessageById.mockResolvedValue({
+        ...mockMessage,
+        userId: 99,
+      });
 
-      await expect(service.deleteMessage(1, 10)).rejects.toThrow(ForbiddenException);
+      await expect(service.deleteMessage(1, 10)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 
   describe('reactToMessage', () => {
     it('should add a reaction to a message', async () => {
-      repository.findMessageById.mockResolvedValue({ ...mockMessage, reactions: {} });
-      repository.updateMessage.mockResolvedValue({ ...mockMessage, reactions: { thumbsup: [10] } });
+      repository.findMessageById.mockResolvedValue({
+        ...mockMessage,
+        reactions: {},
+      });
+      repository.updateMessage.mockResolvedValue({
+        ...mockMessage,
+        reactions: { thumbsup: [10] },
+      });
 
-      const result = await service.reactToMessage(1, 10, { reaction: 'thumbsup' } as any);
+      const result = await service.reactToMessage(1, 10, {
+        reaction: 'thumbsup',
+      } as any);
 
       expect(repository.updateMessage).toHaveBeenCalledWith(1, {
         reactions: { thumbsup: [10] },
@@ -220,12 +261,20 @@ describe('ChatService', () => {
     });
 
     it('should remove a reaction if user already reacted', async () => {
-      repository.findMessageById.mockResolvedValue({ ...mockMessage, reactions: { thumbsup: [10] } });
-      repository.updateMessage.mockResolvedValue({ ...mockMessage, reactions: {} });
+      repository.findMessageById.mockResolvedValue({
+        ...mockMessage,
+        reactions: { thumbsup: [10] },
+      });
+      repository.updateMessage.mockResolvedValue({
+        ...mockMessage,
+        reactions: {},
+      });
 
       await service.reactToMessage(1, 10, { reaction: 'thumbsup' } as any);
 
-      expect(repository.updateMessage).toHaveBeenCalledWith(1, { reactions: {} });
+      expect(repository.updateMessage).toHaveBeenCalledWith(1, {
+        reactions: {},
+      });
     });
   });
 
@@ -243,7 +292,10 @@ describe('ChatService', () => {
 
   describe('getUserChannelIds', () => {
     it('should return channel IDs for a user', async () => {
-      repository.findUserChannels.mockResolvedValue([{ channelId: 1 }, { channelId: 2 }]);
+      repository.findUserChannels.mockResolvedValue([
+        { channelId: 1 },
+        { channelId: 2 },
+      ]);
 
       const result = await service.getUserChannelIds(10);
 

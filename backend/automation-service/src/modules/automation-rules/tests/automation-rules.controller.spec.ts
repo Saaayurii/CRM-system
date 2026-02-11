@@ -46,7 +46,9 @@ describe('AutomationRulesController', () => {
       ],
     }).compile();
 
-    controller = module.get<AutomationRulesController>(AutomationRulesController);
+    controller = module.get<AutomationRulesController>(
+      AutomationRulesController,
+    );
     service = module.get(AutomationRulesService);
   });
 
@@ -74,7 +76,12 @@ describe('AutomationRulesController', () => {
 
   describe('create', () => {
     it('should create an automation rule', async () => {
-      const dto = { name: 'New Rule', triggerType: 'new_lead', conditions: {}, actions: {} };
+      const dto = {
+        name: 'New Rule',
+        triggerType: 'new_lead',
+        conditions: {},
+        actions: {},
+      };
       service.create.mockResolvedValue({ ...mockRule, ...dto });
       const result = await controller.create(dto as any, 1, 1);
       expect(result).toBeDefined();

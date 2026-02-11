@@ -1,12 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service';
-import { CreateMaterialRequestDto, UpdateMaterialRequestDto, CreateMaterialRequestItemDto } from '../dto';
+import {
+  CreateMaterialRequestDto,
+  UpdateMaterialRequestDto,
+  CreateMaterialRequestItemDto,
+} from '../dto';
 
 @Injectable()
 export class MaterialRequestRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(accountId: number, options?: { skip?: number; take?: number; status?: number }) {
+  async findAll(
+    accountId: number,
+    options?: { skip?: number; take?: number; status?: number },
+  ) {
     const where: any = { accountId };
     if (options?.status !== undefined) {
       where.status = options.status;
@@ -70,17 +77,18 @@ export class MaterialRequestRepository {
         ...rest,
         requestDate: new Date(requestDate),
         neededByDate: neededByDate ? new Date(neededByDate) : undefined,
-        items: items && items.length > 0
-          ? {
-              create: items.map((item) => ({
-                materialId: item.materialId,
-                requestedQuantity: item.requestedQuantity,
-                approvedQuantity: item.approvedQuantity,
-                unit: item.unit,
-                notes: item.notes,
-              })),
-            }
-          : undefined,
+        items:
+          items && items.length > 0
+            ? {
+                create: items.map((item) => ({
+                  materialId: item.materialId,
+                  requestedQuantity: item.requestedQuantity,
+                  approvedQuantity: item.approvedQuantity,
+                  unit: item.unit,
+                  notes: item.notes,
+                })),
+              }
+            : undefined,
       },
       include: {
         requestedBy: {

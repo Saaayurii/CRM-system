@@ -39,18 +39,17 @@ export class NotificationsService {
   }
 
   async findNotificationById(id: number, accountId: number) {
-    const notification =
-      await this.notificationRepository.findNotificationById(id, accountId);
+    const notification = await this.notificationRepository.findNotificationById(
+      id,
+      accountId,
+    );
     if (!notification) {
       throw new NotFoundException(`Notification with ID ${id} not found`);
     }
     return notification;
   }
 
-  async createNotification(
-    accountId: number,
-    dto: CreateNotificationDto,
-  ) {
+  async createNotification(accountId: number, dto: CreateNotificationDto) {
     return this.notificationRepository.createNotification({
       accountId,
       userId: dto.userId,
@@ -96,8 +95,10 @@ export class NotificationsService {
   }
 
   async findAnnouncementById(id: number, accountId: number) {
-    const announcement =
-      await this.notificationRepository.findAnnouncementById(id, accountId);
+    const announcement = await this.notificationRepository.findAnnouncementById(
+      id,
+      accountId,
+    );
     if (!announcement) {
       throw new NotFoundException(`Announcement with ID ${id} not found`);
     }

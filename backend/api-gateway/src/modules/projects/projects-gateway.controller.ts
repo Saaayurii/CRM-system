@@ -10,7 +10,12 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { Request } from 'express';
 import { ProxyService } from '../../common/services/proxy.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -57,18 +62,28 @@ export class ProjectsGatewayController {
     return this.proxyService.forward('projects', {
       method: 'POST',
       path: '/projects',
-      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
       data: body,
     });
   }
 
   @Put(':id')
   @ApiOperation({ summary: 'Update project' })
-  async update(@Req() req: Request, @Param('id') id: string, @Body() body: any) {
+  async update(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
     return this.proxyService.forward('projects', {
       method: 'PUT',
       path: `/projects/${id}`,
-      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
       data: body,
     });
   }
@@ -95,18 +110,29 @@ export class ProjectsGatewayController {
 
   @Post(':id/team')
   @ApiOperation({ summary: 'Add team member' })
-  async addTeamMember(@Req() req: Request, @Param('id') id: string, @Body() body: any) {
+  async addTeamMember(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
     return this.proxyService.forward('projects', {
       method: 'POST',
       path: `/projects/${id}/team`,
-      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
       data: body,
     });
   }
 
   @Delete(':id/team/:userId')
   @ApiOperation({ summary: 'Remove team member' })
-  async removeTeamMember(@Req() req: Request, @Param('id') id: string, @Param('userId') userId: string) {
+  async removeTeamMember(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+  ) {
     return this.proxyService.forward('projects', {
       method: 'DELETE',
       path: `/projects/${id}/team/${userId}`,
@@ -117,44 +143,111 @@ export class ProjectsGatewayController {
   // Construction Sites
   @Get(':id/construction-sites')
   @ApiOperation({ summary: 'Get project construction sites' })
-  async findAllSites(@Req() req: Request, @Param('id') id: string, @Query('page') page?: number, @Query('limit') limit?: number) {
-    return this.proxyService.forward('projects', { method: 'GET', path: `/construction-sites`, headers: { authorization: req.headers.authorization || '' }, params: { page, limit, projectId: id } });
+  async findAllSites(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    return this.proxyService.forward('projects', {
+      method: 'GET',
+      path: `/construction-sites`,
+      headers: { authorization: req.headers.authorization || '' },
+      params: { page, limit, projectId: id },
+    });
   }
 
   @Post(':id/construction-sites')
   @ApiOperation({ summary: 'Create construction site' })
-  async createSite(@Req() req: Request, @Param('id') id: string, @Body() body: any) {
-    return this.proxyService.forward('projects', { method: 'POST', path: `/construction-sites`, headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' }, data: { ...body, projectId: +id } });
+  async createSite(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
+    return this.proxyService.forward('projects', {
+      method: 'POST',
+      path: `/construction-sites`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: { ...body, projectId: +id },
+    });
   }
 
   @Put(':id/construction-sites/:siteId')
   @ApiOperation({ summary: 'Update construction site' })
-  async updateSite(@Req() req: Request, @Param('siteId') siteId: string, @Body() body: any) {
-    return this.proxyService.forward('projects', { method: 'PUT', path: `/construction-sites/${siteId}`, headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' }, data: body });
+  async updateSite(
+    @Req() req: Request,
+    @Param('siteId') siteId: string,
+    @Body() body: any,
+  ) {
+    return this.proxyService.forward('projects', {
+      method: 'PUT',
+      path: `/construction-sites/${siteId}`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
   }
 
   @Delete(':id/construction-sites/:siteId')
   @ApiOperation({ summary: 'Delete construction site' })
   async removeSite(@Req() req: Request, @Param('siteId') siteId: string) {
-    return this.proxyService.forward('projects', { method: 'DELETE', path: `/construction-sites/${siteId}`, headers: { authorization: req.headers.authorization || '' } });
+    return this.proxyService.forward('projects', {
+      method: 'DELETE',
+      path: `/construction-sites/${siteId}`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
   }
 
   // User Assignments
   @Get(':id/assignments')
   @ApiOperation({ summary: 'Get project user assignments' })
-  async findAllAssignments(@Req() req: Request, @Param('id') id: string, @Query('page') page?: number, @Query('limit') limit?: number) {
-    return this.proxyService.forward('projects', { method: 'GET', path: `/user-assignments`, headers: { authorization: req.headers.authorization || '' }, params: { page, limit, projectId: id } });
+  async findAllAssignments(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    return this.proxyService.forward('projects', {
+      method: 'GET',
+      path: `/user-assignments`,
+      headers: { authorization: req.headers.authorization || '' },
+      params: { page, limit, projectId: id },
+    });
   }
 
   @Post(':id/assignments')
   @ApiOperation({ summary: 'Create user assignment' })
-  async createAssignment(@Req() req: Request, @Param('id') id: string, @Body() body: any) {
-    return this.proxyService.forward('projects', { method: 'POST', path: `/user-assignments`, headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' }, data: { ...body, projectId: +id } });
+  async createAssignment(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
+    return this.proxyService.forward('projects', {
+      method: 'POST',
+      path: `/user-assignments`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: { ...body, projectId: +id },
+    });
   }
 
   @Delete(':id/assignments/:assignmentId')
   @ApiOperation({ summary: 'Delete user assignment' })
-  async removeAssignment(@Req() req: Request, @Param('assignmentId') assignmentId: string) {
-    return this.proxyService.forward('projects', { method: 'DELETE', path: `/user-assignments/${assignmentId}`, headers: { authorization: req.headers.authorization || '' } });
+  async removeAssignment(
+    @Req() req: Request,
+    @Param('assignmentId') assignmentId: string,
+  ) {
+    return this.proxyService.forward('projects', {
+      method: 'DELETE',
+      path: `/user-assignments/${assignmentId}`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
   }
 }

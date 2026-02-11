@@ -54,7 +54,12 @@ export class MaterialsController {
     @Query('limit') limit?: number,
     @Query('categoryId') categoryId?: number,
   ) {
-    return this.materialsService.findAll(user.accountId, page || 1, limit || 20, categoryId);
+    return this.materialsService.findAll(
+      user.accountId,
+      page || 1,
+      limit || 20,
+      categoryId,
+    );
   }
 
   @Get(':id')
@@ -71,7 +76,10 @@ export class MaterialsController {
   @Post()
   @ApiOperation({ summary: 'Create new material' })
   @ApiResponse({ status: 201, description: 'Material created successfully' })
-  @ApiResponse({ status: 409, description: 'Material with this code already exists' })
+  @ApiResponse({
+    status: 409,
+    description: 'Material with this code already exists',
+  })
   async create(
     @CurrentUser() user: RequestUser,
     @Body() createMaterialDto: CreateMaterialDto,
@@ -114,13 +122,20 @@ export class MaterialCategoriesController {
   @ApiOperation({ summary: 'Get all material categories' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
-  @ApiResponse({ status: 200, description: 'Categories retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Categories retrieved successfully',
+  })
   async findAll(
     @CurrentUser() user: RequestUser,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
   ) {
-    return this.materialsService.findAllCategories(user.accountId, page || 1, limit || 20);
+    return this.materialsService.findAllCategories(
+      user.accountId,
+      page || 1,
+      limit || 20,
+    );
   }
 
   @Get(':id')
@@ -141,7 +156,10 @@ export class MaterialCategoriesController {
     @CurrentUser() user: RequestUser,
     @Body() createCategoryDto: CreateMaterialCategoryDto,
   ) {
-    return this.materialsService.createCategory(createCategoryDto, user.accountId);
+    return this.materialsService.createCategory(
+      createCategoryDto,
+      user.accountId,
+    );
   }
 
   @Put(':id')
@@ -153,7 +171,11 @@ export class MaterialCategoriesController {
     @Param('id', ParseIntPipe) id: number,
     @Body() updateCategoryDto: UpdateMaterialCategoryDto,
   ) {
-    return this.materialsService.updateCategory(id, updateCategoryDto, user.accountId);
+    return this.materialsService.updateCategory(
+      id,
+      updateCategoryDto,
+      user.accountId,
+    );
   }
 
   @Delete(':id')

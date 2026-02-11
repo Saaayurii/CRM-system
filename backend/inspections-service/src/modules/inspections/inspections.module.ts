@@ -1,5 +1,8 @@
 import { Module } from '@nestjs/common';
-import { InspectionsController, InspectionTemplatesController } from './inspections.controller';
+import {
+  InspectionsController,
+  InspectionTemplatesController,
+} from './inspections.controller';
 import { InspectionsService } from './inspections.service';
 import { InspectionRepository } from './repositories/inspection.repository';
 

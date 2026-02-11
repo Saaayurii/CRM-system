@@ -65,7 +65,10 @@ export class CreateInventoryCheckDto {
   @IsOptional()
   notes?: string;
 
-  @ApiPropertyOptional({ description: 'Check items', type: [CreateInventoryCheckItemDto] })
+  @ApiPropertyOptional({
+    description: 'Check items',
+    type: [CreateInventoryCheckItemDto],
+  })
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CreateInventoryCheckItemDto)

@@ -57,7 +57,13 @@ describe('EquipmentService', () => {
     it('should return paginated equipment list', async () => {
       repository.findAll.mockResolvedValue(mockPaginatedResult);
       const result = await service.findAll(1, 1, 20);
-      expect(repository.findAll).toHaveBeenCalledWith(1, 1, 20, undefined, undefined);
+      expect(repository.findAll).toHaveBeenCalledWith(
+        1,
+        1,
+        20,
+        undefined,
+        undefined,
+      );
       expect(result).toEqual(mockPaginatedResult);
     });
 
@@ -111,13 +117,19 @@ describe('EquipmentService', () => {
       repository.update.mockResolvedValue(undefined);
       const dto = { name: 'Updated Excavator' } as any;
       const result = await service.update(1, 1, dto);
-      expect(repository.update).toHaveBeenCalledWith(1, 1, expect.objectContaining({ name: 'Updated Excavator' }));
+      expect(repository.update).toHaveBeenCalledWith(
+        1,
+        1,
+        expect.objectContaining({ name: 'Updated Excavator' }),
+      );
       expect(result).toEqual(mockEquipment);
     });
 
     it('should throw NotFoundException when updating non-existent equipment', async () => {
       repository.findById.mockResolvedValue(null);
-      await expect(service.update(999, 1, {} as any)).rejects.toThrow(NotFoundException);
+      await expect(service.update(999, 1, {} as any)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -127,7 +139,9 @@ describe('EquipmentService', () => {
       repository.delete.mockResolvedValue(undefined);
       const result = await service.delete(1, 1);
       expect(repository.delete).toHaveBeenCalledWith(1, 1);
-      expect(result).toEqual({ message: 'Equipment with ID 1 deleted successfully' });
+      expect(result).toEqual({
+        message: 'Equipment with ID 1 deleted successfully',
+      });
     });
 
     it('should throw NotFoundException when deleting non-existent equipment', async () => {

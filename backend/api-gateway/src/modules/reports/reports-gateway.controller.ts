@@ -10,7 +10,12 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { Request } from 'express';
 import { ProxyService } from '../../common/services/proxy.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -27,9 +32,14 @@ export class ReportsGatewayController {
   @ApiOperation({ summary: 'Get all report templates' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
-  async findAllReportTemplates(@Req() req: Request, @Query('page') page?: number, @Query('limit') limit?: number) {
+  async findAllReportTemplates(
+    @Req() req: Request,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
     return this.proxyService.forward('reports', {
-      method: 'GET', path: '/report-templates',
+      method: 'GET',
+      path: '/report-templates',
       headers: { authorization: req.headers.authorization || '' },
       params: { page, limit },
     });
@@ -39,7 +49,8 @@ export class ReportsGatewayController {
   @ApiOperation({ summary: 'Get report template by ID' })
   async findOneReportTemplate(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('reports', {
-      method: 'GET', path: `/report-templates/${id}`,
+      method: 'GET',
+      path: `/report-templates/${id}`,
       headers: { authorization: req.headers.authorization || '' },
     });
   }
@@ -48,18 +59,30 @@ export class ReportsGatewayController {
   @ApiOperation({ summary: 'Create report template' })
   async createReportTemplate(@Req() req: Request, @Body() body: any) {
     return this.proxyService.forward('reports', {
-      method: 'POST', path: '/report-templates',
-      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+      method: 'POST',
+      path: '/report-templates',
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
       data: body,
     });
   }
 
   @Put('report-templates/:id')
   @ApiOperation({ summary: 'Update report template' })
-  async updateReportTemplate(@Req() req: Request, @Param('id') id: string, @Body() body: any) {
+  async updateReportTemplate(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
     return this.proxyService.forward('reports', {
-      method: 'PUT', path: `/report-templates/${id}`,
-      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+      method: 'PUT',
+      path: `/report-templates/${id}`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
       data: body,
     });
   }
@@ -68,7 +91,8 @@ export class ReportsGatewayController {
   @ApiOperation({ summary: 'Delete report template' })
   async removeReportTemplate(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('reports', {
-      method: 'DELETE', path: `/report-templates/${id}`,
+      method: 'DELETE',
+      path: `/report-templates/${id}`,
       headers: { authorization: req.headers.authorization || '' },
     });
   }
@@ -78,9 +102,14 @@ export class ReportsGatewayController {
   @ApiOperation({ summary: 'Get all generated reports' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
-  async findAllGeneratedReports(@Req() req: Request, @Query('page') page?: number, @Query('limit') limit?: number) {
+  async findAllGeneratedReports(
+    @Req() req: Request,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
     return this.proxyService.forward('reports', {
-      method: 'GET', path: '/generated-reports',
+      method: 'GET',
+      path: '/generated-reports',
       headers: { authorization: req.headers.authorization || '' },
       params: { page, limit },
     });
@@ -90,7 +119,8 @@ export class ReportsGatewayController {
   @ApiOperation({ summary: 'Get generated report by ID' })
   async findOneGeneratedReport(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('reports', {
-      method: 'GET', path: `/generated-reports/${id}`,
+      method: 'GET',
+      path: `/generated-reports/${id}`,
       headers: { authorization: req.headers.authorization || '' },
     });
   }
@@ -99,18 +129,30 @@ export class ReportsGatewayController {
   @ApiOperation({ summary: 'Create generated report' })
   async createGeneratedReport(@Req() req: Request, @Body() body: any) {
     return this.proxyService.forward('reports', {
-      method: 'POST', path: '/generated-reports',
-      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+      method: 'POST',
+      path: '/generated-reports',
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
       data: body,
     });
   }
 
   @Put('generated-reports/:id')
   @ApiOperation({ summary: 'Update generated report' })
-  async updateGeneratedReport(@Req() req: Request, @Param('id') id: string, @Body() body: any) {
+  async updateGeneratedReport(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
     return this.proxyService.forward('reports', {
-      method: 'PUT', path: `/generated-reports/${id}`,
-      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+      method: 'PUT',
+      path: `/generated-reports/${id}`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
       data: body,
     });
   }
@@ -119,7 +161,8 @@ export class ReportsGatewayController {
   @ApiOperation({ summary: 'Delete generated report' })
   async removeGeneratedReport(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('reports', {
-      method: 'DELETE', path: `/generated-reports/${id}`,
+      method: 'DELETE',
+      path: `/generated-reports/${id}`,
       headers: { authorization: req.headers.authorization || '' },
     });
   }

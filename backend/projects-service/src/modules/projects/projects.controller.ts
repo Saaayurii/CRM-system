@@ -19,7 +19,12 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { ProjectsService } from './projects.service';
-import { CreateProjectDto, UpdateProjectDto, ProjectResponseDto, AddTeamMemberDto } from './dto';
+import {
+  CreateProjectDto,
+  UpdateProjectDto,
+  ProjectResponseDto,
+  AddTeamMemberDto,
+} from './dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
 interface RequestUser {
@@ -39,7 +44,12 @@ export class ProjectsController {
   @ApiOperation({ summary: 'Get all projects' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
-  @ApiQuery({ name: 'status', required: false, type: Number, description: '0-draft, 1-active, 2-paused, 3-completed, 4-cancelled' })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    type: Number,
+    description: '0-draft, 1-active, 2-paused, 3-completed, 4-cancelled',
+  })
   @ApiResponse({ status: 200, description: 'Projects retrieved successfully' })
   async findAll(
     @CurrentUser() user: RequestUser,
@@ -47,7 +57,12 @@ export class ProjectsController {
     @Query('limit') limit?: number,
     @Query('status') status?: number,
   ) {
-    return this.projectsService.findAll(user.accountId, page || 1, limit || 20, status);
+    return this.projectsService.findAll(
+      user.accountId,
+      page || 1,
+      limit || 20,
+      status,
+    );
   }
 
   @Get(':id')
@@ -64,7 +79,10 @@ export class ProjectsController {
   @Post()
   @ApiOperation({ summary: 'Create new project' })
   @ApiResponse({ status: 201, description: 'Project created successfully' })
-  @ApiResponse({ status: 409, description: 'Project with this code already exists' })
+  @ApiResponse({
+    status: 409,
+    description: 'Project with this code already exists',
+  })
   async create(
     @CurrentUser() user: RequestUser,
     @Body() createProjectDto: CreateProjectDto,
@@ -99,7 +117,10 @@ export class ProjectsController {
   // Team management
   @Get(':id/team')
   @ApiOperation({ summary: 'Get project team members' })
-  @ApiResponse({ status: 200, description: 'Team members retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Team members retrieved successfully',
+  })
   async getTeamMembers(
     @CurrentUser() user: RequestUser,
     @Param('id', ParseIntPipe) id: number,
@@ -116,7 +137,11 @@ export class ProjectsController {
     @Param('id', ParseIntPipe) id: number,
     @Body() addTeamMemberDto: AddTeamMemberDto,
   ) {
-    return this.projectsService.addTeamMember(id, addTeamMemberDto, user.accountId);
+    return this.projectsService.addTeamMember(
+      id,
+      addTeamMemberDto,
+      user.accountId,
+    );
   }
 
   @Delete(':id/team/:userId')

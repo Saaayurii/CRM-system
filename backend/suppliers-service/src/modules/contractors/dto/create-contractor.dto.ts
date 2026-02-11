@@ -21,7 +21,10 @@ export class CreateContractorDto {
   @MaxLength(255)
   name: string;
 
-  @ApiPropertyOptional({ description: 'Legal name', example: 'ООО "СтройПодряд"' })
+  @ApiPropertyOptional({
+    description: 'Legal name',
+    example: 'ООО "СтройПодряд"',
+  })
   @IsString()
   @IsOptional()
   @MaxLength(255)
@@ -39,7 +42,10 @@ export class CreateContractorDto {
   @MaxLength(50)
   kpp?: string;
 
-  @ApiPropertyOptional({ description: 'Contact person', example: 'Петров Петр Петрович' })
+  @ApiPropertyOptional({
+    description: 'Contact person',
+    example: 'Петров Петр Петрович',
+  })
   @IsString()
   @IsOptional()
   @MaxLength(255)
@@ -51,7 +57,10 @@ export class CreateContractorDto {
   @MaxLength(50)
   phone?: string;
 
-  @ApiPropertyOptional({ description: 'Email', example: 'info@stroypodryad.ru' })
+  @ApiPropertyOptional({
+    description: 'Email',
+    example: 'info@stroypodryad.ru',
+  })
   @IsString()
   @IsOptional()
   @MaxLength(255)
@@ -83,7 +92,10 @@ export class CreateContractorDto {
   @MaxLength(100)
   paymentTerms?: string;
 
-  @ApiPropertyOptional({ description: 'Status (0-inactive, 1-active)', example: 1 })
+  @ApiPropertyOptional({
+    description: 'Status (0-inactive, 1-active)',
+    example: 1,
+  })
   @IsNumber()
   @IsOptional()
   status?: number;

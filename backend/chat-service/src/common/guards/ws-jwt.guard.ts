@@ -1,4 +1,9 @@
-import { CanActivate, ExecutionContext, Injectable, Logger } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as jwt from 'jsonwebtoken';
 import { AuthenticatedSocket } from '../interfaces/authenticated-socket.interface';
@@ -39,7 +44,9 @@ export class WsJwtGuard implements CanActivate {
 
       return true;
     } catch (error) {
-      this.logger.warn(`WS connection rejected: invalid token — ${(error as Error).message}`);
+      this.logger.warn(
+        `WS connection rejected: invalid token — ${(error as Error).message}`,
+      );
       client.disconnect();
       return false;
     }

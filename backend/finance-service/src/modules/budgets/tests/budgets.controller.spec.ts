@@ -82,7 +82,10 @@ describe('BudgetsController', () => {
   describe('update', () => {
     it('should delegate to service.update', async () => {
       const dto = { name: 'Updated Budget' } as any;
-      service.update.mockResolvedValue({ ...mockBudget, name: 'Updated Budget' });
+      service.update.mockResolvedValue({
+        ...mockBudget,
+        name: 'Updated Budget',
+      });
       const result = await controller.update(1, dto, 1);
       expect(service.update).toHaveBeenCalledWith(1, 1, dto);
     });

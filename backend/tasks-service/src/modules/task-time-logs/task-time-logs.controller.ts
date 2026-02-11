@@ -1,8 +1,22 @@
 import {
-  Controller, Get, Post, Put, Delete, Body, Param, Query,
-  ParseIntPipe, HttpCode, HttpStatus,
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  ParseIntPipe,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { TaskTimeLogsService } from './task-time-logs.service';
 import { CreateTaskTimeLogDto, UpdateTaskTimeLogDto } from './dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -33,7 +47,10 @@ export class TaskTimeLogsController {
     @Query('taskId') taskId?: number,
     @Query('userId') userId?: number,
   ) {
-    return this.taskTimeLogsService.findAll(page || 1, limit || 20, { taskId, userId });
+    return this.taskTimeLogsService.findAll(page || 1, limit || 20, {
+      taskId,
+      userId,
+    });
   }
 
   @Get(':id')

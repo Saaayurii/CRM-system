@@ -47,10 +47,16 @@ export class ProjectResponseDto {
   @ApiPropertyOptional({ example: 5000000 })
   actualCost?: number;
 
-  @ApiProperty({ example: 1, description: '0-draft, 1-active, 2-paused, 3-completed, 4-cancelled' })
+  @ApiProperty({
+    example: 1,
+    description: '0-draft, 1-active, 2-paused, 3-completed, 4-cancelled',
+  })
   status: number;
 
-  @ApiProperty({ example: 2, description: '1-low, 2-medium, 3-high, 4-critical' })
+  @ApiProperty({
+    example: 2,
+    description: '1-low, 2-medium, 3-high, 4-critical',
+  })
   priority: number;
 
   @ApiPropertyOptional()

@@ -6,7 +6,12 @@ import { CreateTeamDto, UpdateTeamDto } from '../dto';
 export class TeamRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(accountId: number, page: number, limit: number, status?: number) {
+  async findAll(
+    accountId: number,
+    page: number,
+    limit: number,
+    status?: number,
+  ) {
     const skip = (page - 1) * limit;
     const where: any = { accountId };
     if (status !== undefined) {
@@ -74,7 +79,11 @@ export class TeamRepository {
     });
   }
 
-  async addMember(teamId: number, accountId: number, data: { userId: number; roleInTeam?: string }) {
+  async addMember(
+    teamId: number,
+    accountId: number,
+    data: { userId: number; roleInTeam?: string },
+  ) {
     const team = await (this.prisma as any).team.findFirst({
       where: { id: teamId, accountId },
     });

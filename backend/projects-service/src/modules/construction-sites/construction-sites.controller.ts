@@ -34,7 +34,9 @@ interface RequestUser {
 @UseGuards(JwtAuthGuard)
 @Controller('construction-sites')
 export class ConstructionSitesController {
-  constructor(private readonly constructionSitesService: ConstructionSitesService) {}
+  constructor(
+    private readonly constructionSitesService: ConstructionSitesService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'Get all construction sites with pagination' })

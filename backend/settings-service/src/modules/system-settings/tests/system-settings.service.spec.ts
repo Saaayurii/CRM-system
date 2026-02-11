@@ -51,7 +51,9 @@ describe('SystemSettingsService', () => {
       repository.findByAccountId.mockResolvedValue(null);
 
       await expect(service.getSettings(999)).rejects.toThrow(NotFoundException);
-      await expect(service.getSettings(999)).rejects.toThrow('Account not found');
+      await expect(service.getSettings(999)).rejects.toThrow(
+        'Account not found',
+      );
     });
 
     it('should pass the correct accountId to the repository', async () => {
@@ -77,7 +79,10 @@ describe('SystemSettingsService', () => {
 
     it('should pass accountId and dto correctly to repository', async () => {
       const dto = { settings: { theme: 'light' } };
-      repository.update.mockResolvedValue({ ...mockSettings, settings: dto.settings });
+      repository.update.mockResolvedValue({
+        ...mockSettings,
+        settings: dto.settings,
+      });
 
       await service.updateSettings(5, dto as any);
 
@@ -87,7 +92,9 @@ describe('SystemSettingsService', () => {
     it('should propagate repository errors', async () => {
       repository.update.mockRejectedValue(new Error('DB error'));
 
-      await expect(service.updateSettings(1, {} as any)).rejects.toThrow('DB error');
+      await expect(service.updateSettings(1, {} as any)).rejects.toThrow(
+        'DB error',
+      );
     });
   });
 });

@@ -48,7 +48,9 @@ async function bootstrap() {
 
   await app.listen(port);
   logger.log(`API Gateway is running on port ${port}`);
-  logger.log(`Swagger documentation available at http://localhost:${port}/api/docs`);
+  logger.log(
+    `Swagger documentation available at http://localhost:${port}/api/docs`,
+  );
 }
 
 bootstrap();

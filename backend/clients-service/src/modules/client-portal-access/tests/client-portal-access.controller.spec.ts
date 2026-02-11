@@ -41,7 +41,9 @@ describe('ClientPortalAccessController', () => {
       ],
     }).compile();
 
-    controller = module.get<ClientPortalAccessController>(ClientPortalAccessController);
+    controller = module.get<ClientPortalAccessController>(
+      ClientPortalAccessController,
+    );
     service = module.get(ClientPortalAccessService);
   });
 

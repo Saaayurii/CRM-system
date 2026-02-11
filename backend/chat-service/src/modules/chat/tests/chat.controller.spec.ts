@@ -107,7 +107,9 @@ describe('ChatController', () => {
 
   describe('deleteChannel', () => {
     it('should delete a channel', async () => {
-      service.deleteChannel.mockResolvedValue({ message: 'Chat channel with ID 1 deleted successfully' });
+      service.deleteChannel.mockResolvedValue({
+        message: 'Chat channel with ID 1 deleted successfully',
+      });
 
       const result = await controller.deleteChannel(1, 1);
 
@@ -124,7 +126,12 @@ describe('ChatController', () => {
       const result = await controller.findChannelMessages(1, 1);
 
       expect(result).toEqual(mockCursorResult);
-      expect(service.findChannelMessagesCursor).toHaveBeenCalledWith(1, 1, undefined, 50);
+      expect(service.findChannelMessagesCursor).toHaveBeenCalledWith(
+        1,
+        1,
+        undefined,
+        50,
+      );
     });
 
     it('should pass cursor when provided', async () => {
@@ -133,7 +140,12 @@ describe('ChatController', () => {
 
       await controller.findChannelMessages(1, 1, '100', '25');
 
-      expect(service.findChannelMessagesCursor).toHaveBeenCalledWith(1, 1, 100, 25);
+      expect(service.findChannelMessagesCursor).toHaveBeenCalledWith(
+        1,
+        1,
+        100,
+        25,
+      );
     });
   });
 
@@ -152,7 +164,11 @@ describe('ChatController', () => {
   describe('editMessage', () => {
     it('should edit a message', async () => {
       const dto = { messageText: 'Edited' } as any;
-      const editedMessage = { ...mockMessage, messageText: 'Edited', isEdited: true };
+      const editedMessage = {
+        ...mockMessage,
+        messageText: 'Edited',
+        isEdited: true,
+      };
       service.editMessage.mockResolvedValue(editedMessage);
 
       const result = await controller.editMessage(1, 10, dto);

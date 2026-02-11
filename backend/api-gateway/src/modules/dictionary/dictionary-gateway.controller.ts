@@ -10,7 +10,12 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { Request } from 'express';
 import { ProxyService } from '../../common/services/proxy.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -27,9 +32,14 @@ export class DictionaryGatewayController {
   @ApiOperation({ summary: 'Get all dictionaries' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
-  async findAllDictionaries(@Req() req: Request, @Query('page') page?: number, @Query('limit') limit?: number) {
+  async findAllDictionaries(
+    @Req() req: Request,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
     return this.proxyService.forward('dictionary', {
-      method: 'GET', path: '/dictionaries',
+      method: 'GET',
+      path: '/dictionaries',
       headers: { authorization: req.headers.authorization || '' },
       params: { page, limit },
     });
@@ -39,7 +49,8 @@ export class DictionaryGatewayController {
   @ApiOperation({ summary: 'Get dictionary by ID' })
   async findOneDictionary(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('dictionary', {
-      method: 'GET', path: `/dictionaries/${id}`,
+      method: 'GET',
+      path: `/dictionaries/${id}`,
       headers: { authorization: req.headers.authorization || '' },
     });
   }
@@ -48,18 +59,30 @@ export class DictionaryGatewayController {
   @ApiOperation({ summary: 'Create dictionary' })
   async createDictionary(@Req() req: Request, @Body() body: any) {
     return this.proxyService.forward('dictionary', {
-      method: 'POST', path: '/dictionaries',
-      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+      method: 'POST',
+      path: '/dictionaries',
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
       data: body,
     });
   }
 
   @Put('dictionaries/:id')
   @ApiOperation({ summary: 'Update dictionary' })
-  async updateDictionary(@Req() req: Request, @Param('id') id: string, @Body() body: any) {
+  async updateDictionary(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
     return this.proxyService.forward('dictionary', {
-      method: 'PUT', path: `/dictionaries/${id}`,
-      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+      method: 'PUT',
+      path: `/dictionaries/${id}`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
       data: body,
     });
   }
@@ -68,7 +91,8 @@ export class DictionaryGatewayController {
   @ApiOperation({ summary: 'Delete dictionary' })
   async removeDictionary(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('dictionary', {
-      method: 'DELETE', path: `/dictionaries/${id}`,
+      method: 'DELETE',
+      path: `/dictionaries/${id}`,
       headers: { authorization: req.headers.authorization || '' },
     });
   }
@@ -78,9 +102,14 @@ export class DictionaryGatewayController {
   @ApiOperation({ summary: 'Get all dictionary values' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
-  async findAllDictionaryValues(@Req() req: Request, @Query('page') page?: number, @Query('limit') limit?: number) {
+  async findAllDictionaryValues(
+    @Req() req: Request,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
     return this.proxyService.forward('dictionary', {
-      method: 'GET', path: '/dictionary-values',
+      method: 'GET',
+      path: '/dictionary-values',
       headers: { authorization: req.headers.authorization || '' },
       params: { page, limit },
     });
@@ -90,7 +119,8 @@ export class DictionaryGatewayController {
   @ApiOperation({ summary: 'Get dictionary value by ID' })
   async findOneDictionaryValue(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('dictionary', {
-      method: 'GET', path: `/dictionary-values/${id}`,
+      method: 'GET',
+      path: `/dictionary-values/${id}`,
       headers: { authorization: req.headers.authorization || '' },
     });
   }
@@ -99,18 +129,30 @@ export class DictionaryGatewayController {
   @ApiOperation({ summary: 'Create dictionary value' })
   async createDictionaryValue(@Req() req: Request, @Body() body: any) {
     return this.proxyService.forward('dictionary', {
-      method: 'POST', path: '/dictionary-values',
-      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+      method: 'POST',
+      path: '/dictionary-values',
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
       data: body,
     });
   }
 
   @Put('dictionary-values/:id')
   @ApiOperation({ summary: 'Update dictionary value' })
-  async updateDictionaryValue(@Req() req: Request, @Param('id') id: string, @Body() body: any) {
+  async updateDictionaryValue(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
     return this.proxyService.forward('dictionary', {
-      method: 'PUT', path: `/dictionary-values/${id}`,
-      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+      method: 'PUT',
+      path: `/dictionary-values/${id}`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
       data: body,
     });
   }
@@ -119,7 +161,8 @@ export class DictionaryGatewayController {
   @ApiOperation({ summary: 'Delete dictionary value' })
   async removeDictionaryValue(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('dictionary', {
-      method: 'DELETE', path: `/dictionary-values/${id}`,
+      method: 'DELETE',
+      path: `/dictionary-values/${id}`,
       headers: { authorization: req.headers.authorization || '' },
     });
   }

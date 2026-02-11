@@ -69,7 +69,9 @@ export class ChatGateway
       await this.presenceService.setUserOnline(client.user.id, client.id);
 
       // Join user to all their channel rooms
-      const channelIds = await this.chatService.getUserChannelIds(client.user.id);
+      const channelIds = await this.chatService.getUserChannelIds(
+        client.user.id,
+      );
       for (const channelId of channelIds) {
         client.join(`channel:${channelId}`);
       }
@@ -103,7 +105,9 @@ export class ChatGateway
       });
     }
 
-    this.logger.log(`User ${client.user.id} disconnected — socket: ${client.id}`);
+    this.logger.log(
+      `User ${client.user.id} disconnected — socket: ${client.id}`,
+    );
   }
 
   // --- Messages ---
@@ -150,7 +154,7 @@ export class ChatGateway
       { messageText: data.messageText },
     );
 
-    const channelId = (message as any).channelId;
+    const channelId = message.channelId;
     this.server.to(`channel:${channelId}`).emit('message:edited', message);
 
     return { event: 'message:edit:ack', data: message };
@@ -188,7 +192,7 @@ export class ChatGateway
       { reaction: data.reaction },
     );
 
-    const channelId = (message as any).channelId;
+    const channelId = message.channelId;
     this.server
       .to(`channel:${channelId}`)
       .emit('message:reaction:updated', message);

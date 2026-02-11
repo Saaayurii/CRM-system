@@ -45,7 +45,13 @@ describe('TaskCommentsController', () => {
 
   describe('findAll', () => {
     it('should call service.findAll with correct parameters', async () => {
-      const mockResult = { data: [mockComment], total: 1, page: 1, limit: 20, totalPages: 1 };
+      const mockResult = {
+        data: [mockComment],
+        total: 1,
+        page: 1,
+        limit: 20,
+        totalPages: 1,
+      };
       service.findAll.mockResolvedValue(mockResult);
 
       const result = await controller.findAll(mockUser, 1, 20, 1);
@@ -55,12 +61,20 @@ describe('TaskCommentsController', () => {
     });
 
     it('should use defaults when params not provided', async () => {
-      const mockResult = { data: [], total: 0, page: 1, limit: 20, totalPages: 0 };
+      const mockResult = {
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 20,
+        totalPages: 0,
+      };
       service.findAll.mockResolvedValue(mockResult);
 
       await controller.findAll(mockUser);
 
-      expect(service.findAll).toHaveBeenCalledWith(1, 20, { taskId: undefined });
+      expect(service.findAll).toHaveBeenCalledWith(1, 20, {
+        taskId: undefined,
+      });
     });
   });
 
@@ -90,7 +104,10 @@ describe('TaskCommentsController', () => {
   describe('update', () => {
     it('should call service.update with id and dto', async () => {
       const updateDto = { commentText: 'Updated comment' };
-      service.update.mockResolvedValue({ ...mockComment, commentText: 'Updated comment' });
+      service.update.mockResolvedValue({
+        ...mockComment,
+        commentText: 'Updated comment',
+      });
 
       const result = await controller.update(mockUser, 1, updateDto);
 

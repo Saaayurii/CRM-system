@@ -57,17 +57,34 @@ describe('ConstructionSitesService', () => {
 
   describe('findAll', () => {
     it('should return paginated construction sites', async () => {
-      const mockResult = { data: [mockSite], total: 1, page: 1, limit: 20, totalPages: 1 };
+      const mockResult = {
+        data: [mockSite],
+        total: 1,
+        page: 1,
+        limit: 20,
+        totalPages: 1,
+      };
       repository.findAll.mockResolvedValue(mockResult);
 
       const result = await service.findAll(1, 20);
 
       expect(result).toEqual(mockResult);
-      expect(repository.findAll).toHaveBeenCalledWith(undefined, 1, 20, undefined);
+      expect(repository.findAll).toHaveBeenCalledWith(
+        undefined,
+        1,
+        20,
+        undefined,
+      );
     });
 
     it('should pass projectId and status filters', async () => {
-      const mockResult = { data: [], total: 0, page: 1, limit: 20, totalPages: 0 };
+      const mockResult = {
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 20,
+        totalPages: 0,
+      };
       repository.findAll.mockResolvedValue(mockResult);
 
       await service.findAll(1, 20, 1, 0);
@@ -117,7 +134,11 @@ describe('ConstructionSitesService', () => {
     });
 
     it('should handle optional date fields as undefined', async () => {
-      const createDto = { projectId: 1, name: 'New Site', address: '456 Avenue' };
+      const createDto = {
+        projectId: 1,
+        name: 'New Site',
+        address: '456 Avenue',
+      };
       repository.create.mockResolvedValue(mockSite);
 
       await service.create(createDto);
@@ -141,13 +162,18 @@ describe('ConstructionSitesService', () => {
       const result = await service.update(1, updateDto);
 
       expect(result).toBeDefined();
-      expect(repository.update).toHaveBeenCalledWith(1, expect.objectContaining({ name: 'Updated Site' }));
+      expect(repository.update).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({ name: 'Updated Site' }),
+      );
     });
 
     it('should throw NotFoundException when site not found for update', async () => {
       repository.findById.mockResolvedValue(null);
 
-      await expect(service.update(999, { name: 'Updated' })).rejects.toThrow(NotFoundException);
+      await expect(service.update(999, { name: 'Updated' })).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -158,7 +184,9 @@ describe('ConstructionSitesService', () => {
 
       const result = await service.delete(1);
 
-      expect(result).toEqual({ message: 'Construction site with ID 1 deleted successfully' });
+      expect(result).toEqual({
+        message: 'Construction site with ID 1 deleted successfully',
+      });
       expect(repository.delete).toHaveBeenCalledWith(1);
     });
 

@@ -72,7 +72,11 @@ describe('SupplierOrdersService', () => {
 
       await service.findAll(1, 1, 20, 2);
 
-      expect(repository.findAll).toHaveBeenCalledWith(1, { skip: 0, take: 20, status: 2 });
+      expect(repository.findAll).toHaveBeenCalledWith(1, {
+        skip: 0,
+        take: 20,
+        status: 2,
+      });
       expect(repository.count).toHaveBeenCalledWith(1, 2);
     });
   });
@@ -95,14 +99,24 @@ describe('SupplierOrdersService', () => {
     it('should throw ForbiddenException when accountId mismatch', async () => {
       repository.findById.mockResolvedValue(mockOrder);
 
-      await expect(service.findById(1, 999)).rejects.toThrow(ForbiddenException);
+      await expect(service.findById(1, 999)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 
   describe('create', () => {
     it('should create a supplier order', async () => {
-      const dto = { accountId: 1, supplierId: 1, orderNumber: 'ORD-002', orderDate: now.toISOString() } as any;
-      repository.create.mockResolvedValue({ ...mockOrder, orderNumber: 'ORD-002' });
+      const dto = {
+        accountId: 1,
+        supplierId: 1,
+        orderNumber: 'ORD-002',
+        orderDate: now.toISOString(),
+      } as any;
+      repository.create.mockResolvedValue({
+        ...mockOrder,
+        orderNumber: 'ORD-002',
+      });
 
       const result = await service.create(dto, 1);
 
@@ -131,13 +145,17 @@ describe('SupplierOrdersService', () => {
     it('should throw NotFoundException when not found', async () => {
       repository.findById.mockResolvedValue(null);
 
-      await expect(service.update(999, {} as any, 1)).rejects.toThrow(NotFoundException);
+      await expect(service.update(999, {} as any, 1)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should throw ForbiddenException when accountId mismatch', async () => {
       repository.findById.mockResolvedValue(mockOrder);
 
-      await expect(service.update(1, {} as any, 999)).rejects.toThrow(ForbiddenException);
+      await expect(service.update(1, {} as any, 999)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 
@@ -166,7 +184,13 @@ describe('SupplierOrdersService', () => {
 
   describe('addItem', () => {
     it('should add an item to order', async () => {
-      const dto = { materialId: 1, quantity: 10, unit: 'kg', unitPrice: 100, totalPrice: 1000 } as any;
+      const dto = {
+        materialId: 1,
+        quantity: 10,
+        unit: 'kg',
+        unitPrice: 100,
+        totalPrice: 1000,
+      } as any;
       repository.findById.mockResolvedValue(mockOrder);
       repository.createItem.mockResolvedValue({ id: 1, supplierOrderId: 1 });
 
@@ -179,13 +203,17 @@ describe('SupplierOrdersService', () => {
     it('should throw NotFoundException when order not found', async () => {
       repository.findById.mockResolvedValue(null);
 
-      await expect(service.addItem(999, {} as any, 1)).rejects.toThrow(NotFoundException);
+      await expect(service.addItem(999, {} as any, 1)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should throw ForbiddenException when accountId mismatch', async () => {
       repository.findById.mockResolvedValue(mockOrder);
 
-      await expect(service.addItem(1, {} as any, 999)).rejects.toThrow(ForbiddenException);
+      await expect(service.addItem(1, {} as any, 999)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 });

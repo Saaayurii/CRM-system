@@ -97,7 +97,9 @@ describe('ActsService', () => {
 
     it('should throw NotFoundException when updating non-existent act', async () => {
       repository.findById.mockResolvedValue(null);
-      await expect(service.update(999, 1, {} as any)).rejects.toThrow(NotFoundException);
+      await expect(service.update(999, 1, {} as any)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -117,7 +119,11 @@ describe('ActsService', () => {
 
   describe('createItem', () => {
     it('should create an item for an existing act', async () => {
-      const dto = { description: 'Service item', quantity: 2, price: 100 } as any;
+      const dto = {
+        description: 'Service item',
+        quantity: 2,
+        price: 100,
+      } as any;
       const mockItem = { id: 1, actId: 1, ...dto };
       repository.findById.mockResolvedValue(mockAct);
       repository.createItem.mockResolvedValue(mockItem);
@@ -128,7 +134,9 @@ describe('ActsService', () => {
 
     it('should throw NotFoundException when adding item to non-existent act', async () => {
       repository.findById.mockResolvedValue(null);
-      await expect(service.createItem(999, 1, {} as any)).rejects.toThrow(NotFoundException);
+      await expect(service.createItem(999, 1, {} as any)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });

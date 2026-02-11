@@ -15,7 +15,12 @@ export class UsersService {
     accountId: number,
     page: number = 1,
     limit: number = 20,
-  ): Promise<{ users: UserResponseDto[]; total: number; page: number; limit: number }> {
+  ): Promise<{
+    users: UserResponseDto[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
     const skip = (page - 1) * limit;
     const [users, total] = await Promise.all([
       this.userRepository.findAll(accountId, { skip, take: limit }),
@@ -30,7 +35,10 @@ export class UsersService {
     };
   }
 
-  async findById(id: number, requestingUserAccountId: number): Promise<UserResponseDto> {
+  async findById(
+    id: number,
+    requestingUserAccountId: number,
+  ): Promise<UserResponseDto> {
     const user = await this.userRepository.findById(id);
     if (!user) {
       throw new NotFoundException('User not found');
@@ -48,7 +56,10 @@ export class UsersService {
     accountId: number,
     roleId: number,
   ): Promise<UserResponseDto[]> {
-    const users = await this.userRepository.findByAccountAndRole(accountId, roleId);
+    const users = await this.userRepository.findByAccountAndRole(
+      accountId,
+      roleId,
+    );
     return users.map(this.toResponseDto);
   }
 
@@ -62,7 +73,9 @@ export class UsersService {
     }
 
     // Check if email already exists
-    const existingUser = await this.userRepository.findByEmail(createUserDto.email);
+    const existingUser = await this.userRepository.findByEmail(
+      createUserDto.email,
+    );
     if (existingUser) {
       throw new ConflictException('User with this email already exists');
     }

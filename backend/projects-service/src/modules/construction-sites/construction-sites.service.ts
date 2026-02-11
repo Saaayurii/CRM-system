@@ -4,7 +4,9 @@ import { CreateConstructionSiteDto, UpdateConstructionSiteDto } from './dto';
 
 @Injectable()
 export class ConstructionSitesService {
-  constructor(private readonly constructionSiteRepository: ConstructionSiteRepository) {}
+  constructor(
+    private readonly constructionSiteRepository: ConstructionSiteRepository,
+  ) {}
 
   async findAll(
     page: number,
@@ -12,7 +14,12 @@ export class ConstructionSitesService {
     projectId?: number,
     status?: number,
   ) {
-    return this.constructionSiteRepository.findAll(projectId, page, limit, status);
+    return this.constructionSiteRepository.findAll(
+      projectId,
+      page,
+      limit,
+      status,
+    );
   }
 
   async findById(id: number) {
@@ -27,8 +34,12 @@ export class ConstructionSitesService {
     return this.constructionSiteRepository.create({
       ...dto,
       startDate: dto.startDate ? new Date(dto.startDate) : undefined,
-      plannedEndDate: dto.plannedEndDate ? new Date(dto.plannedEndDate) : undefined,
-      actualEndDate: dto.actualEndDate ? new Date(dto.actualEndDate) : undefined,
+      plannedEndDate: dto.plannedEndDate
+        ? new Date(dto.plannedEndDate)
+        : undefined,
+      actualEndDate: dto.actualEndDate
+        ? new Date(dto.actualEndDate)
+        : undefined,
     });
   }
 

@@ -19,7 +19,11 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { ContractorsService } from './contractors.service';
-import { CreateContractorDto, UpdateContractorDto, CreateContractorAssignmentDto } from './dto';
+import {
+  CreateContractorDto,
+  UpdateContractorDto,
+  CreateContractorAssignmentDto,
+} from './dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
 interface RequestUser {
@@ -39,18 +43,28 @@ export class ContractorsController {
   @ApiOperation({ summary: 'Get all contractors' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
-  @ApiResponse({ status: 200, description: 'Contractors retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Contractors retrieved successfully',
+  })
   async findAll(
     @CurrentUser() user: RequestUser,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
   ) {
-    return this.contractorsService.findAll(user.accountId, page || 1, limit || 20);
+    return this.contractorsService.findAll(
+      user.accountId,
+      page || 1,
+      limit || 20,
+    );
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get contractor by ID' })
-  @ApiResponse({ status: 200, description: 'Contractor retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Contractor retrieved successfully',
+  })
   @ApiResponse({ status: 404, description: 'Contractor not found' })
   async findOne(
     @CurrentUser() user: RequestUser,
@@ -78,7 +92,11 @@ export class ContractorsController {
     @Param('id', ParseIntPipe) id: number,
     @Body() updateContractorDto: UpdateContractorDto,
   ) {
-    return this.contractorsService.update(id, updateContractorDto, user.accountId);
+    return this.contractorsService.update(
+      id,
+      updateContractorDto,
+      user.accountId,
+    );
   }
 
   @Delete(':id')
@@ -95,7 +113,10 @@ export class ContractorsController {
 
   @Get(':id/assignments')
   @ApiOperation({ summary: 'Get contractor assignments' })
-  @ApiResponse({ status: 200, description: 'Assignments retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Assignments retrieved successfully',
+  })
   async getAssignments(
     @CurrentUser() user: RequestUser,
     @Param('id', ParseIntPipe) id: number,
@@ -112,6 +133,10 @@ export class ContractorsController {
     @Param('id', ParseIntPipe) id: number,
     @Body() createAssignmentDto: CreateContractorAssignmentDto,
   ) {
-    return this.contractorsService.addAssignment(id, createAssignmentDto, user.accountId);
+    return this.contractorsService.addAssignment(
+      id,
+      createAssignmentDto,
+      user.accountId,
+    );
   }
 }

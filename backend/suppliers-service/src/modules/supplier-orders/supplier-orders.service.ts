@@ -4,11 +4,17 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { SupplierOrderRepository } from './repositories/supplier-order.repository';
-import { CreateSupplierOrderDto, UpdateSupplierOrderDto, CreateSupplierOrderItemDto } from './dto';
+import {
+  CreateSupplierOrderDto,
+  UpdateSupplierOrderDto,
+  CreateSupplierOrderItemDto,
+} from './dto';
 
 @Injectable()
 export class SupplierOrdersService {
-  constructor(private readonly supplierOrderRepository: SupplierOrderRepository) {}
+  constructor(
+    private readonly supplierOrderRepository: SupplierOrderRepository,
+  ) {}
 
   async findAll(
     accountId: number,
@@ -18,7 +24,11 @@ export class SupplierOrdersService {
   ): Promise<{ orders: any[]; total: number; page: number; limit: number }> {
     const skip = (page - 1) * limit;
     const [orders, total] = await Promise.all([
-      this.supplierOrderRepository.findAll(accountId, { skip, take: limit, status }),
+      this.supplierOrderRepository.findAll(accountId, {
+        skip,
+        take: limit,
+        status,
+      }),
       this.supplierOrderRepository.count(accountId, status),
     ]);
 
@@ -48,7 +58,9 @@ export class SupplierOrdersService {
     requestingUserAccountId: number,
   ) {
     if (createSupplierOrderDto.accountId !== requestingUserAccountId) {
-      throw new ForbiddenException('Cannot create supplier orders in another account');
+      throw new ForbiddenException(
+        'Cannot create supplier orders in another account',
+      );
     }
 
     return this.supplierOrderRepository.create(createSupplierOrderDto);

@@ -1,12 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service';
-import { CreateSupplierOrderDto, UpdateSupplierOrderDto, CreateSupplierOrderItemDto } from '../dto';
+import {
+  CreateSupplierOrderDto,
+  UpdateSupplierOrderDto,
+  CreateSupplierOrderItemDto,
+} from '../dto';
 
 @Injectable()
 export class SupplierOrderRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(accountId: number, options?: { skip?: number; take?: number; status?: number }) {
+  async findAll(
+    accountId: number,
+    options?: { skip?: number; take?: number; status?: number },
+  ) {
     const where: any = {
       accountId,
       deletedAt: null,
@@ -49,8 +56,12 @@ export class SupplierOrderRepository {
         createdByUserId: data.createdByUserId,
         approvedByUserId: data.approvedByUserId,
         status: data.status ?? 0,
-        expectedDeliveryDate: data.expectedDeliveryDate ? new Date(data.expectedDeliveryDate) : undefined,
-        actualDeliveryDate: data.actualDeliveryDate ? new Date(data.actualDeliveryDate) : undefined,
+        expectedDeliveryDate: data.expectedDeliveryDate
+          ? new Date(data.expectedDeliveryDate)
+          : undefined,
+        actualDeliveryDate: data.actualDeliveryDate
+          ? new Date(data.actualDeliveryDate)
+          : undefined,
         subtotal: data.subtotal,
         taxAmount: data.taxAmount,
         deliveryCost: data.deliveryCost,
@@ -77,7 +88,9 @@ export class SupplierOrderRepository {
       updateData.orderDate = new Date(updateData.orderDate);
     }
     if (updateData.expectedDeliveryDate) {
-      updateData.expectedDeliveryDate = new Date(updateData.expectedDeliveryDate);
+      updateData.expectedDeliveryDate = new Date(
+        updateData.expectedDeliveryDate,
+      );
     }
     if (updateData.actualDeliveryDate) {
       updateData.actualDeliveryDate = new Date(updateData.actualDeliveryDate);

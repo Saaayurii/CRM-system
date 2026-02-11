@@ -1,4 +1,10 @@
-import { IsInt, IsOptional, IsString, IsBoolean, IsDateString } from 'class-validator';
+import {
+  IsInt,
+  IsOptional,
+  IsString,
+  IsBoolean,
+  IsDateString,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateClientPortalAccessDto {

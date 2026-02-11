@@ -6,7 +6,15 @@ import { CreateMaterialDto, UpdateMaterialDto } from '../dto';
 export class MaterialRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(accountId: number, options?: { skip?: number; take?: number; categoryId?: number; isActive?: boolean }) {
+  async findAll(
+    accountId: number,
+    options?: {
+      skip?: number;
+      take?: number;
+      categoryId?: number;
+      isActive?: boolean;
+    },
+  ) {
     const where: any = {
       accountId,
       deletedAt: null,
@@ -111,7 +119,10 @@ export class MaterialRepository {
   }
 
   // Material Categories
-  async findAllCategories(accountId: number, options?: { skip?: number; take?: number }) {
+  async findAllCategories(
+    accountId: number,
+    options?: { skip?: number; take?: number },
+  ) {
     return (this.prisma as any).materialCategory.findMany({
       where: { accountId },
       include: {
@@ -184,11 +195,17 @@ export class MaterialRepository {
   }
 
   async countCategories(accountId: number) {
-    return (this.prisma as any).materialCategory.count({ where: { accountId } });
+    return (this.prisma as any).materialCategory.count({
+      where: { accountId },
+    });
   }
 
   // Material Alternatives
-  async addAlternative(materialId: number, alternativeMaterialId: number, notes?: string) {
+  async addAlternative(
+    materialId: number,
+    alternativeMaterialId: number,
+    notes?: string,
+  ) {
     return (this.prisma as any).materialAlternative.create({
       data: {
         materialId,

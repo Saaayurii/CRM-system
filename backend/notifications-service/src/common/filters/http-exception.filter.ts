@@ -36,10 +36,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       status = HttpStatus.BAD_REQUEST;
       message = 'Database error';
       error = 'Database Error';
-      this.logger.error(
-        `Prisma Error: ${exception.message}`,
-        exception.stack,
-      );
+      this.logger.error(`Prisma Error: ${exception.message}`, exception.stack);
     } else if (exception instanceof Error) {
       message = exception.message;
       this.logger.error(`Error: ${exception.message}`, exception.stack);

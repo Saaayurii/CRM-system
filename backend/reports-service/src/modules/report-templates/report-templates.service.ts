@@ -5,14 +5,19 @@ import { UpdateReportTemplateDto } from './dto/update-report-template.dto';
 
 @Injectable()
 export class ReportTemplatesService {
-  constructor(private readonly reportTemplateRepository: ReportTemplateRepository) {}
+  constructor(
+    private readonly reportTemplateRepository: ReportTemplateRepository,
+  ) {}
 
   async findAll(accountId: number, page: number, limit: number) {
     return this.reportTemplateRepository.findAll(accountId, page, limit);
   }
 
   async findById(id: number, accountId: number) {
-    const template = await this.reportTemplateRepository.findById(id, accountId);
+    const template = await this.reportTemplateRepository.findById(
+      id,
+      accountId,
+    );
     if (!template) {
       throw new NotFoundException(`Report template with ID ${id} not found`);
     }

@@ -37,12 +37,14 @@ export class ActRepository {
   }
 
   async update(id: number, accountId: number, dto: UpdateActDto) {
-    return (this.prisma as any).act.updateMany({
-      where: { id, accountId },
-      data: dto,
-    }).then(async () => {
-      return (this.prisma as any).act.findFirst({ where: { id, accountId } });
-    });
+    return (this.prisma as any).act
+      .updateMany({
+        where: { id, accountId },
+        data: dto,
+      })
+      .then(async () => {
+        return (this.prisma as any).act.findFirst({ where: { id, accountId } });
+      });
   }
 
   async delete(id: number, accountId: number) {

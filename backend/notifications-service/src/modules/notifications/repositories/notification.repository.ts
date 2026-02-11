@@ -63,7 +63,11 @@ export class NotificationRepository {
     });
   }
 
-  async countNotifications(accountId: number, userId: number, isRead?: boolean) {
+  async countNotifications(
+    accountId: number,
+    userId: number,
+    isRead?: boolean,
+  ) {
     const where: any = { accountId, userId };
     if (isRead !== undefined) {
       where.isRead = isRead;

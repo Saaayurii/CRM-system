@@ -18,7 +18,13 @@ export class DefectsService {
     status?: number,
     projectId?: number,
   ) {
-    return this.defectRepository.findAll(accountId, page, limit, status, projectId);
+    return this.defectRepository.findAll(
+      accountId,
+      page,
+      limit,
+      status,
+      projectId,
+    );
   }
 
   async findById(id: number, accountId: number) {
@@ -63,7 +69,10 @@ export class DefectsService {
   }
 
   async findTemplateById(id: number, accountId: number) {
-    const template = await this.defectRepository.findTemplateById(id, accountId);
+    const template = await this.defectRepository.findTemplateById(
+      id,
+      accountId,
+    );
     if (!template) {
       throw new NotFoundException(`Defect template with ID ${id} not found`);
     }
@@ -77,7 +86,11 @@ export class DefectsService {
     });
   }
 
-  async updateTemplate(id: number, accountId: number, dto: UpdateDefectTemplateDto) {
+  async updateTemplate(
+    id: number,
+    accountId: number,
+    dto: UpdateDefectTemplateDto,
+  ) {
     await this.findTemplateById(id, accountId);
     await this.defectRepository.updateTemplate(id, accountId, dto);
     return this.findTemplateById(id, accountId);

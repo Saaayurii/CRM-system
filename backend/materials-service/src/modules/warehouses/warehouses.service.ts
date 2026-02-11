@@ -22,7 +22,12 @@ export class WarehousesService {
     accountId: number,
     page: number = 1,
     limit: number = 20,
-  ): Promise<{ warehouses: any[]; total: number; page: number; limit: number }> {
+  ): Promise<{
+    warehouses: any[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
     const skip = (page - 1) * limit;
     const [warehouses, total] = await Promise.all([
       this.warehouseRepository.findAll(accountId, { skip, take: limit }),
@@ -50,12 +55,11 @@ export class WarehousesService {
     return warehouse;
   }
 
-  async create(
-    createDto: CreateWarehouseDto,
-    requestingUserAccountId: number,
-  ) {
+  async create(createDto: CreateWarehouseDto, requestingUserAccountId: number) {
     if (createDto.accountId !== requestingUserAccountId) {
-      throw new ForbiddenException('Cannot create warehouses in another account');
+      throw new ForbiddenException(
+        'Cannot create warehouses in another account',
+      );
     }
 
     return this.warehouseRepository.create(createDto);
@@ -111,7 +115,9 @@ export class WarehousesService {
     requestingUserAccountId: number,
   ) {
     if (createDto.accountId !== requestingUserAccountId) {
-      throw new ForbiddenException('Cannot create movements in another account');
+      throw new ForbiddenException(
+        'Cannot create movements in another account',
+      );
     }
 
     return this.warehouseRepository.createMovement(createDto);
@@ -123,10 +129,19 @@ export class WarehousesService {
     limit: number = 20,
     warehouseId?: number,
     status?: number,
-  ): Promise<{ inventoryChecks: any[]; total: number; page: number; limit: number }> {
+  ): Promise<{
+    inventoryChecks: any[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
     const skip = (page - 1) * limit;
     const [inventoryChecks, total] = await Promise.all([
-      this.warehouseRepository.findAllInventoryChecks(warehouseId, { skip, take: limit, status }),
+      this.warehouseRepository.findAllInventoryChecks(warehouseId, {
+        skip,
+        take: limit,
+        status,
+      }),
       this.warehouseRepository.countInventoryChecks(warehouseId, status),
     ]);
 
@@ -139,13 +154,16 @@ export class WarehousesService {
   }
 
   async findInventoryCheckById(id: number, requestingUserAccountId: number) {
-    const inventoryCheck = await this.warehouseRepository.findInventoryCheckById(id);
+    const inventoryCheck =
+      await this.warehouseRepository.findInventoryCheckById(id);
     if (!inventoryCheck) {
       throw new NotFoundException('Inventory check not found');
     }
 
     // Verify access through the warehouse's accountId
-    const warehouse = await this.warehouseRepository.findById(inventoryCheck.warehouseId);
+    const warehouse = await this.warehouseRepository.findById(
+      inventoryCheck.warehouseId,
+    );
     if (warehouse && warehouse.accountId !== requestingUserAccountId) {
       throw new ForbiddenException('Access denied');
     }
@@ -158,7 +176,9 @@ export class WarehousesService {
     requestingUserAccountId: number,
   ) {
     // Verify warehouse belongs to user's account
-    const warehouse = await this.warehouseRepository.findById(createDto.warehouseId);
+    const warehouse = await this.warehouseRepository.findById(
+      createDto.warehouseId,
+    );
     if (!warehouse) {
       throw new NotFoundException('Warehouse not found');
     }
@@ -167,9 +187,13 @@ export class WarehousesService {
       throw new ForbiddenException('Access denied');
     }
 
-    const existing = await this.warehouseRepository.findInventoryCheckByNumber(createDto.checkNumber);
+    const existing = await this.warehouseRepository.findInventoryCheckByNumber(
+      createDto.checkNumber,
+    );
     if (existing) {
-      throw new ConflictException('Inventory check with this number already exists');
+      throw new ConflictException(
+        'Inventory check with this number already exists',
+      );
     }
 
     return this.warehouseRepository.createInventoryCheck(createDto);
@@ -180,12 +204,15 @@ export class WarehousesService {
     updateDto: UpdateInventoryCheckDto,
     requestingUserAccountId: number,
   ) {
-    const inventoryCheck = await this.warehouseRepository.findInventoryCheckById(id);
+    const inventoryCheck =
+      await this.warehouseRepository.findInventoryCheckById(id);
     if (!inventoryCheck) {
       throw new NotFoundException('Inventory check not found');
     }
 
-    const warehouse = await this.warehouseRepository.findById(inventoryCheck.warehouseId);
+    const warehouse = await this.warehouseRepository.findById(
+      inventoryCheck.warehouseId,
+    );
     if (warehouse && warehouse.accountId !== requestingUserAccountId) {
       throw new ForbiddenException('Access denied');
     }

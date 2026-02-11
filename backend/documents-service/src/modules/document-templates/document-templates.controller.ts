@@ -9,7 +9,12 @@ import {
   Query,
   ParseIntPipe,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { DocumentTemplatesService } from './document-templates.service';
 import { CreateDocumentTemplateDto } from './dto/create-document-template.dto';
 import { UpdateDocumentTemplateDto } from './dto/update-document-template.dto';
@@ -19,7 +24,9 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 @ApiBearerAuth()
 @Controller('document-templates')
 export class DocumentTemplatesController {
-  constructor(private readonly documentTemplatesService: DocumentTemplatesService) {}
+  constructor(
+    private readonly documentTemplatesService: DocumentTemplatesService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'Get all document templates' })

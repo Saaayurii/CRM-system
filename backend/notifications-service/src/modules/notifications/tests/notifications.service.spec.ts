@@ -88,20 +88,36 @@ describe('NotificationsService', () => {
 
   describe('findAllNotifications', () => {
     it('should return paginated notifications for a user', async () => {
-      repository.findAllNotifications.mockResolvedValue(mockPaginatedNotifications);
+      repository.findAllNotifications.mockResolvedValue(
+        mockPaginatedNotifications,
+      );
 
       const result = await service.findAllNotifications(1, 10, 1, 20);
 
       expect(result).toEqual(mockPaginatedNotifications);
-      expect(repository.findAllNotifications).toHaveBeenCalledWith(1, 10, 1, 20, undefined);
+      expect(repository.findAllNotifications).toHaveBeenCalledWith(
+        1,
+        10,
+        1,
+        20,
+        undefined,
+      );
     });
 
     it('should pass isRead filter when provided', async () => {
-      repository.findAllNotifications.mockResolvedValue(mockPaginatedNotifications);
+      repository.findAllNotifications.mockResolvedValue(
+        mockPaginatedNotifications,
+      );
 
       await service.findAllNotifications(1, 10, 1, 20, false);
 
-      expect(repository.findAllNotifications).toHaveBeenCalledWith(1, 10, 1, 20, false);
+      expect(repository.findAllNotifications).toHaveBeenCalledWith(
+        1,
+        10,
+        1,
+        20,
+        false,
+      );
     });
   });
 
@@ -118,7 +134,9 @@ describe('NotificationsService', () => {
     it('should throw NotFoundException when notification not found', async () => {
       repository.findNotificationById.mockResolvedValue(null);
 
-      await expect(service.findNotificationById(999, 1)).rejects.toThrow(NotFoundException);
+      await expect(service.findNotificationById(999, 1)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -156,7 +174,9 @@ describe('NotificationsService', () => {
         .mockResolvedValueOnce(updatedNotification);
       repository.updateNotification.mockResolvedValue(undefined);
 
-      const result = await service.updateNotification(1, 1, { title: 'Updated' } as any);
+      const result = await service.updateNotification(1, 1, {
+        title: 'Updated',
+      } as any);
 
       expect(result.title).toBe('Updated');
     });
@@ -164,13 +184,19 @@ describe('NotificationsService', () => {
     it('should throw NotFoundException if notification does not exist', async () => {
       repository.findNotificationById.mockResolvedValue(null);
 
-      await expect(service.updateNotification(999, 1, {} as any)).rejects.toThrow(NotFoundException);
+      await expect(
+        service.updateNotification(999, 1, {} as any),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
   describe('markAsRead', () => {
     it('should mark notification as read and return updated notification', async () => {
-      const readNotification = { ...mockNotification, isRead: true, readAt: new Date() };
+      const readNotification = {
+        ...mockNotification,
+        isRead: true,
+        readAt: new Date(),
+      };
       repository.findNotificationById
         .mockResolvedValueOnce(mockNotification)
         .mockResolvedValueOnce(readNotification);
@@ -185,13 +211,17 @@ describe('NotificationsService', () => {
     it('should throw NotFoundException if notification does not exist', async () => {
       repository.findNotificationById.mockResolvedValue(null);
 
-      await expect(service.markAsRead(999, 1)).rejects.toThrow(NotFoundException);
+      await expect(service.markAsRead(999, 1)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
   describe('findAllAnnouncements', () => {
     it('should return paginated announcements', async () => {
-      repository.findAllAnnouncements.mockResolvedValue(mockPaginatedAnnouncements);
+      repository.findAllAnnouncements.mockResolvedValue(
+        mockPaginatedAnnouncements,
+      );
 
       const result = await service.findAllAnnouncements(1, 1, 20);
 
@@ -212,7 +242,9 @@ describe('NotificationsService', () => {
     it('should throw NotFoundException when announcement not found', async () => {
       repository.findAnnouncementById.mockResolvedValue(null);
 
-      await expect(service.findAnnouncementById(999, 1)).rejects.toThrow(NotFoundException);
+      await expect(service.findAnnouncementById(999, 1)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -255,7 +287,9 @@ describe('NotificationsService', () => {
     it('should throw NotFoundException if announcement does not exist', async () => {
       repository.findAnnouncementById.mockResolvedValue(null);
 
-      await expect(service.deleteAnnouncement(999, 1)).rejects.toThrow(NotFoundException);
+      await expect(service.deleteAnnouncement(999, 1)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });

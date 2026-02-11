@@ -6,11 +6,7 @@ import { CreateTaskStatusHistoryDto } from '../dto';
 export class TaskStatusHistoryRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(options?: {
-    taskId?: number;
-    skip?: number;
-    take?: number;
-  }) {
+  async findAll(options?: { taskId?: number; skip?: number; take?: number }) {
     const where: any = {};
     if (options?.taskId) where.taskId = Number(options.taskId);
 
@@ -24,7 +20,10 @@ export class TaskStatusHistoryRepository {
       (this.prisma as any).taskStatusHistory.count({ where }),
     ]);
 
-    const page = options?.skip !== undefined && options?.take ? Math.floor(options.skip / options.take) + 1 : 1;
+    const page =
+      options?.skip !== undefined && options?.take
+        ? Math.floor(options.skip / options.take) + 1
+        : 1;
     const limit = options?.take || 20;
     const totalPages = Math.ceil(total / limit);
 

@@ -37,11 +37,14 @@ export class GatewayExceptionFilter implements ExceptionFilter {
     }
     // Handle Axios errors from proxied requests
     else if (this.isAxiosError(exception)) {
-      const axiosError = exception as AxiosError;
+      const axiosError = exception;
 
       if (axiosError.response) {
         status = axiosError.response.status;
-        const responseData = axiosError.response.data as Record<string, unknown>;
+        const responseData = axiosError.response.data as Record<
+          string,
+          unknown
+        >;
         message = (responseData?.message as string) || axiosError.message;
         error = (responseData?.error as string) || 'Service Error';
       } else if (axiosError.code === 'ECONNREFUSED') {

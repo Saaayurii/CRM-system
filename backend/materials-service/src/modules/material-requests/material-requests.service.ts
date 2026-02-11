@@ -13,17 +13,28 @@ import {
 
 @Injectable()
 export class MaterialRequestsService {
-  constructor(private readonly materialRequestRepository: MaterialRequestRepository) {}
+  constructor(
+    private readonly materialRequestRepository: MaterialRequestRepository,
+  ) {}
 
   async findAll(
     accountId: number,
     page: number = 1,
     limit: number = 20,
     status?: number,
-  ): Promise<{ materialRequests: any[]; total: number; page: number; limit: number }> {
+  ): Promise<{
+    materialRequests: any[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
     const skip = (page - 1) * limit;
     const [materialRequests, total] = await Promise.all([
-      this.materialRequestRepository.findAll(accountId, { skip, take: limit, status }),
+      this.materialRequestRepository.findAll(accountId, {
+        skip,
+        take: limit,
+        status,
+      }),
       this.materialRequestRepository.count(accountId, status),
     ]);
 
@@ -53,12 +64,18 @@ export class MaterialRequestsService {
     requestingUserAccountId: number,
   ) {
     if (createDto.accountId !== requestingUserAccountId) {
-      throw new ForbiddenException('Cannot create material requests in another account');
+      throw new ForbiddenException(
+        'Cannot create material requests in another account',
+      );
     }
 
-    const existing = await this.materialRequestRepository.findByRequestNumber(createDto.requestNumber);
+    const existing = await this.materialRequestRepository.findByRequestNumber(
+      createDto.requestNumber,
+    );
     if (existing) {
-      throw new ConflictException('Material request with this number already exists');
+      throw new ConflictException(
+        'Material request with this number already exists',
+      );
     }
 
     return this.materialRequestRepository.create(createDto);
@@ -99,7 +116,8 @@ export class MaterialRequestsService {
     dto: CreateMaterialRequestItemDto,
     requestingUserAccountId: number,
   ) {
-    const materialRequest = await this.materialRequestRepository.findById(materialRequestId);
+    const materialRequest =
+      await this.materialRequestRepository.findById(materialRequestId);
     if (!materialRequest) {
       throw new NotFoundException('Material request not found');
     }

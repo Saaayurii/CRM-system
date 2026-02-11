@@ -57,12 +57,16 @@ export class PayrollRepository {
     if (dto.paymentDate) {
       data.paymentDate = new Date(dto.paymentDate);
     }
-    return (this.prisma as any).payroll.updateMany({
-      where: { id, accountId },
-      data,
-    }).then(async () => {
-      return (this.prisma as any).payroll.findFirst({ where: { id, accountId } });
-    });
+    return (this.prisma as any).payroll
+      .updateMany({
+        where: { id, accountId },
+        data,
+      })
+      .then(async () => {
+        return (this.prisma as any).payroll.findFirst({
+          where: { id, accountId },
+        });
+      });
   }
 
   async delete(id: number, accountId: number) {

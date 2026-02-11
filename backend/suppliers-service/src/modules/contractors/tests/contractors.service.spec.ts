@@ -95,14 +95,19 @@ describe('ContractorsService', () => {
     it('should throw ForbiddenException when accountId mismatch', async () => {
       repository.findById.mockResolvedValue(mockContractor);
 
-      await expect(service.findById(1, 999)).rejects.toThrow(ForbiddenException);
+      await expect(service.findById(1, 999)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 
   describe('create', () => {
     it('should create a contractor', async () => {
       const dto = { accountId: 1, name: 'New Contractor' } as any;
-      repository.create.mockResolvedValue({ ...mockContractor, name: 'New Contractor' });
+      repository.create.mockResolvedValue({
+        ...mockContractor,
+        name: 'New Contractor',
+      });
 
       const result = await service.create(dto, 1);
 
@@ -121,7 +126,10 @@ describe('ContractorsService', () => {
     it('should update a contractor', async () => {
       const dto = { name: 'Updated' } as any;
       repository.findById.mockResolvedValue(mockContractor);
-      repository.update.mockResolvedValue({ ...mockContractor, name: 'Updated' });
+      repository.update.mockResolvedValue({
+        ...mockContractor,
+        name: 'Updated',
+      });
 
       const result = await service.update(1, dto, 1);
 
@@ -131,13 +139,17 @@ describe('ContractorsService', () => {
     it('should throw NotFoundException when not found', async () => {
       repository.findById.mockResolvedValue(null);
 
-      await expect(service.update(999, {} as any, 1)).rejects.toThrow(NotFoundException);
+      await expect(service.update(999, {} as any, 1)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should throw ForbiddenException when accountId mismatch', async () => {
       repository.findById.mockResolvedValue(mockContractor);
 
-      await expect(service.update(1, {} as any, 999)).rejects.toThrow(ForbiddenException);
+      await expect(service.update(1, {} as any, 999)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 
@@ -166,7 +178,9 @@ describe('ContractorsService', () => {
 
   describe('getAssignments', () => {
     it('should return contractor assignments', async () => {
-      const mockAssignments = [{ id: 1, contractorId: 1, workType: 'plumbing' }];
+      const mockAssignments = [
+        { id: 1, contractorId: 1, workType: 'plumbing' },
+      ];
       repository.findById.mockResolvedValue(mockContractor);
       repository.findAssignments.mockResolvedValue(mockAssignments);
 
@@ -179,7 +193,9 @@ describe('ContractorsService', () => {
     it('should throw NotFoundException when contractor not found', async () => {
       repository.findById.mockResolvedValue(null);
 
-      await expect(service.getAssignments(999, 1)).rejects.toThrow(NotFoundException);
+      await expect(service.getAssignments(999, 1)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -187,7 +203,11 @@ describe('ContractorsService', () => {
     it('should add an assignment to contractor', async () => {
       const dto = { projectId: 1, workType: 'electrical' } as any;
       repository.findById.mockResolvedValue(mockContractor);
-      repository.createAssignment.mockResolvedValue({ id: 1, contractorId: 1, workType: 'electrical' });
+      repository.createAssignment.mockResolvedValue({
+        id: 1,
+        contractorId: 1,
+        workType: 'electrical',
+      });
 
       const result = await service.addAssignment(1, dto, 1);
 
@@ -198,7 +218,9 @@ describe('ContractorsService', () => {
     it('should throw ForbiddenException when accountId mismatch', async () => {
       repository.findById.mockResolvedValue(mockContractor);
 
-      await expect(service.addAssignment(1, {} as any, 999)).rejects.toThrow(ForbiddenException);
+      await expect(service.addAssignment(1, {} as any, 999)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 });

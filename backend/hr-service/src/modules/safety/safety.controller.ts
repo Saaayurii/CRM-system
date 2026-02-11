@@ -1,5 +1,20 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, ParseIntPipe } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  ParseIntPipe,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { SafetyService } from './safety.service';
 import {
   CreateSafetyIncidentDto,
@@ -34,18 +49,28 @@ export class SafetyController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    return this.service.findAllIncidents(user.accountId, Number(page) || 1, Number(limit) || 20);
+    return this.service.findAllIncidents(
+      user.accountId,
+      Number(page) || 1,
+      Number(limit) || 20,
+    );
   }
 
   @Post('safety-incidents')
   @ApiOperation({ summary: 'Create safety incident' })
-  createIncident(@Body() dto: CreateSafetyIncidentDto, @CurrentUser() user: RequestUser) {
+  createIncident(
+    @Body() dto: CreateSafetyIncidentDto,
+    @CurrentUser() user: RequestUser,
+  ) {
     return this.service.createIncident(user.accountId, dto);
   }
 
   @Get('safety-incidents/:id')
   @ApiOperation({ summary: 'Get safety incident by ID' })
-  findIncidentById(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: RequestUser) {
+  findIncidentById(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: RequestUser,
+  ) {
     return this.service.findIncidentById(id, user.accountId);
   }
 
@@ -61,7 +86,10 @@ export class SafetyController {
 
   @Delete('safety-incidents/:id')
   @ApiOperation({ summary: 'Delete safety incident' })
-  deleteIncident(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: RequestUser) {
+  deleteIncident(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: RequestUser,
+  ) {
     return this.service.deleteIncident(id, user.accountId);
   }
 
@@ -76,18 +104,28 @@ export class SafetyController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    return this.service.findAllTrainings(user.accountId, Number(page) || 1, Number(limit) || 20);
+    return this.service.findAllTrainings(
+      user.accountId,
+      Number(page) || 1,
+      Number(limit) || 20,
+    );
   }
 
   @Post('safety-trainings')
   @ApiOperation({ summary: 'Create safety training' })
-  createTraining(@Body() dto: CreateSafetyTrainingDto, @CurrentUser() user: RequestUser) {
+  createTraining(
+    @Body() dto: CreateSafetyTrainingDto,
+    @CurrentUser() user: RequestUser,
+  ) {
     return this.service.createTraining(user.accountId, dto);
   }
 
   @Get('safety-trainings/:id')
   @ApiOperation({ summary: 'Get safety training by ID' })
-  findTrainingById(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: RequestUser) {
+  findTrainingById(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: RequestUser,
+  ) {
     return this.service.findTrainingById(id, user.accountId);
   }
 
@@ -103,7 +141,10 @@ export class SafetyController {
 
   @Delete('safety-trainings/:id')
   @ApiOperation({ summary: 'Delete safety training' })
-  deleteTraining(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: RequestUser) {
+  deleteTraining(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: RequestUser,
+  ) {
     return this.service.deleteTraining(id, user.accountId);
   }
 

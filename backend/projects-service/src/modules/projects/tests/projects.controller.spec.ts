@@ -61,7 +61,12 @@ describe('ProjectsController', () => {
 
   describe('findAll', () => {
     it('should call service.findAll with correct parameters', async () => {
-      const mockResult = { projects: [mockProjectResponse], total: 1, page: 1, limit: 20 };
+      const mockResult = {
+        projects: [mockProjectResponse],
+        total: 1,
+        page: 1,
+        limit: 20,
+      };
       service.findAll.mockResolvedValue(mockResult);
 
       const result = await controller.findAll(mockUser, 1, 20, 1);
@@ -106,7 +111,10 @@ describe('ProjectsController', () => {
   describe('update', () => {
     it('should call service.update with id, dto and accountId', async () => {
       const updateDto = { name: 'Updated' };
-      service.update.mockResolvedValue({ ...mockProjectResponse, name: 'Updated' });
+      service.update.mockResolvedValue({
+        ...mockProjectResponse,
+        name: 'Updated',
+      });
 
       const result = await controller.update(mockUser, 1, updateDto);
 
@@ -127,7 +135,9 @@ describe('ProjectsController', () => {
 
   describe('getTeamMembers', () => {
     it('should call service.getTeamMembers with id and accountId', async () => {
-      const mockMembers = [{ userId: 1, user: { id: 1, name: 'User', email: 'u@test.com' } }];
+      const mockMembers = [
+        { userId: 1, user: { id: 1, name: 'User', email: 'u@test.com' } },
+      ];
       service.getTeamMembers.mockResolvedValue(mockMembers);
 
       const result = await controller.getTeamMembers(mockUser, 1);

@@ -76,7 +76,11 @@ describe('TimeOffService', () => {
 
   describe('create', () => {
     it('should create and return a new time-off request', async () => {
-      const dto = { type: 'vacation', startDate: '2025-06-01', endDate: '2025-06-10' } as any;
+      const dto = {
+        type: 'vacation',
+        startDate: '2025-06-01',
+        endDate: '2025-06-10',
+      } as any;
       repository.create.mockResolvedValue(mockTimeOff);
       const result = await service.create(1, dto);
       expect(result).toEqual(mockTimeOff);
@@ -96,7 +100,9 @@ describe('TimeOffService', () => {
 
     it('should throw NotFoundException when updating non-existent request', async () => {
       repository.update.mockResolvedValue(null);
-      await expect(service.update(999, 1, {} as any)).rejects.toThrow(NotFoundException);
+      await expect(service.update(999, 1, {} as any)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 

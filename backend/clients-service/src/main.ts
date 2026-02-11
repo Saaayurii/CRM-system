@@ -11,9 +11,21 @@ async function bootstrap() {
   const port = configService.get<number>('port') || 3018;
 
   app.enableCors();
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true, transformOptions: { enableImplicitConversion: true } }));
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+      forbidNonWhitelisted: true,
+      transformOptions: { enableImplicitConversion: true },
+    }),
+  );
 
-  const config = new DocumentBuilder().setTitle('Clients Service').setDescription('Clients Service').setVersion('1.0').addBearerAuth().build();
+  const config = new DocumentBuilder()
+    .setTitle('Clients Service')
+    .setDescription('Clients Service')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 

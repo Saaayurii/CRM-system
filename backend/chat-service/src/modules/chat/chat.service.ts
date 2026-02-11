@@ -61,11 +61,7 @@ export class ChatService {
     });
   }
 
-  async updateChannel(
-    id: number,
-    accountId: number,
-    dto: UpdateChannelDto,
-  ) {
+  async updateChannel(id: number, accountId: number, dto: UpdateChannelDto) {
     await this.findChannelById(id, accountId);
     await this.chatRepository.updateChannel(id, accountId, dto);
     return this.findChannelById(id, accountId);
@@ -137,7 +133,11 @@ export class ChatService {
     limit: number = 50,
   ) {
     await this.findChannelById(channelId, accountId);
-    return this.chatRepository.findChannelMessagesCursor(channelId, cursor, limit);
+    return this.chatRepository.findChannelMessagesCursor(
+      channelId,
+      cursor,
+      limit,
+    );
   }
 
   async createMessage(
@@ -197,7 +197,7 @@ export class ChatService {
       throw new NotFoundException(`Message with ID ${messageId} not found`);
     }
 
-    const reactions: Record<string, number[]> = (message.reactions as any) || {};
+    const reactions: Record<string, number[]> = message.reactions || {};
     const userIdStr = userId;
 
     if (reactions[dto.reaction]?.includes(userIdStr)) {

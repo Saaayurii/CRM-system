@@ -51,17 +51,34 @@ describe('UserAssignmentsService', () => {
 
   describe('findAll', () => {
     it('should return paginated user assignments', async () => {
-      const mockResult = { data: [mockAssignment], total: 1, page: 1, limit: 20, totalPages: 1 };
+      const mockResult = {
+        data: [mockAssignment],
+        total: 1,
+        page: 1,
+        limit: 20,
+        totalPages: 1,
+      };
       repository.findAll.mockResolvedValue(mockResult);
 
       const result = await service.findAll(1, 20);
 
       expect(result).toEqual(mockResult);
-      expect(repository.findAll).toHaveBeenCalledWith(1, 20, undefined, undefined);
+      expect(repository.findAll).toHaveBeenCalledWith(
+        1,
+        20,
+        undefined,
+        undefined,
+      );
     });
 
     it('should pass projectId and userId filters', async () => {
-      const mockResult = { data: [], total: 0, page: 1, limit: 20, totalPages: 0 };
+      const mockResult = {
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 20,
+        totalPages: 0,
+      };
       repository.findAll.mockResolvedValue(mockResult);
 
       await service.findAll(1, 20, 1, 2);
@@ -133,13 +150,18 @@ describe('UserAssignmentsService', () => {
       const result = await service.update(1, updateDto);
 
       expect(result).toBeDefined();
-      expect(repository.update).toHaveBeenCalledWith(1, expect.objectContaining({ roleOnProject: 'Lead Developer' }));
+      expect(repository.update).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({ roleOnProject: 'Lead Developer' }),
+      );
     });
 
     it('should throw NotFoundException when assignment not found for update', async () => {
       repository.findById.mockResolvedValue(null);
 
-      await expect(service.update(999, { roleOnProject: 'Lead' })).rejects.toThrow(NotFoundException);
+      await expect(
+        service.update(999, { roleOnProject: 'Lead' }),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -150,7 +172,9 @@ describe('UserAssignmentsService', () => {
 
       const result = await service.delete(1);
 
-      expect(result).toEqual({ message: 'User assignment with ID 1 deleted successfully' });
+      expect(result).toEqual({
+        message: 'User assignment with ID 1 deleted successfully',
+      });
       expect(repository.delete).toHaveBeenCalledWith(1);
     });
 

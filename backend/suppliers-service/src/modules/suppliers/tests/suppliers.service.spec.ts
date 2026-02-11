@@ -82,7 +82,11 @@ describe('SuppliersService', () => {
 
       await service.findAll(1, 1, 20, 1);
 
-      expect(repository.findAll).toHaveBeenCalledWith(1, { skip: 0, take: 20, status: 1 });
+      expect(repository.findAll).toHaveBeenCalledWith(1, {
+        skip: 0,
+        take: 20,
+        status: 1,
+      });
       expect(repository.count).toHaveBeenCalledWith(1, 1);
     });
   });
@@ -105,14 +109,19 @@ describe('SuppliersService', () => {
     it('should throw ForbiddenException when accountId mismatch', async () => {
       repository.findById.mockResolvedValue(mockSupplier);
 
-      await expect(service.findById(1, 999)).rejects.toThrow(ForbiddenException);
+      await expect(service.findById(1, 999)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 
   describe('create', () => {
     it('should create a supplier', async () => {
       const dto = { accountId: 1, name: 'New Supplier' } as any;
-      repository.create.mockResolvedValue({ ...mockSupplier, name: 'New Supplier' });
+      repository.create.mockResolvedValue({
+        ...mockSupplier,
+        name: 'New Supplier',
+      });
 
       const result = await service.create(dto, 1);
 
@@ -141,13 +150,17 @@ describe('SuppliersService', () => {
     it('should throw NotFoundException when not found', async () => {
       repository.findById.mockResolvedValue(null);
 
-      await expect(service.update(999, {} as any, 1)).rejects.toThrow(NotFoundException);
+      await expect(service.update(999, {} as any, 1)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should throw ForbiddenException when accountId mismatch', async () => {
       repository.findById.mockResolvedValue(mockSupplier);
 
-      await expect(service.update(1, {} as any, 999)).rejects.toThrow(ForbiddenException);
+      await expect(service.update(1, {} as any, 999)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 
@@ -188,7 +201,9 @@ describe('SuppliersService', () => {
     it('should throw NotFoundException when supplier not found', async () => {
       repository.findById.mockResolvedValue(null);
 
-      await expect(service.getMaterials(999, 1)).rejects.toThrow(NotFoundException);
+      await expect(service.getMaterials(999, 1)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -196,7 +211,11 @@ describe('SuppliersService', () => {
     it('should add a material to supplier', async () => {
       const dto = { materialId: 1, price: 100 } as any;
       repository.findById.mockResolvedValue(mockSupplier);
-      repository.createMaterial.mockResolvedValue({ id: 1, supplierId: 1, materialId: 1 });
+      repository.createMaterial.mockResolvedValue({
+        id: 1,
+        supplierId: 1,
+        materialId: 1,
+      });
 
       const result = await service.addMaterial(1, dto, 1);
 
@@ -207,7 +226,9 @@ describe('SuppliersService', () => {
     it('should throw ForbiddenException when accountId mismatch', async () => {
       repository.findById.mockResolvedValue(mockSupplier);
 
-      await expect(service.addMaterial(1, {} as any, 999)).rejects.toThrow(ForbiddenException);
+      await expect(service.addMaterial(1, {} as any, 999)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 });

@@ -83,7 +83,9 @@ describe('ClientPortalAccessService', () => {
       repository.findById.mockResolvedValue(null);
 
       await expect(service.findById(999)).rejects.toThrow(NotFoundException);
-      await expect(service.findById(999)).rejects.toThrow('Client portal access #999 not found');
+      await expect(service.findById(999)).rejects.toThrow(
+        'Client portal access #999 not found',
+      );
     });
   });
 
@@ -114,7 +116,9 @@ describe('ClientPortalAccessService', () => {
     it('should throw NotFoundException when updating non-existent record', async () => {
       repository.findById.mockResolvedValue(null);
 
-      await expect(service.update(999, {} as any)).rejects.toThrow(NotFoundException);
+      await expect(service.update(999, {} as any)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 

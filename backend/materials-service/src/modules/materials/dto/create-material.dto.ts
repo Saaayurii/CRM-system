@@ -55,7 +55,7 @@ export class CreateMaterialDto {
   @IsOptional()
   specifications?: Record<string, any>;
 
-  @ApiPropertyOptional({ description: 'Base price', example: 450.00 })
+  @ApiPropertyOptional({ description: 'Base price', example: 450.0 })
   @IsNumber()
   @IsOptional()
   basePrice?: number;

@@ -1,5 +1,18 @@
-import { Controller, Post, Get, Body, Headers, HttpCode, HttpStatus } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Headers,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { ProxyService } from '../../common/services/proxy.service';
 import { Public } from '../../common/decorators/public.decorator';
 
@@ -69,7 +82,10 @@ export class AuthGatewayController {
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Logout all sessions' })
-  @ApiResponse({ status: 200, description: 'All sessions terminated successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'All sessions terminated successfully',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async logoutAll(@Headers('authorization') authorization: string) {
     return this.proxyService.forward('auth', {

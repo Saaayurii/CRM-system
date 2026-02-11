@@ -1,5 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { PaymentAccountsController, PaymentsController } from '../payments.controller';
+import {
+  PaymentAccountsController,
+  PaymentsController,
+} from '../payments.controller';
 import { PaymentsService } from '../payments.service';
 
 describe('PaymentsController', () => {
@@ -64,7 +67,9 @@ describe('PaymentsController', () => {
     }).compile();
 
     paymentsController = module.get<PaymentsController>(PaymentsController);
-    paymentAccountsController = module.get<PaymentAccountsController>(PaymentAccountsController);
+    paymentAccountsController = module.get<PaymentAccountsController>(
+      PaymentAccountsController,
+    );
     service = module.get(PaymentsService);
   });
 

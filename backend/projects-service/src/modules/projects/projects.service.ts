@@ -5,7 +5,12 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { ProjectRepository } from './repositories/project.repository';
-import { CreateProjectDto, UpdateProjectDto, ProjectResponseDto, AddTeamMemberDto } from './dto';
+import {
+  CreateProjectDto,
+  UpdateProjectDto,
+  ProjectResponseDto,
+  AddTeamMemberDto,
+} from './dto';
 
 @Injectable()
 export class ProjectsService {
@@ -16,7 +21,12 @@ export class ProjectsService {
     page: number = 1,
     limit: number = 20,
     status?: number,
-  ): Promise<{ projects: ProjectResponseDto[]; total: number; page: number; limit: number }> {
+  ): Promise<{
+    projects: ProjectResponseDto[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
     const skip = (page - 1) * limit;
     const [projects, total] = await Promise.all([
       this.projectRepository.findAll(accountId, { skip, take: limit, status }),
@@ -31,7 +41,10 @@ export class ProjectsService {
     };
   }
 
-  async findById(id: number, requestingUserAccountId: number): Promise<ProjectResponseDto> {
+  async findById(
+    id: number,
+    requestingUserAccountId: number,
+  ): Promise<ProjectResponseDto> {
     const project = await this.projectRepository.findById(id);
     if (!project) {
       throw new NotFoundException('Project not found');
@@ -53,7 +66,9 @@ export class ProjectsService {
     }
 
     if (createProjectDto.code) {
-      const existingProject = await this.projectRepository.findByCode(createProjectDto.code);
+      const existingProject = await this.projectRepository.findByCode(
+        createProjectDto.code,
+      );
       if (existingProject) {
         throw new ConflictException('Project with this code already exists');
       }
@@ -78,13 +93,18 @@ export class ProjectsService {
     }
 
     if (updateProjectDto.code && updateProjectDto.code !== project.code) {
-      const existingProject = await this.projectRepository.findByCode(updateProjectDto.code);
+      const existingProject = await this.projectRepository.findByCode(
+        updateProjectDto.code,
+      );
       if (existingProject) {
         throw new ConflictException('Project with this code already exists');
       }
     }
 
-    const updatedProject = await this.projectRepository.update(id, updateProjectDto);
+    const updatedProject = await this.projectRepository.update(
+      id,
+      updateProjectDto,
+    );
     return this.toResponseDto(updatedProject);
   }
 

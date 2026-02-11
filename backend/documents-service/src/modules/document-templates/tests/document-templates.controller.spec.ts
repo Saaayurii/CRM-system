@@ -42,7 +42,9 @@ describe('DocumentTemplatesController', () => {
       ],
     }).compile();
 
-    controller = module.get<DocumentTemplatesController>(DocumentTemplatesController);
+    controller = module.get<DocumentTemplatesController>(
+      DocumentTemplatesController,
+    );
     service = module.get(DocumentTemplatesService);
   });
 

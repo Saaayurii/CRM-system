@@ -4,7 +4,9 @@ import { CreateUserAssignmentDto, UpdateUserAssignmentDto } from './dto';
 
 @Injectable()
 export class UserAssignmentsService {
-  constructor(private readonly userAssignmentRepository: UserAssignmentRepository) {}
+  constructor(
+    private readonly userAssignmentRepository: UserAssignmentRepository,
+  ) {}
 
   async findAll(
     page: number,
@@ -12,7 +14,12 @@ export class UserAssignmentsService {
     projectId?: number,
     userId?: number,
   ) {
-    return this.userAssignmentRepository.findAll(page, limit, projectId, userId);
+    return this.userAssignmentRepository.findAll(
+      page,
+      limit,
+      projectId,
+      userId,
+    );
   }
 
   async findById(id: number) {

@@ -9,7 +9,10 @@ import {
 } from 'class-validator';
 
 export class UpdateContractorDto {
-  @ApiPropertyOptional({ description: 'Contractor name', example: 'ООО СтройПодряд' })
+  @ApiPropertyOptional({
+    description: 'Contractor name',
+    example: 'ООО СтройПодряд',
+  })
   @IsString()
   @IsOptional()
   @MaxLength(255)

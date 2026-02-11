@@ -35,12 +35,16 @@ export class PaymentAccountsRepository {
   }
 
   async update(id: number, accountId: number, dto: UpdatePaymentAccountDto) {
-    return (this.prisma as any).paymentAccount.updateMany({
-      where: { id, accountId },
-      data: dto,
-    }).then(async () => {
-      return (this.prisma as any).paymentAccount.findFirst({ where: { id, accountId } });
-    });
+    return (this.prisma as any).paymentAccount
+      .updateMany({
+        where: { id, accountId },
+        data: dto,
+      })
+      .then(async () => {
+        return (this.prisma as any).paymentAccount.findFirst({
+          where: { id, accountId },
+        });
+      });
   }
 
   async delete(id: number, accountId: number) {

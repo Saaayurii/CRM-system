@@ -10,7 +10,12 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { Request } from 'express';
 import { ProxyService } from '../../common/services/proxy.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -27,9 +32,14 @@ export class WikiGatewayController {
   @ApiOperation({ summary: 'Get all wiki pages' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
-  async findAllWikiPages(@Req() req: Request, @Query('page') page?: number, @Query('limit') limit?: number) {
+  async findAllWikiPages(
+    @Req() req: Request,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
     return this.proxyService.forward('wiki', {
-      method: 'GET', path: '/wiki-pages',
+      method: 'GET',
+      path: '/wiki-pages',
       headers: { authorization: req.headers.authorization || '' },
       params: { page, limit },
     });
@@ -39,7 +49,8 @@ export class WikiGatewayController {
   @ApiOperation({ summary: 'Get wiki page by ID' })
   async findOneWikiPage(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('wiki', {
-      method: 'GET', path: `/wiki-pages/${id}`,
+      method: 'GET',
+      path: `/wiki-pages/${id}`,
       headers: { authorization: req.headers.authorization || '' },
     });
   }
@@ -48,18 +59,30 @@ export class WikiGatewayController {
   @ApiOperation({ summary: 'Create wiki page' })
   async createWikiPage(@Req() req: Request, @Body() body: any) {
     return this.proxyService.forward('wiki', {
-      method: 'POST', path: '/wiki-pages',
-      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+      method: 'POST',
+      path: '/wiki-pages',
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
       data: body,
     });
   }
 
   @Put('wiki-pages/:id')
   @ApiOperation({ summary: 'Update wiki page' })
-  async updateWikiPage(@Req() req: Request, @Param('id') id: string, @Body() body: any) {
+  async updateWikiPage(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
     return this.proxyService.forward('wiki', {
-      method: 'PUT', path: `/wiki-pages/${id}`,
-      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+      method: 'PUT',
+      path: `/wiki-pages/${id}`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
       data: body,
     });
   }
@@ -68,7 +91,8 @@ export class WikiGatewayController {
   @ApiOperation({ summary: 'Delete wiki page' })
   async removeWikiPage(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('wiki', {
-      method: 'DELETE', path: `/wiki-pages/${id}`,
+      method: 'DELETE',
+      path: `/wiki-pages/${id}`,
       headers: { authorization: req.headers.authorization || '' },
     });
   }

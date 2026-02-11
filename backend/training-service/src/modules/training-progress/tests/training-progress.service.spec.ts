@@ -54,7 +54,12 @@ describe('TrainingProgressService', () => {
       repository.findAll.mockResolvedValue(mockPaginatedResult);
       const result = await service.findAll(1, 20);
       expect(result).toEqual(mockPaginatedResult);
-      expect(repository.findAll).toHaveBeenCalledWith(1, 20, undefined, undefined);
+      expect(repository.findAll).toHaveBeenCalledWith(
+        1,
+        20,
+        undefined,
+        undefined,
+      );
     });
 
     it('should pass userId and trainingMaterialId filters', async () => {
@@ -100,7 +105,9 @@ describe('TrainingProgressService', () => {
 
     it('should throw NotFoundException when updating non-existent progress', async () => {
       repository.findById.mockResolvedValue(null);
-      await expect(service.update(999, { status: 'completed' } as any)).rejects.toThrow(NotFoundException);
+      await expect(
+        service.update(999, { status: 'completed' } as any),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 });

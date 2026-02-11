@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PaymentAccountsRepository } from './repositories/payment-accounts.repository';
 import { PaymentsRepository } from './repositories/payments.repository';
 import { CreatePaymentAccountDto } from './dto/create-payment-account.dto';
@@ -19,7 +23,10 @@ export class PaymentsService {
   }
 
   async findPaymentAccountById(id: number, accountId: number) {
-    const paymentAccount = await this.paymentAccountsRepository.findById(id, accountId);
+    const paymentAccount = await this.paymentAccountsRepository.findById(
+      id,
+      accountId,
+    );
     if (!paymentAccount) {
       throw new NotFoundException(`Payment account with ID ${id} not found`);
     }
@@ -30,7 +37,11 @@ export class PaymentsService {
     return this.paymentAccountsRepository.create(accountId, dto);
   }
 
-  async updatePaymentAccount(id: number, accountId: number, dto: UpdatePaymentAccountDto) {
+  async updatePaymentAccount(
+    id: number,
+    accountId: number,
+    dto: UpdatePaymentAccountDto,
+  ) {
     await this.findPaymentAccountById(id, accountId);
     return this.paymentAccountsRepository.update(id, accountId, dto);
   }
@@ -53,7 +64,11 @@ export class PaymentsService {
     return payment;
   }
 
-  async createPayment(accountId: number, dto: CreatePaymentDto, createdByUserId: number) {
+  async createPayment(
+    accountId: number,
+    dto: CreatePaymentDto,
+    createdByUserId: number,
+  ) {
     return this.paymentsRepository.create(accountId, dto, createdByUserId);
   }
 

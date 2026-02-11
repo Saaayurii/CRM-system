@@ -46,13 +46,19 @@ export class TimeOffRepository {
       where: { id },
       data: {
         ...(dto.requestType !== undefined && { requestType: dto.requestType }),
-        ...(dto.startDate !== undefined && { startDate: new Date(dto.startDate) }),
+        ...(dto.startDate !== undefined && {
+          startDate: new Date(dto.startDate),
+        }),
         ...(dto.endDate !== undefined && { endDate: new Date(dto.endDate) }),
         ...(dto.daysCount !== undefined && { daysCount: dto.daysCount }),
         ...(dto.reason !== undefined && { reason: dto.reason }),
         ...(dto.status !== undefined && { status: dto.status }),
-        ...(dto.approvedByUserId !== undefined && { approvedByUserId: dto.approvedByUserId }),
-        ...(dto.approvedAt !== undefined && { approvedAt: new Date(dto.approvedAt) }),
+        ...(dto.approvedByUserId !== undefined && {
+          approvedByUserId: dto.approvedByUserId,
+        }),
+        ...(dto.approvedAt !== undefined && {
+          approvedAt: new Date(dto.approvedAt),
+        }),
       },
     });
   }

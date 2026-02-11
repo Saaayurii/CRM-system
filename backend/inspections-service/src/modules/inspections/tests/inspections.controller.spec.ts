@@ -48,25 +48,55 @@ describe('InspectionsController', () => {
 
   describe('findAll', () => {
     it('should call service.findAll with parsed params', async () => {
-      const expected = { data: [mockInspection], total: 1, page: 1, limit: 20, totalPages: 1 };
+      const expected = {
+        data: [mockInspection],
+        total: 1,
+        page: 1,
+        limit: 20,
+        totalPages: 1,
+      };
       service.findAll.mockResolvedValue(expected);
 
       const result = await controller.findAll(mockUser, '1', '20');
 
       expect(result).toEqual(expected);
-      expect(service.findAll).toHaveBeenCalledWith(1, 1, 20, undefined, undefined);
+      expect(service.findAll).toHaveBeenCalledWith(
+        1,
+        1,
+        20,
+        undefined,
+        undefined,
+      );
     });
 
     it('should use defaults when params not provided', async () => {
-      service.findAll.mockResolvedValue({ data: [], total: 0, page: 1, limit: 20, totalPages: 0 });
+      service.findAll.mockResolvedValue({
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 20,
+        totalPages: 0,
+      });
 
       await controller.findAll(mockUser);
 
-      expect(service.findAll).toHaveBeenCalledWith(1, 1, 20, undefined, undefined);
+      expect(service.findAll).toHaveBeenCalledWith(
+        1,
+        1,
+        20,
+        undefined,
+        undefined,
+      );
     });
 
     it('should pass status and projectId filters', async () => {
-      service.findAll.mockResolvedValue({ data: [], total: 0, page: 1, limit: 20, totalPages: 0 });
+      service.findAll.mockResolvedValue({
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 20,
+        totalPages: 0,
+      });
 
       await controller.findAll(mockUser, '1', '20', '2', '5');
 
@@ -110,11 +140,15 @@ describe('InspectionsController', () => {
 
   describe('delete', () => {
     it('should call service.delete', async () => {
-      service.delete.mockResolvedValue({ message: 'Inspection with ID 1 deleted successfully' });
+      service.delete.mockResolvedValue({
+        message: 'Inspection with ID 1 deleted successfully',
+      });
 
       const result = await controller.delete(mockUser, 1);
 
-      expect(result).toEqual({ message: 'Inspection with ID 1 deleted successfully' });
+      expect(result).toEqual({
+        message: 'Inspection with ID 1 deleted successfully',
+      });
       expect(service.delete).toHaveBeenCalledWith(1, 1);
     });
   });

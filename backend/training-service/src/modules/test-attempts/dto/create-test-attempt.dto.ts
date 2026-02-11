@@ -1,4 +1,10 @@
-import { IsInt, IsOptional, IsBoolean, IsDateString, IsObject } from 'class-validator';
+import {
+  IsInt,
+  IsOptional,
+  IsBoolean,
+  IsDateString,
+  IsObject,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateTestAttemptDto {

@@ -1,10 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  IsNumber,
-  IsOptional,
-  IsString,
-  IsDateString,
-} from 'class-validator';
+import { IsNumber, IsOptional, IsString, IsDateString } from 'class-validator';
 
 export class UpdateInventoryCheckDto {
   @ApiPropertyOptional({ description: 'Check date' })

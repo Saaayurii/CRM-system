@@ -80,7 +80,11 @@ describe('WikiPagesController', () => {
 
   describe('create', () => {
     it('should create a new wiki page', async () => {
-      const createDto = { title: 'Test Page', content: 'Test content', category: 'general' };
+      const createDto = {
+        title: 'Test Page',
+        content: 'Test content',
+        category: 'general',
+      };
       service.create.mockResolvedValue(mockWikiPage);
 
       const result = await controller.create(createDto as any, 1, 10);

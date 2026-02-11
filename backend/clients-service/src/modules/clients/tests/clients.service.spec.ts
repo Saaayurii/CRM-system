@@ -57,7 +57,13 @@ describe('ClientsService', () => {
       const result = await service.findAll(1, 1, 20);
 
       expect(result).toEqual(mockPaginated);
-      expect(repository.findAll).toHaveBeenCalledWith(1, 1, 20, undefined, undefined);
+      expect(repository.findAll).toHaveBeenCalledWith(
+        1,
+        1,
+        20,
+        undefined,
+        undefined,
+      );
     });
 
     it('should pass status and managerId filters', async () => {
@@ -83,7 +89,9 @@ describe('ClientsService', () => {
       repository.findById.mockResolvedValue(null);
 
       await expect(service.findById(999, 1)).rejects.toThrow(NotFoundException);
-      await expect(service.findById(999, 1)).rejects.toThrow('Client #999 not found');
+      await expect(service.findById(999, 1)).rejects.toThrow(
+        'Client #999 not found',
+      );
     });
   });
 
@@ -103,7 +111,10 @@ describe('ClientsService', () => {
     it('should update an existing client', async () => {
       const dto = { name: 'Updated Client' } as any;
       repository.findById.mockResolvedValue(mockClient);
-      repository.update.mockResolvedValue({ ...mockClient, name: 'Updated Client' });
+      repository.update.mockResolvedValue({
+        ...mockClient,
+        name: 'Updated Client',
+      });
 
       const result = await service.update(1, 1, dto);
 
@@ -114,7 +125,9 @@ describe('ClientsService', () => {
     it('should throw NotFoundException when updating non-existent client', async () => {
       repository.findById.mockResolvedValue(null);
 
-      await expect(service.update(999, 1, {} as any)).rejects.toThrow(NotFoundException);
+      await expect(service.update(999, 1, {} as any)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 

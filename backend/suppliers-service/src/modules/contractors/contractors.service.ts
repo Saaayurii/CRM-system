@@ -4,7 +4,11 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { ContractorRepository } from './repositories/contractor.repository';
-import { CreateContractorDto, UpdateContractorDto, CreateContractorAssignmentDto } from './dto';
+import {
+  CreateContractorDto,
+  UpdateContractorDto,
+  CreateContractorAssignmentDto,
+} from './dto';
 
 @Injectable()
 export class ContractorsService {
@@ -14,7 +18,12 @@ export class ContractorsService {
     accountId: number,
     page: number = 1,
     limit: number = 20,
-  ): Promise<{ contractors: any[]; total: number; page: number; limit: number }> {
+  ): Promise<{
+    contractors: any[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
     const skip = (page - 1) * limit;
     const [contractors, total] = await Promise.all([
       this.contractorRepository.findAll(accountId, { skip, take: limit }),
@@ -47,7 +56,9 @@ export class ContractorsService {
     requestingUserAccountId: number,
   ) {
     if (createContractorDto.accountId !== requestingUserAccountId) {
-      throw new ForbiddenException('Cannot create contractors in another account');
+      throw new ForbiddenException(
+        'Cannot create contractors in another account',
+      );
     }
 
     return this.contractorRepository.create(createContractorDto);
@@ -110,6 +121,9 @@ export class ContractorsService {
       throw new ForbiddenException('Access denied');
     }
 
-    return this.contractorRepository.createAssignment(contractorId, createAssignmentDto);
+    return this.contractorRepository.createAssignment(
+      contractorId,
+      createAssignmentDto,
+    );
   }
 }

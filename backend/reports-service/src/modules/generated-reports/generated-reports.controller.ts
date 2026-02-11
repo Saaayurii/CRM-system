@@ -9,7 +9,12 @@ import {
   Query,
   ParseIntPipe,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { GeneratedReportsService } from './generated-reports.service';
 import { CreateGeneratedReportDto } from './dto/create-generated-report.dto';
 import { UpdateGeneratedReportDto } from './dto/update-generated-report.dto';
@@ -19,7 +24,9 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 @ApiBearerAuth()
 @Controller('generated-reports')
 export class GeneratedReportsController {
-  constructor(private readonly generatedReportsService: GeneratedReportsService) {}
+  constructor(
+    private readonly generatedReportsService: GeneratedReportsService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'Get all generated reports' })
@@ -37,7 +44,12 @@ export class GeneratedReportsController {
     const filters: any = {};
     if (projectId) filters.projectId = +projectId;
     if (reportTemplateId) filters.reportTemplateId = +reportTemplateId;
-    return this.generatedReportsService.findAll(accountId, +page, +limit, filters);
+    return this.generatedReportsService.findAll(
+      accountId,
+      +page,
+      +limit,
+      filters,
+    );
   }
 
   @Get(':id')

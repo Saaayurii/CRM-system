@@ -13,7 +13,13 @@ export class EquipmentService {
     status?: number,
     siteId?: number,
   ) {
-    return this.equipmentRepository.findAll(accountId, page, limit, status, siteId);
+    return this.equipmentRepository.findAll(
+      accountId,
+      page,
+      limit,
+      status,
+      siteId,
+    );
   }
 
   async findById(id: number, accountId: number) {
@@ -29,8 +35,12 @@ export class EquipmentService {
       ...dto,
       accountId,
       purchaseDate: dto.purchaseDate ? new Date(dto.purchaseDate) : undefined,
-      lastMaintenanceDate: dto.lastMaintenanceDate ? new Date(dto.lastMaintenanceDate) : undefined,
-      nextMaintenanceDate: dto.nextMaintenanceDate ? new Date(dto.nextMaintenanceDate) : undefined,
+      lastMaintenanceDate: dto.lastMaintenanceDate
+        ? new Date(dto.lastMaintenanceDate)
+        : undefined,
+      nextMaintenanceDate: dto.nextMaintenanceDate
+        ? new Date(dto.nextMaintenanceDate)
+        : undefined,
     });
   }
 
@@ -38,8 +48,10 @@ export class EquipmentService {
     await this.findById(id, accountId);
     const data: any = { ...dto };
     if (dto.purchaseDate) data.purchaseDate = new Date(dto.purchaseDate);
-    if (dto.lastMaintenanceDate) data.lastMaintenanceDate = new Date(dto.lastMaintenanceDate);
-    if (dto.nextMaintenanceDate) data.nextMaintenanceDate = new Date(dto.nextMaintenanceDate);
+    if (dto.lastMaintenanceDate)
+      data.lastMaintenanceDate = new Date(dto.lastMaintenanceDate);
+    if (dto.nextMaintenanceDate)
+      data.nextMaintenanceDate = new Date(dto.nextMaintenanceDate);
     await this.equipmentRepository.update(id, accountId, data);
     return this.findById(id, accountId);
   }

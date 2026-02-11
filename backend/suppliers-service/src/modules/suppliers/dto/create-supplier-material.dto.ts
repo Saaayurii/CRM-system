@@ -14,13 +14,16 @@ export class CreateSupplierMaterialDto {
   @IsOptional()
   materialId?: number;
 
-  @ApiPropertyOptional({ description: 'Supplier code for this material', example: 'MAT-001' })
+  @ApiPropertyOptional({
+    description: 'Supplier code for this material',
+    example: 'MAT-001',
+  })
   @IsString()
   @IsOptional()
   @MaxLength(100)
   supplierCode?: string;
 
-  @ApiPropertyOptional({ description: 'Price', example: 1500.50 })
+  @ApiPropertyOptional({ description: 'Price', example: 1500.5 })
   @IsNumber()
   @IsOptional()
   price?: number;

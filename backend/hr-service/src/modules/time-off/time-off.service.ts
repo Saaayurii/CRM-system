@@ -12,7 +12,8 @@ export class TimeOffService {
 
   async findById(id: number, userId: number) {
     const request = await this.repository.findById(id, userId);
-    if (!request) throw new NotFoundException(`Time-off request #${id} not found`);
+    if (!request)
+      throw new NotFoundException(`Time-off request #${id} not found`);
     return request;
   }
 
@@ -22,13 +23,15 @@ export class TimeOffService {
 
   async update(id: number, userId: number, dto: UpdateTimeOffRequestDto) {
     const request = await this.repository.update(id, userId, dto);
-    if (!request) throw new NotFoundException(`Time-off request #${id} not found`);
+    if (!request)
+      throw new NotFoundException(`Time-off request #${id} not found`);
     return request;
   }
 
   async delete(id: number, userId: number) {
     const request = await this.repository.delete(id, userId);
-    if (!request) throw new NotFoundException(`Time-off request #${id} not found`);
+    if (!request)
+      throw new NotFoundException(`Time-off request #${id} not found`);
     return request;
   }
 }

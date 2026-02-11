@@ -53,7 +53,12 @@ describe('TestAttemptsService', () => {
       repository.findAll.mockResolvedValue(mockPaginatedResult);
       const result = await service.findAll(1, 20);
       expect(result).toEqual(mockPaginatedResult);
-      expect(repository.findAll).toHaveBeenCalledWith(1, 20, undefined, undefined);
+      expect(repository.findAll).toHaveBeenCalledWith(
+        1,
+        20,
+        undefined,
+        undefined,
+      );
     });
 
     it('should pass knowledgeTestId and userId filters', async () => {
@@ -78,7 +83,9 @@ describe('TestAttemptsService', () => {
 
     it('should include the id in the error message', async () => {
       repository.findById.mockResolvedValue(null);
-      await expect(service.findById(42)).rejects.toThrow('Test attempt #42 not found');
+      await expect(service.findById(42)).rejects.toThrow(
+        'Test attempt #42 not found',
+      );
     });
   });
 

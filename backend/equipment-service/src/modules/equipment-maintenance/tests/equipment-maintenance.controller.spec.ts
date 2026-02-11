@@ -42,7 +42,9 @@ describe('EquipmentMaintenanceController', () => {
       ],
     }).compile();
 
-    controller = module.get<EquipmentMaintenanceController>(EquipmentMaintenanceController);
+    controller = module.get<EquipmentMaintenanceController>(
+      EquipmentMaintenanceController,
+    );
     service = module.get(EquipmentMaintenanceService);
   });
 
@@ -96,7 +98,9 @@ describe('EquipmentMaintenanceController', () => {
 
   describe('delete', () => {
     it('should delete maintenance record', async () => {
-      const deleteResult = { message: 'Equipment maintenance record with ID 1 deleted successfully' };
+      const deleteResult = {
+        message: 'Equipment maintenance record with ID 1 deleted successfully',
+      };
       service.delete.mockResolvedValue(deleteResult);
       const result = await controller.delete(mockUser, 1);
       expect(service.delete).toHaveBeenCalledWith(1, 1);

@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 
@@ -13,7 +18,9 @@ export class PresenceService implements OnModuleInit, OnModuleDestroy {
     const host = this.configService.get<string>('redis.host') || 'localhost';
     const port = this.configService.get<number>('redis.port') || 6379;
     this.redis = new Redis({ host, port });
-    this.logger.log(`Connected to Redis at ${host}:${port} for presence tracking`);
+    this.logger.log(
+      `Connected to Redis at ${host}:${port} for presence tracking`,
+    );
   }
 
   onModuleDestroy() {
@@ -66,7 +73,7 @@ export class PresenceService implements OnModuleInit, OnModuleDestroy {
     const online: Record<number, boolean> = {};
 
     userIds.forEach((userId, index) => {
-      const [err, score] = results![index];
+      const [err, score] = results[index];
       online[userId] = !err && score !== null;
     });
 
@@ -74,7 +81,11 @@ export class PresenceService implements OnModuleInit, OnModuleDestroy {
   }
 
   async getOnlineUserIds(): Promise<number[]> {
-    const members = await this.redis.zrangebyscore('presence:online', '-inf', '+inf');
+    const members = await this.redis.zrangebyscore(
+      'presence:online',
+      '-inf',
+      '+inf',
+    );
     return members.map((id) => parseInt(id, 10));
   }
 

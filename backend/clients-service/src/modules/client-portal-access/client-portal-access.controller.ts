@@ -1,5 +1,20 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, ParseIntPipe } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  ParseIntPipe,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { ClientPortalAccessService } from './client-portal-access.service';
 import { CreateClientPortalAccessDto } from './dto/create-client-portal-access.dto';
 import { UpdateClientPortalAccessDto } from './dto/update-client-portal-access.dto';
@@ -37,7 +52,10 @@ export class ClientPortalAccessController {
 
   @Put(':id')
   @ApiOperation({ summary: 'Update client portal access' })
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateClientPortalAccessDto) {
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateClientPortalAccessDto,
+  ) {
     return this.svc.update(id, dto);
   }
 

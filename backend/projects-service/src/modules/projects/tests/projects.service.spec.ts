@@ -117,9 +117,7 @@ describe('ProjectsService', () => {
     it('should throw NotFoundException when project not found', async () => {
       repository.findById.mockResolvedValue(null);
 
-      await expect(service.findById(999, 1)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.findById(999, 1)).rejects.toThrow(NotFoundException);
     });
 
     it('should throw ForbiddenException when accountId does not match', async () => {
@@ -242,11 +240,7 @@ describe('ProjectsService', () => {
       const result = await service.addTeamMember(1, addTeamMemberDto, 1);
 
       expect(result).toBeDefined();
-      expect(repository.addTeamMember).toHaveBeenCalledWith(
-        1,
-        2,
-        'Developer',
-      );
+      expect(repository.addTeamMember).toHaveBeenCalledWith(1, 2, 'Developer');
     });
 
     it('should throw NotFoundException when project not found', async () => {

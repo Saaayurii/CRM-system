@@ -1,4 +1,10 @@
-import { IsString, IsOptional, IsNumber, IsDateString, MaxLength } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsNumber,
+  IsDateString,
+  MaxLength,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateBonusDto {
@@ -22,7 +28,11 @@ export class CreateBonusDto {
   @IsNumber()
   amount: number;
 
-  @ApiPropertyOptional({ description: 'Currency', default: 'RUB', maxLength: 10 })
+  @ApiPropertyOptional({
+    description: 'Currency',
+    default: 'RUB',
+    maxLength: 10,
+  })
   @IsOptional()
   @IsString()
   @MaxLength(10)

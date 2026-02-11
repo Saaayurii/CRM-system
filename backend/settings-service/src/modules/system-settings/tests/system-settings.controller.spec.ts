@@ -49,7 +49,9 @@ describe('SystemSettingsController', () => {
     it('should propagate NotFoundException from service', async () => {
       service.getSettings.mockRejectedValue(new Error('Account not found'));
 
-      await expect(controller.getSettings(999)).rejects.toThrow('Account not found');
+      await expect(controller.getSettings(999)).rejects.toThrow(
+        'Account not found',
+      );
     });
   });
 
@@ -67,7 +69,10 @@ describe('SystemSettingsController', () => {
 
     it('should pass accountId and dto to service correctly', async () => {
       const dto = { settings: { timezone: 'UTC' } } as any;
-      service.updateSettings.mockResolvedValue({ ...mockSettings, settings: dto.settings });
+      service.updateSettings.mockResolvedValue({
+        ...mockSettings,
+        settings: dto.settings,
+      });
 
       await controller.updateSettings(7, dto);
 

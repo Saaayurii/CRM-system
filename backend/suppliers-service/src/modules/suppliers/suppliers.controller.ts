@@ -19,7 +19,11 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { SuppliersService } from './suppliers.service';
-import { CreateSupplierDto, UpdateSupplierDto, CreateSupplierMaterialDto } from './dto';
+import {
+  CreateSupplierDto,
+  UpdateSupplierDto,
+  CreateSupplierMaterialDto,
+} from './dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
 interface RequestUser {
@@ -39,7 +43,12 @@ export class SuppliersController {
   @ApiOperation({ summary: 'Get all suppliers' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
-  @ApiQuery({ name: 'status', required: false, type: Number, description: '0-inactive, 1-active' })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    type: Number,
+    description: '0-inactive, 1-active',
+  })
   @ApiResponse({ status: 200, description: 'Suppliers retrieved successfully' })
   async findAll(
     @CurrentUser() user: RequestUser,
@@ -47,7 +56,12 @@ export class SuppliersController {
     @Query('limit') limit?: number,
     @Query('status') status?: number,
   ) {
-    return this.suppliersService.findAll(user.accountId, page || 1, limit || 20, status);
+    return this.suppliersService.findAll(
+      user.accountId,
+      page || 1,
+      limit || 20,
+      status,
+    );
   }
 
   @Get(':id')
@@ -113,6 +127,10 @@ export class SuppliersController {
     @Param('id', ParseIntPipe) id: number,
     @Body() createMaterialDto: CreateSupplierMaterialDto,
   ) {
-    return this.suppliersService.addMaterial(id, createMaterialDto, user.accountId);
+    return this.suppliersService.addMaterial(
+      id,
+      createMaterialDto,
+      user.accountId,
+    );
   }
 }

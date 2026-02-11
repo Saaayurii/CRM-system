@@ -104,7 +104,10 @@ describe('ProxyService', () => {
 
       httpService.request.mockReturnValue(of(mockResponse));
 
-      const requestBody = { email: 'test@example.com', password: 'password123' };
+      const requestBody = {
+        email: 'test@example.com',
+        password: 'password123',
+      };
       const options: ProxyOptions = {
         method: 'POST',
         path: '/auth/login',

@@ -45,11 +45,7 @@ export class UsersController {
     @Query('page') page?: number,
     @Query('limit') limit?: number,
   ) {
-    return this.usersService.findAll(
-      user.accountId,
-      page || 1,
-      limit || 20,
-    );
+    return this.usersService.findAll(user.accountId, page || 1, limit || 20);
   }
 
   @Get('by-role/:roleId')
@@ -76,7 +72,10 @@ export class UsersController {
   @Post()
   @ApiOperation({ summary: 'Create new user' })
   @ApiResponse({ status: 201, description: 'User created successfully' })
-  @ApiResponse({ status: 409, description: 'User with this email already exists' })
+  @ApiResponse({
+    status: 409,
+    description: 'User with this email already exists',
+  })
   async create(
     @CurrentUser() user: RequestUser,
     @Body() createUserDto: CreateUserDto,

@@ -12,7 +12,12 @@ export class ClientInteractionRepository {
     const where: any = {};
     if (clientId) where.clientId = clientId;
     const [data, total] = await Promise.all([
-      (this.prisma as any).clientInteraction.findMany({ where, skip, take: limit, orderBy: { createdAt: 'desc' } }),
+      (this.prisma as any).clientInteraction.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
       (this.prisma as any).clientInteraction.count({ where }),
     ]);
     return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
@@ -27,16 +32,22 @@ export class ClientInteractionRepository {
       data: {
         ...dto,
         interactionDate: new Date(dto.interactionDate),
-        nextActionDate: dto.nextActionDate ? new Date(dto.nextActionDate) : null,
+        nextActionDate: dto.nextActionDate
+          ? new Date(dto.nextActionDate)
+          : null,
       },
     });
   }
 
   async update(id: number, dto: UpdateClientInteractionDto) {
     const data: any = { ...dto };
-    if (dto.interactionDate) data.interactionDate = new Date(dto.interactionDate);
+    if (dto.interactionDate)
+      data.interactionDate = new Date(dto.interactionDate);
     if (dto.nextActionDate) data.nextActionDate = new Date(dto.nextActionDate);
-    return (this.prisma as any).clientInteraction.update({ where: { id }, data });
+    return (this.prisma as any).clientInteraction.update({
+      where: { id },
+      data,
+    });
   }
 
   async delete(id: number) {

@@ -42,7 +42,9 @@ describe('ClientInteractionsController', () => {
       ],
     }).compile();
 
-    controller = module.get<ClientInteractionsController>(ClientInteractionsController);
+    controller = module.get<ClientInteractionsController>(
+      ClientInteractionsController,
+    );
     service = module.get(ClientInteractionsService);
   });
 
@@ -95,7 +97,10 @@ describe('ClientInteractionsController', () => {
   describe('update', () => {
     it('should update and return the interaction', async () => {
       const dto = { description: 'Updated' } as any;
-      service.update.mockResolvedValue({ ...mockInteraction, description: 'Updated' });
+      service.update.mockResolvedValue({
+        ...mockInteraction,
+        description: 'Updated',
+      });
 
       const result = await controller.update(1, dto);
 

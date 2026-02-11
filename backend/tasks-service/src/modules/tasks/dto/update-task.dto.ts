@@ -1,5 +1,12 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNumber, IsOptional, IsString, IsDateString, MaxLength, IsArray } from 'class-validator';
+import {
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsDateString,
+  MaxLength,
+  IsArray,
+} from 'class-validator';
 
 export class UpdateTaskDto {
   @ApiPropertyOptional()
@@ -29,7 +36,9 @@ export class UpdateTaskDto {
   @IsOptional()
   priority?: number;
 
-  @ApiPropertyOptional({ description: '0-new, 1-in_progress, 2-review, 3-completed, 4-cancelled' })
+  @ApiPropertyOptional({
+    description: '0-new, 1-in_progress, 2-review, 3-completed, 4-cancelled',
+  })
   @IsNumber()
   @IsOptional()
   status?: number;

@@ -85,7 +85,10 @@ describe('TeamsService', () => {
 
   describe('create', () => {
     it('should create and return a new team', async () => {
-      const dto = { name: 'Engineering', description: 'Engineering team' } as any;
+      const dto = {
+        name: 'Engineering',
+        description: 'Engineering team',
+      } as any;
       repository.create.mockResolvedValue(mockTeam);
       const result = await service.create(1, dto);
       expect(result).toEqual(mockTeam);
@@ -105,7 +108,9 @@ describe('TeamsService', () => {
 
     it('should throw NotFoundException when updating non-existent team', async () => {
       repository.update.mockResolvedValue(null);
-      await expect(service.update(999, 1, {} as any)).rejects.toThrow(NotFoundException);
+      await expect(service.update(999, 1, {} as any)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -133,21 +138,33 @@ describe('TeamsService', () => {
 
     it('should throw NotFoundException when team not found', async () => {
       repository.findMembers.mockResolvedValue(null);
-      await expect(service.findMembers(999, 1)).rejects.toThrow(NotFoundException);
+      await expect(service.findMembers(999, 1)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
   describe('addMember', () => {
     it('should add a member to a team', async () => {
-      const mockMember = { id: 1, teamId: 1, userId: 10, roleInTeam: 'developer' };
+      const mockMember = {
+        id: 1,
+        teamId: 1,
+        userId: 10,
+        roleInTeam: 'developer',
+      };
       repository.addMember.mockResolvedValue(mockMember);
-      const result = await service.addMember(1, 1, { userId: 10, roleInTeam: 'developer' });
+      const result = await service.addMember(1, 1, {
+        userId: 10,
+        roleInTeam: 'developer',
+      });
       expect(result).toEqual(mockMember);
     });
 
     it('should throw NotFoundException when team not found for addMember', async () => {
       repository.addMember.mockResolvedValue(null);
-      await expect(service.addMember(999, 1, { userId: 10 })).rejects.toThrow(NotFoundException);
+      await expect(service.addMember(999, 1, { userId: 10 })).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });

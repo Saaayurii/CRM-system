@@ -35,7 +35,9 @@ describe('MaterialRequestsController', () => {
       ],
     }).compile();
 
-    controller = module.get<MaterialRequestsController>(MaterialRequestsController);
+    controller = module.get<MaterialRequestsController>(
+      MaterialRequestsController,
+    );
     service = module.get(MaterialRequestsService);
   });
 
@@ -45,7 +47,12 @@ describe('MaterialRequestsController', () => {
 
   describe('findAll', () => {
     it('should call service.findAll with correct params', async () => {
-      const expected = { materialRequests: [mockRequest], total: 1, page: 1, limit: 20 };
+      const expected = {
+        materialRequests: [mockRequest],
+        total: 1,
+        page: 1,
+        limit: 20,
+      };
       service.findAll.mockResolvedValue(expected);
 
       const result = await controller.findAll(mockUser, 1, 20);
@@ -55,7 +62,12 @@ describe('MaterialRequestsController', () => {
     });
 
     it('should use defaults when params not provided', async () => {
-      service.findAll.mockResolvedValue({ materialRequests: [], total: 0, page: 1, limit: 20 });
+      service.findAll.mockResolvedValue({
+        materialRequests: [],
+        total: 0,
+        page: 1,
+        limit: 20,
+      });
 
       await controller.findAll(mockUser);
 

@@ -42,7 +42,9 @@ describe('ReportTemplatesController', () => {
       ],
     }).compile();
 
-    controller = module.get<ReportTemplatesController>(ReportTemplatesController);
+    controller = module.get<ReportTemplatesController>(
+      ReportTemplatesController,
+    );
     service = module.get(ReportTemplatesService);
   });
 

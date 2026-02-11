@@ -42,7 +42,13 @@ describe('TaskStatusHistoryService', () => {
 
   describe('findAll', () => {
     it('should return paginated task status history records', async () => {
-      const mockResult = { data: [mockRecord], total: 1, page: 1, limit: 20, totalPages: 1 };
+      const mockResult = {
+        data: [mockRecord],
+        total: 1,
+        page: 1,
+        limit: 20,
+        totalPages: 1,
+      };
       repository.findAll.mockResolvedValue(mockResult);
 
       const result = await service.findAll(1, 20, { taskId: 1 });
@@ -56,7 +62,13 @@ describe('TaskStatusHistoryService', () => {
     });
 
     it('should use default pagination when not provided', async () => {
-      const mockResult = { data: [], total: 0, page: 1, limit: 20, totalPages: 0 };
+      const mockResult = {
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 20,
+        totalPages: 0,
+      };
       repository.findAll.mockResolvedValue(mockResult);
 
       await service.findAll();
@@ -105,7 +117,11 @@ describe('TaskStatusHistoryService', () => {
 
     it('should create a record with minimal fields', async () => {
       const createDto = { taskId: 1 };
-      repository.create.mockResolvedValue({ ...mockRecord, oldStatus: undefined, newStatus: undefined });
+      repository.create.mockResolvedValue({
+        ...mockRecord,
+        oldStatus: undefined,
+        newStatus: undefined,
+      });
 
       const result = await service.create(createDto);
 

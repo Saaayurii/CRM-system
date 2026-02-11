@@ -67,12 +67,17 @@ export class UpdateProjectDto {
   @IsOptional()
   actualCost?: number;
 
-  @ApiPropertyOptional({ description: 'Status (0-draft, 1-active, 2-paused, 3-completed, 4-cancelled)' })
+  @ApiPropertyOptional({
+    description:
+      'Status (0-draft, 1-active, 2-paused, 3-completed, 4-cancelled)',
+  })
   @IsNumber()
   @IsOptional()
   status?: number;
 
-  @ApiPropertyOptional({ description: 'Priority (1-low, 2-medium, 3-high, 4-critical)' })
+  @ApiPropertyOptional({
+    description: 'Priority (1-low, 2-medium, 3-high, 4-critical)',
+  })
   @IsNumber()
   @IsOptional()
   priority?: number;

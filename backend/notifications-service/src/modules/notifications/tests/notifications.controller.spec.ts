@@ -70,20 +70,36 @@ describe('NotificationsController', () => {
 
   describe('findAllNotifications', () => {
     it('should return paginated notifications for the current user', async () => {
-      service.findAllNotifications.mockResolvedValue(mockPaginatedNotifications);
+      service.findAllNotifications.mockResolvedValue(
+        mockPaginatedNotifications,
+      );
 
       const result = await controller.findAllNotifications(1, 10);
 
       expect(result).toEqual(mockPaginatedNotifications);
-      expect(service.findAllNotifications).toHaveBeenCalledWith(1, 10, 1, 20, undefined);
+      expect(service.findAllNotifications).toHaveBeenCalledWith(
+        1,
+        10,
+        1,
+        20,
+        undefined,
+      );
     });
 
     it('should parse page and limit query parameters', async () => {
-      service.findAllNotifications.mockResolvedValue(mockPaginatedNotifications);
+      service.findAllNotifications.mockResolvedValue(
+        mockPaginatedNotifications,
+      );
 
       await controller.findAllNotifications(1, 10, '2', '10', 'true');
 
-      expect(service.findAllNotifications).toHaveBeenCalledWith(1, 10, 2, 10, true);
+      expect(service.findAllNotifications).toHaveBeenCalledWith(
+        1,
+        10,
+        2,
+        10,
+        true,
+      );
     });
   });
 
@@ -124,7 +140,9 @@ describe('NotificationsController', () => {
 
   describe('findAllAnnouncements', () => {
     it('should return paginated announcements', async () => {
-      service.findAllAnnouncements.mockResolvedValue(mockPaginatedAnnouncements);
+      service.findAllAnnouncements.mockResolvedValue(
+        mockPaginatedAnnouncements,
+      );
 
       const result = await controller.findAllAnnouncements(1);
 
@@ -147,7 +165,9 @@ describe('NotificationsController', () => {
 
   describe('deleteAnnouncement', () => {
     it('should delete an announcement', async () => {
-      service.deleteAnnouncement.mockResolvedValue({ message: 'Announcement with ID 1 deleted successfully' });
+      service.deleteAnnouncement.mockResolvedValue({
+        message: 'Announcement with ID 1 deleted successfully',
+      });
 
       const result = await controller.deleteAnnouncement(1, 1);
 

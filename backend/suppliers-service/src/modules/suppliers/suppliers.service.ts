@@ -4,7 +4,12 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { SupplierRepository } from './repositories/supplier.repository';
-import { CreateSupplierDto, UpdateSupplierDto, CreateSupplierMaterialDto, SupplierResponseDto } from './dto';
+import {
+  CreateSupplierDto,
+  UpdateSupplierDto,
+  CreateSupplierMaterialDto,
+  SupplierResponseDto,
+} from './dto';
 
 @Injectable()
 export class SuppliersService {
@@ -15,7 +20,12 @@ export class SuppliersService {
     page: number = 1,
     limit: number = 20,
     status?: number,
-  ): Promise<{ suppliers: SupplierResponseDto[]; total: number; page: number; limit: number }> {
+  ): Promise<{
+    suppliers: SupplierResponseDto[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
     const skip = (page - 1) * limit;
     const [suppliers, total] = await Promise.all([
       this.supplierRepository.findAll(accountId, { skip, take: limit, status }),
@@ -30,7 +40,10 @@ export class SuppliersService {
     };
   }
 
-  async findById(id: number, requestingUserAccountId: number): Promise<SupplierResponseDto> {
+  async findById(
+    id: number,
+    requestingUserAccountId: number,
+  ): Promise<SupplierResponseDto> {
     const supplier = await this.supplierRepository.findById(id);
     if (!supplier) {
       throw new NotFoundException('Supplier not found');
@@ -48,7 +61,9 @@ export class SuppliersService {
     requestingUserAccountId: number,
   ): Promise<SupplierResponseDto> {
     if (createSupplierDto.accountId !== requestingUserAccountId) {
-      throw new ForbiddenException('Cannot create suppliers in another account');
+      throw new ForbiddenException(
+        'Cannot create suppliers in another account',
+      );
     }
 
     const supplier = await this.supplierRepository.create(createSupplierDto);
@@ -69,7 +84,10 @@ export class SuppliersService {
       throw new ForbiddenException('Access denied');
     }
 
-    const updatedSupplier = await this.supplierRepository.update(id, updateSupplierDto);
+    const updatedSupplier = await this.supplierRepository.update(
+      id,
+      updateSupplierDto,
+    );
     return this.toResponseDto(updatedSupplier);
   }
 
@@ -113,7 +131,10 @@ export class SuppliersService {
       throw new ForbiddenException('Access denied');
     }
 
-    return this.supplierRepository.createMaterial(supplierId, createMaterialDto);
+    return this.supplierRepository.createMaterial(
+      supplierId,
+      createMaterialDto,
+    );
   }
 
   private toResponseDto(supplier: any): SupplierResponseDto {
@@ -132,7 +153,9 @@ export class SuppliersService {
       warehouseAddress: supplier.warehouseAddress,
       paymentTerms: supplier.paymentTerms,
       deliveryTimeDays: supplier.deliveryTimeDays,
-      minOrderAmount: supplier.minOrderAmount ? Number(supplier.minOrderAmount) : undefined,
+      minOrderAmount: supplier.minOrderAmount
+        ? Number(supplier.minOrderAmount)
+        : undefined,
       rating: supplier.rating ? Number(supplier.rating) : undefined,
       reliabilityScore: supplier.reliabilityScore,
       status: supplier.status,

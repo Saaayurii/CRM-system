@@ -50,7 +50,12 @@ describe('UsersController', () => {
 
   describe('findAll', () => {
     it('should call service.findAll with correct parameters', async () => {
-      const mockResult = { users: [mockUserResponse], total: 1, page: 1, limit: 20 };
+      const mockResult = {
+        users: [mockUserResponse],
+        total: 1,
+        page: 1,
+        limit: 20,
+      };
       service.findAll.mockResolvedValue(mockResult);
 
       const result = await controller.findAll(mockUser, 1, 20);
@@ -93,7 +98,12 @@ describe('UsersController', () => {
 
   describe('create', () => {
     it('should call service.create with dto and accountId', async () => {
-      const createDto = { accountId: 1, name: 'New User', email: 'new@test.com', roleId: 1 };
+      const createDto = {
+        accountId: 1,
+        name: 'New User',
+        email: 'new@test.com',
+        roleId: 1,
+      };
       service.create.mockResolvedValue(mockUserResponse);
 
       const result = await controller.create(mockUser, createDto);
@@ -106,7 +116,10 @@ describe('UsersController', () => {
   describe('update', () => {
     it('should call service.update with id, dto and accountId', async () => {
       const updateDto = { name: 'Updated Name' };
-      service.update.mockResolvedValue({ ...mockUserResponse, name: 'Updated Name' });
+      service.update.mockResolvedValue({
+        ...mockUserResponse,
+        name: 'Updated Name',
+      });
 
       const result = await controller.update(mockUser, 1, updateDto);
 

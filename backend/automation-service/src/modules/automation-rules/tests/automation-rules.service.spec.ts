@@ -78,7 +78,12 @@ describe('AutomationRulesService', () => {
 
   describe('create', () => {
     it('should create an automation rule', async () => {
-      const dto = { name: 'New Rule', triggerType: 'new_lead', conditions: {}, actions: {} };
+      const dto = {
+        name: 'New Rule',
+        triggerType: 'new_lead',
+        conditions: {},
+        actions: {},
+      };
       repository.create.mockResolvedValue({ ...mockRule, ...dto });
       const result = await service.create(1, 1, dto as any);
       expect(result).toBeDefined();
@@ -98,7 +103,9 @@ describe('AutomationRulesService', () => {
 
     it('should throw NotFoundException when updating non-existent rule', async () => {
       repository.findById.mockResolvedValue(null);
-      await expect(service.update(999, 1, { name: 'X' } as any)).rejects.toThrow(NotFoundException);
+      await expect(
+        service.update(999, 1, { name: 'X' } as any),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 

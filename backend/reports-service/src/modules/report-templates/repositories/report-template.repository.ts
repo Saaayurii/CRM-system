@@ -7,11 +7,7 @@ import { UpdateReportTemplateDto } from '../dto/update-report-template.dto';
 export class ReportTemplateRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(
-    accountId: number,
-    page: number = 1,
-    limit: number = 20,
-  ) {
+  async findAll(accountId: number, page: number = 1, limit: number = 20) {
     const skip = (page - 1) * limit;
     const where: any = { accountId };
 
@@ -40,12 +36,16 @@ export class ReportTemplateRepository {
 
   async update(id: number, accountId: number, dto: UpdateReportTemplateDto) {
     const data: any = { ...dto };
-    return (this.prisma as any).reportTemplate.updateMany({
-      where: { id, accountId },
-      data,
-    }).then(async () => {
-      return (this.prisma as any).reportTemplate.findFirst({ where: { id, accountId } });
-    });
+    return (this.prisma as any).reportTemplate
+      .updateMany({
+        where: { id, accountId },
+        data,
+      })
+      .then(async () => {
+        return (this.prisma as any).reportTemplate.findFirst({
+          where: { id, accountId },
+        });
+      });
   }
 
   async delete(id: number, accountId: number) {

@@ -84,13 +84,20 @@ describe('ClientInteractionsService', () => {
       repository.findById.mockResolvedValue(null);
 
       await expect(service.findById(999)).rejects.toThrow(NotFoundException);
-      await expect(service.findById(999)).rejects.toThrow('Client interaction #999 not found');
+      await expect(service.findById(999)).rejects.toThrow(
+        'Client interaction #999 not found',
+      );
     });
   });
 
   describe('create', () => {
     it('should create and return a new interaction', async () => {
-      const dto = { clientId: 1, type: 'email', description: 'Sent proposal', interactionDate: '2024-01-01' } as any;
+      const dto = {
+        clientId: 1,
+        type: 'email',
+        description: 'Sent proposal',
+        interactionDate: '2024-01-01',
+      } as any;
       repository.create.mockResolvedValue({ ...mockInteraction, ...dto });
 
       const result = await service.create(dto);
@@ -104,7 +111,10 @@ describe('ClientInteractionsService', () => {
     it('should update an existing interaction', async () => {
       const dto = { description: 'Updated description' } as any;
       repository.findById.mockResolvedValue(mockInteraction);
-      repository.update.mockResolvedValue({ ...mockInteraction, description: 'Updated description' });
+      repository.update.mockResolvedValue({
+        ...mockInteraction,
+        description: 'Updated description',
+      });
 
       const result = await service.update(1, dto);
 
@@ -115,7 +125,9 @@ describe('ClientInteractionsService', () => {
     it('should throw NotFoundException when updating non-existent interaction', async () => {
       repository.findById.mockResolvedValue(null);
 
-      await expect(service.update(999, {} as any)).rejects.toThrow(NotFoundException);
+      await expect(service.update(999, {} as any)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 

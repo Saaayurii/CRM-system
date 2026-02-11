@@ -10,7 +10,12 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { Request } from 'express';
 import { ProxyService } from '../../common/services/proxy.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -75,7 +80,11 @@ export class UsersGatewayController {
 
   @Put(':id')
   @ApiOperation({ summary: 'Update user' })
-  async update(@Req() req: Request, @Param('id') id: string, @Body() body: any) {
+  async update(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
     return this.proxyService.forward('users', {
       method: 'PUT',
       path: `/users/${id}`,

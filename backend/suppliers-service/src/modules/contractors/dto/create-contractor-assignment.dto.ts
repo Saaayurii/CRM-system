@@ -18,7 +18,10 @@ export class CreateContractorAssignmentDto {
   @IsOptional()
   constructionSiteId?: number;
 
-  @ApiPropertyOptional({ description: 'Work type', example: 'Фундаментные работы' })
+  @ApiPropertyOptional({
+    description: 'Work type',
+    example: 'Фундаментные работы',
+  })
   @IsString()
   @IsOptional()
   @MaxLength(255)

@@ -46,7 +46,12 @@ describe('ContractorsController', () => {
 
   describe('findAll', () => {
     it('should call service.findAll with correct params', async () => {
-      const expected = { contractors: [mockContractor], total: 1, page: 1, limit: 20 };
+      const expected = {
+        contractors: [mockContractor],
+        total: 1,
+        page: 1,
+        limit: 20,
+      };
       service.findAll.mockResolvedValue(expected);
 
       const result = await controller.findAll(mockUser, 1, 20);

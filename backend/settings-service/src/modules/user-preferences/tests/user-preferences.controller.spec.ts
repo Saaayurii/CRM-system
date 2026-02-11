@@ -28,7 +28,9 @@ describe('UserPreferencesController', () => {
       ],
     }).compile();
 
-    controller = module.get<UserPreferencesController>(UserPreferencesController);
+    controller = module.get<UserPreferencesController>(
+      UserPreferencesController,
+    );
     service = module.get(UserPreferencesService);
   });
 
@@ -49,7 +51,9 @@ describe('UserPreferencesController', () => {
     it('should propagate NotFoundException from service', async () => {
       service.getPreferences.mockRejectedValue(new Error('User not found'));
 
-      await expect(controller.getPreferences(999)).rejects.toThrow('User not found');
+      await expect(controller.getPreferences(999)).rejects.toThrow(
+        'User not found',
+      );
     });
   });
 

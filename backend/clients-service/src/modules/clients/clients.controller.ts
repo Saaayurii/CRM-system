@@ -1,5 +1,20 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, ParseIntPipe } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  ParseIntPipe,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { ClientsService } from './clients.service';
 import { CreateClientDto } from './dto/create-client.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
@@ -24,30 +39,49 @@ export class ClientsController {
     @Query('status') status?: string,
     @Query('managerId') managerId?: number,
   ) {
-    return this.svc.findAll(accountId, +page, +limit, status, managerId ? +managerId : undefined);
+    return this.svc.findAll(
+      accountId,
+      +page,
+      +limit,
+      status,
+      managerId ? +managerId : undefined,
+    );
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get client by ID' })
-  findOne(@Param('id', ParseIntPipe) id: number, @CurrentUser('accountId') accountId: number) {
+  findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser('accountId') accountId: number,
+  ) {
     return this.svc.findById(id, accountId);
   }
 
   @Post()
   @ApiOperation({ summary: 'Create client' })
-  create(@Body() dto: CreateClientDto, @CurrentUser('accountId') accountId: number) {
+  create(
+    @Body() dto: CreateClientDto,
+    @CurrentUser('accountId') accountId: number,
+  ) {
     return this.svc.create(accountId, dto);
   }
 
   @Put(':id')
   @ApiOperation({ summary: 'Update client' })
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateClientDto, @CurrentUser('accountId') accountId: number) {
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateClientDto,
+    @CurrentUser('accountId') accountId: number,
+  ) {
     return this.svc.update(id, accountId, dto);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete client' })
-  remove(@Param('id', ParseIntPipe) id: number, @CurrentUser('accountId') accountId: number) {
+  remove(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser('accountId') accountId: number,
+  ) {
     return this.svc.delete(id, accountId);
   }
 }

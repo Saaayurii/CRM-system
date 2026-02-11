@@ -41,7 +41,9 @@ describe('TrainingMaterialsController', () => {
       ],
     }).compile();
 
-    controller = module.get<TrainingMaterialsController>(TrainingMaterialsController);
+    controller = module.get<TrainingMaterialsController>(
+      TrainingMaterialsController,
+    );
     service = module.get(TrainingMaterialsService);
   });
 
@@ -69,7 +71,11 @@ describe('TrainingMaterialsController', () => {
 
   describe('create', () => {
     it('should create a training material', async () => {
-      const dto = { title: 'New Material', content: 'Content', category: 'onboarding' };
+      const dto = {
+        title: 'New Material',
+        content: 'Content',
+        category: 'onboarding',
+      };
       service.create.mockResolvedValue({ ...mockMaterial, ...dto });
       const result = await controller.create(dto as any, 1);
       expect(result).toBeDefined();

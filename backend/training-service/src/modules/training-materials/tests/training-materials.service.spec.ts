@@ -81,7 +81,11 @@ describe('TrainingMaterialsService', () => {
 
   describe('create', () => {
     it('should create a training material', async () => {
-      const dto = { title: 'New Material', content: 'Content', category: 'onboarding' };
+      const dto = {
+        title: 'New Material',
+        content: 'Content',
+        category: 'onboarding',
+      };
       repository.create.mockResolvedValue({ ...mockMaterial, ...dto });
       const result = await service.create(1, dto as any);
       expect(result).toBeDefined();
@@ -101,7 +105,9 @@ describe('TrainingMaterialsService', () => {
 
     it('should throw NotFoundException when updating non-existent material', async () => {
       repository.findById.mockResolvedValue(null);
-      await expect(service.update(999, 1, { title: 'X' } as any)).rejects.toThrow(NotFoundException);
+      await expect(
+        service.update(999, 1, { title: 'X' } as any),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 

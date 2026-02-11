@@ -10,7 +10,12 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { Request } from 'express';
 import { ProxyService } from '../../common/services/proxy.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -28,9 +33,15 @@ export class InspectionsGatewayController {
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
   @ApiQuery({ name: 'status', required: false })
-  async findAllInspections(@Req() req: Request, @Query('page') page?: number, @Query('limit') limit?: number, @Query('status') status?: number) {
+  async findAllInspections(
+    @Req() req: Request,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('status') status?: number,
+  ) {
     return this.proxyService.forward('inspections', {
-      method: 'GET', path: '/inspections',
+      method: 'GET',
+      path: '/inspections',
       headers: { authorization: req.headers.authorization || '' },
       params: { page, limit, status },
     });
@@ -40,7 +51,8 @@ export class InspectionsGatewayController {
   @ApiOperation({ summary: 'Get inspection by ID' })
   async findOneInspection(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('inspections', {
-      method: 'GET', path: `/inspections/${id}`,
+      method: 'GET',
+      path: `/inspections/${id}`,
       headers: { authorization: req.headers.authorization || '' },
     });
   }
@@ -49,18 +61,30 @@ export class InspectionsGatewayController {
   @ApiOperation({ summary: 'Create inspection' })
   async createInspection(@Req() req: Request, @Body() body: any) {
     return this.proxyService.forward('inspections', {
-      method: 'POST', path: '/inspections',
-      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+      method: 'POST',
+      path: '/inspections',
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
       data: body,
     });
   }
 
   @Put('inspections/:id')
   @ApiOperation({ summary: 'Update inspection' })
-  async updateInspection(@Req() req: Request, @Param('id') id: string, @Body() body: any) {
+  async updateInspection(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
     return this.proxyService.forward('inspections', {
-      method: 'PUT', path: `/inspections/${id}`,
-      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+      method: 'PUT',
+      path: `/inspections/${id}`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
       data: body,
     });
   }
@@ -69,7 +93,8 @@ export class InspectionsGatewayController {
   @ApiOperation({ summary: 'Delete inspection' })
   async removeInspection(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('inspections', {
-      method: 'DELETE', path: `/inspections/${id}`,
+      method: 'DELETE',
+      path: `/inspections/${id}`,
       headers: { authorization: req.headers.authorization || '' },
     });
   }
@@ -79,9 +104,14 @@ export class InspectionsGatewayController {
   @ApiOperation({ summary: 'Get all inspection templates' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
-  async findAllTemplates(@Req() req: Request, @Query('page') page?: number, @Query('limit') limit?: number) {
+  async findAllTemplates(
+    @Req() req: Request,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
     return this.proxyService.forward('inspections', {
-      method: 'GET', path: '/inspection-templates',
+      method: 'GET',
+      path: '/inspection-templates',
       headers: { authorization: req.headers.authorization || '' },
       params: { page, limit },
     });
@@ -91,7 +121,8 @@ export class InspectionsGatewayController {
   @ApiOperation({ summary: 'Get inspection template by ID' })
   async findOneTemplate(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('inspections', {
-      method: 'GET', path: `/inspection-templates/${id}`,
+      method: 'GET',
+      path: `/inspection-templates/${id}`,
       headers: { authorization: req.headers.authorization || '' },
     });
   }
@@ -100,18 +131,30 @@ export class InspectionsGatewayController {
   @ApiOperation({ summary: 'Create inspection template' })
   async createTemplate(@Req() req: Request, @Body() body: any) {
     return this.proxyService.forward('inspections', {
-      method: 'POST', path: '/inspection-templates',
-      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+      method: 'POST',
+      path: '/inspection-templates',
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
       data: body,
     });
   }
 
   @Put('inspection-templates/:id')
   @ApiOperation({ summary: 'Update inspection template' })
-  async updateTemplate(@Req() req: Request, @Param('id') id: string, @Body() body: any) {
+  async updateTemplate(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
     return this.proxyService.forward('inspections', {
-      method: 'PUT', path: `/inspection-templates/${id}`,
-      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+      method: 'PUT',
+      path: `/inspection-templates/${id}`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
       data: body,
     });
   }
@@ -120,7 +163,8 @@ export class InspectionsGatewayController {
   @ApiOperation({ summary: 'Delete inspection template' })
   async removeTemplate(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('inspections', {
-      method: 'DELETE', path: `/inspection-templates/${id}`,
+      method: 'DELETE',
+      path: `/inspection-templates/${id}`,
       headers: { authorization: req.headers.authorization || '' },
     });
   }
@@ -131,9 +175,15 @@ export class InspectionsGatewayController {
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
   @ApiQuery({ name: 'status', required: false })
-  async findAllDefects(@Req() req: Request, @Query('page') page?: number, @Query('limit') limit?: number, @Query('status') status?: number) {
+  async findAllDefects(
+    @Req() req: Request,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('status') status?: number,
+  ) {
     return this.proxyService.forward('inspections', {
-      method: 'GET', path: '/defects',
+      method: 'GET',
+      path: '/defects',
       headers: { authorization: req.headers.authorization || '' },
       params: { page, limit, status },
     });
@@ -143,7 +193,8 @@ export class InspectionsGatewayController {
   @ApiOperation({ summary: 'Get defect by ID' })
   async findOneDefect(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('inspections', {
-      method: 'GET', path: `/defects/${id}`,
+      method: 'GET',
+      path: `/defects/${id}`,
       headers: { authorization: req.headers.authorization || '' },
     });
   }
@@ -152,18 +203,30 @@ export class InspectionsGatewayController {
   @ApiOperation({ summary: 'Create defect' })
   async createDefect(@Req() req: Request, @Body() body: any) {
     return this.proxyService.forward('inspections', {
-      method: 'POST', path: '/defects',
-      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+      method: 'POST',
+      path: '/defects',
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
       data: body,
     });
   }
 
   @Put('defects/:id')
   @ApiOperation({ summary: 'Update defect' })
-  async updateDefect(@Req() req: Request, @Param('id') id: string, @Body() body: any) {
+  async updateDefect(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
     return this.proxyService.forward('inspections', {
-      method: 'PUT', path: `/defects/${id}`,
-      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+      method: 'PUT',
+      path: `/defects/${id}`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
       data: body,
     });
   }
@@ -172,7 +235,8 @@ export class InspectionsGatewayController {
   @ApiOperation({ summary: 'Delete defect' })
   async removeDefect(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('inspections', {
-      method: 'DELETE', path: `/defects/${id}`,
+      method: 'DELETE',
+      path: `/defects/${id}`,
       headers: { authorization: req.headers.authorization || '' },
     });
   }
@@ -182,9 +246,14 @@ export class InspectionsGatewayController {
   @ApiOperation({ summary: 'Get all defect templates' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
-  async findAllDefectTemplates(@Req() req: Request, @Query('page') page?: number, @Query('limit') limit?: number) {
+  async findAllDefectTemplates(
+    @Req() req: Request,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
     return this.proxyService.forward('inspections', {
-      method: 'GET', path: '/defect-templates',
+      method: 'GET',
+      path: '/defect-templates',
       headers: { authorization: req.headers.authorization || '' },
       params: { page, limit },
     });
@@ -194,7 +263,8 @@ export class InspectionsGatewayController {
   @ApiOperation({ summary: 'Get defect template by ID' })
   async findOneDefectTemplate(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('inspections', {
-      method: 'GET', path: `/defect-templates/${id}`,
+      method: 'GET',
+      path: `/defect-templates/${id}`,
       headers: { authorization: req.headers.authorization || '' },
     });
   }
@@ -203,18 +273,30 @@ export class InspectionsGatewayController {
   @ApiOperation({ summary: 'Create defect template' })
   async createDefectTemplate(@Req() req: Request, @Body() body: any) {
     return this.proxyService.forward('inspections', {
-      method: 'POST', path: '/defect-templates',
-      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+      method: 'POST',
+      path: '/defect-templates',
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
       data: body,
     });
   }
 
   @Put('defect-templates/:id')
   @ApiOperation({ summary: 'Update defect template' })
-  async updateDefectTemplate(@Req() req: Request, @Param('id') id: string, @Body() body: any) {
+  async updateDefectTemplate(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
     return this.proxyService.forward('inspections', {
-      method: 'PUT', path: `/defect-templates/${id}`,
-      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+      method: 'PUT',
+      path: `/defect-templates/${id}`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
       data: body,
     });
   }
@@ -223,7 +305,8 @@ export class InspectionsGatewayController {
   @ApiOperation({ summary: 'Delete defect template' })
   async removeDefectTemplate(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('inspections', {
-      method: 'DELETE', path: `/defect-templates/${id}`,
+      method: 'DELETE',
+      path: `/defect-templates/${id}`,
       headers: { authorization: req.headers.authorization || '' },
     });
   }

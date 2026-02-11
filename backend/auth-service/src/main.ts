@@ -40,7 +40,9 @@ async function bootstrap() {
 
   await app.listen(port);
   logger.log(`Auth Service is running on port ${port}`);
-  logger.log(`Swagger documentation available at http://localhost:${port}/api/docs`);
+  logger.log(
+    `Swagger documentation available at http://localhost:${port}/api/docs`,
+  );
 }
 
 bootstrap();

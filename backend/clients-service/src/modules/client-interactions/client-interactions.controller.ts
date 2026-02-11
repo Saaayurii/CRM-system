@@ -1,5 +1,20 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, ParseIntPipe } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  ParseIntPipe,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { ClientInteractionsService } from './client-interactions.service';
 import { CreateClientInteractionDto } from './dto/create-client-interaction.dto';
 import { UpdateClientInteractionDto } from './dto/update-client-interaction.dto';
@@ -37,7 +52,10 @@ export class ClientInteractionsController {
 
   @Put(':id')
   @ApiOperation({ summary: 'Update client interaction' })
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateClientInteractionDto) {
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateClientInteractionDto,
+  ) {
     return this.svc.update(id, dto);
   }
 

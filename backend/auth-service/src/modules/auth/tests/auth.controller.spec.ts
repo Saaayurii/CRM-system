@@ -129,7 +129,9 @@ describe('AuthController', () => {
 
   describe('logoutAll', () => {
     it('should call authService.logoutAll with user id', async () => {
-      const messageResponse = { message: 'All sessions terminated successfully' };
+      const messageResponse = {
+        message: 'All sessions terminated successfully',
+      };
       authService.logoutAll.mockResolvedValue(messageResponse);
 
       const result = await controller.logoutAll(mockJwtPayload);

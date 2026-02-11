@@ -74,7 +74,10 @@ export class CreateMaterialRequestDto {
   @IsOptional()
   notes?: string;
 
-  @ApiPropertyOptional({ description: 'Request items', type: [CreateMaterialRequestItemDto] })
+  @ApiPropertyOptional({
+    description: 'Request items',
+    type: [CreateMaterialRequestItemDto],
+  })
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CreateMaterialRequestItemDto)

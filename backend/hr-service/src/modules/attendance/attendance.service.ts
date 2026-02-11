@@ -12,7 +12,8 @@ export class AttendanceService {
 
   async findById(id: number, userId: number) {
     const attendance = await this.repository.findById(id, userId);
-    if (!attendance) throw new NotFoundException(`Attendance record #${id} not found`);
+    if (!attendance)
+      throw new NotFoundException(`Attendance record #${id} not found`);
     return attendance;
   }
 
@@ -22,13 +23,15 @@ export class AttendanceService {
 
   async update(id: number, userId: number, dto: UpdateAttendanceDto) {
     const attendance = await this.repository.update(id, userId, dto);
-    if (!attendance) throw new NotFoundException(`Attendance record #${id} not found`);
+    if (!attendance)
+      throw new NotFoundException(`Attendance record #${id} not found`);
     return attendance;
   }
 
   async delete(id: number, userId: number) {
     const attendance = await this.repository.delete(id, userId);
-    if (!attendance) throw new NotFoundException(`Attendance record #${id} not found`);
+    if (!attendance)
+      throw new NotFoundException(`Attendance record #${id} not found`);
     return attendance;
   }
 }

@@ -1,5 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ConflictException, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import {
+  ConflictException,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { AuthService } from '../auth.service';
 import { UserRepository } from '../repositories/user.repository';
 import { RoleRepository } from '../repositories/role.repository';
@@ -158,14 +162,18 @@ describe('AuthService', () => {
     it('should throw ConflictException if email already exists', async () => {
       userRepository.findByEmail.mockResolvedValue(mockUser);
 
-      await expect(service.register(registerDto)).rejects.toThrow(ConflictException);
+      await expect(service.register(registerDto)).rejects.toThrow(
+        ConflictException,
+      );
     });
 
     it('should throw NotFoundException if account not found', async () => {
       userRepository.findByEmail.mockResolvedValue(null);
       accountRepository.findById.mockResolvedValue(null);
 
-      await expect(service.register(registerDto)).rejects.toThrow(NotFoundException);
+      await expect(service.register(registerDto)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should throw NotFoundException if role not found', async () => {
@@ -173,7 +181,9 @@ describe('AuthService', () => {
       accountRepository.findById.mockResolvedValue(mockAccount);
       roleRepository.findById.mockResolvedValue(null);
 
-      await expect(service.register(registerDto)).rejects.toThrow(NotFoundException);
+      await expect(service.register(registerDto)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -201,20 +211,29 @@ describe('AuthService', () => {
     it('should throw UnauthorizedException for wrong email', async () => {
       userRepository.findByEmail.mockResolvedValue(null);
 
-      await expect(service.login(loginDto)).rejects.toThrow(UnauthorizedException);
+      await expect(service.login(loginDto)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('should throw UnauthorizedException for wrong password', async () => {
       userRepository.findByEmail.mockResolvedValue(mockUser);
       passwordService.compare.mockResolvedValue(false);
 
-      await expect(service.login(loginDto)).rejects.toThrow(UnauthorizedException);
+      await expect(service.login(loginDto)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('should throw UnauthorizedException for inactive user', async () => {
-      userRepository.findByEmail.mockResolvedValue({ ...mockUser, isActive: false });
+      userRepository.findByEmail.mockResolvedValue({
+        ...mockUser,
+        isActive: false,
+      });
 
-      await expect(service.login(loginDto)).rejects.toThrow(UnauthorizedException);
+      await expect(service.login(loginDto)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('should update sign_in_count on successful login', async () => {
@@ -255,7 +274,9 @@ describe('AuthService', () => {
         refreshTokenExpiresAt: new Date(Date.now() - 1000),
       });
 
-      await expect(service.refresh(refreshTokenDto)).rejects.toThrow(UnauthorizedException);
+      await expect(service.refresh(refreshTokenDto)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('should throw UnauthorizedException for mismatched refresh token', async () => {
@@ -265,7 +286,9 @@ describe('AuthService', () => {
         refreshToken: 'differentToken',
       });
 
-      await expect(service.refresh(refreshTokenDto)).rejects.toThrow(UnauthorizedException);
+      await expect(service.refresh(refreshTokenDto)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('should throw UnauthorizedException for missing refresh token', async () => {
@@ -275,7 +298,9 @@ describe('AuthService', () => {
         refreshToken: null,
       });
 
-      await expect(service.refresh(refreshTokenDto)).rejects.toThrow(UnauthorizedException);
+      await expect(service.refresh(refreshTokenDto)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
   });
 
@@ -286,7 +311,11 @@ describe('AuthService', () => {
       const result = await service.logout(1);
 
       expect(result.message).toBe('Logged out successfully');
-      expect(userRepository.updateRefreshToken).toHaveBeenCalledWith(1, null, null);
+      expect(userRepository.updateRefreshToken).toHaveBeenCalledWith(
+        1,
+        null,
+        null,
+      );
     });
   });
 
@@ -303,7 +332,10 @@ describe('AuthService', () => {
 
   describe('getMe', () => {
     it('should return user profile without sensitive fields', async () => {
-      userRepository.findByIdWithRole.mockResolvedValue({ ...mockUser, role: mockRole });
+      userRepository.findByIdWithRole.mockResolvedValue({
+        ...mockUser,
+        role: mockRole,
+      });
 
       const result = await service.getMe(1);
 

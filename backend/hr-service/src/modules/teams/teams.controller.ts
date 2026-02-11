@@ -1,5 +1,20 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, ParseIntPipe } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  ParseIntPipe,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { TeamsService } from './teams.service';
 import { CreateTeamDto, UpdateTeamDto } from './dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -38,7 +53,10 @@ export class TeamsController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get team by ID' })
-  findById(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: RequestUser) {
+  findById(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: RequestUser,
+  ) {
     return this.service.findById(id, user.accountId);
   }
 
@@ -60,13 +78,19 @@ export class TeamsController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete team' })
-  delete(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: RequestUser) {
+  delete(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: RequestUser,
+  ) {
     return this.service.delete(id, user.accountId);
   }
 
   @Get(':id/members')
   @ApiOperation({ summary: 'Get all members of a team' })
-  findMembers(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: RequestUser) {
+  findMembers(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: RequestUser,
+  ) {
     return this.service.findMembers(id, user.accountId);
   }
 

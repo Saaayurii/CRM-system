@@ -80,7 +80,10 @@ describe('UsersService', () => {
 
       await service.findAll(1, 3, 10);
 
-      expect(repository.findAll).toHaveBeenCalledWith(1, { skip: 20, take: 10 });
+      expect(repository.findAll).toHaveBeenCalledWith(1, {
+        skip: 20,
+        take: 10,
+      });
     });
   });
 
@@ -105,7 +108,9 @@ describe('UsersService', () => {
     it('should throw ForbiddenException when accountId does not match', async () => {
       repository.findById.mockResolvedValue(mockUser);
 
-      await expect(service.findById(1, 999)).rejects.toThrow(ForbiddenException);
+      await expect(service.findById(1, 999)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 
@@ -149,13 +154,17 @@ describe('UsersService', () => {
     });
 
     it('should throw ForbiddenException when accountId does not match requesting user', async () => {
-      await expect(service.create(createDto, 999)).rejects.toThrow(ForbiddenException);
+      await expect(service.create(createDto, 999)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
 
     it('should throw ConflictException when email already exists', async () => {
       repository.findByEmail.mockResolvedValue(mockUser);
 
-      await expect(service.create(createDto, 1)).rejects.toThrow(ConflictException);
+      await expect(service.create(createDto, 1)).rejects.toThrow(
+        ConflictException,
+      );
     });
   });
 
@@ -164,7 +173,10 @@ describe('UsersService', () => {
 
     it('should update and return the user', async () => {
       repository.findById.mockResolvedValue(mockUser);
-      repository.update.mockResolvedValue({ ...mockUser, name: 'Updated Name' });
+      repository.update.mockResolvedValue({
+        ...mockUser,
+        name: 'Updated Name',
+      });
 
       const result = await service.update(1, updateDto, 1);
 
@@ -175,13 +187,17 @@ describe('UsersService', () => {
     it('should throw NotFoundException when user not found', async () => {
       repository.findById.mockResolvedValue(null);
 
-      await expect(service.update(999, updateDto, 1)).rejects.toThrow(NotFoundException);
+      await expect(service.update(999, updateDto, 1)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should throw ForbiddenException when accountId does not match', async () => {
       repository.findById.mockResolvedValue(mockUser);
 
-      await expect(service.update(1, updateDto, 999)).rejects.toThrow(ForbiddenException);
+      await expect(service.update(1, updateDto, 999)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 

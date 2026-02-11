@@ -1,8 +1,22 @@
 import {
-  Controller, Get, Post, Put, Delete, Body, Param, Query,
-  ParseIntPipe, HttpCode, HttpStatus,
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  ParseIntPipe,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { TasksService } from './tasks.service';
 import { CreateTaskDto, UpdateTaskDto } from './dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -36,32 +50,46 @@ export class TasksController {
     @Query('assignedToUserId') assignedToUserId?: number,
   ) {
     return this.tasksService.findAll(user.accountId, page || 1, limit || 20, {
-      projectId, status, assignedToUserId,
+      projectId,
+      status,
+      assignedToUserId,
     });
   }
 
   @Get('stats')
   @ApiOperation({ summary: 'Get tasks statistics' })
   @ApiQuery({ name: 'projectId', required: false })
-  async getStats(@CurrentUser() user: RequestUser, @Query('projectId') projectId?: number) {
+  async getStats(
+    @CurrentUser() user: RequestUser,
+    @Query('projectId') projectId?: number,
+  ) {
     return this.tasksService.getStats(user.accountId, projectId);
   }
 
   @Get('project/:projectId')
   @ApiOperation({ summary: 'Get tasks by project' })
-  async findByProject(@CurrentUser() user: RequestUser, @Param('projectId', ParseIntPipe) projectId: number) {
+  async findByProject(
+    @CurrentUser() user: RequestUser,
+    @Param('projectId', ParseIntPipe) projectId: number,
+  ) {
     return this.tasksService.findByProject(projectId, user.accountId);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get task by ID' })
-  async findOne(@CurrentUser() user: RequestUser, @Param('id', ParseIntPipe) id: number) {
+  async findOne(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
     return this.tasksService.findById(id, user.accountId);
   }
 
   @Post()
   @ApiOperation({ summary: 'Create new task' })
-  async create(@CurrentUser() user: RequestUser, @Body() createTaskDto: CreateTaskDto) {
+  async create(
+    @CurrentUser() user: RequestUser,
+    @Body() createTaskDto: CreateTaskDto,
+  ) {
     return this.tasksService.create(createTaskDto, user.id, user.accountId);
   }
 
@@ -78,7 +106,10 @@ export class TasksController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete task' })
-  async remove(@CurrentUser() user: RequestUser, @Param('id', ParseIntPipe) id: number) {
+  async remove(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
     return this.tasksService.remove(id, user.accountId);
   }
 }

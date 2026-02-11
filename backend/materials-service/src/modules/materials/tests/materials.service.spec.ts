@@ -1,5 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException, ForbiddenException, ConflictException } from '@nestjs/common';
+import {
+  NotFoundException,
+  ForbiddenException,
+  ConflictException,
+} from '@nestjs/common';
 import { MaterialsService } from '../materials.service';
 import { MaterialRepository } from '../repositories/material.repository';
 
@@ -92,7 +96,11 @@ describe('MaterialsService', () => {
         page: 1,
         limit: 20,
       });
-      expect(repository.findAll).toHaveBeenCalledWith(1, { skip: 0, take: 20, categoryId: undefined });
+      expect(repository.findAll).toHaveBeenCalledWith(1, {
+        skip: 0,
+        take: 20,
+        categoryId: undefined,
+      });
       expect(repository.count).toHaveBeenCalledWith(1, undefined);
     });
 
@@ -102,7 +110,11 @@ describe('MaterialsService', () => {
 
       await service.findAll(1, 1, 20, 5);
 
-      expect(repository.findAll).toHaveBeenCalledWith(1, { skip: 0, take: 20, categoryId: 5 });
+      expect(repository.findAll).toHaveBeenCalledWith(1, {
+        skip: 0,
+        take: 20,
+        categoryId: 5,
+      });
       expect(repository.count).toHaveBeenCalledWith(1, 5);
     });
   });
@@ -126,13 +138,20 @@ describe('MaterialsService', () => {
     it('should throw ForbiddenException when accountId does not match', async () => {
       repository.findById.mockResolvedValue(mockMaterial);
 
-      await expect(service.findById(1, 999)).rejects.toThrow(ForbiddenException);
+      await expect(service.findById(1, 999)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 
   describe('create', () => {
     it('should create a material successfully', async () => {
-      const dto = { accountId: 1, name: 'New Material', code: 'MAT-002', unit: 'kg' } as any;
+      const dto = {
+        accountId: 1,
+        name: 'New Material',
+        code: 'MAT-002',
+        unit: 'kg',
+      } as any;
       repository.findByCode.mockResolvedValue(null);
       repository.create.mockResolvedValue({ ...mockMaterial, ...dto });
 
@@ -143,13 +162,21 @@ describe('MaterialsService', () => {
     });
 
     it('should throw ForbiddenException when accountId does not match', async () => {
-      const dto = { accountId: 2, name: 'New Material', code: 'MAT-002' } as any;
+      const dto = {
+        accountId: 2,
+        name: 'New Material',
+        code: 'MAT-002',
+      } as any;
 
       await expect(service.create(dto, 1)).rejects.toThrow(ForbiddenException);
     });
 
     it('should throw ConflictException when code already exists', async () => {
-      const dto = { accountId: 1, name: 'New Material', code: 'MAT-001' } as any;
+      const dto = {
+        accountId: 1,
+        name: 'New Material',
+        code: 'MAT-001',
+      } as any;
       repository.findByCode.mockResolvedValue(mockMaterial);
 
       await expect(service.create(dto, 1)).rejects.toThrow(ConflictException);
@@ -160,7 +187,10 @@ describe('MaterialsService', () => {
     it('should update a material successfully', async () => {
       const dto = { name: 'Updated Material' } as any;
       repository.findById.mockResolvedValue(mockMaterial);
-      repository.update.mockResolvedValue({ ...mockMaterial, name: 'Updated Material' });
+      repository.update.mockResolvedValue({
+        ...mockMaterial,
+        name: 'Updated Material',
+      });
 
       const result = await service.update(1, dto, 1);
 
@@ -171,13 +201,17 @@ describe('MaterialsService', () => {
     it('should throw NotFoundException when material not found', async () => {
       repository.findById.mockResolvedValue(null);
 
-      await expect(service.update(999, {} as any, 1)).rejects.toThrow(NotFoundException);
+      await expect(service.update(999, {} as any, 1)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should throw ForbiddenException when accountId does not match', async () => {
       repository.findById.mockResolvedValue(mockMaterial);
 
-      await expect(service.update(1, {} as any, 999)).rejects.toThrow(ForbiddenException);
+      await expect(service.update(1, {} as any, 999)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
 
     it('should throw ConflictException when updating to existing code', async () => {
@@ -185,7 +219,9 @@ describe('MaterialsService', () => {
       repository.findById.mockResolvedValue(mockMaterial);
       repository.findByCode.mockResolvedValue({ ...mockMaterial, id: 2 });
 
-      await expect(service.update(1, dto, 1)).rejects.toThrow(ConflictException);
+      await expect(service.update(1, dto, 1)).rejects.toThrow(
+        ConflictException,
+      );
     });
   });
 
@@ -240,13 +276,17 @@ describe('MaterialsService', () => {
     it('should throw NotFoundException when category not found', async () => {
       repository.findCategoryById.mockResolvedValue(null);
 
-      await expect(service.findCategoryById(999, 1)).rejects.toThrow(NotFoundException);
+      await expect(service.findCategoryById(999, 1)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should throw ForbiddenException when accountId does not match', async () => {
       repository.findCategoryById.mockResolvedValue(mockCategory);
 
-      await expect(service.findCategoryById(1, 999)).rejects.toThrow(ForbiddenException);
+      await expect(service.findCategoryById(1, 999)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 
@@ -254,18 +294,28 @@ describe('MaterialsService', () => {
     it('should add an alternative material', async () => {
       const dto = { alternativeMaterialId: 2, notes: 'Alternative' };
       repository.findById.mockResolvedValue(mockMaterial);
-      repository.addAlternative.mockResolvedValue({ id: 1, materialId: 1, alternativeMaterialId: 2 });
+      repository.addAlternative.mockResolvedValue({
+        id: 1,
+        materialId: 1,
+        alternativeMaterialId: 2,
+      });
 
       const result = await service.addAlternative(1, dto, 1);
 
       expect(result).toBeDefined();
-      expect(repository.addAlternative).toHaveBeenCalledWith(1, 2, 'Alternative');
+      expect(repository.addAlternative).toHaveBeenCalledWith(
+        1,
+        2,
+        'Alternative',
+      );
     });
 
     it('should throw NotFoundException when material not found', async () => {
       repository.findById.mockResolvedValue(null);
 
-      await expect(service.addAlternative(999, { alternativeMaterialId: 2 } as any, 1)).rejects.toThrow(NotFoundException);
+      await expect(
+        service.addAlternative(999, { alternativeMaterialId: 2 } as any, 1),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 });

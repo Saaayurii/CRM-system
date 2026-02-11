@@ -24,10 +24,19 @@ export class MaterialsService {
     page: number = 1,
     limit: number = 20,
     categoryId?: number,
-  ): Promise<{ materials: MaterialResponseDto[]; total: number; page: number; limit: number }> {
+  ): Promise<{
+    materials: MaterialResponseDto[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
     const skip = (page - 1) * limit;
     const [materials, total] = await Promise.all([
-      this.materialRepository.findAll(accountId, { skip, take: limit, categoryId }),
+      this.materialRepository.findAll(accountId, {
+        skip,
+        take: limit,
+        categoryId,
+      }),
       this.materialRepository.count(accountId, categoryId),
     ]);
 
@@ -39,7 +48,10 @@ export class MaterialsService {
     };
   }
 
-  async findById(id: number, requestingUserAccountId: number): Promise<MaterialResponseDto> {
+  async findById(
+    id: number,
+    requestingUserAccountId: number,
+  ): Promise<MaterialResponseDto> {
     const material = await this.materialRepository.findById(id);
     if (!material) {
       throw new NotFoundException('Material not found');
@@ -57,11 +69,15 @@ export class MaterialsService {
     requestingUserAccountId: number,
   ): Promise<MaterialResponseDto> {
     if (createMaterialDto.accountId !== requestingUserAccountId) {
-      throw new ForbiddenException('Cannot create materials in another account');
+      throw new ForbiddenException(
+        'Cannot create materials in another account',
+      );
     }
 
     if (createMaterialDto.code) {
-      const existing = await this.materialRepository.findByCode(createMaterialDto.code);
+      const existing = await this.materialRepository.findByCode(
+        createMaterialDto.code,
+      );
       if (existing) {
         throw new ConflictException('Material with this code already exists');
       }
@@ -86,13 +102,18 @@ export class MaterialsService {
     }
 
     if (updateMaterialDto.code && updateMaterialDto.code !== material.code) {
-      const existing = await this.materialRepository.findByCode(updateMaterialDto.code);
+      const existing = await this.materialRepository.findByCode(
+        updateMaterialDto.code,
+      );
       if (existing) {
         throw new ConflictException('Material with this code already exists');
       }
     }
 
-    const updatedMaterial = await this.materialRepository.update(id, updateMaterialDto);
+    const updatedMaterial = await this.materialRepository.update(
+      id,
+      updateMaterialDto,
+    );
     return this.toResponseDto(updatedMaterial);
   }
 
@@ -114,10 +135,18 @@ export class MaterialsService {
     accountId: number,
     page: number = 1,
     limit: number = 20,
-  ): Promise<{ categories: any[]; total: number; page: number; limit: number }> {
+  ): Promise<{
+    categories: any[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
     const skip = (page - 1) * limit;
     const [categories, total] = await Promise.all([
-      this.materialRepository.findAllCategories(accountId, { skip, take: limit }),
+      this.materialRepository.findAllCategories(accountId, {
+        skip,
+        take: limit,
+      }),
       this.materialRepository.countCategories(accountId),
     ]);
 
@@ -147,7 +176,9 @@ export class MaterialsService {
     requestingUserAccountId: number,
   ) {
     if (createCategoryDto.accountId !== requestingUserAccountId) {
-      throw new ForbiddenException('Cannot create categories in another account');
+      throw new ForbiddenException(
+        'Cannot create categories in another account',
+      );
     }
 
     return this.materialRepository.createCategory(createCategoryDto);
@@ -170,7 +201,10 @@ export class MaterialsService {
     return this.materialRepository.updateCategory(id, updateCategoryDto);
   }
 
-  async removeCategory(id: number, requestingUserAccountId: number): Promise<void> {
+  async removeCategory(
+    id: number,
+    requestingUserAccountId: number,
+  ): Promise<void> {
     const category = await this.materialRepository.findCategoryById(id);
     if (!category) {
       throw new NotFoundException('Material category not found');
@@ -219,9 +253,15 @@ export class MaterialsService {
       specifications: material.specifications,
       basePrice: material.basePrice ? Number(material.basePrice) : undefined,
       currency: material.currency,
-      minStockLevel: material.minStockLevel ? Number(material.minStockLevel) : undefined,
-      maxStockLevel: material.maxStockLevel ? Number(material.maxStockLevel) : undefined,
-      reorderPoint: material.reorderPoint ? Number(material.reorderPoint) : undefined,
+      minStockLevel: material.minStockLevel
+        ? Number(material.minStockLevel)
+        : undefined,
+      maxStockLevel: material.maxStockLevel
+        ? Number(material.maxStockLevel)
+        : undefined,
+      reorderPoint: material.reorderPoint
+        ? Number(material.reorderPoint)
+        : undefined,
       photos: material.photos,
       documents: material.documents,
       barcode: material.barcode,

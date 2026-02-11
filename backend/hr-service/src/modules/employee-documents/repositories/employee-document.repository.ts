@@ -47,11 +47,21 @@ export class EmployeeDocumentRepository {
     return (this.prisma as any).employeeDocument.update({
       where: { id },
       data: {
-        ...(dto.documentType !== undefined && { documentType: dto.documentType }),
-        ...(dto.documentNumber !== undefined && { documentNumber: dto.documentNumber }),
-        ...(dto.issueDate !== undefined && { issueDate: dto.issueDate ? new Date(dto.issueDate) : null }),
-        ...(dto.expiryDate !== undefined && { expiryDate: dto.expiryDate ? new Date(dto.expiryDate) : null }),
-        ...(dto.issuingAuthority !== undefined && { issuingAuthority: dto.issuingAuthority }),
+        ...(dto.documentType !== undefined && {
+          documentType: dto.documentType,
+        }),
+        ...(dto.documentNumber !== undefined && {
+          documentNumber: dto.documentNumber,
+        }),
+        ...(dto.issueDate !== undefined && {
+          issueDate: dto.issueDate ? new Date(dto.issueDate) : null,
+        }),
+        ...(dto.expiryDate !== undefined && {
+          expiryDate: dto.expiryDate ? new Date(dto.expiryDate) : null,
+        }),
+        ...(dto.issuingAuthority !== undefined && {
+          issuingAuthority: dto.issuingAuthority,
+        }),
         ...(dto.fileUrl !== undefined && { fileUrl: dto.fileUrl }),
         ...(dto.notes !== undefined && { notes: dto.notes }),
       },

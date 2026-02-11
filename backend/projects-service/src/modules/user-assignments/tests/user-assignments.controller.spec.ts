@@ -35,7 +35,9 @@ describe('UserAssignmentsController', () => {
       ],
     }).compile();
 
-    controller = module.get<UserAssignmentsController>(UserAssignmentsController);
+    controller = module.get<UserAssignmentsController>(
+      UserAssignmentsController,
+    );
     service = module.get(UserAssignmentsService);
   });
 
@@ -45,7 +47,13 @@ describe('UserAssignmentsController', () => {
 
   describe('findAll', () => {
     it('should call service.findAll with parsed parameters', async () => {
-      const mockResult = { data: [mockAssignment], total: 1, page: 1, limit: 20, totalPages: 1 };
+      const mockResult = {
+        data: [mockAssignment],
+        total: 1,
+        page: 1,
+        limit: 20,
+        totalPages: 1,
+      };
       service.findAll.mockResolvedValue(mockResult);
 
       const result = await controller.findAll(mockUser, '1', '20', '1', '2');
@@ -55,7 +63,13 @@ describe('UserAssignmentsController', () => {
     });
 
     it('should use defaults when query params are not provided', async () => {
-      const mockResult = { data: [], total: 0, page: 1, limit: 20, totalPages: 0 };
+      const mockResult = {
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 20,
+        totalPages: 0,
+      };
       service.findAll.mockResolvedValue(mockResult);
 
       await controller.findAll(mockUser);
@@ -90,7 +104,10 @@ describe('UserAssignmentsController', () => {
   describe('update', () => {
     it('should call service.update with id and dto', async () => {
       const updateDto = { roleOnProject: 'Lead Developer' };
-      service.update.mockResolvedValue({ ...mockAssignment, roleOnProject: 'Lead Developer' });
+      service.update.mockResolvedValue({
+        ...mockAssignment,
+        roleOnProject: 'Lead Developer',
+      });
 
       const result = await controller.update(mockUser, 1, updateDto);
 
@@ -101,7 +118,9 @@ describe('UserAssignmentsController', () => {
 
   describe('delete', () => {
     it('should call service.delete with id', async () => {
-      const mockResult = { message: 'User assignment with ID 1 deleted successfully' };
+      const mockResult = {
+        message: 'User assignment with ID 1 deleted successfully',
+      };
       service.delete.mockResolvedValue(mockResult);
 
       const result = await controller.delete(mockUser, 1);

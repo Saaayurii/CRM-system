@@ -56,7 +56,10 @@ export class CreateUserAssignmentDto {
   @IsNumber()
   dailyRate?: number;
 
-  @ApiPropertyOptional({ description: 'Whether the assignment is active', default: true })
+  @ApiPropertyOptional({
+    description: 'Whether the assignment is active',
+    default: true,
+  })
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;

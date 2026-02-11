@@ -67,7 +67,11 @@ describe('ExecutionLogController', () => {
 
   describe('create', () => {
     it('should create an execution log', async () => {
-      const dto = { automationRuleId: 1, status: 'success', triggeredBy: 'system' };
+      const dto = {
+        automationRuleId: 1,
+        status: 'success',
+        triggeredBy: 'system',
+      };
       service.create.mockResolvedValue({ ...mockLog, ...dto });
       const result = await controller.create(dto as any);
       expect(result).toBeDefined();

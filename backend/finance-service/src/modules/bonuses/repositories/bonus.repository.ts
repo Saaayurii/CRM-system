@@ -63,12 +63,16 @@ export class BonusRepository {
     if (dto.periodEnd) {
       data.periodEnd = new Date(dto.periodEnd);
     }
-    return (this.prisma as any).bonus.updateMany({
-      where: { id, accountId },
-      data,
-    }).then(async () => {
-      return (this.prisma as any).bonus.findFirst({ where: { id, accountId } });
-    });
+    return (this.prisma as any).bonus
+      .updateMany({
+        where: { id, accountId },
+        data,
+      })
+      .then(async () => {
+        return (this.prisma as any).bonus.findFirst({
+          where: { id, accountId },
+        });
+      });
   }
 
   async delete(id: number, accountId: number) {

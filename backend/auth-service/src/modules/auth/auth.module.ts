@@ -16,12 +16,15 @@ import { JwtStrategy } from '../../common/guards/jwt.strategy';
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('jwt.accessSecret') || 'default-secret',
-        signOptions: {
-          expiresIn: configService.get<string>('jwt.accessExpiration') || '15m',
-        },
-      } as any),
+      useFactory: (configService: ConfigService) =>
+        ({
+          secret:
+            configService.get<string>('jwt.accessSecret') || 'default-secret',
+          signOptions: {
+            expiresIn:
+              configService.get<string>('jwt.accessExpiration') || '15m',
+          },
+        }) as any,
     }),
   ],
   controllers: [AuthController],

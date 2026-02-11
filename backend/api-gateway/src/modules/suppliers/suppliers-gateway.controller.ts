@@ -10,7 +10,12 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { Request } from 'express';
 import { ProxyService } from '../../common/services/proxy.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -27,9 +32,14 @@ export class SuppliersGatewayController {
   @ApiOperation({ summary: 'Get all suppliers' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
-  async findAllSuppliers(@Req() req: Request, @Query('page') page?: number, @Query('limit') limit?: number) {
+  async findAllSuppliers(
+    @Req() req: Request,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
     return this.proxyService.forward('suppliers', {
-      method: 'GET', path: '/suppliers',
+      method: 'GET',
+      path: '/suppliers',
       headers: { authorization: req.headers.authorization || '' },
       params: { page, limit },
     });
@@ -39,7 +49,8 @@ export class SuppliersGatewayController {
   @ApiOperation({ summary: 'Get supplier by ID' })
   async findOneSupplier(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('suppliers', {
-      method: 'GET', path: `/suppliers/${id}`,
+      method: 'GET',
+      path: `/suppliers/${id}`,
       headers: { authorization: req.headers.authorization || '' },
     });
   }
@@ -48,18 +59,30 @@ export class SuppliersGatewayController {
   @ApiOperation({ summary: 'Create supplier' })
   async createSupplier(@Req() req: Request, @Body() body: any) {
     return this.proxyService.forward('suppliers', {
-      method: 'POST', path: '/suppliers',
-      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+      method: 'POST',
+      path: '/suppliers',
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
       data: body,
     });
   }
 
   @Put('suppliers/:id')
   @ApiOperation({ summary: 'Update supplier' })
-  async updateSupplier(@Req() req: Request, @Param('id') id: string, @Body() body: any) {
+  async updateSupplier(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
     return this.proxyService.forward('suppliers', {
-      method: 'PUT', path: `/suppliers/${id}`,
-      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+      method: 'PUT',
+      path: `/suppliers/${id}`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
       data: body,
     });
   }
@@ -68,7 +91,8 @@ export class SuppliersGatewayController {
   @ApiOperation({ summary: 'Delete supplier' })
   async removeSupplier(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('suppliers', {
-      method: 'DELETE', path: `/suppliers/${id}`,
+      method: 'DELETE',
+      path: `/suppliers/${id}`,
       headers: { authorization: req.headers.authorization || '' },
     });
   }
@@ -77,17 +101,26 @@ export class SuppliersGatewayController {
   @ApiOperation({ summary: 'Get supplier materials' })
   async getSupplierMaterials(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('suppliers', {
-      method: 'GET', path: `/suppliers/${id}/materials`,
+      method: 'GET',
+      path: `/suppliers/${id}/materials`,
       headers: { authorization: req.headers.authorization || '' },
     });
   }
 
   @Post('suppliers/:id/materials')
   @ApiOperation({ summary: 'Add supplier material' })
-  async addSupplierMaterial(@Req() req: Request, @Param('id') id: string, @Body() body: any) {
+  async addSupplierMaterial(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
     return this.proxyService.forward('suppliers', {
-      method: 'POST', path: `/suppliers/${id}/materials`,
-      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+      method: 'POST',
+      path: `/suppliers/${id}/materials`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
       data: body,
     });
   }
@@ -98,9 +131,15 @@ export class SuppliersGatewayController {
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
   @ApiQuery({ name: 'status', required: false })
-  async findAllOrders(@Req() req: Request, @Query('page') page?: number, @Query('limit') limit?: number, @Query('status') status?: number) {
+  async findAllOrders(
+    @Req() req: Request,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('status') status?: number,
+  ) {
     return this.proxyService.forward('suppliers', {
-      method: 'GET', path: '/supplier-orders',
+      method: 'GET',
+      path: '/supplier-orders',
       headers: { authorization: req.headers.authorization || '' },
       params: { page, limit, status },
     });
@@ -110,7 +149,8 @@ export class SuppliersGatewayController {
   @ApiOperation({ summary: 'Get supplier order by ID' })
   async findOneOrder(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('suppliers', {
-      method: 'GET', path: `/supplier-orders/${id}`,
+      method: 'GET',
+      path: `/supplier-orders/${id}`,
       headers: { authorization: req.headers.authorization || '' },
     });
   }
@@ -119,18 +159,30 @@ export class SuppliersGatewayController {
   @ApiOperation({ summary: 'Create supplier order' })
   async createOrder(@Req() req: Request, @Body() body: any) {
     return this.proxyService.forward('suppliers', {
-      method: 'POST', path: '/supplier-orders',
-      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+      method: 'POST',
+      path: '/supplier-orders',
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
       data: body,
     });
   }
 
   @Put('supplier-orders/:id')
   @ApiOperation({ summary: 'Update supplier order' })
-  async updateOrder(@Req() req: Request, @Param('id') id: string, @Body() body: any) {
+  async updateOrder(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
     return this.proxyService.forward('suppliers', {
-      method: 'PUT', path: `/supplier-orders/${id}`,
-      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+      method: 'PUT',
+      path: `/supplier-orders/${id}`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
       data: body,
     });
   }
@@ -139,17 +191,26 @@ export class SuppliersGatewayController {
   @ApiOperation({ summary: 'Delete supplier order' })
   async removeOrder(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('suppliers', {
-      method: 'DELETE', path: `/supplier-orders/${id}`,
+      method: 'DELETE',
+      path: `/supplier-orders/${id}`,
       headers: { authorization: req.headers.authorization || '' },
     });
   }
 
   @Post('supplier-orders/:id/items')
   @ApiOperation({ summary: 'Add item to supplier order' })
-  async addOrderItem(@Req() req: Request, @Param('id') id: string, @Body() body: any) {
+  async addOrderItem(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
     return this.proxyService.forward('suppliers', {
-      method: 'POST', path: `/supplier-orders/${id}/items`,
-      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+      method: 'POST',
+      path: `/supplier-orders/${id}/items`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
       data: body,
     });
   }
@@ -159,9 +220,14 @@ export class SuppliersGatewayController {
   @ApiOperation({ summary: 'Get all contractors' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
-  async findAllContractors(@Req() req: Request, @Query('page') page?: number, @Query('limit') limit?: number) {
+  async findAllContractors(
+    @Req() req: Request,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
     return this.proxyService.forward('suppliers', {
-      method: 'GET', path: '/contractors',
+      method: 'GET',
+      path: '/contractors',
       headers: { authorization: req.headers.authorization || '' },
       params: { page, limit },
     });
@@ -171,7 +237,8 @@ export class SuppliersGatewayController {
   @ApiOperation({ summary: 'Get contractor by ID' })
   async findOneContractor(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('suppliers', {
-      method: 'GET', path: `/contractors/${id}`,
+      method: 'GET',
+      path: `/contractors/${id}`,
       headers: { authorization: req.headers.authorization || '' },
     });
   }
@@ -180,18 +247,30 @@ export class SuppliersGatewayController {
   @ApiOperation({ summary: 'Create contractor' })
   async createContractor(@Req() req: Request, @Body() body: any) {
     return this.proxyService.forward('suppliers', {
-      method: 'POST', path: '/contractors',
-      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+      method: 'POST',
+      path: '/contractors',
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
       data: body,
     });
   }
 
   @Put('contractors/:id')
   @ApiOperation({ summary: 'Update contractor' })
-  async updateContractor(@Req() req: Request, @Param('id') id: string, @Body() body: any) {
+  async updateContractor(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
     return this.proxyService.forward('suppliers', {
-      method: 'PUT', path: `/contractors/${id}`,
-      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+      method: 'PUT',
+      path: `/contractors/${id}`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
       data: body,
     });
   }
@@ -200,7 +279,8 @@ export class SuppliersGatewayController {
   @ApiOperation({ summary: 'Delete contractor' })
   async removeContractor(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('suppliers', {
-      method: 'DELETE', path: `/contractors/${id}`,
+      method: 'DELETE',
+      path: `/contractors/${id}`,
       headers: { authorization: req.headers.authorization || '' },
     });
   }
@@ -209,17 +289,26 @@ export class SuppliersGatewayController {
   @ApiOperation({ summary: 'Get contractor assignments' })
   async getContractorAssignments(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('suppliers', {
-      method: 'GET', path: `/contractors/${id}/assignments`,
+      method: 'GET',
+      path: `/contractors/${id}/assignments`,
       headers: { authorization: req.headers.authorization || '' },
     });
   }
 
   @Post('contractors/:id/assignments')
   @ApiOperation({ summary: 'Create contractor assignment' })
-  async createContractorAssignment(@Req() req: Request, @Param('id') id: string, @Body() body: any) {
+  async createContractorAssignment(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
     return this.proxyService.forward('suppliers', {
-      method: 'POST', path: `/contractors/${id}/assignments`,
-      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+      method: 'POST',
+      path: `/contractors/${id}/assignments`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
       data: body,
     });
   }
