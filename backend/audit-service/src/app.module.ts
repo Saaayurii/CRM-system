@@ -14,7 +14,9 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
   imports: [
     ConfigModule.forRoot({ isGlobal: true, load: [configuration] }),
     PassportModule.register({ defaultStrategy: 'jwt' }),
-    DatabaseModule, EventLogsModule, HealthModule,
+    DatabaseModule,
+    EventLogsModule,
+    HealthModule,
   ],
   providers: [
     JwtStrategy,

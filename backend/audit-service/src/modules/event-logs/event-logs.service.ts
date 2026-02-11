@@ -6,8 +6,20 @@ import { CreateEventLogDto } from './dto/create-event-log.dto';
 export class EventLogsService {
   constructor(private readonly eventLogRepository: EventLogRepository) {}
 
-  async findAll(accountId: number, page: number, limit: number, entityType?: string, userId?: number) {
-    return this.eventLogRepository.findAll(accountId, page, limit, entityType, userId);
+  async findAll(
+    accountId: number,
+    page: number,
+    limit: number,
+    entityType?: string,
+    userId?: number,
+  ) {
+    return this.eventLogRepository.findAll(
+      accountId,
+      page,
+      limit,
+      entityType,
+      userId,
+    );
   }
 
   async findById(id: number, accountId: number) {

@@ -10,8 +10,20 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const port = configService.get<number>('port') || 3019;
   app.enableCors();
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true, transformOptions: { enableImplicitConversion: true } }));
-  const config = new DocumentBuilder().setTitle('Wiki Service API').setDescription('Wiki API for Construction CRM').setVersion('1.0').addBearerAuth().build();
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+      forbidNonWhitelisted: true,
+      transformOptions: { enableImplicitConversion: true },
+    }),
+  );
+  const config = new DocumentBuilder()
+    .setTitle('Wiki Service API')
+    .setDescription('Wiki API for Construction CRM')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
   await app.listen(port);
