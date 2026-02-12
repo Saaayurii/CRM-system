@@ -10,23 +10,31 @@ export interface LoginResponse {
 }
 
 export interface User {
-  id: string;
+  id: number;
+  name: string;
   email: string;
-  firstName: string;
-  lastName: string;
-  role: UserRole;
+  phone?: string;
+  avatarUrl?: string;
+  accountId: number;
+  roleId?: number;
+  position?: string;
+  isActive: boolean;
+  createdAt: string;
+  // Populated after /auth/me or from role lookup
+  role?: UserRole;
 }
 
 export interface UserRole {
-  id: string;
+  id: number;
   code: string;
   name: string;
 }
 
 export interface JwtPayload {
-  sub: string;
+  sub: number;
   email: string;
-  role: string;
+  roleId: number | null;
+  accountId: number;
   iat: number;
   exp: number;
 }

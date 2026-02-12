@@ -119,7 +119,7 @@ services:
       REDIS_PORT: 6379
       
       # CORS
-      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3001}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3030}
       
       # Rate Limiting
       RATE_LIMIT_TTL: 60000
@@ -168,8 +168,8 @@ services:
       BCRYPT_SALT_ROUNDS: ${BCRYPT_SALT_ROUNDS:-10}
       
       # Rate Limiting
-      RATE_LIMIT_TTL: 900
-      RATE_LIMIT_MAX: 5
+      RATE_LIMIT_TTL: 60
+      RATE_LIMIT_MAX: 100
     depends_on:
       postgres:
         condition: service_healthy

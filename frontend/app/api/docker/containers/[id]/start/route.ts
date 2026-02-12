@@ -18,10 +18,10 @@ export async function POST(
   }
 
   try {
-    execSync(`docker restart ${id}`, { encoding: 'utf-8', timeout: 30000 });
-    return NextResponse.json({ success: true, message: `Контейнер ${id} перезапущен` });
+    execSync(`docker start ${id}`, { encoding: 'utf-8', timeout: 30000 });
+    return NextResponse.json({ success: true, message: `Контейнер ${id} запущен` });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Не удалось перезапустить контейнер';
+    const message = error instanceof Error ? error.message : 'Не удалось запустить контейнер';
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

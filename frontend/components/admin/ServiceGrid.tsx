@@ -1,18 +1,22 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import api from '@/lib/api';
 import type { ContainerInfo } from '@/types/docker';
 import ServiceStatusCard from './ServiceStatusCard';
+import ServiceSummaryBar from './ServiceSummaryBar';
 import ContainerLogs from './ContainerLogs';
 import { CardSkeleton } from '@/components/ui/Skeleton';
+import { useToastStore } from '@/stores/toastStore';
 
 export default function ServiceGrid() {
   const [containers, setContainers] = useState<ContainerInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [restartingIds, setRestartingIds] = useState<Set<string>>(new Set());
+  const [stoppingIds, setStoppingIds] = useState<Set<string>>(new Set());
+  const [startingIds, setStartingIds] = useState<Set<string>>(new Set());
   const [logsContainerId, setLogsContainerId] = useState<string | null>(null);
+  const addToast = useToastStore((s) => s.addToast);
 
   const fetchContainers = useCallback(async () => {
     try {
@@ -20,12 +24,23 @@ export default function ServiceGrid() {
       const res = await fetch('/api/docker/containers', {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) throw new Error('Failed to fetch containers');
+      if (!res.ok) throw new Error('Не удалось получить список контейнеров');
       const data = await res.json();
-      setContainers(data);
+      // Ensure data is array and each item has required fields
+      const safe = (Array.isArray(data) ? data : []).map((c: Record<string, unknown>) => ({
+        id: String(c.id || ''),
+        name: String(c.name || ''),
+        image: String(c.image || ''),
+        status: String(c.status || ''),
+        state: String(c.state || 'unknown'),
+        ports: String(c.ports || ''),
+        createdAt: String(c.createdAt || ''),
+        uptime: String(c.uptime || ''),
+      })) as ContainerInfo[];
+      setContainers(safe);
       setError('');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error');
+      setError(err instanceof Error ? err.message : 'Ошибка загрузки');
     } finally {
       setLoading(false);
     }
@@ -37,25 +52,44 @@ export default function ServiceGrid() {
     return () => clearInterval(interval);
   }, [fetchContainers]);
 
-  const handleRestart = async (id: string) => {
-    setRestartingIds((prev) => new Set(prev).add(id));
+  const containerAction = async (
+    id: string,
+    action: 'restart' | 'stop' | 'start',
+    setIds: React.Dispatch<React.SetStateAction<Set<string>>>
+  ) => {
+    setIds((prev) => new Set(prev).add(id));
     try {
       const token = localStorage.getItem('accessToken');
-      await fetch(`/api/docker/containers/${id}/restart`, {
+      const res = await fetch(`/api/docker/containers/${id}/${action}`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `Ошибка ${action}`);
+      }
+      const messages: Record<string, string> = {
+        restart: 'Контейнер перезапущен',
+        stop: 'Контейнер остановлен',
+        start: 'Контейнер запущен',
+      };
+      addToast('success', messages[action]);
       setTimeout(fetchContainers, 2000);
-    } catch {
-      // error handled silently
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Ошибка операции';
+      addToast('error', message);
     } finally {
-      setRestartingIds((prev) => {
+      setIds((prev) => {
         const next = new Set(prev);
         next.delete(id);
         return next;
       });
     }
   };
+
+  const handleRestart = (id: string) => containerAction(id, 'restart', setRestartingIds);
+  const handleStop = (id: string) => containerAction(id, 'stop', setStoppingIds);
+  const handleStart = (id: string) => containerAction(id, 'start', setStartingIds);
 
   if (loading) {
     return (
@@ -77,14 +111,20 @@ export default function ServiceGrid() {
 
   return (
     <div>
+      <ServiceSummaryBar containers={containers} />
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {containers.map((container) => (
           <ServiceStatusCard
             key={container.id}
             container={container}
             onRestart={handleRestart}
+            onStop={handleStop}
+            onStart={handleStart}
             onViewLogs={setLogsContainerId}
             isRestarting={restartingIds.has(container.id)}
+            isStopping={stoppingIds.has(container.id)}
+            isStarting={startingIds.has(container.id)}
           />
         ))}
       </div>

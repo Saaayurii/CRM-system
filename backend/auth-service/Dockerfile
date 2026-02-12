@@ -3,7 +3,7 @@
 # ============================================
 
 # === STAGE 1: Dependencies ===
-FROM node:18-alpine AS dependencies
+FROM node:20-alpine AS dependencies
 
 WORKDIR /app
 
@@ -14,7 +14,7 @@ COPY package*.json ./
 RUN npm ci --only=production && npm cache clean --force
 
 # === STAGE 2: Build ===
-FROM node:18-alpine AS build
+FROM node:20-alpine AS build
 
 WORKDIR /app
 
@@ -34,7 +34,7 @@ RUN if [ -f prisma/schema.prisma ]; then npx prisma generate; fi
 RUN npm run build
 
 # === STAGE 3: Production ===
-FROM node:18-alpine AS production
+FROM node:20-alpine AS production
 
 # Устанавливаем wget для healthcheck
 RUN apk add --no-cache wget
@@ -70,4 +70,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD wget --spider -q http://localhost:3000/health || exit 1
 
 # Запуск приложения
-CMD ["node", "dist/main"]
+CMD ["node", "dist/src/main"]

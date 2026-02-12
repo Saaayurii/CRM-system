@@ -2,6 +2,24 @@ import { create } from 'zustand';
 import api from '@/lib/api';
 import type { User, LoginRequest, LoginResponse, JwtPayload } from '@/types/auth';
 
+// Map of known roleId -> code (seeded in DB)
+export const ROLE_MAP: Record<number, { code: string; name: string }> = {
+  1: { code: 'super_admin', name: 'Супер Администратор' },
+  2: { code: 'admin', name: 'Администратор' },
+  3: { code: 'hr_manager', name: 'HR Менеджер' },
+  4: { code: 'project_manager', name: 'Менеджер проектов' },
+  5: { code: 'foreman', name: 'Прораб' },
+  6: { code: 'supplier_manager', name: 'Снабженец' },
+  7: { code: 'warehouse_keeper', name: 'Кладовщик' },
+  8: { code: 'accountant', name: 'Бухгалтер' },
+  9: { code: 'inspector', name: 'Инспектор' },
+  10: { code: 'worker', name: 'Рабочий' },
+  11: { code: 'supplier', name: 'Поставщик' },
+  12: { code: 'contractor', name: 'Подрядчик' },
+  13: { code: 'observer', name: 'Наблюдатель' },
+  14: { code: 'analyst', name: 'Аналитик' },
+};
+
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
@@ -27,6 +45,12 @@ function decodeJwt(token: string): JwtPayload | null {
   }
 }
 
+function roleFromId(roleId: number | null) {
+  if (!roleId) return undefined;
+  const r = ROLE_MAP[roleId];
+  return r ? { id: roleId, code: r.code, name: r.name } : { id: roleId, code: 'unknown', name: 'Unknown' };
+}
+
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isAuthenticated: false,
@@ -37,7 +61,10 @@ export const useAuthStore = create<AuthState>((set) => ({
     localStorage.setItem('accessToken', data.accessToken);
     localStorage.setItem('refreshToken', data.refreshToken);
     document.cookie = `crm-session=true; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
-    set({ user: data.user, isAuthenticated: true });
+
+    const user = data.user;
+    user.role = roleFromId(user.roleId ?? null);
+    set({ user, isAuthenticated: true });
   },
 
   logout: () => {
@@ -68,9 +95,12 @@ export const useAuthStore = create<AuthState>((set) => ({
       user: {
         id: payload.sub,
         email: payload.email,
-        firstName: '',
-        lastName: '',
-        role: { id: '', code: payload.role, name: payload.role },
+        name: '',
+        accountId: payload.accountId,
+        roleId: payload.roleId ?? undefined,
+        isActive: true,
+        createdAt: '',
+        role: roleFromId(payload.roleId),
       },
       isAuthenticated: true,
       isLoading: false,

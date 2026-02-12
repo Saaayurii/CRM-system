@@ -2,6 +2,35 @@
 
 const modules = ['Проекты', 'Задачи', 'Материалы', 'Склад', 'Финансы', 'HR', 'Инспекции', 'Отчёты'];
 
+const ROLE_CODE_TO_NAME: Record<string, string> = {
+  super_admin: 'Супер Администратор',
+  admin: 'Администратор',
+  director: 'Директор',
+  deputy_director: 'Зам. директора',
+  project_manager: 'Менеджер проектов',
+  site_engineer: 'Инженер участка',
+  foreman: 'Прораб',
+  worker: 'Рабочий',
+  accountant: 'Бухгалтер',
+  hr_manager: 'HR Менеджер',
+  warehouse_manager: 'Зав. складом',
+  supplier_manager: 'Снабженец',
+  safety_officer: 'Инженер по ТБ',
+  inspector: 'Инспектор',
+  analyst: 'Аналитик',
+  observer: 'Наблюдатель',
+  supplier: 'Поставщик',
+  contractor: 'Подрядчик',
+  client: 'Клиент',
+  guest: 'Гость',
+};
+
+const ACCESS_TOOLTIPS: Record<string, string> = {
+  full: 'Полный доступ',
+  read: 'Только чтение',
+  none: 'Нет доступа',
+};
+
 interface RoleAccess {
   role: string;
   access: Record<string, 'full' | 'read' | 'none'>;
@@ -29,18 +58,21 @@ function AccessIcon({ level }: { level: 'full' | 'read' | 'none' }) {
     case 'full':
       return (
         <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 16 16">
+          <title>{ACCESS_TOOLTIPS.full}</title>
           <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0Zm3.78 4.97a.75.75 0 0 0-1.06 0L7 8.69 5.28 6.97a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.06 0l4.25-4.25a.75.75 0 0 0 0-1.06Z" />
         </svg>
       );
     case 'read':
       return (
         <svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 16 16">
+          <title>{ACCESS_TOOLTIPS.read}</title>
           <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM5.5 7.5a.75.75 0 0 0 0 1.5h5a.75.75 0 0 0 0-1.5h-5Z" />
         </svg>
       );
     case 'none':
       return (
         <svg className="w-4 h-4 text-red-500/50" fill="currentColor" viewBox="0 0 16 16">
+          <title>{ACCESS_TOOLTIPS.none}</title>
           <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0Zm2.78 4.97a.75.75 0 0 0-1.06 0L8 6.69 6.28 4.97a.75.75 0 0 0-1.06 1.06L6.94 7.75 5.22 9.47a.75.75 0 1 0 1.06 1.06L8 8.81l1.72 1.72a.75.75 0 1 0 1.06-1.06L9.06 7.75l1.72-1.72a.75.75 0 0 0 0-1.06Z" />
         </svg>
       );
@@ -66,7 +98,7 @@ export default function RoleAccessMatrix() {
             {roles.map((r) => (
               <tr key={r.role} className="hover:bg-gray-50 dark:hover:bg-gray-900/20">
                 <td className="py-2.5 px-4 text-gray-800 dark:text-gray-100 font-medium whitespace-nowrap">
-                  {r.role}
+                  {ROLE_CODE_TO_NAME[r.role] || r.role}
                 </td>
                 {modules.map((m) => (
                   <td key={m} className="py-2.5 px-3 text-center">

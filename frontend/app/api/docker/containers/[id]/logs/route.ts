@@ -1,22 +1,6 @@
 import { NextRequest } from 'next/server';
 import { spawn } from 'child_process';
-
-async function verifyAdmin(request: NextRequest): Promise<boolean> {
-  const authHeader = request.headers.get('authorization');
-  if (!authHeader) return false;
-
-  try {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
-    const res = await fetch(`${apiUrl}/auth/me`, {
-      headers: { Authorization: authHeader },
-    });
-    if (!res.ok) return false;
-    const user = await res.json();
-    return user?.role?.code === 'super_admin';
-  } catch {
-    return false;
-  }
-}
+import { verifyAdmin } from '../../../_lib/verifyAdmin';
 
 export async function GET(
   request: NextRequest,
@@ -24,14 +8,13 @@ export async function GET(
 ) {
   const isAdmin = await verifyAdmin(request);
   if (!isAdmin) {
-    return new Response('Forbidden', { status: 403 });
+    return new Response('Доступ запрещён', { status: 403 });
   }
 
   const { id } = await params;
 
-  // Validate container ID
   if (!/^[a-zA-Z0-9]+$/.test(id)) {
-    return new Response('Invalid container ID', { status: 400 });
+    return new Response('Некорректный ID контейнера', { status: 400 });
   }
 
   const stream = new ReadableStream({
@@ -59,7 +42,6 @@ export async function GET(
         controller.close();
       });
 
-      // Cleanup when client disconnects
       request.signal.addEventListener('abort', () => {
         proc.kill();
       });

@@ -1,27 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { execSync } from 'child_process';
-
-async function verifyAdmin(request: NextRequest): Promise<boolean> {
-  const authHeader = request.headers.get('authorization');
-  if (!authHeader) return false;
-
-  try {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
-    const res = await fetch(`${apiUrl}/auth/me`, {
-      headers: { Authorization: authHeader },
-    });
-    if (!res.ok) return false;
-    const user = await res.json();
-    return user?.role?.code === 'super_admin';
-  } catch {
-    return false;
-  }
-}
+import { verifyAdmin } from '../_lib/verifyAdmin';
 
 export async function GET(request: NextRequest) {
   const isAdmin = await verifyAdmin(request);
   if (!isAdmin) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    return NextResponse.json({ error: 'Доступ запрещён' }, { status: 403 });
   }
 
   try {
@@ -51,7 +35,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(containers);
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to list containers';
+    const message = error instanceof Error ? error.message : 'Не удалось получить список контейнеров';
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

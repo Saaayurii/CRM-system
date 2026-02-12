@@ -2328,5 +2328,7 @@ GROUP BY p.id, p.name, p.budget;
 -- Комментарий: успешно создана полная схема БД для CRM системы строителей!
 COMMENT ON DATABASE postgres IS 'Строительная CRM система - полная схема базы данных';
 
-
+ После регистрации логин:
+  - Email: admin@crm.local
+  - Пароль: SecurePassword123
  

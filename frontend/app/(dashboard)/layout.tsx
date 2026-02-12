@@ -2,6 +2,7 @@
 
 import Sidebar from '@/components/layout/Sidebar';
 import Header from '@/components/layout/Header';
+import ToastContainer from '@/components/ui/ToastContainer';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -15,6 +16,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </main>
       </div>
+      <ToastContainer />
     </div>
   );
 }

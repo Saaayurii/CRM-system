@@ -7,26 +7,41 @@ import ContainerActions from './ContainerActions';
 interface ServiceStatusCardProps {
   container: ContainerInfo;
   onRestart: (id: string) => void;
+  onStop: (id: string) => void;
+  onStart: (id: string) => void;
   onViewLogs: (id: string) => void;
   isRestarting: boolean;
+  isStopping: boolean;
+  isStarting: boolean;
 }
 
 function getStateBadge(state: string) {
   switch (state) {
     case 'running':
-      return <Badge variant="success">Running</Badge>;
+      return <Badge variant="success">Работает</Badge>;
     case 'exited':
-      return <Badge variant="danger">Exited</Badge>;
+      return <Badge variant="danger">Остановлен</Badge>;
     case 'restarting':
-      return <Badge variant="warning">Restarting</Badge>;
+      return <Badge variant="warning">Перезапуск</Badge>;
     case 'paused':
-      return <Badge variant="warning">Paused</Badge>;
+      return <Badge variant="warning">Пауза</Badge>;
+    case 'dead':
+      return <Badge variant="danger">Ошибка</Badge>;
     default:
       return <Badge variant="default">{state}</Badge>;
   }
 }
 
-export default function ServiceStatusCard({ container, onRestart, onViewLogs, isRestarting }: ServiceStatusCardProps) {
+export default function ServiceStatusCard({
+  container,
+  onRestart,
+  onStop,
+  onStart,
+  onViewLogs,
+  isRestarting,
+  isStopping,
+  isStarting,
+}: ServiceStatusCardProps) {
   const displayName = container.name.replace(/^crm-/, '').replace(/-/g, ' ');
 
   return (
@@ -53,9 +68,14 @@ export default function ServiceStatusCard({ container, onRestart, onViewLogs, is
       <div className="mt-auto">
         <ContainerActions
           containerId={container.id}
+          containerState={container.state}
           onRestart={onRestart}
+          onStop={onStop}
+          onStart={onStart}
           onViewLogs={onViewLogs}
           isRestarting={isRestarting}
+          isStopping={isStopping}
+          isStarting={isStarting}
         />
       </div>
     </div>
