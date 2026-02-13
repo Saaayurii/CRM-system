@@ -10,7 +10,7 @@ export default function DashboardPage() {
       <div className="sm:flex sm:justify-between sm:items-center mb-8">
         <div className="mb-4 sm:mb-0">
           <h1 className="text-2xl md:text-3xl text-gray-800 dark:text-gray-100 font-bold">
-            Dashboard
+            Панель управления
           </h1>
           {user && (
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">

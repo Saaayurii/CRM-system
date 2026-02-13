@@ -57,7 +57,9 @@ export const useAuthStore = create<AuthState>((set) => ({
   isLoading: true,
 
   login: async (credentials: LoginRequest) => {
+  try {
     const { data } = await api.post<LoginResponse>('/auth/login', credentials);
+
     localStorage.setItem('accessToken', data.accessToken);
     localStorage.setItem('refreshToken', data.refreshToken);
     document.cookie = `crm-session=true; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
@@ -65,7 +67,23 @@ export const useAuthStore = create<AuthState>((set) => ({
     const user = data.user;
     user.role = roleFromId(user.roleId ?? null);
     set({ user, isAuthenticated: true });
-  },
+
+    console.log('[Auth] Login successful for user:', user.email);
+
+  } catch (err: unknown) {
+    // Логируем ошибку в консоль для отладки
+    if (err && typeof err === 'object' && 'response' in err) {
+      const resp = (err as { response?: { status: number; data?: { message?: string } } }).response;
+      console.error('[Auth] Login failed:', resp?.status, resp?.data?.message);
+    } else {
+      console.error('[Auth] Login failed (network/error):', err);
+    }
+
+    // пробрасываем ошибку дальше, чтобы компонент LoginPage её обработал
+    throw err;
+  }
+},
+
 
   logout: () => {
     localStorage.removeItem('accessToken');

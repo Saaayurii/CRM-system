@@ -2330,5 +2330,5 @@ COMMENT ON DATABASE postgres IS 'Строительная CRM система - �
 
  После регистрации логин:
   - Email: admin@crm.local
-  - Пароль: SecurePassword123
+  - Пароль: Admin123!
  
