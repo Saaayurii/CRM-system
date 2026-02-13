@@ -22,9 +22,17 @@ function decodeJwtPayload(token: string): Record<string, unknown> | null {
 
 export async function verifyAdmin(request: NextRequest): Promise<boolean> {
   const authHeader = request.headers.get('authorization');
-  if (!authHeader?.startsWith('Bearer ')) return false;
+  // Support token from query param (for EventSource which can't set headers)
+  const queryToken = request.nextUrl.searchParams.get('token');
 
-  const token = authHeader.slice(7);
+  let token: string;
+  if (authHeader?.startsWith('Bearer ')) {
+    token = authHeader.slice(7);
+  } else if (queryToken) {
+    token = queryToken;
+  } else {
+    return false;
+  }
 
   // First: quick JWT decode to check roleId (no network call)
   const payload = decodeJwtPayload(token);
@@ -40,8 +48,9 @@ export async function verifyAdmin(request: NextRequest): Promise<boolean> {
   // Fallback: call backend /auth/me for cases where roleId might differ
   try {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+    const bearerValue = `Bearer ${token}`;
     const res = await fetch(`${apiUrl}/auth/me`, {
-      headers: { Authorization: authHeader },
+      headers: { Authorization: bearerValue },
     });
     if (!res.ok) return false;
     const user = await res.json();

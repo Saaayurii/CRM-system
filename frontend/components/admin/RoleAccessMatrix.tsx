@@ -82,6 +82,22 @@ function AccessIcon({ level }: { level: 'full' | 'read' | 'none' }) {
 export default function RoleAccessMatrix() {
   return (
     <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl overflow-hidden">
+      {/* Legend */}
+      <div className="flex items-center gap-6 px-4 py-3 border-b border-gray-100 dark:border-gray-700/60 bg-gray-50/50 dark:bg-gray-900/20">
+        <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Обозначения:</span>
+        <div className="flex items-center gap-1.5">
+          <AccessIcon level="full" />
+          <span className="text-xs text-gray-600 dark:text-gray-300">Полный доступ</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <AccessIcon level="read" />
+          <span className="text-xs text-gray-600 dark:text-gray-300">Только чтение</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <AccessIcon level="none" />
+          <span className="text-xs text-gray-600 dark:text-gray-300">Нет доступа</span>
+        </div>
+      </div>
       <div className="overflow-x-auto">
         <table className="table-auto w-full text-sm">
           <thead>

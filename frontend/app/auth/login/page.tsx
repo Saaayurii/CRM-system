@@ -3,6 +3,28 @@
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
+import { AxiosError } from 'axios';
+
+function getLoginErrorMessage(err: unknown): string {
+  if (err instanceof AxiosError) {
+    if (!err.response) {
+      return 'Сервер недоступен. Проверьте подключение к сети';
+    }
+    const status = err.response.status;
+    if (status === 401) return 'Неверный email или пароль';
+    if (status === 403) return 'Аккаунт деактивирован';
+    const serverMsg = (err.response.data as { message?: string })?.message;
+    if (serverMsg) return serverMsg;
+    return `Ошибка сервера (${status})`;
+  }
+  if (err && typeof err === 'object' && 'response' in err) {
+    const resp = (err as { response?: { status?: number; data?: { message?: string } } }).response;
+    if (resp?.status === 401) return 'Неверный email или пароль';
+    if (resp?.status === 403) return 'Аккаунт деактивирован';
+    return resp?.data?.message || 'Ошибка авторизации';
+  }
+  return 'Сервер недоступен. Проверьте подключение к сети';
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -22,11 +44,7 @@ export default function LoginPage() {
       await login({ email, password });
       router.push('/dashboard');
     } catch (err: unknown) {
-      const message =
-        err && typeof err === 'object' && 'response' in err
-          ? ((err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Ошибка авторизации')
-          : 'Ошибка подключения к серверу';
-      setError(message);
+      setError(getLoginErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -37,8 +55,11 @@ export default function LoginPage() {
       <h1 className="text-3xl text-gray-800 dark:text-gray-100 font-bold mb-6">Вход в систему</h1>
 
       {error && (
-        <div className="bg-red-500/10 text-red-500 px-4 py-3 rounded-lg mb-4 text-sm">
-          {error}
+        <div className="bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 px-4 py-3 rounded-lg mb-4 text-sm flex items-start gap-2">
+          <svg className="w-5 h-5 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+          </svg>
+          <span>{error}</span>
         </div>
       )}
 

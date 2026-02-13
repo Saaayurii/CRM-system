@@ -1,0 +1,274 @@
+-- ==========================================
+-- SEED DATA: Тестовые данные для CRM системы
+-- ==========================================
+-- Пароль для всех пользователей: Password123!
+-- bcrypt hash для Password123!: $2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm
+
+-- ==========================================
+-- 1. АККАУНТ (ОРГАНИЗАЦИЯ)
+-- ==========================================
+
+INSERT INTO accounts (id, name, subdomain, settings, status) VALUES
+(1, 'СтройПроф', 'stroiprof', '{"theme": "default", "timezone": "Europe/Moscow"}', 1)
+ON CONFLICT (id) DO NOTHING;
+
+SELECT setval('accounts_id_seq', (SELECT MAX(id) FROM accounts));
+
+-- ==========================================
+-- 2. ПОЛЬЗОВАТЕЛИ (10 пользователей)
+-- ==========================================
+
+INSERT INTO users (id, account_id, role_id, name, email, phone, password_digest, is_active, position, hire_date) VALUES
+(1, 1, 1, 'Иванов Сергей Петрович', 'admin@crm.local', '+7 (900) 111-11-11', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Генеральный директор', '2020-01-15'),
+(2, 1, 2, 'Петрова Анна Михайловна', 'anna@crm.local', '+7 (900) 222-22-22', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Администратор системы', '2020-03-01'),
+(3, 1, 3, 'Козлова Елена Викторовна', 'elena@crm.local', '+7 (900) 333-33-33', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'HR менеджер', '2021-02-10'),
+(4, 1, 4, 'Смирнов Алексей Дмитриевич', 'alexey@crm.local', '+7 (900) 444-44-44', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Менеджер проектов', '2021-05-15'),
+(5, 1, 5, 'Волков Дмитрий Игоревич', 'dmitry@crm.local', '+7 (900) 555-55-55', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Прораб', '2021-07-01'),
+(6, 1, 6, 'Новикова Ольга Сергеевна', 'olga@crm.local', '+7 (900) 666-66-66', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Снабженец', '2022-01-20'),
+(7, 1, 7, 'Морозов Андрей Владимирович', 'andrey@crm.local', '+7 (900) 777-77-77', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Кладовщик', '2022-03-15'),
+(8, 1, 8, 'Соколова Мария Александровна', 'maria@crm.local', '+7 (900) 888-88-88', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Бухгалтер', '2022-06-01'),
+(9, 1, 9, 'Лебедев Виктор Николаевич', 'victor@crm.local', '+7 (900) 999-99-99', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Инспектор', '2023-01-10'),
+(10, 1, 10, 'Кузнецов Павел Андреевич', 'pavel@crm.local', '+7 (900) 101-01-01', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Рабочий', '2023-04-15')
+ON CONFLICT (id) DO NOTHING;
+
+SELECT setval('users_id_seq', (SELECT MAX(id) FROM users));
+
+-- ==========================================
+-- 3. КОМАНДЫ
+-- ==========================================
+
+INSERT INTO teams (id, account_id, name, description, team_lead_id, status) VALUES
+(1, 1, 'Бригада №1 — Фундаменты', 'Специализация на фундаментных работах', 5, 1),
+(2, 1, 'Бригада №2 — Отделка', 'Внутренняя и наружная отделка', 5, 1),
+(3, 1, 'Инженерная группа', 'Инженерные системы и коммуникации', 4, 1)
+ON CONFLICT (id) DO NOTHING;
+
+SELECT setval('teams_id_seq', (SELECT MAX(id) FROM teams));
+
+INSERT INTO team_members (team_id, user_id, role_in_team) VALUES
+(1, 5, 'lead'),
+(1, 10, 'member'),
+(2, 5, 'lead'),
+(3, 4, 'lead'),
+(3, 9, 'member')
+ON CONFLICT (team_id, user_id) DO NOTHING;
+
+-- ==========================================
+-- 4. ПРОЕКТЫ (5 проектов)
+-- ==========================================
+
+INSERT INTO projects (id, account_id, name, code, description, project_manager_id, client_name, start_date, planned_end_date, budget, status, priority, address) VALUES
+(1, 1, 'ЖК "Солнечный"', 'PRJ-001', 'Строительство жилого комплекса на 120 квартир', 4, 'ООО "Девелопер Групп"', '2024-03-01', '2025-12-31', 450000000.00, 1, 3, 'г. Москва, ул. Строителей, д. 15'),
+(2, 1, 'Бизнес-центр "Прогресс"', 'PRJ-002', 'Строительство офисного здания класса B+, 8 этажей', 4, 'АО "Бизнес Инвест"', '2024-06-15', '2026-06-15', 280000000.00, 1, 2, 'г. Москва, ул. Промышленная, д. 7'),
+(3, 1, 'Склад "Логистик Парк"', 'PRJ-003', 'Строительство складского комплекса категории А', 4, 'ООО "ТрансЛогистик"', '2024-09-01', '2025-09-01', 95000000.00, 0, 2, 'Московская обл., г. Подольск, промзона'),
+(4, 1, 'Реконструкция школы №45', 'PRJ-004', 'Капитальный ремонт и модернизация здания школы', 4, 'Администрация г. Москва', '2024-06-01', '2024-12-31', 35000000.00, 3, 3, 'г. Москва, ул. Школьная, д. 12'),
+(5, 1, 'Коттеджный посёлок "Лесная поляна"', 'PRJ-005', 'Строительство 25 коттеджей с инфраструктурой', 4, 'ИП Сидоров В.А.', '2025-04-01', '2026-10-01', 180000000.00, 0, 1, 'Московская обл., Истринский р-н')
+ON CONFLICT (id) DO NOTHING;
+
+SELECT setval('projects_id_seq', (SELECT MAX(id) FROM projects));
+
+-- ==========================================
+-- 5. СТРОИТЕЛЬНЫЕ ПЛОЩАДКИ
+-- ==========================================
+
+INSERT INTO construction_sites (id, project_id, name, code, site_type, address, foreman_id, status, start_date, planned_end_date) VALUES
+(1, 1, 'Корпус А', 'SITE-001-A', 'residential', 'г. Москва, ул. Строителей, д. 15, корп. А', 5, 1, '2024-03-01', '2025-06-30'),
+(2, 1, 'Корпус Б', 'SITE-001-B', 'residential', 'г. Москва, ул. Строителей, д. 15, корп. Б', 5, 0, '2024-09-01', '2025-12-31'),
+(3, 2, 'Основное здание', 'SITE-002-M', 'commercial', 'г. Москва, ул. Промышленная, д. 7', 5, 1, '2024-06-15', '2026-03-15'),
+(4, 2, 'Парковка', 'SITE-002-P', 'commercial', 'г. Москва, ул. Промышленная, д. 7, парковка', 5, 0, '2025-01-15', '2025-12-31'),
+(5, 4, 'Основное здание школы', 'SITE-004', 'commercial', 'г. Москва, ул. Школьная, д. 12', 5, 2, '2024-06-01', '2024-12-31')
+ON CONFLICT (id) DO NOTHING;
+
+SELECT setval('construction_sites_id_seq', (SELECT MAX(id) FROM construction_sites));
+
+-- ==========================================
+-- 6. ЗАДАЧИ (15 задач)
+-- ==========================================
+
+INSERT INTO tasks (id, account_id, project_id, construction_site_id, title, description, task_type, assigned_to_user_id, created_by_user_id, priority, status, start_date, due_date, progress_percentage) VALUES
+(1, 1, 1, 1, 'Разметка фундамента корпус А', 'Произвести геодезическую разметку под фундамент корпуса А', 'construction', 10, 4, 3, 4, '2024-03-01', '2024-03-15', 100),
+(2, 1, 1, 1, 'Земляные работы — котлован', 'Выемка грунта под фундамент. Глубина 3.5м', 'construction', 10, 4, 3, 4, '2024-03-15', '2024-04-15', 100),
+(3, 1, 1, 1, 'Заливка фундамента', 'Монолитный ленточный фундамент. Бетон М350', 'construction', 10, 4, 3, 2, '2024-04-15', '2024-06-01', 65),
+(4, 1, 1, 1, 'Гидроизоляция фундамента', 'Нанесение гидроизоляционного слоя', 'construction', 10, 4, 2, 0, '2024-06-01', '2024-06-20', 0),
+(5, 1, 1, 1, 'Монтаж стен 1-3 этажи', 'Кирпичная кладка несущих стен', 'construction', 10, 4, 2, 0, '2024-06-20', '2024-10-01', 0),
+(6, 1, 2, 3, 'Проектирование инженерных систем', 'Разработка проекта водоснабжения и канализации', 'construction', 4, 4, 3, 2, '2024-06-15', '2024-08-15', 40),
+(7, 1, 2, 3, 'Подготовка площадки', 'Расчистка и выравнивание территории', 'construction', 10, 4, 2, 4, '2024-06-15', '2024-07-15', 100),
+(8, 1, 2, 3, 'Забивка свай', 'Устройство свайного поля. 180 свай.', 'construction', 10, 5, 3, 2, '2024-07-15', '2024-09-30', 30),
+(9, 1, 1, 1, 'Инспекция фундамента', 'Проверка качества бетонных работ', 'inspection', 9, 4, 3, 1, '2024-06-05', '2024-06-10', 0),
+(10, 1, 4, 5, 'Демонтаж старых перегородок', 'Снос ненесущих перегородок 2 и 3 этажей', 'construction', 10, 4, 2, 4, '2024-06-01', '2024-06-30', 100),
+(11, 1, 4, 5, 'Замена электропроводки', 'Полная замена электрики по всему зданию', 'construction', 10, 5, 3, 2, '2024-07-01', '2024-09-01', 55),
+(12, 1, 4, 5, 'Установка новых окон', 'Замена 120 оконных блоков на энергоэффективные', 'construction', 10, 4, 2, 2, '2024-08-01', '2024-09-15', 20),
+(13, 1, 1, 1, 'Заказ арматуры', 'Арматура А500 d12, d16 — 45 тонн', 'delivery', 6, 5, 4, 3, '2024-04-01', '2024-04-20', 80),
+(14, 1, 2, 3, 'Закупка бетона М400', 'Бетон для свайного основания — 200 м³', 'delivery', 6, 5, 3, 2, '2024-07-10', '2024-07-25', 50),
+(15, 1, 1, 2, 'Проект корпуса Б', 'Адаптация проектной документации для корпуса Б', 'construction', 4, 4, 2, 1, '2024-08-01', '2024-10-01', 10)
+ON CONFLICT (id) DO NOTHING;
+
+SELECT setval('tasks_id_seq', (SELECT MAX(id) FROM tasks));
+
+-- ==========================================
+-- 7. КАТЕГОРИИ МАТЕРИАЛОВ
+-- ==========================================
+
+INSERT INTO material_categories (id, account_id, name, code, description, sort_order) VALUES
+(1, 1, 'Бетон и растворы', 'CONCRETE', 'Бетонные смеси и строительные растворы', 1),
+(2, 1, 'Металлопрокат', 'METAL', 'Арматура, балки, трубы', 2),
+(3, 1, 'Кирпич и блоки', 'BRICKS', 'Кирпич, газобетонные блоки, пеноблоки', 3),
+(4, 1, 'Пиломатериалы', 'WOOD', 'Доска, брус, фанера', 4),
+(5, 1, 'Изоляция', 'INSULATION', 'Тепло- и гидроизоляционные материалы', 5),
+(6, 1, 'Электрика', 'ELECTRIC', 'Кабель, щитки, розетки', 6),
+(7, 1, 'Сантехника', 'PLUMBING', 'Трубы, фитинги, сантехоборудование', 7),
+(8, 1, 'Отделочные материалы', 'FINISHING', 'Краска, штукатурка, плитка', 8)
+ON CONFLICT (id) DO NOTHING;
+
+SELECT setval('material_categories_id_seq', (SELECT MAX(id) FROM material_categories));
+
+-- ==========================================
+-- 8. МАТЕРИАЛЫ
+-- ==========================================
+
+INSERT INTO materials (id, account_id, category_id, name, code, unit, manufacturer, base_price, min_stock_level) VALUES
+(1, 1, 1, 'Бетон М350', 'BET-350', 'м³', 'РосБетон', 5500.00, 10),
+(2, 1, 1, 'Бетон М400', 'BET-400', 'м³', 'РосБетон', 6200.00, 10),
+(3, 1, 2, 'Арматура А500 d12', 'ARM-A500-12', 'т', 'МеталлСервис', 52000.00, 5),
+(4, 1, 2, 'Арматура А500 d16', 'ARM-A500-16', 'т', 'МеталлСервис', 51000.00, 5),
+(5, 1, 3, 'Кирпич керамический М150', 'KIR-M150', 'шт', 'КирпичЗавод', 15.50, 1000),
+(6, 1, 3, 'Газобетон D500 600x300x200', 'GAZ-D500', 'шт', 'АэроБлок', 180.00, 200),
+(7, 1, 4, 'Доска обрезная 50x150x6000', 'DOS-50-150', 'м³', 'ЛесТорг', 12000.00, 5),
+(8, 1, 5, 'Гидроизоляция рулонная Технониколь', 'GID-TN-01', 'рулон', 'Технониколь', 2800.00, 20),
+(9, 1, 6, 'Кабель ВВГнг 3x2.5', 'KAB-VVG-3x25', 'м', 'Электрокабель', 45.00, 500),
+(10, 1, 7, 'Труба ПП d32', 'TRU-PP-32', 'м', 'РосТрубы', 85.00, 100),
+(11, 1, 8, 'Штукатурка гипсовая Ротбанд 30кг', 'SHT-ROT-30', 'мешок', 'Knauf', 450.00, 50),
+(12, 1, 8, 'Краска фасадная белая 10л', 'KRA-FAS-10', 'ведро', 'Тиккурила', 3200.00, 10)
+ON CONFLICT (id) DO NOTHING;
+
+SELECT setval('materials_id_seq', (SELECT MAX(id) FROM materials));
+
+-- ==========================================
+-- 9. ПОСТАВЩИКИ
+-- ==========================================
+
+INSERT INTO suppliers (id, account_id, name, legal_name, inn, contact_person, phone, email, payment_terms, delivery_time_days, rating, status, is_verified) VALUES
+(1, 1, 'РосБетон', 'ООО "РосБетон"', '7701234567', 'Сидоров Иван', '+7 (495) 111-22-33', 'sales@rosbeton.ru', 'prepayment', 2, 4.50, 1, true),
+(2, 1, 'МеталлСервис', 'АО "МеталлСервис"', '7702345678', 'Белов Пётр', '+7 (495) 222-33-44', 'orders@metalserv.ru', '50/50', 5, 4.20, 1, true),
+(3, 1, 'СтройОпт', 'ООО "СтройОпт"', '7703456789', 'Кравцова Наталья', '+7 (495) 333-44-55', 'info@stroyopt.ru', 'postpayment', 3, 3.80, 1, false),
+(4, 1, 'ЭлектроМаркет', 'ИП Зайцев К.А.', '770456789012', 'Зайцев Константин', '+7 (495) 444-55-66', 'zaycev@electromarket.ru', 'prepayment', 1, 4.00, 1, true)
+ON CONFLICT (id) DO NOTHING;
+
+SELECT setval('suppliers_id_seq', (SELECT MAX(id) FROM suppliers));
+
+-- ==========================================
+-- 10. СВЯЗЬ ПОСТАВЩИК-МАТЕРИАЛЫ
+-- ==========================================
+
+INSERT INTO supplier_materials (supplier_id, material_id, price, delivery_time_days, is_available) VALUES
+(1, 1, 5400.00, 2, true),
+(1, 2, 6100.00, 2, true),
+(2, 3, 51500.00, 5, true),
+(2, 4, 50500.00, 5, true),
+(3, 5, 14.80, 3, true),
+(3, 6, 175.00, 3, true),
+(3, 7, 11500.00, 4, true),
+(3, 8, 2700.00, 3, true),
+(4, 9, 42.00, 1, true),
+(3, 11, 430.00, 2, true),
+(3, 12, 3100.00, 3, true)
+ON CONFLICT (supplier_id, material_id) DO NOTHING;
+
+-- ==========================================
+-- 11. СКЛАДЫ
+-- ==========================================
+
+INSERT INTO warehouses (id, account_id, construction_site_id, name, code, warehouse_type, address, warehouse_keeper_id, is_active) VALUES
+(1, 1, NULL, 'Центральный склад', 'WH-MAIN', 'main', 'г. Москва, ул. Складская, д. 5', 7, true),
+(2, 1, 1, 'Склад на площадке ЖК Солнечный', 'WH-SITE-001', 'site', 'г. Москва, ул. Строителей, д. 15', 7, true),
+(3, 1, 3, 'Склад БЦ Прогресс', 'WH-SITE-002', 'site', 'г. Москва, ул. Промышленная, д. 7', 7, true)
+ON CONFLICT (id) DO NOTHING;
+
+SELECT setval('warehouses_id_seq', (SELECT MAX(id) FROM warehouses));
+
+-- ==========================================
+-- 12. СКЛАДСКИЕ ОСТАТКИ
+-- ==========================================
+
+INSERT INTO warehouse_stock (warehouse_id, material_id, quantity, reserved_quantity, location, batch_number) VALUES
+(1, 3, 25.00, 5.00, 'Стеллаж А-1', 'BATCH-2024-001'),
+(1, 4, 18.00, 3.00, 'Стеллаж А-2', 'BATCH-2024-002'),
+(1, 5, 5000, 0, 'Зона Б-1', 'BATCH-2024-003'),
+(1, 9, 2000, 500, 'Стеллаж В-1', 'BATCH-2024-004'),
+(2, 3, 8.00, 8.00, 'Площадка', 'BATCH-2024-005'),
+(2, 8, 30, 10, 'Контейнер 1', 'BATCH-2024-006'),
+(3, 1, 0, 0, 'Миксер', 'BATCH-2024-007')
+ON CONFLICT (warehouse_id, material_id, batch_number) DO NOTHING;
+
+-- ==========================================
+-- 13. ОБОРУДОВАНИЕ
+-- ==========================================
+
+INSERT INTO equipment (id, account_id, name, equipment_type, manufacturer, model, serial_number, purchase_date, purchase_cost, status, current_location, construction_site_id) VALUES
+(1, 1, 'Экскаватор CAT 320', 'machinery', 'Caterpillar', '320 GC', 'CAT320-2023-001', '2023-06-15', 12500000.00, 2, 'Площадка ЖК Солнечный', 1),
+(2, 1, 'Башенный кран Liebherr 150EC', 'machinery', 'Liebherr', '150 EC-B 6', 'LH150-2022-005', '2022-11-20', 35000000.00, 2, 'Площадка ЖК Солнечный', 1),
+(3, 1, 'Бетононасос Putzmeister BSF 36', 'machinery', 'Putzmeister', 'BSF 36-4.16H', 'PM36-2024-001', '2024-02-10', 18000000.00, 1, 'Центральный склад', NULL),
+(4, 1, 'Генератор SDMO J200', 'machinery', 'SDMO', 'J200', 'SDMO-2023-008', '2023-03-01', 1500000.00, 2, 'Площадка БЦ Прогресс', 3),
+(5, 1, 'Виброплита Wacker Neuson', 'tool', 'Wacker Neuson', 'DPU 6555', 'WN-2023-012', '2023-08-10', 350000.00, 1, 'Центральный склад', NULL)
+ON CONFLICT (id) DO NOTHING;
+
+SELECT setval('equipment_id_seq', (SELECT MAX(id) FROM equipment));
+
+-- ==========================================
+-- 14. КАЛЕНДАРНЫЕ СОБЫТИЯ
+-- ==========================================
+
+INSERT INTO calendar_events (id, account_id, project_id, title, description, event_type, start_datetime, end_datetime, organizer_id, status) VALUES
+(1, 1, 1, 'Совещание по проекту ЖК Солнечный', 'Еженедельное совещание по статусу проекта', 'meeting', '2025-02-17 10:00:00', '2025-02-17 11:30:00', 4, 'scheduled'),
+(2, 1, 2, 'Приёмка свайного поля', 'Инспекция и приёмка свайных работ', 'inspection', '2025-02-20 09:00:00', '2025-02-20 12:00:00', 9, 'scheduled'),
+(3, 1, 1, 'Поставка арматуры', 'Приёмка 15 тонн арматуры А500', 'delivery', '2025-02-18 08:00:00', '2025-02-18 10:00:00', 6, 'scheduled'),
+(4, 1, NULL, 'Инструктаж по ТБ (ежемесячный)', 'Обязательный инструктаж для всех работников', 'meeting', '2025-03-01 08:00:00', '2025-03-01 09:00:00', 3, 'scheduled'),
+(5, 1, 4, 'Сдача школы — финальная инспекция', 'Финальная проверка перед сдачей объекта', 'milestone', '2025-02-28 10:00:00', '2025-02-28 16:00:00', 9, 'scheduled')
+ON CONFLICT (id) DO NOTHING;
+
+SELECT setval('calendar_events_id_seq', (SELECT MAX(id) FROM calendar_events));
+
+-- ==========================================
+-- 15. УВЕДОМЛЕНИЯ
+-- ==========================================
+
+INSERT INTO notifications (id, account_id, user_id, notification_type, title, message, entity_type, entity_id, priority, is_read) VALUES
+(1, 1, 4, 'task_assigned', 'Новая задача назначена', 'Вам назначена задача "Проектирование инженерных систем"', 'task', 6, 2, false),
+(2, 1, 5, 'inspection_scheduled', 'Запланирована инспекция', 'Инспекция фундамента корпуса А назначена на 10.06', 'inspection', NULL, 3, false),
+(3, 1, 6, 'task_assigned', 'Срочная заявка на материалы', 'Необходимо заказать арматуру для проекта ЖК Солнечный', 'task', 13, 4, true),
+(4, 1, 1, 'system', 'Отчёт за неделю готов', 'Еженедельный отчёт по всем проектам сформирован', 'report', NULL, 1, false),
+(5, 1, 7, 'delivery', 'Ожидается поставка', 'Поставка арматуры А500 запланирована на 18.02', 'task', 13, 2, false)
+ON CONFLICT (id) DO NOTHING;
+
+SELECT setval('notifications_id_seq', (SELECT MAX(id) FROM notifications));
+
+-- ==========================================
+-- 16. ПОДРЯДЧИКИ
+-- ==========================================
+
+INSERT INTO contractors (id, account_id, name, legal_name, inn, contact_person, phone, email, specialization, rating, status, is_verified) VALUES
+(1, 1, 'СпецФундамент', 'ООО "СпецФундамент"', '7710123456', 'Тихонов Роман', '+7 (495) 555-66-77', 'info@specfund.ru', '["foundations", "piling"]', 4.30, 1, true),
+(2, 1, 'ЭлектроМонтаж Про', 'ООО "ЭлектроМонтаж Про"', '7711234567', 'Орлов Максим', '+7 (495) 666-77-88', 'info@electromontazh.ru', '["electrical", "lighting"]', 4.10, 1, true),
+(3, 1, 'ОтделкаСтрой', 'ИП Баранов С.В.', '771234567890', 'Баранов Сергей', '+7 (495) 777-88-99', 'baranov@otdelka.ru', '["finishing", "painting", "tiling"]', 3.70, 1, false)
+ON CONFLICT (id) DO NOTHING;
+
+SELECT setval('contractors_id_seq', (SELECT MAX(id) FROM contractors));
+
+-- ==========================================
+-- 17. ИНСПЕКЦИИ
+-- ==========================================
+
+INSERT INTO inspections (id, account_id, project_id, construction_site_id, inspection_number, inspection_type, inspector_id, scheduled_date, status, inspection_area, description) VALUES
+(1, 1, 1, 1, 'INS-2024-001', 'quality', 9, '2024-06-10', 0, 'Фундамент корпуса А', 'Проверка качества бетонных работ фундамента'),
+(2, 1, 2, 3, 'INS-2024-002', 'safety', 9, '2024-08-15', 0, 'Строительная площадка', 'Проверка соблюдения техники безопасности'),
+(3, 1, 4, 5, 'INS-2024-003', 'final', 9, '2024-12-20', 0, 'Всё здание школы', 'Финальная приёмка после реконструкции')
+ON CONFLICT (id) DO NOTHING;
+
+SELECT setval('inspections_id_seq', (SELECT MAX(id) FROM inspections));
+
+-- ==========================================
+-- ГОТОВО
+-- ==========================================
+-- Все тестовые данные загружены.
+-- Логин: admin@crm.local / Password123!
+-- Или любой другой пользователь с паролем Password123!

@@ -79,9 +79,14 @@ export default function ErrorDiagnosticsPanel({ errors, onCheckAll, isChecking }
           )}
 
           {errors.length === 0 ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400 py-3">
-              Ошибок не обнаружено
-            </p>
+            <div className="flex items-center gap-2 py-3">
+              <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0Zm3.78 4.97a.75.75 0 0 0-1.06 0L7 8.69 5.28 6.97a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.06 0l4.25-4.25a.75.75 0 0 0 0-1.06Z" />
+              </svg>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Все сервисы работают нормально
+              </p>
+            </div>
           ) : (
             <div className="space-y-4 pt-3">
               {(Object.keys(grouped) as ErrorCategory[]).map((category) => (
