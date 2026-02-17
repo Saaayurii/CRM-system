@@ -58,7 +58,7 @@ export default function Sidebar() {
     return () => document.removeEventListener('keydown', keyHandler);
   });
 
-  const isDashboardActive = pathname.includes('dashboard');
+  const isDashboardActive = pathname.includes('dashboard') || pathname === '/admin/settings';
 
   return (
     <div className="min-w-fit">
@@ -212,6 +212,22 @@ export default function Sidebar() {
                             </span>
                           </Link>
                         </li>
+                        {isSuperAdmin && (
+                          <li className="mb-1 last:mb-0">
+                            <Link
+                              href="/admin/settings"
+                              className={`block transition duration-150 truncate ${
+                                pathname === '/admin/settings'
+                                  ? 'text-violet-500'
+                                  : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                              }`}
+                            >
+                              <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
+                                Настройки
+                              </span>
+                            </Link>
+                          </li>
+                        )}
                       </ul>
                     </AnimatedSubmenu>
                   </>
@@ -220,7 +236,7 @@ export default function Sidebar() {
 
               {/* Admin — only for super_admin */}
               {isSuperAdmin && (
-                <SidebarLinkGroup activecondition={pathname.includes('admin')}>
+                <SidebarLinkGroup activecondition={pathname.includes('admin') && pathname !== '/admin/settings'}>
                   {(handleClick, open) => (
                     <>
                       <a

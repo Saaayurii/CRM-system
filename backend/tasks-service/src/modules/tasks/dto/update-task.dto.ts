@@ -9,6 +9,11 @@ import {
 } from 'class-validator';
 
 export class UpdateTaskDto {
+  @ApiPropertyOptional({ example: 1 })
+  @IsNumber()
+  @IsOptional()
+  projectId?: number;
+
   @ApiPropertyOptional()
   @IsString()
   @IsOptional()

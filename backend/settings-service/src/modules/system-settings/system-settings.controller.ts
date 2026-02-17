@@ -9,12 +9,16 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 @Controller('system-settings')
 export class SystemSettingsController {
   constructor(private readonly svc: SystemSettingsService) {}
-  @Get() @ApiOperation({ summary: 'Get system settings' }) getSettings(
-    @CurrentUser('accountId') accountId: number,
-  ) {
+
+  @Get()
+  @ApiOperation({ summary: 'Get current account system settings' })
+  getSettings(@CurrentUser('accountId') accountId: number) {
     return this.svc.getSettings(accountId);
   }
-  @Put() @ApiOperation({ summary: 'Update system settings' }) updateSettings(
+
+  @Put()
+  @ApiOperation({ summary: 'Update current account system settings' })
+  updateSettings(
     @CurrentUser('accountId') accountId: number,
     @Body() dto: UpdateSystemSettingsDto,
   ) {

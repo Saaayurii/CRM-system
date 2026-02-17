@@ -76,6 +76,18 @@ export default function AdminSidebar({ onNavigate }: AdminSidebarProps) {
         Инфраструктура
       </Link>
 
+      <Link
+        href="/admin/roles"
+        onClick={onNavigate}
+        className={`block px-3 py-2 rounded-lg text-sm font-medium mb-1 transition-colors ${
+          pathname === '/admin/roles'
+            ? 'bg-violet-500/10 text-violet-600 dark:text-violet-400'
+            : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/30'
+        }`}
+      >
+        Матрица доступа
+      </Link>
+
       {MODULE_CATEGORIES.map((category) => (
         <CategoryGroup
           key={category.name}

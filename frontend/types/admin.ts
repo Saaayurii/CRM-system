@@ -11,10 +11,22 @@ export interface ColumnDef<T = Record<string, unknown>> {
 export interface FormField {
   key: string;
   label: string;
-  type: 'text' | 'number' | 'email' | 'select' | 'textarea' | 'date' | 'checkbox';
+  type: 'text' | 'number' | 'email' | 'password' | 'select' | 'textarea' | 'date' | 'checkbox';
   required?: boolean;
-  options?: { value: string; label: string }[];
+  options?: { value: string | number; label: string }[];
   placeholder?: string;
+  /** Fetch options dynamically from an API endpoint */
+  fetchOptions?: {
+    endpoint: string;
+    valueKey: string;
+    labelKey: string;
+  };
+}
+
+export interface CustomRowAction {
+  key: string;
+  label: string;
+  title?: string;
 }
 
 export interface CrudModuleConfig {
@@ -27,6 +39,9 @@ export interface CrudModuleConfig {
   canCreate?: boolean;
   canEdit?: boolean;
   canDelete?: boolean;
+  customRowActions?: CustomRowAction[];
+  /** Show a "Download PDF" button in the page header for each row via row-level action */
+  hasPdf?: boolean;
 }
 
 export interface ModuleCategory {

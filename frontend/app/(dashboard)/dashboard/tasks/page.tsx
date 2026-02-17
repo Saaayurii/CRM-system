@@ -4,6 +4,11 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import api from '@/lib/api';
 
+interface Assignee {
+  userId: number;
+  userName?: string;
+}
+
 interface Task {
   id: number;
   title: string;
@@ -11,6 +16,9 @@ interface Task {
   priority: number;
   dueDate?: string;
   due_date?: string;
+  projectId?: number;
+  project?: { id: number; name: string };
+  assignees?: Assignee[];
   assignedToUser?: { name: string; email: string };
   assigned_to_user?: { name: string; email: string };
 }
@@ -45,7 +53,7 @@ export default function TasksPage() {
     const fetch = async () => {
       try {
         const { data } = await api.get('/tasks');
-        setTasks(data.data || data || []);
+        setTasks(data.tasks || data.data || []);
       } catch {
         setError('Не удалось загрузить задачи');
       } finally {
@@ -80,6 +88,7 @@ export default function TasksPage() {
               <thead>
                 <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
                   <th className="py-3 px-4 text-left font-semibold">Название</th>
+                  <th className="py-3 px-4 text-left font-semibold">Проект</th>
                   <th className="py-3 px-4 text-left font-semibold">Статус</th>
                   <th className="py-3 px-4 text-left font-semibold">Приоритет</th>
                   <th className="py-3 px-4 text-left font-semibold">Исполнитель</th>
@@ -94,6 +103,7 @@ export default function TasksPage() {
                   return (
                     <tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20">
                       <td className="py-2.5 px-4 font-medium text-gray-800 dark:text-gray-100">{t.title}</td>
+                      <td className="py-2.5 px-4 text-gray-600 dark:text-gray-400">{t.project?.name || '—'}</td>
                       <td className="py-2.5 px-4">
                         <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${status.color}`}>
                           {status.label}
@@ -103,7 +113,9 @@ export default function TasksPage() {
                         <span className={`text-xs font-medium ${priority.color}`}>{priority.label}</span>
                       </td>
                       <td className="py-2.5 px-4 text-gray-600 dark:text-gray-400">
-                        {assignee?.name || assignee?.email || '—'}
+                        {t.assignees && t.assignees.length > 0
+                          ? t.assignees.map((a) => a.userName || `#${a.userId}`).join(', ')
+                          : assignee?.name || assignee?.email || '—'}
                       </td>
                       <td className="py-2.5 px-4 text-gray-600 dark:text-gray-400">{formatDate(t.dueDate || t.due_date)}</td>
                     </tr>

@@ -28,6 +28,9 @@ export class UserResponseDto {
     name: string;
   };
 
+  @ApiPropertyOptional({ description: 'Hashed password (read-only)' })
+  passwordDigest?: string;
+
   @ApiProperty({ example: true })
   isActive: boolean;
 

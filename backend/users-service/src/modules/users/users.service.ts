@@ -126,6 +126,7 @@ export class UsersService {
       accountId: user.accountId,
       roleId: user.roleId,
       role: user.role,
+      passwordDigest: user.passwordDigest ?? undefined,
       isActive: user.isActive,
       availability: user.availability,
       createdAt: user.createdAt,

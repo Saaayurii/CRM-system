@@ -15,10 +15,10 @@ export class CreateTaskDto {
   @IsOptional()
   accountId?: number;
 
-  @ApiProperty({ example: 1 })
+  @ApiPropertyOptional({ example: 1 })
   @IsNumber()
-  @IsNotEmpty()
-  projectId: number;
+  @IsOptional()
+  projectId?: number;
 
   @ApiProperty({ example: 'Залить фундамент' })
   @IsString()

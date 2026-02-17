@@ -2,7 +2,6 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import ServiceGrid from '@/components/admin/ServiceGrid';
-import RoleAccessMatrix from '@/components/admin/RoleAccessMatrix';
 import ErrorBoundary from '@/components/admin/ErrorBoundary';
 import ErrorDiagnosticsPanel from '@/components/admin/ErrorDiagnosticsPanel';
 import type { DiagnosticError } from '@/types/admin';
@@ -130,15 +129,6 @@ export default function AdminPage() {
         </ErrorBoundary>
       </section>
 
-      {/* Role Access Matrix */}
-      <section>
-        <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4">
-          Матрица доступа ролей
-        </h2>
-        <ErrorBoundary>
-          <RoleAccessMatrix />
-        </ErrorBoundary>
-      </section>
     </div>
   );
 }

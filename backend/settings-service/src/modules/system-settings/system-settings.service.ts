@@ -5,12 +5,16 @@ import { UpdateSystemSettingsDto } from './dto/update-system-settings.dto';
 @Injectable()
 export class SystemSettingsService {
   constructor(private readonly repo: SystemSettingsRepository) {}
+
   async getSettings(accountId: number) {
-    const a = await this.repo.findByAccountId(accountId);
-    if (!a) throw new NotFoundException('Account not found');
-    return a;
+    const account = await this.repo.findByAccountId(accountId);
+    if (!account) throw new NotFoundException('Account not found');
+    return account;
   }
+
   async updateSettings(accountId: number, dto: UpdateSystemSettingsDto) {
+    const account = await this.repo.findByAccountId(accountId);
+    if (!account) throw new NotFoundException('Account not found');
     return this.repo.update(accountId, dto);
   }
 }

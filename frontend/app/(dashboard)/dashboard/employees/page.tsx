@@ -43,7 +43,7 @@ export default function EmployeesPage() {
     const fetch = async () => {
       try {
         const { data } = await api.get('/users');
-        setEmployees(data.data || data || []);
+        setEmployees(data.users || data.data || []);
       } catch {
         setError('Не удалось загрузить список сотрудников');
       } finally {

@@ -53,6 +53,23 @@ export class SettingsGatewayController {
     });
   }
 
+  @Put('system-settings')
+  @ApiOperation({ summary: 'Update current account system settings' })
+  async updateCurrentSystemSettings(
+    @Req() req: Request,
+    @Body() body: any,
+  ) {
+    return this.proxyService.forward('settings', {
+      method: 'PUT',
+      path: '/system-settings',
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
   @Put('system-settings/:id')
   @ApiOperation({ summary: 'Update system setting' })
   async updateSystemSetting(

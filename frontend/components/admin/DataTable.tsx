@@ -21,6 +21,9 @@ interface DataTableProps<T extends Record<string, unknown>> {
   canCreate?: boolean;
   canEdit?: boolean;
   canDelete?: boolean;
+  customRowActions?: { key: string; label: string; title?: string }[];
+  onCustomAction?: (actionKey: string, row: T) => void;
+  loadingRowId?: number | null;
 }
 
 export default function DataTable<T extends Record<string, unknown>>({
@@ -40,6 +43,9 @@ export default function DataTable<T extends Record<string, unknown>>({
   canCreate = true,
   canEdit = true,
   canDelete = true,
+  customRowActions,
+  onCustomAction,
+  loadingRowId,
 }: DataTableProps<T>) {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortKey, setSortKey] = useState<string | null>(null);
@@ -126,8 +132,8 @@ export default function DataTable<T extends Record<string, unknown>>({
                   </div>
                 </th>
               ))}
-              {(canEdit || canDelete) && (
-                <th className="py-3 px-4 text-right font-semibold whitespace-nowrap w-24">Действия</th>
+              {(canEdit || canDelete || (customRowActions && customRowActions.length > 0)) && (
+                <th className="py-3 px-4 text-right font-semibold whitespace-nowrap w-32">Действия</th>
               )}
             </tr>
           </thead>
@@ -157,9 +163,23 @@ export default function DataTable<T extends Record<string, unknown>>({
                       })()}
                     </td>
                   ))}
-                  {(canEdit || canDelete) && (
+                  {(canEdit || canDelete || (customRowActions && customRowActions.length > 0)) && (
                     <td className="py-2.5 px-4 text-right">
-                      <div className="flex justify-end gap-1">
+                      <div className="flex justify-end gap-1 flex-wrap">
+                        {customRowActions && customRowActions.map((action) => {
+                          const isThisLoading = action.key === 'pdf' && loadingRowId === (row.id as number);
+                          return (
+                            <button
+                              key={action.key}
+                              onClick={() => onCustomAction?.(action.key, row)}
+                              disabled={isThisLoading}
+                              className="px-2 py-1 text-xs rounded bg-violet-100 text-violet-700 hover:bg-violet-200 dark:bg-violet-900/30 dark:text-violet-300 dark:hover:bg-violet-900/50 transition-colors whitespace-nowrap disabled:opacity-50"
+                              title={action.title ?? action.label}
+                            >
+                              {isThisLoading ? '...' : action.label}
+                            </button>
+                          );
+                        })}
                         {canEdit && onEdit && (
                           <button
                             onClick={() => onEdit(row)}

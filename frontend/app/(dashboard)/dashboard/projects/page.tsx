@@ -44,7 +44,7 @@ export default function ProjectsPage() {
     const fetch = async () => {
       try {
         const { data } = await api.get('/projects');
-        setProjects(data.data || data || []);
+        setProjects(data.projects || data.data || []);
       } catch {
         setError('Не удалось загрузить проекты');
       } finally {

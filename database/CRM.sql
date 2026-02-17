@@ -395,6 +395,17 @@ CREATE TABLE task_status_history (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE task_assignees (
+    task_id INTEGER REFERENCES tasks(id) ON DELETE CASCADE,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    user_name VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (task_id, user_id)
+);
+
+CREATE INDEX idx_task_assignees_task ON task_assignees(task_id);
+CREATE INDEX idx_task_assignees_user ON task_assignees(user_id);
+
 -- ==========================================
 -- КАТАЛОГ МАТЕРИАЛОВ
 -- ==========================================
@@ -2332,3 +2343,5 @@ COMMENT ON DATABASE postgres IS 'Строительная CRM система - �
   - Email: admin@crm.local
   - Пароль: Admin123!
  
+
+ dockerfile all microservices

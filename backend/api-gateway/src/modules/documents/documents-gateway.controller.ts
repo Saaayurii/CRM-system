@@ -8,8 +8,10 @@ import {
   Param,
   Query,
   Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
+import { Response } from 'express';
 import {
   ApiTags,
   ApiOperation,
@@ -17,6 +19,7 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { Request } from 'express';
+import { HttpService } from '@nestjs/axios';
 import { ProxyService } from '../../common/services/proxy.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 
@@ -25,7 +28,10 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 @UseGuards(JwtAuthGuard)
 @Controller('api/v1')
 export class DocumentsGatewayController {
-  constructor(private readonly proxyService: ProxyService) {}
+  constructor(
+    private readonly proxyService: ProxyService,
+    private readonly httpService: HttpService,
+  ) {}
 
   // Documents
   @Get('documents')
@@ -93,6 +99,70 @@ export class DocumentsGatewayController {
     return this.proxyService.forward('documents', {
       method: 'DELETE',
       path: `/documents/${id}`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  // PDF generation
+  @Post('documents/pdf/generate')
+  @ApiOperation({ summary: 'Generate PDF for an entity' })
+  async generatePdf(@Req() req: Request, @Body() body: any) {
+    return this.proxyService.forward('documents', {
+      method: 'POST',
+      path: '/pdf/generate',
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Get('documents/pdf/download/:filename')
+  @ApiOperation({ summary: 'Download a generated PDF' })
+  async downloadPdf(
+    @Req() req: Request,
+    @Param('filename') filename: string,
+    @Res() res: Response,
+  ) {
+    try {
+      const serviceUrl = this.proxyService.getServiceUrl('documents');
+      const response = await this.httpService.axiosRef.get(
+        `${serviceUrl}/pdf/download/${filename}`,
+        { responseType: 'stream' },
+      );
+      res.set({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Cache-Control': 'no-cache',
+      });
+      response.data.pipe(res);
+    } catch (err: any) {
+      const status = err?.response?.status ?? 500;
+      res.status(status).json({ message: status === 404 ? 'Файл не найден' : 'Ошибка при скачивании' });
+    }
+  }
+
+  @Post('documents/pdf/generate-list')
+  @ApiOperation({ summary: 'Generate PDF for a list of entities' })
+  async generateListPdf(@Req() req: Request, @Body() body: any) {
+    return this.proxyService.forward('documents', {
+      method: 'POST',
+      path: '/pdf/generate-list',
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Get('documents/pdf/list')
+  @ApiOperation({ summary: 'List generated PDFs' })
+  async listPdfs(@Req() req: Request) {
+    return this.proxyService.forward('documents', {
+      method: 'GET',
+      path: '/pdf/list',
       headers: { authorization: req.headers.authorization || '' },
     });
   }

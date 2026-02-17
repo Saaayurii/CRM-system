@@ -3,26 +3,16 @@
 const modules = ['Проекты', 'Задачи', 'Материалы', 'Склад', 'Финансы', 'HR', 'Инспекции', 'Отчёты'];
 
 const ROLE_CODE_TO_NAME: Record<string, string> = {
-  super_admin: 'Супер Администратор',
-  admin: 'Администратор',
-  director: 'Директор',
-  deputy_director: 'Зам. директора',
-  project_manager: 'Менеджер проектов',
-  site_engineer: 'Инженер участка',
+  super_admin: 'Супер-админ',
+  admin: 'Админ',
+  hr_manager: 'HR',
+  project_manager: 'PM',
   foreman: 'Прораб',
-  worker: 'Рабочий',
-  accountant: 'Бухгалтер',
-  hr_manager: 'HR Менеджер',
-  warehouse_manager: 'Зав. складом',
   supplier_manager: 'Снабженец',
-  safety_officer: 'Инженер по ТБ',
+  warehouse_keeper: 'Кладовщик',
+  accountant: 'Бухгалтер',
   inspector: 'Инспектор',
-  analyst: 'Аналитик',
-  observer: 'Наблюдатель',
-  supplier: 'Поставщик',
-  contractor: 'Подрядчик',
-  client: 'Клиент',
-  guest: 'Гость',
+  worker: 'Рабочий',
 };
 
 const ACCESS_TOOLTIPS: Record<string, string> = {
@@ -38,19 +28,15 @@ interface RoleAccess {
 
 const roles: RoleAccess[] = [
   { role: 'super_admin', access: Object.fromEntries(modules.map((m) => [m, 'full' as const])) },
-  { role: 'director', access: Object.fromEntries(modules.map((m) => [m, 'full' as const])) },
-  { role: 'deputy_director', access: { 'Проекты': 'full', 'Задачи': 'full', 'Материалы': 'full', 'Склад': 'full', 'Финансы': 'read', 'HR': 'read', 'Инспекции': 'full', 'Отчёты': 'full' } },
-  { role: 'project_manager', access: { 'Проекты': 'full', 'Задачи': 'full', 'Материалы': 'read', 'Склад': 'read', 'Финансы': 'read', 'HR': 'none', 'Инспекции': 'full', 'Отчёты': 'read' } },
-  { role: 'site_engineer', access: { 'Проекты': 'read', 'Задачи': 'full', 'Материалы': 'full', 'Склад': 'read', 'Финансы': 'none', 'HR': 'none', 'Инспекции': 'full', 'Отчёты': 'read' } },
-  { role: 'foreman', access: { 'Проекты': 'read', 'Задачи': 'full', 'Материалы': 'read', 'Склад': 'read', 'Финансы': 'none', 'HR': 'none', 'Инспекции': 'read', 'Отчёты': 'none' } },
-  { role: 'worker', access: { 'Проекты': 'none', 'Задачи': 'read', 'Материалы': 'none', 'Склад': 'none', 'Финансы': 'none', 'HR': 'none', 'Инспекции': 'none', 'Отчёты': 'none' } },
-  { role: 'accountant', access: { 'Проекты': 'read', 'Задачи': 'none', 'Материалы': 'read', 'Склад': 'read', 'Финансы': 'full', 'HR': 'read', 'Инспекции': 'none', 'Отчёты': 'full' } },
-  { role: 'hr_manager', access: { 'Проекты': 'none', 'Задачи': 'none', 'Материалы': 'none', 'Склад': 'none', 'Финансы': 'read', 'HR': 'full', 'Инспекции': 'none', 'Отчёты': 'read' } },
-  { role: 'warehouse_manager', access: { 'Проекты': 'none', 'Задачи': 'none', 'Материалы': 'full', 'Склад': 'full', 'Финансы': 'none', 'HR': 'none', 'Инспекции': 'none', 'Отчёты': 'read' } },
-  { role: 'safety_officer', access: { 'Проекты': 'read', 'Задачи': 'read', 'Материалы': 'none', 'Склад': 'none', 'Финансы': 'none', 'HR': 'none', 'Инспекции': 'full', 'Отчёты': 'read' } },
-  { role: 'inspector', access: { 'Проекты': 'read', 'Задачи': 'read', 'Материалы': 'none', 'Склад': 'none', 'Финансы': 'none', 'HR': 'none', 'Инспекции': 'full', 'Отчёты': 'read' } },
-  { role: 'client', access: { 'Проекты': 'read', 'Задачи': 'none', 'Материалы': 'none', 'Склад': 'none', 'Финансы': 'none', 'HR': 'none', 'Инспекции': 'read', 'Отчёты': 'read' } },
-  { role: 'guest', access: { 'Проекты': 'none', 'Задачи': 'none', 'Материалы': 'none', 'Склад': 'none', 'Финансы': 'none', 'HR': 'none', 'Инспекции': 'none', 'Отчёты': 'none' } },
+  { role: 'admin',       access: Object.fromEntries(modules.map((m) => [m, 'full' as const])) },
+  { role: 'hr_manager',       access: { 'Проекты': 'read', 'Задачи': 'read', 'Материалы': 'none', 'Склад': 'none', 'Финансы': 'read', 'HR': 'full', 'Инспекции': 'none', 'Отчёты': 'read' } },
+  { role: 'project_manager',  access: { 'Проекты': 'full', 'Задачи': 'full', 'Материалы': 'read', 'Склад': 'read', 'Финансы': 'read', 'HR': 'read', 'Инспекции': 'read', 'Отчёты': 'read' } },
+  { role: 'foreman',          access: { 'Проекты': 'read', 'Задачи': 'full', 'Материалы': 'read', 'Склад': 'read', 'Финансы': 'read', 'HR': 'none', 'Инспекции': 'full', 'Отчёты': 'read' } },
+  { role: 'supplier_manager', access: { 'Проекты': 'read', 'Задачи': 'read', 'Материалы': 'full', 'Склад': 'full', 'Финансы': 'read', 'HR': 'none', 'Инспекции': 'none', 'Отчёты': 'read' } },
+  { role: 'warehouse_keeper', access: { 'Проекты': 'none', 'Задачи': 'read', 'Материалы': 'read', 'Склад': 'full', 'Финансы': 'none', 'HR': 'none', 'Инспекции': 'none', 'Отчёты': 'read' } },
+  { role: 'accountant',       access: { 'Проекты': 'read', 'Задачи': 'read', 'Материалы': 'read', 'Склад': 'read', 'Финансы': 'full', 'HR': 'read', 'Инспекции': 'none', 'Отчёты': 'read' } },
+  { role: 'inspector',        access: { 'Проекты': 'read', 'Задачи': 'read', 'Материалы': 'none', 'Склад': 'none', 'Финансы': 'none', 'HR': 'none', 'Инспекции': 'full', 'Отчёты': 'read' } },
+  { role: 'worker',           access: { 'Проекты': 'none', 'Задачи': 'read', 'Материалы': 'none', 'Склад': 'read', 'Финансы': 'none', 'HR': 'none', 'Инспекции': 'none', 'Отчёты': 'none' } },
 ];
 
 function AccessIcon({ level }: { level: 'full' | 'read' | 'none' }) {

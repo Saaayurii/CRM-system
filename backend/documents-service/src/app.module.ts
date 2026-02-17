@@ -6,6 +6,7 @@ import configuration from './config/configuration';
 import { DatabaseModule } from './database/database.module';
 import { DocumentsModule } from './modules/documents/documents.module';
 import { DocumentTemplatesModule } from './modules/document-templates/document-templates.module';
+import { PdfModule } from './modules/pdf/pdf.module';
 import { HealthModule } from './modules/health/health.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { JwtStrategy } from './common/guards/jwt.strategy';
@@ -18,6 +19,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     DatabaseModule,
     DocumentsModule,
     DocumentTemplatesModule,
+    PdfModule,
     HealthModule,
   ],
   providers: [

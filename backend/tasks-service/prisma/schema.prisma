@@ -41,8 +41,9 @@ model Task {
   updatedAt           DateTime  @default(now()) @updatedAt @map("updated_at")
   deletedAt           DateTime? @map("deleted_at")
 
-  parentTask Task?  @relation("TaskHierarchy", fields: [parentTaskId], references: [id])
-  subTasks   Task[] @relation("TaskHierarchy")
+  parentTask Task?    @relation("TaskHierarchy", fields: [parentTaskId], references: [id])
+  subTasks   Task[]   @relation("TaskHierarchy")
+  project    Project? @relation(fields: [projectId], references: [id])
 
   comments        TaskComment[]
   timeLogs        TaskTimeLog[]
@@ -55,6 +56,16 @@ model Task {
   @@index([assignedToTeamId], name: "idx_tasks_assigned_team")
   @@index([status], name: "idx_tasks_status")
   @@map("tasks")
+}
+
+/// Read-only reference to projects table (managed by projects-service)
+model Project {
+  id   Int    @id @default(autoincrement())
+  name String @db.VarChar(255)
+
+  tasks Task[]
+
+  @@map("projects")
 }
 
 model TaskAssignee {

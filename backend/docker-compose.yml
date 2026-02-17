@@ -13,6 +13,8 @@ volumes:
     driver: local
   redis_data:
     driver: local
+  documents_pdfs:
+    driver: local
 
 services:
   # ==========================================
@@ -596,6 +598,8 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-this-secret-key-in-production-access}
+    volumes:
+      - documents_pdfs:/app/public/pdfs
     depends_on:
       postgres:
         condition: service_healthy

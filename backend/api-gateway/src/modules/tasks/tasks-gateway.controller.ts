@@ -97,6 +97,34 @@ export class TasksGatewayController {
     });
   }
 
+  @Post('tasks/:id/assignees')
+  @ApiOperation({ summary: 'Set task assignees' })
+  async setTaskAssignees(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
+    return this.proxyService.forward('tasks', {
+      method: 'POST',
+      path: `/tasks/${id}/assignees`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Get('tasks/:id/assignees')
+  @ApiOperation({ summary: 'Get task assignees' })
+  async getTaskAssignees(@Req() req: Request, @Param('id') id: string) {
+    return this.proxyService.forward('tasks', {
+      method: 'GET',
+      path: `/tasks/${id}/assignees`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
   // Task Comments
   @Get('task-comments')
   @ApiOperation({ summary: 'Get all task comments' })

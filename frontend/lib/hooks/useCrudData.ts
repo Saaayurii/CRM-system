@@ -44,7 +44,6 @@ export function useCrudData<T extends Record<string, unknown>>({ apiEndpoint, de
         page: state.page,
         limit: state.limit,
       };
-      if (state.search) params.search = state.search;
       if (state.sortKey) {
         params.sortBy = state.sortKey;
         params.sortOrder = state.sortDir;
@@ -53,7 +52,6 @@ export function useCrudData<T extends Record<string, unknown>>({ apiEndpoint, de
       const { data: response } = await api.get(apiEndpoint, { params });
       errorShownRef.current = false;
 
-      // Handle both paginated and flat array responses; guard against malformed data
       let items: T[] = [];
       let total = 0;
 
@@ -63,7 +61,11 @@ export function useCrudData<T extends Record<string, unknown>>({ apiEndpoint, de
         items = response as T[];
         total = response.length;
       } else if (typeof response === 'object') {
-        const arr = response.data || response.items || response.results || [];
+        const knownKeys = ['data', 'items', 'results'];
+        let arr: unknown = knownKeys.map((k) => response[k]).find((v) => Array.isArray(v));
+        if (!arr) {
+          arr = Object.values(response as Record<string, unknown>).find((v) => Array.isArray(v));
+        }
         items = Array.isArray(arr) ? (arr as T[]) : [];
         total = typeof response.total === 'number' ? response.total
           : typeof response.count === 'number' ? response.count
@@ -72,11 +74,9 @@ export function useCrudData<T extends Record<string, unknown>>({ apiEndpoint, de
 
       setState((s) => ({ ...s, data: items, total, loading: false }));
     } catch (err) {
-      // Only show toast once per error to prevent spam
       if (!errorShownRef.current) {
         errorShownRef.current = true;
         const axiosErr = err as AxiosError;
-        // Don't show toast if redirecting to login (401 handled by interceptor)
         if (axiosErr.response?.status !== 401) {
           const diagnostic = categorizeError(axiosErr, apiEndpoint);
           addToast('error', diagnostic.message);
@@ -84,27 +84,32 @@ export function useCrudData<T extends Record<string, unknown>>({ apiEndpoint, de
       }
       setState((s) => ({ ...s, data: [], total: 0, loading: false }));
     }
-  }, [apiEndpoint, state.page, state.limit, state.search, state.sortKey, state.sortDir, addToast]);
+  }, [apiEndpoint, state.page, state.limit, state.sortKey, state.sortDir, addToast]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
   const setPage = (page: number) => setState((s) => ({ ...s, page }));
-  const setSearch = (search: string) => setState((s) => ({ ...s, search, page: 1 }));
+  const setSearch = (search: string) => setState((s) => ({ ...s, search }));
   const setSort = (sortKey: string, sortDir: 'asc' | 'desc') => setState((s) => ({ ...s, sortKey, sortDir }));
 
-  const createItem = async (data: Record<string, unknown>) => {
+  const createItem = async (data: Record<string, unknown>): Promise<Record<string, unknown> | null> => {
     setSaving(true);
     try {
-      await api.post(apiEndpoint, data);
+      const { data: created } = await api.post(apiEndpoint, data);
       addToast('success', 'Запись создана');
-      await fetchData();
-      return true;
+      setState((s) => ({
+        ...s,
+        data: [created as T, ...s.data],
+        total: s.total + 1,
+        page: 1,
+      }));
+      return created as Record<string, unknown>;
     } catch (err) {
       const diagnostic = categorizeError(err as AxiosError, apiEndpoint);
       addToast('error', diagnostic.message);
-      return false;
+      return null;
     } finally {
       setSaving(false);
     }
@@ -113,9 +118,14 @@ export function useCrudData<T extends Record<string, unknown>>({ apiEndpoint, de
   const updateItem = async (id: string | number, data: Record<string, unknown>) => {
     setSaving(true);
     try {
-      await api.patch(`${apiEndpoint}/${id}`, data);
+      const { data: updated } = await api.put(`${apiEndpoint}/${id}`, data);
       addToast('success', 'Запись обновлена');
-      await fetchData();
+      setState((s) => ({
+        ...s,
+        data: s.data.map((item) =>
+          item.id === id ? { ...item, ...(updated as T) } : item
+        ),
+      }));
       return true;
     } catch (err) {
       const diagnostic = categorizeError(err as AxiosError, apiEndpoint);
@@ -131,7 +141,11 @@ export function useCrudData<T extends Record<string, unknown>>({ apiEndpoint, de
     try {
       await api.delete(`${apiEndpoint}/${id}`);
       addToast('success', 'Запись удалена');
-      await fetchData();
+      setState((s) => ({
+        ...s,
+        data: s.data.filter((item) => item.id !== id),
+        total: Math.max(0, s.total - 1),
+      }));
       return true;
     } catch (err) {
       const diagnostic = categorizeError(err as AxiosError, apiEndpoint);
@@ -142,8 +156,22 @@ export function useCrudData<T extends Record<string, unknown>>({ apiEndpoint, de
     }
   };
 
+  // Client-side search filter applied on top of fetched data
+  const searchLower = state.search.toLowerCase().trim();
+  const displayData = searchLower
+    ? state.data.filter((item) =>
+        Object.values(item).some((val) => {
+          if (val === null || val === undefined) return false;
+          if (typeof val === 'object') return JSON.stringify(val).toLowerCase().includes(searchLower);
+          return String(val).toLowerCase().includes(searchLower);
+        })
+      )
+    : state.data;
+
   return {
     ...state,
+    data: displayData,
+    total: searchLower ? displayData.length : state.total,
     saving,
     setPage,
     setSearch,

@@ -12,7 +12,7 @@ RUN if [ -f prisma/schema.prisma ]; then npx prisma generate; fi
 RUN npm run build
 
 FROM node:18-alpine AS production
-RUN apk add --no-cache wget
+RUN apk add --no-cache wget ttf-dejavu
 WORKDIR /app
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
@@ -20,7 +20,7 @@ COPY --from=build /app/package*.json ./
 COPY --from=build /app/prisma ./prisma
 COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
 RUN addgroup -g 1001 -S nodejs && adduser -S nestjs -u 1001
-RUN mkdir -p /app/logs && chown -R nestjs:nodejs /app/logs
+RUN mkdir -p /app/logs /app/public/pdfs && chown -R nestjs:nodejs /app/logs /app/public/pdfs
 USER nestjs
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \

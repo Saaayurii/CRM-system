@@ -27,6 +27,7 @@ export class TaskRepository {
       include: {
         subTasks: { where: { deletedAt: null } },
         assignees: true,
+        project: { select: { id: true, name: true } },
       },
       skip: options?.skip,
       take: options?.take,
@@ -41,6 +42,7 @@ export class TaskRepository {
         subTasks: { where: { deletedAt: null } },
         parentTask: true,
         assignees: true,
+        project: { select: { id: true, name: true } },
       },
     });
   }
