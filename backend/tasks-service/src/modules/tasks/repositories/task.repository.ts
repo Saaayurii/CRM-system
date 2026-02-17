@@ -24,7 +24,10 @@ export class TaskRepository {
 
     return (this.prisma as any).task.findMany({
       where,
-      include: { subTasks: { where: { deletedAt: null } } },
+      include: {
+        subTasks: { where: { deletedAt: null } },
+        assignees: true,
+      },
       skip: options?.skip,
       take: options?.take,
       orderBy: [{ priority: 'desc' }, { dueDate: 'asc' }],
@@ -37,6 +40,7 @@ export class TaskRepository {
       include: {
         subTasks: { where: { deletedAt: null } },
         parentTask: true,
+        assignees: true,
       },
     });
   }
@@ -105,6 +109,32 @@ export class TaskRepository {
     if (options?.projectId) where.projectId = options.projectId;
     if (options?.status !== undefined) where.status = options.status;
     return (this.prisma as any).task.count({ where });
+  }
+
+  async setAssignees(
+    taskId: number,
+    assignees: { userId: number; userName?: string }[],
+  ) {
+    // Replace all assignees atomically
+    await (this.prisma as any).$transaction([
+      (this.prisma as any).taskAssignee.deleteMany({ where: { taskId } }),
+      ...(assignees.length > 0
+        ? [
+            (this.prisma as any).taskAssignee.createMany({
+              data: assignees.map((a) => ({
+                taskId,
+                userId: a.userId,
+                userName: a.userName ?? null,
+              })),
+            }),
+          ]
+        : []),
+    ]);
+    return (this.prisma as any).taskAssignee.findMany({ where: { taskId } });
+  }
+
+  async getAssignees(taskId: number) {
+    return (this.prisma as any).taskAssignee.findMany({ where: { taskId } });
   }
 
   async getStats(accountId: number, projectId?: number) {

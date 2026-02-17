@@ -10,10 +10,10 @@ import {
 } from 'class-validator';
 
 export class CreateProjectDto {
-  @ApiProperty({ description: 'Account ID', example: 1 })
+  @ApiPropertyOptional({ description: 'Account ID', example: 1 })
   @IsNumber()
-  @IsNotEmpty()
-  accountId: number;
+  @IsOptional()
+  accountId?: number;
 
   @ApiProperty({ description: 'Project name', example: 'ЖК Солнечный' })
   @IsString()
@@ -63,6 +63,11 @@ export class CreateProjectDto {
   @IsDateString()
   @IsOptional()
   plannedEndDate?: string;
+
+  @ApiPropertyOptional({ description: 'Status (0-planning, 1-active, 2-paused, 3-completed, 4-cancelled)', example: 0 })
+  @IsNumber()
+  @IsOptional()
+  status?: number;
 
   @ApiPropertyOptional({ description: 'Budget', example: 10000000 })
   @IsNumber()

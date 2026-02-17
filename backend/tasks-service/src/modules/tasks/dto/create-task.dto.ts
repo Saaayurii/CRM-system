@@ -10,10 +10,10 @@ import {
 } from 'class-validator';
 
 export class CreateTaskDto {
-  @ApiProperty({ example: 1 })
+  @ApiPropertyOptional({ example: 1 })
   @IsNumber()
-  @IsNotEmpty()
-  accountId: number;
+  @IsOptional()
+  accountId?: number;
 
   @ApiProperty({ example: 1 })
   @IsNumber()
@@ -36,6 +36,11 @@ export class CreateTaskDto {
   @IsOptional()
   @MaxLength(100)
   taskType?: string;
+
+  @ApiPropertyOptional({ example: 0, description: '0-new, 1-assigned, 2-in_progress, 3-review, 4-done, 5-cancelled' })
+  @IsNumber()
+  @IsOptional()
+  status?: number;
 
   @ApiPropertyOptional({ example: 1 })
   @IsNumber()

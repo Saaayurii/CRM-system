@@ -61,10 +61,6 @@ export class ProjectsService {
     createProjectDto: CreateProjectDto,
     requestingUserAccountId: number,
   ): Promise<ProjectResponseDto> {
-    if (createProjectDto.accountId !== requestingUserAccountId) {
-      throw new ForbiddenException('Cannot create projects in another account');
-    }
-
     if (createProjectDto.code) {
       const existingProject = await this.projectRepository.findByCode(
         createProjectDto.code,
@@ -74,7 +70,10 @@ export class ProjectsService {
       }
     }
 
-    const project = await this.projectRepository.create(createProjectDto);
+    const project = await this.projectRepository.create({
+      ...createProjectDto,
+      accountId: requestingUserAccountId,
+    });
     return this.toResponseDto(project);
   }
 

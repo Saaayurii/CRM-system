@@ -112,4 +112,23 @@ export class TasksController {
   ) {
     return this.tasksService.remove(id, user.accountId);
   }
+
+  @Post(':id/assignees')
+  @ApiOperation({ summary: 'Set task assignees (replaces existing)' })
+  async setAssignees(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { userIds: number[] },
+  ) {
+    return this.tasksService.setAssignees(id, body.userIds || [], user.accountId);
+  }
+
+  @Get(':id/assignees')
+  @ApiOperation({ summary: 'Get task assignees' })
+  async getAssignees(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.tasksService.getAssignees(id, user.accountId);
+  }
 }

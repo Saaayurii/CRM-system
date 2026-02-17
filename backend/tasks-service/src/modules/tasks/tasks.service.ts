@@ -46,10 +46,10 @@ export class TasksService {
     requestingUserId: number,
     requestingUserAccountId: number,
   ) {
-    if (createTaskDto.accountId !== requestingUserAccountId) {
-      throw new ForbiddenException('Cannot create tasks in another account');
-    }
-    return this.taskRepository.create(createTaskDto, requestingUserId);
+    return this.taskRepository.create(
+      { ...createTaskDto, accountId: requestingUserAccountId },
+      requestingUserId,
+    );
   }
 
   async update(
@@ -70,6 +70,28 @@ export class TasksService {
     if (task.accountId !== requestingUserAccountId)
       throw new ForbiddenException('Access denied');
     await this.taskRepository.softDelete(id);
+  }
+
+  async setAssignees(
+    taskId: number,
+    userIds: number[],
+    requestingUserAccountId: number,
+  ) {
+    const task = await this.taskRepository.findById(taskId);
+    if (!task) throw new NotFoundException('Task not found');
+    if (task.accountId !== requestingUserAccountId)
+      throw new ForbiddenException('Access denied');
+
+    const assignees = userIds.map((userId) => ({ userId }));
+    return this.taskRepository.setAssignees(taskId, assignees);
+  }
+
+  async getAssignees(taskId: number, requestingUserAccountId: number) {
+    const task = await this.taskRepository.findById(taskId);
+    if (!task) throw new NotFoundException('Task not found');
+    if (task.accountId !== requestingUserAccountId)
+      throw new ForbiddenException('Access denied');
+    return this.taskRepository.getAssignees(taskId);
   }
 
   async getStats(accountId: number, projectId?: number) {

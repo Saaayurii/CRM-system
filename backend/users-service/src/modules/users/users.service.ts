@@ -67,10 +67,6 @@ export class UsersService {
     createUserDto: CreateUserDto,
     requestingUserAccountId: number,
   ): Promise<UserResponseDto> {
-    // Check if user can create users in this account
-    if (createUserDto.accountId !== requestingUserAccountId) {
-      throw new ForbiddenException('Cannot create users in another account');
-    }
 
     // Check if email already exists
     const existingUser = await this.userRepository.findByEmail(
@@ -80,7 +76,10 @@ export class UsersService {
       throw new ConflictException('User with this email already exists');
     }
 
-    const user = await this.userRepository.create(createUserDto);
+    const user = await this.userRepository.create({
+      ...createUserDto,
+      accountId: requestingUserAccountId,
+    });
     return this.toResponseDto(user);
   }
 

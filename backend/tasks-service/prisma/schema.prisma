@@ -47,6 +47,7 @@ model Task {
   comments        TaskComment[]
   timeLogs        TaskTimeLog[]
   statusHistory   TaskStatusHistory[]
+  assignees       TaskAssignee[]
 
   @@index([accountId], name: "idx_tasks_account")
   @@index([projectId], name: "idx_tasks_project")
@@ -54,6 +55,20 @@ model Task {
   @@index([assignedToTeamId], name: "idx_tasks_assigned_team")
   @@index([status], name: "idx_tasks_status")
   @@map("tasks")
+}
+
+model TaskAssignee {
+  taskId    Int      @map("task_id")
+  userId    Int      @map("user_id")
+  userName  String?  @map("user_name") @db.VarChar(255)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, userId])
+  @@index([taskId], name: "idx_task_assignees_task")
+  @@index([userId], name: "idx_task_assignees_user")
+  @@map("task_assignees")
 }
 
 model TaskComment {
