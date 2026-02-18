@@ -1,13 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import api from '@/lib/api';
+import { useToastStore } from '@/stores/toastStore';
+import ProjectFormModal from '@/components/dashboard/ProjectFormModal';
 
 interface Project {
   id: number;
   name: string;
   code?: string;
+  description?: string;
   status: number;
   priority: number;
   startDate?: string;
@@ -15,6 +18,8 @@ interface Project {
   budget?: number;
   start_date?: string;
   planned_end_date?: string;
+  teamId?: number;
+  team_id?: number;
 }
 
 const STATUS_LABELS: Record<number, { label: string; color: string }> = {
@@ -39,20 +44,48 @@ export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [editProject, setEditProject] = useState<Project | null>(null);
+  const addToast = useToastStore((s) => s.addToast);
+
+  const fetchProjects = useCallback(async () => {
+    try {
+      setLoading(true);
+      const { data } = await api.get('/projects');
+      setProjects(data.projects || data.data || []);
+      setError('');
+    } catch {
+      setError('Не удалось загрузить проекты');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const fetch = async () => {
-      try {
-        const { data } = await api.get('/projects');
-        setProjects(data.projects || data.data || []);
-      } catch {
-        setError('Не удалось загрузить проекты');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetch();
-  }, []);
+    fetchProjects();
+  }, [fetchProjects]);
+
+  const handleRowClick = (project: Project) => {
+    setEditProject(project);
+    setShowModal(true);
+  };
+
+  const handleCreate = () => {
+    setEditProject(null);
+    setShowModal(true);
+  };
+
+  const handleModalClose = () => {
+    setShowModal(false);
+    setEditProject(null);
+  };
+
+  const handleSaved = () => {
+    setShowModal(false);
+    setEditProject(null);
+    addToast('success', editProject ? 'Проект обновлён' : 'Проект создан');
+    fetchProjects();
+  };
 
   return (
     <div>
@@ -61,9 +94,17 @@ export default function ProjectsPage() {
           <h1 className="text-2xl md:text-3xl text-gray-800 dark:text-gray-100 font-bold">Проекты</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Список всех проектов</p>
         </div>
-        <Link href="/dashboard" className="text-sm text-violet-500 hover:text-violet-600 mt-2 sm:mt-0">
-          &larr; Назад
-        </Link>
+        <div className="flex items-center gap-3 mt-2 sm:mt-0">
+          <Link href="/dashboard" className="text-sm text-violet-500 hover:text-violet-600">
+            &larr; Назад
+          </Link>
+          <button
+            onClick={handleCreate}
+            className="px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-lg transition-colors"
+          >
+            Создать проект
+          </button>
+        </div>
       </div>
 
       <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl overflow-hidden">
@@ -89,7 +130,11 @@ export default function ProjectsPage() {
                 {projects.map((p) => {
                   const status = STATUS_LABELS[p.status] || STATUS_LABELS[0];
                   return (
-                    <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20">
+                    <tr
+                      key={p.id}
+                      className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer"
+                      onClick={() => handleRowClick(p)}
+                    >
                       <td className="py-2.5 px-4">
                         <div className="font-medium text-gray-800 dark:text-gray-100">{p.name}</div>
                         {p.code && <div className="text-xs text-gray-400">{p.code}</div>}
@@ -110,6 +155,14 @@ export default function ProjectsPage() {
           </div>
         )}
       </div>
+
+      {showModal && (
+        <ProjectFormModal
+          project={editProject}
+          onClose={handleModalClose}
+          onSaved={handleSaved}
+        />
+      )}
     </div>
   );
 }

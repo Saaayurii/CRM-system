@@ -9,15 +9,15 @@ export default function NotificationDropdown() {
   const trigger = useRef<HTMLButtonElement>(null);
   const dropdown = useRef<HTMLDivElement>(null);
 
-  const { notifications, unreadCount, isLoading, fetchNotifications, markAsRead, markAllAsRead } =
+  const { notifications, unreadCount, isLoading, fetchNotifications, markAsRead, markAllAsRead, connectSSE, disconnectSSE } =
     useNotificationStore();
 
-  // Fetch on mount and poll every 30s
+  // Fetch on mount + connect SSE for real-time updates
   useEffect(() => {
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 30000);
-    return () => clearInterval(interval);
-  }, [fetchNotifications]);
+    connectSSE();
+    return () => disconnectSSE();
+  }, [fetchNotifications, connectSSE, disconnectSSE]);
 
   // Close on click outside
   useEffect(() => {

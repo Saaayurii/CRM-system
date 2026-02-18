@@ -18,7 +18,8 @@ export default function ChatButton() {
       }
     };
     fetchUnread();
-    const interval = setInterval(fetchUnread, 30000);
+    // Refresh every 60s as a fallback; real-time updates come via chatStore when on chat page
+    const interval = setInterval(fetchUnread, 60000);
     return () => clearInterval(interval);
   }, []);
 

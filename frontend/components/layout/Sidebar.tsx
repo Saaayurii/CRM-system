@@ -29,6 +29,9 @@ export default function Sidebar() {
   const { sidebarOpen, setSidebarOpen, sidebarExpanded, setSidebarExpanded, initialize } = useSidebarStore();
   const user = useAuthStore((s) => s.user);
   const isSuperAdmin = user?.role?.code === 'super_admin';
+  const roleCode = user?.role?.code;
+  const showTeams = isSuperAdmin || roleCode === 'admin' || roleCode === 'project_manager';
+  const showChat = !isSuperAdmin;
 
   const trigger = useRef<HTMLButtonElement>(null);
   const sidebar = useRef<HTMLDivElement>(null);
@@ -212,12 +215,73 @@ export default function Sidebar() {
                             </span>
                           </Link>
                         </li>
-                        {isSuperAdmin && (
+                        <li className="mb-1 last:mb-0">
+                          <Link
+                            href="/dashboard/documents"
+                            className={`block transition duration-150 truncate ${
+                              pathname === '/dashboard/documents'
+                                ? 'text-violet-500'
+                                : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                            }`}
+                          >
+                            <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
+                              Документы
+                            </span>
+                          </Link>
+                        </li>
+                        {showTeams && (
+                          <li className="mb-1 last:mb-0">
+                            <Link
+                              href="/dashboard/teams"
+                              className={`block transition duration-150 truncate ${
+                                pathname === '/dashboard/teams'
+                                  ? 'text-violet-500'
+                                  : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                              }`}
+                            >
+                              <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
+                                Команды
+                              </span>
+                            </Link>
+                          </li>
+                        )}
+                        {showChat && (
+                          <li className="mb-1 last:mb-0">
+                            <Link
+                              href="/dashboard/chat"
+                              className={`block transition duration-150 truncate ${
+                                pathname === '/dashboard/chat'
+                                  ? 'text-violet-500'
+                                  : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                              }`}
+                            >
+                              <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
+                                Чат
+                              </span>
+                            </Link>
+                          </li>
+                        )}
+                        {isSuperAdmin ? (
                           <li className="mb-1 last:mb-0">
                             <Link
                               href="/admin/settings"
                               className={`block transition duration-150 truncate ${
                                 pathname === '/admin/settings'
+                                  ? 'text-violet-500'
+                                  : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                              }`}
+                            >
+                              <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
+                                Настройки
+                              </span>
+                            </Link>
+                          </li>
+                        ) : (
+                          <li className="mb-1 last:mb-0">
+                            <Link
+                              href="/dashboard/settings"
+                              className={`block transition duration-150 truncate ${
+                                pathname === '/dashboard/settings'
                                   ? 'text-violet-500'
                                   : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                               }`}

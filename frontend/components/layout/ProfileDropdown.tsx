@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
 import Transition from '@/components/ui/Transition';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -67,6 +68,17 @@ export default function ProfileDropdown() {
             <div className="text-xs text-gray-500 dark:text-gray-400 italic">{user?.role?.name || 'Role'}</div>
           </div>
           <ul>
+            {user?.role?.code !== 'super_admin' && (
+              <li>
+                <Link
+                  href="/dashboard/settings"
+                  className="font-medium text-sm text-gray-700 dark:text-gray-300 hover:text-violet-500 dark:hover:text-violet-400 flex items-center py-1 px-3"
+                  onClick={() => setDropdownOpen(false)}
+                >
+                  Настройки
+                </Link>
+              </li>
+            )}
             <li>
               <button
                 className="font-medium text-sm text-violet-500 hover:text-violet-600 dark:hover:text-violet-400 flex items-center py-1 px-3 w-full text-left"

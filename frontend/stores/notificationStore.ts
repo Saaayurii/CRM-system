@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import api from '@/lib/api';
+import { sseUrl } from '@/lib/sseUrl';
 
 export interface Notification {
   id: number;
@@ -16,15 +17,19 @@ interface NotificationState {
   notifications: Notification[];
   unreadCount: number;
   isLoading: boolean;
+  eventSource: EventSource | null;
   fetchNotifications: () => Promise<void>;
   markAsRead: (id: number) => Promise<void>;
   markAllAsRead: () => Promise<void>;
+  connectSSE: () => void;
+  disconnectSSE: () => void;
 }
 
 export const useNotificationStore = create<NotificationState>((set, get) => ({
   notifications: [],
   unreadCount: 0,
   isLoading: false,
+  eventSource: null,
 
   fetchNotifications: async () => {
     set({ isLoading: true });
@@ -68,6 +73,43 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       }));
     } catch {
       // silent
+    }
+  },
+
+  connectSSE: () => {
+    const { eventSource } = get();
+    if (eventSource) return;
+
+    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    if (!token) return;
+
+    const url = sseUrl('/notifications/events', token);
+    const es = new EventSource(url);
+
+    es.addEventListener('notification', (event) => {
+      try {
+        const notification: Notification = JSON.parse(event.data);
+        set((state) => ({
+          notifications: [notification, ...state.notifications].slice(0, 20),
+          unreadCount: state.unreadCount + 1,
+        }));
+      } catch {
+        // ignore parse errors
+      }
+    });
+
+    es.onerror = () => {
+      // Auto-reconnect is built into EventSource
+    };
+
+    set({ eventSource: es });
+  },
+
+  disconnectSSE: () => {
+    const { eventSource } = get();
+    if (eventSource) {
+      eventSource.close();
+      set({ eventSource: null });
     }
   },
 }));
