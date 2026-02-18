@@ -3,6 +3,8 @@
 import { useSidebarStore } from '@/stores/sidebarStore';
 import ThemeToggle from './ThemeToggle';
 import ProfileDropdown from './ProfileDropdown';
+import NotificationDropdown from './NotificationDropdown';
+import ChatButton from './ChatButton';
 
 export default function Header() {
   const { sidebarOpen, setSidebarOpen } = useSidebarStore();
@@ -33,6 +35,8 @@ export default function Header() {
 
           {/* Right side */}
           <div className="flex items-center space-x-3">
+            <ChatButton />
+            <NotificationDropdown />
             <ThemeToggle />
             <hr className="w-px h-6 bg-gray-200 dark:bg-gray-700/60 border-none" />
             <ProfileDropdown />

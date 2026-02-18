@@ -2,13 +2,17 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
+import { sseUrl } from '@/lib/sseUrl';
 import { useAuthStore } from '@/stores/authStore';
 
 interface MaintenanceInfo {
   companyName: string;
+  title: string;
   message: string;
   endTime: string | null;
+  contactEmail: string | null;
 }
 
 function formatEndTime(iso: string): string {
@@ -36,27 +40,65 @@ function Gear({ className }: { className?: string }) {
 }
 
 export default function MaintenancePage() {
+  const router = useRouter();
   const user = useAuthStore((s) => s.user);
+  const isAuthLoading = useAuthStore((s) => s.isLoading);
   const isSuperAdmin = user?.role?.code === 'super_admin';
   const [info, setInfo] = useState<MaintenanceInfo>({
     companyName: 'CRM Система',
+    title: 'Технические работы',
     message: 'Ведутся технические работы. Пожалуйста, зайдите позже.',
     endTime: null,
+    contactEmail: null,
   });
 
+  // Load initial display info + guard: if maintenance is off, send user back
   useEffect(() => {
     api.get('/system-settings').then((res) => {
       const data = res.data;
       const settings = data.settings || {};
+
+      // If maintenance is already off and user is not super_admin — go back
+      if (!settings.maintenance_mode && !isSuperAdmin) {
+        router.push('/dashboard');
+        return;
+      }
+
       setInfo({
         companyName: data.name || 'CRM Система',
+        title: settings.maintenance_title || 'Технические работы',
         message:
           settings.maintenance_message ||
           'Ведутся технические работы. Пожалуйста, зайдите позже.',
         endTime: settings.maintenance_end_time || null,
+        contactEmail: settings.maintenance_contact_email || null,
       });
     }).catch(() => {});
-  }, []);
+  }, [isSuperAdmin, router]);
+
+  // SSE: when admin turns maintenance off — redirect back
+  useEffect(() => {
+    if (isAuthLoading) return;
+    if (isSuperAdmin) return;
+
+    const token = localStorage.getItem('accessToken');
+    if (!token) return;
+
+    const es = new EventSource(sseUrl('/system-settings/events', token));
+
+    es.addEventListener('maintenance', (e: MessageEvent) => {
+      try {
+        const event = JSON.parse(e.data);
+        if (!event.mode) {
+          router.push('/dashboard');
+        }
+      } catch {
+        // ignore
+      }
+    });
+
+    return () => es.close();
+  }, [isAuthLoading, isSuperAdmin, router]);
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center p-4">
@@ -91,7 +133,7 @@ export default function MaintenancePage() {
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-gray-100 mt-4 mb-3">
-            Технические работы
+            {info.title}
           </h1>
 
           <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed mb-6">
@@ -110,6 +152,21 @@ export default function MaintenancePage() {
                   {formatEndTime(info.endTime)}
                 </p>
               </div>
+            </div>
+          )}
+
+          {/* Contact email */}
+          {info.contactEmail && (
+            <div className="mb-4">
+              <a
+                href={`mailto:${info.contactEmail}`}
+                className="inline-flex items-center gap-2 text-sm text-violet-600 dark:text-violet-400 hover:underline"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+                </svg>
+                {info.contactEmail}
+              </a>
             </div>
           )}
 

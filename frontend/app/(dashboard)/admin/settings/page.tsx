@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import api from '@/lib/api';
+import { useToastStore } from '@/stores/toastStore';
 
 interface SystemSettings {
   // Notifications
@@ -15,6 +16,9 @@ interface SystemSettings {
   maintenance_mode: boolean;
   maintenance_message: string;
   maintenance_end_time: string;
+  maintenance_title: string;
+  maintenance_contact_email: string;
+  maintenance_allowed_roles: string[];
   // Access
   allow_registration: boolean;
   require_invite: boolean;
@@ -27,6 +31,11 @@ interface SystemSettings {
   // Localization
   language: 'ru' | 'en';
   date_format: 'DD.MM.YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD';
+  time_format: '24h' | '12h';
+  timezone: string;
+  currency: 'RUB' | 'USD' | 'EUR' | 'KZT' | 'UZS' | 'BYN' | 'UAH';
+  // Files
+  max_file_size_mb: number;
 }
 
 interface AccountData {
@@ -46,6 +55,9 @@ const defaults: SystemSettings = {
   maintenance_mode: false,
   maintenance_message: '',
   maintenance_end_time: '',
+  maintenance_title: '',
+  maintenance_contact_email: '',
+  maintenance_allowed_roles: [],
   allow_registration: true,
   require_invite: false,
   auto_approve_users: false,
@@ -55,6 +67,10 @@ const defaults: SystemSettings = {
   require_2fa: false,
   language: 'ru',
   date_format: 'DD.MM.YYYY',
+  time_format: '24h',
+  timezone: 'Europe/Moscow',
+  currency: 'RUB',
+  max_file_size_mb: 10,
 };
 
 function Toggle({
@@ -150,6 +166,7 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const addToast = useToastStore((st) => st.addToast);
 
   const load = useCallback(async () => {
     try {
@@ -160,11 +177,12 @@ export default function SettingsPage() {
       setCompanyName(data.name || '');
       setS({ ...defaults, ...(data.settings || {}) });
     } catch {
+      addToast('error', 'Не удалось загрузить настройки');
       setError('Не удалось загрузить настройки');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [addToast]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -176,8 +194,10 @@ export default function SettingsPage() {
       await api.put('/system-settings', { name: companyName, settings: s });
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
+      addToast('success', 'Настройки успешно сохранены');
     } catch {
       setError('Не удалось сохранить настройки');
+      addToast('error', 'Не удалось сохранить настройки');
     } finally {
       setSaving(false);
     }
@@ -263,6 +283,50 @@ export default function SettingsPage() {
                 { label: 'ДД.ММ.ГГГГ', value: 'DD.MM.YYYY' },
                 { label: 'ММ/ДД/ГГГГ', value: 'MM/DD/YYYY' },
                 { label: 'ГГГГ-ММ-ДД', value: 'YYYY-MM-DD' },
+              ]}
+            />
+          </Row>
+          <Row label="Формат времени">
+            <Select
+              value={s.time_format}
+              onChange={(v) => upd('time_format', v)}
+              options={[
+                { label: '24 часа (14:30)', value: '24h' },
+                { label: '12 часов (2:30 PM)', value: '12h' },
+              ]}
+            />
+          </Row>
+          <Row label="Часовой пояс">
+            <Select
+              value={s.timezone}
+              onChange={(v) => upd('timezone', v)}
+              options={[
+                { label: 'Москва (UTC+3)', value: 'Europe/Moscow' },
+                { label: 'Самара (UTC+4)', value: 'Europe/Samara' },
+                { label: 'Екатеринбург (UTC+5)', value: 'Asia/Yekaterinburg' },
+                { label: 'Новосибирск (UTC+7)', value: 'Asia/Novosibirsk' },
+                { label: 'Красноярск (UTC+7)', value: 'Asia/Krasnoyarsk' },
+                { label: 'Иркутск (UTC+8)', value: 'Asia/Irkutsk' },
+                { label: 'Якутск (UTC+9)', value: 'Asia/Yakutsk' },
+                { label: 'Владивосток (UTC+10)', value: 'Asia/Vladivostok' },
+                { label: 'Алматы (UTC+6)', value: 'Asia/Almaty' },
+                { label: 'Ташкент (UTC+5)', value: 'Asia/Tashkent' },
+                { label: 'UTC', value: 'UTC' },
+              ]}
+            />
+          </Row>
+          <Row label="Валюта">
+            <Select
+              value={s.currency}
+              onChange={(v) => upd('currency', v)}
+              options={[
+                { label: '₽ Российский рубль', value: 'RUB' },
+                { label: '$ Доллар США', value: 'USD' },
+                { label: '€ Евро', value: 'EUR' },
+                { label: '₸ Казахстанский тенге', value: 'KZT' },
+                { label: 'сум Узбекский сум', value: 'UZS' },
+                { label: 'Br Белорусский рубль', value: 'BYN' },
+                { label: '₴ Украинская гривна', value: 'UAH' },
               ]}
             />
           </Row>
@@ -430,6 +494,31 @@ export default function SettingsPage() {
           </Row>
         </div>
 
+        {/* ── Файлы ── */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-5">
+          <SectionHeader
+            title="Файлы и хранилище"
+            icon={
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+              </svg>
+            }
+          />
+          <Row label="Макс. размер файла" description="Максимальный размер одного загружаемого файла">
+            <Select
+              value={s.max_file_size_mb}
+              onChange={(v) => upd('max_file_size_mb', v)}
+              options={[
+                { label: '5 МБ', value: 5 },
+                { label: '10 МБ', value: 10 },
+                { label: '25 МБ', value: 25 },
+                { label: '50 МБ', value: 50 },
+                { label: '100 МБ', value: 100 },
+              ]}
+            />
+          </Row>
+        </div>
+
         {/* ── Технические работы ── */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-5 xl:col-span-2">
           <SectionHeader
@@ -442,7 +531,7 @@ export default function SettingsPage() {
           />
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            <div className="sm:col-span-1">
+            <div className="sm:col-span-1 space-y-1">
               <Row
                 label="Режим обслуживания"
                 description="Все пользователи (кроме супер-админа) видят страницу «Технические работы»"
@@ -452,6 +541,19 @@ export default function SettingsPage() {
             </div>
 
             <div className="sm:col-span-2 space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Заголовок страницы
+                </label>
+                <input
+                  type="text"
+                  value={s.maintenance_title}
+                  onChange={(e) => upd('maintenance_title', e.target.value)}
+                  placeholder="Технические работы"
+                  maxLength={100}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                />
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Сообщение для пользователей
@@ -464,17 +566,73 @@ export default function SettingsPage() {
                   className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 resize-none focus:outline-none focus:ring-2 focus:ring-violet-500"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Ожидаемое время завершения
-                </label>
-                <input
-                  type="datetime-local"
-                  value={s.maintenance_end_time ? s.maintenance_end_time.slice(0, 16) : ''}
-                  onChange={(e) => upd('maintenance_end_time', e.target.value ? new Date(e.target.value).toISOString() : '')}
-                  className="text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Ожидаемое время завершения
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={s.maintenance_end_time ? s.maintenance_end_time.slice(0, 16) : ''}
+                    onChange={(e) => upd('maintenance_end_time', e.target.value ? new Date(e.target.value).toISOString() : '')}
+                    className="text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-violet-500 w-full"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Контактный email
+                  </label>
+                  <input
+                    type="email"
+                    value={s.maintenance_contact_email}
+                    onChange={(e) => upd('maintenance_contact_email', e.target.value)}
+                    placeholder="support@company.ru"
+                    className="w-full px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                  />
+                </div>
               </div>
+            </div>
+          </div>
+
+          {/* Allowed roles during maintenance */}
+          <div className="mt-5 pt-5 border-t border-gray-100 dark:border-gray-700/60">
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Роли с доступом во время обслуживания
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+              Супер-администратор всегда имеет доступ. Выберите дополнительные роли, которым разрешён вход.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { code: 'admin', label: 'Админ' },
+                { code: 'hr_manager', label: 'HR-менеджер' },
+                { code: 'project_manager', label: 'Проект-менеджер' },
+                { code: 'foreman', label: 'Прораб' },
+                { code: 'accountant', label: 'Бухгалтер' },
+                { code: 'inspector', label: 'Инспектор' },
+              ].map(({ code, label }) => {
+                const active = (s.maintenance_allowed_roles || []).includes(code);
+                return (
+                  <button
+                    key={code}
+                    type="button"
+                    onClick={() => {
+                      const current = s.maintenance_allowed_roles || [];
+                      upd(
+                        'maintenance_allowed_roles',
+                        active ? current.filter((r) => r !== code) : [...current, code],
+                      );
+                    }}
+                    className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                      active
+                        ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400'
+                        : 'border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-400'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
