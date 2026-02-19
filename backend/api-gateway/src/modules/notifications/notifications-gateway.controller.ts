@@ -8,6 +8,7 @@ import {
   Param,
   Query,
   Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -16,16 +17,72 @@ import {
   ApiBearerAuth,
   ApiQuery,
 } from '@nestjs/swagger';
-import { Request } from 'express';
+import { Request, Response } from 'express';
+import * as http from 'http';
+import { ConfigService } from '@nestjs/config';
 import { ProxyService } from '../../common/services/proxy.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { Public } from '../../common/decorators/public.decorator';
 
 @ApiTags('Notifications')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller('api/v1')
 export class NotificationsGatewayController {
-  constructor(private readonly proxyService: ProxyService) {}
+  constructor(
+    private readonly proxyService: ProxyService,
+    private readonly configService: ConfigService,
+  ) {}
+
+  // SSE proxy — forward EventSource to notifications-service
+  @Public()
+  @Get('notifications/events')
+  @ApiOperation({ summary: 'SSE stream for real-time notifications' })
+  @ApiQuery({ name: 'token', required: true })
+  async sseProxy(
+    @Query('token') token: string,
+    @Res() res: Response,
+  ) {
+    const notificationsUrl =
+      this.configService.get<string>('services.notifications') ||
+      'http://notifications-service:3010';
+
+    const url = `${notificationsUrl}/notifications/events?token=${encodeURIComponent(token)}`;
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders();
+
+    const parsedUrl = new URL(url);
+    const options = {
+      hostname: parsedUrl.hostname,
+      port: parsedUrl.port || 80,
+      path: `${parsedUrl.pathname}${parsedUrl.search}`,
+      method: 'GET',
+      headers: { Accept: 'text/event-stream' },
+    };
+
+    const proxyReq = http.request(options, (proxyRes) => {
+      proxyRes.on('data', (chunk: Buffer) => {
+        res.write(chunk);
+      });
+      proxyRes.on('end', () => {
+        res.end();
+      });
+    });
+
+    proxyReq.on('error', () => {
+      res.end();
+    });
+
+    res.on('close', () => {
+      proxyReq.destroy();
+    });
+
+    proxyReq.end();
+  }
 
   // Notifications
   @Get('notifications')

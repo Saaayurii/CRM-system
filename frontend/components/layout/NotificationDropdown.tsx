@@ -42,11 +42,9 @@ export default function NotificationDropdown() {
   });
 
   const handleToggle = useCallback(() => {
-    setDropdownOpen((prev) => {
-      if (!prev) fetchNotifications();
-      return !prev;
-    });
-  }, [fetchNotifications]);
+    if (!dropdownOpen) fetchNotifications();
+    setDropdownOpen((prev) => !prev);
+  }, [dropdownOpen, fetchNotifications]);
 
   const handleNotificationClick = useCallback(
     (id: number) => {

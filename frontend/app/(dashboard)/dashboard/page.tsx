@@ -10,11 +10,20 @@ import CalendarWidget from '@/components/dashboard/CalendarWidget';
 import TodoWidget from '@/components/dashboard/TodoWidget';
 import TeamWidget from '@/components/dashboard/TeamWidget';
 import RecentProjectsWidget from '@/components/dashboard/RecentProjectsWidget';
+import HRDashboard from '@/components/dashboard/dashboards/HRDashboard';
+import PMDashboard from '@/components/dashboard/dashboards/PMDashboard';
+import ForemanDashboard from '@/components/dashboard/dashboards/ForemanDashboard';
+import SupplierManagerDashboard from '@/components/dashboard/dashboards/SupplierManagerDashboard';
+import WarehouseDashboard from '@/components/dashboard/dashboards/WarehouseDashboard';
+import AccountantDashboard from '@/components/dashboard/dashboards/AccountantDashboard';
+import InspectorDashboard from '@/components/dashboard/dashboards/InspectorDashboard';
+import WorkerDashboard from '@/components/dashboard/dashboards/WorkerDashboard';
 
 interface DashboardCounts {
   projects: number | null;
   tasks: number | null;
   employees: number | null;
+  teams: number | null;
 }
 
 function SuperAdminDashboard({ user }: { user: any }) {
@@ -23,21 +32,24 @@ function SuperAdminDashboard({ user }: { user: any }) {
     projects: null,
     tasks: null,
     employees: null,
+    teams: null,
   });
 
   useEffect(() => {
     const fetchCounts = async () => {
       try {
-        const [projectsRes, tasksRes, usersRes] = await Promise.allSettled([
+        const [projectsRes, tasksRes, usersRes, teamsRes] = await Promise.allSettled([
           api.get('/projects', { params: { limit: 1 } }),
           api.get('/tasks', { params: { limit: 1 } }),
           api.get('/users', { params: { limit: 1 } }),
+          api.get('/teams', { params: { limit: 1 } }),
         ]);
 
         setCounts({
           projects: projectsRes.status === 'fulfilled' ? (projectsRes.value.data.total ?? projectsRes.value.data.data?.length ?? null) : null,
           tasks: tasksRes.status === 'fulfilled' ? (tasksRes.value.data.total ?? tasksRes.value.data.data?.length ?? null) : null,
           employees: usersRes.status === 'fulfilled' ? (usersRes.value.data.total ?? usersRes.value.data.data?.length ?? null) : null,
+          teams: teamsRes.status === 'fulfilled' ? (teamsRes.value.data.total ?? teamsRes.value.data.data?.length ?? null) : null,
         });
       } catch {
         // Keep nulls as fallback
@@ -108,6 +120,21 @@ function SuperAdminDashboard({ user }: { user: any }) {
           </div>
         </Link>
 
+        <Link href="/dashboard/teams" className="group">
+          <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-5 transition-shadow group-hover:shadow-md group-hover:ring-1 group-hover:ring-orange-500/20">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Команды</h2>
+              <svg className="w-5 h-5 text-gray-400 group-hover:text-orange-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
+            <p className="text-3xl font-bold text-orange-500">{counts.teams ?? '—'}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              {counts.teams !== null ? 'Всего команд' : 'Загрузка...'}
+            </p>
+          </div>
+        </Link>
+
         <button
           onClick={() => router.push('/admin/settings')}
           className="group text-left"
@@ -140,7 +167,6 @@ function AdminDashboard({ user }: { user: any }) {
 
   return (
     <div>
-      {/* Greeting */}
       <div className="mb-6">
         <h1 className="text-2xl md:text-3xl text-gray-800 dark:text-gray-100 font-bold">
           {greeting}, {user?.name || user?.email || 'Пользователь'}
@@ -148,12 +174,10 @@ function AdminDashboard({ user }: { user: any }) {
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 capitalize">{dateStr}</p>
       </div>
 
-      {/* Stats Cards */}
       <div className="mb-6">
         <StatsCards />
       </div>
 
-      {/* Main area: Calendar + Sidebar */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <div className="lg:col-span-2">
           <CalendarWidget />
@@ -164,18 +188,33 @@ function AdminDashboard({ user }: { user: any }) {
         </div>
       </div>
 
-      {/* Recent projects */}
       <RecentProjectsWidget />
     </div>
   );
 }
 
+const ROLE_DASHBOARD: Record<number, React.ComponentType<{ user: any }>> = {
+  3: HRDashboard,
+  4: PMDashboard,
+  5: ForemanDashboard,
+  6: SupplierManagerDashboard,
+  7: WarehouseDashboard,
+  8: AccountantDashboard,
+  9: InspectorDashboard,
+  10: WorkerDashboard,
+};
+
 export default function DashboardPage() {
   const user = useAuthStore((s) => s.user);
-  const isSuperAdmin = user?.role?.code === 'super_admin';
+  const roleId = user?.roleId;
 
-  if (isSuperAdmin) {
+  if (roleId === 1) {
     return <SuperAdminDashboard user={user} />;
+  }
+
+  const RoleDashboard = roleId ? ROLE_DASHBOARD[roleId] : undefined;
+  if (RoleDashboard) {
+    return <RoleDashboard user={user} />;
   }
 
   return <AdminDashboard user={user} />;

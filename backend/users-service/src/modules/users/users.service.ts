@@ -3,9 +3,11 @@ import {
   NotFoundException,
   ConflictException,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
+import * as bcrypt from 'bcrypt';
 import { UserRepository } from './repositories/user.repository';
-import { CreateUserDto, UpdateUserDto, UserResponseDto } from './dto';
+import { CreateUserDto, UpdateUserDto, UserResponseDto, ChangePasswordDto } from './dto';
 
 @Injectable()
 export class UsersService {
@@ -114,6 +116,33 @@ export class UsersService {
     }
 
     await this.userRepository.softDelete(id);
+  }
+
+  async changePassword(
+    userId: number,
+    accountId: number,
+    dto: ChangePasswordDto,
+  ): Promise<{ message: string }> {
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    if (user.accountId !== accountId) {
+      throw new ForbiddenException('Access denied');
+    }
+    if (!user.passwordDigest) {
+      throw new BadRequestException('User has no password set');
+    }
+
+    const isCurrentValid = await bcrypt.compare(dto.currentPassword, user.passwordDigest);
+    if (!isCurrentValid) {
+      throw new BadRequestException('Current password is incorrect');
+    }
+
+    const newHash = await bcrypt.hash(dto.newPassword, 10);
+    await this.userRepository.update(userId, { passwordDigest: newHash } as any);
+
+    return { message: 'Password changed successfully' };
   }
 
   private toResponseDto(user: any): UserResponseDto {

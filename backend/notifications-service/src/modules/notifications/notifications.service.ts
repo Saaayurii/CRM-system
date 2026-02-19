@@ -3,7 +3,9 @@ import {
   NotFoundException,
   ForbiddenException,
   Logger,
+  MessageEvent,
 } from '@nestjs/common';
+import { Subject, Observable, map, interval } from 'rxjs';
 import { NotificationRepository } from './repositories/notification.repository';
 import {
   CreateNotificationDto,
@@ -15,10 +17,49 @@ import {
 @Injectable()
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
+  private notificationSubjects = new Map<number, Subject<any>>();
 
   constructor(
     private readonly notificationRepository: NotificationRepository,
   ) {}
+
+  getNotificationStream(userId: number): Observable<MessageEvent> {
+    if (!this.notificationSubjects.has(userId)) {
+      this.notificationSubjects.set(userId, new Subject<any>());
+    }
+
+    const subject = this.notificationSubjects.get(userId)!;
+
+    return new Observable<MessageEvent>((subscriber) => {
+      const heartbeat = interval(30000).subscribe(() => {
+        subscriber.next({ data: { type: 'heartbeat' } } as MessageEvent);
+      });
+
+      const subscription = subject
+        .pipe(
+          map(
+            (notification) =>
+              ({
+                type: 'notification',
+                data: notification,
+              }) as MessageEvent,
+          ),
+        )
+        .subscribe((event) => subscriber.next(event));
+
+      return () => {
+        heartbeat.unsubscribe();
+        subscription.unsubscribe();
+      };
+    });
+  }
+
+  pushNotification(userId: number, notification: any): void {
+    const subject = this.notificationSubjects.get(userId);
+    if (subject) {
+      subject.next(notification);
+    }
+  }
 
   // --- Notifications ---
 
@@ -50,7 +91,7 @@ export class NotificationsService {
   }
 
   async createNotification(accountId: number, dto: CreateNotificationDto) {
-    return this.notificationRepository.createNotification({
+    const notification = await this.notificationRepository.createNotification({
       accountId,
       userId: dto.userId,
       title: dto.title,
@@ -62,6 +103,10 @@ export class NotificationsService {
       priority: dto.priority || 2,
       actionUrl: dto.actionUrl,
     });
+
+    this.pushNotification(dto.userId, notification);
+
+    return notification;
   }
 
   async updateNotification(

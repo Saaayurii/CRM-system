@@ -96,4 +96,14 @@ export class TeamRepository {
       },
     });
   }
+
+  async removeMember(teamId: number, accountId: number, userId: number) {
+    const team = await (this.prisma as any).team.findFirst({
+      where: { id: teamId, accountId },
+    });
+    if (!team) return null;
+    return (this.prisma as any).teamMember.deleteMany({
+      where: { teamId, userId },
+    });
+  }
 }

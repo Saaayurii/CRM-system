@@ -28,7 +28,22 @@ INSERT INTO users (id, account_id, role_id, name, email, phone, password_digest,
 (7, 1, 7, 'Морозов Андрей Владимирович', 'andrey@crm.local', '+7 (900) 777-77-77', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Кладовщик', '2022-03-15'),
 (8, 1, 8, 'Соколова Мария Александровна', 'maria@crm.local', '+7 (900) 888-88-88', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Бухгалтер', '2022-06-01'),
 (9, 1, 9, 'Лебедев Виктор Николаевич', 'victor@crm.local', '+7 (900) 999-99-99', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Инспектор', '2023-01-10'),
-(10, 1, 10, 'Кузнецов Павел Андреевич', 'pavel@crm.local', '+7 (900) 101-01-01', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Рабочий', '2023-04-15')
+(10, 1, 10, 'Кузнецов Павел Андреевич', 'pavel@crm.local', '+7 (900) 101-01-01', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Рабочий', '2023-04-15'),
+(13, 1, 5,  'Захаров Роман Павлович',       'roman.z@crm.local',   '+7 (900) 113-13-13', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Прораб',             '2022-04-01'),
+(14, 1, 5,  'Белов Игорь Константинович',   'igor.b@crm.local',    '+7 (900) 114-14-14', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Прораб',             '2022-08-15'),
+(15, 1, 4,  'Орлова Светлана Николаевна',   'sveta@crm.local',     '+7 (900) 115-15-15', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Менеджер проектов',  '2021-11-01'),
+(16, 1, 10, 'Тихонов Артём Сергеевич',      'artem.t@crm.local',   '+7 (900) 116-16-16', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Каменщик',           '2023-03-01'),
+(17, 1, 10, 'Фёдоров Максим Алексеевич',    'maxim.f@crm.local',   '+7 (900) 117-17-17', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Сварщик',           '2023-05-10'),
+(18, 1, 10, 'Григорьев Денис Олегович',     'denis.g@crm.local',   '+7 (900) 118-18-18', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Бетонщик',           '2023-06-01'),
+(19, 1, 10, 'Соловьёв Николай Иванович',    'nikola.s@crm.local',  '+7 (900) 119-19-19', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Монтажник',          '2023-07-15'),
+(20, 1, 10, 'Попов Антон Юрьевич',          'anton.p@crm.local',   '+7 (900) 120-20-20', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Электрик',           '2023-09-01'),
+(21, 1, 10, 'Крылов Евгений Петрович',      'evgeny.k@crm.local',  '+7 (900) 121-21-21', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Сантехник',          '2023-10-15'),
+(22, 1, 10, 'Васильев Олег Дмитриевич',     'oleg.v@crm.local',    '+7 (900) 122-22-22', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Плотник',            '2024-01-10'),
+(23, 1, 10, 'Зайцев Кирилл Андреевич',      'kirill.z@crm.local',  '+7 (900) 123-23-23', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Штукатур',           '2024-02-01'),
+(24, 1, 10, 'Матвеев Сергей Игоревич',      'sergey.m@crm.local',  '+7 (900) 124-24-24', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Плиточник',          '2024-03-15'),
+(25, 1, 9,  'Воробьёва Ирина Михайловна',   'irina.v@crm.local',   '+7 (900) 125-25-25', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Инспектор ОТК',      '2022-11-01'),
+(26, 1, 6,  'Ковалёв Алексей Борисович',    'aleksey.k@crm.local', '+7 (900) 126-26-26', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Снабженец',          '2023-02-01'),
+(27, 1, 7,  'Степанов Виктор Фёдорович',    'viktor.st@crm.local', '+7 (900) 127-27-27', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Кладовщик',          '2023-08-01')
 ON CONFLICT (id) DO NOTHING;
 
 SELECT setval('users_id_seq', (SELECT MAX(id) FROM users));
@@ -40,17 +55,45 @@ SELECT setval('users_id_seq', (SELECT MAX(id) FROM users));
 INSERT INTO teams (id, account_id, name, description, team_lead_id, status) VALUES
 (1, 1, 'Бригада №1 — Фундаменты', 'Специализация на фундаментных работах', 5, 1),
 (2, 1, 'Бригада №2 — Отделка', 'Внутренняя и наружная отделка', 5, 1),
-(3, 1, 'Инженерная группа', 'Инженерные системы и коммуникации', 4, 1)
+(3, 1, 'Инженерная группа', 'Инженерные системы и коммуникации', 4, 1),
+(4, 1, 'Бригада №3 — Кровля',           'Кровельные и гидроизоляционные работы',   13, 1),
+(5, 1, 'Бригада №4 — Электромонтаж',    'Электрические сети и слаботочные системы', 14, 1),
+(6, 1, 'Бригада №5 — Сантехника',       'Водоснабжение, канализация, отопление',   13, 1),
+(7, 1, 'Бригада №6 — Отделка интерьера','Штукатурные, малярные и плиточные работы', 14, 1),
+(8, 1, 'Группа контроля качества',      'Технический надзор и приёмка работ',       9, 1)
 ON CONFLICT (id) DO NOTHING;
 
 SELECT setval('teams_id_seq', (SELECT MAX(id) FROM teams));
 
 INSERT INTO team_members (team_id, user_id, role_in_team) VALUES
-(1, 5, 'lead'),
+(1, 5,  'lead'),
 (1, 10, 'member'),
-(2, 5, 'lead'),
-(3, 4, 'lead'),
-(3, 9, 'member')
+(1, 16, 'member'),
+(1, 17, 'member'),
+(1, 18, 'member'),
+(2, 5,  'lead'),
+(2, 22, 'member'),
+(2, 23, 'member'),
+(2, 24, 'member'),
+(3, 4,  'lead'),
+(3, 9,  'member'),
+(3, 15, 'lead'),
+(3, 20, 'member'),
+(3, 21, 'member'),
+(4, 13, 'lead'),
+(4, 16, 'member'),
+(4, 19, 'member'),
+(5, 14, 'lead'),
+(5, 20, 'member'),
+(6, 13, 'lead'),
+(6, 21, 'member'),
+(6, 19, 'member'),
+(7, 14, 'lead'),
+(7, 23, 'member'),
+(7, 24, 'member'),
+(8, 9,  'lead'),
+(8, 25, 'member'),
+(8, 15, 'member')
 ON CONFLICT (team_id, user_id) DO NOTHING;
 
 -- ==========================================

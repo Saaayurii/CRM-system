@@ -103,4 +103,14 @@ export class TeamsController {
   ) {
     return this.service.addMember(id, user.accountId, body);
   }
+
+  @Delete(':id/members/:userId')
+  @ApiOperation({ summary: 'Remove a member from a team' })
+  removeMember(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('userId', ParseIntPipe) userId: number,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.service.removeMember(id, user.accountId, userId);
+  }
 }

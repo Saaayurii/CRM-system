@@ -7,8 +7,23 @@ import { GeneratePdfDto } from './dto/generate-pdf.dto';
 
 const PDF_DIR = path.join(process.cwd(), 'public', 'pdfs');
 
-// DejaVu fonts — full Unicode/Cyrillic support, installed via ttf-dejavu in Alpine
-const FONT_DIR = '/usr/share/fonts/ttf-dejavu';
+// DejaVu fonts — full Unicode/Cyrillic support
+// Resolution order: FONTS_DIR env var → project-local fonts/ → Alpine ttf-dejavu package
+function resolveFontDir(): string {
+  const candidates = [
+    process.env.FONTS_DIR,
+    path.join(process.cwd(), 'fonts'),
+    '/usr/share/fonts/ttf-dejavu',
+    '/usr/share/fonts/truetype/dejavu',   // Debian/Ubuntu path
+  ].filter(Boolean) as string[];
+
+  for (const dir of candidates) {
+    if (fs.existsSync(path.join(dir, 'DejaVuSans.ttf'))) return dir;
+  }
+  return candidates[candidates.length - 1]; // fall through; will error on first use
+}
+
+const FONT_DIR = resolveFontDir();
 const FONT = path.join(FONT_DIR, 'DejaVuSans.ttf');
 const FONT_BOLD = path.join(FONT_DIR, 'DejaVuSans-Bold.ttf');
 

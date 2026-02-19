@@ -15,7 +15,7 @@ const cards = [
   { key: 'projects' as const, label: 'Проекты', href: '/dashboard/projects', color: 'text-violet-500', bgHover: 'group-hover:ring-violet-500/20' },
   { key: 'tasks' as const, label: 'Задачи', href: '/dashboard/tasks', color: 'text-green-500', bgHover: 'group-hover:ring-green-500/20' },
   { key: 'employees' as const, label: 'Сотрудники', href: '/dashboard/employees', color: 'text-sky-500', bgHover: 'group-hover:ring-sky-500/20' },
-  { key: 'teams' as const, label: 'Команды', href: '/dashboard/employees', color: 'text-amber-500', bgHover: 'group-hover:ring-amber-500/20' },
+  { key: 'teams' as const, label: 'Команды', href: '/dashboard/teams', color: 'text-amber-500', bgHover: 'group-hover:ring-amber-500/20' },
 ];
 
 export default function StatsCards() {

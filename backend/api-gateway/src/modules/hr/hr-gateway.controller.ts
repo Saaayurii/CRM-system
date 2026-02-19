@@ -462,6 +462,40 @@ export class HrGatewayController {
     });
   }
 
+  @Get('teams/:id/members')
+  @ApiOperation({ summary: 'Get members of a team' })
+  async findTeamMembers(@Req() req: Request, @Param('id') id: string) {
+    return this.proxyService.forward('hr', {
+      method: 'GET',
+      path: `/teams/${id}/members`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  @Post('teams/:id/members')
+  @ApiOperation({ summary: 'Add member to a team' })
+  async addTeamMember2(@Req() req: Request, @Param('id') id: string, @Body() body: any) {
+    return this.proxyService.forward('hr', {
+      method: 'POST',
+      path: `/teams/${id}/members`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Delete('teams/:id/members/:userId')
+  @ApiOperation({ summary: 'Remove member from a team' })
+  async removeTeamMember2(@Req() req: Request, @Param('id') id: string, @Param('userId') userId: string) {
+    return this.proxyService.forward('hr', {
+      method: 'DELETE',
+      path: `/teams/${id}/members/${userId}`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
   // Team Members
   @Get('team-members')
   @ApiOperation({ summary: 'Get all team members' })

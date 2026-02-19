@@ -37,7 +37,6 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
   const handleScroll = useCallback(() => {
     const el = scrollRef.current;
     if (!el || isLoadingChannels || !hasMoreChannels) return;
-
     if (el.scrollTop + el.clientHeight >= el.scrollHeight - 100) {
       fetchChannels(channelsPage + 1);
     }
@@ -50,7 +49,6 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
     return () => el.removeEventListener('scroll', handleScroll);
   }, [handleScroll]);
 
-  // Filter channels by search
   const filtered = search.trim()
     ? channels.filter((ch) =>
         getChannelDisplayName(ch, user?.id).toLowerCase().includes(search.toLowerCase())
@@ -62,9 +60,7 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
       {/* Header */}
       <div className="p-4 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">
-            Чаты
-          </h2>
+          <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">Чаты</h2>
           <button
             onClick={() => setShowCreateModal(true)}
             className="p-2 text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-500/10 rounded-lg transition-colors"
@@ -103,10 +99,11 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
         )}
 
         {filtered.map((channel) => {
-          const displayName = getChannelDisplayName(channel, user?.id);
+          const isSelf = isSelfChat(channel, user?.id);
+          const displayName = isSelf ? 'Избранное' : getChannelDisplayName(channel, user?.id);
           const unread = unreadCounts[channel.id] || 0;
           const isActive = channel.id === activeChannelId;
-          const isOnline = isDirectChannelOnline(channel, user?.id, onlineUsers);
+          const isOnline = !isSelf && isDirectChannelOnline(channel, user?.id, onlineUsers);
 
           return (
             <button
@@ -122,22 +119,24 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
               <div className="relative shrink-0">
                 <div
                   className={`w-11 h-11 rounded-full flex items-center justify-center text-white font-semibold text-sm ${
-                    channel.channelType === 'group'
+                    isSelf
+                      ? 'bg-amber-400'
+                      : channel.channelType === 'group'
                       ? 'bg-violet-500'
                       : 'bg-sky-500'
                   }`}
                 >
                   {channel.avatarUrl ? (
-                    <img
-                      src={channel.avatarUrl}
-                      alt=""
-                      className="w-full h-full rounded-full object-cover"
-                    />
+                    <img src={channel.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
+                  ) : isSelf ? (
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                    </svg>
                   ) : (
                     getInitials(displayName)
                   )}
                 </div>
-                {channel.channelType === 'direct' && isOnline && (
+                {!isSelf && channel.channelType === 'direct' && isOnline && (
                   <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-900 rounded-full" />
                 )}
               </div>
@@ -149,6 +148,8 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
                     className={`text-sm font-medium truncate ${
                       isActive
                         ? 'text-violet-600 dark:text-violet-400'
+                        : isSelf
+                        ? 'text-amber-600 dark:text-amber-400'
                         : 'text-gray-800 dark:text-gray-100'
                     }`}
                   >
@@ -163,7 +164,9 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
                 <div className="flex items-center justify-between mt-0.5">
                   <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                     {channel.lastMessage
-                      ? `${channel.channelType === 'group' ? channel.lastMessage.senderName + ': ' : ''}${channel.lastMessage.text}`
+                      ? channel.channelType === 'group'
+                        ? `${channel.lastMessage.senderName}: ${channel.lastMessage.text}`
+                        : channel.lastMessage.text
                       : 'Нет сообщений'}
                   </p>
                   {unread > 0 && (
@@ -193,14 +196,19 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
 
 /* ───────── Helpers ───────── */
 
+function isSelfChat(channel: ChatChannel, currentUserId?: number): boolean {
+  if (channel.channelType !== 'direct' || !currentUserId) return false;
+  if (!channel.members || channel.members.length === 0) return false;
+  return channel.members.every((m) => m.id === currentUserId);
+}
+
 function getChannelDisplayName(channel: ChatChannel, currentUserId?: number): string {
-  if (channel.channelType === 'group') return channel.channelName;
-  // Direct: show other user's name
+  if (channel.channelType === 'group') return channel.channelName || 'Группа';
   if (channel.members && channel.members.length > 0) {
     const other = channel.members.find((m) => m.id !== currentUserId);
-    if (other) return other.name;
+    if (other) return other.name || other.email || channel.channelName;
   }
-  return channel.channelName;
+  return channel.channelName || 'Прямое сообщение';
 }
 
 function isDirectChannelOnline(
@@ -213,10 +221,12 @@ function isDirectChannelOnline(
   return other ? onlineUsers.has(other.id) : false;
 }
 
-function getInitials(name: string): string {
+function getInitials(name: string | undefined | null): string {
+  if (!name) return '?';
   return name
     .split(' ')
     .map((w) => w[0])
+    .filter(Boolean)
     .slice(0, 2)
     .join('')
     .toUpperCase();

@@ -7,7 +7,9 @@ import {
   Query,
   Req,
   UseGuards,
+  Sse,
 } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import {
   ApiTags,
   ApiOperation,
@@ -15,15 +17,37 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { Request } from 'express';
+import { Observable, map } from 'rxjs';
+import { MessageEvent } from '@nestjs/common';
 import { ProxyService } from '../../common/services/proxy.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { MaintenanceSubService } from '../../redis/maintenance-sub.service';
 
 @ApiTags('Settings')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller('api/v1')
 export class SettingsGatewayController {
-  constructor(private readonly proxyService: ProxyService) {}
+  constructor(
+    private readonly proxyService: ProxyService,
+    private readonly maintenanceSub: MaintenanceSubService,
+  ) {}
+
+  /** SSE stream — browser connects once, receives push events on maintenance changes */
+  @SkipThrottle()
+  @Sse('system-settings/events')
+  @ApiOperation({ summary: 'SSE stream for maintenance mode changes' })
+  maintenanceEvents(
+    @CurrentUser('accountId') accountId: number,
+  ): Observable<MessageEvent> {
+    return this.maintenanceSub.forAccount(accountId).pipe(
+      map((event) => ({
+        data: event,
+        type: 'maintenance',
+      }) as unknown as MessageEvent),
+    );
+  }
 
   // System Settings (GET, PUT - no POST/DELETE)
   @Get('system-settings')

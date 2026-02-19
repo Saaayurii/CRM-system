@@ -8,6 +8,9 @@ import {
   Param,
   Query,
   ParseIntPipe,
+  Sse,
+  UnauthorizedException,
+  MessageEvent,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -16,6 +19,9 @@ import {
   ApiBearerAuth,
   ApiQuery,
 } from '@nestjs/swagger';
+import { ConfigService } from '@nestjs/config';
+import { Observable } from 'rxjs';
+import * as jwt from 'jsonwebtoken';
 import { NotificationsService } from './notifications.service';
 import {
   CreateNotificationDto,
@@ -24,12 +30,44 @@ import {
   UpdateAnnouncementDto,
 } from './dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { Public } from '../../common/decorators/public.decorator';
 
 @ApiTags('Notifications')
 @ApiBearerAuth()
 @Controller()
 export class NotificationsController {
-  constructor(private readonly notificationsService: NotificationsService) {}
+  constructor(
+    private readonly notificationsService: NotificationsService,
+    private readonly configService: ConfigService,
+  ) {}
+
+  @Public()
+  @Sse('notifications/events')
+  @ApiOperation({ summary: 'SSE stream of notifications for the authenticated user' })
+  @ApiQuery({ name: 'token', required: true, type: String })
+  notificationEvents(
+    @Query('token') token: string,
+  ): Observable<MessageEvent> {
+    if (!token) {
+      throw new UnauthorizedException('Token is required');
+    }
+
+    const secret =
+      this.configService.get<string>('jwt.accessSecret') || 'default-secret';
+
+    try {
+      const payload = jwt.verify(token, secret) as any;
+      const userId = payload.sub;
+
+      if (!userId) {
+        throw new UnauthorizedException('Invalid token payload');
+      }
+
+      return this.notificationsService.getNotificationStream(Number(userId));
+    } catch (error) {
+      throw new UnauthorizedException('Invalid or expired token');
+    }
+  }
 
   // --- Notifications ---
 

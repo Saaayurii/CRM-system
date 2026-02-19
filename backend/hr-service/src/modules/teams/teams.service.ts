@@ -47,4 +47,10 @@ export class TeamsService {
     if (!member) throw new NotFoundException(`Team #${teamId} not found`);
     return member;
   }
+
+  async removeMember(teamId: number, accountId: number, userId: number) {
+    const result = await this.repository.removeMember(teamId, accountId, userId);
+    if (!result) throw new NotFoundException(`Team #${teamId} not found`);
+    return result;
+  }
 }

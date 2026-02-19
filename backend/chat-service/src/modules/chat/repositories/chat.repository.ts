@@ -26,6 +26,12 @@ export class ChatRepository {
         include: {
           members: { include: { user: true } },
           _count: { select: { messages: true } },
+          messages: {
+            take: 1,
+            orderBy: { createdAt: 'desc' },
+            where: { isDeleted: false },
+            include: { user: true },
+          },
         },
       }),
       (this.prisma as any).chatChannel.count({ where }),

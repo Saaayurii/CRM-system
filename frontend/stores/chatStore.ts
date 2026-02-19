@@ -49,13 +49,88 @@ export interface ChatChannel {
     senderName: string;
     createdAt: string;
   } | null;
-  members?: { id: number; name: string; avatarUrl?: string }[];
+  members?: { id: number; name: string; avatarUrl?: string; email?: string }[];
 }
 
 export interface CreateChannelDto {
   channelType: 'direct' | 'group';
-  channelName?: string;
-  memberIds: number[];
+  name?: string;
+  memberIds?: number[];
+}
+
+/* ───────── Raw→Typed Mappers ───────── */
+
+function getFullName(user: any): string {
+  if (!user) return '';
+  const name = [user.firstName, user.lastName].filter(Boolean).join(' ').trim();
+  return name || user.email || user.username || '';
+}
+
+function mapReactions(raw: any): ChatReaction[] {
+  if (Array.isArray(raw)) return raw;
+  if (!raw || typeof raw !== 'object') return [];
+  return Object.entries(raw as Record<string, number[]>).map(([emoji, users]) => ({
+    emoji,
+    count: Array.isArray(users) ? users.length : 0,
+    users: Array.isArray(users) ? (users as number[]).map((id) => ({ id, name: '' })) : [],
+  }));
+}
+
+export function mapRawMessage(raw: any): ChatMessage {
+  const user = raw.user || {};
+  const replyRaw = raw.replyToMessage;
+  return {
+    id: raw.id,
+    channelId: raw.channelId,
+    senderId: raw.senderId ?? raw.userId,
+    senderName: raw.senderName ?? getFullName(user),
+    senderAvatarUrl: raw.senderAvatarUrl ?? user.avatarUrl ?? undefined,
+    text: raw.text ?? raw.messageText ?? '',
+    isEdited: raw.isEdited ?? false,
+    replyToMessage: replyRaw
+      ? {
+          id: replyRaw.id,
+          text: replyRaw.text ?? replyRaw.messageText ?? '',
+          senderName: replyRaw.senderName ?? getFullName(replyRaw.user ?? {}),
+        }
+      : null,
+    attachments: raw.attachments ?? [],
+    reactions: mapReactions(raw.reactions ?? {}),
+    createdAt: raw.createdAt,
+    updatedAt: raw.updatedAt,
+  };
+}
+
+function mapRawChannel(raw: any): ChatChannel {
+  const members = ((raw.members || []) as any[]).map((m: any) => {
+    const u = m.user || {};
+    return {
+      id: m.userId ?? u.id,
+      name: getFullName(u) || u.email || u.username || 'Unknown',
+      avatarUrl: u.avatarUrl ?? undefined,
+      email: u.email ?? undefined,
+    };
+  });
+
+  // Backend includes messages[0] as last message
+  const rawLastMsg = raw.messages?.[0] ?? null;
+  const lastMsgUser = rawLastMsg?.user;
+
+  return {
+    id: raw.id,
+    channelType: raw.channelType,
+    channelName: raw.channelName ?? raw.name ?? '',
+    avatarUrl: raw.avatarUrl ?? undefined,
+    membersCount: raw.membersCount ?? members.length,
+    lastMessage: rawLastMsg
+      ? {
+          text: rawLastMsg.text ?? rawLastMsg.messageText ?? '',
+          senderName: rawLastMsg.senderName ?? getFullName(lastMsgUser ?? {}),
+          createdAt: rawLastMsg.createdAt,
+        }
+      : raw.lastMessage ?? null,
+    members,
+  };
 }
 
 /* ───────── Store ───────── */
@@ -67,6 +142,8 @@ interface ChatState {
   typingUsers: Record<number, string[]>;
   onlineUsers: Set<number>;
   unreadCounts: Record<number, number>;
+  // channelId → userId → lastReadAt ISO string
+  channelReadAts: Record<number, Record<number, string>>;
   isConnected: boolean;
   hasMoreMessages: boolean;
   isLoadingMessages: boolean;
@@ -102,6 +179,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   typingUsers: {},
   onlineUsers: new Set(),
   unreadCounts: {},
+  channelReadAts: {},
   isConnected: false,
   hasMoreMessages: true,
   isLoadingMessages: false,
@@ -125,10 +203,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
     });
 
     // New message
-    socket.on('message:new', (message: ChatMessage) => {
+    socket.on('message:new', (raw: any) => {
+      const message = mapRawMessage(raw);
       const { activeChannelId, channels, unreadCounts } = get();
 
-      // Update channel last message
       const updatedChannels = channels.map((ch) =>
         ch.id === message.channelId
           ? {
@@ -142,7 +220,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
           : ch
       );
 
-      // Sort: channel with new message goes to top
       updatedChannels.sort((a, b) => {
         const aTime = a.lastMessage?.createdAt || '';
         const bTime = b.lastMessage?.createdAt || '';
@@ -155,7 +232,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
           channels: updatedChannels,
         }));
       } else {
-        // Increment unread
         set({
           channels: updatedChannels,
           unreadCounts: {
@@ -167,51 +243,54 @@ export const useChatStore = create<ChatState>((set, get) => ({
     });
 
     // Message edited
-    socket.on('message:edited', (updated: { id: number; text: string }) => {
+    socket.on('message:edited', (raw: any) => {
       set((state) => ({
         messages: state.messages.map((m) =>
-          m.id === updated.id ? { ...m, text: updated.text, isEdited: true } : m
+          m.id === raw.id ? { ...m, text: raw.text ?? raw.messageText ?? m.text, isEdited: true } : m
         ),
       }));
     });
 
     // Message deleted
-    socket.on('message:deleted', (data: { id: number }) => {
+    socket.on('message:deleted', (data: { messageId: number }) => {
       set((state) => ({
-        messages: state.messages.filter((m) => m.id !== data.id),
+        messages: state.messages.filter((m) => m.id !== data.messageId),
       }));
     });
 
     // Reaction updated
-    socket.on('message:reaction:updated', (data: { messageId: number; reactions: ChatReaction[] }) => {
+    socket.on('message:reaction:updated', (raw: any) => {
       set((state) => ({
         messages: state.messages.map((m) =>
-          m.id === data.messageId ? { ...m, reactions: data.reactions } : m
+          m.id === raw.id ? { ...m, reactions: mapReactions(raw.reactions ?? {}) } : m
         ),
       }));
     });
 
     // Typing
-    socket.on('typing:start', (data: { channelId: number; userName: string }) => {
+    socket.on('typing:start', (data: { channelId: number; name: string }) => {
       set((state) => {
         const current = state.typingUsers[data.channelId] || [];
-        if (current.includes(data.userName)) return state;
+        if (current.includes(data.name)) return state;
         return {
           typingUsers: {
             ...state.typingUsers,
-            [data.channelId]: [...current, data.userName],
+            [data.channelId]: [...current, data.name],
           },
         };
       });
     });
 
-    socket.on('typing:stop', (data: { channelId: number; userName: string }) => {
+    socket.on('typing:stop', (data: { channelId: number; userId: number; name?: string }) => {
       set((state) => {
         const current = state.typingUsers[data.channelId] || [];
+        const updated = data.name
+          ? current.filter((n) => n !== data.name)
+          : current.filter((n) => !n.startsWith(`uid:${data.userId}`));
         return {
           typingUsers: {
             ...state.typingUsers,
-            [data.channelId]: current.filter((n) => n !== data.userName),
+            [data.channelId]: updated,
           },
         };
       });
@@ -234,13 +313,22 @@ export const useChatStore = create<ChatState>((set, get) => ({
       });
     });
 
-    // Read receipts
-    socket.on('message:read:updated', (data: { channelId: number; userId: number }) => {
-      const { activeChannelId } = get();
-      if (data.channelId === activeChannelId) {
-        // Could update read status on messages if needed
+    // Read receipts — track per-user per-channel readAt
+    socket.on(
+      'message:read:updated',
+      (data: { channelId: number; userId: number; lastReadAt?: string }) => {
+        const readAt = data.lastReadAt || new Date().toISOString();
+        set((state) => ({
+          channelReadAts: {
+            ...state.channelReadAts,
+            [data.channelId]: {
+              ...(state.channelReadAts[data.channelId] || {}),
+              [data.userId]: readAt,
+            },
+          },
+        }));
       }
-    });
+    );
 
     socket.connect();
   },
@@ -259,7 +347,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     socketRef.emit('message:send', {
       channelId,
-      text,
+      messageText: text,
       attachments: attachments?.map((f) => ({ fileName: f.name, fileSize: f.size, mimeType: f.type })),
       replyToMessageId,
     });
@@ -269,7 +357,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   editMessage: (messageId, text) => {
     if (!socketRef?.connected) return;
-    socketRef.emit('message:edit', { messageId, text });
+    socketRef.emit('message:edit', { messageId, messageText: text });
   },
 
   deleteMessage: (messageId) => {
@@ -310,21 +398,17 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   setActiveChannel: async (channelId) => {
+    const prevId = get().activeChannelId;
     set({ activeChannelId: channelId, messages: [], hasMoreMessages: true });
 
-    // Join channel room
     if (socketRef?.connected) {
-      const { activeChannelId: prevId } = get();
       if (prevId && prevId !== channelId) {
         socketRef.emit('channel:leave', { channelId: prevId });
       }
       socketRef.emit('channel:join', { channelId });
     }
 
-    // Mark as read
     get().markAsRead(channelId);
-
-    // Fetch initial messages
     await get().fetchMessages(channelId);
   },
 
@@ -339,23 +423,29 @@ export const useChatStore = create<ChatState>((set, get) => ({
         params: { page, limit: 30 },
       });
 
-      const channelsList: ChatChannel[] = data.data || data;
+      const raw = data.data || data;
+      const channelsList: ChatChannel[] = Array.isArray(raw)
+        ? raw.map((ch: any) => mapRawChannel(ch))
+        : [];
       const total = data.total || 0;
 
       set((state) => ({
         channels: page === 1 ? channelsList : [...state.channels, ...channelsList],
         channelsPage: page,
-        hasMoreChannels: page === 1 ? channelsList.length < total : state.channels.length + channelsList.length < total,
+        hasMoreChannels:
+          page === 1
+            ? channelsList.length < total
+            : state.channels.length + channelsList.length < total,
         isLoadingChannels: false,
       }));
 
-      // Fetch unread summary
+      // Unread summary
       try {
         const { data: unread } = await api.get('/chat-channels/unread-summary');
         const counts: Record<number, number> = {};
         if (Array.isArray(unread)) {
-          unread.forEach((item: { channelId: number; count: number }) => {
-            counts[item.channelId] = item.count;
+          unread.forEach((item: { channelId: number; unreadCount?: number; count?: number }) => {
+            counts[item.channelId] = item.unreadCount ?? item.count ?? 0;
           });
         }
         set({ unreadCounts: counts });
@@ -379,10 +469,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
       const { data } = await api.get(`/chat-channels/${channelId}/messages`, { params });
 
-      const messagesList: ChatMessage[] = data.data || data;
+      const rawList: any[] = data.data || data;
+      const messagesList = Array.isArray(rawList) ? rawList.map(mapRawMessage) : [];
 
       set((state) => ({
-        messages: cursor ? [...messagesList.reverse(), ...state.messages] : messagesList.reverse(),
+        messages: cursor
+          ? [...messagesList.reverse(), ...state.messages]
+          : messagesList.reverse(),
         hasMoreMessages: messagesList.length === 50,
         isLoadingMessages: false,
       }));
@@ -393,8 +486,17 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   createChannel: async (dto) => {
     try {
-      const { data } = await api.post('/chat-channels', dto);
-      const channel: ChatChannel = data;
+      const { memberIds, ...rest } = dto;
+      const { data } = await api.post('/chat-channels', rest);
+      const channel: ChatChannel = mapRawChannel(data);
+
+      if (memberIds && memberIds.length > 0) {
+        await Promise.all(
+          memberIds.map((userId) =>
+            api.post(`/chat-channels/${channel.id}/members`, { userId }).catch(() => {})
+          )
+        );
+      }
 
       set((state) => ({
         channels: [channel, ...state.channels],

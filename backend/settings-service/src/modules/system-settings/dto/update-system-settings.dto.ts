@@ -5,6 +5,7 @@ import {
   IsBoolean,
   IsIn,
   IsInt,
+  IsArray,
   Min,
   Max,
   ValidateNested,
@@ -77,6 +78,45 @@ export class SystemSettingsPayloadDto {
   @ApiPropertyOptional({ enum: ['DD.MM.YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD'] })
   @IsOptional() @IsString() @IsIn(['DD.MM.YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD'])
   date_format?: string;
+
+  @ApiPropertyOptional({ enum: ['24h', '12h'] })
+  @IsOptional() @IsString() @IsIn(['24h', '12h'])
+  time_format?: string;
+
+  @ApiPropertyOptional({
+    enum: [
+      'Europe/Moscow', 'Europe/Samara', 'Asia/Yekaterinburg', 'Asia/Novosibirsk',
+      'Asia/Krasnoyarsk', 'Asia/Irkutsk', 'Asia/Yakutsk', 'Asia/Vladivostok',
+      'Asia/Almaty', 'Asia/Tashkent', 'UTC',
+    ],
+  })
+  @IsOptional() @IsString()
+  timezone?: string;
+
+  @ApiPropertyOptional({ enum: ['RUB', 'USD', 'EUR', 'KZT', 'UZS', 'BYN', 'UAH'] })
+  @IsOptional() @IsString() @IsIn(['RUB', 'USD', 'EUR', 'KZT', 'UZS', 'BYN', 'UAH'])
+  currency?: string;
+
+  // ── Files ─────────────────────────────────────────
+  @ApiPropertyOptional({ enum: [5, 10, 25, 50, 100] })
+  @IsOptional() @IsInt() @IsIn([5, 10, 25, 50, 100])
+  max_file_size_mb?: number;
+
+  // ── Maintenance (extended) ─────────────────────────
+  @ApiPropertyOptional({ maxLength: 100 })
+  @IsOptional() @IsString() @MaxLength(100)
+  maintenance_title?: string;
+
+  @ApiPropertyOptional({ maxLength: 255 })
+  @IsOptional() @IsString() @MaxLength(255)
+  maintenance_contact_email?: string;
+
+  @ApiPropertyOptional({
+    description: 'Roles (codes) allowed to access the system during maintenance',
+    type: [String],
+  })
+  @IsOptional() @IsArray() @IsString({ each: true })
+  maintenance_allowed_roles?: string[];
 }
 
 export class UpdateSystemSettingsDto {
