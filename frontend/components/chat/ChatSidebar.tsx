@@ -101,6 +101,7 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
         {filtered.map((channel) => {
           const isSelf = isSelfChat(channel, user?.id);
           const displayName = isSelf ? 'Избранное' : getChannelDisplayName(channel, user?.id);
+          const avatarUrl = channel.avatarUrl ?? getDirectChannelAvatarUrl(channel, user?.id);
           const unread = unreadCounts[channel.id] || 0;
           const isActive = channel.id === activeChannelId;
           const isOnline = !isSelf && isDirectChannelOnline(channel, user?.id, onlineUsers);
@@ -118,7 +119,7 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
               {/* Avatar */}
               <div className="relative shrink-0">
                 <div
-                  className={`w-11 h-11 rounded-full flex items-center justify-center text-white font-semibold text-sm ${
+                  className={`w-11 h-11 rounded-full flex items-center justify-center text-white font-semibold text-sm overflow-hidden ${
                     isSelf
                       ? 'bg-amber-400'
                       : channel.channelType === 'group'
@@ -126,8 +127,8 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
                       : 'bg-sky-500'
                   }`}
                 >
-                  {channel.avatarUrl ? (
-                    <img src={channel.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
                   ) : isSelf ? (
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
@@ -195,6 +196,12 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
 }
 
 /* ───────── Helpers ───────── */
+
+function getDirectChannelAvatarUrl(channel: ChatChannel, currentUserId?: number): string | undefined {
+  if (channel.channelType !== 'direct' || !currentUserId || !channel.members) return undefined;
+  const other = channel.members.find((m) => m.id !== currentUserId);
+  return other?.avatarUrl;
+}
 
 function isSelfChat(channel: ChatChannel, currentUserId?: number): boolean {
   if (channel.channelType !== 'direct' || !currentUserId) return false;

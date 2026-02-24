@@ -288,19 +288,59 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
     slug: 'clients',
     title: 'Клиенты',
     apiEndpoint: '/clients',
-    searchField: 'имени',
+    searchField: 'названию',
     columns: [
       { key: 'id', header: 'ID', sortable: true, width: '80px' },
-      { key: 'name', header: 'Название', sortable: true },
+      {
+        key: 'companyName',
+        header: 'Название / ФИО',
+        sortable: true,
+        render: (v, row) => {
+          const r = row as Record<string, any>;
+          const name = r.companyName || [r.lastName, r.firstName, r.middleName].filter(Boolean).join(' ');
+          return name ? <span>{name}</span> : <span className="text-gray-400">—</span>;
+        },
+      },
+      {
+        key: 'clientType',
+        header: 'Тип',
+        render: (v) => {
+          const map: Record<string, string> = { company: 'Компания', individual: 'Физ. лицо', government: 'Гос. орган' };
+          return <span>{map[String(v ?? '')] ?? String(v ?? '—')}</span>;
+        },
+      },
       { key: 'email', header: 'Email' },
       { key: 'phone', header: 'Телефон' },
-      { key: 'contactPerson', header: 'Контактное лицо' },
+      {
+        key: 'status',
+        header: 'Статус',
+        render: (v) => {
+          const map: Record<string, { label: string; color: string }> = {
+            active:   { label: 'Активен',   color: 'green' },
+            inactive: { label: 'Неактивен', color: 'gray' },
+            blocked:  { label: 'Заблокирован', color: 'red' },
+          };
+          const s = map[String(v ?? '')];
+          return s ? <StatusBadge label={s.label} color={s.color} /> : <span className="text-gray-400">—</span>;
+        },
+      },
     ],
     formFields: [
-      { key: 'name', label: 'Название', type: 'text', required: true },
+      {
+        key: 'clientType',
+        label: 'Тип клиента',
+        type: 'select',
+        options: [
+          { value: 'company', label: 'Компания' },
+          { value: 'individual', label: 'Физ. лицо' },
+          { value: 'government', label: 'Гос. орган' },
+        ],
+      },
+      { key: 'companyName', label: 'Название компании', type: 'text' },
+      { key: 'firstName', label: 'Имя', type: 'text' },
+      { key: 'lastName', label: 'Фамилия', type: 'text' },
       { key: 'email', label: 'Email', type: 'email' },
       { key: 'phone', label: 'Телефон', type: 'text' },
-      { key: 'contactPerson', label: 'Контактное лицо', type: 'text' },
       { key: 'address', label: 'Адрес', type: 'textarea' },
     ],
   },
@@ -407,24 +447,42 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
     searchField: 'описанию',
     columns: [
       { key: 'id', header: 'ID', sortable: true, width: '80px' },
-      { key: 'amount', header: 'Сумма', sortable: true },
-      { key: 'status', header: 'Статус', sortable: true },
-      { key: 'date', header: 'Дата', sortable: true },
+      { key: 'paymentNumber', header: 'Номер', sortable: true },
+      {
+        key: 'amount',
+        header: 'Сумма',
+        sortable: true,
+        render: (v) => v != null ? <span>{Number(v).toLocaleString('ru-RU')} ₽</span> : <span className="text-gray-400">—</span>,
+      },
+      {
+        key: 'status',
+        header: 'Статус',
+        render: (v) => {
+          const map: Record<number, { label: string; color: string }> = {
+            0: { label: 'Ожидает', color: 'yellow' },
+            1: { label: 'Проведён', color: 'green' },
+            2: { label: 'Отменён', color: 'red' },
+          };
+          const s = map[Number(v)];
+          return s ? <StatusBadge label={s.label} color={s.color} /> : <span className="text-gray-400">—</span>;
+        },
+      },
+      { key: 'paymentDate', header: 'Дата', sortable: true, render: (v) => fmtDate(v) },
       { key: 'description', header: 'Описание' },
     ],
     formFields: [
-      { key: 'amount', label: 'Сумма', type: 'number', required: true },
+      { key: 'amount', label: 'Сумма (₽)', type: 'number', required: true },
       {
         key: 'status',
         label: 'Статус',
         type: 'select',
         options: [
-          { value: 'pending', label: 'Ожидает' },
-          { value: 'paid', label: 'Оплачен' },
-          { value: 'cancelled', label: 'Отменён' },
+          { value: 0, label: 'Ожидает' },
+          { value: 1, label: 'Проведён' },
+          { value: 2, label: 'Отменён' },
         ],
       },
-      { key: 'date', label: 'Дата', type: 'date', required: true },
+      { key: 'paymentDate', label: 'Дата', type: 'date', required: true },
       { key: 'description', label: 'Описание', type: 'textarea' },
     ],
   },
@@ -434,16 +492,64 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
     apiEndpoint: '/budgets',
     searchField: 'названию',
     columns: [
-      { key: 'id', header: 'ID', sortable: true, width: '80px' },
-      { key: 'name', header: 'Название', sortable: true },
-      { key: 'totalAmount', header: 'Бюджет', sortable: true },
-      { key: 'spentAmount', header: 'Потрачено', sortable: true },
-      { key: 'status', header: 'Статус' },
+      { key: 'id', header: 'ID', sortable: true, width: '70px' },
+      { key: 'budgetName', header: 'Название', sortable: true },
+      { key: 'budgetPeriod', header: 'Период' },
+      {
+        key: 'totalBudget',
+        header: 'Бюджет',
+        sortable: true,
+        render: (v) => v != null ? <span>{Number(v).toLocaleString('ru-RU')} ₽</span> : <span className="text-gray-400">—</span>,
+      },
+      {
+        key: 'spentAmount',
+        header: 'Потрачено',
+        sortable: true,
+        render: (v, row) => {
+          const spent = Number(v ?? 0);
+          const total = Number((row as Record<string, any>).totalBudget ?? 0);
+          const pct = total > 0 ? Math.round((spent / total) * 100) : 0;
+          const color = pct >= 90 ? 'text-red-500' : pct >= 70 ? 'text-orange-500' : 'text-green-600';
+          return (
+            <span className={`font-medium ${color}`}>
+              {spent.toLocaleString('ru-RU')} ₽
+              <span className="text-xs text-gray-400 ml-1">({pct}%)</span>
+            </span>
+          );
+        },
+      },
+      {
+        key: 'status',
+        header: 'Статус',
+        render: (v) => {
+          const map: Record<number, { label: string; color: string }> = {
+            0: { label: 'Черновик',  color: 'gray' },
+            1: { label: 'Активный',  color: 'green' },
+            2: { label: 'Завершён',  color: 'blue' },
+            3: { label: 'Отменён',   color: 'red' },
+          };
+          const s = map[Number(v)];
+          return s ? <StatusBadge label={s.label} color={s.color} /> : <span className="text-gray-400">—</span>;
+        },
+      },
     ],
     formFields: [
-      { key: 'name', label: 'Название', type: 'text', required: true },
-      { key: 'totalAmount', label: 'Общий бюджет', type: 'number', required: true },
-      { key: 'description', label: 'Описание', type: 'textarea' },
+      { key: 'budgetName', label: 'Название', type: 'text', required: true },
+      { key: 'budgetPeriod', label: 'Период (напр. 2026)', type: 'text' },
+      { key: 'totalBudget', label: 'Общий бюджет (₽)', type: 'number', required: true },
+      { key: 'startDate', label: 'Дата начала', type: 'date' },
+      { key: 'endDate', label: 'Дата окончания', type: 'date' },
+      {
+        key: 'status',
+        label: 'Статус',
+        type: 'select',
+        options: [
+          { value: 0, label: 'Черновик' },
+          { value: 1, label: 'Активный' },
+          { value: 2, label: 'Завершён' },
+          { value: 3, label: 'Отменён' },
+        ],
+      },
     ],
   },
   acts: {
@@ -453,34 +559,79 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
     searchField: 'номеру',
     columns: [
       { key: 'id', header: 'ID', sortable: true, width: '80px' },
-      { key: 'number', header: 'Номер', sortable: true },
-      { key: 'type', header: 'Тип' },
-      { key: 'date', header: 'Дата', sortable: true },
-      { key: 'status', header: 'Статус' },
+      { key: 'actNumber', header: 'Номер', sortable: true },
+      { key: 'actType', header: 'Тип' },
+      {
+        key: 'totalAmount',
+        header: 'Сумма',
+        render: (v) => v != null ? <span>{Number(v).toLocaleString('ru-RU')} ₽</span> : <span className="text-gray-400">—</span>,
+      },
+      { key: 'actDate', header: 'Дата', sortable: true, render: (v) => fmtDate(v) },
+      {
+        key: 'status',
+        header: 'Статус',
+        render: (v) => {
+          const map: Record<number, { label: string; color: string }> = {
+            0: { label: 'Черновик', color: 'gray' },
+            1: { label: 'На проверке', color: 'yellow' },
+            2: { label: 'Подписан', color: 'green' },
+            3: { label: 'Отклонён', color: 'red' },
+          };
+          const s = map[Number(v)];
+          return s ? <StatusBadge label={s.label} color={s.color} /> : <span className="text-gray-400">—</span>;
+        },
+      },
     ],
     formFields: [
-      { key: 'number', label: 'Номер', type: 'text', required: true },
-      { key: 'type', label: 'Тип', type: 'text' },
-      { key: 'date', label: 'Дата', type: 'date', required: true },
+      { key: 'actNumber', label: 'Номер акта', type: 'text', required: true },
+      { key: 'actType', label: 'Тип', type: 'text' },
+      { key: 'actDate', label: 'Дата', type: 'date', required: true },
       { key: 'description', label: 'Описание', type: 'textarea' },
     ],
   },
   salaries: {
     slug: 'salaries',
     title: 'Зарплата',
-    apiEndpoint: '/salaries',
+    apiEndpoint: '/payroll',
     searchField: 'сотруднику',
     columns: [
       { key: 'id', header: 'ID', sortable: true, width: '80px' },
-      { key: 'employeeName', header: 'Сотрудник', sortable: true },
-      { key: 'amount', header: 'Сумма', sortable: true },
-      { key: 'month', header: 'Месяц' },
-      { key: 'status', header: 'Статус' },
+      {
+        key: 'userId',
+        header: 'Сотрудник',
+        sortable: true,
+        render: (v, row) => {
+          const name = (row as Record<string, any>).user?.name;
+          return name ? <span>{name}</span> : <span className="text-gray-400">ID: {String(v ?? '—')}</span>;
+        },
+      },
+      {
+        key: 'totalAmount',
+        header: 'Итого',
+        sortable: true,
+        render: (v) => v != null ? <span>{Number(v).toLocaleString('ru-RU')} ₽</span> : <span className="text-gray-400">—</span>,
+      },
+      { key: 'payrollPeriod', header: 'Период' },
+      {
+        key: 'status',
+        header: 'Статус',
+        render: (v) => {
+          const map: Record<number, { label: string; color: string }> = {
+            0: { label: 'Черновик', color: 'gray' },
+            1: { label: 'Одобрен', color: 'blue' },
+            2: { label: 'Выплачен', color: 'green' },
+          };
+          const s = map[Number(v)];
+          return s ? <StatusBadge label={s.label} color={s.color} /> : <span className="text-gray-400">—</span>;
+        },
+      },
     ],
     formFields: [
-      { key: 'employeeId', label: 'ID сотрудника', type: 'number', required: true },
-      { key: 'amount', label: 'Сумма', type: 'number', required: true },
-      { key: 'month', label: 'Месяц', type: 'date', required: true },
+      { key: 'userId', label: 'Сотрудник', type: 'select', required: true, fetchOptions: { endpoint: '/users', valueKey: 'id', labelKey: 'name' } },
+      { key: 'baseSalary', label: 'Оклад (₽)', type: 'number', required: true },
+      { key: 'totalAmount', label: 'Итого (₽)', type: 'number' },
+      { key: 'payrollPeriod', label: 'Период (напр. Январь 2026)', type: 'text', required: true },
+      { key: 'paymentDate', label: 'Дата выплаты', type: 'date' },
     ],
   },
   bonuses: {
@@ -490,16 +641,31 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
     searchField: 'сотруднику',
     columns: [
       { key: 'id', header: 'ID', sortable: true, width: '80px' },
-      { key: 'employeeName', header: 'Сотрудник', sortable: true },
-      { key: 'amount', header: 'Сумма', sortable: true },
-      { key: 'reason', header: 'Причина' },
-      { key: 'date', header: 'Дата', sortable: true },
+      {
+        key: 'userId',
+        header: 'Сотрудник',
+        sortable: true,
+        render: (v, row) => {
+          const name = (row as Record<string, any>).user?.name;
+          return name ? <span>{name}</span> : <span className="text-gray-400">ID: {String(v ?? '—')}</span>;
+        },
+      },
+      {
+        key: 'amount',
+        header: 'Сумма',
+        sortable: true,
+        render: (v) => v != null ? <span>{Number(v).toLocaleString('ru-RU')} ₽</span> : <span className="text-gray-400">—</span>,
+      },
+      { key: 'bonusType', header: 'Тип' },
+      { key: 'description', header: 'Описание' },
+      { key: 'paymentDate', header: 'Дата', sortable: true, render: (v) => fmtDate(v) },
     ],
     formFields: [
-      { key: 'employeeId', label: 'ID сотрудника', type: 'number', required: true },
-      { key: 'amount', label: 'Сумма', type: 'number', required: true },
-      { key: 'reason', label: 'Причина', type: 'text' },
-      { key: 'date', label: 'Дата', type: 'date', required: true },
+      { key: 'userId', label: 'Сотрудник', type: 'select', required: true, fetchOptions: { endpoint: '/users', valueKey: 'id', labelKey: 'name' } },
+      { key: 'amount', label: 'Сумма (₽)', type: 'number', required: true },
+      { key: 'bonusType', label: 'Тип бонуса', type: 'text' },
+      { key: 'description', label: 'Описание', type: 'textarea' },
+      { key: 'paymentDate', label: 'Дата выплаты', type: 'date', required: true },
     ],
   },
   'employee-documents': {
@@ -510,34 +676,99 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
     columns: [
       { key: 'id', header: 'ID', sortable: true, width: '80px' },
       { key: 'employeeName', header: 'Сотрудник', sortable: true },
-      { key: 'title', header: 'Документ', sortable: true },
-      { key: 'type', header: 'Тип' },
-      { key: 'expiryDate', header: 'Истекает' },
+      { key: 'documentType', header: 'Тип документа', sortable: true },
+      { key: 'documentNumber', header: 'Номер' },
+      {
+        key: 'createdAt',
+        header: 'Загружен',
+        render: (value) => {
+          if (!value) return <span className="text-gray-400">—</span>;
+          const d = new Date(String(value));
+          return (
+            <span className="text-sm">
+              {d.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+            </span>
+          );
+        },
+      },
+      {
+        key: 'fileUrl',
+        header: 'Файл',
+        render: (value) => value ? (
+          <a
+            href={String(value)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-violet-500 hover:text-violet-600 text-sm"
+            title="Открыть файл"
+          >
+            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+            </svg>
+            Открыть
+          </a>
+        ) : <span className="text-gray-400 text-sm">—</span>,
+      },
     ],
     formFields: [
-      { key: 'employeeId', label: 'ID сотрудника', type: 'number', required: true },
-      { key: 'title', label: 'Название', type: 'text', required: true },
-      { key: 'type', label: 'Тип', type: 'text' },
+      { key: 'userId', label: 'Сотрудник', type: 'select', required: true, fetchOptions: { endpoint: '/users', valueKey: 'id', labelKey: 'name' } },
+      { key: 'documentType', label: 'Тип документа', type: 'text' },
+      { key: 'documentNumber', label: 'Номер документа', type: 'text' },
+      { key: 'issueDate', label: 'Дата выдачи', type: 'date' },
       { key: 'expiryDate', label: 'Дата истечения', type: 'date' },
+      { key: 'issuingAuthority', label: 'Кем выдан', type: 'text' },
+      { key: 'fileUrl', label: 'Файл документа', type: 'file', uploadEndpoint: '/employee-documents/upload', accept: '.pdf,.doc,.docx,.jpg,.jpeg,.png' },
+      { key: 'notes', label: 'Заметки', type: 'textarea' },
     ],
   },
   leaves: {
     slug: 'leaves',
     title: 'Отпуска',
-    apiEndpoint: '/leaves',
+    apiEndpoint: '/time-off-requests',
     searchField: 'сотруднику',
     columns: [
       { key: 'id', header: 'ID', sortable: true, width: '80px' },
-      { key: 'employeeName', header: 'Сотрудник', sortable: true },
-      { key: 'type', header: 'Тип' },
-      { key: 'startDate', header: 'Начало', sortable: true },
-      { key: 'endDate', header: 'Окончание' },
-      { key: 'status', header: 'Статус' },
+      {
+        key: 'userId',
+        header: 'Сотрудник',
+        sortable: true,
+        render: (v, row) => {
+          const name = (row as Record<string, any>).user?.name;
+          return name ? <span>{name}</span> : <span className="text-gray-400">ID: {String(v ?? '—')}</span>;
+        },
+      },
+      {
+        key: 'requestType',
+        header: 'Тип',
+        render: (v) => {
+          const map: Record<string, string> = { vacation: 'Отпуск', sick: 'Больничный', personal: 'Личные' };
+          return <span>{map[String(v ?? '')] ?? String(v ?? '—')}</span>;
+        },
+      },
+      { key: 'startDate', header: 'Начало', sortable: true, render: (v) => fmtDate(v) },
+      { key: 'endDate', header: 'Окончание', render: (v) => fmtDate(v) },
+      { key: 'daysCount', header: 'Дней' },
+      {
+        key: 'status',
+        header: 'Статус',
+        render: (v) => {
+          const map: Record<string | number, { label: string; color: string }> = {
+            0: { label: 'Ожидает', color: 'yellow' },
+            1: { label: 'Одобрен', color: 'green' },
+            2: { label: 'Отклонён', color: 'red' },
+            pending: { label: 'Ожидает', color: 'yellow' },
+            approved: { label: 'Одобрен', color: 'green' },
+            rejected: { label: 'Отклонён', color: 'red' },
+          };
+          const s = map[String(v ?? '')];
+          return s ? <StatusBadge label={s.label} color={s.color} /> : <span className="text-gray-400">—</span>;
+        },
+      },
     ],
     formFields: [
-      { key: 'employeeId', label: 'ID сотрудника', type: 'number', required: true },
+      { key: 'userId', label: 'Сотрудник', type: 'select', required: true, fetchOptions: { endpoint: '/users', valueKey: 'id', labelKey: 'name' } },
       {
-        key: 'type',
+        key: 'requestType',
         label: 'Тип',
         type: 'select',
         options: [
@@ -548,6 +779,8 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
       },
       { key: 'startDate', label: 'Начало', type: 'date', required: true },
       { key: 'endDate', label: 'Окончание', type: 'date', required: true },
+      { key: 'daysCount', label: 'Количество дней', type: 'number' },
+      { key: 'reason', label: 'Причина', type: 'textarea' },
     ],
   },
   attendance: {
@@ -555,18 +788,76 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
     title: 'Посещаемость',
     apiEndpoint: '/attendance',
     searchField: 'сотруднику',
-    canCreate: false,
+    canCreate: true,
     columns: [
-      { key: 'id', header: 'ID', sortable: true, width: '80px' },
-      { key: 'employeeName', header: 'Сотрудник', sortable: true },
-      { key: 'date', header: 'Дата', sortable: true },
-      { key: 'checkIn', header: 'Приход' },
-      { key: 'checkOut', header: 'Уход' },
+      { key: 'id', header: 'ID', sortable: true, width: '70px' },
+      {
+        key: 'userId',
+        header: 'Сотрудник',
+        sortable: true,
+        render: (v, row) => {
+          const name = (row as Record<string, any>).user?.name;
+          return name ? <span>{name}</span> : <span className="text-gray-400">ID: {String(v ?? '—')}</span>;
+        },
+      },
+      { key: 'attendanceDate', header: 'Дата', sortable: true, render: (v) => fmtDate(v) },
+      {
+        key: 'checkInTime',
+        header: 'Приход',
+        render: (v) => {
+          if (!v) return <span className="text-gray-400">—</span>;
+          const d = new Date(v as string);
+          return <span>{String(d.getHours()).padStart(2, '0')}:{String(d.getMinutes()).padStart(2, '0')}</span>;
+        },
+      },
+      {
+        key: 'checkOutTime',
+        header: 'Уход',
+        render: (v) => {
+          if (!v) return <span className="text-gray-400">—</span>;
+          const d = new Date(v as string);
+          return <span>{String(d.getHours()).padStart(2, '0')}:{String(d.getMinutes()).padStart(2, '0')}</span>;
+        },
+      },
+      {
+        key: 'workedHours',
+        header: 'Часов',
+        render: (v) => v != null ? <span>{Number(v).toFixed(1)} ч</span> : <span className="text-gray-400">—</span>,
+      },
+      {
+        key: 'status',
+        header: 'Статус',
+        render: (v) => {
+          const map: Record<string, { label: string; color: string }> = {
+            present:  { label: 'Присутствует', color: 'green' },
+            absent:   { label: 'Отсутствует',  color: 'red' },
+            late:     { label: 'Опоздание',     color: 'orange' },
+            sick:     { label: 'Больничный',    color: 'yellow' },
+            vacation: { label: 'Отпуск',        color: 'blue' },
+          };
+          const s = map[String(v ?? '')];
+          return s ? <StatusBadge label={s.label} color={s.color} /> : <span className="text-gray-400">—</span>;
+        },
+      },
     ],
     formFields: [
-      { key: 'date', label: 'Дата', type: 'date', required: true },
-      { key: 'checkIn', label: 'Приход', type: 'text' },
-      { key: 'checkOut', label: 'Уход', type: 'text' },
+      { key: 'userId', label: 'Сотрудник', type: 'select', required: true, fetchOptions: { endpoint: '/users', valueKey: 'id', labelKey: 'name' } },
+      { key: 'attendanceDate', label: 'Дата', type: 'date', required: true },
+      {
+        key: 'status',
+        label: 'Статус',
+        type: 'select',
+        options: [
+          { value: 'present',  label: 'Присутствует' },
+          { value: 'absent',   label: 'Отсутствует' },
+          { value: 'late',     label: 'Опоздание' },
+          { value: 'sick',     label: 'Больничный' },
+          { value: 'vacation', label: 'Отпуск' },
+        ],
+      },
+      { key: 'workedHours',   label: 'Отработано (ч)',  type: 'number' },
+      { key: 'overtimeHours', label: 'Переработка (ч)', type: 'number' },
+      { key: 'notes', label: 'Заметки', type: 'textarea' },
     ],
   },
   teams: {
@@ -577,28 +868,76 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
     columns: [
       { key: 'id', header: 'ID', sortable: true, width: '80px' },
       { key: 'name', header: 'Название', sortable: true },
-      { key: 'leadName', header: 'Руководитель' },
-      { key: 'membersCount', header: 'Участники' },
+      {
+        key: 'teamLeadId',
+        header: 'Руководитель',
+        render: (v, row) => {
+          const name = (row as Record<string, any>).teamLead?.name;
+          return name ? <span>{name}</span> : <span className="text-gray-400">—</span>;
+        },
+      },
+      {
+        key: '_count',
+        header: 'Участники',
+        render: (v) => {
+          const count = (v as Record<string, any>)?.members;
+          return count != null ? <span className="font-medium">{count}</span> : <span className="text-gray-400">—</span>;
+        },
+      },
     ],
     formFields: [
       { key: 'name', label: 'Название', type: 'text', required: true },
       { key: 'description', label: 'Описание', type: 'textarea' },
+      { key: 'teamLeadId', label: 'Руководитель', type: 'select', fetchOptions: { endpoint: '/users', valueKey: 'id', labelKey: 'name' } },
+    ],
+    customRowActions: [
+      { key: 'members', label: 'Участники', title: 'Управление участниками' },
     ],
   },
   chat: {
     slug: 'chat',
-    title: 'Чат',
-    apiEndpoint: '/chat/rooms',
+    title: 'Каналы чата',
+    apiEndpoint: '/chat-channels',
     searchField: 'названию',
-    canCreate: false,
-    canDelete: false,
     columns: [
       { key: 'id', header: 'ID', sortable: true, width: '80px' },
       { key: 'name', header: 'Название', sortable: true },
-      { key: 'type', header: 'Тип' },
-      { key: 'membersCount', header: 'Участники' },
+      {
+        key: 'channelType',
+        header: 'Тип',
+        render: (v) => {
+          const map: Record<string, string> = { direct: 'Личный', group: 'Группа', public: 'Публичный', project: 'Проект' };
+          return <span>{map[String(v)] ?? String(v ?? '—')}</span>;
+        },
+      },
+      {
+        key: 'isPrivate',
+        header: 'Приватный',
+        render: (v) => <span>{v ? 'Да' : 'Нет'}</span>,
+      },
+      {
+        key: 'createdAt',
+        header: 'Создан',
+        render: (v) => v ? (
+          <span>{new Date(String(v)).toLocaleDateString('ru-RU')}</span>
+        ) : <span>—</span>,
+      },
     ],
-    formFields: [{ key: 'name', label: 'Название', type: 'text' }],
+    formFields: [
+      { key: 'name', label: 'Название', type: 'text', required: true },
+      {
+        key: 'channelType',
+        label: 'Тип канала',
+        type: 'select',
+        options: [
+          { value: 'group', label: 'Группа' },
+          { value: 'public', label: 'Публичный' },
+          { value: 'project', label: 'Проект' },
+        ],
+      },
+      { key: 'description', label: 'Описание', type: 'textarea' },
+      { key: 'isPrivate', label: 'Приватный', type: 'checkbox' },
+    ],
   },
   notifications: {
     slug: 'notifications',
@@ -631,7 +970,7 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
   calendar: {
     slug: 'calendar',
     title: 'Календарь',
-    apiEndpoint: '/calendar/events',
+    apiEndpoint: '/calendar-events',
     searchField: 'названию',
     columns: [
       { key: 'id', header: 'ID', sortable: true, width: '80px' },
@@ -678,35 +1017,114 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
   audit: {
     slug: 'audit',
     title: 'Аудит',
-    apiEndpoint: '/audit',
+    apiEndpoint: '/event-logs',
     searchField: 'действию',
     canCreate: false,
     canEdit: false,
     canDelete: false,
     columns: [
-      { key: 'id', header: 'ID', sortable: true, width: '80px' },
-      { key: 'action', header: 'Действие', sortable: true },
-      { key: 'user', header: 'Пользователь' },
-      { key: 'entity', header: 'Объект' },
-      { key: 'createdAt', header: 'Дата', sortable: true },
+      { key: 'id', header: 'ID', sortable: true, width: '70px' },
+      {
+        key: 'action',
+        header: 'Действие',
+        sortable: true,
+        render: (v) => {
+          const map: Record<string, { label: string; color: string }> = {
+            login:    { label: 'Вход',      color: 'blue'   },
+            logout:   { label: 'Выход',     color: 'gray'   },
+            create:   { label: 'Создание',  color: 'green'  },
+            update:   { label: 'Изменение', color: 'yellow' },
+            delete:   { label: 'Удаление',  color: 'red'    },
+            approve:  { label: 'Одобрение', color: 'purple' },
+            export:   { label: 'Экспорт',   color: 'indigo' },
+            view:     { label: 'Просмотр',  color: 'gray'   },
+          };
+          const s = map[String(v ?? '')];
+          return s
+            ? <StatusBadge label={s.label} color={s.color} />
+            : <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{String(v ?? '—')}</span>;
+        },
+      },
+      {
+        key: 'eventCategory',
+        header: 'Категория',
+        render: (v) => v
+          ? <span className="text-sm text-gray-600 dark:text-gray-300">{String(v)}</span>
+          : <span className="text-gray-400">—</span>,
+      },
+      {
+        key: 'entityType',
+        header: 'Тип объекта',
+        render: (v) => v
+          ? <span className="text-sm font-mono text-violet-600 dark:text-violet-400">{String(v)}</span>
+          : <span className="text-gray-400">—</span>,
+      },
+      {
+        key: 'entityId',
+        header: 'ID объекта',
+        width: '100px',
+        render: (v) => v != null
+          ? <span className="text-sm text-gray-500 dark:text-gray-400">#{String(v)}</span>
+          : <span className="text-gray-400">—</span>,
+      },
+      {
+        key: 'userId',
+        header: 'Польз.',
+        width: '90px',
+        render: (v) => v != null
+          ? <span className="text-sm text-gray-600 dark:text-gray-300">#{String(v)}</span>
+          : <span className="text-gray-400">—</span>,
+      },
+      {
+        key: 'ipAddress',
+        header: 'IP',
+        render: (v) => v
+          ? <span className="text-xs font-mono text-gray-500 dark:text-gray-400">{String(v)}</span>
+          : <span className="text-gray-400">—</span>,
+      },
+      { key: 'createdAt', header: 'Дата', sortable: true, render: (v) => fmtDate(v) },
     ],
     formFields: [],
   },
   reports: {
     slug: 'reports',
     title: 'Отчёты',
-    apiEndpoint: '/reports',
+    apiEndpoint: '/report-templates',
     searchField: 'названию',
     columns: [
       { key: 'id', header: 'ID', sortable: true, width: '80px' },
-      { key: 'title', header: 'Название', sortable: true },
-      { key: 'type', header: 'Тип' },
-      { key: 'createdAt', header: 'Создан', sortable: true },
+      {
+        key: 'name',
+        header: 'Название',
+        sortable: true,
+        render: (v) => v ? <span className="font-medium">{String(v)}</span> : <span className="text-gray-400">—</span>,
+      },
+      {
+        key: 'reportType',
+        header: 'Тип',
+        render: (v) => {
+          const map: Record<string, { label: string; color: string }> = {
+            financial:  { label: 'Финансовый', color: 'green' },
+            progress:   { label: 'Прогресс',   color: 'blue'  },
+            inspection: { label: 'Инспекция',  color: 'orange' },
+            other:      { label: 'Прочее',     color: 'gray'  },
+          };
+          const s = map[String(v ?? '')];
+          return s ? <StatusBadge label={s.label} color={s.color} /> : <span className="text-gray-400">—</span>;
+        },
+      },
+      { key: 'description', header: 'Описание', render: (v) => v ? <span className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-xs block">{String(v)}</span> : <span className="text-gray-400">—</span> },
+      {
+        key: 'isActive',
+        header: 'Статус',
+        render: (v) => v ? <StatusBadge label="Активен" color="green" /> : <StatusBadge label="Неактивен" color="gray" />,
+      },
+      { key: 'createdAt', header: 'Создан', sortable: true, render: (v) => fmtDate(v) },
     ],
     formFields: [
-      { key: 'title', label: 'Название', type: 'text', required: true },
+      { key: 'name', label: 'Название', type: 'text', required: true },
       {
-        key: 'type',
+        key: 'reportType',
         label: 'Тип',
         type: 'select',
         options: [
@@ -728,7 +1146,7 @@ export const MODULE_CATEGORIES: ModuleCategory[] = [
   },
   {
     name: 'Ресурсы',
-    modules: [ADMIN_MODULES.materials, ADMIN_MODULES.equipment, ADMIN_MODULES.suppliers, ADMIN_MODULES.documents],
+    modules: [ADMIN_MODULES.materials, ADMIN_MODULES.equipment, ADMIN_MODULES.suppliers],
   },
   {
     name: 'Финансы',

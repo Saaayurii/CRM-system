@@ -152,6 +152,7 @@ export class UsersService {
       email: user.email,
       phone: user.phone,
       position: user.position,
+      avatarUrl: user.avatarUrl ?? undefined,
       accountId: user.accountId,
       roleId: user.roleId,
       role: user.role,

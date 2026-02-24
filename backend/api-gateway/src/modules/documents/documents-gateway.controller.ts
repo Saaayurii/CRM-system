@@ -38,16 +38,24 @@ export class DocumentsGatewayController {
   @ApiOperation({ summary: 'Get all documents' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
+  @ApiQuery({ name: 'documentType', required: false })
+  @ApiQuery({ name: 'status', required: false })
+  @ApiQuery({ name: 'projectId', required: false })
+  @ApiQuery({ name: 'search', required: false })
   async findAllDocuments(
     @Req() req: Request,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
+    @Query('documentType') documentType?: string,
+    @Query('status') status?: string,
+    @Query('projectId') projectId?: number,
+    @Query('search') search?: string,
   ) {
     return this.proxyService.forward('documents', {
       method: 'GET',
       path: '/documents',
       headers: { authorization: req.headers.authorization || '' },
-      params: { page, limit },
+      params: { page, limit, documentType, status, projectId, search },
     });
   }
 

@@ -39,7 +39,8 @@ COPY --from=build /app/package*.json ./
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nestjs -u 1001
 
-RUN mkdir -p /app/logs && chown -R nestjs:nodejs /app/logs
+RUN mkdir -p /app/logs /app/uploads/chat /app/uploads/documents && \
+    chown -R nestjs:nodejs /app/logs /app/uploads
 
 USER nestjs
 

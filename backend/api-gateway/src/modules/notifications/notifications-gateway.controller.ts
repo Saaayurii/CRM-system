@@ -17,6 +17,7 @@ import {
   ApiBearerAuth,
   ApiQuery,
 } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 import { Request, Response } from 'express';
 import * as http from 'http';
 import { ConfigService } from '@nestjs/config';
@@ -36,6 +37,7 @@ export class NotificationsGatewayController {
 
   // SSE proxy — forward EventSource to notifications-service
   @Public()
+  @SkipThrottle()
   @Get('notifications/events')
   @ApiOperation({ summary: 'SSE stream for real-time notifications' })
   @ApiQuery({ name: 'token', required: true })

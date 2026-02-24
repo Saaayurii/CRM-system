@@ -13,6 +13,8 @@ volumes:
     driver: local
   redis_data:
     driver: local
+  chat_uploads:
+    driver: local
   documents_pdfs:
     driver: local
 
@@ -127,8 +129,8 @@ services:
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3030}
 
       # Rate Limiting
-      RATE_LIMIT_TTL: 60000
-      RATE_LIMIT_MAX: 100
+      RATE_LIMIT_TTL: 60
+      RATE_LIMIT_MAX: 300
     depends_on:
       redis:
         condition: service_healthy
@@ -139,6 +141,8 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    volumes:
+      - chat_uploads:/app/uploads
 
   # ==========================================
   # AUTH SERVICE (АУТЕНТИФИКАЦИЯ)

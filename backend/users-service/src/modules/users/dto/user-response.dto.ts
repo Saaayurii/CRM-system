@@ -16,6 +16,9 @@ export class UserResponseDto {
   @ApiPropertyOptional({ example: 'Project Manager' })
   position?: string;
 
+  @ApiPropertyOptional({ example: 'https://example.com/avatar.jpg' })
+  avatarUrl?: string;
+
   @ApiProperty({ example: 1 })
   accountId: number;
 

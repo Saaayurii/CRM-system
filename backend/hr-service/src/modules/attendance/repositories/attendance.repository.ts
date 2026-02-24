@@ -6,24 +6,26 @@ import { CreateAttendanceDto, UpdateAttendanceDto } from '../dto';
 export class AttendanceRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(userId: number, page: number, limit: number) {
+  async findAll(userId: number | null, page: number, limit: number) {
     const skip = (page - 1) * limit;
+    const where = userId !== null ? { userId } : {};
     const [data, total] = await Promise.all([
       (this.prisma as any).attendance.findMany({
-        where: { userId },
+        where,
         skip,
         take: limit,
         orderBy: { attendanceDate: 'desc' },
+        include: { user: { select: { name: true } } },
       }),
-      (this.prisma as any).attendance.count({ where: { userId } }),
+      (this.prisma as any).attendance.count({ where }),
     ]);
     return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
-  async findById(id: number, userId: number) {
-    return (this.prisma as any).attendance.findFirst({
-      where: { id, userId },
-    });
+  async findById(id: number, userId: number | null) {
+    const where: any = { id };
+    if (userId !== null) where.userId = userId;
+    return (this.prisma as any).attendance.findFirst({ where });
   }
 
   async create(userId: number, dto: CreateAttendanceDto) {
@@ -43,7 +45,7 @@ export class AttendanceRepository {
     });
   }
 
-  async update(id: number, userId: number, dto: UpdateAttendanceDto) {
+  async update(id: number, userId: number | null, dto: UpdateAttendanceDto) {
     const record = await this.findById(id, userId);
     if (!record) return null;
     return (this.prisma as any).attendance.update({
@@ -72,7 +74,7 @@ export class AttendanceRepository {
     });
   }
 
-  async delete(id: number, userId: number) {
+  async delete(id: number, userId: number | null) {
     const record = await this.findById(id, userId);
     if (!record) return null;
     return (this.prisma as any).attendance.delete({ where: { id } });

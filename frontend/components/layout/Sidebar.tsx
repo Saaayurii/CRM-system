@@ -30,7 +30,8 @@ export default function Sidebar() {
   const user = useAuthStore((s) => s.user);
   const isSuperAdmin = user?.role?.code === 'super_admin';
   const roleCode = user?.role?.code;
-  const showTeams = isSuperAdmin || roleCode === 'admin' || roleCode === 'project_manager';
+  const isHR = roleCode === 'hr_manager';
+  const showTeams = isSuperAdmin || roleCode === 'admin' || roleCode === 'project_manager' || isHR;
   const showChat = !isSuperAdmin;
 
   const trigger = useRef<HTMLButtonElement>(null);
@@ -215,6 +216,52 @@ export default function Sidebar() {
                             </span>
                           </Link>
                         </li>
+                        {isHR && (
+                          <>
+                            <li className="mb-1 last:mb-0">
+                              <Link
+                                href="/dashboard/hr/attendance"
+                                className={`block transition duration-150 truncate ${
+                                  pathname === '/dashboard/hr/attendance'
+                                    ? 'text-violet-500'
+                                    : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                                }`}
+                              >
+                                <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
+                                  Посещаемость
+                                </span>
+                              </Link>
+                            </li>
+                            <li className="mb-1 last:mb-0">
+                              <Link
+                                href="/dashboard/hr/time-off"
+                                className={`block transition duration-150 truncate ${
+                                  pathname === '/dashboard/hr/time-off'
+                                    ? 'text-violet-500'
+                                    : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                                }`}
+                              >
+                                <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
+                                  Отпуска
+                                </span>
+                              </Link>
+                            </li>
+                            <li className="mb-1 last:mb-0">
+                              <Link
+                                href="/dashboard/hr/documents"
+                                className={`block transition duration-150 truncate ${
+                                  pathname === '/dashboard/hr/documents'
+                                    ? 'text-violet-500'
+                                    : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                                }`}
+                              >
+                                <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
+                                  Документы сотрудников
+                                </span>
+                              </Link>
+                            </li>
+                          </>
+                        )}
                         <li className="mb-1 last:mb-0">
                           <Link
                             href="/dashboard/documents"

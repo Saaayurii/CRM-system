@@ -33,7 +33,7 @@ export class AttendanceController {
   constructor(private readonly service: AttendanceService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get all attendance records for current user' })
+  @ApiOperation({ summary: 'Get attendance records (admins see all)' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   findAll(
@@ -43,6 +43,7 @@ export class AttendanceController {
   ) {
     return this.service.findAll(
       user.id,
+      user.roleId,
       Number(page) || 1,
       Number(limit) || 20,
     );
@@ -54,13 +55,13 @@ export class AttendanceController {
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser() user: RequestUser,
   ) {
-    return this.service.findById(id, user.id);
+    return this.service.findById(id, user.id, user.roleId);
   }
 
   @Post()
   @ApiOperation({ summary: 'Create attendance record' })
   create(@Body() dto: CreateAttendanceDto, @CurrentUser() user: RequestUser) {
-    return this.service.create(user.id, dto);
+    return this.service.create(user.id, user.roleId, dto);
   }
 
   @Put(':id')
@@ -70,7 +71,7 @@ export class AttendanceController {
     @Body() dto: UpdateAttendanceDto,
     @CurrentUser() user: RequestUser,
   ) {
-    return this.service.update(id, user.id, dto);
+    return this.service.update(id, user.id, user.roleId, dto);
   }
 
   @Delete(':id')
@@ -79,6 +80,6 @@ export class AttendanceController {
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser() user: RequestUser,
   ) {
-    return this.service.delete(id, user.id);
+    return this.service.delete(id, user.id, user.roleId);
   }
 }

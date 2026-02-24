@@ -11,7 +11,7 @@ export interface ColumnDef<T = Record<string, unknown>> {
 export interface FormField {
   key: string;
   label: string;
-  type: 'text' | 'number' | 'email' | 'password' | 'select' | 'textarea' | 'date' | 'checkbox';
+  type: 'text' | 'number' | 'email' | 'password' | 'select' | 'textarea' | 'date' | 'checkbox' | 'file';
   required?: boolean;
   options?: { value: string | number; label: string }[];
   placeholder?: string;
@@ -21,6 +21,10 @@ export interface FormField {
     valueKey: string;
     labelKey: string;
   };
+  /** Upload endpoint for file fields (e.g. '/employee-documents/upload') */
+  uploadEndpoint?: string;
+  /** Accepted file types for file input (e.g. '.pdf,.doc,.docx') */
+  accept?: string;
 }
 
 export interface CustomRowAction {

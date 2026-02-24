@@ -137,9 +137,9 @@ function SuperAdminDashboard({ user }: { user: any }) {
 
         <button
           onClick={() => router.push('/admin/settings')}
-          className="group text-left"
+          className="group text-left h-full"
         >
-          <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-5 transition-shadow group-hover:shadow-md group-hover:ring-1 group-hover:ring-violet-500/20">
+          <div className="h-full bg-white dark:bg-gray-800 shadow-xs rounded-xl p-5 transition-shadow group-hover:shadow-md group-hover:ring-1 group-hover:ring-violet-500/20">
             <div className="flex items-center justify-between mb-2">
               <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Настройки</h2>
               <svg className="w-5 h-5 text-gray-400 group-hover:text-violet-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

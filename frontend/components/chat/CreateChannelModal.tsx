@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import { useChatStore } from '@/stores/chatStore';
+import { useAuthStore } from '@/stores/authStore';
 
 interface CreateChannelModalProps {
   onClose: () => void;
@@ -24,6 +25,7 @@ export default function CreateChannelModal({ onClose }: CreateChannelModalProps)
 
   const createChannel = useChatStore((s) => s.createChannel);
   const setActiveChannel = useChatStore((s) => s.setActiveChannel);
+  const currentUser = useAuthStore((s) => s.user);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -38,13 +40,17 @@ export default function CreateChannelModal({ onClose }: CreateChannelModalProps)
     fetchUsers();
   }, []);
 
-  const filteredUsers = search.trim()
-    ? users.filter(
-        (u) =>
-          u.name.toLowerCase().includes(search.toLowerCase()) ||
-          u.email.toLowerCase().includes(search.toLowerCase())
-      )
-    : users;
+  const q = search.trim().toLowerCase();
+
+  // «Избранное» — текущий пользователь, всегда первым
+  const selfUser = currentUser ? users.find((u) => u.id === currentUser.id) : null;
+  const showSelf = !q || 'избранное'.includes(q) ||
+    (selfUser && (selfUser.name.toLowerCase().includes(q) || selfUser.email.toLowerCase().includes(q)));
+
+  // Остальные пользователи без текущего
+  const filteredUsers = users
+    .filter((u) => u.id !== currentUser?.id)
+    .filter((u) => !q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q));
 
   const toggleUser = (user: UserOption) => {
     if (channelType === 'direct') {
@@ -156,36 +162,63 @@ export default function CreateChannelModal({ onClose }: CreateChannelModalProps)
 
         {/* User list */}
         <div className="max-h-48 overflow-y-auto mb-4 border border-gray-200 dark:border-gray-600 rounded-lg">
-          {filteredUsers.length === 0 ? (
+          {!showSelf && filteredUsers.length === 0 ? (
             <p className="p-3 text-sm text-gray-400 text-center">Пользователи не найдены</p>
           ) : (
-            filteredUsers.map((user) => {
-              const isSelected = selectedUsers.some((u) => u.id === user.id);
-              return (
+            <>
+              {/* Избранное — всегда первым */}
+              {showSelf && selfUser && (
                 <button
-                  key={user.id}
-                  onClick={() => toggleUser(user)}
-                  className={`w-full flex items-center gap-3 px-3 py-2 text-left text-sm transition-colors ${
-                    isSelected
+                  onClick={() => toggleUser(selfUser)}
+                  className={`w-full flex items-center gap-3 px-3 py-2 text-left text-sm transition-colors border-b border-gray-100 dark:border-gray-700 ${
+                    selectedUsers.some((u) => u.id === selfUser.id)
                       ? 'bg-violet-50 dark:bg-violet-500/10'
                       : 'hover:bg-gray-50 dark:hover:bg-gray-700'
                   }`}
                 >
-                  <div className="w-8 h-8 rounded-full bg-sky-500 flex items-center justify-center text-white text-xs font-semibold shrink-0">
-                    {user.name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()}
+                  <div className="w-8 h-8 rounded-full bg-violet-500 flex items-center justify-center text-white text-sm shrink-0">
+                    ★
                   </div>
                   <div className="min-w-0">
-                    <p className="font-medium text-gray-800 dark:text-gray-100 truncate">{user.name}</p>
-                    <p className="text-xs text-gray-400 truncate">{user.email}</p>
+                    <p className="font-medium text-gray-800 dark:text-gray-100">Избранное</p>
+                    <p className="text-xs text-gray-400 truncate">{selfUser.email}</p>
                   </div>
-                  {isSelected && (
+                  {selectedUsers.some((u) => u.id === selfUser.id) && (
                     <svg className="w-5 h-5 text-violet-500 shrink-0 ml-auto" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
                   )}
                 </button>
-              );
-            })
+              )}
+
+              {filteredUsers.map((user) => {
+                const isSelected = selectedUsers.some((u) => u.id === user.id);
+                return (
+                  <button
+                    key={user.id}
+                    onClick={() => toggleUser(user)}
+                    className={`w-full flex items-center gap-3 px-3 py-2 text-left text-sm transition-colors ${
+                      isSelected
+                        ? 'bg-violet-50 dark:bg-violet-500/10'
+                        : 'hover:bg-gray-50 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    <div className="w-8 h-8 rounded-full bg-sky-500 flex items-center justify-center text-white text-xs font-semibold shrink-0">
+                      {user.name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-medium text-gray-800 dark:text-gray-100 truncate">{user.name}</p>
+                      <p className="text-xs text-gray-400 truncate">{user.email}</p>
+                    </div>
+                    {isSelected && (
+                      <svg className="w-5 h-5 text-violet-500 shrink-0 ml-auto" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                  </button>
+                );
+              })}
+            </>
           )}
         </div>
 

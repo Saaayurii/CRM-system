@@ -2,7 +2,7 @@
 -- SEED DATA: Тестовые данные для CRM системы
 -- ==========================================
 -- Пароль для всех пользователей: Password123!
--- bcrypt hash для Password123!: $2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm
+-- bcrypt hash для Password123!: $2b$10$UOyw6UeEhniFBkWIUVOrduv8eCt1QlZYfrjt8dL/frjKIaVCl3d9S
 
 -- ==========================================
 -- 1. АККАУНТ (ОРГАНИЗАЦИЯ)
@@ -19,31 +19,31 @@ SELECT setval('accounts_id_seq', (SELECT MAX(id) FROM accounts));
 -- ==========================================
 
 INSERT INTO users (id, account_id, role_id, name, email, phone, password_digest, is_active, position, hire_date) VALUES
-(1, 1, 1, 'Иванов Сергей Петрович', 'admin@crm.local', '+7 (900) 111-11-11', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Генеральный директор', '2020-01-15'),
-(2, 1, 2, 'Петрова Анна Михайловна', 'anna@crm.local', '+7 (900) 222-22-22', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Администратор системы', '2020-03-01'),
-(3, 1, 3, 'Козлова Елена Викторовна', 'elena@crm.local', '+7 (900) 333-33-33', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'HR менеджер', '2021-02-10'),
-(4, 1, 4, 'Смирнов Алексей Дмитриевич', 'alexey@crm.local', '+7 (900) 444-44-44', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Менеджер проектов', '2021-05-15'),
-(5, 1, 5, 'Волков Дмитрий Игоревич', 'dmitry@crm.local', '+7 (900) 555-55-55', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Прораб', '2021-07-01'),
-(6, 1, 6, 'Новикова Ольга Сергеевна', 'olga@crm.local', '+7 (900) 666-66-66', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Снабженец', '2022-01-20'),
-(7, 1, 7, 'Морозов Андрей Владимирович', 'andrey@crm.local', '+7 (900) 777-77-77', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Кладовщик', '2022-03-15'),
-(8, 1, 8, 'Соколова Мария Александровна', 'maria@crm.local', '+7 (900) 888-88-88', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Бухгалтер', '2022-06-01'),
-(9, 1, 9, 'Лебедев Виктор Николаевич', 'victor@crm.local', '+7 (900) 999-99-99', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Инспектор', '2023-01-10'),
-(10, 1, 10, 'Кузнецов Павел Андреевич', 'pavel@crm.local', '+7 (900) 101-01-01', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Рабочий', '2023-04-15'),
-(13, 1, 5,  'Захаров Роман Павлович',       'roman.z@crm.local',   '+7 (900) 113-13-13', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Прораб',             '2022-04-01'),
-(14, 1, 5,  'Белов Игорь Константинович',   'igor.b@crm.local',    '+7 (900) 114-14-14', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Прораб',             '2022-08-15'),
-(15, 1, 4,  'Орлова Светлана Николаевна',   'sveta@crm.local',     '+7 (900) 115-15-15', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Менеджер проектов',  '2021-11-01'),
-(16, 1, 10, 'Тихонов Артём Сергеевич',      'artem.t@crm.local',   '+7 (900) 116-16-16', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Каменщик',           '2023-03-01'),
-(17, 1, 10, 'Фёдоров Максим Алексеевич',    'maxim.f@crm.local',   '+7 (900) 117-17-17', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Сварщик',           '2023-05-10'),
-(18, 1, 10, 'Григорьев Денис Олегович',     'denis.g@crm.local',   '+7 (900) 118-18-18', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Бетонщик',           '2023-06-01'),
-(19, 1, 10, 'Соловьёв Николай Иванович',    'nikola.s@crm.local',  '+7 (900) 119-19-19', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Монтажник',          '2023-07-15'),
-(20, 1, 10, 'Попов Антон Юрьевич',          'anton.p@crm.local',   '+7 (900) 120-20-20', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Электрик',           '2023-09-01'),
-(21, 1, 10, 'Крылов Евгений Петрович',      'evgeny.k@crm.local',  '+7 (900) 121-21-21', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Сантехник',          '2023-10-15'),
-(22, 1, 10, 'Васильев Олег Дмитриевич',     'oleg.v@crm.local',    '+7 (900) 122-22-22', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Плотник',            '2024-01-10'),
-(23, 1, 10, 'Зайцев Кирилл Андреевич',      'kirill.z@crm.local',  '+7 (900) 123-23-23', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Штукатур',           '2024-02-01'),
-(24, 1, 10, 'Матвеев Сергей Игоревич',      'sergey.m@crm.local',  '+7 (900) 124-24-24', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Плиточник',          '2024-03-15'),
-(25, 1, 9,  'Воробьёва Ирина Михайловна',   'irina.v@crm.local',   '+7 (900) 125-25-25', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Инспектор ОТК',      '2022-11-01'),
-(26, 1, 6,  'Ковалёв Алексей Борисович',    'aleksey.k@crm.local', '+7 (900) 126-26-26', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Снабженец',          '2023-02-01'),
-(27, 1, 7,  'Степанов Виктор Фёдорович',    'viktor.st@crm.local', '+7 (900) 127-27-27', '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', true, 'Кладовщик',          '2023-08-01')
+(1, 1, 1, 'Иванов Сергей Петрович', 'admin@crm.local', '+7 (900) 111-11-11', '$2b$10$UOyw6UeEhniFBkWIUVOrduv8eCt1QlZYfrjt8dL/frjKIaVCl3d9S', true, 'Генеральный директор', '2020-01-15'),
+(2, 1, 2, 'Петрова Анна Михайловна', 'anna@crm.local', '+7 (900) 222-22-22', '$2b$10$UOyw6UeEhniFBkWIUVOrduv8eCt1QlZYfrjt8dL/frjKIaVCl3d9S', true, 'Администратор системы', '2020-03-01'),
+(3, 1, 3, 'Козлова Елена Викторовна', 'elena@crm.local', '+7 (900) 333-33-33', '$2b$10$UOyw6UeEhniFBkWIUVOrduv8eCt1QlZYfrjt8dL/frjKIaVCl3d9S', true, 'HR менеджер', '2021-02-10'),
+(4, 1, 4, 'Смирнов Алексей Дмитриевич', 'alexey@crm.local', '+7 (900) 444-44-44', '$2b$10$UOyw6UeEhniFBkWIUVOrduv8eCt1QlZYfrjt8dL/frjKIaVCl3d9S', true, 'Менеджер проектов', '2021-05-15'),
+(5, 1, 5, 'Волков Дмитрий Игоревич', 'dmitry@crm.local', '+7 (900) 555-55-55', '$2b$10$UOyw6UeEhniFBkWIUVOrduv8eCt1QlZYfrjt8dL/frjKIaVCl3d9S', true, 'Прораб', '2021-07-01'),
+(6, 1, 6, 'Новикова Ольга Сергеевна', 'olga@crm.local', '+7 (900) 666-66-66', '$2b$10$UOyw6UeEhniFBkWIUVOrduv8eCt1QlZYfrjt8dL/frjKIaVCl3d9S', true, 'Снабженец', '2022-01-20'),
+(7, 1, 7, 'Морозов Андрей Владимирович', 'andrey@crm.local', '+7 (900) 777-77-77', '$2b$10$UOyw6UeEhniFBkWIUVOrduv8eCt1QlZYfrjt8dL/frjKIaVCl3d9S', true, 'Кладовщик', '2022-03-15'),
+(8, 1, 8, 'Соколова Мария Александровна', 'maria@crm.local', '+7 (900) 888-88-88', '$2b$10$UOyw6UeEhniFBkWIUVOrduv8eCt1QlZYfrjt8dL/frjKIaVCl3d9S', true, 'Бухгалтер', '2022-06-01'),
+(9, 1, 9, 'Лебедев Виктор Николаевич', 'victor@crm.local', '+7 (900) 999-99-99', '$2b$10$UOyw6UeEhniFBkWIUVOrduv8eCt1QlZYfrjt8dL/frjKIaVCl3d9S', true, 'Инспектор', '2023-01-10'),
+(10, 1, 10, 'Кузнецов Павел Андреевич', 'pavel@crm.local', '+7 (900) 101-01-01', '$2b$10$UOyw6UeEhniFBkWIUVOrduv8eCt1QlZYfrjt8dL/frjKIaVCl3d9S', true, 'Рабочий', '2023-04-15'),
+(13, 1, 5,  'Захаров Роман Павлович',       'roman.z@crm.local',   '+7 (900) 113-13-13', '$2b$10$UOyw6UeEhniFBkWIUVOrduv8eCt1QlZYfrjt8dL/frjKIaVCl3d9S', true, 'Прораб',             '2022-04-01'),
+(14, 1, 5,  'Белов Игорь Константинович',   'igor.b@crm.local',    '+7 (900) 114-14-14', '$2b$10$UOyw6UeEhniFBkWIUVOrduv8eCt1QlZYfrjt8dL/frjKIaVCl3d9S', true, 'Прораб',             '2022-08-15'),
+(15, 1, 4,  'Орлова Светлана Николаевна',   'sveta@crm.local',     '+7 (900) 115-15-15', '$2b$10$UOyw6UeEhniFBkWIUVOrduv8eCt1QlZYfrjt8dL/frjKIaVCl3d9S', true, 'Менеджер проектов',  '2021-11-01'),
+(16, 1, 10, 'Тихонов Артём Сергеевич',      'artem.t@crm.local',   '+7 (900) 116-16-16', '$2b$10$UOyw6UeEhniFBkWIUVOrduv8eCt1QlZYfrjt8dL/frjKIaVCl3d9S', true, 'Каменщик',           '2023-03-01'),
+(17, 1, 10, 'Фёдоров Максим Алексеевич',    'maxim.f@crm.local',   '+7 (900) 117-17-17', '$2b$10$UOyw6UeEhniFBkWIUVOrduv8eCt1QlZYfrjt8dL/frjKIaVCl3d9S', true, 'Сварщик',           '2023-05-10'),
+(18, 1, 10, 'Григорьев Денис Олегович',     'denis.g@crm.local',   '+7 (900) 118-18-18', '$2b$10$UOyw6UeEhniFBkWIUVOrduv8eCt1QlZYfrjt8dL/frjKIaVCl3d9S', true, 'Бетонщик',           '2023-06-01'),
+(19, 1, 10, 'Соловьёв Николай Иванович',    'nikola.s@crm.local',  '+7 (900) 119-19-19', '$2b$10$UOyw6UeEhniFBkWIUVOrduv8eCt1QlZYfrjt8dL/frjKIaVCl3d9S', true, 'Монтажник',          '2023-07-15'),
+(20, 1, 10, 'Попов Антон Юрьевич',          'anton.p@crm.local',   '+7 (900) 120-20-20', '$2b$10$UOyw6UeEhniFBkWIUVOrduv8eCt1QlZYfrjt8dL/frjKIaVCl3d9S', true, 'Электрик',           '2023-09-01'),
+(21, 1, 10, 'Крылов Евгений Петрович',      'evgeny.k@crm.local',  '+7 (900) 121-21-21', '$2b$10$UOyw6UeEhniFBkWIUVOrduv8eCt1QlZYfrjt8dL/frjKIaVCl3d9S', true, 'Сантехник',          '2023-10-15'),
+(22, 1, 10, 'Васильев Олег Дмитриевич',     'oleg.v@crm.local',    '+7 (900) 122-22-22', '$2b$10$UOyw6UeEhniFBkWIUVOrduv8eCt1QlZYfrjt8dL/frjKIaVCl3d9S', true, 'Плотник',            '2024-01-10'),
+(23, 1, 10, 'Зайцев Кирилл Андреевич',      'kirill.z@crm.local',  '+7 (900) 123-23-23', '$2b$10$UOyw6UeEhniFBkWIUVOrduv8eCt1QlZYfrjt8dL/frjKIaVCl3d9S', true, 'Штукатур',           '2024-02-01'),
+(24, 1, 10, 'Матвеев Сергей Игоревич',      'sergey.m@crm.local',  '+7 (900) 124-24-24', '$2b$10$UOyw6UeEhniFBkWIUVOrduv8eCt1QlZYfrjt8dL/frjKIaVCl3d9S', true, 'Плиточник',          '2024-03-15'),
+(25, 1, 9,  'Воробьёва Ирина Михайловна',   'irina.v@crm.local',   '+7 (900) 125-25-25', '$2b$10$UOyw6UeEhniFBkWIUVOrduv8eCt1QlZYfrjt8dL/frjKIaVCl3d9S', true, 'Инспектор ОТК',      '2022-11-01'),
+(26, 1, 6,  'Ковалёв Алексей Борисович',    'aleksey.k@crm.local', '+7 (900) 126-26-26', '$2b$10$UOyw6UeEhniFBkWIUVOrduv8eCt1QlZYfrjt8dL/frjKIaVCl3d9S', true, 'Снабженец',          '2023-02-01'),
+(27, 1, 7,  'Степанов Виктор Фёдорович',    'viktor.st@crm.local', '+7 (900) 127-27-27', '$2b$10$UOyw6UeEhniFBkWIUVOrduv8eCt1QlZYfrjt8dL/frjKIaVCl3d9S', true, 'Кладовщик',          '2023-08-01')
 ON CONFLICT (id) DO NOTHING;
 
 SELECT setval('users_id_seq', (SELECT MAX(id) FROM users));
@@ -308,6 +308,30 @@ INSERT INTO inspections (id, account_id, project_id, construction_site_id, inspe
 ON CONFLICT (id) DO NOTHING;
 
 SELECT setval('inspections_id_seq', (SELECT MAX(id) FROM inspections));
+
+-- ==========================================
+-- 18. ДОКУМЕНТЫ
+-- ==========================================
+
+INSERT INTO documents (id, account_id, document_type, title, document_number, description, project_id, version, file_url, file_size, file_type, issue_date, expiry_date, status, uploaded_by_user_id, access_level, tags, created_at) VALUES
+(1,  1, 'contract',       'Договор подряда №ДП-2024-001',             'ДП-2024-001', 'Договор на выполнение строительно-монтажных работ по объекту ЖК "Солнечный"',         1, '1.0', NULL, NULL,    NULL,  '2024-03-01', '2025-12-31', 'approved', 2, 'restricted', '["договор","подряд","смр"]', '2024-03-01 09:00:00'),
+(2,  1, 'permit',         'Разрешение на строительство РС-77-001',    'РС-77-001',   'Разрешение на строительство жилого комплекса, выданное Мосгосстройнадзором',           1, '1.0', NULL, NULL,    NULL,  '2024-02-15', '2026-02-15', 'approved', 2, 'public',     '["разрешение","строительство"]', '2024-02-15 10:00:00'),
+(3,  1, 'blueprint',      'Архитектурные чертежи корпуса А',          'АЧ-001-А',    'Комплект архитектурных чертежей корпуса А жилого комплекса, раздел АР',               1, '2.1', NULL, 15240000, 'application/pdf', '2024-01-20', NULL,         'approved', 2, 'restricted', '["чертежи","архитектура","корпус-а"]', '2024-01-20 11:00:00'),
+(4,  1, 'specification',  'Техническое задание на отделочные работы', 'ТЗ-2024-015', 'Техническое задание на выполнение отделочных работ во всех корпусах ЖК',             1, '1.2', NULL, 845000,  'application/pdf', '2024-05-10', NULL,         'approved', 4, 'restricted', '["тз","отделка"]', '2024-05-10 14:00:00'),
+(5,  1, 'contract',       'Договор поставки материалов №ПМ-2024-008', 'ПМ-2024-008', 'Договор поставки строительных материалов (бетон, арматура) для ЖК "Солнечный"',      1, '1.0', NULL, NULL,    NULL,  '2024-04-01', '2024-12-31', 'approved', 2, 'restricted', '["договор","поставка","материалы"]', '2024-04-01 08:30:00'),
+(6,  1, 'report',         'Отчёт о ходе строительства за Q2 2024',   'ОТЧ-2024-Q2', 'Ежеквартальный отчёт о выполнении работ, освоении бюджета и отклонениях от плана',    1, '1.0', NULL, 2100000, 'application/pdf', '2024-07-05', NULL,         'approved', 4, 'public',     '["отчёт","квартал","прогресс"]', '2024-07-05 16:00:00'),
+(7,  1, 'contract',       'Договор аренды строительной техники',      'АТ-2024-003', 'Договор аренды башенного крана и экскаватора для производства работ',                 2, '1.0', NULL, NULL,    NULL,  '2024-06-15', '2025-06-15', 'approved', 2, 'restricted', '["аренда","техника","кран"]', '2024-06-15 09:00:00'),
+(8,  1, 'blueprint',      'Конструктивные чертежи фундамента',        'КЧ-002-Ф',    'Чертежи фундаментной плиты бизнес-центра, раздел КР',                                  2, '1.0', NULL, 8760000, 'application/pdf', '2024-05-20', NULL,         'approved', 2, 'restricted', '["чертежи","фундамент","конструктив"]', '2024-05-20 10:30:00'),
+(9,  1, 'permit',         'Разрешение на ввод объекта в эксплуатацию','РВЭ-2024-004','Разрешение на ввод склада "Логистик Парк" в эксплуатацию',                             3, '1.0', NULL, NULL,    NULL,  '2024-11-30', '2034-11-30', 'approved', 2, 'public',     '["ввод","эксплуатация","склад"]', '2024-11-30 12:00:00'),
+(10, 1, 'act',            'Акт выполненных работ КС-2 №15',           'КС2-2024-015','Акт сдачи-приёмки выполненных строительно-монтажных работ за октябрь 2024',           1, '1.0', NULL, 540000,  'application/pdf', '2024-11-01', NULL,         'approved', 5, 'restricted', '["акт","кс-2","приёмка"]', '2024-11-01 17:00:00'),
+(11, 1, 'report',         'Отчёт о расходовании бюджета',             'БЮД-2024-03', 'Финансовый отчёт по расходованию бюджета проекта за 9 месяцев 2024 года',             2, '1.0', NULL, 1890000, 'application/pdf', '2024-10-15', NULL,         'approved', 8, 'restricted', '["бюджет","финансы","отчёт"]', '2024-10-15 14:00:00'),
+(12, 1, 'specification',  'Спецификация оборудования серверной',      'СП-ИТ-001',   'Спецификация на поставку и монтаж серверного и телекоммуникационного оборудования',   2, '1.0', NULL, 320000,  'application/pdf', '2024-08-01', NULL,         'draft',    4, 'restricted', '["спецификация","ит","серверная"]', '2024-08-01 11:00:00'),
+(13, 1, 'contract',       'Государственный контракт №ГК-2024-045',    'ГК-2024-045', 'Государственный контракт на выполнение работ по реконструкции школы №45',             4, '1.0', NULL, NULL,    NULL,  '2024-06-01', '2025-03-01', 'approved', 2, 'public',     '["госконтракт","школа","реконструкция"]', '2024-06-01 09:00:00'),
+(14, 1, 'blueprint',      'Проект планировки территории коттеджей',   'ПП-КП-001',   'Проект планировки и межевания территории коттеджного посёлка "Лесная поляна"',        5, '1.0', NULL, 12500000,'application/pdf', '2025-03-10', NULL,         'pending',  4, 'restricted', '["планировка","межевание","коттедж"]', '2025-03-10 10:00:00'),
+(15, 1, 'other',          'Инструкция по охране труда',               'ОТ-ИНС-001',  'Инструкция по охране труда и технике безопасности для работников строительных объектов', NULL, '3.0', NULL, 780000, 'application/pdf', '2024-01-01', '2025-01-01', 'approved', 2, 'public',     '["охрана-труда","инструкция","тб"]', '2024-01-01 08:00:00')
+ON CONFLICT (id) DO NOTHING;
+
+SELECT setval('documents_id_seq', (SELECT MAX(id) FROM documents));
 
 -- ==========================================
 -- ГОТОВО

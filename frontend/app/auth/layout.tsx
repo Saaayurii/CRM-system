@@ -3,9 +3,9 @@
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <main className="bg-gradient-to-b from-white to-gray-100 dark:from-gray-900 dark:to-gray-800 min-h-screen">
-      <div className="relative md:flex md:min-h-screen">
+      <div className="relative md:flex  md:min-h-screen">
         {/* Content */}
-        <div className="md:w-1/2 flex items-center justify-center px-4 sm:px-6 lg:px-12">
+        <div className="md:w-1/2 flex items-center justify-center min-h-screen md:min-h-0 px-4 sm:px-6 lg:px-12">
           <div className="w-full max-w-md bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-8 sm:p-10 animate-fadeInSoft">
             {children}
           </div>

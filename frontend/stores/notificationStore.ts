@@ -18,6 +18,7 @@ interface NotificationState {
   unreadCount: number;
   isLoading: boolean;
   eventSource: EventSource | null;
+  reconnectTimer: ReturnType<typeof setTimeout> | null;
   fetchNotifications: () => Promise<void>;
   markAsRead: (id: number) => Promise<void>;
   markAllAsRead: () => Promise<void>;
@@ -30,6 +31,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   unreadCount: 0,
   isLoading: false,
   eventSource: null,
+  reconnectTimer: null,
 
   fetchNotifications: async () => {
     set({ isLoading: true });
@@ -99,17 +101,31 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     });
 
     es.onerror = () => {
-      // Auto-reconnect is built into EventSource
+      // Close the stale connection (likely expired token) and reconnect
+      // after a delay to avoid hammering the server with 401s
+      es.close();
+      set({ eventSource: null });
+      const timer = setTimeout(() => {
+        set({ reconnectTimer: null });
+        const freshToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+        if (freshToken) {
+          get().connectSSE();
+        }
+      }, 30000);
+      set({ reconnectTimer: timer });
     };
 
     set({ eventSource: es });
   },
 
   disconnectSSE: () => {
-    const { eventSource } = get();
+    const { eventSource, reconnectTimer } = get();
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer);
+    }
     if (eventSource) {
       eventSource.close();
-      set({ eventSource: null });
     }
+    set({ eventSource: null, reconnectTimer: null });
   },
 }));

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { FormField } from '@/types/admin';
 import api from '@/lib/api';
 
@@ -69,6 +69,9 @@ export default function EntityFormModal({
 }: EntityFormModalProps) {
   const [formData, setFormData] = useState<Record<string, unknown>>({});
   const [asyncOptions, setAsyncOptions] = useState<Record<string, { value: string | number; label: string }[]>>({});
+  const [uploadingFields, setUploadingFields] = useState<Set<string>>(new Set());
+  const [uploadErrors, setUploadErrors] = useState<Record<string, string>>({});
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   useEffect(() => {
     if (open) {
@@ -103,6 +106,29 @@ export default function EntityFormModal({
 
   const handleChange = (key: string, value: unknown) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleFileChange = async (field: FormField, file: File | null) => {
+    if (!file || !field.uploadEndpoint) return;
+    setUploadingFields((prev) => new Set(prev).add(field.key));
+    setUploadErrors((prev) => ({ ...prev, [field.key]: '' }));
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      // Do NOT set Content-Type manually — axios will set multipart/form-data with correct boundary
+      const { data } = await api.post(field.uploadEndpoint, fd, {
+        headers: { 'Content-Type': undefined },
+      });
+      handleChange(field.key, data.fileUrl);
+    } catch {
+      setUploadErrors((prev) => ({ ...prev, [field.key]: 'Ошибка загрузки файла' }));
+    } finally {
+      setUploadingFields((prev) => {
+        const next = new Set(prev);
+        next.delete(field.key);
+        return next;
+      });
+    }
   };
 
   // Fields that must never be sent in request body (always server-managed)
@@ -188,6 +214,55 @@ export default function EntityFormModal({
                       placeholder={field.placeholder}
                       required={field.required}
                     />
+                  ) : field.type === 'file' ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => fileInputRefs.current[field.key]?.click()}
+                          disabled={uploadingFields.has(field.key)}
+                          className="btn-sm border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
+                        >
+                          {uploadingFields.has(field.key) ? (
+                            <span className="flex items-center gap-1.5">
+                              <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                              </svg>
+                              Загрузка...
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1.5">
+                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                              </svg>
+                              Выбрать файл
+                            </span>
+                          )}
+                        </button>
+                        {formData[field.key] && (
+                          <a
+                            href={String(formData[field.key])}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-violet-500 hover:text-violet-600 truncate max-w-[180px]"
+                            title={String(formData[field.key])}
+                          >
+                            {String(formData[field.key]).split('/').pop()}
+                          </a>
+                        )}
+                      </div>
+                      {uploadErrors[field.key] && (
+                        <p className="text-xs text-red-500">{uploadErrors[field.key]}</p>
+                      )}
+                      <input
+                        ref={(el) => { fileInputRefs.current[field.key] = el; }}
+                        type="file"
+                        accept={field.accept}
+                        className="hidden"
+                        onChange={(e) => handleFileChange(field, e.target.files?.[0] ?? null)}
+                      />
+                    </div>
                   ) : (
                     <input
                       type={field.type}

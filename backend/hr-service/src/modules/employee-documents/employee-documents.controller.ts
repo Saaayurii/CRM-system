@@ -33,7 +33,7 @@ export class EmployeeDocumentsController {
   constructor(private readonly service: EmployeeDocumentsService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get all employee documents for current user' })
+  @ApiOperation({ summary: 'Get all employee documents for current account' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   findAll(
@@ -42,7 +42,7 @@ export class EmployeeDocumentsController {
     @Query('limit') limit?: string,
   ) {
     return this.service.findAll(
-      user.id,
+      user.accountId,
       Number(page) || 1,
       Number(limit) || 20,
     );
@@ -54,7 +54,7 @@ export class EmployeeDocumentsController {
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser() user: RequestUser,
   ) {
-    return this.service.findById(id, user.id);
+    return this.service.findById(id, user.accountId);
   }
 
   @Post()
@@ -73,7 +73,7 @@ export class EmployeeDocumentsController {
     @Body() dto: UpdateEmployeeDocumentDto,
     @CurrentUser() user: RequestUser,
   ) {
-    return this.service.update(id, user.id, dto);
+    return this.service.update(id, user.accountId, dto);
   }
 
   @Delete(':id')
@@ -82,6 +82,6 @@ export class EmployeeDocumentsController {
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser() user: RequestUser,
   ) {
-    return this.service.delete(id, user.id);
+    return this.service.delete(id, user.accountId);
   }
 }

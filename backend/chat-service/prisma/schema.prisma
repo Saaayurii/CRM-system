@@ -24,6 +24,7 @@ model User {
   accountId Int     @map("account_id")
   name      String  @db.VarChar(255)
   email     String  @unique @db.VarChar(255)
+  avatarUrl String? @map("avatar_url") @db.VarChar(500)
   isActive  Boolean @default(true) @map("is_active")
 
   chatChannelMembers ChatChannelMember[]

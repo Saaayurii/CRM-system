@@ -5,6 +5,13 @@ import api from '@/lib/api';
 
 /* ───────── Types ───────── */
 
+export interface UploadedAttachment {
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  fileUrl: string;
+}
+
 export interface ChatAttachment {
   id: number;
   fileName: string;
@@ -26,6 +33,7 @@ export interface ChatMessage {
   senderName: string;
   senderAvatarUrl?: string;
   text: string;
+  messageType: string;
   isEdited: boolean;
   replyToMessage?: {
     id: number;
@@ -86,6 +94,7 @@ export function mapRawMessage(raw: any): ChatMessage {
     senderName: raw.senderName ?? getFullName(user),
     senderAvatarUrl: raw.senderAvatarUrl ?? user.avatarUrl ?? undefined,
     text: raw.text ?? raw.messageText ?? '',
+    messageType: raw.messageType ?? 'text',
     isEdited: raw.isEdited ?? false,
     replyToMessage: replyRaw
       ? {
@@ -155,7 +164,7 @@ interface ChatState {
   // Actions
   connect: () => void;
   disconnect: () => void;
-  sendMessage: (channelId: number, text: string, attachments?: File[], replyToMessageId?: number) => void;
+  sendMessage: (channelId: number, text: string, attachments?: UploadedAttachment[], replyToMessageId?: number, messageType?: string) => void;
   editMessage: (messageId: number, text: string) => void;
   deleteMessage: (messageId: number) => void;
   reactToMessage: (messageId: number, reaction: string) => void;
@@ -342,14 +351,15 @@ export const useChatStore = create<ChatState>((set, get) => ({
     set({ isConnected: false });
   },
 
-  sendMessage: (channelId, text, attachments, replyToMessageId) => {
+  sendMessage: (channelId, text, attachments, replyToMessageId, messageType) => {
     if (!socketRef?.connected) return;
 
     socketRef.emit('message:send', {
       channelId,
       messageText: text,
-      attachments: attachments?.map((f) => ({ fileName: f.name, fileSize: f.size, mimeType: f.type })),
+      attachments: attachments ?? [],
       replyToMessageId,
+      messageType: messageType ?? 'text',
     });
 
     set({ replyToMessage: null });

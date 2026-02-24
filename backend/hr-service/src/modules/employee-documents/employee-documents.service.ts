@@ -6,12 +6,12 @@ import { CreateEmployeeDocumentDto, UpdateEmployeeDocumentDto } from './dto';
 export class EmployeeDocumentsService {
   constructor(private readonly repository: EmployeeDocumentRepository) {}
 
-  async findAll(userId: number, page = 1, limit = 20) {
-    return this.repository.findAll(userId, page, limit);
+  async findAll(accountId: number, page = 1, limit = 20) {
+    return this.repository.findAll(accountId, page, limit);
   }
 
-  async findById(id: number, userId: number) {
-    const document = await this.repository.findById(id, userId);
+  async findById(id: number, accountId: number) {
+    const document = await this.repository.findById(id, accountId);
     if (!document)
       throw new NotFoundException(`Employee document #${id} not found`);
     return document;
@@ -21,15 +21,15 @@ export class EmployeeDocumentsService {
     return this.repository.create(userId, dto);
   }
 
-  async update(id: number, userId: number, dto: UpdateEmployeeDocumentDto) {
-    const document = await this.repository.update(id, userId, dto);
+  async update(id: number, accountId: number, dto: UpdateEmployeeDocumentDto) {
+    const document = await this.repository.update(id, accountId, dto);
     if (!document)
       throw new NotFoundException(`Employee document #${id} not found`);
     return document;
   }
 
-  async delete(id: number, userId: number) {
-    const document = await this.repository.delete(id, userId);
+  async delete(id: number, accountId: number) {
+    const document = await this.repository.delete(id, accountId);
     if (!document)
       throw new NotFoundException(`Employee document #${id} not found`);
     return document;

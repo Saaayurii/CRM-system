@@ -32,6 +32,7 @@ export class PayrollRepository {
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
+        include: { user: { select: { name: true } } },
       }),
       (this.prisma as any).payroll.count({ where }),
     ]);

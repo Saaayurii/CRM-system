@@ -6,30 +6,41 @@ import { CreateEmployeeDocumentDto, UpdateEmployeeDocumentDto } from '../dto';
 export class EmployeeDocumentRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(userId: number, page: number, limit: number) {
+  async findAll(accountId: number, page: number, limit: number) {
     const skip = (page - 1) * limit;
-    const [data, total] = await Promise.all([
+    const where = { user: { accountId } };
+    const [rawData, total] = await Promise.all([
       (this.prisma as any).employeeDocument.findMany({
-        where: { userId },
+        where,
+        include: { user: { select: { id: true, name: true } } },
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
       }),
-      (this.prisma as any).employeeDocument.count({ where: { userId } }),
+      (this.prisma as any).employeeDocument.count({ where }),
     ]);
+    const data = rawData.map((doc: any) => ({
+      ...doc,
+      employeeName: doc.user?.name ?? '',
+      user: undefined,
+    }));
     return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
-  async findById(id: number, userId: number) {
-    return (this.prisma as any).employeeDocument.findFirst({
-      where: { id, userId },
+  async findById(id: number, accountId: number) {
+    const doc = await (this.prisma as any).employeeDocument.findFirst({
+      where: { id, user: { accountId } },
+      include: { user: { select: { id: true, name: true } } },
     });
+    if (!doc) return null;
+    return { ...doc, employeeName: doc.user?.name ?? '', user: undefined };
   }
 
-  async create(userId: number, dto: CreateEmployeeDocumentDto) {
+  async create(currentUserId: number, dto: CreateEmployeeDocumentDto) {
+    const targetUserId = dto.userId ?? currentUserId;
     return (this.prisma as any).employeeDocument.create({
       data: {
-        userId,
+        userId: targetUserId,
         documentType: dto.documentType,
         documentNumber: dto.documentNumber,
         issueDate: dto.issueDate ? new Date(dto.issueDate) : null,
@@ -41,8 +52,8 @@ export class EmployeeDocumentRepository {
     });
   }
 
-  async update(id: number, userId: number, dto: UpdateEmployeeDocumentDto) {
-    const record = await this.findById(id, userId);
+  async update(id: number, accountId: number, dto: UpdateEmployeeDocumentDto) {
+    const record = await this.findById(id, accountId);
     if (!record) return null;
     return (this.prisma as any).employeeDocument.update({
       where: { id },
@@ -68,8 +79,8 @@ export class EmployeeDocumentRepository {
     });
   }
 
-  async delete(id: number, userId: number) {
-    const record = await this.findById(id, userId);
+  async delete(id: number, accountId: number) {
+    const record = await this.findById(id, accountId);
     if (!record) return null;
     return (this.prisma as any).employeeDocument.delete({ where: { id } });
   }

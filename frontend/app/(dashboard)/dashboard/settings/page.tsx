@@ -20,6 +20,7 @@ interface PasswordForm {
 
 export default function SettingsPage() {
   const user = useAuthStore((s) => s.user);
+  const updateUser = useAuthStore((s) => s.updateUser);
   const addToast = useToastStore((s) => s.addToast);
 
   const [profile, setProfile] = useState<ProfileForm>({
@@ -34,7 +35,7 @@ export default function SettingsPage() {
     confirmPassword: '',
   });
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
@@ -68,15 +69,34 @@ export default function SettingsPage() {
     fetchProfile();
   }, [user?.id, user?.name, user?.email]);
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-    setAvatarFile(file);
+    if (!file || !user?.id) return;
+
+    // Show local preview immediately
     const reader = new FileReader();
-    reader.onloadend = () => {
-      setAvatarPreview(reader.result as string);
-    };
+    reader.onloadend = () => setAvatarPreview(reader.result as string);
     reader.readAsDataURL(file);
+
+    setAvatarUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const { data: uploadData } = await api.post('/users/avatar/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      const fileUrl: string = uploadData.fileUrl;
+
+      await api.put(`/users/${user.id}`, { avatarUrl: fileUrl });
+      setAvatarPreview(fileUrl);
+      updateUser({ avatarUrl: fileUrl });
+      addToast('success', 'Аватар обновлён');
+    } catch {
+      addToast('error', 'Ошибка при загрузке аватара');
+      setAvatarPreview(user.avatarUrl ?? null);
+    } finally {
+      setAvatarUploading(false);
+    }
   };
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
@@ -142,20 +162,29 @@ export default function SettingsPage() {
       <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-6 mb-6">
         <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">Аватар</h2>
         <div className="flex items-center gap-4">
-          <div className="w-20 h-20 rounded-full bg-violet-500 flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
+          <div className="relative w-20 h-20 rounded-full bg-violet-500 flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
             {avatarPreview ? (
               <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
             ) : (
               (profile.name || profile.email || 'U').charAt(0).toUpperCase()
             )}
+            {avatarUploading && (
+              <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                <svg className="w-6 h-6 text-white animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                </svg>
+              </div>
+            )}
           </div>
           <div>
-            <label className="cursor-pointer inline-flex items-center px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-lg transition-colors">
-              Загрузить фото
+            <label className={`cursor-pointer inline-flex items-center px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-lg transition-colors ${avatarUploading ? 'opacity-50 pointer-events-none' : ''}`}>
+              {avatarUploading ? 'Загрузка...' : 'Загрузить фото'}
               <input
                 type="file"
                 accept="image/*"
                 className="hidden"
+                disabled={avatarUploading}
                 onChange={handleAvatarChange}
               />
             </label>

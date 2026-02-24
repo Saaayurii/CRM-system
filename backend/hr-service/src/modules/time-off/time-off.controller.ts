@@ -43,6 +43,7 @@ export class TimeOffController {
   ) {
     return this.service.findAll(
       user.id,
+      user.roleId,
       Number(page) || 1,
       Number(limit) || 20,
     );
@@ -54,7 +55,7 @@ export class TimeOffController {
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser() user: RequestUser,
   ) {
-    return this.service.findById(id, user.id);
+    return this.service.findById(id, user.id, user.roleId);
   }
 
   @Post()
@@ -73,7 +74,7 @@ export class TimeOffController {
     @Body() dto: UpdateTimeOffRequestDto,
     @CurrentUser() user: RequestUser,
   ) {
-    return this.service.update(id, user.id, dto);
+    return this.service.update(id, user.id, user.roleId, dto);
   }
 
   @Delete(':id')
@@ -82,6 +83,6 @@ export class TimeOffController {
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser() user: RequestUser,
   ) {
-    return this.service.delete(id, user.id);
+    return this.service.delete(id, user.id, user.roleId);
   }
 }

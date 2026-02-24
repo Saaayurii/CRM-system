@@ -23,6 +23,10 @@ export class TeamRepository {
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
+        include: {
+          teamLead: { select: { name: true } },
+          _count: { select: { members: true } },
+        },
       }),
       (this.prisma as any).team.count({ where }),
     ]);
@@ -76,6 +80,7 @@ export class TeamRepository {
     return (this.prisma as any).teamMember.findMany({
       where: { teamId: id },
       orderBy: { joinedAt: 'desc' },
+      include: { user: { select: { name: true, email: true } } },
     });
   }
 

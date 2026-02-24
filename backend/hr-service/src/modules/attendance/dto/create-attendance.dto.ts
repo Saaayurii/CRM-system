@@ -12,6 +12,11 @@ export class CreateAttendanceDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsInt()
+  userId?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsInt()
   projectId?: number;
 
   @ApiPropertyOptional()

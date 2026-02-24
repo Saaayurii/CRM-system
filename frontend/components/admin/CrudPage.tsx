@@ -9,6 +9,7 @@ import DataTable from './DataTable';
 import EntityFormModal from './EntityFormModal';
 import DeleteConfirmModal from './DeleteConfirmModal';
 import AssignUsersModal from './AssignUsersModal';
+import ManageMembersModal from './ManageMembersModal';
 import ErrorBoundary from './ErrorBoundary';
 
 interface CrudPageProps {
@@ -69,6 +70,10 @@ export default function CrudPage({ config }: CrudPageProps) {
   const [assignTaskId, setAssignTaskId] = useState<number | null>(null);
   const [assignCurrentUsers, setAssignCurrentUsers] = useState<Assignee[]>([]);
 
+  // Manage members modal state (teams only)
+  const [membersOpen, setMembersOpen] = useState(false);
+  const [membersTeamId, setMembersTeamId] = useState<number | null>(null);
+
   const handleCreate = () => {
     setEditingItem(null);
     setFormOpen(true);
@@ -111,6 +116,12 @@ export default function CrudPage({ config }: CrudPageProps) {
         : [];
       setAssignCurrentUsers(assignees);
       setAssignOpen(true);
+      return;
+    }
+
+    if (actionKey === 'members') {
+      setMembersTeamId(row.id as number);
+      setMembersOpen(true);
       return;
     }
 
@@ -209,6 +220,15 @@ export default function CrudPage({ config }: CrudPageProps) {
             taskId={assignTaskId}
             currentAssignees={assignCurrentUsers}
             onClose={() => setAssignOpen(false)}
+            onSaved={crud.refetch}
+          />
+        )}
+
+        {config.slug === 'teams' && (
+          <ManageMembersModal
+            open={membersOpen}
+            teamId={membersTeamId}
+            onClose={() => setMembersOpen(false)}
             onSaved={crud.refetch}
           />
         )}

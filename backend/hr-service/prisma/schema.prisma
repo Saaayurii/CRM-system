@@ -32,6 +32,8 @@ model User {
   timeOffRequests       TimeOffRequest[]
   attendance            Attendance[]
   safetyTrainingRecords SafetyTrainingRecord[]
+  teamLeads             Team[]        @relation("TeamLead")
+  teamMemberships       TeamMember[]
 
   @@map("users")
 }
@@ -177,7 +179,8 @@ model Team {
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at")
 
-  account     Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  account     Account    @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  teamLead    User?      @relation("TeamLead", fields: [teamLeadId], references: [id])
   members     TeamMember[]
 
   @@index([accountId])
@@ -196,6 +199,7 @@ model TeamMember {
   updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at")
 
   team        Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([teamId, userId])
   @@index([teamId])

@@ -1,7 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsDateString, MaxLength } from 'class-validator';
+import { IsString, IsOptional, IsDateString, IsInt, MaxLength } from 'class-validator';
 
 export class CreateEmployeeDocumentDto {
+  @ApiPropertyOptional({ description: 'Target user ID (admin can specify; defaults to current user)' })
+  @IsOptional()
+  @IsInt()
+  userId?: number;
+
+
   @ApiPropertyOptional({ maxLength: 100 })
   @IsOptional()
   @IsString()

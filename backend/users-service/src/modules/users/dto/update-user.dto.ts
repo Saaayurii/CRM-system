@@ -50,4 +50,13 @@ export class UpdateUserDto {
   @IsNumber()
   @IsOptional()
   availability?: number;
+
+  @ApiPropertyOptional({
+    description: 'Avatar URL',
+    example: 'http://localhost:3000/uploads/avatars/uuid.jpg',
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(500)
+  avatarUrl?: string;
 }

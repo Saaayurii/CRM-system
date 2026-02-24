@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import api from '@/lib/api';
+import { useToastStore } from '@/stores/toastStore';
+import EmployeeFormModal from '@/components/dashboard/EmployeeFormModal';
 
 interface Employee {
   id: number;
@@ -35,23 +37,41 @@ const ROLE_NAMES: Record<number, string> = {
 };
 
 export default function EmployeesPage() {
+  const addToast = useToastStore((s) => s.addToast);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+
+  const fetchEmployees = async () => {
+    try {
+      const { data } = await api.get('/users');
+      setEmployees(data.users || data.data || []);
+    } catch {
+      setError('Не удалось загрузить список сотрудников');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetch = async () => {
-      try {
-        const { data } = await api.get('/users');
-        setEmployees(data.users || data.data || []);
-      } catch {
-        setError('Не удалось загрузить список сотрудников');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetch();
+    fetchEmployees();
   }, []);
+
+  const handleDelete = async (id: number) => {
+    if (!confirm('Удалить сотрудника?')) return;
+    setDeletingId(id);
+    try {
+      await api.delete(`/users/${id}`);
+      addToast('success', 'Сотрудник удалён');
+      await fetchEmployees();
+    } catch (err: any) {
+      addToast('error', err.response?.data?.message || 'Ошибка при удалении');
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   return (
     <div>
@@ -81,6 +101,7 @@ export default function EmployeesPage() {
                   <th className="py-3 px-4 text-left font-semibold">Email</th>
                   <th className="py-3 px-4 text-left font-semibold">Роль</th>
                   <th className="py-3 px-4 text-left font-semibold">Статус</th>
+                  <th className="py-3 px-4 text-center font-semibold">Действия</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
@@ -104,6 +125,35 @@ export default function EmployeesPage() {
                           {active ? 'Активен' : 'Неактивен'}
                         </span>
                       </td>
+                      <td className="py-2.5 px-4 text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            onClick={() => setEditingEmployee(e)}
+                            className="p-1.5 text-gray-400 hover:text-violet-500 transition-colors"
+                            title="Редактировать"
+                          >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => handleDelete(e.id)}
+                            disabled={deletingId === e.id}
+                            className="p-1.5 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
+                            title="Удалить"
+                          >
+                            {deletingId === e.id ? (
+                              <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                              </svg>
+                            ) : (
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            )}
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   );
                 })}
@@ -112,6 +162,17 @@ export default function EmployeesPage() {
           </div>
         )}
       </div>
+
+      {editingEmployee && (
+        <EmployeeFormModal
+          employee={editingEmployee}
+          onClose={() => setEditingEmployee(null)}
+          onSaved={async () => {
+            setEditingEmployee(null);
+            await fetchEmployees();
+          }}
+        />
+      )}
     </div>
   );
 }

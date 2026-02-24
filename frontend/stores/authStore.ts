@@ -27,6 +27,7 @@ interface AuthState {
   login: (credentials: LoginRequest) => Promise<void>;
   logout: () => void;
   initialize: () => void;
+  updateUser: (patch: Partial<User>) => void;
 }
 
 function decodeJwt(token: string): JwtPayload | null {
@@ -91,6 +92,12 @@ export const useAuthStore = create<AuthState>((set) => ({
     document.cookie = 'crm-session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
     set({ user: null, isAuthenticated: false });
     window.location.href = '/auth/login';
+  },
+
+  updateUser: (patch: Partial<User>) => {
+    set((state) => ({
+      user: state.user ? { ...state.user, ...patch } : state.user,
+    }));
   },
 
   initialize: () => {

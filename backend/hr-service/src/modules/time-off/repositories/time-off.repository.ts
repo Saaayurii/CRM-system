@@ -6,24 +6,26 @@ import { CreateTimeOffRequestDto, UpdateTimeOffRequestDto } from '../dto';
 export class TimeOffRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(userId: number, page: number, limit: number) {
+  async findAll(userId: number | null, page: number, limit: number) {
     const skip = (page - 1) * limit;
+    const where = userId !== null ? { userId } : {};
     const [data, total] = await Promise.all([
       (this.prisma as any).timeOffRequest.findMany({
-        where: { userId },
+        where,
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
+        include: { user: { select: { name: true } } },
       }),
-      (this.prisma as any).timeOffRequest.count({ where: { userId } }),
+      (this.prisma as any).timeOffRequest.count({ where }),
     ]);
     return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
-  async findById(id: number, userId: number) {
-    return (this.prisma as any).timeOffRequest.findFirst({
-      where: { id, userId },
-    });
+  async findById(id: number, userId: number | null) {
+    const where: any = { id };
+    if (userId !== null) where.userId = userId;
+    return (this.prisma as any).timeOffRequest.findFirst({ where });
   }
 
   async create(userId: number, dto: CreateTimeOffRequestDto) {
@@ -39,7 +41,7 @@ export class TimeOffRepository {
     });
   }
 
-  async update(id: number, userId: number, dto: UpdateTimeOffRequestDto) {
+  async update(id: number, userId: number | null, dto: UpdateTimeOffRequestDto) {
     const record = await this.findById(id, userId);
     if (!record) return null;
     return (this.prisma as any).timeOffRequest.update({
@@ -63,7 +65,7 @@ export class TimeOffRepository {
     });
   }
 
-  async delete(id: number, userId: number) {
+  async delete(id: number, userId: number | null) {
     const record = await this.findById(id, userId);
     if (!record) return null;
     return (this.prisma as any).timeOffRequest.delete({ where: { id } });

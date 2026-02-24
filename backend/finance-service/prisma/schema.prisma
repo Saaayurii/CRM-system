@@ -13,10 +13,19 @@ model Account {
   payments        Payment[]
   budgets         Budget[]
   acts            Act[]
-  bonuses          Bonus[]
-  payrolls         Payroll[]
+  bonuses         Bonus[]
+  payrolls        Payroll[]
 
   @@map("accounts")
+}
+
+model User {
+  id       Int       @id @default(autoincrement())
+  name     String    @db.VarChar(255)
+  bonuses  Bonus[]
+  payrolls Payroll[]
+
+  @@map("users")
 }
 
 model PaymentAccount {
@@ -175,6 +184,7 @@ model Bonus {
   updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at")
 
   account         Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  user            User?     @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([projectId])
@@ -199,6 +209,7 @@ model Payroll {
   updatedAt        DateTime  @default(now()) @updatedAt @map("updated_at")
 
   account          Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  user             User?     @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([payrollPeriod])
