@@ -88,6 +88,7 @@ model Attendance {
   overtimeHours      Decimal?  @map("overtime_hours") @db.Decimal(8, 2)
   status             String?   @db.VarChar(50)
   notes              String?   @db.Text
+  photoUrl           String?   @map("photo_url") @db.VarChar(500)
   createdAt          DateTime  @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)

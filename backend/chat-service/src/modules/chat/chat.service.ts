@@ -46,12 +46,20 @@ export class ChatService {
     dto: CreateChannelDto,
   ) {
     // For direct channels, check if one already exists between these two users
-    if (dto.channelType === 'direct' && dto.memberIds && dto.memberIds.length === 1) {
-      const otherUserId = dto.memberIds[0];
-      const targetId = otherUserId === userId ? userId : otherUserId;
-      const existing = await this.chatRepository.findDirectChannel(accountId, userId, targetId);
-      if (existing) {
-        return existing;
+    if (dto.channelType === 'direct') {
+      const isSelfChat = !dto.memberIds || dto.memberIds.length === 0 || (dto.memberIds.length === 1 && dto.memberIds[0] === userId);
+      if (isSelfChat) {
+        // Self-chat ("Избранное") — check existing
+        const existing = await this.chatRepository.findDirectChannel(accountId, userId, userId);
+        if (existing) {
+          return existing;
+        }
+      } else if (dto.memberIds && dto.memberIds.length === 1) {
+        const otherUserId = dto.memberIds[0];
+        const existing = await this.chatRepository.findDirectChannel(accountId, userId, otherUserId);
+        if (existing) {
+          return existing;
+        }
       }
     }
 

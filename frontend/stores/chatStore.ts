@@ -434,10 +434,31 @@ export const useChatStore = create<ChatState>((set, get) => ({
       });
 
       const raw = data.data || data;
-      const channelsList: ChatChannel[] = Array.isArray(raw)
+      let channelsList: ChatChannel[] = Array.isArray(raw)
         ? raw.map((ch: any) => mapRawChannel(ch))
         : [];
       const total = data.total || 0;
+
+      // Auto-create "Избранное" (self-chat) if not present on first page load
+      if (page === 1) {
+        const hasSelfChat = channelsList.some((ch) => {
+          if (ch.channelType !== 'direct' || !ch.members) return false;
+          return ch.members.length > 0 && ch.members.every((m) => m.id === ch.members![0]?.id);
+        });
+
+        if (!hasSelfChat) {
+          try {
+            const { data: selfData } = await api.post('/chat-channels', {
+              channelType: 'direct',
+              memberIds: [],
+            });
+            const selfChannel = mapRawChannel(selfData);
+            channelsList = [selfChannel, ...channelsList];
+          } catch {
+            // ignore — self-chat creation failed
+          }
+        }
+      }
 
       set((state) => ({
         channels: page === 1 ? channelsList : [...state.channels, ...channelsList],

@@ -240,7 +240,7 @@ export default function EntityFormModal({
                             </span>
                           )}
                         </button>
-                        {formData[field.key] && (
+                        {formData[field.key] ? (
                           <a
                             href={String(formData[field.key])}
                             target="_blank"
@@ -250,7 +250,7 @@ export default function EntityFormModal({
                           >
                             {String(formData[field.key]).split('/').pop()}
                           </a>
-                        )}
+                        ) : null}
                       </div>
                       {uploadErrors[field.key] && (
                         <p className="text-xs text-red-500">{uploadErrors[field.key]}</p>

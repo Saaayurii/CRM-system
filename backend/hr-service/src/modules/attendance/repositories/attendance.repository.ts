@@ -41,6 +41,7 @@ export class AttendanceRepository {
         overtimeHours: dto.overtimeHours,
         status: dto.status,
         notes: dto.notes,
+        photoUrl: dto.photoUrl,
       },
     });
   }
@@ -70,6 +71,7 @@ export class AttendanceRepository {
         }),
         ...(dto.status !== undefined && { status: dto.status }),
         ...(dto.notes !== undefined && { notes: dto.notes }),
+        ...(dto.photoUrl !== undefined && { photoUrl: dto.photoUrl }),
       },
     });
   }

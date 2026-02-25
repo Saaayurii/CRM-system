@@ -1256,7 +1256,8 @@ CREATE TABLE attendance (
     status VARCHAR(50), -- present, absent, late, sick, vacation
     
     notes TEXT,
-    
+    photo_url VARCHAR(500),
+
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(user_id, attendance_date)
 );

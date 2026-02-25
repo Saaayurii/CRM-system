@@ -32,6 +32,8 @@ export default function Sidebar() {
   const roleCode = user?.role?.code;
   const isHR = roleCode === 'hr_manager';
   const isPM = roleCode === 'project_manager';
+  const isForeman = roleCode === 'foreman';
+  const isWorker = roleCode === 'worker';
   const showTeams = isSuperAdmin || roleCode === 'admin' || isPM || isHR;
   const showChat = !isSuperAdmin;
 
@@ -274,6 +276,98 @@ export default function Sidebar() {
                               >
                                 <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
                                   Документы сотрудников
+                                </span>
+                              </Link>
+                            </li>
+                          </>
+                        )}
+                        {isForeman && (
+                          <>
+                            <li className="mb-1 last:mb-0">
+                              <Link
+                                href="/dashboard/foreman/construction-sites"
+                                className={`block transition duration-150 truncate ${
+                                  pathname === '/dashboard/foreman/construction-sites'
+                                    ? 'text-violet-500'
+                                    : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                                }`}
+                              >
+                                <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
+                                  Стройплощадки
+                                </span>
+                              </Link>
+                            </li>
+                            <li className="mb-1 last:mb-0">
+                              <Link
+                                href="/dashboard/foreman/equipment"
+                                className={`block transition duration-150 truncate ${
+                                  pathname === '/dashboard/foreman/equipment'
+                                    ? 'text-violet-500'
+                                    : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                                }`}
+                              >
+                                <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
+                                  Оборудование
+                                </span>
+                              </Link>
+                            </li>
+                            <li className="mb-1 last:mb-0">
+                              <Link
+                                href="/dashboard/foreman/inspections"
+                                className={`block transition duration-150 truncate ${
+                                  pathname === '/dashboard/foreman/inspections'
+                                    ? 'text-violet-500'
+                                    : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                                }`}
+                              >
+                                <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
+                                  Проверки
+                                </span>
+                              </Link>
+                            </li>
+                          </>
+                        )}
+                        {isWorker && (
+                          <>
+                            <li className="mb-1 last:mb-0">
+                              <Link
+                                href="/dashboard/worker/attendance"
+                                className={`block transition duration-150 truncate ${
+                                  pathname === '/dashboard/worker/attendance'
+                                    ? 'text-violet-500'
+                                    : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                                }`}
+                              >
+                                <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
+                                  Посещаемость
+                                </span>
+                              </Link>
+                            </li>
+                            <li className="mb-1 last:mb-0">
+                              <Link
+                                href="/dashboard/worker/time-off"
+                                className={`block transition duration-150 truncate ${
+                                  pathname === '/dashboard/worker/time-off'
+                                    ? 'text-violet-500'
+                                    : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                                }`}
+                              >
+                                <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
+                                  Отпуска
+                                </span>
+                              </Link>
+                            </li>
+                            <li className="mb-1 last:mb-0">
+                              <Link
+                                href="/dashboard/worker/construction-sites"
+                                className={`block transition duration-150 truncate ${
+                                  pathname === '/dashboard/worker/construction-sites'
+                                    ? 'text-violet-500'
+                                    : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                                }`}
+                              >
+                                <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
+                                  Стройплощадки
                                 </span>
                               </Link>
                             </li>

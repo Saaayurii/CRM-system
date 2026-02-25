@@ -68,6 +68,24 @@ export class ChatRepository {
   }
 
   async findDirectChannel(accountId: number, userIdA: number, userIdB: number) {
+    if (userIdA === userIdB) {
+      // Self-chat: find a direct channel where the ONLY member is this user
+      const candidates = await (this.prisma as any).chatChannel.findMany({
+        where: {
+          accountId,
+          channelType: 'direct',
+          members: { some: { userId: userIdA } },
+        },
+        include: {
+          members: { include: { user: true } },
+          _count: { select: { messages: true } },
+        },
+      });
+      return candidates.find(
+        (ch: any) => ch.members.length === 1 && ch.members[0].userId === userIdA,
+      ) || null;
+    }
+
     return (this.prisma as any).chatChannel.findFirst({
       where: {
         accountId,

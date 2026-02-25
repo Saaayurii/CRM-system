@@ -1,33 +1,43 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
+import { useChatStore } from '@/stores/chatStore';
 
 export default function ChatButton() {
   const router = useRouter();
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [polledCount, setPolledCount] = useState(0);
+  const storeUnreadCounts = useChatStore((s) => s.unreadCounts);
+
+  // Derive total from store (updated instantly on markAsRead / new message)
+  const storeTotal = Object.values(storeUnreadCounts).reduce((sum, n) => sum + n, 0);
+
+  // Track whether the store has been hydrated (fetchChannels populates unreadCounts)
+  const storeHydrated = Object.keys(storeUnreadCounts).length > 0;
+
+  const fetchUnread = useCallback(async () => {
+    try {
+      const { data } = await api.get('/chat-channels/unread-summary');
+      if (Array.isArray(data)) {
+        const total = data.reduce((sum: number, ch: any) => sum + (ch.unreadCount || 0), 0);
+        setPolledCount(total);
+      } else {
+        setPolledCount(data.totalUnread || 0);
+      }
+    } catch {
+      // Chat service may not be available
+    }
+  }, []);
 
   useEffect(() => {
-    const fetchUnread = async () => {
-      try {
-        const { data } = await api.get('/chat-channels/unread-summary');
-        // Backend returns array [{channelId, unreadCount}] — sum all counts
-        if (Array.isArray(data)) {
-          const total = data.reduce((sum: number, ch: any) => sum + (ch.unreadCount || 0), 0);
-          setUnreadCount(total);
-        } else {
-          setUnreadCount(data.totalUnread || 0);
-        }
-      } catch {
-        // Chat service may not be available
-      }
-    };
     fetchUnread();
-    // Refresh every 30s as a fallback; real-time updates come via chatStore when on chat page
     const interval = setInterval(fetchUnread, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchUnread]);
+
+  // Use store value when available (real-time), otherwise fall back to polled value
+  const unreadCount = storeHydrated ? storeTotal : polledCount;
 
   return (
     <button

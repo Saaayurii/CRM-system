@@ -891,6 +891,19 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
           return s ? <StatusBadge label={s.label} color={s.color} /> : <span className="text-gray-400">—</span>;
         },
       },
+      {
+        key: 'photoUrl',
+        header: 'Фото',
+        width: '70px',
+        render: (v) => {
+          if (!v) return <span className="text-gray-400">—</span>;
+          return (
+            <a href={String(v)} target="_blank" rel="noopener noreferrer">
+              <img src={String(v)} alt="Фото" className="w-10 h-10 rounded-lg object-cover border border-gray-200 dark:border-gray-600" />
+            </a>
+          );
+        },
+      },
     ],
     formFields: [
       { key: 'userId', label: 'Сотрудник', type: 'select', required: true, fetchOptions: { endpoint: '/users', valueKey: 'id', labelKey: 'name' } },
@@ -909,6 +922,7 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
       },
       { key: 'workedHours',   label: 'Отработано (ч)',  type: 'number' },
       { key: 'overtimeHours', label: 'Переработка (ч)', type: 'number' },
+      { key: 'photoUrl', label: 'Фото прихода', type: 'file', uploadEndpoint: '/attendance/upload', accept: '.jpg,.jpeg,.png,.webp,.heic' },
       { key: 'notes', label: 'Заметки', type: 'textarea' },
     ],
   },
@@ -1046,12 +1060,45 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
     columns: [
       { key: 'id', header: 'ID', sortable: true, width: '80px' },
       { key: 'title', header: 'Название', sortable: true },
-      { key: 'status', header: 'Статус', sortable: true },
-      { key: 'date', header: 'Дата', sortable: true },
-      { key: 'inspector', header: 'Инспектор' },
+      {
+        key: 'status',
+        header: 'Статус',
+        sortable: true,
+        render: (v) => {
+          const map: Record<string, { label: string; color: string }> = {
+            planned:     { label: 'Запланирована', color: 'gray' },
+            in_progress: { label: 'В процессе',   color: 'yellow' },
+            completed:   { label: 'Завершена',     color: 'green' },
+            failed:      { label: 'Не пройдена',   color: 'red' },
+          };
+          const s = map[String(v ?? '')];
+          return s ? <StatusBadge label={s.label} color={s.color} /> : <span className="text-gray-400">{String(v ?? '—')}</span>;
+        },
+      },
+      {
+        key: 'projectId',
+        header: 'Проект',
+        render: (v, row) => {
+          const name = (row as Record<string, any>).project?.name;
+          if (name) return <span className="text-sm text-gray-700 dark:text-gray-300">{name}</span>;
+          if (!v) return <span className="text-gray-400">—</span>;
+          return <span className="text-sm text-gray-500">#{String(v)}</span>;
+        },
+      },
+      { key: 'inspectionDate', header: 'Дата', sortable: true, render: (v) => fmtDate(v) },
+      {
+        key: 'inspectorId',
+        header: 'Инспектор',
+        render: (v, row) => {
+          const name = (row as Record<string, any>).inspector?.name;
+          return name ? <span>{name}</span> : v ? <span className="text-gray-500">#{String(v)}</span> : <span className="text-gray-400">—</span>;
+        },
+      },
     ],
     formFields: [
       { key: 'title', label: 'Название', type: 'text', required: true },
+      { key: 'description', label: 'Описание', type: 'textarea' },
+      { key: 'projectId', label: 'Проект', type: 'select', fetchOptions: { endpoint: '/projects', valueKey: 'id', labelKey: 'name' } },
       {
         key: 'status',
         label: 'Статус',
@@ -1060,9 +1107,10 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
           { value: 'planned', label: 'Запланирована' },
           { value: 'in_progress', label: 'В процессе' },
           { value: 'completed', label: 'Завершена' },
+          { value: 'failed', label: 'Не пройдена' },
         ],
       },
-      { key: 'date', label: 'Дата', type: 'date', required: true },
+      { key: 'inspectionDate', label: 'Дата инспекции', type: 'date', required: true },
       { key: 'notes', label: 'Примечания', type: 'textarea' },
     ],
   },

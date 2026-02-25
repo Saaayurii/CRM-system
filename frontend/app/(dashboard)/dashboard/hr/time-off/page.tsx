@@ -144,7 +144,7 @@ export default function HRTimeOffPage() {
                       </td>
                       <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{fmtDate(row.startDate)}</td>
                       <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{fmtDate(row.endDate)}</td>
-                      <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{row.daysCount ?? '—'}</td>
+                      <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{String(row.daysCount ?? '—')}</td>
                       <td className="px-4 py-3">
                         {st ? <StatusBadge label={st.label} color={st.color} /> : <span className="text-gray-400">—</span>}
                       </td>
