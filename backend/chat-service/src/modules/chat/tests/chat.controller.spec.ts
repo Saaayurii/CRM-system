@@ -67,18 +67,18 @@ describe('ChatController', () => {
     it('should return paginated channels with default pagination', async () => {
       service.findAllChannels.mockResolvedValue(mockPaginatedChannels);
 
-      const result = await controller.findAllChannels(1);
+      const result = await controller.findAllChannels(1, 10);
 
       expect(result).toEqual(mockPaginatedChannels);
-      expect(service.findAllChannels).toHaveBeenCalledWith(1, 1, 20);
+      expect(service.findAllChannels).toHaveBeenCalledWith(1, 10, 1, 20);
     });
 
     it('should parse page and limit query parameters', async () => {
       service.findAllChannels.mockResolvedValue(mockPaginatedChannels);
 
-      await controller.findAllChannels(1, '2', '10');
+      await controller.findAllChannels(1, 10, '2', '10');
 
-      expect(service.findAllChannels).toHaveBeenCalledWith(1, 2, 10);
+      expect(service.findAllChannels).toHaveBeenCalledWith(1, 10, 2, 10);
     });
   });
 

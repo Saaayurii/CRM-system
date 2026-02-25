@@ -11,11 +11,15 @@ export class ChatRepository {
 
   async findAllChannels(
     accountId: number,
+    userId: number,
     page: number = 1,
     limit: number = 20,
   ) {
     const skip = (page - 1) * limit;
-    const where = { accountId };
+    const where = {
+      accountId,
+      members: { some: { userId } },
+    };
 
     const [data, total] = await Promise.all([
       (this.prisma as any).chatChannel.findMany({
@@ -56,6 +60,23 @@ export class ChatRepository {
   async findChannelById(id: number, accountId: number) {
     return (this.prisma as any).chatChannel.findFirst({
       where: { id, accountId },
+      include: {
+        members: { include: { user: true } },
+        _count: { select: { messages: true } },
+      },
+    });
+  }
+
+  async findDirectChannel(accountId: number, userIdA: number, userIdB: number) {
+    return (this.prisma as any).chatChannel.findFirst({
+      where: {
+        accountId,
+        channelType: 'direct',
+        AND: [
+          { members: { some: { userId: userIdA } } },
+          { members: { some: { userId: userIdB } } },
+        ],
+      },
       include: {
         members: { include: { user: true } },
         _count: { select: { messages: true } },

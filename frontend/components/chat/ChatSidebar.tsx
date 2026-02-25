@@ -49,11 +49,17 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
     return () => el.removeEventListener('scroll', handleScroll);
   }, [handleScroll]);
 
-  const filtered = search.trim()
-    ? channels.filter((ch) =>
-        getChannelDisplayName(ch, user?.id).toLowerCase().includes(search.toLowerCase())
-      )
+  // Separate "Избранное" (self-chat) and sort it to top
+  const allFiltered = search.trim()
+    ? channels.filter((ch) => {
+        const name = isSelfChat(ch, user?.id) ? 'Избранное' : getChannelDisplayName(ch, user?.id);
+        return name.toLowerCase().includes(search.toLowerCase());
+      })
     : channels;
+
+  const selfChat = allFiltered.find((ch) => isSelfChat(ch, user?.id));
+  const otherChats = allFiltered.filter((ch) => !isSelfChat(ch, user?.id));
+  const filtered = selfChat ? [selfChat, ...otherChats] : otherChats;
 
   return (
     <>

@@ -45,6 +45,18 @@ export class TasksGatewayController {
     });
   }
 
+  @Get('tasks/stats')
+  @ApiOperation({ summary: 'Get tasks statistics' })
+  @ApiQuery({ name: 'projectId', required: false })
+  async getTasksStats(@Req() req: Request, @Query('projectId') projectId?: number) {
+    return this.proxyService.forward('tasks', {
+      method: 'GET',
+      path: '/tasks/stats',
+      headers: { authorization: req.headers.authorization || '' },
+      params: { projectId },
+    });
+  }
+
   @Get('tasks/:id')
   @ApiOperation({ summary: 'Get task by ID' })
   async findOneTask(@Req() req: Request, @Param('id') id: string) {

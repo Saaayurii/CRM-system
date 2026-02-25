@@ -3,6 +3,7 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
 import { useChatStore, ChatChannel, ChatMessage as ChatMessageType } from '@/stores/chatStore';
 import { useAuthStore } from '@/stores/authStore';
+import api from '@/lib/api';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
 
@@ -303,6 +304,16 @@ interface InfoPanelProps {
 }
 
 function InfoPanel({ channel, partner, isSelf, isPartnerOnline, onClose }: InfoPanelProps) {
+  const [userDetails, setUserDetails] = useState<any>(null);
+
+  useEffect(() => {
+    if (!isSelf && channel.channelType === 'direct' && partner?.id) {
+      api.get(`/users/${partner.id}`).then(({ data }) => setUserDetails(data)).catch(() => {});
+    }
+  }, [isSelf, channel.channelType, partner?.id]);
+
+  const details = userDetails;
+
   return (
     <div className="flex flex-col h-full">
       {/* Info header */}
@@ -348,11 +359,6 @@ function InfoPanel({ channel, partner, isSelf, isPartnerOnline, onClose }: InfoP
               {isSelf ? 'Избранное' : partner?.name || channel.channelName}
             </p>
             {!isSelf && channel.channelType === 'direct' && (
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                {partner?.email || ''}
-              </p>
-            )}
-            {!isSelf && channel.channelType === 'direct' && (
               <span
                 className={`inline-flex items-center gap-1 mt-1 text-xs ${
                   isPartnerOnline ? 'text-green-500' : 'text-gray-400 dark:text-gray-500'
@@ -373,6 +379,22 @@ function InfoPanel({ channel, partner, isSelf, isPartnerOnline, onClose }: InfoP
             )}
           </div>
         </div>
+
+        {/* User details (direct chat) */}
+        {!isSelf && channel.channelType === 'direct' && (
+          <div className="space-y-3">
+            <InfoRow icon="email" label="Email" value={details?.email || partner?.email} />
+            <InfoRow icon="phone" label="Телефон" value={details?.phone} />
+            <InfoRow icon="role" label="Роль" value={details?.role?.name} />
+            <InfoRow icon="position" label="Должность" value={details?.position} />
+            <InfoRow icon="team" label="Команда" value={details?.team?.name} />
+            <InfoRow
+              icon="calendar"
+              label="В компании с"
+              value={details?.hireDate ? new Date(details.hireDate).toLocaleDateString('ru-RU') : undefined}
+            />
+          </div>
+        )}
 
         {/* Members (group) */}
         {channel.channelType === 'group' && channel.members && channel.members.length > 0 && (
@@ -401,6 +423,56 @@ function InfoPanel({ channel, partner, isSelf, isPartnerOnline, onClose }: InfoP
             </div>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+/* ───────── Info Row ───────── */
+
+const INFO_ICONS: Record<string, JSX.Element> = {
+  email: (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+    </svg>
+  ),
+  phone: (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+    </svg>
+  ),
+  role: (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+    </svg>
+  ),
+  position: (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+    </svg>
+  ),
+  team: (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+  ),
+  calendar: (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+    </svg>
+  ),
+};
+
+function InfoRow({ icon, label, value }: { icon: string; label: string; value?: string | null }) {
+  if (!value) return null;
+  return (
+    <div className="flex items-start gap-3 py-2 border-b border-gray-100 dark:border-gray-700/50 last:border-0">
+      <div className="text-gray-400 dark:text-gray-500 mt-0.5 shrink-0">
+        {INFO_ICONS[icon]}
+      </div>
+      <div className="min-w-0">
+        <p className="text-xs text-gray-400 dark:text-gray-500">{label}</p>
+        <p className="text-sm text-gray-800 dark:text-gray-100 break-words">{value}</p>
       </div>
     </div>
   );

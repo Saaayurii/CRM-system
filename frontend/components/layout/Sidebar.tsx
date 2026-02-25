@@ -31,7 +31,8 @@ export default function Sidebar() {
   const isSuperAdmin = user?.role?.code === 'super_admin';
   const roleCode = user?.role?.code;
   const isHR = roleCode === 'hr_manager';
-  const showTeams = isSuperAdmin || roleCode === 'admin' || roleCode === 'project_manager' || isHR;
+  const isPM = roleCode === 'project_manager';
+  const showTeams = isSuperAdmin || roleCode === 'admin' || isPM || isHR;
   const showChat = !isSuperAdmin;
 
   const trigger = useRef<HTMLButtonElement>(null);
@@ -216,6 +217,22 @@ export default function Sidebar() {
                             </span>
                           </Link>
                         </li>
+                        {isPM && (
+                          <li className="mb-1 last:mb-0">
+                            <Link
+                              href="/dashboard/pm/construction-sites"
+                              className={`block transition duration-150 truncate ${
+                                pathname === '/dashboard/pm/construction-sites'
+                                  ? 'text-violet-500'
+                                  : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                              }`}
+                            >
+                              <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
+                                Стройплощадки
+                              </span>
+                            </Link>
+                          </li>
+                        )}
                         {isHR && (
                           <>
                             <li className="mb-1 last:mb-0">

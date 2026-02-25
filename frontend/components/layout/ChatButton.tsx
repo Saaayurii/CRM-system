@@ -12,14 +12,20 @@ export default function ChatButton() {
     const fetchUnread = async () => {
       try {
         const { data } = await api.get('/chat-channels/unread-summary');
-        setUnreadCount(data.totalUnread || 0);
+        // Backend returns array [{channelId, unreadCount}] — sum all counts
+        if (Array.isArray(data)) {
+          const total = data.reduce((sum: number, ch: any) => sum + (ch.unreadCount || 0), 0);
+          setUnreadCount(total);
+        } else {
+          setUnreadCount(data.totalUnread || 0);
+        }
       } catch {
         // Chat service may not be available
       }
     };
     fetchUnread();
-    // Refresh every 60s as a fallback; real-time updates come via chatStore when on chat page
-    const interval = setInterval(fetchUnread, 60000);
+    // Refresh every 30s as a fallback; real-time updates come via chatStore when on chat page
+    const interval = setInterval(fetchUnread, 30000);
     return () => clearInterval(interval);
   }, []);
 

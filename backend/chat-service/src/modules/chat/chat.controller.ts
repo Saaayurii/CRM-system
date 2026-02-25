@@ -41,11 +41,13 @@ export class ChatController {
   @ApiResponse({ status: 200, description: 'Channels retrieved' })
   findAllChannels(
     @CurrentUser('accountId') accountId: number,
+    @CurrentUser('id') userId: number,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
     return this.chatService.findAllChannels(
       accountId,
+      userId,
       page ? parseInt(page, 10) : 1,
       limit ? parseInt(limit, 10) : 20,
     );

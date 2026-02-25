@@ -33,7 +33,7 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex h-[calc(100dvh-64px)] bg-white dark:bg-gray-900 rounded-xl shadow-xs overflow-hidden">
+    <div className="flex h-[calc(100dvh-64px-4rem)] bg-white dark:bg-gray-900 rounded-xl shadow-xs overflow-hidden">
       {/* Sidebar: always visible on lg+, toggle on mobile */}
       <div
         className={`${

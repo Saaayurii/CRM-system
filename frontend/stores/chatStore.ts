@@ -496,21 +496,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   createChannel: async (dto) => {
     try {
-      const { memberIds, ...rest } = dto;
-      const { data } = await api.post('/chat-channels', rest);
+      const { data } = await api.post('/chat-channels', dto);
       const channel: ChatChannel = mapRawChannel(data);
 
-      if (memberIds && memberIds.length > 0) {
-        await Promise.all(
-          memberIds.map((userId) =>
-            api.post(`/chat-channels/${channel.id}/members`, { userId }).catch(() => {})
-          )
-        );
-      }
-
-      set((state) => ({
-        channels: [channel, ...state.channels],
-      }));
+      set((state) => {
+        // Avoid duplicates — backend may return existing channel for direct chats
+        const exists = state.channels.some((c) => c.id === channel.id);
+        return {
+          channels: exists ? state.channels : [channel, ...state.channels],
+        };
+      });
 
       return channel;
     } catch {

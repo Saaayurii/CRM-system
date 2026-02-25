@@ -25,10 +25,11 @@ export class ChatService {
 
   async findAllChannels(
     accountId: number,
+    userId: number,
     page: number = 1,
     limit: number = 20,
   ) {
-    return this.chatRepository.findAllChannels(accountId, page, limit);
+    return this.chatRepository.findAllChannels(accountId, userId, page, limit);
   }
 
   async findChannelById(id: number, accountId: number) {
@@ -44,6 +45,28 @@ export class ChatService {
     userId: number,
     dto: CreateChannelDto,
   ) {
+    // For direct channels, check if one already exists between these two users
+    if (dto.channelType === 'direct' && dto.memberIds && dto.memberIds.length === 1) {
+      const otherUserId = dto.memberIds[0];
+      const targetId = otherUserId === userId ? userId : otherUserId;
+      const existing = await this.chatRepository.findDirectChannel(accountId, userId, targetId);
+      if (existing) {
+        return existing;
+      }
+    }
+
+    // Build members list: creator as admin + additional memberIds as members
+    const memberCreates: Array<{ userId: number; role: string }> = [
+      { userId, role: 'admin' },
+    ];
+    if (dto.memberIds && dto.memberIds.length > 0) {
+      for (const memberId of dto.memberIds) {
+        if (memberId !== userId) {
+          memberCreates.push({ userId: memberId, role: 'member' });
+        }
+      }
+    }
+
     return this.chatRepository.createChannel({
       accountId,
       channelType: dto.channelType,
@@ -56,7 +79,7 @@ export class ChatService {
       isPrivate: dto.isPrivate || false,
       settings: dto.settings || {},
       members: {
-        create: { userId, role: 'admin' },
+        create: memberCreates,
       },
     });
   }

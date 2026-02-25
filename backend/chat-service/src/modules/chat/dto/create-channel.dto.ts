@@ -3,6 +3,7 @@ import {
   IsString,
   IsInt,
   IsBoolean,
+  IsArray,
   MaxLength,
 } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
@@ -48,4 +49,9 @@ export class CreateChannelDto {
   @ApiPropertyOptional({ description: 'Channel settings JSON' })
   @IsOptional()
   settings?: any;
+
+  @ApiPropertyOptional({ description: 'Member user IDs to add on creation', type: [Number] })
+  @IsOptional()
+  @IsArray()
+  memberIds?: number[];
 }

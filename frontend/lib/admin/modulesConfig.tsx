@@ -192,6 +192,58 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
       { key: 'plannedEndDate', label: 'Дата окончания', type: 'date' },
     ],
   },
+  'construction-sites': {
+    slug: 'construction-sites',
+    title: 'Стройплощадки',
+    apiEndpoint: '/construction-sites',
+    searchField: 'названию',
+    columns: [
+      { key: 'id', header: 'ID', sortable: true, width: '80px' },
+      { key: 'name', header: 'Название', sortable: true },
+      { key: 'address', header: 'Адрес' },
+      {
+        key: 'status',
+        header: 'Статус',
+        render: (v) => {
+          const map: Record<number, { label: string; color: string }> = {
+            0: { label: 'Планирование', color: 'gray' },
+            1: { label: 'Активная', color: 'green' },
+            2: { label: 'Приостановлена', color: 'yellow' },
+            3: { label: 'Завершена', color: 'blue' },
+          };
+          const s = map[Number(v)];
+          return s ? <StatusBadge label={s.label} color={s.color} /> : <span>{String(v ?? '—')}</span>;
+        },
+      },
+      {
+        key: 'projectId',
+        header: 'Проект',
+        render: (v, row) => {
+          const name = (row as Record<string, any>).project?.name;
+          if (name) return <span className="text-sm text-gray-700 dark:text-gray-300">{name}</span>;
+          if (!v) return <span className="text-gray-400">—</span>;
+          return <span className="text-sm text-gray-500">#{String(v)}</span>;
+        },
+      },
+    ],
+    formFields: [
+      { key: 'name', label: 'Название', type: 'text', required: true },
+      { key: 'address', label: 'Адрес', type: 'text' },
+      { key: 'projectId', label: 'Проект', type: 'select', fetchOptions: { endpoint: '/projects', valueKey: 'id', labelKey: 'name' } },
+      {
+        key: 'status',
+        label: 'Статус',
+        type: 'select',
+        options: [
+          { value: 0, label: 'Планирование' },
+          { value: 1, label: 'Активная' },
+          { value: 2, label: 'Приостановлена' },
+          { value: 3, label: 'Завершена' },
+        ],
+      },
+      { key: 'description', label: 'Описание', type: 'textarea' },
+    ],
+  },
   tasks: {
     slug: 'tasks',
     title: 'Задачи',

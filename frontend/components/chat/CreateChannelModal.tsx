@@ -166,8 +166,8 @@ export default function CreateChannelModal({ onClose }: CreateChannelModalProps)
             <p className="p-3 text-sm text-gray-400 text-center">Пользователи не найдены</p>
           ) : (
             <>
-              {/* Избранное — всегда первым */}
-              {showSelf && selfUser && (
+              {/* Избранное — только в личных чатах, не в группах */}
+              {channelType === 'direct' && showSelf && selfUser && (
                 <button
                   onClick={() => toggleUser(selfUser)}
                   className={`w-full flex items-center gap-3 px-3 py-2 text-left text-sm transition-colors border-b border-gray-100 dark:border-gray-700 ${
