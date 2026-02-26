@@ -31,7 +31,6 @@ model User {
 
   account         Account       @relation(fields: [accountId], references: [id], onDelete: Cascade)
   managedProjects Project[]     @relation("ProjectManager")
-  projectTeams    ProjectTeam[]
 
   @@map("users")
 }
@@ -74,17 +73,39 @@ model Project {
 }
 
 model ProjectTeam {
-  id        Int      @id @default(autoincrement())
-  projectId Int      @map("project_id")
-  userId    Int      @map("user_id")
-  role      String?  @db.VarChar(100)
-  joinedAt  DateTime @default(now()) @map("joined_at")
+  id                 Int       @id @default(autoincrement())
+  projectId          Int       @map("project_id")
+  teamId             Int       @map("team_id")
+  constructionSiteId Int?      @map("construction_site_id")
+  assignedAt         DateTime? @default(now()) @map("assigned_at")
+  removedAt          DateTime? @map("removed_at")
+  isPrimary          Boolean   @default(false) @map("is_primary")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @default(now()) @updatedAt @map("updated_at")
 
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project          Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  team             Team              @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  constructionSite ConstructionSite? @relation(fields: [constructionSiteId], references: [id])
 
-  @@unique([projectId, userId])
+  @@unique([projectId, teamId, constructionSiteId])
   @@map("project_teams")
+}
+
+model Team {
+  id          Int      @id @default(autoincrement())
+  accountId   Int?     @map("account_id")
+  name        String   @db.VarChar(255)
+  description String?  @db.Text
+  teamLeadId  Int?     @map("team_lead_id")
+  status      Int      @default(1)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  projectTeams ProjectTeam[]
+
+  @@index([accountId])
+  @@index([teamLeadId])
+  @@map("teams")
 }
 
 model ConstructionSite {
@@ -110,6 +131,7 @@ model ConstructionSite {
   deletedAt         DateTime? @map("deleted_at")
 
   project           Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectTeams      ProjectTeam[]
 
   @@index([projectId])
   @@index([foremanId])

@@ -28,14 +28,41 @@ const FONT = path.join(FONT_DIR, 'DejaVuSans.ttf');
 const FONT_BOLD = path.join(FONT_DIR, 'DejaVuSans-Bold.ttf');
 
 const ENTITY_TITLES: Record<string, string> = {
-  project: 'Проект',
-  task: 'Задача',
-  user: 'Пользователь',
+  projects: 'Проект',
+  tasks: 'Задача',
+  users: 'Пользователь',
+  'construction-sites': 'Стройплощадка',
+  clients: 'Клиент',
+  materials: 'Материал',
+  equipment: 'Оборудование',
+  suppliers: 'Поставщик',
+  payments: 'Платёж',
+  budgets: 'Бюджет',
+  salaries: 'Зарплата',
+  bonuses: 'Бонус',
+  attendance: 'Посещаемость',
+  leaves: 'Отпуск',
+  teams: 'Команда',
+  inspections: 'Инспекция',
 };
 
+// Normalize slug: 'task' → 'tasks', 'project' → 'projects' (frontend sends plural slugs)
+function normalizeSlug(entityType: string): string {
+  const singularToPlural: Record<string, string> = {
+    project: 'projects',
+    task: 'tasks',
+    user: 'users',
+  };
+  return singularToPlural[entityType] ?? entityType;
+}
+
 const STATUS_LABELS: Record<string, Record<number, string>> = {
-  project: { 0: 'Планирование', 1: 'Активный', 2: 'Приостановлен', 3: 'Завершён', 4: 'Отменён' },
-  task: { 0: 'Новая', 1: 'Назначена', 2: 'В работе', 3: 'На проверке', 4: 'Завершена', 5: 'Отменена' },
+  projects: { 0: 'Планирование', 1: 'Активный', 2: 'Приостановлен', 3: 'Завершён', 4: 'Отменён' },
+  tasks: { 0: 'Новая', 1: 'В работе', 2: 'На проверке', 3: 'Завершена', 4: 'Отменена' },
+  'construction-sites': { 0: 'Планирование', 1: 'Активная', 2: 'Приостановлена', 3: 'Завершена' },
+  payments: { 0: 'Черновик', 1: 'Ожидает', 2: 'Оплачен', 3: 'Отменён' },
+  leaves: { 0: 'Ожидает', 1: 'Одобрен', 2: 'Отклонён', 3: 'Отменён' },
+  inspections: { 0: 'Запланирована', 1: 'В процессе', 2: 'Завершена', 3: 'Отменена' },
 };
 
 const PRIORITY_LABELS: Record<number, string> = {
@@ -69,7 +96,8 @@ export class PdfService {
   }
 
   async generatePdf(dto: GeneratePdfDto): Promise<{ filename: string; downloadUrl: string }> {
-    const { entityType, entityId, entityData } = dto;
+    const entityType = normalizeSlug(dto.entityType);
+    const { entityId, entityData } = dto;
     const timestamp = Date.now();
     const filename = `${entityType}-${entityId ?? timestamp}-${timestamp}.pdf`;
     const filepath = path.join(PDF_DIR, filename);
@@ -167,13 +195,15 @@ export class PdfService {
     entityType: string,
     data: Record<string, unknown>,
   ): { label: string; value: string }[] {
+    const statusLabel = (v: unknown) => STATUS_LABELS[entityType]?.[Number(v)] ?? val(v);
+
     switch (entityType) {
-      case 'project':
+      case 'projects':
         return [
           { label: 'ID', value: val(data.id) },
           { label: 'Название', value: val(data.name) },
           { label: 'Описание', value: val(data.description) },
-          { label: 'Статус', value: STATUS_LABELS.project[Number(data.status)] ?? val(data.status) },
+          { label: 'Статус', value: statusLabel(data.status) },
           { label: 'Приоритет', value: PRIORITY_LABELS[Number(data.priority)] ?? val(data.priority) },
           { label: 'Бюджет', value: data.budget ? `${Number(data.budget).toLocaleString('ru-RU')} ₽` : '—' },
           { label: 'Дата начала', value: fmtDate(data.startDate) },
@@ -184,13 +214,13 @@ export class PdfService {
           { label: 'Создан', value: fmtDate(data.createdAt) },
         ];
 
-      case 'task':
+      case 'tasks':
         return [
           { label: 'ID', value: val(data.id) },
           { label: 'Название', value: val(data.title) },
           { label: 'Описание', value: val(data.description) },
           { label: 'Проект', value: (data.project as any)?.name ?? val(data.projectId) },
-          { label: 'Статус', value: STATUS_LABELS.task[Number(data.status)] ?? val(data.status) },
+          { label: 'Статус', value: statusLabel(data.status) },
           { label: 'Приоритет', value: PRIORITY_LABELS[Number(data.priority)] ?? val(data.priority) },
           { label: 'Тип', value: val(data.taskType) },
           {
@@ -206,7 +236,7 @@ export class PdfService {
           { label: 'Создан', value: fmtDate(data.createdAt) },
         ];
 
-      case 'user':
+      case 'users':
         return [
           { label: 'ID', value: val(data.id) },
           { label: 'Имя', value: val(data.name) },
@@ -218,17 +248,27 @@ export class PdfService {
         ];
 
       default:
+        // Auto-generate fields from data, skipping internal/object fields
         return Object.entries(data)
-          .filter(([k]) => !['deletedAt', 'passwordDigest'].includes(k))
-          .map(([k, v]) => ({ label: k, value: val(v) }));
+          .filter(([k, v]) =>
+            !['deletedAt', 'passwordDigest', 'accountId', 'password_digest'].includes(k)
+            && typeof v !== 'object',
+          )
+          .map(([k, v]) => {
+            // Humanize common field names
+            if (k === 'status') return { label: 'Статус', value: statusLabel(v) };
+            if (k.endsWith('Date') || k.endsWith('_at') || k.endsWith('At')) return { label: k, value: fmtDate(v) };
+            return { label: k, value: val(v) };
+          });
     }
   }
 
   async generateListPdf(
-    entityType: string,
+    rawEntityType: string,
     rows: Record<string, unknown>[],
     title: string,
   ): Promise<{ filename: string; downloadUrl: string }> {
+    const entityType = normalizeSlug(rawEntityType);
     const timestamp = Date.now();
     const filename = `${entityType}-list-${timestamp}.pdf`;
     const filepath = path.join(PDF_DIR, filename);
@@ -262,7 +302,7 @@ export class PdfService {
         );
 
       // ── Table header ─────────────────────────────────────────
-      const fields = this.getListFields(entityType);
+      const fields = this.getListFields(entityType, rows);
       const colWidth = Math.floor((doc.page.width - 100) / fields.length);
       let y = 90;
 
@@ -314,27 +354,29 @@ export class PdfService {
     return { filename, downloadUrl: `/pdf/download/${filename}` };
   }
 
-  private getListFields(entityType: string): { key: string; label: string; render?: (row: Record<string, unknown>) => string }[] {
+  private getListFields(entityType: string, rows?: Record<string, unknown>[]): { key: string; label: string; render?: (row: Record<string, unknown>) => string }[] {
+    const statusRender = (r: Record<string, unknown>) => STATUS_LABELS[entityType]?.[Number(r.status)] ?? val(r.status);
+
     switch (entityType) {
-      case 'project':
+      case 'projects':
         return [
           { key: 'id', label: 'ID' },
           { key: 'name', label: 'Название' },
-          { key: 'status', label: 'Статус', render: (r) => STATUS_LABELS.project[Number(r.status)] ?? val(r.status) },
+          { key: 'status', label: 'Статус', render: statusRender },
           { key: 'budget', label: 'Бюджет', render: (r) => r.budget ? `${Number(r.budget).toLocaleString('ru-RU')} ₽` : '—' },
           { key: 'startDate', label: 'Начало', render: (r) => fmtDate(r.startDate) },
           { key: 'plannedEndDate', label: 'Окончание', render: (r) => fmtDate(r.plannedEndDate) },
         ];
-      case 'task':
+      case 'tasks':
         return [
           { key: 'id', label: 'ID' },
           { key: 'title', label: 'Название' },
-          { key: 'status', label: 'Статус', render: (r) => STATUS_LABELS.task[Number(r.status)] ?? val(r.status) },
+          { key: 'status', label: 'Статус', render: statusRender },
           { key: 'priority', label: 'Приоритет', render: (r) => PRIORITY_LABELS[Number(r.priority)] ?? val(r.priority) },
-          { key: 'assignees', label: 'Исполнители', render: (r) => Array.isArray(r.assignees) ? (r.assignees as any[]).map((a) => a.userName || `#${a.userId}`).join(', ') || '—' : '—' },
+          { key: 'assignees', label: 'Исполнители', render: (r) => Array.isArray(r.assignees) ? (r.assignees as any[]).map((a: any) => a.userName || `#${a.userId}`).join(', ') || '—' : '—' },
           { key: 'dueDate', label: 'Срок', render: (r) => fmtDate(r.dueDate) },
         ];
-      case 'user':
+      case 'users':
         return [
           { key: 'id', label: 'ID' },
           { key: 'name', label: 'Имя' },
@@ -342,11 +384,111 @@ export class PdfService {
           { key: 'phone', label: 'Телефон' },
           { key: 'isActive', label: 'Активен', render: (r) => r.isActive ? 'Да' : 'Нет' },
         ];
-      default:
+      case 'construction-sites':
         return [
           { key: 'id', label: 'ID' },
           { key: 'name', label: 'Название' },
+          { key: 'address', label: 'Адрес' },
+          { key: 'status', label: 'Статус', render: statusRender },
+          { key: 'startDate', label: 'Начало', render: (r) => fmtDate(r.startDate) },
         ];
+      case 'clients':
+        return [
+          { key: 'id', label: 'ID' },
+          { key: 'name', label: 'Название' },
+          { key: 'contactPerson', label: 'Контактное лицо' },
+          { key: 'phone', label: 'Телефон' },
+          { key: 'email', label: 'Email' },
+        ];
+      case 'materials':
+        return [
+          { key: 'id', label: 'ID' },
+          { key: 'name', label: 'Название' },
+          { key: 'unit', label: 'Ед. изм.' },
+          { key: 'quantity', label: 'Количество' },
+          { key: 'price', label: 'Цена', render: (r) => r.price ? `${Number(r.price).toLocaleString('ru-RU')} ₽` : '—' },
+        ];
+      case 'equipment':
+        return [
+          { key: 'id', label: 'ID' },
+          { key: 'name', label: 'Название' },
+          { key: 'inventoryNumber', label: 'Инв. номер' },
+          { key: 'status', label: 'Статус', render: statusRender },
+        ];
+      case 'suppliers':
+        return [
+          { key: 'id', label: 'ID' },
+          { key: 'name', label: 'Название' },
+          { key: 'contactPerson', label: 'Контактное лицо' },
+          { key: 'phone', label: 'Телефон' },
+          { key: 'email', label: 'Email' },
+        ];
+      case 'payments':
+        return [
+          { key: 'id', label: 'ID' },
+          { key: 'description', label: 'Описание' },
+          { key: 'amount', label: 'Сумма', render: (r) => r.amount ? `${Number(r.amount).toLocaleString('ru-RU')} ₽` : '—' },
+          { key: 'status', label: 'Статус', render: statusRender },
+          { key: 'paymentDate', label: 'Дата', render: (r) => fmtDate(r.paymentDate) },
+        ];
+      case 'salaries':
+        return [
+          { key: 'id', label: 'ID' },
+          { key: 'employeeName', label: 'Сотрудник' },
+          { key: 'totalAmount', label: 'Сумма', render: (r) => r.totalAmount ? `${Number(r.totalAmount).toLocaleString('ru-RU')} ₽` : '—' },
+          { key: 'payrollPeriod', label: 'Период' },
+          { key: 'status', label: 'Статус', render: statusRender },
+        ];
+      case 'attendance':
+        return [
+          { key: 'id', label: 'ID' },
+          { key: 'employeeName', label: 'Сотрудник' },
+          { key: 'date', label: 'Дата', render: (r) => fmtDate(r.date) },
+          { key: 'checkIn', label: 'Приход' },
+          { key: 'checkOut', label: 'Уход' },
+          { key: 'hoursWorked', label: 'Часы' },
+        ];
+      case 'leaves':
+        return [
+          { key: 'id', label: 'ID' },
+          { key: 'employeeName', label: 'Сотрудник' },
+          { key: 'leaveType', label: 'Тип' },
+          { key: 'startDate', label: 'С', render: (r) => fmtDate(r.startDate) },
+          { key: 'endDate', label: 'По', render: (r) => fmtDate(r.endDate) },
+          { key: 'status', label: 'Статус', render: statusRender },
+        ];
+      case 'teams':
+        return [
+          { key: 'id', label: 'ID' },
+          { key: 'name', label: 'Название' },
+          { key: 'description', label: 'Описание' },
+          { key: 'status', label: 'Статус', render: statusRender },
+        ];
+      case 'inspections':
+        return [
+          { key: 'id', label: 'ID' },
+          { key: 'title', label: 'Название' },
+          { key: 'status', label: 'Статус', render: statusRender },
+          { key: 'inspectionDate', label: 'Дата', render: (r) => fmtDate(r.inspectionDate) },
+        ];
+      default: {
+        // Auto-detect columns from first row, picking up to 6 scalar fields
+        const sample = rows?.[0];
+        if (!sample) return [{ key: 'id', label: 'ID' }, { key: 'name', label: 'Название' }];
+        const skipKeys = new Set(['deletedAt', 'passwordDigest', 'password_digest', 'accountId', 'account_id', 'updatedAt', 'updated_at']);
+        const cols: { key: string; label: string; render?: (row: Record<string, unknown>) => string }[] = [];
+        for (const [k, v] of Object.entries(sample)) {
+          if (skipKeys.has(k)) continue;
+          if (typeof v === 'object' && v !== null) continue;
+          if (k.endsWith('Date') || k.endsWith('_at') || k.endsWith('At')) {
+            cols.push({ key: k, label: k, render: (r) => fmtDate(r[k]) });
+          } else {
+            cols.push({ key: k, label: k });
+          }
+          if (cols.length >= 6) break;
+        }
+        return cols.length > 0 ? cols : [{ key: 'id', label: 'ID' }, { key: 'name', label: 'Название' }];
+      }
     }
   }
 

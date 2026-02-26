@@ -74,7 +74,7 @@ export class TasksService {
 
   async setAssignees(
     taskId: number,
-    userIds: number[],
+    assignees: { userId: number; userName?: string }[],
     requestingUserAccountId: number,
   ) {
     const task = await this.taskRepository.findById(taskId);
@@ -82,7 +82,6 @@ export class TasksService {
     if (task.accountId !== requestingUserAccountId)
       throw new ForbiddenException('Access denied');
 
-    const assignees = userIds.map((userId) => ({ userId }));
     return this.taskRepository.setAssignees(taskId, assignees);
   }
 

@@ -118,9 +118,13 @@ export class TasksController {
   async setAssignees(
     @CurrentUser() user: RequestUser,
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: { userIds: number[] },
+    @Body() body: { assignees?: { userId: number; userName?: string }[]; userIds?: number[] },
   ) {
-    return this.tasksService.setAssignees(id, body.userIds || [], user.accountId);
+    // Support both formats: { assignees: [{userId, userName}] } and legacy { userIds: [] }
+    const assignees = body.assignees
+      ? body.assignees
+      : (body.userIds || []).map((uid) => ({ userId: uid }));
+    return this.tasksService.setAssignees(id, assignees, user.accountId);
   }
 
   @Get(':id/assignees')

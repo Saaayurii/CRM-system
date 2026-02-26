@@ -38,13 +38,6 @@ export class ProjectRepository {
         projectManager: {
           select: { id: true, name: true, email: true },
         },
-        projectTeams: {
-          include: {
-            user: {
-              select: { id: true, name: true, email: true },
-            },
-          },
-        },
       },
     });
   }

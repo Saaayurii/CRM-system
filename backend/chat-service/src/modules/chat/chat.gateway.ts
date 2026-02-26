@@ -211,10 +211,12 @@ export class ChatGateway
       client.user.id,
     );
 
-    // Notify user's other devices
-    client.broadcast.emit('message:read:updated', {
+    // Notify ALL members in the channel room (including sender's other devices)
+    // so that message senders see their checkmarks update to "read"
+    this.server.to(`channel:${data.channelId}`).emit('message:read:updated', {
+      channelId: data.channelId,
       userId: client.user.id,
-      ...result,
+      lastReadAt: result.lastReadAt,
     });
 
     return { event: 'message:read:ack', data: result };
