@@ -4,6 +4,12 @@ import type { DiagnosticError, ErrorCategory } from '@/types/admin';
 export function categorizeError(error: AxiosError, service = 'Неизвестный'): DiagnosticError {
   const timestamp = new Date().toISOString();
 
+  const defaultFields = {
+    severity: 'medium' as const,
+    affectedBy: [] as string[],
+    autoFixAvailable: false,
+  };
+
   // No response at all — network error
   if (!error.response) {
     return {
@@ -12,6 +18,7 @@ export function categorizeError(error: AxiosError, service = 'Неизвестн
       message: 'Нет ответа от сервера',
       timestamp,
       suggestion: 'Проверьте подключение к сети и убедитесь, что сервер запущен',
+      ...defaultFields,
     };
   }
 
@@ -27,6 +34,7 @@ export function categorizeError(error: AxiosError, service = 'Неизвестн
       message: 'Сессия истекла или невалидный токен',
       timestamp,
       suggestion: 'Войдите в систему заново',
+      ...defaultFields,
     };
   }
 
@@ -37,6 +45,7 @@ export function categorizeError(error: AxiosError, service = 'Неизвестн
       message: 'Доступ запрещён',
       timestamp,
       suggestion: 'У вас нет прав для выполнения этого действия',
+      ...defaultFields,
     };
   }
 
@@ -48,6 +57,7 @@ export function categorizeError(error: AxiosError, service = 'Неизвестн
       message: `Микросервис недоступен (${status})`,
       timestamp,
       suggestion: 'Попробуйте перезапустить микросервис из панели администрирования',
+      ...defaultFields,
     };
   }
 
@@ -62,6 +72,7 @@ export function categorizeError(error: AxiosError, service = 'Неизвестн
       message: 'Ошибка базы данных',
       timestamp,
       suggestion: 'Проверьте подключение к базе данных и её состояние',
+      ...defaultFields,
     };
   }
 
@@ -73,6 +84,7 @@ export function categorizeError(error: AxiosError, service = 'Неизвестн
       message: serverMessage || `Внутренняя ошибка сервера (${status})`,
       timestamp,
       suggestion: 'Попробуйте повторить операцию или обратитесь к администратору',
+      ...defaultFields,
     };
   }
 
@@ -84,6 +96,7 @@ export function categorizeError(error: AxiosError, service = 'Неизвестн
       message: serverMessage || `Ошибка запроса (${status})`,
       timestamp,
       suggestion: 'Проверьте введённые данные и попробуйте снова',
+      ...defaultFields,
     };
   }
 
@@ -93,6 +106,7 @@ export function categorizeError(error: AxiosError, service = 'Неизвестн
     message: serverMessage || 'Неизвестная ошибка',
     timestamp,
     suggestion: 'Попробуйте повторить операцию',
+    ...defaultFields,
   };
 }
 

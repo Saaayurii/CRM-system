@@ -63,10 +63,16 @@ export interface PaginatedResponse<T> {
 
 export type ErrorCategory = 'network' | 'auth' | 'service' | 'database' | 'unknown';
 
+export type Severity = 'critical' | 'high' | 'medium' | 'low';
+
 export interface DiagnosticError {
   category: ErrorCategory;
   service: string;
   message: string;
   timestamp: string;
   suggestion: string;
+  severity: Severity;
+  affectedBy: string[];
+  autoFixAvailable: boolean;
+  autoFixAction?: 'restart' | 'start';
 }

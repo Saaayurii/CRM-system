@@ -4,20 +4,28 @@ import { useState, useCallback, useEffect } from 'react';
 import ServiceGrid from '@/components/admin/ServiceGrid';
 import ErrorBoundary from '@/components/admin/ErrorBoundary';
 import ErrorDiagnosticsPanel from '@/components/admin/ErrorDiagnosticsPanel';
-import type { DiagnosticError } from '@/types/admin';
+import type { DiagnosticError, Severity } from '@/types/admin';
+
+interface DiagnosticsService {
+  name: string;
+  state: string;
+  healthy: boolean;
+  port: number | null;
+  reachable: boolean | null;
+  checkMethod: 'tcp' | 'http';
+  recommendation: string;
+  severity: Severity;
+  dependsOn: string[];
+  affectedBy: string[];
+  autoFixAvailable: boolean;
+  autoFixAction?: 'restart' | 'start';
+}
 
 interface DiagnosticsResponse {
   gatewayReachable: boolean;
   overallStatus?: 'ok' | 'degraded' | 'down';
   overallRecommendation?: string;
-  services?: Array<{
-    name: string;
-    state: string;
-    healthy: boolean;
-    port: number | null;
-    httpReachable: boolean | null;
-    recommendation: string;
-  }>;
+  services?: DiagnosticsService[];
 }
 
 export default function AdminPage() {
@@ -43,20 +51,22 @@ export default function AdminPage() {
       const newErrors: DiagnosticError[] = [];
       for (const svc of data.services || []) {
         if (!svc.healthy) {
+          const serviceName = svc.name.replace(/^crm-/, '');
+          const isDown = svc.state !== 'running';
+          const checkLabel = svc.checkMethod === 'tcp' ? 'TCP' : 'HTTP';
+
           newErrors.push({
-            category: 'service',
-            service: svc.name.replace(/^crm-/, ''),
-            message: `Контейнер в состоянии: ${svc.state}`,
+            category: isDown ? 'service' : 'network',
+            service: serviceName,
+            message: isDown
+              ? `Контейнер в состоянии: ${svc.state}`
+              : `${checkLabel} порт ${svc.port} не отвечает`,
             timestamp: new Date().toISOString(),
             suggestion: svc.recommendation,
-          });
-        } else if (svc.httpReachable === false) {
-          newErrors.push({
-            category: 'network',
-            service: svc.name.replace(/^crm-/, ''),
-            message: `HTTP порт ${svc.port} не отвечает`,
-            timestamp: new Date().toISOString(),
-            suggestion: svc.recommendation,
+            severity: svc.severity,
+            affectedBy: svc.affectedBy.map((d) => d.replace(/^crm-/, '')),
+            autoFixAvailable: svc.autoFixAvailable,
+            autoFixAction: svc.autoFixAction,
           });
         }
       }
@@ -68,6 +78,9 @@ export default function AdminPage() {
         message: 'Не удалось выполнить проверку',
         timestamp: new Date().toISOString(),
         suggestion: 'Проверьте подключение к серверу',
+        severity: 'high',
+        affectedBy: [],
+        autoFixAvailable: false,
       }]);
     } finally {
       setIsChecking(false);
