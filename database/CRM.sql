@@ -55,7 +55,7 @@ CREATE TABLE users (
     -- Статусы
     availability INTEGER DEFAULT 1, -- 0-offline, 1-online, 2-busy, 3-vacation, 4-sick
     is_active BOOLEAN DEFAULT TRUE,
-    
+         
     -- Авторизация
     password_digest VARCHAR(255),
     confirmed_at TIMESTAMP,
@@ -2336,6 +2336,25 @@ FROM projects p
 LEFT JOIN payments pay ON p.id = pay.project_id AND pay.status = 1 -- completed
 WHERE p.deleted_at IS NULL
 GROUP BY p.id, p.name, p.budget;
+
+-- ===========================================
+-- Registration Requests (Заявки на регистрацию)
+-- ===========================================
+CREATE TABLE registration_requests (
+    id SERIAL PRIMARY KEY,
+    account_id INTEGER DEFAULT 1 REFERENCES accounts(id),
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    phone VARCHAR(50),
+    birth_date DATE,
+    password_digest VARCHAR(255) NOT NULL,
+    status INTEGER DEFAULT 0,  -- 0=pending, 1=approved, 2=rejected
+    reject_reason TEXT,
+    reviewed_by INTEGER REFERENCES users(id),
+    reviewed_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
 -- Комментарий: успешно создана полная схема БД для CRM системы строителей!
 COMMENT ON DATABASE postgres IS 'Строительная CRM система - полная схема базы данных';

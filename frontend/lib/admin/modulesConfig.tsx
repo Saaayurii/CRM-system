@@ -1114,6 +1114,229 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
       { key: 'notes', label: 'Примечания', type: 'textarea' },
     ],
   },
+  'supplier-orders': {
+    slug: 'supplier-orders',
+    title: 'Заказы поставщикам',
+    apiEndpoint: '/supplier-orders',
+    searchField: 'номеру',
+    columns: [
+      { key: 'id', header: 'ID', sortable: true, width: '80px' },
+      { key: 'orderNumber', header: 'Номер', sortable: true },
+      {
+        key: 'supplierId',
+        header: 'Поставщик',
+        render: (v, row) => {
+          const name = (row as Record<string, any>).supplier?.name;
+          return name ? <span>{name}</span> : <span className="text-gray-400">#{String(v ?? '—')}</span>;
+        },
+      },
+      {
+        key: 'totalAmount',
+        header: 'Сумма',
+        sortable: true,
+        render: (v) => v != null ? <span>{Number(v).toLocaleString('ru-RU')} ₽</span> : <span className="text-gray-400">—</span>,
+      },
+      {
+        key: 'status',
+        header: 'Статус',
+        render: (v) => {
+          const map: Record<number, { label: string; color: string }> = {
+            0: { label: 'Черновик', color: 'gray' },
+            1: { label: 'Отправлен', color: 'blue' },
+            2: { label: 'Подтверждён', color: 'green' },
+            3: { label: 'Доставлен', color: 'purple' },
+            4: { label: 'Отменён', color: 'red' },
+          };
+          const s = map[Number(v)];
+          return s ? <StatusBadge label={s.label} color={s.color} /> : <span className="text-gray-400">—</span>;
+        },
+      },
+      { key: 'orderDate', header: 'Дата', sortable: true, render: (v) => fmtDate(v) },
+    ],
+    formFields: [
+      { key: 'supplierId', label: 'Поставщик', type: 'select', required: true, fetchOptions: { endpoint: '/suppliers', valueKey: 'id', labelKey: 'name' } },
+      { key: 'totalAmount', label: 'Сумма (₽)', type: 'number' },
+      {
+        key: 'status',
+        label: 'Статус',
+        type: 'select',
+        options: [
+          { value: 0, label: 'Черновик' },
+          { value: 1, label: 'Отправлен' },
+          { value: 2, label: 'Подтверждён' },
+          { value: 3, label: 'Доставлен' },
+          { value: 4, label: 'Отменён' },
+        ],
+      },
+      { key: 'orderDate', label: 'Дата заказа', type: 'date', required: true },
+      { key: 'deliveryDate', label: 'Дата доставки', type: 'date' },
+      { key: 'notes', label: 'Примечания', type: 'textarea' },
+    ],
+  },
+  'material-requests': {
+    slug: 'material-requests',
+    title: 'Заявки на материалы',
+    apiEndpoint: '/material-requests',
+    searchField: 'описанию',
+    columns: [
+      { key: 'id', header: 'ID', sortable: true, width: '80px' },
+      { key: 'requestNumber', header: 'Номер', sortable: true },
+      {
+        key: 'materialId',
+        header: 'Материал',
+        render: (v, row) => {
+          const name = (row as Record<string, any>).material?.name;
+          return name ? <span>{name}</span> : <span className="text-gray-400">#{String(v ?? '—')}</span>;
+        },
+      },
+      { key: 'quantity', header: 'Кол-во', sortable: true },
+      {
+        key: 'status',
+        header: 'Статус',
+        render: (v) => {
+          const map: Record<number, { label: string; color: string }> = {
+            0: { label: 'Ожидает', color: 'yellow' },
+            1: { label: 'Одобрена', color: 'green' },
+            2: { label: 'Отклонена', color: 'red' },
+            3: { label: 'Выдана', color: 'blue' },
+          };
+          const s = map[Number(v)];
+          return s ? <StatusBadge label={s.label} color={s.color} /> : <span className="text-gray-400">—</span>;
+        },
+      },
+      { key: 'createdAt', header: 'Дата', sortable: true, render: (v) => fmtDate(v) },
+    ],
+    formFields: [
+      { key: 'materialId', label: 'Материал', type: 'select', required: true, fetchOptions: { endpoint: '/materials', valueKey: 'id', labelKey: 'name' } },
+      { key: 'quantity', label: 'Количество', type: 'number', required: true },
+      {
+        key: 'status',
+        label: 'Статус',
+        type: 'select',
+        options: [
+          { value: 0, label: 'Ожидает' },
+          { value: 1, label: 'Одобрена' },
+          { value: 2, label: 'Отклонена' },
+          { value: 3, label: 'Выдана' },
+        ],
+      },
+      { key: 'description', label: 'Описание', type: 'textarea' },
+    ],
+  },
+  defects: {
+    slug: 'defects',
+    title: 'Дефекты',
+    apiEndpoint: '/defects',
+    searchField: 'описанию',
+    columns: [
+      { key: 'id', header: 'ID', sortable: true, width: '80px' },
+      { key: 'title', header: 'Название', sortable: true },
+      {
+        key: 'severity',
+        header: 'Серьёзность',
+        render: (v) => {
+          const map: Record<string, { label: string; color: string }> = {
+            low:      { label: 'Низкая',      color: 'green' },
+            medium:   { label: 'Средняя',     color: 'yellow' },
+            high:     { label: 'Высокая',     color: 'orange' },
+            critical: { label: 'Критическая', color: 'red' },
+          };
+          const s = map[String(v ?? '')];
+          return s ? <StatusBadge label={s.label} color={s.color} /> : <span className="text-gray-400">{String(v ?? '—')}</span>;
+        },
+      },
+      {
+        key: 'status',
+        header: 'Статус',
+        render: (v) => {
+          const map: Record<string, { label: string; color: string }> = {
+            open:        { label: 'Открыт',     color: 'red' },
+            in_progress: { label: 'В работе',   color: 'yellow' },
+            resolved:    { label: 'Исправлен',  color: 'green' },
+            closed:      { label: 'Закрыт',     color: 'gray' },
+          };
+          const s = map[String(v ?? '')];
+          return s ? <StatusBadge label={s.label} color={s.color} /> : <span className="text-gray-400">{String(v ?? '—')}</span>;
+        },
+      },
+      { key: 'createdAt', header: 'Дата', sortable: true, render: (v) => fmtDate(v) },
+    ],
+    formFields: [
+      { key: 'title', label: 'Название', type: 'text', required: true },
+      { key: 'description', label: 'Описание', type: 'textarea' },
+      { key: 'inspectionId', label: 'Инспекция', type: 'select', fetchOptions: { endpoint: '/inspections', valueKey: 'id', labelKey: 'title' } },
+      {
+        key: 'severity',
+        label: 'Серьёзность',
+        type: 'select',
+        options: [
+          { value: 'low', label: 'Низкая' },
+          { value: 'medium', label: 'Средняя' },
+          { value: 'high', label: 'Высокая' },
+          { value: 'critical', label: 'Критическая' },
+        ],
+      },
+      {
+        key: 'status',
+        label: 'Статус',
+        type: 'select',
+        options: [
+          { value: 'open', label: 'Открыт' },
+          { value: 'in_progress', label: 'В работе' },
+          { value: 'resolved', label: 'Исправлен' },
+          { value: 'closed', label: 'Закрыт' },
+        ],
+      },
+    ],
+  },
+  'equipment-maintenance': {
+    slug: 'equipment-maintenance',
+    title: 'Обслуживание оборудования',
+    apiEndpoint: '/equipment-maintenance',
+    searchField: 'описанию',
+    columns: [
+      { key: 'id', header: 'ID', sortable: true, width: '80px' },
+      {
+        key: 'equipmentId',
+        header: 'Оборудование',
+        render: (v, row) => {
+          const name = (row as Record<string, any>).equipment?.name;
+          return name ? <span>{name}</span> : <span className="text-gray-400">#{String(v ?? '—')}</span>;
+        },
+      },
+      { key: 'maintenanceType', header: 'Тип' },
+      {
+        key: 'status',
+        header: 'Статус',
+        render: (v) => {
+          const map: Record<string, { label: string; color: string }> = {
+            scheduled:   { label: 'Запланировано', color: 'gray' },
+            in_progress: { label: 'В процессе',   color: 'yellow' },
+            completed:   { label: 'Завершено',     color: 'green' },
+          };
+          const s = map[String(v ?? '')];
+          return s ? <StatusBadge label={s.label} color={s.color} /> : <span className="text-gray-400">{String(v ?? '—')}</span>;
+        },
+      },
+      { key: 'scheduledDate', header: 'Дата', sortable: true, render: (v) => fmtDate(v) },
+    ],
+    formFields: [
+      { key: 'equipmentId', label: 'Оборудование', type: 'select', required: true, fetchOptions: { endpoint: '/equipment', valueKey: 'id', labelKey: 'name' } },
+      { key: 'maintenanceType', label: 'Тип обслуживания', type: 'text' },
+      {
+        key: 'status',
+        label: 'Статус',
+        type: 'select',
+        options: [
+          { value: 'scheduled', label: 'Запланировано' },
+          { value: 'in_progress', label: 'В процессе' },
+          { value: 'completed', label: 'Завершено' },
+        ],
+      },
+      { key: 'scheduledDate', label: 'Дата', type: 'date', required: true },
+      { key: 'description', label: 'Описание', type: 'textarea' },
+    ],
+  },
   audit: {
     slug: 'audit',
     title: 'Аудит',

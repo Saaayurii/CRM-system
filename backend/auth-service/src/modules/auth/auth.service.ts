@@ -1,5 +1,6 @@
 import {
   Injectable,
+  BadRequestException,
   ConflictException,
   NotFoundException,
   UnauthorizedException,
@@ -8,6 +9,9 @@ import {
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { CreateRegistrationRequestDto } from './dto/create-registration-request.dto';
+import { ApproveRegistrationRequestDto } from './dto/approve-registration-request.dto';
+import { RejectRegistrationRequestDto } from './dto/reject-registration-request.dto';
 import {
   AuthResponseDto,
   UserResponseDto,
@@ -17,6 +21,7 @@ import {
 import { UserRepository } from './repositories/user.repository';
 import { RoleRepository } from './repositories/role.repository';
 import { AccountRepository } from './repositories/account.repository';
+import { RegistrationRequestRepository } from './repositories/registration-request.repository';
 import { PasswordService } from './services/password.service';
 import { TokenService } from './services/token.service';
 import { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
@@ -29,6 +34,7 @@ export class AuthService {
     private readonly userRepository: UserRepository,
     private readonly roleRepository: RoleRepository,
     private readonly accountRepository: AccountRepository,
+    private readonly registrationRequestRepository: RegistrationRequestRepository,
     private readonly passwordService: PasswordService,
     private readonly tokenService: TokenService,
   ) {}
@@ -103,6 +109,24 @@ export class AuthService {
     // Find user by email
     const user = await this.userRepository.findByEmail(loginDto.email);
     if (!user) {
+      // Check registration requests
+      const regRequest =
+        await this.registrationRequestRepository.findByEmail(loginDto.email);
+      if (regRequest) {
+        if (regRequest.status === 0) {
+          throw new UnauthorizedException(
+            'Ваша заявка на регистрацию ещё не рассмотрена',
+          );
+        }
+        if (regRequest.status === 2) {
+          const reason = regRequest.rejectReason
+            ? `: ${regRequest.rejectReason}`
+            : '';
+          throw new UnauthorizedException(
+            `Ваша заявка отклонена${reason}`,
+          );
+        }
+      }
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -233,6 +257,113 @@ export class AuthService {
       throw new NotFoundException('User not found');
     }
     return this.mapUserToResponse(user);
+  }
+
+  // ── Registration Requests ──────────────────────────────────────────
+
+  async createRegistrationRequest(
+    dto: CreateRegistrationRequestDto,
+  ): Promise<MessageResponseDto> {
+    // Check if email already taken by a user
+    const existingUser = await this.userRepository.findByEmail(dto.email);
+    if (existingUser) {
+      throw new ConflictException('Пользователь с таким email уже существует');
+    }
+
+    // Check if there is already a pending request
+    const pendingRequest =
+      await this.registrationRequestRepository.findPendingByEmail(dto.email);
+    if (pendingRequest) {
+      throw new ConflictException(
+        'Заявка с таким email уже подана и ожидает рассмотрения',
+      );
+    }
+
+    const passwordDigest = await this.passwordService.hash(dto.password);
+
+    await this.registrationRequestRepository.create({
+      name: dto.name,
+      email: dto.email,
+      phone: dto.phone || null,
+      birthDate: dto.birthDate ? new Date(dto.birthDate) : null,
+      passwordDigest,
+      status: 0,
+      accountId: 1,
+    });
+
+    this.logger.log(`Registration request created: ${dto.email}`);
+    return { message: 'Заявка на регистрацию отправлена' };
+  }
+
+  async getRegistrationRequests(status?: number) {
+    return this.registrationRequestRepository.findAll(status);
+  }
+
+  async approveRegistrationRequest(
+    id: number,
+    dto: ApproveRegistrationRequestDto,
+    reviewerUserId: number,
+  ): Promise<MessageResponseDto> {
+    const request = await this.registrationRequestRepository.findById(id);
+    if (!request) {
+      throw new NotFoundException('Заявка не найдена');
+    }
+    if (request.status !== 0) {
+      throw new BadRequestException('Заявка уже рассмотрена');
+    }
+
+    // Verify role exists
+    const role = await this.roleRepository.findById(dto.roleId);
+    if (!role) {
+      throw new NotFoundException('Роль не найдена');
+    }
+
+    // Create user
+    await this.userRepository.create({
+      name: request.name,
+      email: request.email,
+      phone: request.phone,
+      birthDate: request.birthDate,
+      passwordDigest: request.passwordDigest,
+      position: dto.position || null,
+      account: { connect: { id: request.accountId } },
+      role: { connect: { id: dto.roleId } },
+      confirmedAt: new Date(),
+    });
+
+    // Update request status
+    await this.registrationRequestRepository.updateStatus(id, {
+      status: 1,
+      reviewedBy: reviewerUserId,
+      reviewedAt: new Date(),
+    });
+
+    this.logger.log(`Registration request approved: ${request.email}`);
+    return { message: 'Заявка одобрена, пользователь создан' };
+  }
+
+  async rejectRegistrationRequest(
+    id: number,
+    dto: RejectRegistrationRequestDto,
+    reviewerUserId: number,
+  ): Promise<MessageResponseDto> {
+    const request = await this.registrationRequestRepository.findById(id);
+    if (!request) {
+      throw new NotFoundException('Заявка не найдена');
+    }
+    if (request.status !== 0) {
+      throw new BadRequestException('Заявка уже рассмотрена');
+    }
+
+    await this.registrationRequestRepository.updateStatus(id, {
+      status: 2,
+      rejectReason: dto.reason || null,
+      reviewedBy: reviewerUserId,
+      reviewedAt: new Date(),
+    });
+
+    this.logger.log(`Registration request rejected: ${request.email}`);
+    return { message: 'Заявка отклонена' };
   }
 
   private mapUserToResponse(user: any): UserResponseDto {

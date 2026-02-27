@@ -34,6 +34,10 @@ export default function Sidebar() {
   const isPM = roleCode === 'project_manager';
   const isForeman = roleCode === 'foreman';
   const isWorker = roleCode === 'worker';
+  const isSupplier = roleCode === 'supplier_manager';
+  const isWarehouse = roleCode === 'warehouse_keeper';
+  const isAccountant = roleCode === 'accountant';
+  const isInspector = roleCode === 'inspector';
   const showTeams = isSuperAdmin || roleCode === 'admin' || isPM || isHR;
   const showChat = !isSuperAdmin;
 
@@ -369,6 +373,82 @@ export default function Sidebar() {
                                 <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
                                   Стройплощадки
                                 </span>
+                              </Link>
+                            </li>
+                          </>
+                        )}
+                        {isSupplier && (
+                          <>
+                            <li className="mb-1 last:mb-0">
+                              <Link href="/dashboard/supplier/suppliers" className={`block transition duration-150 truncate ${pathname === '/dashboard/supplier/suppliers' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                                <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Поставщики</span>
+                              </Link>
+                            </li>
+                            <li className="mb-1 last:mb-0">
+                              <Link href="/dashboard/supplier/orders" className={`block transition duration-150 truncate ${pathname === '/dashboard/supplier/orders' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                                <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Заказы</span>
+                              </Link>
+                            </li>
+                            <li className="mb-1 last:mb-0">
+                              <Link href="/dashboard/supplier/materials" className={`block transition duration-150 truncate ${pathname === '/dashboard/supplier/materials' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                                <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Материалы</span>
+                              </Link>
+                            </li>
+                          </>
+                        )}
+                        {isWarehouse && (
+                          <>
+                            <li className="mb-1 last:mb-0">
+                              <Link href="/dashboard/warehouse/materials" className={`block transition duration-150 truncate ${pathname === '/dashboard/warehouse/materials' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                                <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Материалы</span>
+                              </Link>
+                            </li>
+                            <li className="mb-1 last:mb-0">
+                              <Link href="/dashboard/warehouse/equipment" className={`block transition duration-150 truncate ${pathname === '/dashboard/warehouse/equipment' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                                <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Оборудование</span>
+                              </Link>
+                            </li>
+                            <li className="mb-1 last:mb-0">
+                              <Link href="/dashboard/warehouse/requests" className={`block transition duration-150 truncate ${pathname === '/dashboard/warehouse/requests' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                                <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Заявки</span>
+                              </Link>
+                            </li>
+                          </>
+                        )}
+                        {isAccountant && (
+                          <>
+                            <li className="mb-1 last:mb-0">
+                              <Link href="/dashboard/accountant/payments" className={`block transition duration-150 truncate ${pathname === '/dashboard/accountant/payments' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                                <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Платежи</span>
+                              </Link>
+                            </li>
+                            <li className="mb-1 last:mb-0">
+                              <Link href="/dashboard/accountant/budgets" className={`block transition duration-150 truncate ${pathname === '/dashboard/accountant/budgets' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                                <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Бюджеты</span>
+                              </Link>
+                            </li>
+                            <li className="mb-1 last:mb-0">
+                              <Link href="/dashboard/accountant/salaries" className={`block transition duration-150 truncate ${pathname === '/dashboard/accountant/salaries' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                                <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Зарплаты</span>
+                              </Link>
+                            </li>
+                          </>
+                        )}
+                        {isInspector && (
+                          <>
+                            <li className="mb-1 last:mb-0">
+                              <Link href="/dashboard/inspector/inspections" className={`block transition duration-150 truncate ${pathname === '/dashboard/inspector/inspections' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                                <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Инспекции</span>
+                              </Link>
+                            </li>
+                            <li className="mb-1 last:mb-0">
+                              <Link href="/dashboard/inspector/defects" className={`block transition duration-150 truncate ${pathname === '/dashboard/inspector/defects' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                                <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Дефекты</span>
+                              </Link>
+                            </li>
+                            <li className="mb-1 last:mb-0">
+                              <Link href="/dashboard/inspector/construction-sites" className={`block transition duration-150 truncate ${pathname === '/dashboard/inspector/construction-sites' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                                <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Стройплощадки</span>
                               </Link>
                             </li>
                           </>

@@ -83,9 +83,12 @@ export default function AssignUsersModal({
     if (!taskId) return;
     setSaving(true);
     try {
-      await api.post(`/tasks/${taskId}/assignees`, {
-        userIds: Array.from(selected),
+      // Send both userIds and userNames so backend can store display names
+      const assignees = Array.from(selected).map((uid) => {
+        const u = users.find((u) => u.id === uid);
+        return { userId: uid, userName: u?.name ?? null };
       });
+      await api.post(`/tasks/${taskId}/assignees`, { assignees });
       onSaved();
       onClose();
     } catch {

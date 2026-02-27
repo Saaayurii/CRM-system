@@ -2,9 +2,14 @@ import {
   Controller,
   Post,
   Get,
+  Put,
   Body,
+  Param,
+  Query,
   HttpCode,
   HttpStatus,
+  ParseIntPipe,
+  ForbiddenException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -16,6 +21,9 @@ import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { CreateRegistrationRequestDto } from './dto/create-registration-request.dto';
+import { ApproveRegistrationRequestDto } from './dto/approve-registration-request.dto';
+import { RejectRegistrationRequestDto } from './dto/reject-registration-request.dto';
 import {
   AuthResponseDto,
   TokenResponseDto,
@@ -124,5 +132,64 @@ export class AuthController {
   @ApiResponse({ status: 404, description: 'User not found' })
   async getMe(@CurrentUser() user: UserPayload): Promise<UserResponseDto> {
     return this.authService.getMe(user.sub);
+  }
+
+  // ── Registration Requests ──────────────────────────────────────────
+
+  @Post('registration-requests')
+  @Public()
+  @ApiOperation({ summary: 'Submit a registration request' })
+  @ApiResponse({ status: 201, description: 'Request created' })
+  @ApiResponse({ status: 409, description: 'Email already exists or pending request' })
+  async createRegistrationRequest(
+    @Body() dto: CreateRegistrationRequestDto,
+  ): Promise<MessageResponseDto> {
+    return this.authService.createRegistrationRequest(dto);
+  }
+
+  @Get('registration-requests')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get all registration requests (Admin/HR)' })
+  @ApiResponse({ status: 200, description: 'List of requests' })
+  async getRegistrationRequests(
+    @CurrentUser() user: UserPayload,
+    @Query('status') status?: string,
+  ) {
+    this.checkAdminOrHR(user);
+    const statusNum = status !== undefined ? Number(status) : undefined;
+    return this.authService.getRegistrationRequests(statusNum);
+  }
+
+  @Put('registration-requests/:id/approve')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Approve a registration request (Admin/HR)' })
+  @ApiResponse({ status: 200, description: 'Request approved' })
+  async approveRegistrationRequest(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: ApproveRegistrationRequestDto,
+    @CurrentUser() user: UserPayload,
+  ): Promise<MessageResponseDto> {
+    this.checkAdminOrHR(user);
+    return this.authService.approveRegistrationRequest(id, dto, user.sub);
+  }
+
+  @Put('registration-requests/:id/reject')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Reject a registration request (Admin/HR)' })
+  @ApiResponse({ status: 200, description: 'Request rejected' })
+  async rejectRegistrationRequest(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: RejectRegistrationRequestDto,
+    @CurrentUser() user: UserPayload,
+  ): Promise<MessageResponseDto> {
+    this.checkAdminOrHR(user);
+    return this.authService.rejectRegistrationRequest(id, dto, user.sub);
+  }
+
+  private checkAdminOrHR(user: UserPayload) {
+    const allowedRoles = [1, 2, 3]; // super_admin, admin, hr_manager
+    if (!user.roleId || !allowedRoles.includes(user.roleId)) {
+      throw new ForbiddenException('Доступ запрещён');
+    }
   }
 }

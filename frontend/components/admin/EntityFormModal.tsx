@@ -185,8 +185,12 @@ export default function EntityFormModal({
                       value={String(formData[field.key] ?? '')}
                       onChange={(e) => {
                         const raw = e.target.value;
+                        // Check both async and static options for numeric detection
                         const opts = asyncOptions[field.key] ?? field.options ?? [];
-                        const isNumeric = opts.some((o) => typeof o.value === 'number');
+                        const staticOpts = field.options ?? [];
+                        const isNumeric = opts.some((o) => typeof o.value === 'number')
+                          || staticOpts.some((o) => typeof o.value === 'number')
+                          || (field.fetchOptions && typeof initialData?.[field.key] === 'number');
                         handleChange(field.key, isNumeric && raw !== '' ? Number(raw) : raw);
                       }}
                       required={field.required}

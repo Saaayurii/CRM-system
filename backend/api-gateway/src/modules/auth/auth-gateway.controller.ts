@@ -2,7 +2,10 @@ import {
   Controller,
   Post,
   Get,
+  Put,
   Body,
+  Param,
+  Query,
   Headers,
   HttpCode,
   HttpStatus,
@@ -105,6 +108,70 @@ export class AuthGatewayController {
     return this.proxyService.forward('auth', {
       method: 'GET',
       path: '/auth/me',
+      headers: { Authorization: authorization },
+    });
+  }
+
+  // ── Registration Requests ──────────────────────────────────────────
+
+  @Post('registration-requests')
+  @Public()
+  @ApiOperation({ summary: 'Submit a registration request' })
+  @ApiResponse({ status: 201, description: 'Request created' })
+  async createRegistrationRequest(@Body() body: unknown) {
+    return this.proxyService.forward('auth', {
+      method: 'POST',
+      path: '/auth/registration-requests',
+      data: body,
+    });
+  }
+
+  @Get('registration-requests')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get registration requests (Admin/HR)' })
+  @ApiResponse({ status: 200, description: 'List of requests' })
+  async getRegistrationRequests(
+    @Headers('authorization') authorization: string,
+    @Query('status') status?: string,
+  ) {
+    const query = status !== undefined ? `?status=${status}` : '';
+    return this.proxyService.forward('auth', {
+      method: 'GET',
+      path: `/auth/registration-requests${query}`,
+      headers: { Authorization: authorization },
+    });
+  }
+
+  @Put('registration-requests/:id/approve')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Approve registration request (Admin/HR)' })
+  @ApiResponse({ status: 200, description: 'Request approved' })
+  async approveRegistrationRequest(
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @Headers('authorization') authorization: string,
+  ) {
+    return this.proxyService.forward('auth', {
+      method: 'PUT',
+      path: `/auth/registration-requests/${id}/approve`,
+      data: body,
+      headers: { Authorization: authorization },
+    });
+  }
+
+  @Put('registration-requests/:id/reject')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Reject registration request (Admin/HR)' })
+  @ApiResponse({ status: 200, description: 'Request rejected' })
+  async rejectRegistrationRequest(
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @Headers('authorization') authorization: string,
+  ) {
+    return this.proxyService.forward('auth', {
+      method: 'PUT',
+      path: `/auth/registration-requests/${id}/reject`,
+      data: body,
       headers: { Authorization: authorization },
     });
   }

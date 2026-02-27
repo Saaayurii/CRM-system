@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
+import RegistrationRequestsPanel from '@/components/dashboard/RegistrationRequestsPanel';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
   PieChart, Pie, Cell,
@@ -626,6 +627,9 @@ export default function HRDashboard({ user }: { user: any }) {
           </div>
         </div>
       </div>
+
+      {/* Registration requests */}
+      <RegistrationRequestsPanel />
     </div>
   );
 }

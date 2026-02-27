@@ -240,6 +240,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
           messages: [...state.messages, message],
           channels: updatedChannels,
         }));
+        // Auto-mark as read when viewing the channel
+        get().markAsRead(activeChannelId);
       } else {
         set({
           channels: updatedChannels,
@@ -460,6 +462,24 @@ export const useChatStore = create<ChatState>((set, get) => ({
         }
       }
 
+      // Seed channelReadAts from raw member data
+      const rawChannels: any[] = Array.isArray(raw) ? raw : [];
+      const readAts: Record<number, Record<number, string>> = {};
+      for (const ch of rawChannels) {
+        if (!ch.members) continue;
+        const memberReads: Record<number, string> = {};
+        for (const m of ch.members) {
+          const uid = m.userId ?? m.user?.id;
+          const lastRead = m.lastReadAt || m.last_read_at;
+          if (uid && lastRead) {
+            memberReads[uid] = lastRead;
+          }
+        }
+        if (Object.keys(memberReads).length > 0) {
+          readAts[ch.id] = memberReads;
+        }
+      }
+
       set((state) => ({
         channels: page === 1 ? channelsList : [...state.channels, ...channelsList],
         channelsPage: page,
@@ -468,6 +488,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
             ? channelsList.length < total
             : state.channels.length + channelsList.length < total,
         isLoadingChannels: false,
+        channelReadAts: { ...state.channelReadAts, ...readAts },
       }));
 
       // Unread summary
