@@ -70,7 +70,7 @@ export default function NotificationDropdown() {
     <div className="relative inline-flex">
       <button
         ref={trigger}
-        className="relative w-8 h-8 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700/50 rounded-full transition-colors"
+        className="relative w-8 h-8 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700/50 rounded-full transition-colors cursor-pointer"
         aria-haspopup="true"
         onClick={handleToggle}
         aria-expanded={dropdownOpen}

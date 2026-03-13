@@ -33,6 +33,9 @@ export class RegistrationRequestRepository {
     return (this.prisma as any).registrationRequest.findMany({
       where,
       orderBy: { createdAt: 'desc' },
+      include: {
+        reviewer: { select: { id: true, name: true } },
+      },
     });
   }
 

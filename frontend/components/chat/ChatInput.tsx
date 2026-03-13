@@ -36,6 +36,7 @@ export default function ChatInput({ channelId }: ChatInputProps) {
   const [text, setText] = useState('');
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
   const [isSending, setIsSending] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [activeCategory, setActiveCategory] = useState(0);
 
@@ -46,7 +47,6 @@ export default function ChatInput({ channelId }: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
-  const progressTimers = useRef<ReturnType<typeof setInterval>[]>([]);
 
   // Voice recording refs
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -64,7 +64,6 @@ export default function ChatInput({ channelId }: ChatInputProps) {
   // Cleanup timers on unmount
   useEffect(() => {
     return () => {
-      progressTimers.current.forEach(clearInterval);
       if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
       streamRef.current?.getTracks().forEach((t) => t.stop());
     };
@@ -101,49 +100,76 @@ export default function ChatInput({ channelId }: ChatInputProps) {
     });
   }, [text, channelId, startTyping]);
 
-  const animateProgress = useCallback((fileId: string) => {
-    const interval = setInterval(() => {
-      setPendingFiles((prev) =>
-        prev.map((f) => {
-          if (f.id !== fileId) return f;
-          const next = Math.min(f.progress + Math.random() * 15 + 5, 95);
-          return { ...f, progress: next };
-        })
-      );
-    }, 120);
-    progressTimers.current.push(interval);
-    return interval;
-  }, []);
+  const MAX_FILE_SIZE = 1 * 1024 * 1024 * 1024; // 1 GB
+
+  // Upload a single file via XHR to get real upload progress
+  const uploadFileWithProgress = useCallback(
+    (pf: PendingFile): Promise<UploadedAttachment> => {
+      return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/api/chat/upload');
+        xhr.setRequestHeader('x-file-name', encodeURIComponent(pf.file.name));
+        xhr.setRequestHeader('x-file-size', String(pf.file.size));
+        xhr.setRequestHeader('x-file-type', pf.file.type || '');
+        xhr.setRequestHeader('Content-Type', pf.file.type || 'application/octet-stream');
+
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) {
+            const pct = Math.round((e.loaded / e.total) * 100);
+            setPendingFiles((prev) =>
+              prev.map((f) => (f.id === pf.id ? { ...f, progress: pct } : f))
+            );
+          }
+        };
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              resolve(JSON.parse(xhr.responseText));
+            } catch {
+              reject(new Error('Invalid response'));
+            }
+          } else {
+            reject(new Error(`Upload failed: ${xhr.status}`));
+          }
+        };
+
+        xhr.onerror = () => reject(new Error('Network error'));
+        xhr.onabort = () => reject(new Error('Upload cancelled'));
+
+        xhr.send(pf.file);
+      });
+    },
+    []
+  );
 
   const handleSend = useCallback(async () => {
     const trimmed = text.trim();
     if (!trimmed && pendingFiles.length === 0) return;
 
+    // Validate file sizes
+    const oversized = pendingFiles.find((pf) => pf.file.size > MAX_FILE_SIZE);
+    if (oversized) {
+      setUploadError(`Файл "${oversized.file.name}" превышает максимальный размер 1 ГБ.`);
+      return;
+    }
+
     setIsSending(true);
+    setUploadError(null);
 
     let uploadedAttachments: UploadedAttachment[] = [];
 
     if (pendingFiles.length > 0) {
-      const intervals = pendingFiles.map((pf) => animateProgress(pf.id));
-
       try {
-        const formData = new FormData();
-        pendingFiles.forEach((pf) => formData.append('files', pf.file));
-
-        const res = await fetch('/api/chat/upload', {
-          method: 'POST',
-          body: formData,
-        });
-        const data: UploadedAttachment[] = res.ok ? await res.json() : [];
-
-        uploadedAttachments = Array.isArray(data) ? data : [];
-      } catch {
-        uploadedAttachments = [];
+        // Upload files in parallel, each with its own real progress
+        uploadedAttachments = await Promise.all(
+          pendingFiles.map((pf) => uploadFileWithProgress(pf))
+        );
+      } catch (err) {
+        setUploadError('Не удалось загрузить файл. Попробуйте ещё раз.');
+        setIsSending(false);
+        return;
       }
-
-      intervals.forEach(clearInterval);
-      progressTimers.current = progressTimers.current.filter((t) => !intervals.includes(t));
-      setPendingFiles((prev) => prev.map((f) => ({ ...f, progress: 100 })));
     }
 
     sendMessage(
@@ -161,7 +187,7 @@ export default function ChatInput({ channelId }: ChatInputProps) {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
     }
-  }, [text, channelId, pendingFiles, sendMessage, stopTyping, replyToMessage, animateProgress]);
+  }, [text, channelId, pendingFiles, sendMessage, stopTyping, replyToMessage, uploadFileWithProgress]);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -186,6 +212,16 @@ export default function ChatInput({ channelId }: ChatInputProps) {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
+
+    const MAX_FILE_SIZE = 1 * 1024 * 1024 * 1024;
+    const oversized = Array.from(files).find((f) => f.size > MAX_FILE_SIZE);
+    if (oversized) {
+      setUploadError(`Файл "${oversized.name}" превышает максимальный размер 1 ГБ.`);
+      e.target.value = '';
+      return;
+    }
+
+    setUploadError(null);
     const newPending: PendingFile[] = Array.from(files).map((file) => ({
       file,
       id: `${file.name}-${Date.now()}-${Math.random()}`,
@@ -204,18 +240,19 @@ export default function ChatInput({ channelId }: ChatInputProps) {
   const sendVoiceMessage = useCallback(async (audioFile: File) => {
     setIsSending(true);
     try {
-      const formData = new FormData();
-      formData.append('files', audioFile);
-
       const res = await fetch('/api/chat/upload', {
         method: 'POST',
-        body: formData,
+        headers: {
+          'x-file-name': encodeURIComponent(audioFile.name),
+          'x-file-size': String(audioFile.size),
+          'x-file-type': audioFile.type || 'audio/webm',
+          'Content-Type': audioFile.type || 'audio/webm',
+        },
+        body: audioFile,
       });
-      const data: UploadedAttachment[] = res.ok ? await res.json() : [];
-      const attachments = Array.isArray(data) ? data : [];
-
-      if (attachments.length > 0) {
-        sendMessage(channelId, '', attachments, replyToMessage?.id, 'voice');
+      if (res.ok) {
+        const attachment: UploadedAttachment = await res.json();
+        sendMessage(channelId, '', [attachment], replyToMessage?.id, 'voice');
       }
     } catch {
       // upload failed — discard silently
@@ -292,6 +329,21 @@ export default function ChatInput({ channelId }: ChatInputProps) {
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3">
+      {/* Upload error */}
+      {uploadError && (
+        <div className="flex items-center gap-2 mb-2 px-3 py-2 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-700">
+          <svg className="w-4 h-4 text-red-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <p className="text-xs text-red-600 dark:text-red-400 flex-1">{uploadError}</p>
+          <button onClick={() => setUploadError(null)} className="text-red-400 hover:text-red-600">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
+
       {/* Reply preview */}
       {replyToMessage && (
         <div className="flex items-center gap-2 mb-2 px-3 py-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg border-l-2 border-violet-500">
@@ -312,53 +364,84 @@ export default function ChatInput({ channelId }: ChatInputProps) {
 
       {/* Pending files */}
       {pendingFiles.length > 0 && (
-        <div className="flex flex-col gap-1.5 mb-2">
-          {pendingFiles.map((pf) => (
-            <div key={pf.id} className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg px-3 py-2">
-              <div className="shrink-0">
-                {pf.file.type.startsWith('image/') ? (
-                  <div className="w-8 h-8 rounded overflow-hidden bg-gray-200 dark:bg-gray-600">
-                    <img
-                      src={URL.createObjectURL(pf.file)}
-                      alt=""
-                      className="w-full h-full object-cover"
-                      onLoad={(e) => URL.revokeObjectURL((e.target as HTMLImageElement).src)}
-                    />
-                  </div>
-                ) : (
-                  <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                  </svg>
-                )}
-              </div>
+        <div className="flex flex-col gap-2 mb-2">
+          {pendingFiles.map((pf) => {
+            const isImage = pf.file.type.startsWith('image/');
+            const isVideo = pf.file.type.startsWith('video/');
+            const isUploading = isSending && pf.progress > 0 && pf.progress < 100;
+            const isDone = pf.progress === 100;
 
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-gray-700 dark:text-gray-200 truncate">{pf.file.name}</p>
-                <div className="flex items-center gap-2 mt-1">
-                  <div className="flex-1 h-1 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
+            return (
+              <div key={pf.id} className="flex items-center gap-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl px-3 py-2.5 border border-gray-100 dark:border-gray-600/50">
+                {/* File type icon / thumbnail */}
+                <div className="shrink-0">
+                  {isImage ? (
+                    <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-600">
+                      <img
+                        src={URL.createObjectURL(pf.file)}
+                        alt=""
+                        className="w-full h-full object-cover"
+                        onLoad={(e) => URL.revokeObjectURL((e.target as HTMLImageElement).src)}
+                      />
+                    </div>
+                  ) : isVideo ? (
+                    <div className="w-10 h-10 rounded-lg bg-violet-100 dark:bg-violet-900/40 flex items-center justify-center">
+                      <svg className="w-5 h-5 text-violet-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.693v6.614a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
+                      </svg>
+                    </div>
+                  ) : (
+                    <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-600 flex items-center justify-center">
+                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                  )}
+                </div>
+
+                {/* Name + progress */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <p className="text-xs font-medium text-gray-700 dark:text-gray-200 truncate">{pf.file.name}</p>
+                    <span className="text-[10px] text-gray-400 shrink-0 tabular-nums">
+                      {isSending ? `${pf.progress}%` : formatSize(pf.file.size)}
+                    </span>
+                  </div>
+
+                  {/* Progress bar */}
+                  <div className="h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-violet-500 rounded-full transition-all duration-150"
+                      className={`h-full rounded-full transition-all duration-200 ${
+                        isDone
+                          ? 'bg-green-500'
+                          : 'bg-gradient-to-r from-violet-500 to-violet-400'
+                      } ${isUploading ? 'animate-pulse' : ''}`}
                       style={{ width: `${pf.progress}%` }}
                     />
                   </div>
-                  <span className="text-[10px] text-gray-400 shrink-0">
-                    {formatSize(pf.file.size)}
-                  </span>
-                </div>
-              </div>
 
-              {!isSending && (
-                <button
-                  onClick={() => removeFile(pf.id)}
-                  className="shrink-0 p-1 text-gray-400 hover:text-red-500 rounded transition-colors"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              )}
-            </div>
-          ))}
+                  {/* File size below bar */}
+                  {isSending && (
+                    <p className="text-[10px] text-gray-400 mt-0.5">
+                      {formatSize(Math.round(pf.file.size * pf.progress / 100))} / {formatSize(pf.file.size)}
+                    </p>
+                  )}
+                </div>
+
+                {/* Remove button (only before sending) */}
+                {!isSending && (
+                  <button
+                    onClick={() => removeFile(pf.id)}
+                    className="shrink-0 p-1 text-gray-400 hover:text-red-500 rounded transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 

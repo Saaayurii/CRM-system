@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { MODULE_CATEGORIES } from '@/lib/admin/modules';
 import type { ModuleCategory } from '@/types/admin';
+import api from '@/lib/api';
 
 interface AdminSidebarProps {
   onNavigate?: () => void;
@@ -61,6 +62,21 @@ function CategoryGroup({ category, pathname, onNavigate }: { category: ModuleCat
 
 export default function AdminSidebar({ onNavigate }: AdminSidebarProps) {
   const pathname = usePathname();
+  const [pendingCount, setPendingCount] = useState(0);
+
+  useEffect(() => {
+    function fetchCount() {
+      api.get('/auth/registration-requests', { params: { status: 0 } })
+        .then(({ data }) => {
+          const arr = Array.isArray(data) ? data : (data?.data || data?.items || []);
+          setPendingCount(arr.length);
+        })
+        .catch(() => {});
+    }
+    fetchCount();
+    const id = setInterval(fetchCount, 5_000);
+    return () => clearInterval(id);
+  }, []);
 
   return (
     <nav className="w-56 shrink-0 bg-white dark:bg-gray-800 rounded-xl shadow-xs p-4 h-fit lg:sticky lg:top-24 max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar">
@@ -86,6 +102,23 @@ export default function AdminSidebar({ onNavigate }: AdminSidebarProps) {
         }`}
       >
         Матрица доступа
+      </Link>
+
+      <Link
+        href="/admin/registrations"
+        onClick={onNavigate}
+        className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium mb-1 transition-colors ${
+          pathname === '/admin/registrations'
+            ? 'bg-violet-500/10 text-violet-600 dark:text-violet-400'
+            : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/30'
+        }`}
+      >
+        Заявки
+        {pendingCount > 0 && (
+          <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-bold text-white bg-violet-500 rounded-full">
+            {pendingCount}
+          </span>
+        )}
       </Link>
 
       {MODULE_CATEGORIES.map((category) => (

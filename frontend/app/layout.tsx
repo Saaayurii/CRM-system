@@ -11,7 +11,11 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: 'CRM Система',
-  icons: { icon: '/favicon.png' },
+  icons: {
+    icon: '/favicon.png',
+    shortcut: '/favicon.png',
+    apple: '/apple-touch-icon.png',
+  },
 };
 
 export default function RootLayout({

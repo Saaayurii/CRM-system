@@ -41,7 +41,7 @@ export default function ChatButton() {
 
   return (
     <button
-      className="relative w-8 h-8 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700/50 rounded-full transition-colors"
+      className="relative w-8 h-8 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700/50 rounded-full transition-colors cursor-pointer"
       onClick={() => router.push('/dashboard/chat')}
       title="Чат"
     >
