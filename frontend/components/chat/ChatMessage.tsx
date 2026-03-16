@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { ChatMessage as ChatMessageType } from '@/stores/chatStore';
+import MediaViewer, { MediaItem } from './MediaViewer';
 
 interface ChatMessageProps {
   message: ChatMessageType;
@@ -13,6 +14,25 @@ interface ChatMessageProps {
 
 export default function ChatMessage({ message, isOwn, showAvatar, isRead, onReply }: ChatMessageProps) {
   const isVoice = message.messageType === 'voice';
+
+  // Build list of all media (image + video) attachments for the viewer
+  const mediaItems: MediaItem[] = (message.attachments ?? [])
+    .filter((a) => a.mimeType?.startsWith('image/') || a.mimeType?.startsWith('video/'))
+    .map((a) => ({
+      url: a.fileUrl,
+      type: a.mimeType?.startsWith('video/') ? 'video' : 'image',
+      name: a.fileName,
+    }));
+
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+
+  const openViewer = useCallback((mediaIndex: number) => {
+    setViewerIndex(mediaIndex);
+  }, []);
+
+  const closeViewer = useCallback(() => {
+    setViewerIndex(null);
+  }, []);
 
   return (
     <div
@@ -82,12 +102,14 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, onRepl
                     const isAudio = att.mimeType?.startsWith('audio/');
 
                     if (isImage) {
+                      const mediaIndex = mediaItems.findIndex((m) => m.url === att.fileUrl);
                       return (
                         <div key={att.id ?? index} className="relative group/img">
                           <img
                             src={att.fileUrl}
                             alt={att.fileName}
-                            className="max-w-full max-h-60 rounded-lg object-cover block"
+                            className="max-w-full max-h-60 rounded-lg object-cover block cursor-zoom-in"
+                            onClick={() => openViewer(mediaIndex)}
                             onError={(e) => {
                               const el = e.currentTarget;
                               el.style.display = 'none';
@@ -114,13 +136,34 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, onRepl
                     }
 
                     if (isVideo) {
+                      const mediaIndex = mediaItems.findIndex((m) => m.url === att.fileUrl);
                       return (
                         <div key={att.id ?? index} className="relative group/vid">
-                          <video
-                            src={att.fileUrl}
-                            controls
-                            className="max-w-full max-h-52 rounded-lg"
-                          />
+                          {/* Thumbnail overlay — click opens viewer */}
+                          <div
+                            className="relative cursor-pointer rounded-lg overflow-hidden"
+                            onClick={() => openViewer(mediaIndex)}
+                          >
+                            <video
+                              src={att.fileUrl}
+                              preload="metadata"
+                              muted
+                              playsInline
+                              className="max-w-full max-h-52 rounded-lg block pointer-events-none"
+                              onLoadedMetadata={(e) => {
+                                // Seek to 1s to get a meaningful thumbnail frame
+                                e.currentTarget.currentTime = 1;
+                              }}
+                            />
+                            {/* Play button overlay */}
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover/vid:bg-black/35 transition-colors rounded-lg">
+                              <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
+                                <svg className="w-5 h-5 text-gray-800 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                                  <path d="M8 5v14l11-7z" />
+                                </svg>
+                              </div>
+                            </div>
+                          </div>
                           <a
                             href={att.fileUrl}
                             download={att.fileName}
@@ -250,6 +293,15 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, onRepl
           </div>
         )}
       </div>
+
+      {/* Media viewer portal */}
+      {viewerIndex !== null && mediaItems.length > 0 && (
+        <MediaViewer
+          items={mediaItems}
+          initialIndex={viewerIndex}
+          onClose={closeViewer}
+        />
+      )}
     </div>
   );
 }

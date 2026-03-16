@@ -17,6 +17,7 @@ async function bootstrap() {
   app.useWebSocketAdapter(redisIoAdapter);
 
   app.enableCors();
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -37,6 +38,17 @@ async function bootstrap() {
   SwaggerModule.setup('api/docs', app, document);
 
   await app.listen(port);
+
+  // Cloudflare tunnel strips trailing slash before query string:
+  // /socket.io/?EIO=4 → /socket.io?EIO=4
+  // Engine.io path is '/socket.io/' so the check fails. Fix: prepend a raw HTTP listener
+  // that restores the slash BEFORE engine.io's request handler runs.
+  app.getHttpServer().prependListener('request', (req: any) => {
+    if (req.url?.startsWith('/socket.io?')) {
+      req.url = req.url.replace('/socket.io?', '/socket.io/?');
+    }
+  });
+
   logger.log(`Chat Service is running on port ${port}`);
   logger.log(`Swagger: http://localhost:${port}/api/docs`);
   logger.log(`WebSocket: ws://localhost:${port}/chat`);

@@ -47,6 +47,7 @@ export default function ChatInput({ channelId }: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const xhrMapRef = useRef<Map<string, XMLHttpRequest[]>>(new Map());
 
   // Voice recording refs
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -101,46 +102,79 @@ export default function ChatInput({ channelId }: ChatInputProps) {
   }, [text, channelId, startTyping]);
 
   const MAX_FILE_SIZE = 1 * 1024 * 1024 * 1024; // 1 GB
+  const CHUNK_SIZE   = 4 * 1024 * 1024;           // 4 MB per chunk
 
-  // Upload a single file via XHR to get real upload progress
+  // Upload a single file in chunks via XHR to bypass Next.js body-size limits
   const uploadFileWithProgress = useCallback(
     (pf: PendingFile): Promise<UploadedAttachment> => {
-      return new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open('POST', '/api/chat/upload');
-        xhr.setRequestHeader('x-file-name', encodeURIComponent(pf.file.name));
-        xhr.setRequestHeader('x-file-size', String(pf.file.size));
-        xhr.setRequestHeader('x-file-type', pf.file.type || '');
-        xhr.setRequestHeader('Content-Type', pf.file.type || 'application/octet-stream');
+      return new Promise(async (resolve, reject) => {
+        const file       = pf.file;
+        const uploadId   = crypto.randomUUID();
+        const chunkTotal = Math.max(1, Math.ceil(file.size / CHUNK_SIZE));
 
-        xhr.upload.onprogress = (e) => {
-          if (e.lengthComputable) {
-            const pct = Math.round((e.loaded / e.total) * 100);
-            setPendingFiles((prev) =>
-              prev.map((f) => (f.id === pf.id ? { ...f, progress: pct } : f))
-            );
+        const sendChunk = (chunkIndex: number): Promise<UploadedAttachment | null> =>
+          new Promise((res, rej) => {
+            const start = chunkIndex * CHUNK_SIZE;
+            const end   = Math.min(start + CHUNK_SIZE, file.size);
+            const chunk = file.slice(start, end);
+
+            const xhr = new XMLHttpRequest();
+            // Register XHR so it can be aborted on file remove
+            const xhrList = xhrMapRef.current.get(pf.id) ?? [];
+            xhrList.push(xhr);
+            xhrMapRef.current.set(pf.id, xhrList);
+
+            xhr.open('POST', '/api/chat/upload');
+            xhr.setRequestHeader('x-upload-id',    uploadId);
+            xhr.setRequestHeader('x-chunk-index',  String(chunkIndex));
+            xhr.setRequestHeader('x-chunk-total',  String(chunkTotal));
+            xhr.setRequestHeader('x-file-name',    encodeURIComponent(file.name));
+            xhr.setRequestHeader('x-file-size',    String(file.size));
+            xhr.setRequestHeader('x-file-type',    file.type || '');
+            xhr.setRequestHeader('Content-Type',   'application/octet-stream');
+
+            xhr.upload.onprogress = (e) => {
+              if (e.lengthComputable) {
+                const doneBytes = chunkIndex * CHUNK_SIZE;
+                const total = Math.min(doneBytes + (e.loaded / e.total) * (end - start), file.size);
+                const pct = Math.round((total / file.size) * 100);
+                setPendingFiles((prev) =>
+                  prev.map((f) => (f.id === pf.id ? { ...f, progress: pct } : f))
+                );
+              }
+            };
+
+            xhr.onload = () => {
+              if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                  const data = JSON.parse(xhr.responseText);
+                  // Last chunk returns the final attachment info
+                  res(data.fileUrl ? (data as UploadedAttachment) : null);
+                } catch {
+                  rej(new Error('Invalid response'));
+                }
+              } else {
+                rej(new Error(`Chunk ${chunkIndex} failed: ${xhr.status}`));
+              }
+            };
+
+            xhr.onerror = () => rej(new Error('Network error'));
+            xhr.send(chunk);
+          });
+
+        try {
+          let result: UploadedAttachment | null = null;
+          for (let i = 0; i < chunkTotal; i++) {
+            result = await sendChunk(i);
           }
-        };
-
-        xhr.onload = () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            try {
-              resolve(JSON.parse(xhr.responseText));
-            } catch {
-              reject(new Error('Invalid response'));
-            }
-          } else {
-            reject(new Error(`Upload failed: ${xhr.status}`));
-          }
-        };
-
-        xhr.onerror = () => reject(new Error('Network error'));
-        xhr.onabort = () => reject(new Error('Upload cancelled'));
-
-        xhr.send(pf.file);
+          if (result) resolve(result);
+          else reject(new Error('Upload incomplete'));
+        } catch (err) {
+          reject(err);
+        }
       });
     },
-    []
+    [CHUNK_SIZE]
   );
 
   const handleSend = useCallback(async () => {
@@ -232,7 +266,15 @@ export default function ChatInput({ channelId }: ChatInputProps) {
   };
 
   const removeFile = (id: string) => {
-    setPendingFiles((prev) => prev.filter((f) => f.id !== id));
+    // Abort any in-progress XHR chunks for this file
+    xhrMapRef.current.get(id)?.forEach((xhr) => xhr.abort());
+    xhrMapRef.current.delete(id);
+    setPendingFiles((prev) => {
+      const next = prev.filter((f) => f.id !== id);
+      // If no files left, reset sending state
+      if (next.length === 0) setIsSending(false);
+      return next;
+    });
   };
 
   // ── Voice recording ──────────────────────────────────────
@@ -240,19 +282,25 @@ export default function ChatInput({ channelId }: ChatInputProps) {
   const sendVoiceMessage = useCallback(async (audioFile: File) => {
     setIsSending(true);
     try {
+      const uploadId = crypto.randomUUID();
       const res = await fetch('/api/chat/upload', {
         method: 'POST',
         headers: {
-          'x-file-name': encodeURIComponent(audioFile.name),
-          'x-file-size': String(audioFile.size),
-          'x-file-type': audioFile.type || 'audio/webm',
-          'Content-Type': audioFile.type || 'audio/webm',
+          'x-upload-id':   uploadId,
+          'x-chunk-index': '0',
+          'x-chunk-total': '1',
+          'x-file-name':   encodeURIComponent(audioFile.name),
+          'x-file-size':   String(audioFile.size),
+          'x-file-type':   audioFile.type || 'audio/webm',
+          'Content-Type':  'application/octet-stream',
         },
         body: audioFile,
       });
       if (res.ok) {
         const attachment: UploadedAttachment = await res.json();
-        sendMessage(channelId, '', [attachment], replyToMessage?.id, 'voice');
+        if (attachment.fileUrl) {
+          sendMessage(channelId, '', [attachment], replyToMessage?.id, 'voice');
+        }
       }
     } catch {
       // upload failed — discard silently

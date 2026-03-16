@@ -424,24 +424,41 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
     columns: [
       { key: 'id', header: 'ID', sortable: true, width: '80px' },
       { key: 'name', header: 'Название', sortable: true },
-      { key: 'type', header: 'Тип' },
-      { key: 'status', header: 'Статус', sortable: true },
-      { key: 'location', header: 'Расположение' },
+      { key: 'equipmentType', header: 'Тип' },
+      {
+        key: 'status', header: 'Статус', sortable: true,
+        renderCell: (v: unknown) => {
+          const map: Record<number, { label: string; color: string }> = {
+            1: { label: 'Доступно', color: 'green' },
+            2: { label: 'В использовании', color: 'blue' },
+            3: { label: 'На обслуживании', color: 'yellow' },
+            4: { label: 'Сломано', color: 'red' },
+          };
+          const s = map[v as number];
+          return s ? <StatusBadge label={s.label} color={s.color} /> : <span className="text-gray-400">—</span>;
+        },
+      },
+      { key: 'currentLocation', header: 'Расположение' },
     ],
     formFields: [
       { key: 'name', label: 'Название', type: 'text', required: true },
-      { key: 'type', label: 'Тип', type: 'text' },
+      { key: 'equipmentType', label: 'Тип', type: 'text' },
       {
         key: 'status',
         label: 'Статус',
         type: 'select',
         options: [
-          { value: 'available', label: 'Доступно' },
-          { value: 'in_use', label: 'В использовании' },
-          { value: 'maintenance', label: 'На обслуживании' },
+          { value: 1, label: 'Доступно' },
+          { value: 2, label: 'В использовании' },
+          { value: 3, label: 'На обслуживании' },
+          { value: 4, label: 'Сломано' },
         ],
       },
-      { key: 'location', label: 'Расположение', type: 'text' },
+      { key: 'currentLocation', label: 'Расположение', type: 'text' },
+      { key: 'manufacturer', label: 'Производитель', type: 'text' },
+      { key: 'model', label: 'Модель', type: 'text' },
+      { key: 'serialNumber', label: 'Серийный номер', type: 'text' },
+      { key: 'notes', label: 'Заметки', type: 'textarea' },
     ],
   },
   suppliers: {

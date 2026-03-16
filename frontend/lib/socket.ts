@@ -1,8 +1,5 @@
 import { io, Socket } from 'socket.io-client';
 
-// WebSocket connects directly to chat-service (not through API gateway)
-const CHAT_WS_URL = process.env.NEXT_PUBLIC_CHAT_WS_URL || 'http://localhost:3011';
-
 let socket: Socket | null = null;
 
 export function getSocket(): Socket {
@@ -10,9 +7,14 @@ export function getSocket(): Socket {
 
   const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
 
-  socket = io(`${CHAT_WS_URL}/chat`, {
+  // If env var is set and non-empty — use it directly (local dev).
+  // Otherwise connect to current origin; Next.js rewrites /chat/* → localhost:3011/chat/*
+  const envUrl = process.env.NEXT_PUBLIC_CHAT_WS_URL;
+  const baseUrl = (envUrl && envUrl.trim()) ? envUrl : (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3011');
+
+  socket = io(`${baseUrl}/chat`, {
     auth: { token },
-    transports: ['websocket', 'polling'],
+    transports: ['polling', 'websocket'],
     autoConnect: false,
   });
 

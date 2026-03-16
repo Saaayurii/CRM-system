@@ -1,82 +1,86 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createWriteStream, mkdirSync } from 'fs';
+import { mkdirSync, renameSync } from 'fs';
+import { appendFile } from 'fs/promises';
 import { join, extname } from 'path';
-import { randomUUID } from 'crypto';
 
 export const runtime = 'nodejs';
 
-// Stream raw binary request body directly to disk (no memory buffering)
+// Each chunk ≤ 5 MB → stays within Next.js body limits.
+// Client sends chunks sequentially; server appends to a temp file.
+// On the final chunk the temp file is moved to its permanent location.
+
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     if (!request.body) {
       return NextResponse.json({ error: 'No body' }, { status: 400 });
     }
 
-    const rawName = request.headers.get('x-file-name') || 'file';
-    const fileName = decodeURIComponent(rawName);
-    const fileSize = parseInt(request.headers.get('x-file-size') || '0', 10);
-    const mimeType =
+    // ── Headers sent by the client ──────────────────────────
+    const uploadId   = request.headers.get('x-upload-id')    ?? '';
+    const chunkIndex = parseInt(request.headers.get('x-chunk-index') ?? '0', 10);
+    const chunkTotal = parseInt(request.headers.get('x-chunk-total') ?? '1', 10);
+    const rawName    = request.headers.get('x-file-name')    ?? 'file';
+    const fileName   = decodeURIComponent(rawName);
+    const fileSize   = parseInt(request.headers.get('x-file-size') ?? '0', 10);
+    const mimeType   =
       request.headers.get('x-file-type') ||
-      guessMimeType(extname(fileName)) ||
+      guessMimeType(extname(fileName))    ||
       'application/octet-stream';
 
+    if (!uploadId) {
+      return NextResponse.json({ error: 'Missing x-upload-id' }, { status: 400 });
+    }
+
     const uploadDir = join(process.cwd(), 'public', 'uploads', 'chat');
-    mkdirSync(uploadDir, { recursive: true });
+    const tempDir   = join(uploadDir, 'temp');
+    mkdirSync(tempDir, { recursive: true });
 
-    const ext = extname(fileName);
-    const uniqueName = `${randomUUID()}${ext}`;
-    const filePath = join(uploadDir, uniqueName);
+    const ext       = extname(fileName);
+    const tempPath  = join(tempDir,   `${uploadId}.tmp`);
+    const finalName = `${uploadId}${ext}`;
+    const finalPath = join(uploadDir, finalName);
 
-    // Pipe Web ReadableStream → Node.js WriteStream without loading into memory
-    await streamBodyToFile(request.body, filePath);
+    // Read chunk data from the raw body
+    const chunkBuffer = await readBodyToBuffer(request.body);
 
-    return NextResponse.json({
-      fileName,
-      fileSize,
-      mimeType,
-      fileUrl: `/uploads/chat/${uniqueName}`,
-    });
+    // Append this chunk to the temp file
+    await appendFile(tempPath, chunkBuffer);
+
+    // Last chunk → move temp file to its permanent location
+    if (chunkIndex === chunkTotal - 1) {
+      renameSync(tempPath, finalPath);
+
+      return NextResponse.json({
+        fileName,
+        fileSize,
+        mimeType,
+        fileUrl: `/uploads/chat/${finalName}`,
+      });
+    }
+
+    // Intermediate chunk → acknowledge
+    return NextResponse.json({ received: chunkIndex + 1, total: chunkTotal });
   } catch (error) {
     console.error('Chat upload error:', error);
     return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
   }
 }
 
-async function streamBodyToFile(
-  body: ReadableStream<Uint8Array>,
-  filePath: string,
-): Promise<void> {
-  const fileStream = createWriteStream(filePath);
-  const reader = body.getReader();
+// ── Helpers ──────────────────────────────────────────────────
 
+async function readBodyToBuffer(body: ReadableStream<Uint8Array>): Promise<Buffer> {
+  const chunks: Uint8Array[] = [];
+  const reader = body.getReader();
   try {
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
-      await new Promise<void>((resolve, reject) => {
-        if (value) {
-          if (!fileStream.write(value)) {
-            fileStream.once('drain', resolve);
-          } else {
-            resolve();
-          }
-        } else {
-          resolve();
-        }
-      });
+      if (value) chunks.push(value);
     }
-    await new Promise<void>((resolve, reject) => {
-      fileStream.end((err?: Error | null) => {
-        if (err) reject(err);
-        else resolve();
-      });
-    });
-  } catch (err) {
-    fileStream.destroy();
-    throw err;
   } finally {
     reader.releaseLock();
   }
+  return Buffer.concat(chunks);
 }
 
 function guessMimeType(ext: string): string {

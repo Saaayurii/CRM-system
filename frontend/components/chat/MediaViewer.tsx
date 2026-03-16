@@ -117,8 +117,8 @@ export default function MediaViewer({ items, initialIndex, onClose }: MediaViewe
         className="relative max-w-[90vw] max-h-[90vh] flex items-center justify-center"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Spinner while loading */}
-        {!loaded && (
+        {/* Spinner — only while image is loading */}
+        {!loaded && current.type === 'image' && (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="w-10 h-10 border-2 border-white/20 border-t-white rounded-full animate-spin" />
           </div>
@@ -126,6 +126,7 @@ export default function MediaViewer({ items, initialIndex, onClose }: MediaViewe
 
         {current.type === 'image' ? (
           <img
+            key={current.url}
             src={current.url}
             alt={current.name}
             onLoad={() => setLoaded(true)}
@@ -137,20 +138,21 @@ export default function MediaViewer({ items, initialIndex, onClose }: MediaViewe
               transform: `scale(${imageScale})`,
               cursor: imageScale === 1 ? 'zoom-in' : 'zoom-out',
               opacity: loaded ? 1 : 0,
+              transition: 'opacity 0.25s',
             }}
             draggable={false}
           />
         ) : (
           <video
+            key={current.url}
             src={current.url}
             controls
-            autoPlay
-            onLoadedData={() => setLoaded(true)}
+            preload="auto"
+            playsInline
             className="rounded-lg"
             style={{
               maxWidth: '90vw',
               maxHeight: '90vh',
-              opacity: loaded ? 1 : 0,
             }}
           />
         )}
