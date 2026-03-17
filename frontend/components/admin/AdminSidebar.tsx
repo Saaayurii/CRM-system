@@ -11,14 +11,19 @@ interface AdminSidebarProps {
   onNavigate?: () => void;
 }
 
-function CategoryGroup({ category, pathname, onNavigate }: { category: ModuleCategory; pathname: string; onNavigate?: () => void }) {
+function CategoryGroup({ category, pathname, onNavigate, open, onToggle }: {
+  category: ModuleCategory;
+  pathname: string;
+  onNavigate?: () => void;
+  open: boolean;
+  onToggle: () => void;
+}) {
   const hasActiveChild = category.modules.some((mod) => pathname === `/admin/${mod.slug}`);
-  const [open, setOpen] = useState(hasActiveChild);
 
   return (
     <div className="mt-2">
       <button
-        onClick={() => setOpen(!open)}
+        onClick={onToggle}
         className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs uppercase font-semibold transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/30 group"
       >
         <span className={hasActiveChild ? 'text-violet-600 dark:text-violet-400' : 'text-gray-400 dark:text-gray-500'}>
@@ -63,6 +68,12 @@ function CategoryGroup({ category, pathname, onNavigate }: { category: ModuleCat
 export default function AdminSidebar({ onNavigate }: AdminSidebarProps) {
   const pathname = usePathname();
   const [pendingCount, setPendingCount] = useState(0);
+
+  // Accordion: find the initially active category
+  const initialOpen = MODULE_CATEGORIES.findIndex((cat) =>
+    cat.modules.some((mod) => pathname === `/admin/${mod.slug}`)
+  );
+  const [openIndex, setOpenIndex] = useState<number>(initialOpen);
 
   useEffect(() => {
     function fetchCount() {
@@ -121,12 +132,14 @@ export default function AdminSidebar({ onNavigate }: AdminSidebarProps) {
         )}
       </Link>
 
-      {MODULE_CATEGORIES.map((category) => (
+      {MODULE_CATEGORIES.map((category, idx) => (
         <CategoryGroup
           key={category.name}
           category={category}
           pathname={pathname}
           onNavigate={onNavigate}
+          open={openIndex === idx}
+          onToggle={() => setOpenIndex(openIndex === idx ? -1 : idx)}
         />
       ))}
     </nav>

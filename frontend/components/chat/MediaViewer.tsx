@@ -2,6 +2,7 @@
 
 import { useEffect, useCallback, useState } from 'react';
 import { createPortal } from 'react-dom';
+import VideoPlayer from './VideoPlayer';
 
 export interface MediaItem {
   url: string;
@@ -143,17 +144,10 @@ export default function MediaViewer({ items, initialIndex, onClose }: MediaViewe
             draggable={false}
           />
         ) : (
-          <video
+          <VideoPlayer
             key={current.url}
             src={current.url}
-            controls
-            preload="auto"
-            playsInline
-            className="rounded-lg"
-            style={{
-              maxWidth: '90vw',
-              maxHeight: '90vh',
-            }}
+            style={{ maxWidth: '90vw', maxHeight: '90vh', width: '80vw', height: '80vh' }}
           />
         )}
       </div>

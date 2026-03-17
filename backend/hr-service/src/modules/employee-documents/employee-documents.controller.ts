@@ -32,6 +32,21 @@ interface RequestUser {
 export class EmployeeDocumentsController {
   constructor(private readonly service: EmployeeDocumentsService) {}
 
+  @Get('my')
+  @ApiOperation({ summary: 'Get current user own documents' })
+  findMy(@CurrentUser() user: RequestUser) {
+    return this.service.findMyDocuments(user.id);
+  }
+
+  @Delete('my/:id')
+  @ApiOperation({ summary: 'Delete own document' })
+  deleteOwn(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.service.deleteOwn(id, user.id);
+  }
+
   @Get()
   @ApiOperation({ summary: 'Get all employee documents for current account' })
   @ApiQuery({ name: 'page', required: false, type: Number })

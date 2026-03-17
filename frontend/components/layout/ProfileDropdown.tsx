@@ -46,8 +46,8 @@ export default function ProfileDropdown() {
             user?.email?.charAt(0).toUpperCase() || 'U'
           )}
         </div>
-        <div className="flex items-center truncate">
-          <span className="truncate ml-2 text-sm font-medium text-gray-600 dark:text-gray-100 group-hover:text-gray-800 dark:group-hover:text-white">
+        <div className="flex items-center min-w-0">
+          <span className="truncate ml-2 text-sm font-medium text-gray-600 dark:text-gray-100 group-hover:text-gray-800 dark:group-hover:text-white max-w-[180px]">
             {user?.email || 'User'}
           </span>
           <svg className="w-3 h-3 shrink-0 ml-1 fill-current text-gray-400 dark:text-gray-500" viewBox="0 0 12 12">

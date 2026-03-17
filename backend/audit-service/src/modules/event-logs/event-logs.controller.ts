@@ -16,6 +16,7 @@ import {
 import { EventLogsService } from './event-logs.service';
 import { CreateEventLogDto } from './dto/create-event-log.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { Public } from '../../common/decorators/public.decorator';
 
 @ApiTags('Event Logs')
 @ApiBearerAuth()
@@ -55,11 +56,13 @@ export class EventLogsController {
   }
 
   @Post()
-  @ApiOperation({ summary: 'Create event log' })
+  @Public()
+  @ApiOperation({ summary: 'Create event log (internal)' })
   create(
     @Body() dto: CreateEventLogDto,
-    @CurrentUser('accountId') accountId: number,
+    @CurrentUser('accountId') jwtAccountId?: number,
   ) {
+    const accountId = jwtAccountId ?? dto.accountId ?? 1;
     return this.eventLogsService.create(accountId, dto);
   }
 }

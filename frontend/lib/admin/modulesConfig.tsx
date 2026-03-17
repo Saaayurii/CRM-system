@@ -1,5 +1,55 @@
 import React, { useState } from 'react';
 import type { CrudModuleConfig, ModuleCategory } from '@/types/admin';
+import { useToastStore } from '@/stores/toastStore';
+
+// ─── Email render helper ──────────────────────────────────────────────────────
+
+function renderEmail(v: unknown) {
+  if (!v) return <span className="text-gray-400">—</span>;
+  const email = String(v);
+  const handleCopy = () => {
+    navigator.clipboard.writeText(email).then(() => {
+      useToastStore.getState().addToast('success', 'Скопировано в буфер обмена');
+    });
+  };
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      className="text-violet-500 underline hover:text-violet-600 cursor-pointer truncate max-w-[200px] block text-left"
+      title="Нажмите чтобы скопировать"
+    >
+      {email}
+    </button>
+  );
+}
+
+// ─── Money render helper ──────────────────────────────────────────────────────
+
+function renderMoney(v: unknown) {
+  if (v == null || v === '') return <span className="text-gray-400">—</span>;
+  return (
+    <span className="font-medium text-green-600 dark:text-green-400 whitespace-nowrap">
+      {Number(v).toLocaleString('ru-RU')} ₽
+    </span>
+  );
+}
+
+// ─── Phone render helper ──────────────────────────────────────────────────────
+
+function renderPhone(v: unknown) {
+  if (!v) return <span className="text-gray-400">—</span>;
+  const digits = String(v).replace(/\D/g, '');
+  const tel = digits.startsWith('7') || digits.startsWith('8')
+    ? '+7' + digits.slice(1)
+    : '+' + digits;
+  const display = tel.replace(/^\+7(\d{3})(\d{3})(\d{2})(\d{2})$/, '+7 ($1) $2-$3-$4');
+  return (
+    <a href={`tel:${tel}`} className="text-violet-500 underline hover:text-violet-600 whitespace-nowrap">
+      {display}
+    </a>
+  );
+}
 
 // ─── PasswordCell ─────────────────────────────────────────────────────────────
 
@@ -103,22 +153,8 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
     columns: [
       { key: 'id', header: 'ID', sortable: true, width: '80px' },
       { key: 'name', header: 'Имя', sortable: true },
-      { key: 'email', header: 'Email', sortable: true },
-      { key: 'phone', header: 'Телефон' },
-      {
-        key: 'isActive',
-        header: 'Активен',
-        render: (v) =>
-          v ? (
-            <span className="inline-flex items-center text-green-600 dark:text-green-400 font-semibold">
-              ✓
-            </span>
-          ) : (
-            <span className="inline-flex items-center text-red-500 dark:text-red-400 font-semibold">
-              —
-            </span>
-          ),
-      },
+      { key: 'email', header: 'Email', sortable: true, render: renderEmail },
+      { key: 'phone', header: 'Телефон', render: renderPhone },
     ],
     formFields: [
       { key: 'name', label: 'Имя', type: 'text', required: true },
@@ -167,7 +203,7 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
         key: 'budget',
         header: 'Бюджет',
         sortable: true,
-        render: (v) => v != null ? <span>{Number(v).toLocaleString('ru-RU')} ₽</span> : <span className="text-gray-400">—</span>,
+        render: renderMoney,
       },
       { key: 'startDate', header: 'Начало', render: (v) => fmtDate(v) },
       { key: 'plannedEndDate', header: 'Окончание', render: (v) => fmtDate(v) },
@@ -361,8 +397,8 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
           return <span>{map[String(v ?? '')] ?? String(v ?? '—')}</span>;
         },
       },
-      { key: 'email', header: 'Email' },
-      { key: 'phone', header: 'Телефон' },
+      { key: 'email', header: 'Email', render: renderEmail },
+      { key: 'phone', header: 'Телефон', render: renderPhone },
       {
         key: 'status',
         header: 'Статус',
@@ -394,6 +430,16 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
       { key: 'email', label: 'Email', type: 'email' },
       { key: 'phone', label: 'Телефон', type: 'text' },
       { key: 'address', label: 'Адрес', type: 'textarea' },
+      {
+        key: 'status',
+        label: 'Статус',
+        type: 'select',
+        options: [
+          { value: 'active', label: 'Активен' },
+          { value: 'inactive', label: 'Неактивен' },
+          { value: 'blocked', label: 'Заблокирован' },
+        ],
+      },
     ],
   },
   materials: {
@@ -405,14 +451,15 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
       { key: 'id', header: 'ID', sortable: true, width: '80px' },
       { key: 'name', header: 'Название', sortable: true },
       { key: 'unit', header: 'Ед. изм.' },
-      { key: 'quantity', header: 'Кол-во', sortable: true },
-      { key: 'price', header: 'Цена', sortable: true },
+      { key: 'minStockLevel', header: 'Мин. запас', sortable: true },
+      { key: 'basePrice', header: 'Цена', sortable: true, render: renderMoney },
     ],
     formFields: [
       { key: 'name', label: 'Название', type: 'text', required: true },
       { key: 'unit', label: 'Единица измерения', type: 'text' },
-      { key: 'quantity', label: 'Количество', type: 'number' },
-      { key: 'price', label: 'Цена', type: 'number' },
+      { key: 'basePrice', label: 'Цена', type: 'number' },
+      { key: 'minStockLevel', label: 'Мин. запас', type: 'number' },
+      { key: 'maxStockLevel', label: 'Макс. запас', type: 'number' },
       { key: 'description', label: 'Описание', type: 'textarea' },
     ],
   },
@@ -427,14 +474,14 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
       { key: 'equipmentType', header: 'Тип' },
       {
         key: 'status', header: 'Статус', sortable: true,
-        renderCell: (v: unknown) => {
+        render: (v) => {
           const map: Record<number, { label: string; color: string }> = {
-            1: { label: 'Доступно', color: 'green' },
-            2: { label: 'В использовании', color: 'blue' },
+            1: { label: 'Доступно',        color: 'green'  },
+            2: { label: 'В использовании', color: 'blue'   },
             3: { label: 'На обслуживании', color: 'yellow' },
-            4: { label: 'Сломано', color: 'red' },
+            4: { label: 'Сломано',         color: 'red'    },
           };
-          const s = map[v as number];
+          const s = map[Number(v)];
           return s ? <StatusBadge label={s.label} color={s.color} /> : <span className="text-gray-400">—</span>;
         },
       },
@@ -470,8 +517,8 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
       { key: 'id', header: 'ID', sortable: true, width: '80px' },
       { key: 'name', header: 'Название', sortable: true },
       { key: 'contactPerson', header: 'Контакт' },
-      { key: 'phone', header: 'Телефон' },
-      { key: 'email', header: 'Email' },
+      { key: 'phone', header: 'Телефон', render: renderPhone },
+      { key: 'email', header: 'Email', render: renderEmail },
     ],
     formFields: [
       { key: 'name', label: 'Название', type: 'text', required: true },
@@ -521,7 +568,7 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
         key: 'amount',
         header: 'Сумма',
         sortable: true,
-        render: (v) => v != null ? <span>{Number(v).toLocaleString('ru-RU')} ₽</span> : <span className="text-gray-400">—</span>,
+        render: renderMoney,
       },
       {
         key: 'status',
@@ -568,7 +615,7 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
         key: 'totalBudget',
         header: 'Бюджет',
         sortable: true,
-        render: (v) => v != null ? <span>{Number(v).toLocaleString('ru-RU')} ₽</span> : <span className="text-gray-400">—</span>,
+        render: renderMoney,
       },
       {
         key: 'spentAmount',
@@ -633,7 +680,7 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
       {
         key: 'totalAmount',
         header: 'Сумма',
-        render: (v) => v != null ? <span>{Number(v).toLocaleString('ru-RU')} ₽</span> : <span className="text-gray-400">—</span>,
+        render: renderMoney,
       },
       { key: 'actDate', header: 'Дата', sortable: true, render: (v) => fmtDate(v) },
       {
@@ -678,7 +725,7 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
         key: 'totalAmount',
         header: 'Итого',
         sortable: true,
-        render: (v) => v != null ? <span>{Number(v).toLocaleString('ru-RU')} ₽</span> : <span className="text-gray-400">—</span>,
+        render: renderMoney,
       },
       { key: 'payrollPeriod', header: 'Период' },
       {
@@ -723,7 +770,7 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
         key: 'amount',
         header: 'Сумма',
         sortable: true,
-        render: (v) => v != null ? <span>{Number(v).toLocaleString('ru-RU')} ₽</span> : <span className="text-gray-400">—</span>,
+        render: renderMoney,
       },
       { key: 'bonusType', header: 'Тип' },
       { key: 'description', header: 'Описание' },
@@ -1073,62 +1120,87 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
     slug: 'inspections',
     title: 'Инспекции',
     apiEndpoint: '/inspections',
-    searchField: 'названию',
+    searchField: 'номеру',
     columns: [
-      { key: 'id', header: 'ID', sortable: true, width: '80px' },
-      { key: 'title', header: 'Название', sortable: true },
+      { key: 'id', header: 'ID', sortable: true, width: '70px' },
+      { key: 'inspectionNumber', header: 'Номер', sortable: true, width: '160px' },
+      {
+        key: 'inspectionType',
+        header: 'Тип',
+        width: '120px',
+        render: (v) => {
+          const map: Record<string, string> = {
+            quality: 'Качество', safety: 'Безопасность', compliance: 'Соответствие', routine: 'Плановая',
+          };
+          return v ? <span className="text-sm text-gray-700 dark:text-gray-200">{map[String(v)] ?? String(v)}</span> : <span className="text-gray-400">—</span>;
+        },
+      },
       {
         key: 'status',
         header: 'Статус',
         sortable: true,
+        width: '140px',
         render: (v) => {
-          const map: Record<string, { label: string; color: string }> = {
-            planned:     { label: 'Запланирована', color: 'gray' },
-            in_progress: { label: 'В процессе',   color: 'yellow' },
-            completed:   { label: 'Завершена',     color: 'green' },
-            failed:      { label: 'Не пройдена',   color: 'red' },
+          const map: Record<number, { label: string; color: string }> = {
+            0: { label: 'Запланирована', color: 'gray' },
+            1: { label: 'В процессе',   color: 'yellow' },
+            2: { label: 'Завершена',     color: 'green' },
+            3: { label: 'Не пройдена',   color: 'red' },
           };
-          const s = map[String(v ?? '')];
-          return s ? <StatusBadge label={s.label} color={s.color} /> : <span className="text-gray-400">{String(v ?? '—')}</span>;
+          const s = map[Number(v)];
+          return s ? <StatusBadge label={s.label} color={s.color} /> : <span className="text-gray-400">—</span>;
         },
       },
       {
         key: 'projectId',
         header: 'Проект',
-        render: (v, row) => {
-          const name = (row as Record<string, any>).project?.name;
-          if (name) return <span className="text-sm text-gray-700 dark:text-gray-300">{name}</span>;
-          if (!v) return <span className="text-gray-400">—</span>;
-          return <span className="text-sm text-gray-500">#{String(v)}</span>;
-        },
+        render: (v) => v ? <span className="text-sm text-gray-500 dark:text-gray-400">#{String(v)}</span> : <span className="text-gray-400">—</span>,
       },
-      { key: 'inspectionDate', header: 'Дата', sortable: true, render: (v) => fmtDate(v) },
+      { key: 'scheduledDate', header: 'Дата', sortable: true, width: '120px', render: (v) => fmtDate(v) },
       {
         key: 'inspectorId',
         header: 'Инспектор',
-        render: (v, row) => {
-          const name = (row as Record<string, any>).inspector?.name;
-          return name ? <span>{name}</span> : v ? <span className="text-gray-500">#{String(v)}</span> : <span className="text-gray-400">—</span>;
-        },
+        width: '110px',
+        render: (v) => v ? <span className="text-sm text-gray-500 dark:text-gray-400">#{String(v)}</span> : <span className="text-gray-400">—</span>,
+      },
+      {
+        key: 'inspectionArea',
+        header: 'Область',
+        render: (v) => v ? <span className="text-sm text-gray-700 dark:text-gray-200">{String(v)}</span> : <span className="text-gray-400">—</span>,
       },
     ],
     formFields: [
-      { key: 'title', label: 'Название', type: 'text', required: true },
-      { key: 'description', label: 'Описание', type: 'textarea' },
+      { key: 'inspectionNumber', label: 'Номер инспекции', type: 'text', required: true },
+      {
+        key: 'inspectionType',
+        label: 'Тип',
+        type: 'select',
+        options: [
+          { value: 'quality',     label: 'Качество' },
+          { value: 'safety',      label: 'Безопасность' },
+          { value: 'compliance',  label: 'Соответствие' },
+          { value: 'routine',     label: 'Плановая' },
+        ],
+      },
       { key: 'projectId', label: 'Проект', type: 'select', fetchOptions: { endpoint: '/projects', valueKey: 'id', labelKey: 'name' } },
+      { key: 'inspectorId', label: 'Инспектор', type: 'select', fetchOptions: { endpoint: '/users', valueKey: 'id', labelKey: 'name' } },
+      { key: 'scheduledDate', label: 'Дата (план)', type: 'date' },
+      { key: 'actualDate', label: 'Дата (факт)', type: 'date' },
+      { key: 'inspectionArea', label: 'Область проверки', type: 'text' },
       {
         key: 'status',
         label: 'Статус',
         type: 'select',
         options: [
-          { value: 'planned', label: 'Запланирована' },
-          { value: 'in_progress', label: 'В процессе' },
-          { value: 'completed', label: 'Завершена' },
-          { value: 'failed', label: 'Не пройдена' },
+          { value: 0, label: 'Запланирована' },
+          { value: 1, label: 'В процессе' },
+          { value: 2, label: 'Завершена' },
+          { value: 3, label: 'Не пройдена' },
         ],
       },
-      { key: 'inspectionDate', label: 'Дата инспекции', type: 'date', required: true },
-      { key: 'notes', label: 'Примечания', type: 'textarea' },
+      { key: 'description', label: 'Описание', type: 'textarea' },
+      { key: 'findings', label: 'Выводы', type: 'textarea' },
+      { key: 'recommendations', label: 'Рекомендации', type: 'textarea' },
     ],
   },
   'supplier-orders': {
@@ -1151,7 +1223,7 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
         key: 'totalAmount',
         header: 'Сумма',
         sortable: true,
-        render: (v) => v != null ? <span>{Number(v).toLocaleString('ru-RU')} ₽</span> : <span className="text-gray-400">—</span>,
+        render: renderMoney,
       },
       {
         key: 'status',
@@ -1363,21 +1435,22 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
     canEdit: false,
     canDelete: false,
     columns: [
-      { key: 'id', header: 'ID', sortable: true, width: '70px' },
       {
         key: 'action',
         header: 'Действие',
         sortable: true,
+        width: '130px',
         render: (v) => {
           const map: Record<string, { label: string; color: string }> = {
-            login:    { label: 'Вход',      color: 'blue'   },
-            logout:   { label: 'Выход',     color: 'gray'   },
-            create:   { label: 'Создание',  color: 'green'  },
-            update:   { label: 'Изменение', color: 'yellow' },
-            delete:   { label: 'Удаление',  color: 'red'    },
-            approve:  { label: 'Одобрение', color: 'purple' },
-            export:   { label: 'Экспорт',   color: 'indigo' },
-            view:     { label: 'Просмотр',  color: 'gray'   },
+            login:    { label: 'Вход',        color: 'blue'   },
+            logout:   { label: 'Выход',       color: 'gray'   },
+            create:   { label: 'Создание',    color: 'green'  },
+            update:   { label: 'Изменение',   color: 'yellow' },
+            delete:   { label: 'Удаление',    color: 'red'    },
+            approve:  { label: 'Одобрение',   color: 'purple' },
+            reject:   { label: 'Отклонение',  color: 'red'    },
+            export:   { label: 'Экспорт',     color: 'indigo' },
+            view:     { label: 'Просмотр',    color: 'gray'   },
           };
           const s = map[String(v ?? '')];
           return s
@@ -1386,43 +1459,83 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
         },
       },
       {
-        key: 'eventCategory',
-        header: 'Категория',
+        key: 'description',
+        header: 'Описание',
         render: (v) => v
-          ? <span className="text-sm text-gray-600 dark:text-gray-300">{String(v)}</span>
+          ? <span className="text-sm text-gray-700 dark:text-gray-200">{String(v)}</span>
           : <span className="text-gray-400">—</span>,
       },
       {
         key: 'entityType',
-        header: 'Тип объекта',
-        render: (v) => v
-          ? <span className="text-sm font-mono text-violet-600 dark:text-violet-400">{String(v)}</span>
-          : <span className="text-gray-400">—</span>,
-      },
-      {
-        key: 'entityId',
-        header: 'ID объекта',
-        width: '100px',
-        render: (v) => v != null
-          ? <span className="text-sm text-gray-500 dark:text-gray-400">#{String(v)}</span>
-          : <span className="text-gray-400">—</span>,
+        header: 'Тип',
+        width: '130px',
+        render: (v) => {
+          const labels: Record<string, string> = {
+            user: 'Пользователь', task: 'Задача', project: 'Проект',
+            construction_site: 'Объект', material: 'Материал',
+            supplier: 'Поставщик', payment: 'Платёж', budget: 'Бюджет',
+            invoice: 'Счёт', inspection: 'Инспекция', defect: 'Дефект',
+            hr_record: 'HR', employee: 'Сотрудник', payroll: 'Зарплата',
+            calendar_event: 'Событие', equipment: 'Оборудование',
+            document: 'Документ', client: 'Клиент', wiki_article: 'Статья',
+            training: 'Обучение', registration: 'Заявка', role: 'Роль',
+            setting: 'Настройка', auth: 'Сессия',
+          };
+          const label = v ? (labels[String(v)] ?? String(v)) : null;
+          return label
+            ? <span className="text-xs font-medium text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-500/10 px-2 py-0.5 rounded">{label}</span>
+            : <span className="text-gray-400">—</span>;
+        },
       },
       {
         key: 'userId',
-        header: 'Польз.',
-        width: '90px',
-        render: (v) => v != null
-          ? <span className="text-sm text-gray-600 dark:text-gray-300">#{String(v)}</span>
-          : <span className="text-gray-400">—</span>,
+        header: 'Пользователь',
+        render: (_v, row: Record<string, unknown>) => {
+          const email = (row?.metadata as Record<string, unknown>)?.userEmail as string | undefined;
+          if (email) return <span className="text-sm text-gray-700 dark:text-gray-200">{email}</span>;
+          if (_v != null) return <span className="text-sm text-gray-500 dark:text-gray-400">#{String(_v)}</span>;
+          return <span className="text-gray-400">—</span>;
+        },
       },
       {
         key: 'ipAddress',
         header: 'IP',
+        width: '130px',
         render: (v) => v
           ? <span className="text-xs font-mono text-gray-500 dark:text-gray-400">{String(v)}</span>
           : <span className="text-gray-400">—</span>,
       },
-      { key: 'createdAt', header: 'Дата', sortable: true, render: (v) => fmtDate(v) },
+      {
+        key: 'changes',
+        header: 'Изменения',
+        width: '110px',
+        render: (v) => {
+          if (!v || typeof v !== 'object' || Object.keys(v as object).length === 0) {
+            return <span className="text-gray-400">—</span>;
+          }
+          const json = JSON.stringify(v, null, 2);
+          return (
+            <button
+              title={json}
+              onClick={() => {
+                const win = window.open('', '_blank', 'width=600,height=500');
+                if (win) {
+                  win.document.write(
+                    `<html><head><title>Изменения</title><style>body{font-family:monospace;padding:16px;white-space:pre;font-size:13px;background:#1e1e2e;color:#cdd6f4}</style></head><body>${json.replace(/</g,'&lt;')}</body></html>`
+                  );
+                }
+              }}
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-500/20 transition-colors cursor-pointer"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+              </svg>
+              JSON
+            </button>
+          );
+        },
+      },
+      { key: 'createdAt', header: 'Дата', sortable: true, width: '155px', render: (v) => fmtDate(v) },
     ],
     formFields: [],
   },
@@ -1455,9 +1568,22 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
       },
       { key: 'description', header: 'Описание', render: (v) => v ? <span className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-xs block">{String(v)}</span> : <span className="text-gray-400">—</span> },
       {
-        key: 'isActive',
-        header: 'Статус',
-        render: (v) => v ? <StatusBadge label="Активен" color="green" /> : <StatusBadge label="Неактивен" color="gray" />,
+        key: 'fileUrl',
+        header: 'Файл',
+        render: (value) => value ? (
+          <a
+            href={String(value)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-violet-500 hover:text-violet-600 text-sm"
+            title="Открыть файл"
+          >
+            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+            </svg>
+            Открыть
+          </a>
+        ) : <span className="text-gray-400 text-sm">—</span>,
       },
       { key: 'createdAt', header: 'Создан', sortable: true, render: (v) => fmtDate(v) },
     ],
@@ -1475,6 +1601,7 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
         ],
       },
       { key: 'description', label: 'Описание', type: 'textarea' },
+      { key: 'fileUrl', label: 'Файл отчёта', type: 'file', uploadEndpoint: '/report-templates/upload', accept: '.pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png' },
     ],
   },
 };

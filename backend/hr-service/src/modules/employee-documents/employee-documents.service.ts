@@ -34,4 +34,15 @@ export class EmployeeDocumentsService {
       throw new NotFoundException(`Employee document #${id} not found`);
     return document;
   }
+
+  async findMyDocuments(userId: number, page = 1, limit = 50) {
+    return this.repository.findByUserId(userId, page, limit);
+  }
+
+  async deleteOwn(id: number, userId: number) {
+    const document = await this.repository.deleteOwn(id, userId);
+    if (!document)
+      throw new NotFoundException(`Document #${id} not found or access denied`);
+    return document;
+  }
 }

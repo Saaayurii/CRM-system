@@ -171,7 +171,7 @@ interface ChatState {
   markAsRead: (channelId: number) => void;
   startTyping: (channelId: number) => void;
   stopTyping: (channelId: number) => void;
-  setActiveChannel: (channelId: number) => Promise<void>;
+  setActiveChannel: (channelId: number | null) => Promise<void>;
   fetchChannels: (page?: number) => Promise<void>;
   fetchMessages: (channelId: number, cursor?: number) => Promise<void>;
   createChannel: (dto: CreateChannelDto) => Promise<ChatChannel | null>;
@@ -216,24 +216,25 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const message = mapRawMessage(raw);
       const { activeChannelId, channels, unreadCounts } = get();
 
-      const updatedChannels = channels.map((ch) =>
-        ch.id === message.channelId
-          ? {
-              ...ch,
-              lastMessage: {
-                text: message.text,
-                senderName: message.senderName,
-                createdAt: message.createdAt,
-              },
-            }
-          : ch
-      );
+      const updatedChannel = channels.find((ch) => ch.id === message.channelId);
+      const updatedChannels = updatedChannel
+        ? [
+            ...channels.filter((ch) => ch.id !== message.channelId),
+          ]
+        : [...channels];
 
-      updatedChannels.sort((a, b) => {
-        const aTime = a.lastMessage?.createdAt || '';
-        const bTime = b.lastMessage?.createdAt || '';
-        return bTime.localeCompare(aTime);
-      });
+      if (updatedChannel) {
+        const withNewMsg = {
+          ...updatedChannel,
+          lastMessage: {
+            text: message.text,
+            senderName: message.senderName,
+            createdAt: message.createdAt,
+          },
+        };
+        // Bubble to front; ChatSidebar will keep selfChat pinned first
+        updatedChannels.unshift(withNewMsg);
+      }
 
       if (message.channelId === activeChannelId) {
         set((state) => ({
@@ -413,6 +414,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const prevId = get().activeChannelId;
     set({ activeChannelId: channelId, messages: [], hasMoreMessages: true });
 
+    if (channelId === null) return;
+
     if (socketRef?.connected) {
       if (prevId && prevId !== channelId) {
         socketRef.emit('channel:leave', { channelId: prevId });
@@ -480,8 +483,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
         }
       }
 
+      const sortedChannels = channelsList.slice().sort((a, b) => {
+        const aTime = a.lastMessage?.createdAt || '';
+        const bTime = b.lastMessage?.createdAt || '';
+        return bTime.localeCompare(aTime);
+      });
+
       set((state) => ({
-        channels: page === 1 ? channelsList : [...state.channels, ...channelsList],
+        channels: page === 1 ? sortedChannels : [...state.channels, ...sortedChannels],
         channelsPage: page,
         hasMoreChannels:
           page === 1

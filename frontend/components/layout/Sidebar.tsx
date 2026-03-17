@@ -128,7 +128,7 @@ export default function Sidebar() {
                   <>
                     <a
                       href="#0"
-                      className={`block text-gray-800 dark:text-gray-100 truncate transition duration-150 ${
+                      className={`block text-gray-800 dark:text-gray-100 transition duration-150 ${
                         isDashboardActive ? '' : 'hover:text-gray-900 dark:hover:text-white'
                       }`}
                       onClick={(e) => {
@@ -138,7 +138,7 @@ export default function Sidebar() {
                       }}
                     >
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center">
+                        <div className="flex items-center min-w-0">
                           <svg
                             className={`shrink-0 fill-current ${
                               isDashboardActive ? 'text-violet-500' : 'text-gray-400 dark:text-gray-500'
@@ -151,7 +151,7 @@ export default function Sidebar() {
                             <path d="M5.936.278A7.983 7.983 0 0 1 8 0a8 8 0 1 1-8 8c0-.722.104-1.413.278-2.064a1 1 0 1 1 1.932.516A5.99 5.99 0 0 0 2 8a6 6 0 1 0 6-6c-.53 0-1.045.076-1.548.21A1 1 0 1 1 5.936.278Z" />
                             <path d="M6.068 7.482A2.003 2.003 0 0 0 8 10a2 2 0 1 0-.518-3.932L3.707 2.293a1 1 0 0 0-1.414 1.414l3.775 3.775Z" />
                           </svg>
-                          <span className="text-sm font-medium ml-4 lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
+                          <span className="text-sm font-medium ml-4 lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200 truncate">
                             Панель управления
                           </span>
                         </div>
@@ -543,7 +543,7 @@ export default function Sidebar() {
                     <>
                       <a
                         href="#0"
-                        className={`block text-gray-800 dark:text-gray-100 truncate transition duration-150 ${
+                        className={`block text-gray-800 dark:text-gray-100 transition duration-150 ${
                           pathname.includes('admin') ? '' : 'hover:text-gray-900 dark:hover:text-white'
                         }`}
                         onClick={(e) => {
@@ -553,7 +553,7 @@ export default function Sidebar() {
                         }}
                       >
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center">
+                          <div className="flex items-center min-w-0">
                             <svg
                               className={`shrink-0 fill-current ${
                                 pathname.includes('admin') ? 'text-violet-500' : 'text-gray-400 dark:text-gray-500'
@@ -565,7 +565,7 @@ export default function Sidebar() {
                             >
                               <path d="M12 1a1 1 0 1 0-2 0v2a3 3 0 0 0 3 3h2a1 1 0 1 0 0-2h-2a1 1 0 0 1-1-1V1ZM1 10a1 1 0 1 0 0 2h2a1 1 0 0 1 1 1v2a1 1 0 1 0 2 0v-2a3 3 0 0 0-3-3H1ZM5 0a1 1 0 0 1 1 1v2a3 3 0 0 1-3 3H1a1 1 0 0 1 0-2h2a1 1 0 0 0 1-1V1a1 1 0 0 1 1-1ZM12 13a1 1 0 0 1 1-1h2a1 1 0 1 0 0-2h-2a3 3 0 0 0-3 3v2a1 1 0 1 0 2 0v-2Z" />
                             </svg>
-                            <span className="text-sm font-medium ml-4 lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
+                            <span className="text-sm font-medium ml-4 lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200 truncate">
                               Администрирование
                             </span>
                           </div>

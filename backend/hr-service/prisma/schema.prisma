@@ -27,6 +27,8 @@ model User {
   name      String  @db.VarChar(255)
   email     String  @unique @db.VarChar(255)
   isActive  Boolean @default(true) @map("is_active")
+  avatarUrl String? @map("avatar_url") @db.VarChar(500)
+  position  String? @db.VarChar(255)
 
   employeeDocuments     EmployeeDocument[]
   timeOffRequests       TimeOffRequest[]

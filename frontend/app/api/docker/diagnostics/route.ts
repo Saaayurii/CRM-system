@@ -142,10 +142,15 @@ export async function GET(request: NextRequest) {
   }
 
   // Check if API Gateway is reachable
+  // Always use direct localhost URL for server-side fetch (NEXT_PUBLIC_API_URL may be a relative path)
   let gatewayReachable = false;
   try {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
-    const baseUrl = apiUrl.replace(/\/api\/v1$/, '');
+    let baseUrl = apiUrl.replace(/\/api\/v1$/, '');
+    // If relative (no protocol), fall back to direct gateway address
+    if (!baseUrl || !baseUrl.startsWith('http')) {
+      baseUrl = process.env.API_GATEWAY_URL || 'http://localhost:3000';
+    }
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 3000);
     const res = await fetch(`${baseUrl}/health`, { signal: controller.signal }).catch(() => null);

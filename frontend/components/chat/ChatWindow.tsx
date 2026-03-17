@@ -29,6 +29,8 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const prevMessagesLenRef = useRef(0);
+  const initialLoadRef = useRef(false);
+  const isInitialLoadingRef = useRef(false);
 
   const activeChannel = channels.find((ch) => ch.id === activeChannelId);
   const channelTyping = activeChannelId ? typingUsers[activeChannelId] || [] : [];
@@ -52,10 +54,28 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
     ? activeChannel.channelName || 'Группа'
     : partner?.name || partner?.email || activeChannel?.channelName || '';
 
-  // Auto-scroll to bottom on new messages
+  // Mark initial load when channel changes
+  useEffect(() => {
+    if (activeChannelId) {
+      initialLoadRef.current = true;
+      isInitialLoadingRef.current = true;
+      prevMessagesLenRef.current = 0;
+    }
+  }, [activeChannelId]);
+
+  // Auto-scroll: instant on initial load, smooth on new messages
   useEffect(() => {
     const container = messagesContainerRef.current;
-    if (!container) return;
+    if (!container || messages.length === 0) return;
+
+    if (initialLoadRef.current) {
+      initialLoadRef.current = false;
+      isInitialLoadingRef.current = false;
+      prevMessagesLenRef.current = messages.length;
+      messagesEndRef.current?.scrollIntoView();
+      return;
+    }
+
     const isNewMessage = messages.length > prevMessagesLenRef.current;
     prevMessagesLenRef.current = messages.length;
     if (isNewMessage) {
@@ -67,20 +87,11 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
     }
   }, [messages.length]);
 
-  // Scroll to bottom when channel changes
-  useEffect(() => {
-    if (activeChannelId) {
-      setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView();
-      }, 100);
-    }
-  }, [activeChannelId]);
-
   // Load more on scroll up
   const handleScroll = useCallback(() => {
     const container = messagesContainerRef.current;
     if (!container || isLoadingMessages || !hasMoreMessages || !activeChannelId) return;
-    if (container.scrollTop < 100 && messages.length > 0) {
+    if (container.scrollTop < 200 && messages.length > 0) {
       const oldScrollHeight = container.scrollHeight;
       fetchMessages(activeChannelId, messages[0]?.id).then(() => {
         requestAnimationFrame(() => {
@@ -218,9 +229,25 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
           ref={messagesContainerRef}
           className="flex-1 overflow-y-auto px-4 py-3 space-y-1 bg-gray-50 dark:bg-gray-900"
         >
-          {isLoadingMessages && (
+          {/* Initial loading — full area spinner */}
+          {isLoadingMessages && messages.length === 0 && (
+            <div className="flex justify-center items-center h-full">
+              <div className="w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+          )}
+
+          {/* Lazy loading — top spinner when loading older messages */}
+          {isLoadingMessages && messages.length > 0 && (
+            <div className="flex items-center justify-center gap-2 py-2 text-xs text-gray-400 dark:text-gray-500">
+              <div className="w-4 h-4 border-2 border-violet-400 border-t-transparent rounded-full animate-spin" />
+              Загружаем более старые сообщения…
+            </div>
+          )}
+
+          {/* No more messages indicator */}
+          {!hasMoreMessages && messages.length > 0 && (
             <div className="flex justify-center py-2">
-              <div className="w-5 h-5 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+              <span className="text-xs text-gray-300 dark:text-gray-600">Начало переписки</span>
             </div>
           )}
 

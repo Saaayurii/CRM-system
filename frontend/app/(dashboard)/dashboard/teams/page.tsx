@@ -7,25 +7,119 @@ import { useToastStore } from '@/stores/toastStore';
 import CreateTeamModal from '@/components/dashboard/CreateTeamModal';
 
 interface TeamMember {
-  id: number;
-  name?: string;
-  email?: string;
-  position?: string;
+  id: number;        // teamMember record ID
+  userId: number;    // actual user ID
+  roleInTeam?: string;
+  user?: {
+    name?: string;
+    email?: string;
+    avatarUrl?: string;
+    position?: string;
+  };
 }
 
 interface Team {
   id: number;
   name: string;
   description?: string;
-  project?: { id: number; name: string };
-  projectName?: string;
   members?: TeamMember[];
 }
 
-interface User {
-  id: number;
+interface UserDetail {
+  userId: number;
   name?: string;
   email?: string;
+  avatarUrl?: string;
+  position?: string;
+  roleInTeam?: string;
+  teamName: string;
+}
+
+function getInitials(name?: string, email?: string): string {
+  return ((name || email || '?').charAt(0)).toUpperCase();
+}
+
+function MemberAvatar({ member, onClick }: { member: TeamMember; onClick: () => void }) {
+  const name = member.user?.name;
+  const email = member.user?.email;
+  const avatarUrl = member.user?.avatarUrl;
+
+  return (
+    <button
+      onClick={onClick}
+      title={name || email}
+      className="relative w-9 h-9 rounded-full overflow-hidden ring-2 ring-white dark:ring-gray-800 hover:ring-violet-400 transition-all hover:scale-110 focus:outline-none"
+    >
+      {avatarUrl ? (
+        <img src={avatarUrl} alt={name || email || ''} className="w-full h-full object-cover" />
+      ) : (
+        <div className="w-full h-full bg-gradient-to-br from-violet-400 to-sky-500 flex items-center justify-center text-white text-sm font-semibold">
+          {getInitials(name, email)}
+        </div>
+      )}
+    </button>
+  );
+}
+
+function UserDetailModal({ user, onClose }: { user: UserDetail; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-gray-900/50" onClick={onClose} />
+      <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-xs mx-4 p-6">
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        <div className="flex flex-col items-center text-center">
+          <div className="w-20 h-20 rounded-full overflow-hidden mb-3 ring-4 ring-violet-100 dark:ring-violet-500/20">
+            {user.avatarUrl ? (
+              <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-violet-400 to-sky-500 flex items-center justify-center text-white text-2xl font-bold">
+                {getInitials(user.name, user.email)}
+              </div>
+            )}
+          </div>
+
+          <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100">
+            {user.name || user.email || 'Пользователь'}
+          </h3>
+
+          {user.position && (
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{user.position}</p>
+          )}
+
+          {user.roleInTeam && (
+            <span className="mt-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-400">
+              {user.roleInTeam === 'lead' ? 'Лидер' : user.roleInTeam === 'assistant' ? 'Помощник' : 'Участник'}
+            </span>
+          )}
+
+          <div className="mt-4 w-full space-y-2 text-left">
+            {user.email && (
+              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                <span className="truncate">{user.email}</span>
+              </div>
+            )}
+            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+              <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span>{user.teamName}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function TeamsPage() {
@@ -35,8 +129,9 @@ export default function TeamsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [addMemberTeamId, setAddMemberTeamId] = useState<number | null>(null);
   const [userSearch, setUserSearch] = useState('');
-  const [users, setUsers] = useState<User[]>([]);
+  const [searchResults, setSearchResults] = useState<{ id: number; name?: string; email?: string }[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserDetail | null>(null);
   const addToast = useToastStore((s) => s.addToast);
 
   const fetchTeams = useCallback(async () => {
@@ -45,14 +140,14 @@ export default function TeamsPage() {
       const { data } = await api.get('/teams');
       const teamList: Team[] = data.data || data.teams || [];
 
-      // Fetch members for each team
       const teamsWithMembers = await Promise.all(
         teamList.map(async (team) => {
           try {
             const { data: membersData } = await api.get(`/teams/${team.id}/members`);
-            return { ...team, members: membersData.data || membersData.members || membersData || [] };
+            const raw = membersData.data || membersData.members || membersData || [];
+            return { ...team, members: Array.isArray(raw) ? raw : [] };
           } catch {
-            return team;
+            return { ...team, members: [] };
           }
         })
       );
@@ -66,22 +161,17 @@ export default function TeamsPage() {
     }
   }, []);
 
-  useEffect(() => {
-    fetchTeams();
-  }, [fetchTeams]);
+  useEffect(() => { fetchTeams(); }, [fetchTeams]);
 
   const searchUsers = async (query: string) => {
     setUserSearch(query);
-    if (query.length < 2) {
-      setUsers([]);
-      return;
-    }
+    if (query.length < 2) { setSearchResults([]); return; }
     setUsersLoading(true);
     try {
       const { data } = await api.get('/users', { params: { search: query, limit: 10 } });
-      setUsers(data.data || data.users || []);
+      setSearchResults(data.data || data.users || []);
     } catch {
-      setUsers([]);
+      setSearchResults([]);
     } finally {
       setUsersLoading(false);
     }
@@ -93,7 +183,7 @@ export default function TeamsPage() {
       addToast('success', 'Участник добавлен');
       setAddMemberTeamId(null);
       setUserSearch('');
-      setUsers([]);
+      setSearchResults([]);
       fetchTeams();
     } catch {
       addToast('error', 'Не удалось добавить участника');
@@ -109,10 +199,6 @@ export default function TeamsPage() {
     } catch {
       addToast('error', 'Не удалось удалить участника');
     }
-  };
-
-  const getInitial = (name?: string, email?: string): string => {
-    return (name || email || '?').charAt(0).toUpperCase();
   };
 
   return (
@@ -144,14 +230,11 @@ export default function TeamsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {teams.map((team) => (
-            <div
-              key={team.id}
-              className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-5"
-            >
-              {/* Team header */}
+            <div key={team.id} className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-5">
+              {/* Header */}
               <div className="flex items-start justify-between mb-3">
-                <div>
-                  <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100">{team.name}</h3>
+                <div className="min-w-0">
+                  <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100 truncate">{team.name}</h3>
                   {team.description && (
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{team.description}</p>
                   )}
@@ -163,46 +246,62 @@ export default function TeamsPage() {
                 </div>
               </div>
 
-              {/* Project badge */}
-              {(team.project?.name || team.projectName) && (
-                <div className="mb-3">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-400">
-                    {team.project?.name || team.projectName}
-                  </span>
-                </div>
-              )}
-
               {/* Members */}
               <div className="mb-3">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                    Участники ({team.members?.length || 0})
-                  </span>
-                </div>
+                <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase mb-2 block">
+                  Участники ({team.members?.length ?? 0})
+                </span>
+
                 {team.members && team.members.length > 0 ? (
-                  <div className="flex flex-wrap gap-1.5">
-                    {team.members.map((m) => (
-                      <div
-                        key={m.id}
-                        className="group relative flex items-center gap-1.5 px-2 py-1 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
-                      >
-                        <div className="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-xs font-medium text-gray-600 dark:text-gray-300">
-                          {getInitial(m.name, m.email)}
+                  <div className="flex flex-wrap items-center gap-1">
+                    {/* Stacked avatars */}
+                    <div className="flex -space-x-2">
+                      {team.members.slice(0, 6).map((m) => (
+                        <MemberAvatar
+                          key={m.id}
+                          member={m}
+                          onClick={() =>
+                            setSelectedUser({
+                              userId: m.userId,
+                              name: m.user?.name,
+                              email: m.user?.email,
+                              avatarUrl: m.user?.avatarUrl,
+                              position: m.user?.position,
+                              roleInTeam: m.roleInTeam,
+                              teamName: team.name,
+                            })
+                          }
+                        />
+                      ))}
+                      {(team.members.length > 6) && (
+                        <div className="w-9 h-9 rounded-full bg-gray-200 dark:bg-gray-700 ring-2 ring-white dark:ring-gray-800 flex items-center justify-center text-xs font-medium text-gray-600 dark:text-gray-300">
+                          +{team.members.length - 6}
                         </div>
-                        <span className="text-xs text-gray-700 dark:text-gray-300 max-w-[100px] truncate">
-                          {m.name || m.email}
-                        </span>
-                        <button
-                          onClick={() => handleRemoveMember(team.id, m.id, m.name || m.email || '')}
-                          className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-opacity ml-0.5"
-                          title="Удалить из команды"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      </div>
-                    ))}
+                      )}
+                    </div>
+
+                    {/* Remove buttons on hover — separate list */}
+                    <div className="flex flex-wrap gap-1 mt-2 w-full">
+                      {team.members.map((m) => {
+                        const label = m.user?.name || m.user?.email || `#${m.userId}`;
+                        return (
+                          <div
+                            key={m.id}
+                            className="group flex items-center gap-1 px-2 py-0.5 bg-gray-50 dark:bg-gray-700/50 rounded-md text-xs text-gray-600 dark:text-gray-300"
+                          >
+                            <span className="truncate max-w-[90px]">{label}</span>
+                            <button
+                              onClick={() => handleRemoveMember(team.id, m.userId, label)}
+                              className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-opacity"
+                            >
+                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 ) : (
                   <p className="text-xs text-gray-400 dark:text-gray-500">Нет участников</p>
@@ -220,32 +319,24 @@ export default function TeamsPage() {
                     autoFocus
                     className="w-full px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                   />
-                  {usersLoading && (
-                    <p className="text-xs text-gray-400">Поиск...</p>
-                  )}
-                  {users.length > 0 && (
+                  {usersLoading && <p className="text-xs text-gray-400">Поиск...</p>}
+                  {searchResults.length > 0 && (
                     <ul className="max-h-32 overflow-y-auto space-y-1">
-                      {users.map((u) => (
+                      {searchResults.map((u) => (
                         <li key={u.id}>
                           <button
                             onClick={() => handleAddMember(team.id, u.id)}
                             className="w-full text-left px-2 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                           >
                             {u.name || u.email}
-                            {u.name && u.email && (
-                              <span className="text-xs text-gray-400 ml-2">{u.email}</span>
-                            )}
+                            {u.name && u.email && <span className="text-xs text-gray-400 ml-2">{u.email}</span>}
                           </button>
                         </li>
                       ))}
                     </ul>
                   )}
                   <button
-                    onClick={() => {
-                      setAddMemberTeamId(null);
-                      setUserSearch('');
-                      setUsers([]);
-                    }}
+                    onClick={() => { setAddMemberTeamId(null); setUserSearch(''); setSearchResults([]); }}
                     className="text-xs text-gray-400 hover:text-gray-500"
                   >
                     Отмена
@@ -254,7 +345,7 @@ export default function TeamsPage() {
               ) : (
                 <button
                   onClick={() => setAddMemberTeamId(team.id)}
-                  className="w-full mt-1 px-3 py-1.5 text-sm font-medium text-violet-500 hover:text-violet-600 border border-dashed border-gray-300 dark:border-gray-600 hover:border-violet-400 rounded-lg transition-colors"
+                  className="w-full mt-2 px-3 py-1.5 text-sm font-medium text-violet-500 hover:text-violet-600 border border-dashed border-gray-300 dark:border-gray-600 hover:border-violet-400 rounded-lg transition-colors"
                 >
                   + Добавить участника
                 </button>
@@ -273,6 +364,10 @@ export default function TeamsPage() {
             fetchTeams();
           }}
         />
+      )}
+
+      {selectedUser && (
+        <UserDetailModal user={selectedUser} onClose={() => setSelectedUser(null)} />
       )}
     </div>
   );

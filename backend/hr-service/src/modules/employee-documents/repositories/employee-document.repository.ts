@@ -84,4 +84,27 @@ export class EmployeeDocumentRepository {
     if (!record) return null;
     return (this.prisma as any).employeeDocument.delete({ where: { id } });
   }
+
+  async findByUserId(userId: number, page: number, limit: number) {
+    const skip = (page - 1) * limit;
+    const where = { userId };
+    const [data, total] = await Promise.all([
+      (this.prisma as any).employeeDocument.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      (this.prisma as any).employeeDocument.count({ where }),
+    ]);
+    return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
+  }
+
+  async deleteOwn(id: number, userId: number) {
+    const record = await (this.prisma as any).employeeDocument.findFirst({
+      where: { id, userId },
+    });
+    if (!record) return null;
+    return (this.prisma as any).employeeDocument.delete({ where: { id } });
+  }
 }

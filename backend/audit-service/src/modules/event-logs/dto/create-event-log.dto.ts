@@ -8,6 +8,11 @@ import {
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateEventLogDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsInt()
+  accountId?: number;
+
   @ApiProperty({ maxLength: 100 })
   @IsString()
   @MaxLength(100)

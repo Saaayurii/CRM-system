@@ -30,6 +30,7 @@ interface PendingFile {
   file: File;
   id: string;
   progress: number; // 0-100
+  compressed: boolean; // true = compress image, false = send as original file
 }
 
 export default function ChatInput({ channelId }: ChatInputProps) {
@@ -131,6 +132,7 @@ export default function ChatInput({ channelId }: ChatInputProps) {
             xhr.setRequestHeader('x-file-name',    encodeURIComponent(file.name));
             xhr.setRequestHeader('x-file-size',    String(file.size));
             xhr.setRequestHeader('x-file-type',    file.type || '');
+            xhr.setRequestHeader('x-compress',     String(pf.compressed));
             xhr.setRequestHeader('Content-Type',   'application/octet-stream');
 
             xhr.upload.onprogress = (e) => {
@@ -215,6 +217,7 @@ export default function ChatInput({ channelId }: ChatInputProps) {
 
     setText('');
     setPendingFiles([]);
+    xhrMapRef.current.clear();
     stopTyping(channelId);
     setIsSending(false);
 
@@ -260,9 +263,16 @@ export default function ChatInput({ channelId }: ChatInputProps) {
       file,
       id: `${file.name}-${Date.now()}-${Math.random()}`,
       progress: 0,
+      compressed: file.type.startsWith('image/'),
     }));
     setPendingFiles((prev) => [...prev, ...newPending]);
     e.target.value = '';
+  };
+
+  const toggleCompression = (id: string) => {
+    setPendingFiles((prev) =>
+      prev.map((f) => (f.id === id ? { ...f, compressed: !f.compressed } : f))
+    );
   };
 
   const removeFile = (id: string) => {
@@ -456,6 +466,40 @@ export default function ChatInput({ channelId }: ChatInputProps) {
                     </span>
                   </div>
 
+                  {/* Compression toggle — only for images, only before sending */}
+                  {isImage && !isSending && (
+                    <div className="flex items-center gap-1 mb-1">
+                      <button
+                        onClick={() => toggleCompression(pf.id)}
+                        className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors ${
+                          pf.compressed
+                            ? 'bg-violet-100 dark:bg-violet-900/40 text-violet-600 dark:text-violet-400'
+                            : 'bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-300'
+                        }`}
+                        title={pf.compressed ? 'Отправить как файл (без сжатия)' : 'Отправить как фото (со сжатием)'}
+                      >
+                        {pf.compressed ? (
+                          <>
+                            <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            Фото
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            </svg>
+                            Файл
+                          </>
+                        )}
+                      </button>
+                      <span className="text-[10px] text-gray-400">
+                        {pf.compressed ? '· сожмётся' : '· без изменений'}
+                      </span>
+                    </div>
+                  )}
+
                   {/* Progress bar */}
                   <div className="h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
                     <div
@@ -476,17 +520,16 @@ export default function ChatInput({ channelId }: ChatInputProps) {
                   )}
                 </div>
 
-                {/* Remove button (only before sending) */}
-                {!isSending && (
-                  <button
-                    onClick={() => removeFile(pf.id)}
-                    className="shrink-0 p-1 text-gray-400 hover:text-red-500 rounded transition-colors"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                )}
+                {/* Remove button — always visible, aborts upload if in progress */}
+                <button
+                  onClick={() => removeFile(pf.id)}
+                  className="shrink-0 p-1.5 text-red-400 hover:text-white hover:bg-red-500 rounded-lg transition-colors"
+                  title="Удалить файл"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
             );
           })}

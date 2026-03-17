@@ -4,6 +4,7 @@ import {
   IsBoolean,
   IsArray,
   IsObject,
+  IsUrl,
   MaxLength,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
@@ -39,4 +40,9 @@ export class CreateReportTemplateDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @ApiPropertyOptional({ description: 'Attached file URL' })
+  @IsOptional()
+  @IsString()
+  fileUrl?: string;
 }

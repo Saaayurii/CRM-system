@@ -10,6 +10,7 @@ export default function ChatPage() {
   const disconnect = useChatStore((s) => s.disconnect);
   const fetchChannels = useChatStore((s) => s.fetchChannels);
   const activeChannelId = useChatStore((s) => s.activeChannelId);
+  const setActiveChannel = useChatStore((s) => s.setActiveChannel);
 
   const [showSidebar, setShowSidebar] = useState(true);
 
@@ -30,10 +31,16 @@ export default function ChatPage() {
 
   const handleBackToSidebar = () => {
     setShowSidebar(true);
+    setActiveChannel(null);
   };
 
+  // On mobile: fixed fullscreen when in a conversation, normal height when on list
+  const mobileClass = activeChannelId
+    ? 'max-lg:fixed max-lg:inset-0 max-lg:z-50'
+    : 'max-lg:h-[calc(100dvh-64px-4rem)]';
+
   return (
-    <div className="flex h-[calc(100dvh-64px-4rem)] bg-white dark:bg-gray-900 rounded-xl shadow-xs overflow-hidden">
+    <div className={`flex ${mobileClass} lg:h-[calc(100dvh-64px-4rem)] bg-white dark:bg-gray-900 max-lg:rounded-none lg:rounded-xl shadow-xs overflow-hidden`}>
       {/* Sidebar: always visible on lg+, toggle on mobile */}
       <div
         className={`${

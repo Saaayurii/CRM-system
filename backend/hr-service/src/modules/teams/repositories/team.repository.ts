@@ -80,7 +80,7 @@ export class TeamRepository {
     return (this.prisma as any).teamMember.findMany({
       where: { teamId: id },
       orderBy: { joinedAt: 'desc' },
-      include: { user: { select: { name: true, email: true } } },
+      include: { user: { select: { name: true, email: true, avatarUrl: true, position: true } } },
     });
   }
 
