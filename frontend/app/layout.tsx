@@ -10,11 +10,33 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'CRM Система',
+  title: {
+    default: 'CRM Система',
+    template: '%s | CRM Система',
+  },
+  description: 'Система управления строительными проектами — задачи, персонал, материалы, финансы.',
+  keywords: ['CRM', 'строительство', 'управление проектами', 'HR', 'задачи'],
+  authors: [{ name: 'CRM Система' }],
+  robots: {
+    index: false,
+    follow: false,
+  },
   icons: {
     icon: '/favicon.png',
     shortcut: '/favicon.png',
     apple: '/apple-touch-icon.png',
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'ru_RU',
+    title: 'CRM Система',
+    description: 'Система управления строительными проектами',
+    siteName: 'CRM Система',
+  },
+  twitter: {
+    card: 'summary',
+    title: 'CRM Система',
+    description: 'Система управления строительными проектами',
   },
 };
 

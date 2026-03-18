@@ -254,7 +254,7 @@ function SuperAdminDashboard({ user }: { user: any }) {
             {projectsByStatus.length === 0 ? (
               <div className="flex items-center justify-center h-full text-sm text-gray-400">Нет данных</div>
             ) : (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height={256}>
                 <BarChart data={projectsByStatus} barCategoryGap="20%">
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
                   <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#6b7280' }} axisLine={false} tickLine={false} />
@@ -275,7 +275,7 @@ function SuperAdminDashboard({ user }: { user: any }) {
             {tasksByPriority.length === 0 ? (
               <div className="flex items-center justify-center h-full text-sm text-gray-400">Нет данных</div>
             ) : (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height={256}>
                 <PieChart>
                   <Pie data={tasksByPriority} cx="50%" cy="45%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value">
                     {tasksByPriority.map((entry, idx) => (<Cell key={idx} fill={entry.color} />))}
@@ -447,7 +447,7 @@ function AdminDashboard({ user }: { user: any }) {
             {tasksByStatus.length === 0 ? (
               <div className="flex items-center justify-center h-full text-sm text-gray-400">Нет данных</div>
             ) : (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height={256}>
                 <BarChart data={tasksByStatus} barCategoryGap="20%">
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
                   <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#6b7280' }} axisLine={false} tickLine={false} />
@@ -468,7 +468,7 @@ function AdminDashboard({ user }: { user: any }) {
             {projectsByStatus.length === 0 ? (
               <div className="flex items-center justify-center h-full text-sm text-gray-400">Нет данных</div>
             ) : (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height={256}>
                 <PieChart>
                   <Pie data={projectsByStatus} cx="50%" cy="45%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value">
                     {projectsByStatus.map((entry, idx) => (<Cell key={idx} fill={entry.color} />))}

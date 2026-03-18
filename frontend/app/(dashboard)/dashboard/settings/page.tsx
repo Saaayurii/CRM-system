@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { useToastStore } from '@/stores/toastStore';
 import api from '@/lib/api';
+import { normalizeFileUrl } from '@/lib/utils';
 
 // Roles that can NOT manage own personal documents
 const ROLES_NO_DOCS = new Set([13, 14]); // observer, analyst
@@ -92,7 +93,7 @@ export default function SettingsPage() {
           position: data.position || '',
         });
         if (data.avatarUrl) {
-          setAvatarPreview(data.avatarUrl);
+          setAvatarPreview(normalizeFileUrl(data.avatarUrl));
         }
       } catch {
         setProfile({

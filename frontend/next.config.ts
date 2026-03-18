@@ -15,6 +15,10 @@ const nextConfig: NextConfig = {
         destination: 'http://localhost:3000/api/v1/:path*',
       },
       {
+        source: '/uploads/:path*',
+        destination: 'http://localhost:3000/uploads/:path*',
+      },
+      {
         source: '/socket.io',
         destination: 'http://localhost:3011/socket.io',
       },

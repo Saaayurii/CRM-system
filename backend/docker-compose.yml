@@ -128,6 +128,9 @@ services:
       # CORS
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3030}
 
+      # Public URL for building absolute file URLs (set to your domain in production)
+      APP_PUBLIC_URL: ${APP_PUBLIC_URL:-}
+
       # Rate Limiting
       RATE_LIMIT_TTL: 60
       RATE_LIMIT_MAX: 300

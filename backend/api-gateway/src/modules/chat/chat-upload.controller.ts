@@ -1,7 +1,6 @@
 import {
   Controller,
   Post,
-  Req,
   UseInterceptors,
   UploadedFiles,
   BadRequestException,
@@ -13,9 +12,9 @@ import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import { randomUUID } from 'crypto';
-import { Request } from 'express';
 
 const UPLOAD_DIR = join(process.cwd(), 'uploads', 'chat');
+const APP_PUBLIC_URL = (process.env.APP_PUBLIC_URL || '').replace(/\/$/, '');
 
 @SkipThrottle()
 @ApiTags('Chat')
@@ -44,19 +43,16 @@ export class ChatUploadController {
   )
   uploadFiles(
     @UploadedFiles() files: Express.Multer.File[],
-    @Req() req: Request,
   ) {
     if (!files || files.length === 0) {
       throw new BadRequestException('No files provided');
     }
 
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
-
     return files.map((file) => ({
       fileName: file.originalname,
       fileSize: file.size,
       mimeType: file.mimetype,
-      fileUrl: `${baseUrl}/uploads/chat/${file.filename}`,
+      fileUrl: `${APP_PUBLIC_URL}/uploads/chat/${file.filename}`,
     }));
   }
 }

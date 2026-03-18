@@ -14,6 +14,7 @@ export default function ThemeToggle() {
         className="light-switch sr-only"
         checked={theme === 'light'}
         onChange={toggleTheme}
+        suppressHydrationWarning
       />
       <label
         className="flex items-center justify-center cursor-pointer w-8 h-8 hover:bg-gray-100 lg:hover:bg-gray-200 dark:hover:bg-gray-700/50 dark:lg:hover:bg-gray-800 rounded-full"

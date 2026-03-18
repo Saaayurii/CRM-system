@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import api from '@/lib/api';
+import { normalizeFileUrl } from '@/lib/utils';
 import type { User, LoginRequest, LoginResponse, JwtPayload } from '@/types/auth';
 
 // Map of known roleId -> code (seeded in DB)
@@ -67,6 +68,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
     const user = data.user;
     user.role = roleFromId(user.roleId ?? null);
+    if (user.avatarUrl) user.avatarUrl = normalizeFileUrl(user.avatarUrl) ?? undefined;
     set({ user, isAuthenticated: true });
 
     console.log('[Auth] Login successful for user:', user.email);

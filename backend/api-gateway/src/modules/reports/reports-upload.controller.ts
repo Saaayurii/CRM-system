@@ -1,7 +1,6 @@
 import {
   Controller,
   Post,
-  Req,
   UseInterceptors,
   UploadedFile,
   BadRequestException,
@@ -13,9 +12,9 @@ import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import { randomUUID } from 'crypto';
-import { Request } from 'express';
 
 const UPLOAD_DIR = join(process.cwd(), 'uploads', 'reports');
+const APP_PUBLIC_URL = (process.env.APP_PUBLIC_URL || '').replace(/\/$/, '');
 
 @SkipThrottle()
 @ApiTags('Reports')
@@ -44,19 +43,16 @@ export class ReportsUploadController {
   )
   uploadFile(
     @UploadedFile() file: Express.Multer.File,
-    @Req() req: Request,
   ) {
     if (!file) {
       throw new BadRequestException('No file provided');
     }
 
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
-
     return {
       fileName: file.originalname,
       fileSize: file.size,
       mimeType: file.mimetype,
-      fileUrl: `${baseUrl}/uploads/reports/${file.filename}`,
+      fileUrl: `${APP_PUBLIC_URL}/uploads/reports/${file.filename}`,
     };
   }
 }
