@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
+import { useOfflineForm } from '@/hooks/useOfflineForm';
 
 interface TaskFormModalProps {
   task?: any | null;
@@ -40,6 +41,18 @@ const PRIORITY_OPTIONS = [
 export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalProps) {
   const addToast = useToastStore((s) => s.addToast);
   const [loading, setLoading] = useState(false);
+
+  const { submit: submitCreate, isPending: isCreating } = useOfflineForm({
+    method: 'POST',
+    path: '/api/v1/tasks',
+    entityType: 'task',
+  });
+
+  const { submit: submitUpdate, isPending: isUpdating } = useOfflineForm({
+    method: 'PUT',
+    path: task?.id ? `/api/v1/tasks/${task.id}` : '/api/v1/tasks',
+    entityType: 'task',
+  });
   const [projects, setProjects] = useState<Project[]>([]);
   const [users, setUsers] = useState<User[]>([]);
 
@@ -90,15 +103,16 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
         estimatedHours: formData.estimatedHours ? Number(formData.estimatedHours) : null,
       };
 
+      const label = `Задача «${formData.title}»`;
       if (task?.id) {
-        await api.put(`/tasks/${task.id}`, payload);
-        addToast('success', 'Задача обновлена');
+        const result = await submitUpdate(payload, label);
+        if (result.ok && !result.queued) addToast('success', 'Задача обновлена');
+        if (result.ok) onSaved();
       } else {
-        await api.post('/tasks', payload);
-        addToast('success', 'Задача создана');
+        const result = await submitCreate(payload, label);
+        if (result.ok && !result.queued) addToast('success', 'Задача создана');
+        if (result.ok) onSaved();
       }
-
-      onSaved();
     } catch (err: any) {
       addToast('error', err.response?.data?.message || 'Ошибка при сохранении');
     } finally {
@@ -270,10 +284,10 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
             </button>
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || isCreating || isUpdating}
               className="px-4 py-2 text-sm font-medium text-white bg-violet-500 hover:bg-violet-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
             >
-              {loading ? 'Сохранение...' : task ? 'Сохранить' : 'Создать'}
+              {loading || isCreating || isUpdating ? 'Сохранение...' : task ? 'Сохранить' : 'Создать'}
             </button>
           </div>
         </form>

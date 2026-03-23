@@ -1,27 +1,58 @@
 import {
   Injectable,
   NotFoundException,
-  ForbiddenException,
   Logger,
   MessageEvent,
+  OnModuleInit,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Subject, Observable, map, interval } from 'rxjs';
+import * as webpush from 'web-push';
 import { NotificationRepository } from './repositories/notification.repository';
 import {
   CreateNotificationDto,
   UpdateNotificationDto,
   CreateAnnouncementDto,
   UpdateAnnouncementDto,
+  SavePushSubscriptionDto,
+  DeletePushSubscriptionDto,
 } from './dto';
+import { shouldPushToRole } from '../../config/notification-roles.config';
 
 @Injectable()
-export class NotificationsService {
+export class NotificationsService implements OnModuleInit {
   private readonly logger = new Logger(NotificationsService.name);
   private notificationSubjects = new Map<number, Subject<any>>();
+  private webPushEnabled = false;
 
   constructor(
     private readonly notificationRepository: NotificationRepository,
+    private readonly configService: ConfigService,
   ) {}
+
+  onModuleInit() {
+    const publicKey = this.configService.get<string>('VAPID_PUBLIC_KEY');
+    const privateKey = this.configService.get<string>('VAPID_PRIVATE_KEY');
+    const email =
+      this.configService.get<string>('VAPID_EMAIL') || 'mailto:admin@crm.local';
+
+    if (publicKey && privateKey) {
+      try {
+        webpush.setVapidDetails(email, publicKey, privateKey);
+        this.webPushEnabled = true;
+        this.logger.log('Web Push (VAPID) initialized successfully');
+      } catch (err) {
+        this.logger.error('Failed to initialize VAPID — check key format', err);
+      }
+    } else {
+      this.logger.warn(
+        'VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY not set. ' +
+          'Run: npx web-push generate-vapid-keys and add to .env',
+      );
+    }
+  }
+
+  // ─── SSE Stream ────────────────────────────────────────────────────────────
 
   getNotificationStream(userId: number): Observable<MessageEvent> {
     if (!this.notificationSubjects.has(userId)) {
@@ -61,7 +92,105 @@ export class NotificationsService {
     }
   }
 
-  // --- Notifications ---
+  // ─── Web Push ───────────────────────────────────────────────────────────────
+
+  getVapidPublicKey(): string | null {
+    return this.configService.get<string>('VAPID_PUBLIC_KEY') ?? null;
+  }
+
+  async savePushSubscription(
+    userId: number,
+    accountId: number,
+    roleId: number | undefined,
+    dto: SavePushSubscriptionDto,
+  ) {
+    return this.notificationRepository.savePushSubscription({
+      userId,
+      accountId,
+      roleId,
+      endpoint: dto.endpoint,
+      p256dh: dto.p256dh,
+      auth: dto.auth,
+      userAgent: dto.userAgent,
+    });
+  }
+
+  async deletePushSubscription(
+    userId: number,
+    dto: DeletePushSubscriptionDto,
+  ) {
+    await this.notificationRepository.deletePushSubscription(
+      userId,
+      dto.endpoint,
+    );
+    return { message: 'Push subscription removed' };
+  }
+
+  private async sendWebPushToUser(
+    userId: number,
+    notification: any,
+  ): Promise<void> {
+    if (!this.webPushEnabled) return;
+
+    try {
+      const subscriptions =
+        await this.notificationRepository.getPushSubscriptionsByUserId(userId);
+
+      if (!subscriptions.length) return;
+
+      const payload = JSON.stringify({
+        title: notification.title,
+        message: notification.message ?? '',
+        notificationType: notification.notificationType,
+        actionUrl: notification.actionUrl ?? '/dashboard',
+        priority: notification.priority,
+      });
+
+      const results = await Promise.allSettled(
+        subscriptions.map((sub: any) => {
+          if (
+            !shouldPushToRole(notification.notificationType, sub.roleId ?? undefined)
+          ) {
+            return Promise.resolve();
+          }
+
+          return webpush.sendNotification(
+            {
+              endpoint: sub.endpoint,
+              keys: { p256dh: sub.p256dh, auth: sub.auth },
+            },
+            payload,
+          );
+        }),
+      );
+
+      // Remove expired/invalid subscriptions (410 Gone)
+      const staleEndpoints: string[] = [];
+      results.forEach((result, idx) => {
+        if (
+          result.status === 'rejected' &&
+          (result.reason as any)?.statusCode === 410
+        ) {
+          staleEndpoints.push(subscriptions[idx].endpoint);
+        }
+      });
+
+      if (staleEndpoints.length) {
+        await Promise.all(
+          staleEndpoints.map((ep) =>
+            this.notificationRepository.deletePushSubscription(userId, ep),
+          ),
+        );
+        this.logger.debug(
+          `Removed ${staleEndpoints.length} stale push subscription(s) for user ${userId}`,
+        );
+      }
+    } catch (err) {
+      this.logger.error(`Web Push error for user ${userId}`, err);
+    }
+  }
+
+  // ─── Notifications ──────────────────────────────────────────────────────────
 
   async findAllNotifications(
     accountId: number,
@@ -91,6 +220,8 @@ export class NotificationsService {
   }
 
   async createNotification(accountId: number, dto: CreateNotificationDto) {
+    const channels = dto.channels || ['in_app'];
+
     const notification = await this.notificationRepository.createNotification({
       accountId,
       userId: dto.userId,
@@ -99,12 +230,18 @@ export class NotificationsService {
       notificationType: dto.notificationType,
       entityType: dto.entityType,
       entityId: dto.entityId,
-      channels: dto.channels || ['in_app'],
+      channels,
       priority: dto.priority || 2,
       actionUrl: dto.actionUrl,
     });
 
+    // SSE (in-app real-time)
     this.pushNotification(dto.userId, notification);
+
+    // Web Push (mobile / background)
+    if (channels.includes('push')) {
+      void this.sendWebPushToUser(dto.userId, notification);
+    }
 
     return notification;
   }
@@ -125,7 +262,7 @@ export class NotificationsService {
     return this.findNotificationById(id, accountId);
   }
 
-  // --- Announcements ---
+  // ─── Announcements ──────────────────────────────────────────────────────────
 
   async findAllAnnouncements(
     accountId: number,

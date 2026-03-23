@@ -155,7 +155,7 @@ export default function Sidebar() {
                             Панель управления
                           </span>
                         </div>
-                        <div className="flex shrink-0 ml-2">
+                        <div className="flex shrink-0 ml-2 lg:hidden lg:sidebar-expanded:flex 2xl:flex">
                           <svg
                             className={`w-3 h-3 shrink-0 ml-1 fill-current text-gray-400 dark:text-gray-500 transition-transform duration-200 ${open && 'rotate-180'}`}
                             viewBox="0 0 12 12"
@@ -569,7 +569,7 @@ export default function Sidebar() {
                               Администрирование
                             </span>
                           </div>
-                          <div className="flex shrink-0 ml-2">
+                          <div className="flex shrink-0 ml-2 lg:hidden lg:sidebar-expanded:flex 2xl:flex">
                             <svg
                               className={`w-3 h-3 shrink-0 ml-1 fill-current text-gray-400 dark:text-gray-500 transition-transform duration-200 ${open && 'rotate-180'}`}
                               viewBox="0 0 12 12"

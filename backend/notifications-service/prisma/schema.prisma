@@ -28,6 +28,7 @@ model User {
   isActive  Boolean @default(true) @map("is_active")
 
   notifications      Notification[]
+  pushSubscriptions  PushSubscription[]
 
   @@map("users")
 }
@@ -76,5 +77,25 @@ model Announcement {
   account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
 
   @@map("announcements")
+}
+
+model PushSubscription {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  accountId Int      @map("account_id")
+  roleId    Int?     @map("role_id")
+  endpoint  String   @db.Text
+  p256dh    String   @db.Text
+  auth      String   @db.VarChar(255)
+  userAgent String?  @map("user_agent") @db.VarChar(500)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, endpoint])
+  @@index([userId])
+  @@index([accountId])
+  @@map("push_subscriptions")
 }
 

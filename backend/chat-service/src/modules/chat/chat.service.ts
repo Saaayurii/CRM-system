@@ -189,6 +189,11 @@ export class ChatService {
     });
   }
 
+  /** Returns channel meta + member IDs needed for push notification fan-out. */
+  async getChannelForNotification(channelId: number) {
+    return this.chatRepository.getChannelForNotification(channelId);
+  }
+
   async editMessage(messageId: number, userId: number, dto: EditMessageDto) {
     const message = await this.chatRepository.findMessageById(messageId);
     if (!message) {

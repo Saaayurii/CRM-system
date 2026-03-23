@@ -47,6 +47,9 @@ export class TokenResponseDto {
 }
 
 export class AuthResponseDto extends TokenResponseDto {
+  @ApiPropertyOptional({ example: 42 })
+  sessionId?: number;
+
   @ApiProperty({ type: UserResponseDto })
   user: UserResponseDto;
 }

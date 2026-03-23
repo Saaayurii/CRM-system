@@ -143,3 +143,69 @@
 .animate-slide-in {
   animation: slide-in 0.3s ease-out;
 }
+
+/* Auth form slide-in from left */
+@keyframes auth-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(-36px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slideInLeft {
+  animation: auth-slide-in 1.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+/* Auth decorative text fade-in */
+@keyframes auth-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeInUpSoft {
+  animation: auth-fade-up 0.35s ease-out both;
+}
+
+.animate-delaySoft {
+  animation-delay: 0.1s;
+}
+
+/* Auth logo pulse */
+@keyframes auth-pulse {
+  0%, 100% { opacity: 0.8; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(1.05); }
+}
+
+.animate-pulseSoft {
+  animation: auth-pulse 3s ease-in-out infinite;
+}
+
+/* Auth slow spinning circle */
+@keyframes auth-spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spinSlowSoft {
+  animation: auth-spin-slow 60s linear infinite;
+}
+
+/* Auth slow pulsing circle */
+@keyframes auth-pulse-slow {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.05); opacity: 0.25; }
+}
+
+.animate-pulseSlowSoft {
+  animation: auth-pulse-slow 10s ease-in-out infinite;
+}

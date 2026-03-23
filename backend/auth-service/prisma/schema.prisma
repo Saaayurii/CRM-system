@@ -94,12 +94,31 @@ model User {
   role    Role?   @relation(fields: [roleId], references: [id])
 
   reviewedRequests RegistrationRequest[] @relation("ReviewedBy")
+  sessions         UserSession[]
 
   @@index([accountId], name: "idx_users_account")
   @@index([roleId], name: "idx_users_role")
   @@index([email], name: "idx_users_email")
   @@index([accountId, isActive], name: "idx_users_active")
   @@map("users")
+}
+
+// ===========================================
+// UserSession (Active device sessions)
+// ===========================================
+model UserSession {
+  id           Int      @id @default(autoincrement())
+  userId       Int      @map("user_id")
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshToken String   @map("refresh_token") @db.VarChar(500)
+  expiresAt    DateTime @map("expires_at")
+  userAgent    String?  @map("user_agent") @db.VarChar(500)
+  ipAddress    String?  @map("ip_address") @db.VarChar(45)
+  lastSeenAt   DateTime @default(now()) @map("last_seen_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([userId], name: "idx_user_sessions_user")
+  @@map("user_sessions")
 }
 
 // ===========================================

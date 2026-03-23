@@ -2356,6 +2356,22 @@ CREATE TABLE registration_requests (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- ===========================================
+-- User Sessions (Активные сессии устройств)
+-- ===========================================
+CREATE TABLE user_sessions (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    refresh_token VARCHAR(500) NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    user_agent VARCHAR(500),
+    ip_address VARCHAR(45),
+    last_seen_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_user_sessions_user ON user_sessions(user_id);
+
 -- Комментарий: успешно создана полная схема БД для CRM системы строителей!
 COMMENT ON DATABASE postgres IS 'Строительная CRM система - полная схема базы данных';
 

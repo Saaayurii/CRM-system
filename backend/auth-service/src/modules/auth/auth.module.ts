@@ -10,6 +10,7 @@ import { UserRepository } from './repositories/user.repository';
 import { RoleRepository } from './repositories/role.repository';
 import { AccountRepository } from './repositories/account.repository';
 import { RegistrationRequestRepository } from './repositories/registration-request.repository';
+import { SessionRepository } from './repositories/session.repository';
 import { JwtStrategy } from '../../common/guards/jwt.strategy';
 
 @Module({
@@ -37,6 +38,7 @@ import { JwtStrategy } from '../../common/guards/jwt.strategy';
     RoleRepository,
     AccountRepository,
     RegistrationRequestRepository,
+    SessionRepository,
     JwtStrategy,
   ],
   exports: [AuthService, TokenService, PasswordService],

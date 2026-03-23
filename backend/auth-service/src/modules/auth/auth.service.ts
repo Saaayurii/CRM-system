@@ -22,9 +22,42 @@ import { UserRepository } from './repositories/user.repository';
 import { RoleRepository } from './repositories/role.repository';
 import { AccountRepository } from './repositories/account.repository';
 import { RegistrationRequestRepository } from './repositories/registration-request.repository';
+import { SessionRepository } from './repositories/session.repository';
 import { PasswordService } from './services/password.service';
 import { TokenService } from './services/token.service';
 import { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
+
+function parseUserAgent(ua: string): { browser: string; os: string; device: string } {
+  const browser =
+    ua.match(/Edg\//)
+      ? 'Edge'
+      : ua.match(/OPR\/|Opera\//)
+        ? 'Opera'
+        : ua.match(/Firefox\//)
+          ? 'Firefox'
+          : ua.match(/Chrome\//)
+            ? 'Chrome'
+            : ua.match(/Safari\//)
+              ? 'Safari'
+              : 'Браузер';
+
+  const os =
+    ua.match(/Windows/)
+      ? 'Windows'
+      : ua.match(/Mac OS X/)
+        ? 'macOS'
+        : ua.match(/iPhone|iPad/)
+          ? 'iOS'
+          : ua.match(/Android/)
+            ? 'Android'
+            : ua.match(/Linux/)
+              ? 'Linux'
+              : 'Неизвестно';
+
+  const device = /Mobile|Android|iPhone|iPad/.test(ua) ? 'mobile' : 'desktop';
+
+  return { browser, os, device };
+}
 
 @Injectable()
 export class AuthService {
@@ -35,39 +68,33 @@ export class AuthService {
     private readonly roleRepository: RoleRepository,
     private readonly accountRepository: AccountRepository,
     private readonly registrationRequestRepository: RegistrationRequestRepository,
+    private readonly sessionRepository: SessionRepository,
     private readonly passwordService: PasswordService,
     private readonly tokenService: TokenService,
   ) {}
 
-  async register(registerDto: RegisterDto): Promise<AuthResponseDto> {
-    // Check if email already exists
-    const existingUser = await this.userRepository.findByEmail(
-      registerDto.email,
-    );
+  async register(
+    registerDto: RegisterDto,
+    userAgent = '',
+    ipAddress = '',
+  ): Promise<AuthResponseDto> {
+    const existingUser = await this.userRepository.findByEmail(registerDto.email);
     if (existingUser) {
       throw new ConflictException('Email already exists');
     }
 
-    // Verify account exists and is active
-    const account = await this.accountRepository.findById(
-      registerDto.accountId,
-    );
+    const account = await this.accountRepository.findById(registerDto.accountId);
     if (!account) {
       throw new NotFoundException('Account not found or inactive');
     }
 
-    // Verify role exists
     const role = await this.roleRepository.findById(registerDto.roleId);
     if (!role) {
       throw new NotFoundException('Role not found');
     }
 
-    // Hash password
-    const passwordDigest = await this.passwordService.hash(
-      registerDto.password,
-    );
+    const passwordDigest = await this.passwordService.hash(registerDto.password);
 
-    // Create user
     const user = await this.userRepository.create({
       name: registerDto.name,
       email: registerDto.email,
@@ -79,80 +106,81 @@ export class AuthService {
       confirmedAt: new Date(),
     });
 
-    // Generate tokens
-    const jwtPayload: JwtPayload = {
+    const tokenPair = this.tokenService.generateTokenPair({
       sub: user.id,
       email: user.email,
       roleId: user.roleId,
       accountId: user.accountId,
-    };
+    });
 
-    const tokenPair = this.tokenService.generateTokenPair(jwtPayload);
+    const session = await this.sessionRepository.create({
+      userId: user.id,
+      refreshToken: tokenPair.refreshToken,
+      expiresAt: tokenPair.refreshTokenExpiresAt,
+      userAgent: userAgent || undefined,
+      ipAddress: ipAddress || undefined,
+    });
 
-    // Store refresh token hash in database
+    // Also store on user for backward compat
     await this.userRepository.updateRefreshToken(
       user.id,
       tokenPair.refreshToken,
       tokenPair.refreshTokenExpiresAt,
     );
 
+    const accessToken = this.tokenService.generateAccessToken({
+      sub: user.id,
+      email: user.email,
+      roleId: user.roleId,
+      accountId: user.accountId,
+      sid: session.id,
+    });
+
     this.logger.log(`User registered: ${user.email}`);
 
     return {
-      accessToken: tokenPair.accessToken,
+      accessToken,
       refreshToken: tokenPair.refreshToken,
+      sessionId: session.id,
       user: this.mapUserToResponse(user),
     };
   }
 
-  async login(loginDto: LoginDto): Promise<AuthResponseDto> {
-    // Find user by email
+  async login(
+    loginDto: LoginDto,
+    userAgent = '',
+    ipAddress = '',
+  ): Promise<AuthResponseDto> {
     const user = await this.userRepository.findByEmail(loginDto.email);
     if (!user) {
-      // Check registration requests
-      const regRequest =
-        await this.registrationRequestRepository.findByEmail(loginDto.email);
+      const regRequest = await this.registrationRequestRepository.findByEmail(loginDto.email);
       if (regRequest) {
         if (regRequest.status === 0) {
-          throw new UnauthorizedException(
-            'Ваша заявка на регистрацию ещё не рассмотрена',
-          );
+          throw new UnauthorizedException('Ваша заявка на регистрацию ещё не рассмотрена');
         }
         if (regRequest.status === 2) {
-          const reason = regRequest.rejectReason
-            ? `: ${regRequest.rejectReason}`
-            : '';
-          throw new UnauthorizedException(
-            `Ваша заявка отклонена${reason}`,
-          );
+          const reason = regRequest.rejectReason ? `: ${regRequest.rejectReason}` : '';
+          throw new UnauthorizedException(`Ваша заявка отклонена${reason}`);
         }
       }
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // Check if user is active
     if (!user.isActive) {
       throw new UnauthorizedException('User account is inactive');
     }
 
-    // Verify password
     if (!user.passwordDigest) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const isPasswordValid = await this.passwordService.compare(
-      loginDto.password,
-      user.passwordDigest,
-    );
-
+    const isPasswordValid = await this.passwordService.compare(loginDto.password, user.passwordDigest);
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // Update sign-in info
     await this.userRepository.updateSignInInfo(user.id);
 
-    // Generate tokens
     const jwtPayload: JwtPayload = {
       sub: user.id,
       email: user.email,
@@ -162,53 +190,43 @@ export class AuthService {
 
     const tokenPair = this.tokenService.generateTokenPair(jwtPayload);
 
-    // Store refresh token in database
+    const session = await this.sessionRepository.create({
+      userId: user.id,
+      refreshToken: tokenPair.refreshToken,
+      expiresAt: tokenPair.refreshTokenExpiresAt,
+      userAgent: userAgent || undefined,
+      ipAddress: ipAddress || undefined,
+    });
+
     await this.userRepository.updateRefreshToken(
       user.id,
       tokenPair.refreshToken,
       tokenPair.refreshTokenExpiresAt,
     );
 
+    const accessToken = this.tokenService.generateAccessToken({
+      ...jwtPayload,
+      sid: session.id,
+    });
+
     this.logger.log(`User logged in: ${user.email}`);
 
     return {
-      accessToken: tokenPair.accessToken,
+      accessToken,
       refreshToken: tokenPair.refreshToken,
+      sessionId: session.id,
       user: this.mapUserToResponse(user),
     };
   }
 
   async refresh(refreshTokenDto: RefreshTokenDto): Promise<TokenResponseDto> {
     try {
-      // Verify the refresh token
-      const payload = this.tokenService.verifyRefreshToken(
-        refreshTokenDto.refreshToken,
-      );
+      const payload = this.tokenService.verifyRefreshToken(refreshTokenDto.refreshToken);
 
-      // Find user and verify refresh token matches
       const user = await this.userRepository.findById(payload.sub);
-      if (!user) {
-        throw new UnauthorizedException('User not found');
-      }
+      if (!user) throw new UnauthorizedException('User not found');
+      if (!user.isActive) throw new UnauthorizedException('User account is inactive');
 
-      if (!user.isActive) {
-        throw new UnauthorizedException('User account is inactive');
-      }
-
-      // Check if refresh token matches stored token
-      if (user.refreshToken !== refreshTokenDto.refreshToken) {
-        throw new UnauthorizedException('Invalid refresh token');
-      }
-
-      // Check if refresh token is expired
-      if (
-        user.refreshTokenExpiresAt &&
-        new Date() > user.refreshTokenExpiresAt
-      ) {
-        throw new UnauthorizedException('Refresh token expired');
-      }
-
-      // Generate new tokens
       const jwtPayload: JwtPayload = {
         sub: user.id,
         email: user.email,
@@ -218,65 +236,120 @@ export class AuthService {
 
       const tokenPair = this.tokenService.generateTokenPair(jwtPayload);
 
-      // Update refresh token in database
+      // Try session-based refresh
+      const session = await this.sessionRepository.findByRefreshToken(
+        refreshTokenDto.refreshToken,
+      );
+
+      if (session) {
+        await this.sessionRepository.updateToken(
+          session.id,
+          tokenPair.refreshToken,
+          tokenPair.refreshTokenExpiresAt,
+        );
+        await this.userRepository.updateRefreshToken(
+          user.id,
+          tokenPair.refreshToken,
+          tokenPair.refreshTokenExpiresAt,
+        );
+
+        const accessToken = this.tokenService.generateAccessToken({
+          ...jwtPayload,
+          sid: session.id,
+        });
+
+        return { accessToken, refreshToken: tokenPair.refreshToken };
+      }
+
+      // Fallback: check User.refreshToken for old sessions
+      if (user.refreshToken !== refreshTokenDto.refreshToken) {
+        throw new UnauthorizedException('Invalid refresh token');
+      }
+      if (user.refreshTokenExpiresAt && new Date() > user.refreshTokenExpiresAt) {
+        throw new UnauthorizedException('Refresh token expired');
+      }
+
+      // Migrate old session to new session table
+      const newSession = await this.sessionRepository.create({
+        userId: user.id,
+        refreshToken: tokenPair.refreshToken,
+        expiresAt: tokenPair.refreshTokenExpiresAt,
+      });
+
       await this.userRepository.updateRefreshToken(
         user.id,
         tokenPair.refreshToken,
         tokenPair.refreshTokenExpiresAt,
       );
 
-      this.logger.log(`Tokens refreshed for user: ${user.email}`);
+      const accessToken = this.tokenService.generateAccessToken({
+        ...jwtPayload,
+        sid: newSession.id,
+      });
 
-      return {
-        accessToken: tokenPair.accessToken,
-        refreshToken: tokenPair.refreshToken,
-      };
+      this.logger.log(`Tokens refreshed for user: ${user.email}`);
+      return { accessToken, refreshToken: tokenPair.refreshToken };
     } catch (error) {
-      if (error instanceof UnauthorizedException) {
-        throw error;
-      }
+      if (error instanceof UnauthorizedException) throw error;
       throw new UnauthorizedException('Invalid refresh token');
     }
   }
 
-  async logout(userId: number): Promise<MessageResponseDto> {
+  async logout(userId: number, sessionId?: number): Promise<MessageResponseDto> {
+    if (sessionId) {
+      await this.sessionRepository.deleteByIdAndUserId(sessionId, userId);
+    }
     await this.userRepository.updateRefreshToken(userId, null, null);
     this.logger.log(`User logged out: ${userId}`);
     return { message: 'Logged out successfully' };
   }
 
   async logoutAll(userId: number): Promise<MessageResponseDto> {
+    await this.sessionRepository.deleteAllByUserId(userId);
     await this.userRepository.clearAllRefreshTokens(userId);
     this.logger.log(`All sessions cleared for user: ${userId}`);
     return { message: 'All sessions terminated successfully' };
   }
 
+  async getSessions(userId: number, currentSessionId?: number) {
+    const sessions = await this.sessionRepository.findAllByUserId(userId);
+    return sessions.map((s: any) => {
+      const parsed = s.userAgent ? parseUserAgent(s.userAgent) : null;
+      return {
+        id: s.id,
+        browser: parsed?.browser || 'Неизвестно',
+        os: parsed?.os || 'Неизвестно',
+        device: parsed?.device || 'desktop',
+        ipAddress: s.ipAddress || null,
+        lastSeenAt: s.lastSeenAt,
+        createdAt: s.createdAt,
+        isCurrent: s.id === currentSessionId,
+      };
+    });
+  }
+
+  async revokeSession(userId: number, sessionId: number): Promise<MessageResponseDto> {
+    await this.sessionRepository.deleteByIdAndUserId(sessionId, userId);
+    return { message: 'Сессия завершена' };
+  }
+
   async getMe(userId: number): Promise<UserResponseDto> {
     const user = await this.userRepository.findByIdWithRole(userId);
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
+    if (!user) throw new NotFoundException('User not found');
     return this.mapUserToResponse(user);
   }
 
   // ── Registration Requests ──────────────────────────────────────────
 
-  async createRegistrationRequest(
-    dto: CreateRegistrationRequestDto,
-  ): Promise<MessageResponseDto> {
-    // Check if email already taken by a user
+  async createRegistrationRequest(dto: CreateRegistrationRequestDto): Promise<MessageResponseDto> {
     const existingUser = await this.userRepository.findByEmail(dto.email);
     if (existingUser) {
       throw new ConflictException('Пользователь с таким email уже существует');
     }
 
-    // Check if there is already a pending request
-    const pendingRequest =
-      await this.registrationRequestRepository.findPendingByEmail(dto.email);
+    const pendingRequest = await this.registrationRequestRepository.findPendingByEmail(dto.email);
     if (pendingRequest) {
-      throw new ConflictException(
-        'Заявка с таким email уже подана и ожидает рассмотрения',
-      );
+      throw new ConflictException('Заявка с таким email уже подана и ожидает рассмотрения');
     }
 
     const passwordDigest = await this.passwordService.hash(dto.password);
@@ -305,20 +378,12 @@ export class AuthService {
     reviewerUserId: number,
   ): Promise<MessageResponseDto> {
     const request = await this.registrationRequestRepository.findById(id);
-    if (!request) {
-      throw new NotFoundException('Заявка не найдена');
-    }
-    if (request.status !== 0) {
-      throw new BadRequestException('Заявка уже рассмотрена');
-    }
+    if (!request) throw new NotFoundException('Заявка не найдена');
+    if (request.status !== 0) throw new BadRequestException('Заявка уже рассмотрена');
 
-    // Verify role exists
     const role = await this.roleRepository.findById(dto.roleId);
-    if (!role) {
-      throw new NotFoundException('Роль не найдена');
-    }
+    if (!role) throw new NotFoundException('Роль не найдена');
 
-    // Create user
     await this.userRepository.create({
       name: request.name,
       email: request.email,
@@ -331,7 +396,6 @@ export class AuthService {
       confirmedAt: new Date(),
     });
 
-    // Update request status
     await this.registrationRequestRepository.updateStatus(id, {
       status: 1,
       reviewedBy: reviewerUserId,
@@ -348,12 +412,8 @@ export class AuthService {
     reviewerUserId: number,
   ): Promise<MessageResponseDto> {
     const request = await this.registrationRequestRepository.findById(id);
-    if (!request) {
-      throw new NotFoundException('Заявка не найдена');
-    }
-    if (request.status !== 0) {
-      throw new BadRequestException('Заявка уже рассмотрена');
-    }
+    if (!request) throw new NotFoundException('Заявка не найдена');
+    if (request.status !== 0) throw new BadRequestException('Заявка уже рассмотрена');
 
     await this.registrationRequestRepository.updateStatus(id, {
       status: 2,

@@ -4,6 +4,9 @@ import Sidebar from '@/components/layout/Sidebar';
 import Header from '@/components/layout/Header';
 import ToastContainer from '@/components/ui/ToastContainer';
 import MaintenanceGuard from '@/components/layout/MaintenanceGuard';
+import PushInit from '@/components/layout/PushInit';
+import PendingSync from '@/components/ui/PendingSync';
+import OfflineBanner from '@/components/ui/OfflineBanner';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -19,6 +22,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </main>
         </div>
         <ToastContainer />
+        <PushInit />
+        <PendingSync />
+        <OfflineBanner />
       </div>
     </MaintenanceGuard>
   );

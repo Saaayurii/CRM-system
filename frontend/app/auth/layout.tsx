@@ -6,7 +6,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <div className="relative md:flex  md:min-h-screen">
         {/* Content */}
         <div className="md:w-1/2 flex items-center justify-center min-h-screen md:min-h-0 px-4 sm:px-6 lg:px-12">
-          <div className="w-full max-w-md bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-8 sm:p-10 animate-fadeInSoft">
+          <div className="w-full max-w-md bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-8 sm:p-10 animate-slideInLeft">
             {children}
           </div>
         </div>
@@ -37,56 +37,6 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </div>
       </div>
 
-      {/* Tailwind animation utilities */}
-      <style jsx global>{`
-        /* Content fade in */
-        @keyframes fadeInSoft {
-          0% { opacity: 0; transform: translateY(15px); }
-          100% { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fadeInSoft {
-          animation: fadeInSoft 1.2s ease-in-out forwards;
-        }
-
-        /* Titles/text fade in */
-        @keyframes fadeInUpSoft {
-          0% { opacity: 0; transform: translateY(10px); }
-          100% { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fadeInUpSoft {
-          animation: fadeInUpSoft 1.1s ease-in-out forwards;
-        }
-        .animate-delaySoft {
-          animation-delay: 0.25s;
-        }
-
-        /* Slow spinning circle */
-        @keyframes spinSlowSoft {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        .animate-spinSlowSoft {
-          animation: spinSlowSoft 60s linear infinite;
-        }
-
-        /* Soft pulsing circle */
-        @keyframes pulseSlowSoft {
-          0%, 100% { transform: scale(1); opacity: 0.5; }
-          50% { transform: scale(1.05); opacity: 0.25; }
-        }
-        .animate-pulseSlowSoft {
-          animation: pulseSlowSoft 10s ease-in-out infinite;
-        }
-
-        /* Soft pulse for logo */
-        @keyframes pulseSoft {
-          0%, 100% { opacity: 0.8; transform: scale(1); }
-          50% { opacity: 0.4; transform: scale(1.05); }
-        }
-        .animate-pulseSoft {
-          animation: pulseSoft 3s ease-in-out infinite;
-        }
-      `}</style>
     </main>
   );
 }

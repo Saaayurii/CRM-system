@@ -1,12 +1,41 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useRef, useEffect } from 'react';
 import api from '@/lib/api';
+
+const COUNTRIES = [
+  { name: 'Россия', flag: '🇷🇺', code: '+7', iso: 'RU' },
+  { name: 'Казахстан', flag: '🇰🇿', code: '+7', iso: 'KZ' },
+  { name: 'Беларусь', flag: '🇧🇾', code: '+375', iso: 'BY' },
+  { name: 'Украина', flag: '🇺🇦', code: '+380', iso: 'UA' },
+  { name: 'Узбекистан', flag: '🇺🇿', code: '+998', iso: 'UZ' },
+  { name: 'Азербайджан', flag: '🇦🇿', code: '+994', iso: 'AZ' },
+  { name: 'Армения', flag: '🇦🇲', code: '+374', iso: 'AM' },
+  { name: 'Грузия', flag: '🇬🇪', code: '+995', iso: 'GE' },
+  { name: 'Кыргызстан', flag: '🇰🇬', code: '+996', iso: 'KG' },
+  { name: 'Таджикистан', flag: '🇹🇯', code: '+992', iso: 'TJ' },
+  { name: 'Туркменистан', flag: '🇹🇲', code: '+993', iso: 'TM' },
+  { name: 'Молдова', flag: '🇲🇩', code: '+373', iso: 'MD' },
+  { name: 'Латвия', flag: '🇱🇻', code: '+371', iso: 'LV' },
+  { name: 'Литва', flag: '🇱🇹', code: '+370', iso: 'LT' },
+  { name: 'Эстония', flag: '🇪🇪', code: '+372', iso: 'EE' },
+  { name: 'США', flag: '🇺🇸', code: '+1', iso: 'US' },
+  { name: 'Великобритания', flag: '🇬🇧', code: '+44', iso: 'GB' },
+  { name: 'Германия', flag: '🇩🇪', code: '+49', iso: 'DE' },
+  { name: 'Франция', flag: '🇫🇷', code: '+33', iso: 'FR' },
+  { name: 'Турция', flag: '🇹🇷', code: '+90', iso: 'TR' },
+  { name: 'Китай', flag: '🇨🇳', code: '+86', iso: 'CN' },
+  { name: 'ОАЭ', flag: '🇦🇪', code: '+971', iso: 'AE' },
+];
 
 export default function RegisterPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0]);
+  const [showCountryDropdown, setShowCountryDropdown] = useState(false);
+  const [countrySearch, setCountrySearch] = useState('');
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const [birthDate, setBirthDate] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -15,6 +44,22 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowCountryDropdown(false);
+        setCountrySearch('');
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const filteredCountries = COUNTRIES.filter(c =>
+    c.name.toLowerCase().includes(countrySearch.toLowerCase()) ||
+    c.code.includes(countrySearch)
+  );
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -33,7 +78,7 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       const payload: any = { name, email, password };
-      if (phone.trim()) payload.phone = phone.trim();
+      if (phone.trim()) payload.phone = `${selectedCountry.code}${phone.trim()}`;
       if (birthDate) payload.birthDate = birthDate;
 
       await api.post('/auth/registration-requests', payload);
@@ -118,14 +163,63 @@ export default function RegisterPage() {
             <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300" htmlFor="phone">
               Телефон
             </label>
-            <input
-              id="phone"
-              className="form-input w-full"
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="+7 999 123 4567"
-            />
+            <div className="flex gap-2">
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => { setShowCountryDropdown(v => !v); setCountrySearch(''); }}
+                  className="form-input flex items-center gap-1.5 px-3 whitespace-nowrap min-w-[90px] cursor-pointer"
+                >
+                  <span className="text-lg leading-none">{selectedCountry.flag}</span>
+                  <span className="text-sm font-medium">{selectedCountry.code}</span>
+                  <svg className="w-3.5 h-3.5 text-gray-400 ml-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+
+                {showCountryDropdown && (
+                  <div className="absolute z-50 mt-1 left-0 w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg overflow-hidden">
+                    <div className="p-2 border-b border-gray-100 dark:border-gray-700">
+                      <input
+                        autoFocus
+                        type="text"
+                        className="w-full text-sm px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 outline-none placeholder-gray-400"
+                        placeholder="Поиск страны..."
+                        value={countrySearch}
+                        onChange={e => setCountrySearch(e.target.value)}
+                      />
+                    </div>
+                    <ul className="max-h-52 overflow-y-auto py-1">
+                      {filteredCountries.map(c => (
+                        <li key={c.iso}>
+                          <button
+                            type="button"
+                            className={`w-full flex items-center gap-3 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${selectedCountry.iso === c.iso ? 'bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400' : 'text-gray-700 dark:text-gray-300'}`}
+                            onClick={() => { setSelectedCountry(c); setShowCountryDropdown(false); setCountrySearch(''); }}
+                          >
+                            <span className="text-lg leading-none">{c.flag}</span>
+                            <span className="flex-1 text-left">{c.name}</span>
+                            <span className="text-gray-400 font-medium">{c.code}</span>
+                          </button>
+                        </li>
+                      ))}
+                      {filteredCountries.length === 0 && (
+                        <li className="px-4 py-3 text-sm text-gray-400 text-center">Ничего не найдено</li>
+                      )}
+                    </ul>
+                  </div>
+                )}
+              </div>
+
+              <input
+                id="phone"
+                className="form-input flex-1"
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="999 123 4567"
+              />
+            </div>
           </div>
 
           <div>

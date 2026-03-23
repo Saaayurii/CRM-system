@@ -16,6 +16,7 @@ import { WsJwtGuard } from '../../common/guards/ws-jwt.guard';
 import { WsExceptionFilter } from '../../common/filters/ws-exception.filter';
 import { ChatService } from './chat.service';
 import { PresenceService } from '../presence/presence.service';
+import { NotificationsClientService } from './notifications-client.service';
 import * as jwt from 'jsonwebtoken';
 
 @WebSocketGateway({
@@ -35,6 +36,7 @@ export class ChatGateway
     private readonly configService: ConfigService,
     private readonly chatService: ChatService,
     private readonly presenceService: PresenceService,
+    private readonly notificationsClient: NotificationsClientService,
   ) {}
 
   afterInit() {
@@ -138,6 +140,42 @@ export class ChatGateway
     );
 
     this.server.to(`channel:${data.channelId}`).emit('message:new', message);
+
+    // Push notifications to all channel members except the sender (fire-and-forget)
+    void this.chatService
+      .getChannelForNotification(data.channelId)
+      .then((channel) => {
+        if (!channel) return;
+        const senderName = client.user.name || 'Пользователь';
+        const isDirect = channel.channelType === 'direct';
+        const title = isDirect
+          ? senderName
+          : `${senderName} → ${channel.name || 'Чат'}`;
+        const preview = data.messageText
+          ? data.messageText.slice(0, 120)
+          : '📎 Вложение';
+        const actionUrl = `/dashboard/chat?channelId=${data.channelId}`;
+
+        const payloads = channel.members
+          .filter((m: { userId: number }) => m.userId !== client.user.id)
+          .map((m: { userId: number }) => ({
+            userId: m.userId,
+            accountId: client.user.accountId,
+            title,
+            message: preview,
+            notificationType: 'chat_message',
+            priority: 2,
+            channels: ['in_app', 'push'],
+            actionUrl,
+            entityType: 'chat_channel',
+            entityId: data.channelId,
+          }));
+
+        this.notificationsClient.sendToMany(payloads);
+      })
+      .catch((err) =>
+        this.logger.error('Chat notification fan-out failed', err),
+      );
 
     return { event: 'message:send:ack', data: message };
   }

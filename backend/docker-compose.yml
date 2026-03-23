@@ -282,6 +282,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-this-secret-key-in-production-access}
+      NOTIFICATIONS_SERVICE_URL: http://notifications-service:3010
     depends_on:
       postgres:
         condition: service_healthy
@@ -475,6 +476,11 @@ services:
       REDIS_PORT: 6379
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-this-secret-key-in-production-access}
       
+      # Web Push / VAPID
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_EMAIL: ${VAPID_EMAIL:-mailto:admin@crm.local}
+
       # Email (опционально)
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
@@ -513,6 +519,7 @@ services:
       REDIS_PORT: 6379
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-this-secret-key-in-production-access}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+      NOTIFICATIONS_SERVICE_URL: http://notifications-service:3010
     depends_on:
       postgres:
         condition: service_healthy

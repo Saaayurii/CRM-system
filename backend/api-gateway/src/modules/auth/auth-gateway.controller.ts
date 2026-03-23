@@ -3,10 +3,12 @@ import {
   Post,
   Get,
   Put,
+  Delete,
   Body,
   Param,
   Query,
   Headers,
+  Req,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
@@ -31,11 +33,19 @@ export class AuthGatewayController {
   @ApiResponse({ status: 400, description: 'Validation error' })
   @ApiResponse({ status: 404, description: 'Account or role not found' })
   @ApiResponse({ status: 409, description: 'Email already exists' })
-  async register(@Body() body: unknown) {
+  async register(
+    @Body() body: unknown,
+    @Headers('user-agent') userAgent: string,
+    @Req() req: any,
+  ) {
     return this.proxyService.forward('auth', {
       method: 'POST',
       path: '/auth/register',
       data: body,
+      headers: {
+        'X-User-Agent': userAgent || '',
+        'X-Real-IP': req.ip || '',
+      },
     });
   }
 
@@ -45,11 +55,19 @@ export class AuthGatewayController {
   @ApiOperation({ summary: 'User login' })
   @ApiResponse({ status: 200, description: 'Login successful' })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
-  async login(@Body() body: unknown) {
+  async login(
+    @Body() body: unknown,
+    @Headers('user-agent') userAgent: string,
+    @Req() req: any,
+  ) {
     return this.proxyService.forward('auth', {
       method: 'POST',
       path: '/auth/login',
       data: body,
+      headers: {
+        'X-User-Agent': userAgent || '',
+        'X-Real-IP': req.ip || '',
+      },
     });
   }
 
@@ -85,10 +103,7 @@ export class AuthGatewayController {
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Logout all sessions' })
-  @ApiResponse({
-    status: 200,
-    description: 'All sessions terminated successfully',
-  })
+  @ApiResponse({ status: 200, description: 'All sessions terminated successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async logoutAll(@Headers('authorization') authorization: string) {
     return this.proxyService.forward('auth', {
@@ -112,7 +127,35 @@ export class AuthGatewayController {
     });
   }
 
-  // ── Registration Requests ──────────────────────────────────────────
+  @Get('sessions')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get active sessions for current user' })
+  @ApiResponse({ status: 200, description: 'List of active sessions' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async getSessions(@Headers('authorization') authorization: string) {
+    return this.proxyService.forward('auth', {
+      method: 'GET',
+      path: '/auth/sessions',
+      headers: { Authorization: authorization },
+    });
+  }
+
+  @Delete('sessions/:id')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Revoke a specific session' })
+  @ApiResponse({ status: 200, description: 'Session revoked' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async revokeSession(
+    @Param('id') id: string,
+    @Headers('authorization') authorization: string,
+  ) {
+    return this.proxyService.forward('auth', {
+      method: 'DELETE',
+      path: `/auth/sessions/${id}`,
+      headers: { Authorization: authorization },
+    });
+  }
 
   @Post('registration-requests')
   @Public()

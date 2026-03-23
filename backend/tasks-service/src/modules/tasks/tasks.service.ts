@@ -4,11 +4,15 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { TaskRepository } from './repositories/task.repository';
+import { NotificationsClientService } from './notifications-client.service';
 import { CreateTaskDto, UpdateTaskDto } from './dto';
 
 @Injectable()
 export class TasksService {
-  constructor(private readonly taskRepository: TaskRepository) {}
+  constructor(
+    private readonly taskRepository: TaskRepository,
+    private readonly notificationsClient: NotificationsClientService,
+  ) {}
 
   async findAll(
     accountId: number,
@@ -46,10 +50,32 @@ export class TasksService {
     requestingUserId: number,
     requestingUserAccountId: number,
   ) {
-    return this.taskRepository.create(
+    const task = await this.taskRepository.create(
       { ...createTaskDto, accountId: requestingUserAccountId },
       requestingUserId,
     );
+
+    // Notify the direct assignee (if set and different from creator)
+    const assigneeId = createTaskDto.assignedToUserId;
+    if (assigneeId && assigneeId !== requestingUserId) {
+      const projectName = task.project?.name ? ` (${task.project.name})` : '';
+      this.notificationsClient.sendToMany([{
+        userId: assigneeId,
+        accountId: requestingUserAccountId,
+        title: `Вам назначена задача: ${task.title}`,
+        message: createTaskDto.description
+          ? createTaskDto.description.slice(0, 150)
+          : `Новая задача${projectName}`,
+        notificationType: 'task_assigned',
+        priority: task.priority >= 3 ? 3 : 2,
+        channels: ['in_app', 'push'],
+        actionUrl: `/dashboard/tasks/${task.id}`,
+        entityType: 'task',
+        entityId: task.id,
+      }]);
+    }
+
+    return task;
   }
 
   async update(
@@ -61,7 +87,45 @@ export class TasksService {
     if (!task) throw new NotFoundException('Task not found');
     if (task.accountId !== requestingUserAccountId)
       throw new ForbiddenException('Access denied');
-    return this.taskRepository.update(id, updateTaskDto);
+
+    const updated = await this.taskRepository.update(id, updateTaskDto);
+
+    // Notify when status changes to "completed" (status === 3)
+    if (updateTaskDto.status === 3 && task.createdByUserId) {
+      this.notificationsClient.sendToMany([{
+        userId: task.createdByUserId,
+        accountId: requestingUserAccountId,
+        title: `Задача выполнена: ${task.title}`,
+        message: 'Задача помечена как выполненная',
+        notificationType: 'task_completed',
+        priority: 2,
+        channels: ['in_app', 'push'],
+        actionUrl: `/dashboard/tasks/${id}`,
+        entityType: 'task',
+        entityId: id,
+      }]);
+    }
+
+    // Notify when task becomes overdue (status === 4)
+    if (updateTaskDto.status === 4) {
+      const assigneeId = updated.assignedToUserId ?? task.assignedToUserId;
+      if (assigneeId) {
+        this.notificationsClient.sendToMany([{
+          userId: assigneeId,
+          accountId: requestingUserAccountId,
+          title: `Задача просрочена: ${task.title}`,
+          message: 'Срок выполнения задачи истёк',
+          notificationType: 'task_overdue',
+          priority: 3,
+          channels: ['in_app', 'push'],
+          actionUrl: `/dashboard/tasks/${id}`,
+          entityType: 'task',
+          entityId: id,
+        }]);
+      }
+    }
+
+    return updated;
   }
 
   async remove(id: number, requestingUserAccountId: number): Promise<void> {
@@ -82,7 +146,28 @@ export class TasksService {
     if (task.accountId !== requestingUserAccountId)
       throw new ForbiddenException('Access denied');
 
-    return this.taskRepository.setAssignees(taskId, assignees);
+    const result = await this.taskRepository.setAssignees(taskId, assignees);
+
+    // Notify each newly assigned user
+    const projectName = task.project?.name ? ` (${task.project.name})` : '';
+    const payloads = assignees.map((a) => ({
+      userId: a.userId,
+      accountId: requestingUserAccountId,
+      title: `Вам назначена задача: ${task.title}`,
+      message: task.description
+        ? task.description.slice(0, 150)
+        : `Задача${projectName}`,
+      notificationType: 'task_assigned',
+      priority: (task.priority ?? 2) >= 3 ? 3 : 2,
+      channels: ['in_app', 'push'],
+      actionUrl: `/dashboard/tasks/${taskId}`,
+      entityType: 'task',
+      entityId: taskId,
+    }));
+
+    this.notificationsClient.sendToMany(payloads);
+
+    return result;
   }
 
   async getAssignees(taskId: number, requestingUserAccountId: number) {

@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import ProjectFormModal from '@/components/dashboard/ProjectFormModal';
+import { useOfflineData } from '@/hooks/useOfflineData';
 
 interface Project {
   id: number;
@@ -37,33 +38,25 @@ function formatDate(d?: string): string {
 
 function formatBudget(b?: number): string {
   if (b == null) return '—';
-  return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(b);
+  return new Intl.NumberFormat('ru-RU', {
+    style: 'currency',
+    currency: 'RUB',
+    maximumFractionDigits: 0,
+  }).format(b);
+}
+
+async function fetchProjects(): Promise<Project[]> {
+  const { data } = await api.get('/projects');
+  return data.projects || data.data || [];
 }
 
 export default function ProjectsPage() {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editProject, setEditProject] = useState<Project | null>(null);
   const addToast = useToastStore((s) => s.addToast);
 
-  const fetchProjects = useCallback(async () => {
-    try {
-      setLoading(true);
-      const { data } = await api.get('/projects');
-      setProjects(data.projects || data.data || []);
-      setError('');
-    } catch {
-      setError('Не удалось загрузить проекты');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchProjects();
-  }, [fetchProjects]);
+  const { data: projects, loading, error, isFromCache, cachedAt, refetch } =
+    useOfflineData<Project[]>(fetchProjects, 'projects-page');
 
   const handleRowClick = (project: Project) => {
     setEditProject(project);
@@ -82,9 +75,9 @@ export default function ProjectsPage() {
 
   const handleSaved = () => {
     setShowModal(false);
-    setEditProject(null);
     addToast('success', editProject ? 'Проект обновлён' : 'Проект создан');
-    fetchProjects();
+    setEditProject(null);
+    refetch();
   };
 
   return (
@@ -107,12 +100,40 @@ export default function ProjectsPage() {
         </div>
       </div>
 
+      {/* Offline / stale-data banner */}
+      {isFromCache && (
+        <div className="flex items-center gap-3 px-4 py-3 mb-6 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400">
+          <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
+            />
+          </svg>
+          <div className="flex-1 text-sm">
+            <span className="font-semibold">Режим офлайн</span> — данные могут быть устаревшими
+            {cachedAt && (
+              <span className="ml-1 text-xs opacity-70">
+                (кеш от {new Date(cachedAt).toLocaleString('ru-RU')})
+              </span>
+            )}
+          </div>
+          <button
+            onClick={refetch}
+            className="shrink-0 text-xs font-medium underline underline-offset-2 hover:no-underline"
+          >
+            Обновить
+          </button>
+        </div>
+      )}
+
       <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl overflow-hidden">
         {loading ? (
           <div className="p-8 text-center text-gray-500 dark:text-gray-400">Загрузка...</div>
         ) : error ? (
           <div className="p-8 text-center text-red-500">{error}</div>
-        ) : projects.length === 0 ? (
+        ) : !projects || projects.length === 0 ? (
           <div className="p-8 text-center text-gray-500 dark:text-gray-400">Проекты не найдены</div>
         ) : (
           <div className="overflow-x-auto">
@@ -140,13 +161,21 @@ export default function ProjectsPage() {
                         {p.code && <div className="text-xs text-gray-400">{p.code}</div>}
                       </td>
                       <td className="py-2.5 px-4">
-                        <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${status.color}`}>
+                        <span
+                          className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${status.color}`}
+                        >
                           {status.label}
                         </span>
                       </td>
-                      <td className="py-2.5 px-4 text-gray-600 dark:text-gray-400">{formatDate(p.startDate || p.start_date)}</td>
-                      <td className="py-2.5 px-4 text-gray-600 dark:text-gray-400">{formatDate(p.plannedEndDate || p.planned_end_date)}</td>
-                      <td className="py-2.5 px-4 text-right text-gray-600 dark:text-gray-400">{formatBudget(p.budget)}</td>
+                      <td className="py-2.5 px-4 text-gray-600 dark:text-gray-400">
+                        {formatDate(p.startDate || p.start_date)}
+                      </td>
+                      <td className="py-2.5 px-4 text-gray-600 dark:text-gray-400">
+                        {formatDate(p.plannedEndDate || p.planned_end_date)}
+                      </td>
+                      <td className="py-2.5 px-4 text-right text-gray-600 dark:text-gray-400">
+                        {formatBudget(p.budget)}
+                      </td>
                     </tr>
                   );
                 })}

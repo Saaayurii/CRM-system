@@ -12,7 +12,7 @@ export default () => ({
   },
 
   cors: {
-    origin: process.env.CORS_ORIGIN || 'http://localhost:3001',
+    origin: process.env.CORS_ORIGIN || 'http://localhost:3030',
   },
 
   rateLimit: {

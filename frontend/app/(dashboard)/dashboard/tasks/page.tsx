@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import TaskFormModal from '@/components/dashboard/TaskFormModal';
+import { useOfflineData } from '@/hooks/useOfflineData';
 
 interface Assignee {
   userId: number;
@@ -42,6 +43,12 @@ interface User {
   email: string;
 }
 
+interface TasksPageData {
+  tasks: Task[];
+  projects: Project[];
+  users: User[];
+}
+
 const STATUS_LABELS: Record<number, { label: string; color: string }> = {
   0: { label: 'Новая', color: 'bg-gray-500/20 text-gray-600 dark:text-gray-300' },
   1: { label: 'Назначена', color: 'bg-sky-500/20 text-sky-700 dark:text-sky-400' },
@@ -63,13 +70,21 @@ function formatDate(d?: string): string {
   return new Date(d).toLocaleDateString('ru-RU');
 }
 
+async function fetchTasksPageData(): Promise<TasksPageData> {
+  const [tasksRes, projectsRes, usersRes] = await Promise.all([
+    api.get('/tasks'),
+    api.get('/projects', { params: { limit: 100 } }),
+    api.get('/users', { params: { limit: 100 } }),
+  ]);
+  return {
+    tasks: tasksRes.data.tasks || tasksRes.data.data || [],
+    projects: projectsRes.data.projects || projectsRes.data.data || [],
+    users: usersRes.data.data || usersRes.data.users || [],
+  };
+}
+
 export default function TasksPage() {
   const addToast = useToastStore((s) => s.addToast);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -81,27 +96,12 @@ export default function TasksPage() {
   const [filterProject, setFilterProject] = useState<string>('');
   const [filterAssignee, setFilterAssignee] = useState<string>('');
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const [tasksRes, projectsRes, usersRes] = await Promise.all([
-        api.get('/tasks'),
-        api.get('/projects', { params: { limit: 100 } }),
-        api.get('/users', { params: { limit: 100 } }),
-      ]);
-      setTasks(tasksRes.data.tasks || tasksRes.data.data || []);
-      setProjects(projectsRes.data.projects || projectsRes.data.data || []);
-      setUsers(usersRes.data.data || usersRes.data.users || []);
-    } catch {
-      setError('Не удалось загрузить данные');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data, loading, error, isFromCache, cachedAt, refetch } =
+    useOfflineData<TasksPageData>(fetchTasksPageData, 'tasks-page');
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  const tasks = data?.tasks ?? [];
+  const projects = data?.projects ?? [];
+  const users = data?.users ?? [];
 
   const filteredTasks = useMemo(() => {
     return tasks.filter((t) => {
@@ -131,7 +131,7 @@ export default function TasksPage() {
     try {
       await api.delete(`/tasks/${id}`);
       addToast('success', 'Задача удалена');
-      await fetchData();
+      await refetch();
     } catch (err: any) {
       addToast('error', err.response?.data?.message || 'Ошибка при удалении');
     } finally {
@@ -142,7 +142,7 @@ export default function TasksPage() {
   const handleSaved = async () => {
     setShowModal(false);
     setEditingTask(null);
-    await fetchData();
+    await refetch();
   };
 
   const resetFilters = () => {
@@ -153,7 +153,8 @@ export default function TasksPage() {
     setFilterAssignee('');
   };
 
-  const hasActiveFilters = searchQuery || filterStatus || filterPriority || filterProject || filterAssignee;
+  const hasActiveFilters =
+    searchQuery || filterStatus || filterPriority || filterProject || filterAssignee;
 
   return (
     <div>
@@ -175,10 +176,37 @@ export default function TasksPage() {
         </div>
       </div>
 
+      {/* Offline / stale-data banner */}
+      {isFromCache && (
+        <div className="flex items-center gap-3 px-4 py-3 mb-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400">
+          <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
+            />
+          </svg>
+          <div className="flex-1 text-sm">
+            <span className="font-semibold">Режим офлайн</span> — данные могут быть устаревшими
+            {cachedAt && (
+              <span className="ml-1 text-xs opacity-70">
+                (кеш от {new Date(cachedAt).toLocaleString('ru-RU')})
+              </span>
+            )}
+          </div>
+          <button
+            onClick={refetch}
+            className="shrink-0 text-xs font-medium underline underline-offset-2 hover:no-underline"
+          >
+            Обновить
+          </button>
+        </div>
+      )}
+
       {/* Filters */}
       <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-4 mb-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-          {/* Search */}
           <input
             type="text"
             value={searchQuery}
@@ -187,7 +215,6 @@ export default function TasksPage() {
             className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent"
           />
 
-          {/* Status */}
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
@@ -199,7 +226,6 @@ export default function TasksPage() {
             ))}
           </select>
 
-          {/* Priority */}
           <select
             value={filterPriority}
             onChange={(e) => setFilterPriority(e.target.value)}
@@ -211,7 +237,6 @@ export default function TasksPage() {
             ))}
           </select>
 
-          {/* Project */}
           <select
             value={filterProject}
             onChange={(e) => setFilterProject(e.target.value)}
@@ -223,7 +248,6 @@ export default function TasksPage() {
             ))}
           </select>
 
-          {/* Assignee */}
           <select
             value={filterAssignee}
             onChange={(e) => setFilterAssignee(e.target.value)}
@@ -296,7 +320,9 @@ export default function TasksPage() {
                           ? t.assignees.map((a) => a.userName || `#${a.userId}`).join(', ')
                           : assignee?.name || assignee?.email || '—'}
                       </td>
-                      <td className="py-2.5 px-4 text-gray-600 dark:text-gray-400">{formatDate(t.dueDate || t.due_date)}</td>
+                      <td className="py-2.5 px-4 text-gray-600 dark:text-gray-400">
+                        {formatDate(t.dueDate || t.due_date)}
+                      </td>
                       <td className="py-2.5 px-4 text-center" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-center gap-1">
                           <button

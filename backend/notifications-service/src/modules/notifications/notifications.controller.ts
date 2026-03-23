@@ -28,6 +28,8 @@ import {
   UpdateNotificationDto,
   CreateAnnouncementDto,
   UpdateAnnouncementDto,
+  SavePushSubscriptionDto,
+  DeletePushSubscriptionDto,
 } from './dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
@@ -40,6 +42,8 @@ export class NotificationsController {
     private readonly notificationsService: NotificationsService,
     private readonly configService: ConfigService,
   ) {}
+
+  // ─── SSE Stream ─────────────────────────────────────────────────────────────
 
   @Public()
   @Sse('notifications/events')
@@ -64,12 +68,49 @@ export class NotificationsController {
       }
 
       return this.notificationsService.getNotificationStream(Number(userId));
-    } catch (error) {
+    } catch {
       throw new UnauthorizedException('Invalid or expired token');
     }
   }
 
-  // --- Notifications ---
+  // ─── Web Push / VAPID ───────────────────────────────────────────────────────
+
+  @Public()
+  @Get('notifications/vapid-public-key')
+  @ApiOperation({ summary: 'Get VAPID public key for push subscription' })
+  @ApiResponse({ status: 200, description: 'VAPID public key' })
+  getVapidPublicKey() {
+    return { publicKey: this.notificationsService.getVapidPublicKey() };
+  }
+
+  @Post('notifications/push-subscribe')
+  @ApiOperation({ summary: 'Save push subscription for current user' })
+  @ApiResponse({ status: 201, description: 'Subscription saved' })
+  savePushSubscription(
+    @CurrentUser('id') userId: number,
+    @CurrentUser('accountId') accountId: number,
+    @CurrentUser('roleId') roleId: number,
+    @Body() dto: SavePushSubscriptionDto,
+  ) {
+    return this.notificationsService.savePushSubscription(
+      userId,
+      accountId,
+      roleId,
+      dto,
+    );
+  }
+
+  @Delete('notifications/push-subscribe')
+  @ApiOperation({ summary: 'Remove push subscription for current user' })
+  @ApiResponse({ status: 200, description: 'Subscription removed' })
+  deletePushSubscription(
+    @CurrentUser('id') userId: number,
+    @Body() dto: DeletePushSubscriptionDto,
+  ) {
+    return this.notificationsService.deletePushSubscription(userId, dto);
+  }
+
+  // ─── Notifications ───────────────────────────────────────────────────────────
 
   @Get('notifications')
   @ApiOperation({ summary: 'Get all notifications for current user' })
@@ -117,7 +158,6 @@ export class NotificationsController {
   @Put('notifications/:id')
   @ApiOperation({ summary: 'Update notification' })
   @ApiResponse({ status: 200, description: 'Notification updated' })
-  @ApiResponse({ status: 404, description: 'Notification not found' })
   updateNotification(
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser('accountId') accountId: number,
@@ -129,7 +169,6 @@ export class NotificationsController {
   @Put('notifications/:id/read')
   @ApiOperation({ summary: 'Mark notification as read' })
   @ApiResponse({ status: 200, description: 'Notification marked as read' })
-  @ApiResponse({ status: 404, description: 'Notification not found' })
   markAsRead(
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser('accountId') accountId: number,
@@ -137,7 +176,7 @@ export class NotificationsController {
     return this.notificationsService.markAsRead(id, accountId);
   }
 
-  // --- Announcements ---
+  // ─── Announcements ───────────────────────────────────────────────────────────
 
   @Get('announcements')
   @ApiOperation({ summary: 'Get all announcements' })
@@ -170,7 +209,6 @@ export class NotificationsController {
   @Get('announcements/:id')
   @ApiOperation({ summary: 'Get announcement by ID' })
   @ApiResponse({ status: 200, description: 'Announcement retrieved' })
-  @ApiResponse({ status: 404, description: 'Announcement not found' })
   findAnnouncementById(
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser('accountId') accountId: number,
@@ -181,7 +219,6 @@ export class NotificationsController {
   @Put('announcements/:id')
   @ApiOperation({ summary: 'Update announcement' })
   @ApiResponse({ status: 200, description: 'Announcement updated' })
-  @ApiResponse({ status: 404, description: 'Announcement not found' })
   updateAnnouncement(
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser('accountId') accountId: number,
@@ -193,7 +230,6 @@ export class NotificationsController {
   @Delete('announcements/:id')
   @ApiOperation({ summary: 'Delete announcement' })
   @ApiResponse({ status: 200, description: 'Announcement deleted' })
-  @ApiResponse({ status: 404, description: 'Announcement not found' })
   deleteAnnouncement(
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser('accountId') accountId: number,

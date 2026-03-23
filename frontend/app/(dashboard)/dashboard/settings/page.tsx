@@ -9,6 +9,43 @@ import { normalizeFileUrl } from '@/lib/utils';
 // Roles that can NOT manage own personal documents
 const ROLES_NO_DOCS = new Set([13, 14]); // observer, analyst
 
+// Super admin does NOT see sessions section
+const ROLE_SUPER_ADMIN = 1;
+
+interface DeviceSession {
+  id: number;
+  browser: string;
+  os: string;
+  device: 'mobile' | 'desktop';
+  ipAddress: string | null;
+  lastSeenAt: string;
+  createdAt: string;
+  isCurrent: boolean;
+}
+
+function DeviceIcon({ device, browser }: { device: string; browser: string }) {
+  if (device === 'mobile') {
+    return (
+      <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 0 0 6 3.75v16.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 20.25V3.75a2.25 2.25 0 0 0-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18h3" />
+      </svg>
+    );
+  }
+  // Show browser-specific icon for desktop
+  if (browser === 'Chrome') {
+    return (
+      <svg className="w-8 h-8 text-gray-400" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.4 0 2.72.37 3.87 1.02L12 12V6c-3.31 0-6 2.69-6 6 0 .34.03.67.08 1H4.03C4.01 12.67 4 12.34 4 12c0-4.41 3.59-8 8-8zm5.91 4.5c.63 1.1 1 2.38 1 3.73a7.96 7.96 0 0 1-2.34 5.66L14 13.73C14.62 13.26 15 12.58 15 12c0-.34-.06-.67-.17-.97l3.08-1.53zm-5.91 8.5c-2.76 0-5-2.24-5-5 0-.34.03-.67.09-1h9.82c.06.33.09.66.09 1 0 2.76-2.24 5-5 5z"/>
+      </svg>
+    );
+  }
+  return (
+    <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 0 1-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0 1 15 18.257V17.25m6-12V15a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 15V5.25m18 0A2.25 2.25 0 0 0 18.75 3H5.25A2.25 2.25 0 0 0 3 5.25m18 0H3" />
+    </svg>
+  );
+}
+
 const DOC_TYPES = [
   'Паспорт', 'СНИЛС', 'ИНН', 'Водительское удостоверение',
   'Диплом', 'Сертификат', 'Медицинская книжка', 'Трудовой договор', 'Другое',
@@ -81,6 +118,12 @@ export default function SettingsPage() {
   const [deletingDocId, setDeletingDocId] = useState<number | null>(null);
   const docFileRef = useRef<HTMLInputElement>(null);
 
+  // Sessions state
+  const canSeeSessions = user?.roleId !== ROLE_SUPER_ADMIN;
+  const [sessions, setSessions] = useState<DeviceSession[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(false);
+  const [revokingSessionId, setRevokingSessionId] = useState<number | null>(null);
+
   useEffect(() => {
     if (!user?.id) return;
     const fetchProfile = async () => {
@@ -124,6 +167,35 @@ export default function SettingsPage() {
   useEffect(() => {
     if (canManageDocs) fetchMyDocs();
   }, [canManageDocs]);
+
+  const fetchSessions = async () => {
+    setSessionsLoading(true);
+    try {
+      const { data } = await api.get('/auth/sessions');
+      setSessions(Array.isArray(data) ? data : []);
+    } catch {
+      // silent
+    } finally {
+      setSessionsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (canSeeSessions) fetchSessions();
+  }, [canSeeSessions]);
+
+  const handleRevokeSession = async (sessionId: number) => {
+    setRevokingSessionId(sessionId);
+    try {
+      await api.delete(`/auth/sessions/${sessionId}`);
+      setSessions((prev) => prev.filter((s) => s.id !== sessionId));
+      addToast('success', 'Сессия завершена');
+    } catch {
+      addToast('error', 'Ошибка при завершении сессии');
+    } finally {
+      setRevokingSessionId(null);
+    }
+  };
 
   const handleDocFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -410,6 +482,101 @@ export default function SettingsPage() {
           </button>
         </div>
       </form>
+
+      {/* Active Sessions */}
+      {canSeeSessions && (
+        <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Активные сессии</h2>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Устройства, с которых выполнен вход в аккаунт</p>
+            </div>
+            <button
+              onClick={fetchSessions}
+              disabled={sessionsLoading}
+              className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-40 transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+              title="Обновить"
+            >
+              <svg className={`w-4 h-4 ${sessionsLoading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+              </svg>
+            </button>
+          </div>
+
+          {sessionsLoading && sessions.length === 0 ? (
+            <p className="text-sm text-gray-400 py-4 text-center">Загрузка...</p>
+          ) : sessions.length === 0 ? (
+            <p className="text-sm text-gray-400 dark:text-gray-500 py-6 text-center">Нет активных сессий</p>
+          ) : (
+            <div className="space-y-3">
+              {sessions.map((session) => (
+                <div
+                  key={session.id}
+                  className={`flex items-center gap-4 p-4 rounded-xl border transition-colors ${
+                    session.isCurrent
+                      ? 'border-violet-200 dark:border-violet-800 bg-violet-50/50 dark:bg-violet-900/10'
+                      : 'border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/20'
+                  }`}
+                >
+                  {/* Device icon */}
+                  <div className={`shrink-0 w-12 h-12 rounded-xl flex items-center justify-center ${
+                    session.isCurrent
+                      ? 'bg-violet-100 dark:bg-violet-900/30'
+                      : 'bg-gray-100 dark:bg-gray-700'
+                  }`}>
+                    <DeviceIcon device={session.device} browser={session.browser} />
+                  </div>
+
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-medium text-gray-800 dark:text-gray-100">
+                        {session.browser} · {session.os}
+                      </span>
+                      {session.isCurrent && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-violet-100 dark:bg-violet-900/40 text-violet-600 dark:text-violet-400 text-xs font-medium rounded-full">
+                          <span className="w-1.5 h-1.5 rounded-full bg-violet-500 inline-block" />
+                          Текущий сеанс
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3 mt-1 flex-wrap">
+                      {session.ipAddress && (
+                        <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                          {session.ipAddress}
+                        </span>
+                      )}
+                      <span className="text-xs text-gray-400 dark:text-gray-500">
+                        Последняя активность: {new Date(session.lastSeenAt).toLocaleString('ru-RU', {
+                          day: '2-digit', month: 'short', year: 'numeric',
+                          hour: '2-digit', minute: '2-digit',
+                        })}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Revoke button — not for current session */}
+                  {!session.isCurrent && (
+                    <button
+                      onClick={() => handleRevokeSession(session.id)}
+                      disabled={revokingSessionId === session.id}
+                      className="shrink-0 px-3 py-1.5 text-xs font-medium text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg disabled:opacity-40 transition-colors"
+                      title="Завершить сессию"
+                    >
+                      {revokingSessionId === session.id ? (
+                        <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                        </svg>
+                      ) : 'Завершить'}
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* My Documents */}
       {canManageDocs && (

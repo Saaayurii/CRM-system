@@ -152,6 +152,19 @@ export class ChatRepository {
     });
   }
 
+  /** Lean query used by notification fan-out — returns only what's needed. */
+  async getChannelForNotification(channelId: number) {
+    return (this.prisma as any).chatChannel.findFirst({
+      where: { id: channelId },
+      select: {
+        name: true,
+        channelType: true,
+        accountId: true,
+        members: { select: { userId: true } },
+      },
+    });
+  }
+
   async updateLastReadAt(channelId: number, userId: number) {
     return (this.prisma as any).chatChannelMember.updateMany({
       where: { channelId, userId },

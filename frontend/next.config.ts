@@ -1,4 +1,4 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   experimental: {
@@ -6,8 +6,15 @@ const nextConfig: NextConfig = {
       bodySizeLimit: '50mb',
     },
   },
-  // Allow ngrok and any external tunnel domains
-  allowedDevOrigins: ['*.ngrok-free.app', '*.ngrok.io', '*.ngrok.app', '*.lhr.life', '*.trycloudflare.com'],
+  // Silence Turbopack warning — no webpack plugins needed
+  turbopack: {},
+  allowedDevOrigins: [
+    '*.ngrok-free.app',
+    '*.ngrok.io',
+    '*.ngrok.app',
+    '*.lhr.life',
+    '*.trycloudflare.com',
+  ],
   async rewrites() {
     return [
       {

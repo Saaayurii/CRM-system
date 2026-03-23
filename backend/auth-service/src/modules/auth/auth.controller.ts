@@ -3,9 +3,12 @@ import {
   Post,
   Get,
   Put,
+  Delete,
   Body,
   Param,
   Query,
+  Headers,
+  Req,
   HttpCode,
   HttpStatus,
   ParseIntPipe,
@@ -38,6 +41,7 @@ interface UserPayload {
   email: string;
   roleId: number | null;
   accountId: number;
+  sid?: number;
 }
 
 @ApiTags('Authentication')
@@ -48,45 +52,35 @@ export class AuthController {
   @Post('register')
   @Public()
   @ApiOperation({ summary: 'Register a new user' })
-  @ApiResponse({
-    status: 201,
-    description: 'User registered successfully',
-    type: AuthResponseDto,
-  })
+  @ApiResponse({ status: 201, description: 'User registered successfully', type: AuthResponseDto })
   @ApiResponse({ status: 400, description: 'Validation error' })
   @ApiResponse({ status: 404, description: 'Account or role not found' })
   @ApiResponse({ status: 409, description: 'Email already exists' })
-  async register(@Body() registerDto: RegisterDto): Promise<AuthResponseDto> {
-    return this.authService.register(registerDto);
+  async register(@Body() registerDto: RegisterDto, @Req() req: any): Promise<AuthResponseDto> {
+    const userAgent = (req.headers['x-user-agent'] || req.headers['user-agent'] || '') as string;
+    const ipAddress = (req.headers['x-real-ip'] || req.headers['x-forwarded-for'] || req.ip || '') as string;
+    return this.authService.register(registerDto, userAgent, ipAddress.split(',')[0].trim());
   }
 
   @Post('login')
   @Public()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'User login' })
-  @ApiResponse({
-    status: 200,
-    description: 'Login successful',
-    type: AuthResponseDto,
-  })
+  @ApiResponse({ status: 200, description: 'Login successful', type: AuthResponseDto })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
-  async login(@Body() loginDto: LoginDto): Promise<AuthResponseDto> {
-    return this.authService.login(loginDto);
+  async login(@Body() loginDto: LoginDto, @Req() req: any): Promise<AuthResponseDto> {
+    const userAgent = (req.headers['x-user-agent'] || req.headers['user-agent'] || '') as string;
+    const ipAddress = (req.headers['x-real-ip'] || req.headers['x-forwarded-for'] || req.ip || '') as string;
+    return this.authService.login(loginDto, userAgent, ipAddress.split(',')[0].trim());
   }
 
   @Post('refresh')
   @Public()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Refresh access token' })
-  @ApiResponse({
-    status: 200,
-    description: 'Tokens refreshed successfully',
-    type: TokenResponseDto,
-  })
+  @ApiResponse({ status: 200, description: 'Tokens refreshed successfully', type: TokenResponseDto })
   @ApiResponse({ status: 401, description: 'Invalid refresh token' })
-  async refresh(
-    @Body() refreshTokenDto: RefreshTokenDto,
-  ): Promise<TokenResponseDto> {
+  async refresh(@Body() refreshTokenDto: RefreshTokenDto): Promise<TokenResponseDto> {
     return this.authService.refresh(refreshTokenDto);
   }
 
@@ -94,44 +88,52 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Logout current session' })
-  @ApiResponse({
-    status: 200,
-    description: 'Logged out successfully',
-    type: MessageResponseDto,
-  })
+  @ApiResponse({ status: 200, description: 'Logged out successfully', type: MessageResponseDto })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async logout(@CurrentUser() user: UserPayload): Promise<MessageResponseDto> {
-    return this.authService.logout(user.sub);
+    return this.authService.logout(user.sub, user.sid);
   }
 
   @Post('logout-all')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Logout all sessions' })
-  @ApiResponse({
-    status: 200,
-    description: 'All sessions terminated successfully',
-    type: MessageResponseDto,
-  })
+  @ApiResponse({ status: 200, description: 'All sessions terminated successfully', type: MessageResponseDto })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async logoutAll(
-    @CurrentUser() user: UserPayload,
-  ): Promise<MessageResponseDto> {
+  async logoutAll(@CurrentUser() user: UserPayload): Promise<MessageResponseDto> {
     return this.authService.logoutAll(user.sub);
   }
 
   @Get('me')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get current user profile' })
-  @ApiResponse({
-    status: 200,
-    description: 'User profile',
-    type: UserResponseDto,
-  })
+  @ApiResponse({ status: 200, description: 'User profile', type: UserResponseDto })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'User not found' })
   async getMe(@CurrentUser() user: UserPayload): Promise<UserResponseDto> {
     return this.authService.getMe(user.sub);
+  }
+
+  @Get('sessions')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get active sessions for current user' })
+  @ApiResponse({ status: 200, description: 'List of active sessions' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async getSessions(@CurrentUser() user: UserPayload) {
+    return this.authService.getSessions(user.sub, user.sid);
+  }
+
+  @Delete('sessions/:id')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Revoke a specific session' })
+  @ApiResponse({ status: 200, description: 'Session revoked', type: MessageResponseDto })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async revokeSession(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: UserPayload,
+  ): Promise<MessageResponseDto> {
+    return this.authService.revokeSession(user.sub, id);
   }
 
   // ── Registration Requests ──────────────────────────────────────────

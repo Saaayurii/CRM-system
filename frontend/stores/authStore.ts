@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import api from '@/lib/api';
+import { updateBadge } from '@/stores/notificationStore';
 import { normalizeFileUrl } from '@/lib/utils';
 import type { User, LoginRequest, LoginResponse, JwtPayload } from '@/types/auth';
 
@@ -64,7 +65,19 @@ export const useAuthStore = create<AuthState>((set) => ({
 
     localStorage.setItem('accessToken', data.accessToken);
     localStorage.setItem('refreshToken', data.refreshToken);
+    if (data.sessionId) localStorage.setItem('sessionId', String(data.sessionId));
     document.cookie = `crm-session=true; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+
+    // Send token to Service Worker for background sync
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then((reg) => {
+        const sw = reg.active;
+        if (sw) {
+          sw.postMessage({ type: 'SET_TOKEN', token: data.accessToken });
+          sw.postMessage({ type: 'SYNC_NOW' }); // warm up cache right after login
+        }
+      }).catch(() => {});
+    }
 
     const user = data.user;
     user.role = roleFromId(user.roleId ?? null);
@@ -91,7 +104,19 @@ export const useAuthStore = create<AuthState>((set) => ({
   logout: () => {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
+    localStorage.removeItem('sessionId');
     document.cookie = 'crm-session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+
+    // Clear app badge
+    updateBadge(0);
+
+    // Clear token from Service Worker so background sync stops
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then((reg) => {
+        reg.active?.postMessage({ type: 'SET_TOKEN', token: null });
+      }).catch(() => {});
+    }
+
     set({ user: null, isAuthenticated: false });
     window.location.href = '/auth/login';
   },

@@ -130,4 +130,50 @@ export class NotificationRepository {
       where: { accountId },
     });
   }
+
+  // --- Push Subscriptions ---
+
+  async savePushSubscription(data: {
+    userId: number;
+    accountId: number;
+    roleId?: number;
+    endpoint: string;
+    p256dh: string;
+    auth: string;
+    userAgent?: string;
+  }) {
+    return (this.prisma as any).pushSubscription.upsert({
+      where: {
+        userId_endpoint: { userId: data.userId, endpoint: data.endpoint },
+      },
+      update: {
+        p256dh: data.p256dh,
+        auth: data.auth,
+        userAgent: data.userAgent,
+        roleId: data.roleId,
+      },
+      create: data,
+    });
+  }
+
+  async deletePushSubscription(userId: number, endpoint: string) {
+    return (this.prisma as any).pushSubscription.deleteMany({
+      where: { userId, endpoint },
+    });
+  }
+
+  async getPushSubscriptionsByUserId(userId: number) {
+    return (this.prisma as any).pushSubscription.findMany({
+      where: { userId },
+    });
+  }
+
+  async getPushSubscriptionsByAccountAndRole(
+    accountId: number,
+    roleIds: number[],
+  ) {
+    return (this.prisma as any).pushSubscription.findMany({
+      where: { accountId, roleId: { in: roleIds } },
+    });
+  }
 }

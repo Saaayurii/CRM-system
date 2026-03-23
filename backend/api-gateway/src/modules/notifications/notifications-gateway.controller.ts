@@ -86,6 +86,46 @@ export class NotificationsGatewayController {
     proxyReq.end();
   }
 
+  // Web Push / VAPID
+  @Public()
+  @Get('notifications/vapid-public-key')
+  @ApiOperation({ summary: 'Get VAPID public key for push subscription' })
+  async getVapidPublicKey(@Req() req: Request) {
+    return this.proxyService.forward('notifications', {
+      method: 'GET',
+      path: '/notifications/vapid-public-key',
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  @Post('notifications/push-subscribe')
+  @ApiOperation({ summary: 'Save push subscription' })
+  async savePushSubscription(@Req() req: Request, @Body() body: any) {
+    return this.proxyService.forward('notifications', {
+      method: 'POST',
+      path: '/notifications/push-subscribe',
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Delete('notifications/push-subscribe')
+  @ApiOperation({ summary: 'Remove push subscription' })
+  async deletePushSubscription(@Req() req: Request, @Body() body: any) {
+    return this.proxyService.forward('notifications', {
+      method: 'DELETE',
+      path: '/notifications/push-subscribe',
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
   // Notifications
   @Get('notifications')
   @ApiOperation({ summary: 'Get all notifications' })
