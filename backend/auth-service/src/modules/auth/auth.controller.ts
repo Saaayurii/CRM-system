@@ -36,6 +36,11 @@ import {
 import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
+/** Strip IPv4-mapped IPv6 prefix (::ffff:1.2.3.4 → 1.2.3.4) */
+function normalizeIp(ip: string): string {
+  return ip.startsWith('::ffff:') ? ip.slice(7) : ip;
+}
+
 interface UserPayload {
   sub: number;
   email: string;
@@ -59,7 +64,7 @@ export class AuthController {
   async register(@Body() registerDto: RegisterDto, @Req() req: any): Promise<AuthResponseDto> {
     const userAgent = (req.headers['x-user-agent'] || req.headers['user-agent'] || '') as string;
     const ipAddress = (req.headers['x-real-ip'] || req.headers['x-forwarded-for'] || req.ip || '') as string;
-    return this.authService.register(registerDto, userAgent, ipAddress.split(',')[0].trim());
+    return this.authService.register(registerDto, userAgent, normalizeIp(ipAddress.split(',')[0].trim()));
   }
 
   @Post('login')
@@ -71,7 +76,7 @@ export class AuthController {
   async login(@Body() loginDto: LoginDto, @Req() req: any): Promise<AuthResponseDto> {
     const userAgent = (req.headers['x-user-agent'] || req.headers['user-agent'] || '') as string;
     const ipAddress = (req.headers['x-real-ip'] || req.headers['x-forwarded-for'] || req.ip || '') as string;
-    return this.authService.login(loginDto, userAgent, ipAddress.split(',')[0].trim());
+    return this.authService.login(loginDto, userAgent, normalizeIp(ipAddress.split(',')[0].trim()));
   }
 
   @Post('refresh')

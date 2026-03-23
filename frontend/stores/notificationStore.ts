@@ -155,6 +155,23 @@ export const useNotificationStore = create<NotificationState>()(
           }
         });
 
+        es.addEventListener('force_logout', (event) => {
+          try {
+            const { sessionId } = JSON.parse(event.data);
+            const currentSessionId = localStorage.getItem('sessionId');
+            if (currentSessionId && Number(currentSessionId) === Number(sessionId)) {
+              // This session was revoked — clear credentials and redirect to login
+              localStorage.removeItem('accessToken');
+              localStorage.removeItem('refreshToken');
+              localStorage.removeItem('sessionId');
+              document.cookie = 'crm-session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+              window.location.href = '/auth/login';
+            }
+          } catch {
+            // ignore parse errors
+          }
+        });
+
         es.onerror = () => {
           es.close();
           set({ eventSource: null });

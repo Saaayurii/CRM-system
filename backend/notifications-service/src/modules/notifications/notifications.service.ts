@@ -6,7 +6,7 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Subject, Observable, map, interval } from 'rxjs';
+import { Subject, Observable, merge, map, interval } from 'rxjs';
 import * as webpush from 'web-push';
 import { NotificationRepository } from './repositories/notification.repository';
 import {
@@ -23,6 +23,7 @@ import { shouldPushToRole } from '../../config/notification-roles.config';
 export class NotificationsService implements OnModuleInit {
   private readonly logger = new Logger(NotificationsService.name);
   private notificationSubjects = new Map<number, Subject<any>>();
+  private systemSubjects = new Map<number, Subject<MessageEvent>>();
   private webPushEnabled = false;
 
   constructor(
@@ -58,25 +59,24 @@ export class NotificationsService implements OnModuleInit {
     if (!this.notificationSubjects.has(userId)) {
       this.notificationSubjects.set(userId, new Subject<any>());
     }
+    if (!this.systemSubjects.has(userId)) {
+      this.systemSubjects.set(userId, new Subject<MessageEvent>());
+    }
 
-    const subject = this.notificationSubjects.get(userId)!;
+    const notifSubject = this.notificationSubjects.get(userId)!;
+    const sysSubject = this.systemSubjects.get(userId)!;
 
     return new Observable<MessageEvent>((subscriber) => {
       const heartbeat = interval(30000).subscribe(() => {
         subscriber.next({ data: { type: 'heartbeat' } } as MessageEvent);
       });
 
-      const subscription = subject
-        .pipe(
-          map(
-            (notification) =>
-              ({
-                type: 'notification',
-                data: notification,
-              }) as MessageEvent,
-          ),
-        )
-        .subscribe((event) => subscriber.next(event));
+      const subscription = merge(
+        notifSubject.pipe(
+          map((notification) => ({ type: 'notification', data: notification }) as MessageEvent),
+        ),
+        sysSubject,
+      ).subscribe((event) => subscriber.next(event));
 
       return () => {
         heartbeat.unsubscribe();
@@ -87,9 +87,13 @@ export class NotificationsService implements OnModuleInit {
 
   pushNotification(userId: number, notification: any): void {
     const subject = this.notificationSubjects.get(userId);
-    if (subject) {
-      subject.next(notification);
-    }
+    if (subject) subject.next(notification);
+  }
+
+  /** Push a system SSE event (e.g. force_logout) to a specific user */
+  pushSystemEvent(userId: number, type: string, data: Record<string, unknown>): void {
+    const subject = this.systemSubjects.get(userId);
+    if (subject) subject.next({ type, data } as MessageEvent);
   }
 
   // ─── Web Push ───────────────────────────────────────────────────────────────

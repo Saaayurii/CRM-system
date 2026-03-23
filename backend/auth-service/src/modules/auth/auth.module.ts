@@ -12,6 +12,7 @@ import { AccountRepository } from './repositories/account.repository';
 import { RegistrationRequestRepository } from './repositories/registration-request.repository';
 import { SessionRepository } from './repositories/session.repository';
 import { JwtStrategy } from '../../common/guards/jwt.strategy';
+import { SessionBlacklistService } from '../../common/services/session-blacklist.service';
 
 @Module({
   imports: [
@@ -40,7 +41,8 @@ import { JwtStrategy } from '../../common/guards/jwt.strategy';
     RegistrationRequestRepository,
     SessionRepository,
     JwtStrategy,
+    SessionBlacklistService,
   ],
-  exports: [AuthService, TokenService, PasswordService],
+  exports: [AuthService, TokenService, PasswordService, SessionBlacklistService],
 })
 export class AuthModule {}

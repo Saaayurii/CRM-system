@@ -28,6 +28,21 @@ export class SessionRepository {
     });
   }
 
+  /** Delete oldest sessions so the user has at most `max` sessions total */
+  async enforceLimit(userId: number, max = 5): Promise<void> {
+    const sessions = await (this.prisma as any).userSession.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true },
+    });
+    if (sessions.length >= max) {
+      const toDelete = sessions.slice(max - 1).map((s: any) => s.id);
+      await (this.prisma as any).userSession.deleteMany({
+        where: { id: { in: toDelete } },
+      });
+    }
+  }
+
   async updateToken(id: number, refreshToken: string, expiresAt: Date) {
     return (this.prisma as any).userSession.update({
       where: { id },

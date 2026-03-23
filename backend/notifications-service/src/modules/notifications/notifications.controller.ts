@@ -73,6 +73,18 @@ export class NotificationsController {
     }
   }
 
+  // ─── Internal (service-to-service) ──────────────────────────────────────────
+
+  @Public()
+  @Post('notifications/internal/force-logout')
+  @ApiOperation({ summary: 'Internal: push force_logout SSE event to a user session' })
+  pushForceLogout(@Body() body: { userId: number; sessionId: number }) {
+    this.notificationsService.pushSystemEvent(body.userId, 'force_logout', {
+      sessionId: body.sessionId,
+    });
+    return { ok: true };
+  }
+
   // ─── Web Push / VAPID ───────────────────────────────────────────────────────
 
   @Public()

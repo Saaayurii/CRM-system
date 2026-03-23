@@ -18,6 +18,10 @@ export default () => ({
     refreshExpiration: process.env.JWT_REFRESH_EXPIRATION || '7d',
   },
 
+  services: {
+    notifications: process.env.NOTIFICATIONS_SERVICE_URL || 'http://localhost:3010',
+  },
+
   bcrypt: {
     saltRounds: parseInt(process.env.BCRYPT_SALT_ROUNDS || '10', 10),
   },

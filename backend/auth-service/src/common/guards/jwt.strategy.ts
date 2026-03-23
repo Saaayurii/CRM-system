@@ -4,12 +4,14 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { JwtPayload } from '../interfaces/jwt-payload.interface';
 import { PrismaService } from '../../database/prisma.service';
+import { SessionBlacklistService } from '../services/session-blacklist.service';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     configService: ConfigService,
     private readonly prisma: PrismaService,
+    private readonly blacklist: SessionBlacklistService,
   ) {
     const secret = configService.get<string>('jwt.accessSecret');
     if (!secret) {
@@ -23,6 +25,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayload): Promise<JwtPayload> {
+    // Check session blacklist (revoked sessions)
+    if (payload.sid && (await this.blacklist.isRevoked(payload.sid))) {
+      throw new UnauthorizedException('Session has been revoked');
+    }
+
     const user = await (this.prisma as any).user.findUnique({
       where: { id: payload.sub },
       select: { id: true, isActive: true, deletedAt: true },
@@ -37,6 +44,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       email: payload.email,
       roleId: payload.roleId,
       accountId: payload.accountId,
+      sid: payload.sid,
     };
   }
 }

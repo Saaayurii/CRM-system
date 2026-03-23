@@ -182,6 +182,9 @@ services:
       # Rate Limiting
       RATE_LIMIT_TTL: 60
       RATE_LIMIT_MAX: 100
+
+      # Inter-service
+      NOTIFICATIONS_SERVICE_URL: http://notifications-service:3010
     depends_on:
       postgres:
         condition: service_healthy

@@ -26,6 +26,8 @@ import { SessionRepository } from './repositories/session.repository';
 import { PasswordService } from './services/password.service';
 import { TokenService } from './services/token.service';
 import { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
+import { ConfigService } from '@nestjs/config';
+import { SessionBlacklistService } from '../../common/services/session-blacklist.service';
 
 function parseUserAgent(ua: string): { browser: string; os: string; device: string } {
   const browser =
@@ -71,6 +73,8 @@ export class AuthService {
     private readonly sessionRepository: SessionRepository,
     private readonly passwordService: PasswordService,
     private readonly tokenService: TokenService,
+    private readonly sessionBlacklist: SessionBlacklistService,
+    private readonly configService: ConfigService,
   ) {}
 
   async register(
@@ -113,6 +117,7 @@ export class AuthService {
       accountId: user.accountId,
     });
 
+    await this.sessionRepository.enforceLimit(user.id, 5);
     const session = await this.sessionRepository.create({
       userId: user.id,
       refreshToken: tokenPair.refreshToken,
@@ -190,6 +195,7 @@ export class AuthService {
 
     const tokenPair = this.tokenService.generateTokenPair(jwtPayload);
 
+    await this.sessionRepository.enforceLimit(user.id, 5);
     const session = await this.sessionRepository.create({
       userId: user.id,
       refreshToken: tokenPair.refreshToken,
@@ -330,6 +336,16 @@ export class AuthService {
 
   async revokeSession(userId: number, sessionId: number): Promise<MessageResponseDto> {
     await this.sessionRepository.deleteByIdAndUserId(sessionId, userId);
+    // Immediately invalidate any access tokens belonging to this session
+    await this.sessionBlacklist.revoke(sessionId, 900); // 900s = 15m (access token lifetime)
+    // Push real-time force_logout event via notifications-service SSE
+    const notificationsUrl =
+      this.configService.get<string>('services.notifications') || 'http://localhost:3010';
+    fetch(`${notificationsUrl}/notifications/internal/force-logout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, sessionId }),
+    }).catch((err) => this.logger.warn(`force_logout push failed: ${err.message}`));
     return { message: 'Сессия завершена' };
   }
 
