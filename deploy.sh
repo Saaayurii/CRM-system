@@ -24,6 +24,11 @@ done
 # ── Pre-flight checks ─────────────────────────────────────────
 info "Running pre-flight checks..."
 
+if [ ! -f "docker-compose.yml" ]; then
+  error "Must be run from the project root (where docker-compose.yml is located)"
+  exit 1
+fi
+
 if [ ! -f ".env" ]; then
   error ".env file not found. Copy .env.prod.example and fill in secrets:"
   error "  cp .env.prod.example .env && nano .env"
@@ -67,7 +72,7 @@ fi
 
 if [ "$NO_BUILD" = false ]; then
   info "Building Docker images (this may take a while)..."
-  docker compose build --parallel
+  docker compose build
 fi
 
 # ── Deploy ───────────────────────────────────────────────────
