@@ -1,0 +1,46 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 192.168.100.65
+          username: admin_315
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /opt/crm-system
+
+            echo "==> Pulling latest code..."
+            git pull origin main
+
+            echo "==> Building Docker images..."
+            docker compose build
+
+            echo "==> Restarting services..."
+            docker compose up -d --remove-orphans
+
+            echo "==> Waiting for PostgreSQL..."
+            timeout=60
+            elapsed=0
+            until docker compose exec -T postgres pg_isready -U postgres -q 2>/dev/null; do
+              if [ $elapsed -ge $timeout ]; then
+                echo "PostgreSQL timeout"
+                exit 1
+              fi
+              sleep 2; elapsed=$((elapsed+2))
+            done
+
+            echo "==> Deploy complete!"
+            docker compose ps
