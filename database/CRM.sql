@@ -73,7 +73,11 @@ CREATE TABLE users (
     -- Настройки
     settings JSONB DEFAULT '{}',
     notification_settings JSONB DEFAULT '{}',
-    
+
+    -- JWT refresh token (used by auth-service)
+    refresh_token VARCHAR(500),
+    refresh_token_expires_at TIMESTAMP,
+
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP
@@ -1660,11 +1664,13 @@ CREATE TABLE report_templates (
     
     -- Кто может использовать
     allowed_roles JSONB DEFAULT '[]',
-    
+
     created_by_user_id INTEGER REFERENCES users(id),
-    
+
+    file_url TEXT,
+
     is_active BOOLEAN DEFAULT TRUE,
-    
+
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -2375,9 +2381,5 @@ CREATE INDEX idx_user_sessions_user ON user_sessions(user_id);
 -- Комментарий: успешно создана полная схема БД для CRM системы строителей!
 COMMENT ON DATABASE postgres IS 'Строительная CRM система - полная схема базы данных';
 
- После регистрации логин:
-  - Email: admin@crm.local
-  - Пароль: Admin123!
- 
-
- dockerfile all microservices
+-- После регистрации логин:
+--   Email: admin@crm.local / Password123!

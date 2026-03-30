@@ -1,15 +1,15 @@
-FROM node:18-alpine AS dependencies
+FROM node:20-alpine AS dependencies
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci --only=production && npm cache clean --force
-FROM node:18-alpine AS build
+FROM node:20-alpine AS build
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
 RUN if [ -f prisma/schema.prisma ]; then npx prisma generate; fi
 RUN npm run build
-FROM node:18-alpine AS production
+FROM node:20-alpine AS production
 RUN apk add --no-cache wget
 WORKDIR /app
 COPY --from=dependencies /app/node_modules ./node_modules

@@ -3,7 +3,7 @@
 # ============================================
 
 # === STAGE 1: Dependencies ===
-FROM node:18-alpine AS dependencies
+FROM node:20-alpine AS dependencies
 
 WORKDIR /app
 

@@ -9,3 +9,7 @@ coverage/
 uploads/
 prisma/migrations/
 CLAUDE.md
+
+# Production data dirs (created at runtime)
+backend/pgadmin-data/
+backend/*/logs/

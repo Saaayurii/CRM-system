@@ -33,10 +33,10 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-construction_crm}
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --locale=ru_RU.UTF-8"
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ../database:/docker-entrypoint-initdb.d:ro
     networks:
       - crm-network
     healthcheck:
@@ -66,7 +66,7 @@ services:
       --maxmemory-policy allkeys-lru
       --save 60 1000
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     networks:
@@ -88,9 +88,9 @@ services:
     container_name: crm-api-gateway
     restart: unless-stopped
     ports:
-      - "${API_GATEWAY_PORT:-3000}:3000"
+      - "127.0.0.1:${API_GATEWAY_PORT:-3000}:3000"
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
+      NODE_ENV: ${NODE_ENV:-production}
       PORT: 3000
       
       # Микросервисы URLs
@@ -158,9 +158,9 @@ services:
     container_name: crm-auth-service
     restart: unless-stopped
     ports:
-      - "${AUTH_SERVICE_PORT:-3001}:3001"
+      - "127.0.0.1:${AUTH_SERVICE_PORT:-3001}:3001"
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
+      NODE_ENV: ${NODE_ENV:-production}
       PORT: 3001
       
       # Database
@@ -211,9 +211,9 @@ services:
     container_name: crm-users-service
     restart: unless-stopped
     ports:
-      - "${USERS_SERVICE_PORT:-3002}:3002"
+      - "127.0.0.1:${USERS_SERVICE_PORT:-3002}:3002"
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
+      NODE_ENV: ${NODE_ENV:-production}
       PORT: 3002
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-construction_crm}?schema=public
       REDIS_HOST: redis
@@ -245,9 +245,9 @@ services:
     container_name: crm-projects-service
     restart: unless-stopped
     ports:
-      - "${PROJECTS_SERVICE_PORT:-3003}:3003"
+      - "127.0.0.1:${PROJECTS_SERVICE_PORT:-3003}:3003"
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
+      NODE_ENV: ${NODE_ENV:-production}
       PORT: 3003
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-construction_crm}?schema=public
       REDIS_HOST: redis
@@ -277,9 +277,9 @@ services:
     container_name: crm-tasks-service
     restart: unless-stopped
     ports:
-      - "${TASKS_SERVICE_PORT:-3004}:3004"
+      - "127.0.0.1:${TASKS_SERVICE_PORT:-3004}:3004"
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
+      NODE_ENV: ${NODE_ENV:-production}
       PORT: 3004
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-construction_crm}?schema=public
       REDIS_HOST: redis
@@ -310,9 +310,9 @@ services:
     container_name: crm-materials-service
     restart: unless-stopped
     ports:
-      - "${MATERIALS_SERVICE_PORT:-3005}:3005"
+      - "127.0.0.1:${MATERIALS_SERVICE_PORT:-3005}:3005"
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
+      NODE_ENV: ${NODE_ENV:-production}
       PORT: 3005
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-construction_crm}?schema=public
       REDIS_HOST: redis
@@ -342,9 +342,9 @@ services:
     container_name: crm-suppliers-service
     restart: unless-stopped
     ports:
-      - "${SUPPLIERS_SERVICE_PORT:-3006}:3006"
+      - "127.0.0.1:${SUPPLIERS_SERVICE_PORT:-3006}:3006"
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
+      NODE_ENV: ${NODE_ENV:-production}
       PORT: 3006
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-construction_crm}?schema=public
       REDIS_HOST: redis
@@ -374,9 +374,9 @@ services:
     container_name: crm-finance-service
     restart: unless-stopped
     ports:
-      - "${FINANCE_SERVICE_PORT:-3007}:3007"
+      - "127.0.0.1:${FINANCE_SERVICE_PORT:-3007}:3007"
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
+      NODE_ENV: ${NODE_ENV:-production}
       PORT: 3007
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-construction_crm}?schema=public
       REDIS_HOST: redis
@@ -406,9 +406,9 @@ services:
     container_name: crm-inspections-service
     restart: unless-stopped
     ports:
-      - "${INSPECTIONS_SERVICE_PORT:-3008}:3008"
+      - "127.0.0.1:${INSPECTIONS_SERVICE_PORT:-3008}:3008"
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
+      NODE_ENV: ${NODE_ENV:-production}
       PORT: 3008
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-construction_crm}?schema=public
       REDIS_HOST: redis
@@ -438,9 +438,9 @@ services:
     container_name: crm-hr-service
     restart: unless-stopped
     ports:
-      - "${HR_SERVICE_PORT:-3009}:3009"
+      - "127.0.0.1:${HR_SERVICE_PORT:-3009}:3009"
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
+      NODE_ENV: ${NODE_ENV:-production}
       PORT: 3009
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-construction_crm}?schema=public
       REDIS_HOST: redis
@@ -470,9 +470,9 @@ services:
     container_name: crm-notifications-service
     restart: unless-stopped
     ports:
-      - "${NOTIFICATIONS_SERVICE_PORT:-3010}:3010"
+      - "127.0.0.1:${NOTIFICATIONS_SERVICE_PORT:-3010}:3010"
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
+      NODE_ENV: ${NODE_ENV:-production}
       PORT: 3010
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-construction_crm}?schema=public
       REDIS_HOST: redis
@@ -513,9 +513,9 @@ services:
     container_name: crm-chat-service
     restart: unless-stopped
     ports:
-      - "${CHAT_SERVICE_PORT:-3011}:3011"
+      - "127.0.0.1:${CHAT_SERVICE_PORT:-3011}:3011"
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
+      NODE_ENV: ${NODE_ENV:-production}
       PORT: 3011
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-construction_crm}?schema=public
       REDIS_HOST: redis
@@ -547,9 +547,9 @@ services:
     container_name: crm-calendar-service
     restart: unless-stopped
     ports:
-      - "${CALENDAR_SERVICE_PORT:-3012}:3012"
+      - "127.0.0.1:${CALENDAR_SERVICE_PORT:-3012}:3012"
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
+      NODE_ENV: ${NODE_ENV:-production}
       PORT: 3012
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-construction_crm}?schema=public
       REDIS_HOST: redis
@@ -577,9 +577,9 @@ services:
     container_name: crm-equipment-service
     restart: unless-stopped
     ports:
-      - "${EQUIPMENT_SERVICE_PORT:-3013}:3013"
+      - "127.0.0.1:${EQUIPMENT_SERVICE_PORT:-3013}:3013"
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
+      NODE_ENV: ${NODE_ENV:-production}
       PORT: 3013
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-construction_crm}?schema=public
       REDIS_HOST: redis
@@ -607,9 +607,9 @@ services:
     container_name: crm-documents-service
     restart: unless-stopped
     ports:
-      - "${DOCUMENTS_SERVICE_PORT:-3014}:3014"
+      - "127.0.0.1:${DOCUMENTS_SERVICE_PORT:-3014}:3014"
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
+      NODE_ENV: ${NODE_ENV:-production}
       PORT: 3014
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-construction_crm}?schema=public
       REDIS_HOST: redis
@@ -639,9 +639,9 @@ services:
     container_name: crm-reports-service
     restart: unless-stopped
     ports:
-      - "${REPORTS_SERVICE_PORT:-3015}:3015"
+      - "127.0.0.1:${REPORTS_SERVICE_PORT:-3015}:3015"
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
+      NODE_ENV: ${NODE_ENV:-production}
       PORT: 3015
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-construction_crm}?schema=public
       REDIS_HOST: redis
@@ -669,9 +669,9 @@ services:
     container_name: crm-dictionary-service
     restart: unless-stopped
     ports:
-      - "${DICTIONARY_SERVICE_PORT:-3016}:3016"
+      - "127.0.0.1:${DICTIONARY_SERVICE_PORT:-3016}:3016"
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
+      NODE_ENV: ${NODE_ENV:-production}
       PORT: 3016
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-construction_crm}?schema=public
       REDIS_HOST: redis
@@ -699,9 +699,9 @@ services:
     container_name: crm-audit-service
     restart: unless-stopped
     ports:
-      - "${AUDIT_SERVICE_PORT:-3017}:3017"
+      - "127.0.0.1:${AUDIT_SERVICE_PORT:-3017}:3017"
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
+      NODE_ENV: ${NODE_ENV:-production}
       PORT: 3017
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-construction_crm}?schema=public
       REDIS_HOST: redis
@@ -729,9 +729,9 @@ services:
     container_name: crm-clients-service
     restart: unless-stopped
     ports:
-      - "${CLIENTS_SERVICE_PORT:-3018}:3018"
+      - "127.0.0.1:${CLIENTS_SERVICE_PORT:-3018}:3018"
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
+      NODE_ENV: ${NODE_ENV:-production}
       PORT: 3018
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-construction_crm}?schema=public
       REDIS_HOST: redis
@@ -759,9 +759,9 @@ services:
     container_name: crm-wiki-service
     restart: unless-stopped
     ports:
-      - "${WIKI_SERVICE_PORT:-3019}:3019"
+      - "127.0.0.1:${WIKI_SERVICE_PORT:-3019}:3019"
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
+      NODE_ENV: ${NODE_ENV:-production}
       PORT: 3019
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-construction_crm}?schema=public
       REDIS_HOST: redis
@@ -789,9 +789,9 @@ services:
     container_name: crm-training-service
     restart: unless-stopped
     ports:
-      - "${TRAINING_SERVICE_PORT:-3020}:3020"
+      - "127.0.0.1:${TRAINING_SERVICE_PORT:-3020}:3020"
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
+      NODE_ENV: ${NODE_ENV:-production}
       PORT: 3020
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-construction_crm}?schema=public
       REDIS_HOST: redis
@@ -819,9 +819,9 @@ services:
     container_name: crm-automation-service
     restart: unless-stopped
     ports:
-      - "${AUTOMATION_SERVICE_PORT:-3021}:3021"
+      - "127.0.0.1:${AUTOMATION_SERVICE_PORT:-3021}:3021"
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
+      NODE_ENV: ${NODE_ENV:-production}
       PORT: 3021
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-construction_crm}?schema=public
       REDIS_HOST: redis
@@ -849,9 +849,9 @@ services:
     container_name: crm-settings-service
     restart: unless-stopped
     ports:
-      - "${SETTINGS_SERVICE_PORT:-3022}:3022"
+      - "127.0.0.1:${SETTINGS_SERVICE_PORT:-3022}:3022"
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
+      NODE_ENV: ${NODE_ENV:-production}
       PORT: 3022
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-construction_crm}?schema=public
       REDIS_HOST: redis
@@ -879,9 +879,9 @@ services:
     container_name: crm-dashboard-service
     restart: unless-stopped
     ports:
-      - "${DASHBOARD_SERVICE_PORT:-3023}:3023"
+      - "127.0.0.1:${DASHBOARD_SERVICE_PORT:-3023}:3023"
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
+      NODE_ENV: ${NODE_ENV:-production}
       PORT: 3023
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-construction_crm}?schema=public
       REDIS_HOST: redis
@@ -912,7 +912,7 @@ services:
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
       PGADMIN_CONFIG_SERVER_MODE: 'False'
     ports:
-      - "${PGADMIN_PORT:-5050}:80"
+      - "127.0.0.1:${PGADMIN_PORT:-5050}:80"
     volumes:
       - ./pgadmin-data:/var/lib/pgadmin
     networks:
@@ -930,7 +930,7 @@ services:
     environment:
       REDIS_HOSTS: local:redis:6379
     ports:
-      - "${REDIS_COMMANDER_PORT:-8081}:8081"
+      - "127.0.0.1:${REDIS_COMMANDER_PORT:-8081}:8081"
     networks:
       - crm-network
     depends_on:
