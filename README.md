@@ -175,6 +175,80 @@ docker compose build users-service && docker compose up -d users-service
 docker compose down
 ```
 
+## Деплой на сервер
+
+### Через скрипт deploy.sh
+
+```bash
+# 1. Клонировать и перейти в проект
+git clone <repo-url>
+cd CRM-system
+
+# 2. Создать .env из шаблона и заполнить секреты
+cp .env.prod.example .env
+nano .env
+# Обязательно задать:
+#   POSTGRES_PASSWORD, JWT_ACCESS_SECRET, JWT_REFRESH_SECRET
+#   DOMAIN, CERTBOT_EMAIL (если нужен SSL)
+
+# 3. Деплой без SSL (HTTP)
+./deploy.sh
+
+# 3а. Деплой с SSL (Let's Encrypt, первый раз)
+./deploy.sh --ssl
+
+# Флаги:
+#   --no-build   не пересобирать образы (быстрее при re-deploy)
+#   --pull       обновить базовые образы node:20-alpine и т.д.
+#   --ssl        получить SSL-сертификат через Certbot
+```
+
+После первого `--ssl` сертификат обновляется автоматически каждые 12 часов.
+
+### Вручную через Docker Compose
+
+```bash
+# 1. Настроить переменные окружения
+cp .env.prod.example .env && nano .env
+
+# 2. Собрать все образы
+docker compose build
+
+# 3. Запустить весь стек
+docker compose up -d
+
+# 4. Проверить статус
+docker compose ps
+curl http://localhost/api/v1/health
+
+# Логи
+docker compose logs -f
+docker compose logs -f api-gateway
+```
+
+### Проверка работоспособности
+
+```bash
+# Health check (Redis + Memory + Auth + Users сервисы)
+curl http://localhost/api/v1/health
+
+# Тестовый логин
+curl -X POST http://localhost/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@crm.local","password":"Password123!"}'
+```
+
+### Бэкапы PostgreSQL
+
+Контейнер `db-backup` делает дамп ежедневно в 03:00 в папку `./backups/`.
+Хранит последние 7 дней. Вручную:
+
+```bash
+docker exec crm-db-backup pg_dump -h postgres -U postgres construction_crm | gzip > backup.sql.gz
+```
+
+---
+
 ## Инструменты администрирования
 
 | Инструмент | URL | Доступ |
