@@ -19,6 +19,7 @@ jobs:
           host: 192.168.100.65
           username: admin_315
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          command_timeout: 60m
           script: |
             cd /opt/crm-system
             git pull origin main
