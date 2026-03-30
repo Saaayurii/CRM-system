@@ -18,8 +18,12 @@ import {
   ApiResponse,
   ApiBearerAuth,
 } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { ProxyService } from '../../common/services/proxy.service';
 import { Public } from '../../common/decorators/public.decorator';
+
+// Strict rate limit for auth endpoints: 10 requests per minute per IP
+const AUTH_THROTTLE = { default: { ttl: 60_000, limit: 10 } };
 
 @ApiTags('Authentication')
 @Controller('api/v1/auth')
@@ -28,6 +32,7 @@ export class AuthGatewayController {
 
   @Post('register')
   @Public()
+  @Throttle(AUTH_THROTTLE)
   @ApiOperation({ summary: 'Register a new user' })
   @ApiResponse({ status: 201, description: 'User registered successfully' })
   @ApiResponse({ status: 400, description: 'Validation error' })
@@ -52,6 +57,7 @@ export class AuthGatewayController {
   @Post('login')
   @Public()
   @HttpCode(HttpStatus.OK)
+  @Throttle(AUTH_THROTTLE)
   @ApiOperation({ summary: 'User login' })
   @ApiResponse({ status: 200, description: 'Login successful' })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
@@ -74,6 +80,7 @@ export class AuthGatewayController {
   @Post('refresh')
   @Public()
   @HttpCode(HttpStatus.OK)
+  @Throttle(AUTH_THROTTLE)
   @ApiOperation({ summary: 'Refresh access token' })
   @ApiResponse({ status: 200, description: 'Tokens refreshed successfully' })
   @ApiResponse({ status: 401, description: 'Invalid refresh token' })
