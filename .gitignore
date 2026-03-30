@@ -13,3 +13,4 @@ CLAUDE.md
 # Production data dirs (created at runtime)
 backend/pgadmin-data/
 backend/*/logs/
+backups/

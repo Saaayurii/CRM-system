@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 # =============================================================
 # CRM System — Production Deploy Script
-# Usage: ./deploy.sh [--no-build] [--pull]
+# Usage: ./deploy.sh [--no-build] [--pull] [--ssl]
+#
+#   --no-build  Skip Docker image build step
+#   --pull      Pull latest base images before build
+#   --ssl       Issue SSL certificate via Certbot (first deploy)
 # =============================================================
 set -euo pipefail
 
@@ -14,10 +18,12 @@ error() { echo -e "${RED}[ERROR]${NC} $*" >&2; }
 # ── Parse args ───────────────────────────────────────────────
 NO_BUILD=false
 PULL=false
+SSL=false
 for arg in "$@"; do
   case $arg in
     --no-build) NO_BUILD=true ;;
     --pull)     PULL=true ;;
+    --ssl)      SSL=true ;;
   esac
 done
 
@@ -62,6 +68,20 @@ for var in "${REQUIRED_VARS[@]}"; do
   fi
 done
 
+# SSL mode requires DOMAIN and CERTBOT_EMAIL
+if [ "$SSL" = true ]; then
+  DOMAIN=$(grep "^DOMAIN=" .env | cut -d= -f2-)
+  CERTBOT_EMAIL=$(grep "^CERTBOT_EMAIL=" .env | cut -d= -f2-)
+  if [ -z "$DOMAIN" ]; then
+    error "DOMAIN is not set in .env (required for --ssl)"
+    exit 1
+  fi
+  if [ -z "$CERTBOT_EMAIL" ]; then
+    error "CERTBOT_EMAIL is not set in .env (required for --ssl)"
+    exit 1
+  fi
+fi
+
 info "Pre-flight checks passed."
 
 # ── Build ────────────────────────────────────────────────────
@@ -73,6 +93,34 @@ fi
 if [ "$NO_BUILD" = false ]; then
   info "Building Docker images (this may take a while)..."
   docker compose build
+fi
+
+# ── SSL: First-time certificate issuance ─────────────────────
+if [ "$SSL" = true ]; then
+  DOMAIN=$(grep "^DOMAIN=" .env | cut -d= -f2-)
+  CERTBOT_EMAIL=$(grep "^CERTBOT_EMAIL=" .env | cut -d= -f2-)
+
+  # Patch nginx.conf to use the real domain
+  sed -i "s/DOMAIN_PLACEHOLDER/${DOMAIN}/g" nginx.conf
+
+  # Start only nginx (HTTP mode) so certbot can complete ACME challenge
+  info "Starting nginx for ACME challenge..."
+  docker compose up -d nginx
+
+  # Wait for nginx to be ready
+  sleep 5
+
+  info "Requesting SSL certificate for ${DOMAIN}..."
+  docker compose run --rm certbot certonly \
+    --webroot \
+    --webroot-path=/var/www/certbot \
+    --email "${CERTBOT_EMAIL}" \
+    --agree-tos \
+    --no-eff-email \
+    -d "${DOMAIN}"
+
+  info "Certificate issued. Reloading nginx with HTTPS config..."
+  docker compose exec nginx nginx -s reload
 fi
 
 # ── Deploy ───────────────────────────────────────────────────
@@ -98,5 +146,10 @@ info "Deployment complete. Container status:"
 docker compose ps
 
 echo ""
-info "Application is available at: http://localhost:${NGINX_PORT:-80}"
+if [ "$SSL" = true ]; then
+  DOMAIN=$(grep "^DOMAIN=" .env | cut -d= -f2-)
+  info "Application is available at: https://${DOMAIN}"
+else
+  info "Application is available at: http://localhost:${NGINX_PORT:-80}"
+fi
 info "Logs: docker compose logs -f"
