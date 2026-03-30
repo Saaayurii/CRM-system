@@ -92,7 +92,7 @@ fi
 
 if [ "$NO_BUILD" = false ]; then
   info "Building Docker images (this may take a while)..."
-  docker compose build --parallel 2
+  COMPOSE_PARALLEL_LIMIT=2 docker compose build
 fi
 
 # ── SSL: First-time certificate issuance ─────────────────────
