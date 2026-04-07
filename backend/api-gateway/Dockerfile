@@ -1,17 +1,3 @@
-# ============================================
-# Multi-stage Dockerfile для API Gateway
-# ============================================
-
-# === STAGE 1: Dependencies ===
-FROM node:20-alpine AS dependencies
-
-WORKDIR /app
-
-COPY package*.json ./
-
-RUN npm ci --only=production && npm cache clean --force
-
-# === STAGE 2: Build ===
 FROM node:20-alpine AS build
 
 WORKDIR /app
@@ -22,16 +8,16 @@ RUN npm ci
 
 COPY . .
 
-RUN npm run build
+RUN npm run build && npm prune --omit=dev && npm cache clean --force
 
-# === STAGE 3: Production ===
+# === STAGE 2: Production ===
 FROM node:20-alpine AS production
 
 RUN apk add --no-cache wget
 
 WORKDIR /app
 
-COPY --from=dependencies /app/node_modules ./node_modules
+COPY --from=build /app/node_modules ./node_modules
 
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/package*.json ./

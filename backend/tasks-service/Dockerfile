@@ -1,19 +1,3 @@
-# ============================================
-# Multi-stage Dockerfile для NestJS сервисов
-# ============================================
-
-# === STAGE 1: Dependencies ===
-FROM node:20-alpine AS dependencies
-
-WORKDIR /app
-
-# Копируем package files
-COPY package*.json ./
-
-# Устанавливаем только production зависимости
-RUN npm ci --only=production && npm cache clean --force
-
-# === STAGE 2: Build ===
 FROM node:20-alpine AS build
 
 WORKDIR /app
@@ -34,9 +18,9 @@ COPY . .
 RUN if [ -f prisma/schema.prisma ]; then prisma generate; fi
 
 # Собираем приложение
-RUN npm run build
+RUN npm run build && npm prune --omit=dev && npm cache clean --force
 
-# === STAGE 3: Production ===
+# === STAGE 2: Production ===
 FROM node:20-alpine AS production
 
 # Устанавливаем wget для healthcheck
@@ -45,7 +29,7 @@ RUN apk add --no-cache wget
 WORKDIR /app
 
 # Копируем node_modules из dependencies stage
-COPY --from=dependencies /app/node_modules ./node_modules
+COPY --from=build /app/node_modules ./node_modules
 
 # Копируем собранное приложение
 COPY --from=build /app/dist ./dist
