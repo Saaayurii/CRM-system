@@ -31,9 +31,10 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3030
 
-RUN apk add --no-cache wget \
+RUN apk add --no-cache wget docker-cli \
  && addgroup --system --gid 1001 nodejs \
- && adduser --system --uid 1001 nextjs
+ && adduser --system --uid 1001 nextjs \
+ && addgroup nextjs docker 2>/dev/null || true
 
 # Copy standalone build output
 COPY --from=builder /app/public ./public

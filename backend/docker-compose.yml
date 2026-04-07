@@ -949,6 +949,8 @@ services:
       - "${FRONTEND_PORT:-3030}:3030"
     environment:
       NODE_ENV: production
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - crm-network
     depends_on:
