@@ -91,8 +91,11 @@ if [ "$PULL" = true ]; then
 fi
 
 if [ "$NO_BUILD" = false ]; then
-  info "Building Docker images (this may take a while)..."
-  COMPOSE_PARALLEL_LIMIT=1 docker compose build
+  info "Building Docker images one at a time..."
+  docker compose config --services | while read -r service; do
+    info "Building $service..."
+    docker compose build "$service"
+  done
 fi
 
 # ── SSL: First-time certificate issuance ─────────────────────
