@@ -949,6 +949,7 @@ services:
       - "${FRONTEND_PORT:-3030}:3030"
     environment:
       NODE_ENV: production
+      API_GATEWAY_URL: http://api-gateway:3000
     user: root
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
