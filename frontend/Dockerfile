@@ -1,11 +1,4 @@
-# ── Stage 1: Install dependencies ─────────────────────────────────────────────
-FROM node:20-alpine AS deps
-WORKDIR /app
-
-COPY package.json package-lock.json ./
-RUN npm ci --omit=dev --ignore-scripts
-
-# ── Stage 2: Build ────────────────────────────────────────────────────────────
+# ── Stage 1: Build ────────────────────────────────────────────────────────────
 FROM node:20-alpine AS builder
 WORKDIR /app
 
@@ -31,14 +24,15 @@ ENV CHAT_SERVICE_INTERNAL_URL=$CHAT_SERVICE_INTERNAL_URL
 
 RUN npm run build
 
-# ── Stage 3: Production runner ────────────────────────────────────────────────
+# ── Stage 2: Production runner ────────────────────────────────────────────────
 FROM node:20-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
 ENV PORT=3030
 
-RUN addgroup --system --gid 1001 nodejs \
+RUN apk add --no-cache wget \
+ && addgroup --system --gid 1001 nodejs \
  && adduser --system --uid 1001 nextjs
 
 # Copy standalone build output
