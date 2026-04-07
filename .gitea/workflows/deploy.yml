@@ -16,11 +16,12 @@ jobs:
       - name: Deploy to server
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: 192.168.100.65
+          host: 192.168.100.67
           username: admin_315
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           command_timeout: 60m
           script: |
             cd /opt/crm-system
             git pull origin main
-            bash deploy.sh
+            cd backend
+            bash /opt/crm-system/deploy.sh
