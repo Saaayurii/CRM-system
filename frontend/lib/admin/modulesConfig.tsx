@@ -793,8 +793,9 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
       { key: 'userId', label: 'Сотрудник', type: 'select', required: true, fetchOptions: { endpoint: '/users', valueKey: 'id', labelKey: 'name' } },
       { key: 'amount', label: 'Сумма (₽)', type: 'number', required: true },
       { key: 'bonusType', label: 'Тип бонуса', type: 'text' },
+      { key: 'periodStart', label: 'Период с', type: 'date' },
+      { key: 'periodEnd', label: 'Период по', type: 'date' },
       { key: 'description', label: 'Описание', type: 'textarea' },
-      { key: 'paymentDate', label: 'Дата выплаты', type: 'date', required: true },
     ],
   },
   'employee-documents': {
@@ -892,7 +893,6 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
       },
     ],
     formFields: [
-      { key: 'userId', label: 'Сотрудник', type: 'select', required: true, fetchOptions: { endpoint: '/users', valueKey: 'id', labelKey: 'name' } },
       {
         key: 'requestType',
         label: 'Тип',
