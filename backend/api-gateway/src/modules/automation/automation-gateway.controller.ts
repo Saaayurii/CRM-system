@@ -109,7 +109,7 @@ export class AutomationGatewayController {
   ) {
     return this.proxyService.forward('automation', {
       method: 'GET',
-      path: '/execution-logs',
+      path: '/automation-execution-log',
       headers: { authorization: req.headers.authorization || '' },
       params: { page, limit },
     });
@@ -120,7 +120,7 @@ export class AutomationGatewayController {
   async findOneExecutionLog(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('automation', {
       method: 'GET',
-      path: `/execution-logs/${id}`,
+      path: `/automation-execution-log/${id}`,
       headers: { authorization: req.headers.authorization || '' },
     });
   }
@@ -130,7 +130,7 @@ export class AutomationGatewayController {
   async createExecutionLog(@Req() req: Request, @Body() body: any) {
     return this.proxyService.forward('automation', {
       method: 'POST',
-      path: '/execution-logs',
+      path: '/automation-execution-log',
       headers: {
         authorization: req.headers.authorization || '',
         'content-type': 'application/json',

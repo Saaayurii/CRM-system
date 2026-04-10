@@ -130,9 +130,8 @@ export class ProjectRepository {
     return (this.prisma as any).projectTeam.findMany({
       where: { projectId },
       include: {
-        user: {
-          select: { id: true, name: true, email: true },
-        },
+        team: true,
+        constructionSite: true,
       },
     });
   }

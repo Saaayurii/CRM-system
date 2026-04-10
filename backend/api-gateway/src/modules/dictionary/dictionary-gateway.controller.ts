@@ -39,7 +39,7 @@ export class DictionaryGatewayController {
   ) {
     return this.proxyService.forward('dictionary', {
       method: 'GET',
-      path: '/dictionaries',
+      path: '/dictionary-types',
       headers: { authorization: req.headers.authorization || '' },
       params: { page, limit },
     });
@@ -50,7 +50,7 @@ export class DictionaryGatewayController {
   async findOneDictionary(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('dictionary', {
       method: 'GET',
-      path: `/dictionaries/${id}`,
+      path: `/dictionary-types/${id}`,
       headers: { authorization: req.headers.authorization || '' },
     });
   }
@@ -60,7 +60,7 @@ export class DictionaryGatewayController {
   async createDictionary(@Req() req: Request, @Body() body: any) {
     return this.proxyService.forward('dictionary', {
       method: 'POST',
-      path: '/dictionaries',
+      path: '/dictionary-types',
       headers: {
         authorization: req.headers.authorization || '',
         'content-type': 'application/json',
@@ -78,7 +78,7 @@ export class DictionaryGatewayController {
   ) {
     return this.proxyService.forward('dictionary', {
       method: 'PUT',
-      path: `/dictionaries/${id}`,
+      path: `/dictionary-types/${id}`,
       headers: {
         authorization: req.headers.authorization || '',
         'content-type': 'application/json',
@@ -92,7 +92,7 @@ export class DictionaryGatewayController {
   async removeDictionary(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('dictionary', {
       method: 'DELETE',
-      path: `/dictionaries/${id}`,
+      path: `/dictionary-types/${id}`,
       headers: { authorization: req.headers.authorization || '' },
     });
   }

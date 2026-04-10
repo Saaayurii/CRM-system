@@ -175,40 +175,40 @@ export class DocumentsGatewayController {
     });
   }
 
-  // Document Categories
-  @Get('document-categories')
-  @ApiOperation({ summary: 'Get all document categories' })
+  // Document Templates
+  @Get('document-templates')
+  @ApiOperation({ summary: 'Get all document templates' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
-  async findAllDocumentCategories(
+  async findAllDocumentTemplates(
     @Req() req: Request,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
   ) {
     return this.proxyService.forward('documents', {
       method: 'GET',
-      path: '/document-categories',
+      path: '/document-templates',
       headers: { authorization: req.headers.authorization || '' },
       params: { page, limit },
     });
   }
 
-  @Get('document-categories/:id')
-  @ApiOperation({ summary: 'Get document category by ID' })
-  async findOneDocumentCategory(@Req() req: Request, @Param('id') id: string) {
+  @Get('document-templates/:id')
+  @ApiOperation({ summary: 'Get document template by ID' })
+  async findOneDocumentTemplate(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('documents', {
       method: 'GET',
-      path: `/document-categories/${id}`,
+      path: `/document-templates/${id}`,
       headers: { authorization: req.headers.authorization || '' },
     });
   }
 
-  @Post('document-categories')
-  @ApiOperation({ summary: 'Create document category' })
-  async createDocumentCategory(@Req() req: Request, @Body() body: any) {
+  @Post('document-templates')
+  @ApiOperation({ summary: 'Create document template' })
+  async createDocumentTemplate(@Req() req: Request, @Body() body: any) {
     return this.proxyService.forward('documents', {
       method: 'POST',
-      path: '/document-categories',
+      path: '/document-templates',
       headers: {
         authorization: req.headers.authorization || '',
         'content-type': 'application/json',
@@ -217,16 +217,16 @@ export class DocumentsGatewayController {
     });
   }
 
-  @Put('document-categories/:id')
-  @ApiOperation({ summary: 'Update document category' })
-  async updateDocumentCategory(
+  @Put('document-templates/:id')
+  @ApiOperation({ summary: 'Update document template' })
+  async updateDocumentTemplate(
     @Req() req: Request,
     @Param('id') id: string,
     @Body() body: any,
   ) {
     return this.proxyService.forward('documents', {
       method: 'PUT',
-      path: `/document-categories/${id}`,
+      path: `/document-templates/${id}`,
       headers: {
         authorization: req.headers.authorization || '',
         'content-type': 'application/json',
@@ -235,82 +235,12 @@ export class DocumentsGatewayController {
     });
   }
 
-  @Delete('document-categories/:id')
-  @ApiOperation({ summary: 'Delete document category' })
-  async removeDocumentCategory(@Req() req: Request, @Param('id') id: string) {
+  @Delete('document-templates/:id')
+  @ApiOperation({ summary: 'Delete document template' })
+  async removeDocumentTemplate(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('documents', {
       method: 'DELETE',
-      path: `/document-categories/${id}`,
-      headers: { authorization: req.headers.authorization || '' },
-    });
-  }
-
-  // Document Versions
-  @Get('document-versions')
-  @ApiOperation({ summary: 'Get all document versions' })
-  @ApiQuery({ name: 'page', required: false })
-  @ApiQuery({ name: 'limit', required: false })
-  async findAllDocumentVersions(
-    @Req() req: Request,
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
-  ) {
-    return this.proxyService.forward('documents', {
-      method: 'GET',
-      path: '/document-versions',
-      headers: { authorization: req.headers.authorization || '' },
-      params: { page, limit },
-    });
-  }
-
-  @Get('document-versions/:id')
-  @ApiOperation({ summary: 'Get document version by ID' })
-  async findOneDocumentVersion(@Req() req: Request, @Param('id') id: string) {
-    return this.proxyService.forward('documents', {
-      method: 'GET',
-      path: `/document-versions/${id}`,
-      headers: { authorization: req.headers.authorization || '' },
-    });
-  }
-
-  @Post('document-versions')
-  @ApiOperation({ summary: 'Create document version' })
-  async createDocumentVersion(@Req() req: Request, @Body() body: any) {
-    return this.proxyService.forward('documents', {
-      method: 'POST',
-      path: '/document-versions',
-      headers: {
-        authorization: req.headers.authorization || '',
-        'content-type': 'application/json',
-      },
-      data: body,
-    });
-  }
-
-  @Put('document-versions/:id')
-  @ApiOperation({ summary: 'Update document version' })
-  async updateDocumentVersion(
-    @Req() req: Request,
-    @Param('id') id: string,
-    @Body() body: any,
-  ) {
-    return this.proxyService.forward('documents', {
-      method: 'PUT',
-      path: `/document-versions/${id}`,
-      headers: {
-        authorization: req.headers.authorization || '',
-        'content-type': 'application/json',
-      },
-      data: body,
-    });
-  }
-
-  @Delete('document-versions/:id')
-  @ApiOperation({ summary: 'Delete document version' })
-  async removeDocumentVersion(@Req() req: Request, @Param('id') id: string) {
-    return this.proxyService.forward('documents', {
-      method: 'DELETE',
-      path: `/document-versions/${id}`,
+      path: `/document-templates/${id}`,
       headers: { authorization: req.headers.authorization || '' },
     });
   }
