@@ -31,16 +31,22 @@ export class ActRepository {
   }
 
   async create(accountId: number, dto: CreateActDto, preparedByUserId: number) {
-    return (this.prisma as any).act.create({
-      data: { ...dto, accountId, preparedByUserId },
-    });
+    const data: any = { ...dto, accountId, preparedByUserId };
+    if (data.actDate && !data.actDate.includes('T')) {
+      data.actDate = new Date(data.actDate).toISOString();
+    }
+    return (this.prisma as any).act.create({ data });
   }
 
   async update(id: number, accountId: number, dto: UpdateActDto) {
+    const data: any = { ...dto };
+    if (data.actDate && !data.actDate.includes('T')) {
+      data.actDate = new Date(data.actDate).toISOString();
+    }
     return (this.prisma as any).act
       .updateMany({
         where: { id, accountId },
-        data: dto,
+        data,
       })
       .then(async () => {
         return (this.prisma as any).act.findFirst({ where: { id, accountId } });
