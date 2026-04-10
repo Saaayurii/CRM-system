@@ -175,7 +175,11 @@ export default function SettingsPage() {
       const data: AccountData = res.data;
       setAccount(data);
       setCompanyName(data.name || '');
-      setS({ ...defaults, ...(data.settings || {}) });
+      const loaded = data.settings || {};
+      if (loaded.theme && !['light', 'dark', 'system'].includes(loaded.theme)) {
+        loaded.theme = defaults.theme;
+      }
+      setS({ ...defaults, ...loaded });
     } catch {
       addToast('error', 'Не удалось загрузить настройки');
       setError('Не удалось загрузить настройки');
@@ -191,7 +195,10 @@ export default function SettingsPage() {
       setSaving(true);
       setError(null);
       setSuccess(false);
-      await api.put('/system-settings', { name: companyName, settings: s });
+      const cleanSettings = Object.fromEntries(
+        Object.entries(s).filter(([, v]) => v !== null && v !== undefined)
+      );
+      await api.put('/system-settings', { name: companyName, settings: cleanSettings });
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
       addToast('success', 'Настройки успешно сохранены');
