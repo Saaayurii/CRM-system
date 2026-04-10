@@ -1,6 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import api from '@/lib/api';
 import type { CrudModuleConfig, ModuleCategory } from '@/types/admin';
 import { useToastStore } from '@/stores/toastStore';
+
+// ─── UserName component ───────────────────────────────────────────────────────
+
+const userNameCache = new Map<number, string>();
+
+function UserName({ userId }: { userId: number }) {
+  const [name, setName] = useState<string | null>(userNameCache.get(userId) ?? null);
+  useEffect(() => {
+    if (name !== null) return;
+    api.get(`/users/${userId}`).then(({ data }) => {
+      const n = data?.name ?? data?.firstName ?? String(userId);
+      userNameCache.set(userId, n);
+      setName(n);
+    }).catch(() => setName(String(userId)));
+  }, [userId]);
+  return <span>{name ?? '...'}</span>;
+}
 
 // ─── Email render helper ──────────────────────────────────────────────────────
 
@@ -717,10 +735,7 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
         key: 'userId',
         header: 'Сотрудник',
         sortable: true,
-        render: (v, row) => {
-          const name = (row as Record<string, any>).user?.name;
-          return name ? <span>{name}</span> : <span className="text-gray-400">ID: {String(v ?? '—')}</span>;
-        },
+        render: (v) => v ? <UserName userId={Number(v)} /> : <span className="text-gray-400">—</span>,
       },
       {
         key: 'totalAmount',
@@ -762,10 +777,7 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
         key: 'userId',
         header: 'Сотрудник',
         sortable: true,
-        render: (v, row) => {
-          const name = (row as Record<string, any>).user?.name;
-          return name ? <span>{name}</span> : <span className="text-gray-400">ID: {String(v ?? '—')}</span>;
-        },
+        render: (v) => v ? <UserName userId={Number(v)} /> : <span className="text-gray-400">—</span>,
       },
       {
         key: 'amount',
@@ -849,10 +861,7 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
         key: 'userId',
         header: 'Сотрудник',
         sortable: true,
-        render: (v, row) => {
-          const name = (row as Record<string, any>).user?.name;
-          return name ? <span>{name}</span> : <span className="text-gray-400">ID: {String(v ?? '—')}</span>;
-        },
+        render: (v) => v ? <UserName userId={Number(v)} /> : <span className="text-gray-400">—</span>,
       },
       {
         key: 'requestType',
@@ -912,10 +921,7 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
         key: 'userId',
         header: 'Сотрудник',
         sortable: true,
-        render: (v, row) => {
-          const name = (row as Record<string, any>).user?.name;
-          return name ? <span>{name}</span> : <span className="text-gray-400">ID: {String(v ?? '—')}</span>;
-        },
+        render: (v) => v ? <UserName userId={Number(v)} /> : <span className="text-gray-400">—</span>,
       },
       { key: 'attendanceDate', header: 'Дата', sortable: true, render: (v) => fmtDate(v) },
       {
