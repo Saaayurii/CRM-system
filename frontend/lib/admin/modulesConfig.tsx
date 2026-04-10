@@ -587,6 +587,7 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
       { key: 'description', header: 'Описание' },
     ],
     formFields: [
+      { key: 'paymentNumber', label: 'Номер платежа', type: 'text', required: true },
       { key: 'amount', label: 'Сумма (₽)', type: 'number', required: true },
       {
         key: 'status',
