@@ -96,15 +96,16 @@ function tcpCheck(host: string, port: number, timeoutMs = 3000): Promise<boolean
   });
 }
 
-async function httpCheck(port: number, timeoutMs = 3000): Promise<boolean> {
+async function httpCheck(port: number, path = '/', timeoutMs = 3000): Promise<boolean> {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
-    const res = await fetch(`http://localhost:${port}/health`, {
+    const res = await fetch(`http://localhost:${port}${path}`, {
       signal: controller.signal,
     }).catch(() => null);
     clearTimeout(timeout);
-    return res ? res.ok : false;
+    // Any HTTP response (even 404/401) means the service is running
+    return res !== null;
   } catch {
     return false;
   }
@@ -142,20 +143,23 @@ export async function GET(request: NextRequest) {
   }
 
   // Check if API Gateway is reachable
-  // Always use direct localhost URL for server-side fetch (NEXT_PUBLIC_API_URL may be a relative path)
+  // Prefer API_GATEWAY_URL (server-side, works inside Docker network), then NEXT_PUBLIC_API_URL, then localhost fallback
   let gatewayReachable = false;
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
-    let baseUrl = apiUrl.replace(/\/api\/v1$/, '');
-    // If relative (no protocol), fall back to direct gateway address
+    let baseUrl = process.env.API_GATEWAY_URL || '';
+    if (!baseUrl) {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
+      baseUrl = apiUrl.replace(/\/api\/v1$/, '');
+    }
     if (!baseUrl || !baseUrl.startsWith('http')) {
-      baseUrl = process.env.API_GATEWAY_URL || 'http://localhost:3000';
+      baseUrl = 'http://localhost:3000';
     }
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 3000);
-    const res = await fetch(`${baseUrl}/health`, { signal: controller.signal }).catch(() => null);
+    const res = await fetch(`${baseUrl}/api/v1/health`, { signal: controller.signal }).catch(() => null);
     clearTimeout(timeout);
-    gatewayReachable = res ? res.ok : false;
+    // Any HTTP response (including 503 when dependencies are down) means gateway is reachable
+    gatewayReachable = res !== null;
   } catch {
     gatewayReachable = false;
   }
@@ -201,8 +205,14 @@ export async function GET(request: NextRequest) {
       if (state === 'running' && port) {
         if (isTcp) {
           reachable = await tcpCheck('localhost', port);
+        } else if (name === 'crm-api-gateway') {
+          reachable = await httpCheck(port, '/api/v1/health');
+        } else if (name === 'crm-frontend') {
+          // Check self via internal port (host port is not reachable from inside the container)
+          reachable = await httpCheck(3030, '/health');
         } else {
-          reachable = await httpCheck(port);
+          // NestJS services: any HTTP response means service is up
+          reachable = await httpCheck(port, '/');
         }
       }
 

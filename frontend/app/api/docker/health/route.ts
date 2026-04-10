@@ -46,11 +46,23 @@ export async function GET(request: NextRequest) {
         try {
           const controller = new AbortController();
           const timeout = setTimeout(() => controller.abort(), 3000);
-          const res = await fetch(`http://localhost:${port}/health`, {
+          const name = c.Names as string;
+          // api-gateway has health at /api/v1/health; frontend checks itself; others have no /health
+          let checkUrl: string;
+          if (name === 'crm-api-gateway') {
+            checkUrl = `http://localhost:${port}/api/v1/health`;
+          } else if (name === 'crm-frontend') {
+            checkUrl = `http://localhost:3030/health`;
+          } else {
+            // For NestJS services: any HTTP response (even 404) means service is up
+            checkUrl = `http://localhost:${port}/`;
+          }
+          const res = await fetch(checkUrl, {
             signal: controller.signal,
           }).catch(() => null);
           clearTimeout(timeout);
-          httpReachable = res ? res.ok : false;
+          // Any HTTP response means the service is running (404/401 are fine)
+          httpReachable = res !== null;
         } catch {
           httpReachable = false;
         }
