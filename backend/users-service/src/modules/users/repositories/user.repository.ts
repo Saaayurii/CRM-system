@@ -70,7 +70,7 @@ export class UserRepository {
     });
   }
 
-  async create(data: CreateUserDto) {
+  async create(data: CreateUserDto & { passwordDigest?: string }) {
     return (this.prisma as any).user.create({
       data: {
         accountId: data.accountId,
@@ -79,6 +79,7 @@ export class UserRepository {
         roleId: data.roleId,
         phone: data.phone,
         position: data.position,
+        ...(data.passwordDigest ? { passwordDigest: data.passwordDigest } : {}),
       },
       include: {
         role: {

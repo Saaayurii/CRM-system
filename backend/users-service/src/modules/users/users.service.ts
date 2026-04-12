@@ -78,9 +78,15 @@ export class UsersService {
       throw new ConflictException('User with this email already exists');
     }
 
+    let passwordDigest: string | undefined;
+    if (createUserDto.password) {
+      passwordDigest = await bcrypt.hash(createUserDto.password, 10);
+    }
+
     const user = await this.userRepository.create({
       ...createUserDto,
       accountId: requestingUserAccountId,
+      passwordDigest,
     });
     return this.toResponseDto(user);
   }

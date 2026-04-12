@@ -41,12 +41,16 @@ describe('AuthGatewayController', () => {
 
       proxyService.forward.mockResolvedValue(expectedResponse);
 
-      const result = await controller.register(body);
+      const result = await controller.register(body, 'Mozilla/5.0', { ip: '127.0.0.1' } as any);
 
       expect(proxyService.forward).toHaveBeenCalledWith('auth', {
         method: 'POST',
         path: '/auth/register',
         data: body,
+        headers: {
+          'X-User-Agent': 'Mozilla/5.0',
+          'X-Real-IP': '127.0.0.1',
+        },
       });
       expect(result).toEqual(expectedResponse);
     });
@@ -67,12 +71,16 @@ describe('AuthGatewayController', () => {
 
       proxyService.forward.mockResolvedValue(expectedResponse);
 
-      const result = await controller.login(body);
+      const result = await controller.login(body, 'Mozilla/5.0', { ip: '127.0.0.1' } as any);
 
       expect(proxyService.forward).toHaveBeenCalledWith('auth', {
         method: 'POST',
         path: '/auth/login',
         data: body,
+        headers: {
+          'X-User-Agent': 'Mozilla/5.0',
+          'X-Real-IP': '127.0.0.1',
+        },
       });
       expect(result).toEqual(expectedResponse);
     });

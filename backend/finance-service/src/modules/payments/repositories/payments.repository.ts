@@ -34,16 +34,22 @@ export class PaymentsRepository {
     dto: CreatePaymentDto,
     createdByUserId: number,
   ) {
-    return (this.prisma as any).payment.create({
-      data: { ...dto, accountId, createdByUserId },
-    });
+    const data: any = { ...dto, accountId, createdByUserId };
+    if (data.paymentDate && !data.paymentDate.includes('T')) {
+      data.paymentDate = new Date(data.paymentDate).toISOString();
+    }
+    return (this.prisma as any).payment.create({ data });
   }
 
   async update(id: number, accountId: number, dto: UpdatePaymentDto) {
+    const data: any = { ...dto };
+    if (data.paymentDate && !data.paymentDate.includes('T')) {
+      data.paymentDate = new Date(data.paymentDate).toISOString();
+    }
     return (this.prisma as any).payment
       .updateMany({
         where: { id, accountId },
-        data: dto,
+        data,
       })
       .then(async () => {
         return (this.prisma as any).payment.findFirst({
