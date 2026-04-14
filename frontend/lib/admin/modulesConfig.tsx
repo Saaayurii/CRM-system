@@ -196,7 +196,7 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
         ],
       },
       { key: 'phone', label: 'Телефон', type: 'text' },
-      { key: 'password', label: 'Пароль', type: 'password' },
+      { key: 'newPassword', label: 'Пароль', type: 'password' },
     ],
   },
   projects: {

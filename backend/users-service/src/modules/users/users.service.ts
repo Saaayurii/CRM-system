@@ -106,7 +106,13 @@ export class UsersService {
       throw new ForbiddenException('Access denied');
     }
 
-    const updatedUser = await this.userRepository.update(id, updateUserDto);
+    const { newPassword, ...rest } = updateUserDto;
+    const updateData: Record<string, unknown> = { ...rest };
+    if (newPassword) {
+      updateData.passwordDigest = await bcrypt.hash(newPassword, 10);
+    }
+
+    const updatedUser = await this.userRepository.update(id, updateData as any);
     return this.toResponseDto(updatedUser);
   }
 

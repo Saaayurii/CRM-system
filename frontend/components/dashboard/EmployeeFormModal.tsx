@@ -64,7 +64,7 @@ export default function EmployeeFormModal({ employee, onClose, onSaved }: Employ
         phone: form.phone || undefined,
         roleId: form.roleId ? Number(form.roleId) : undefined,
       };
-      if (form.password) payload.password = form.password;
+      if (form.password) payload.newPassword = form.password;
 
       await api.put(`/users/${employee!.id}`, payload);
       addToast('success', 'Сотрудник обновлён');

@@ -6,6 +6,7 @@ import {
   IsOptional,
   IsString,
   MaxLength,
+  MinLength,
 } from 'class-validator';
 
 export class UpdateUserDto {
@@ -66,4 +67,10 @@ export class UpdateUserDto {
   @IsOptional()
   @MaxLength(500)
   avatarUrl?: string;
+
+  @ApiPropertyOptional({ description: 'Set new password (admin use)', minLength: 6 })
+  @IsString()
+  @IsOptional()
+  @MinLength(6)
+  newPassword?: string;
 }
