@@ -32,16 +32,20 @@ export class TasksGatewayController {
   @ApiOperation({ summary: 'Get all tasks' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
+  @ApiQuery({ name: 'projectId', required: false })
+  @ApiQuery({ name: 'status', required: false })
   async findAllTasks(
     @Req() req: Request,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
+    @Query('projectId') projectId?: number,
+    @Query('status') status?: number,
   ) {
     return this.proxyService.forward('tasks', {
       method: 'GET',
       path: '/tasks',
       headers: { authorization: req.headers.authorization || '' },
-      params: { page, limit },
+      params: { page, limit, projectId, status },
     });
   }
 

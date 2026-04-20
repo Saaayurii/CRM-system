@@ -63,8 +63,9 @@ interface ChatChannel {
 
 interface ChatMessage {
   id: number;
-  text: string;
-  senderName: string;
+  messageText?: string;
+  senderName?: string;
+  user?: { id: number; name: string; email: string; avatarUrl?: string };
   createdAt: string;
   channelId: number;
 }
@@ -74,6 +75,16 @@ interface ConstructionSite {
   name: string;
   status?: string;
   photos?: string[];
+}
+
+interface Task {
+  id: number;
+  title: string;
+  status?: number;
+  priority?: number;
+  dueDate?: string;
+  due_date?: string;
+  assignees?: { userId: number; userName?: string }[];
 }
 
 /* ─── Constants ─── */
@@ -93,6 +104,21 @@ const PRIORITY_LABELS: Record<number, { label: string; color: string }> = {
   4: { label: 'Критический', color: 'text-red-500' },
 };
 
+const TASK_STATUS: Record<number, { label: string; color: string }> = {
+  0: { label: 'Новая', color: 'bg-gray-500/20 text-gray-600 dark:text-gray-300' },
+  1: { label: 'В работе', color: 'bg-blue-500/20 text-blue-700 dark:text-blue-400' },
+  2: { label: 'На проверке', color: 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-400' },
+  3: { label: 'Готово', color: 'bg-green-500/20 text-green-700 dark:text-green-400' },
+  4: { label: 'Отменена', color: 'bg-red-500/20 text-red-700 dark:text-red-400' },
+};
+
+const TASK_PRIORITY: Record<number, { label: string; color: string }> = {
+  1: { label: 'Низкий', color: 'text-gray-500' },
+  2: { label: 'Средний', color: 'text-yellow-500' },
+  3: { label: 'Высокий', color: 'text-orange-500' },
+  4: { label: 'Критический', color: 'text-red-500' },
+};
+
 const DOC_TYPE_LABELS: Record<string, string> = {
   contract: 'Договор', invoice: 'Счёт', report: 'Отчёт',
   permit: 'Разрешение', blueprint: 'Чертёж', other: 'Прочее',
@@ -100,6 +126,7 @@ const DOC_TYPE_LABELS: Record<string, string> = {
 
 const TABS = [
   { key: 'overview', label: 'Обзор' },
+  { key: 'tasks', label: 'Задачи' },
   { key: 'team', label: 'Команда' },
   { key: 'documents', label: 'Документы' },
   { key: 'chat', label: 'Диалог' },
@@ -147,6 +174,9 @@ export default function ProjectDetailPage() {
   const [creatingChannel, setCreatingChannel] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loadingTasks, setLoadingTasks] = useState(false);
+
   const [sites, setSites] = useState<ConstructionSite[]>([]);
   const [loadingPhotos, setLoadingPhotos] = useState(false);
   const [lightboxPhoto, setLightboxPhoto] = useState<string | null>(null);
@@ -184,6 +214,17 @@ export default function ProjectDetailPage() {
         .finally(() => setLoadingDocs(false));
     }
 
+    if (activeTab === 'tasks' && tasks.length === 0 && !loadingTasks) {
+      setLoadingTasks(true);
+      api.get('/tasks', { params: { projectId, limit: 100 } })
+        .then((r) => {
+          const t = r.data?.tasks || r.data?.data || r.data || [];
+          setTasks(Array.isArray(t) ? t : []);
+        })
+        .catch(() => setTasks([]))
+        .finally(() => setLoadingTasks(false));
+    }
+
     if (activeTab === 'chat' && !channel && !loadingChat) {
       loadOrCreateChannel();
     }
@@ -203,10 +244,15 @@ export default function ProjectDetailPage() {
 
   /* ─── Chat helpers ─── */
   const loadMessages = useCallback(async (channelId: number) => {
-    const r = await api.get(`/chat-channels/${channelId}/messages`, { params: { limit: 50 } });
-    const msgs: ChatMessage[] = r.data?.messages || r.data?.data || r.data || [];
-    setMessages(msgs.slice().reverse());
-    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+    try {
+      const r = await api.get(`/chat-channels/${channelId}/messages`, { params: { limit: 50 } });
+      const raw = r.data?.data || r.data?.messages || (Array.isArray(r.data) ? r.data : []);
+      const msgs: ChatMessage[] = Array.isArray(raw) ? raw : [];
+      setMessages(msgs.slice().reverse());
+      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+    } catch {
+      setMessages([]);
+    }
   }, []);
 
   const loadOrCreateChannel = useCallback(async () => {
@@ -250,7 +296,7 @@ export default function ProjectDetailPage() {
     if (!channel || !chatInput.trim()) return;
     setSendingMsg(true);
     try {
-      await api.post(`/chat-channels/${channel.id}/messages`, { text: chatInput.trim() });
+      await api.post(`/chat-channels/${channel.id}/messages`, { messageText: chatInput.trim() });
       setChatInput('');
       await loadMessages(channel.id);
     } catch {
@@ -375,6 +421,58 @@ export default function ProjectDetailPage() {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* ─── TAB: Tasks ─── */}
+      {activeTab === 'tasks' && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+            <h2 className="font-semibold text-gray-800 dark:text-gray-100">Задачи проекта</h2>
+            <span className="text-xs text-gray-400">{tasks.length} задач</span>
+          </div>
+          {loadingTasks ? (
+            <LoadingState />
+          ) : tasks.length === 0 ? (
+            <EmptyState text="Задачи не найдены" />
+          ) : (
+            <table className="table-auto w-full text-sm">
+              <thead>
+                <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
+                  <th className="py-3 px-4 text-left font-semibold">Название</th>
+                  <th className="py-3 px-4 text-left font-semibold">Статус</th>
+                  <th className="py-3 px-4 text-left font-semibold">Приоритет</th>
+                  <th className="py-3 px-4 text-left font-semibold">Срок</th>
+                  <th className="py-3 px-4 text-left font-semibold">Исполнители</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
+                {tasks.map((t) => {
+                  const taskStatus = TASK_STATUS[t.status ?? 0] || TASK_STATUS[0];
+                  const taskPriority = TASK_PRIORITY[t.priority ?? 2] || TASK_PRIORITY[2];
+                  return (
+                    <tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20">
+                      <td className="py-2.5 px-4 font-medium text-gray-800 dark:text-gray-100">{t.title}</td>
+                      <td className="py-2.5 px-4">
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${taskStatus.color}`}>
+                          {taskStatus.label}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-4">
+                        <span className={`text-xs font-medium ${taskPriority.color}`}>{taskPriority.label}</span>
+                      </td>
+                      <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">
+                        {fmt(t.dueDate || t.due_date)}
+                      </td>
+                      <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400 text-xs">
+                        {t.assignees?.map((a) => a.userName || `#${a.userId}`).join(', ') || '—'}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
         </div>
       )}
 
@@ -568,17 +666,19 @@ export default function ProjectDetailPage() {
                   <div key={msg.id} className="flex gap-3">
                     <div className="w-8 h-8 rounded-full bg-violet-100 dark:bg-violet-900/40 flex items-center justify-center shrink-0">
                       <span className="text-xs font-semibold text-violet-600 dark:text-violet-300">
-                        {msg.senderName?.[0]?.toUpperCase() || '?'}
+                        {(msg.user?.name || msg.senderName || '?')[0]?.toUpperCase()}
                       </span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-baseline gap-2 mb-0.5">
-                        <span className="text-sm font-medium text-gray-800 dark:text-gray-100">{msg.senderName}</span>
+                        <span className="text-sm font-medium text-gray-800 dark:text-gray-100">
+                          {msg.user?.name || msg.senderName || 'Пользователь'}
+                        </span>
                         <span className="text-xs text-gray-400">
                           {new Date(msg.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-700 dark:text-gray-300 break-words">{msg.text}</p>
+                      <p className="text-sm text-gray-700 dark:text-gray-300 break-words">{msg.messageText}</p>
                     </div>
                   </div>
                 ))}
