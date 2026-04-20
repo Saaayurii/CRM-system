@@ -1197,8 +1197,16 @@ function CreateTaskModal({
   const [priority, setPriority] = useState(2);
   const [status, setStatus] = useState(0);
   const [dueDate, setDueDate] = useState('');
+  const [assignedToUserId, setAssignedToUserId] = useState<number | ''>('');
+  const [users, setUsers] = useState<UserOption[]>([]);
   const [saving, setSaving] = useState(false);
   const addToast = useToastStore((s) => s.addToast);
+
+  useEffect(() => {
+    api.get('/users', { params: { limit: 200 } })
+      .then((r) => { const d = r.data?.users || r.data?.data || r.data || []; setUsers(Array.isArray(d) ? d : []); })
+      .catch(() => setUsers([]));
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1212,6 +1220,7 @@ function CreateTaskModal({
         priority,
         status,
         dueDate: dueDate || undefined,
+        assignedToUserId: assignedToUserId || undefined,
       });
       await onCreated();
     } catch {
@@ -1233,6 +1242,14 @@ function CreateTaskModal({
           <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Описание</label>
           <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} placeholder="Краткое описание"
             className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100 resize-none" />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Исполнитель</label>
+          <select value={assignedToUserId} onChange={(e) => setAssignedToUserId(e.target.value ? Number(e.target.value) : '')}
+            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100">
+            <option value="">— Не назначен —</option>
+            {users.map((u) => <option key={u.id} value={u.id}>{u.name} ({u.email})</option>)}
+          </select>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
