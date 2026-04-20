@@ -353,10 +353,10 @@ function AdminDashboard({ user }: { user: any }) {
   }, []);
 
   const statCards = [
-    { label: 'Проекты', value: projects.length, color: 'blue' },
-    { label: 'Задачи', value: tasks.length, color: 'green' },
-    { label: 'Сотрудники', value: userCount ?? '—', color: 'yellow' },
-    { label: 'Команды', value: teamCount ?? '—', color: 'purple' },
+    { label: 'Проекты', value: projects.length, color: 'blue', href: '/dashboard/projects' },
+    { label: 'Задачи', value: tasks.length, color: 'green', href: '/dashboard/tasks' },
+    { label: 'Сотрудники', value: userCount ?? '—', color: 'yellow', href: '/dashboard/employees' },
+    { label: 'Команды', value: teamCount ?? '—', color: 'purple', href: '/dashboard/teams' },
   ];
 
   const colorMap: Record<string, { bg: string; text: string }> = {
@@ -380,19 +380,21 @@ function AdminDashboard({ user }: { user: any }) {
         {statCards.map((card) => {
           const c = colorMap[card.color];
           return (
-            <div key={card.label} className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-5">
-              <div className="flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-lg ${c.bg} flex items-center justify-center ${c.text}`}>
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{loading ? '—' : card.value}</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">{card.label}</p>
+            <Link key={card.label} href={card.href} className="group">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-5 transition-shadow group-hover:shadow-md group-hover:ring-1 group-hover:ring-violet-500/20 cursor-pointer">
+                <div className="flex items-center gap-4">
+                  <div className={`w-12 h-12 rounded-lg ${c.bg} flex items-center justify-center ${c.text}`}>
+                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{loading ? '—' : card.value}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{card.label}</p>
+                  </div>
                 </div>
               </div>
-            </div>
+            </Link>
           );
         })}
       </div>
