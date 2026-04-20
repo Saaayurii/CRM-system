@@ -994,7 +994,7 @@ export default function ProjectDetailPage() {
       {/* Assign Employee Modal */}
       {showAssignEmployee && (
         <AssignEmployeeModal
-          alreadyAssigned={assignments.map((a) => a.userId)}
+          alreadyAssigned={assignments.map((a) => Number((a as any).userId || (a as any).user_id || 0)).filter(Boolean)}
           onAssign={async (userId, role) => { await handleAssignEmployee(userId, role); setShowAssignEmployee(false); }}
           onClose={() => setShowAssignEmployee(false)}
         />
@@ -1226,7 +1226,7 @@ function AssignEmployeeModal({
       {loading ? <LoadingState /> : filtered.length === 0 ? <EmptyState text="Сотрудники не найдены" /> : (
         <div className="space-y-2 max-h-72 overflow-y-auto">
           {filtered.map((user) => {
-            const assigned = alreadyAssigned.includes(user.id);
+            const assigned = alreadyAssigned.map(Number).includes(Number(user.id));
             return (
               <div key={user.id} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/40">
                 <div>
