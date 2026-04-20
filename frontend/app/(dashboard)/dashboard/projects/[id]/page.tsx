@@ -6,6 +6,10 @@ import Link from 'next/link';
 import api from '@/lib/api';
 import ProjectFormModal from '@/components/dashboard/ProjectFormModal';
 import { useToastStore } from '@/stores/toastStore';
+import { useChatStore } from '@/stores/chatStore';
+import { useAuthStore } from '@/stores/authStore';
+import ChatInput from '@/components/chat/ChatInput';
+import ChatMessageComponent from '@/components/chat/ChatMessage';
 
 /* ─── Types ─── */
 
@@ -217,12 +221,8 @@ export default function ProjectDetailPage() {
   /* Chat tab */
   const [channel, setChannel] = useState<ChatChannel | null>(null);
   const [channelChecked, setChannelChecked] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loadingChat, setLoadingChat] = useState(false);
-  const [chatInput, setChatInput] = useState('');
-  const [sendingMsg, setSendingMsg] = useState(false);
   const [creatingChannel, setCreatingChannel] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   /* Photos tab */
   const [sites, setSites] = useState<ConstructionSite[]>([]);
@@ -344,41 +344,30 @@ export default function ProjectDetailPage() {
   }, [activeTab]);
 
   /* ─── Chat helpers ─── */
-  const loadMessages = useCallback(async (channelId: number) => {
-    try {
-      const r = await api.get(`/chat-channels/${channelId}/messages`, { params: { limit: 50 } });
-      const raw = r.data?.data || r.data?.messages || (Array.isArray(r.data) ? r.data : []);
-      setMessages(Array.isArray(raw) ? raw.slice().reverse() : []);
-      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
-    } catch { setMessages([]); }
-  }, []);
-
   const findChannel = useCallback(async () => {
     setLoadingChat(true);
     try {
       const r = await api.get('/chat-channels', { params: { limit: 200 } });
-      const channels: any[] = r.data?.data || r.data?.channels || [];
-      const found = channels.find((c: any) => c.projectId === projectId || c.project_id === projectId);
-      if (found) { setChannel(found); await loadMessages(found.id); }
+      const list: any[] = r.data?.data || r.data?.channels || [];
+      const found = list.find((c: any) => c.projectId === projectId || c.project_id === projectId);
+      if (found) setChannel(found);
     } catch { /* ignore */ }
     finally { setLoadingChat(false); setChannelChecked(true); }
-  }, [projectId, loadMessages]);
+  }, [projectId]);
 
   const getOrCreateChannel = useCallback(async (): Promise<ChatChannel | null> => {
     if (channel) return channel;
     try {
       const r = await api.get('/chat-channels', { params: { limit: 200 } });
-      const channels: any[] = r.data?.data || r.data?.channels || [];
-      const found = channels.find((c: any) => c.projectId === projectId || c.project_id === projectId);
+      const list: any[] = r.data?.data || r.data?.channels || [];
+      const found = list.find((c: any) => c.projectId === projectId || c.project_id === projectId);
       if (found) { setChannel(found); return found; }
     } catch { /* ignore */ }
     if (!project) return null;
     try {
       const r = await api.post('/chat-channels', { name: `Проект: ${project.name}`, channelType: 'group', projectId });
-      const created = r.data;
-      setChannel(created);
-      setChannelChecked(true);
-      return created;
+      setChannel(r.data); setChannelChecked(true);
+      return r.data;
     } catch { return null; }
   }, [channel, project, projectId]);
 
@@ -388,6 +377,10 @@ export default function ProjectDetailPage() {
     await Promise.allSettled(
       userIds.map((userId) => api.post(`/chat-channels/${ch.id}/members`, { userId, role: 'member' }))
     );
+    // refresh channel to update member count in store
+    useChatStore.getState().fetchChannels(1);
+    const refreshed = await api.get(`/chat-channels/${ch.id}`).catch(() => null);
+    if (refreshed) setChannel(refreshed.data);
   }, [getOrCreateChannel]);
 
   const handleCreateChannel = async () => {
@@ -395,22 +388,10 @@ export default function ProjectDetailPage() {
     setCreatingChannel(true);
     try {
       const r = await api.post('/chat-channels', { name: `Проект: ${project.name}`, channelType: 'group', projectId });
-      setChannel(r.data); setMessages([]);
-      setChannelChecked(true);
+      setChannel(r.data); setChannelChecked(true);
       addToast('success', 'Чат для проекта создан');
     } catch { addToast('error', 'Не удалось создать чат'); }
     finally { setCreatingChannel(false); }
-  };
-
-  const handleSendMessage = async () => {
-    if (!channel || !chatInput.trim()) return;
-    setSendingMsg(true);
-    try {
-      await api.post(`/chat-channels/${channel.id}/messages`, { messageText: chatInput.trim() });
-      setChatInput('');
-      await loadMessages(channel.id);
-    } catch { addToast('error', 'Не удалось отправить сообщение'); }
-    finally { setSendingMsg(false); }
   };
 
   /* ─── Team actions ─── */
@@ -889,13 +870,7 @@ export default function ProjectDetailPage() {
 
       {/* ─── Chat ─── */}
       {activeTab === 'chat' && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden flex flex-col" style={{ height: '520px' }}>
-          <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between shrink-0">
-            <h2 className="font-semibold text-gray-800 dark:text-gray-100">
-              {channel ? (channel.name || channel.channelName || 'Чат проекта') : 'Диалог'}
-            </h2>
-            {channel && <span className="text-xs text-gray-400">{channel.membersCount ?? 0} участников</span>}
-          </div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden flex flex-col" style={{ height: '600px' }}>
           {loadingChat ? <LoadingState /> : !channel ? (
             <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8 text-center">
               <div className="w-14 h-14 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
@@ -913,38 +888,7 @@ export default function ProjectDetailPage() {
               </button>
             </div>
           ) : (
-            <>
-              <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                {messages.length === 0 && <p className="text-center text-sm text-gray-400 mt-8">Нет сообщений. Начните диалог!</p>}
-                {messages.map((msg) => (
-                  <div key={msg.id} className="flex gap-3">
-                    <div className="w-8 h-8 rounded-full bg-violet-100 dark:bg-violet-900/40 flex items-center justify-center shrink-0">
-                      <span className="text-xs font-semibold text-violet-600 dark:text-violet-300">
-                        {(msg.user?.name || msg.senderName || '?')[0]?.toUpperCase()}
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-baseline gap-2 mb-0.5">
-                        <span className="text-sm font-medium text-gray-800 dark:text-gray-100">{msg.user?.name || msg.senderName || 'Пользователь'}</span>
-                        <span className="text-xs text-gray-400">{new Date(msg.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</span>
-                      </div>
-                      <p className="text-sm text-gray-700 dark:text-gray-300 break-words">{msg.messageText}</p>
-                    </div>
-                  </div>
-                ))}
-                <div ref={messagesEndRef} />
-              </div>
-              <div className="shrink-0 border-t border-gray-100 dark:border-gray-700 p-3 flex gap-2">
-                <input value={chatInput} onChange={(e) => setChatInput(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
-                  placeholder="Введите сообщение..."
-                  className="flex-1 px-3 py-2 text-sm bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100 placeholder-gray-400" />
-                <button onClick={handleSendMessage} disabled={sendingMsg || !chatInput.trim()}
-                  className="px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
-                  {sendingMsg ? '...' : 'Отправить'}
-                </button>
-              </div>
-            </>
+            <ProjectChatPanel channelId={channel.id} channelName={channel.name || channel.channelName || 'Чат проекта'} />
           )}
         </div>
       )}
@@ -1326,6 +1270,127 @@ function UploadDocumentModal({
         </div>
       </form>
     </ModalShell>
+  );
+}
+
+/* ─── Project Chat Panel ─── */
+
+function ProjectChatPanel({ channelId, channelName }: { channelId: number; channelName: string }) {
+  const connect = useChatStore((s) => s.connect);
+  const setActiveChannel = useChatStore((s) => s.setActiveChannel);
+  const fetchChannels = useChatStore((s) => s.fetchChannels);
+  const messages = useChatStore((s) => s.messages);
+  const isLoadingMessages = useChatStore((s) => s.isLoadingMessages);
+  const hasMoreMessages = useChatStore((s) => s.hasMoreMessages);
+  const fetchMessages = useChatStore((s) => s.fetchMessages);
+  const channelReadAts = useChatStore((s) => s.channelReadAts);
+  const setReplyToMessage = useChatStore((s) => s.setReplyToMessage);
+  const channels = useChatStore((s) => s.channels);
+  const user = useAuthStore((s) => s.user);
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const initialRef = useRef(true);
+  const prevLenRef = useRef(0);
+
+  const membersCount = channels.find((c) => c.id === channelId)?.membersCount ?? 0;
+
+  useEffect(() => {
+    connect();
+    // Ensure channel is in store's channels list, then activate
+    fetchChannels(1).then(() => setActiveChannel(channelId));
+    return () => { setActiveChannel(null); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [channelId]);
+
+  useEffect(() => {
+    if (messages.length === 0) return;
+    if (initialRef.current) {
+      initialRef.current = false;
+      prevLenRef.current = messages.length;
+      bottomRef.current?.scrollIntoView();
+      return;
+    }
+    if (messages.length > prevLenRef.current) {
+      prevLenRef.current = messages.length;
+      const el = containerRef.current;
+      if (el && el.scrollHeight - el.scrollTop - el.clientHeight < 150) {
+        bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  }, [messages.length]);
+
+  const handleScroll = useCallback(() => {
+    const el = containerRef.current;
+    if (!el || isLoadingMessages || !hasMoreMessages || messages.length === 0) return;
+    if (el.scrollTop < 200) {
+      const prevH = el.scrollHeight;
+      fetchMessages(channelId, messages[0]?.id).then(() => {
+        requestAnimationFrame(() => {
+          if (containerRef.current) {
+            containerRef.current.scrollTop = containerRef.current.scrollHeight - prevH;
+          }
+        });
+      });
+    }
+  }, [channelId, fetchMessages, hasMoreMessages, isLoadingMessages, messages]);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    el.addEventListener('scroll', handleScroll);
+    return () => el.removeEventListener('scroll', handleScroll);
+  }, [handleScroll]);
+
+  const isMessageRead = useCallback((msg: any): boolean => {
+    if (msg.senderId !== user?.id) return false;
+    const reads = channelReadAts[channelId] || {};
+    return Object.entries(reads).some(
+      ([uid, readAt]) => Number(uid) !== user?.id && new Date(readAt as string) >= new Date(msg.createdAt)
+    );
+  }, [channelId, channelReadAts, user?.id]);
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="px-5 py-3 border-b border-gray-100 dark:border-gray-700 flex items-center gap-3 shrink-0">
+        <div className="w-8 h-8 rounded-full bg-violet-500 flex items-center justify-center shrink-0">
+          <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{channelName}</h3>
+          <p className="text-xs text-gray-400">{membersCount} участник{membersCount === 1 ? '' : membersCount >= 2 && membersCount <= 4 ? 'а' : 'ов'}</p>
+        </div>
+      </div>
+
+      {/* Messages */}
+      <div ref={containerRef} className="flex-1 overflow-y-auto p-4 space-y-1">
+        {isLoadingMessages && <div className="text-center text-xs text-gray-400 py-2">Загрузка...</div>}
+        {!isLoadingMessages && messages.length === 0 && (
+          <p className="text-center text-sm text-gray-400 mt-12">Нет сообщений. Начните диалог!</p>
+        )}
+        {messages.map((msg, idx) => {
+          const prev = messages[idx - 1];
+          const showAvatar = !prev || prev.senderId !== msg.senderId;
+          return (
+            <ChatMessageComponent
+              key={msg.id}
+              message={msg}
+              isOwn={msg.senderId === user?.id}
+              showAvatar={showAvatar}
+              isRead={isMessageRead(msg)}
+              onReply={() => setReplyToMessage(msg)}
+            />
+          );
+        })}
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Input */}
+      <ChatInput channelId={channelId} />
+    </div>
   );
 }
 
