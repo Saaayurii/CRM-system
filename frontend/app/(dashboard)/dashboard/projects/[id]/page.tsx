@@ -50,6 +50,7 @@ interface Document {
   documentType?: string;
   status?: string;
   fileUrl?: string;
+  fileSize?: number;
   createdAt: string;
 }
 
@@ -87,6 +88,23 @@ interface Task {
   assignees?: { userId: number; userName?: string }[];
 }
 
+interface TeamOption {
+  id: number;
+  name: string;
+  description?: string;
+  membersCount?: number;
+  _count?: { members: number };
+}
+
+interface UserOption {
+  id: number;
+  name: string;
+  email: string;
+  position?: string;
+  roleId?: number;
+  role?: { name: string };
+}
+
 /* ─── Constants ─── */
 
 const STATUS_LABELS: Record<number, { label: string; color: string }> = {
@@ -119,10 +137,18 @@ const TASK_PRIORITY: Record<number, { label: string; color: string }> = {
   4: { label: 'Критический', color: 'text-red-500' },
 };
 
-const DOC_TYPE_LABELS: Record<string, string> = {
-  contract: 'Договор', invoice: 'Счёт', report: 'Отчёт',
-  permit: 'Разрешение', blueprint: 'Чертёж', other: 'Прочее',
-};
+const DOC_TYPE_OPTIONS = [
+  { value: 'contract', label: 'Договор' },
+  { value: 'invoice', label: 'Счёт' },
+  { value: 'report', label: 'Отчёт' },
+  { value: 'permit', label: 'Разрешение' },
+  { value: 'blueprint', label: 'Чертёж' },
+  { value: 'other', label: 'Прочее' },
+];
+
+const DOC_TYPE_LABELS: Record<string, string> = Object.fromEntries(
+  DOC_TYPE_OPTIONS.map((o) => [o.value, o.label])
+);
 
 const TABS = [
   { key: 'overview', label: 'Обзор' },
@@ -145,6 +171,13 @@ function fmtMoney(n?: number) {
   return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(n);
 }
 
+function fmtSize(bytes?: number) {
+  if (!bytes) return '';
+  if (bytes < 1024) return `${bytes} Б`;
+  if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} КБ`;
+  return `${(bytes / 1048576).toFixed(1)} МБ`;
+}
+
 /* ─── Main Page ─── */
 
 export default function ProjectDetailPage() {
@@ -158,15 +191,30 @@ export default function ProjectDetailPage() {
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
   const [showEditModal, setShowEditModal] = useState(false);
 
-  /* Tab-specific state */
+  /* Team tab */
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loadingTeam, setLoadingTeam] = useState(false);
+  const [teamLoaded, setTeamLoaded] = useState(false);
+  const [showAssignTeam, setShowAssignTeam] = useState(false);
+  const [showAssignEmployee, setShowAssignEmployee] = useState(false);
+  const [removingTeamId, setRemovingTeamId] = useState<number | null>(null);
+  const [removingAssignId, setRemovingAssignId] = useState<number | null>(null);
 
+  /* Documents tab */
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loadingDocs, setLoadingDocs] = useState(false);
+  const [docsLoaded, setDocsLoaded] = useState(false);
+  const [showUploadDoc, setShowUploadDoc] = useState(false);
 
+  /* Tasks tab */
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loadingTasks, setLoadingTasks] = useState(false);
+  const [tasksLoaded, setTasksLoaded] = useState(false);
+
+  /* Chat tab */
   const [channel, setChannel] = useState<ChatChannel | null>(null);
+  const [channelChecked, setChannelChecked] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loadingChat, setLoadingChat] = useState(false);
   const [chatInput, setChatInput] = useState('');
@@ -174,12 +222,13 @@ export default function ProjectDetailPage() {
   const [creatingChannel, setCreatingChannel] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [loadingTasks, setLoadingTasks] = useState(false);
-
+  /* Photos tab */
   const [sites, setSites] = useState<ConstructionSite[]>([]);
   const [loadingPhotos, setLoadingPhotos] = useState(false);
+  const [sitesLoaded, setSitesLoaded] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [lightboxPhoto, setLightboxPhoto] = useState<string | null>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   /* ─── Load project ─── */
   useEffect(() => {
@@ -189,56 +238,64 @@ export default function ProjectDetailPage() {
       .finally(() => setLoadingProject(false));
   }, [projectId, router]);
 
+  /* ─── Reload helpers ─── */
+  const reloadTeam = useCallback(async () => {
+    setLoadingTeam(true);
+    try {
+      const [teamRes, assignRes] = await Promise.all([
+        api.get(`/projects/${projectId}/team`).catch(() => ({ data: [] })),
+        api.get(`/projects/${projectId}/assignments`).catch(() => ({ data: {} })),
+      ]);
+      setTeamMembers(Array.isArray(teamRes.data) ? teamRes.data : teamRes.data?.teams || []);
+      const aData = assignRes.data?.assignments || assignRes.data?.data || assignRes.data || [];
+      setAssignments(Array.isArray(aData) ? aData : []);
+      setTeamLoaded(true);
+    } finally {
+      setLoadingTeam(false);
+    }
+  }, [projectId]);
+
+  const reloadDocuments = useCallback(async () => {
+    setLoadingDocs(true);
+    try {
+      const r = await api.get('/documents', { params: { projectId, limit: 100 } });
+      const d = r.data?.documents || r.data?.data || r.data || [];
+      setDocuments(Array.isArray(d) ? d : []);
+      setDocsLoaded(true);
+    } catch {
+      setDocuments([]);
+    } finally {
+      setLoadingDocs(false);
+    }
+  }, [projectId]);
+
+  const reloadSites = useCallback(async () => {
+    setLoadingPhotos(true);
+    try {
+      const r = await api.get(`/projects/${projectId}/construction-sites`, { params: { limit: 100 } });
+      const s = r.data?.sites || r.data?.data || r.data || [];
+      setSites(Array.isArray(s) ? s : []);
+      setSitesLoaded(true);
+    } catch {
+      setSites([]);
+    } finally {
+      setLoadingPhotos(false);
+    }
+  }, [projectId]);
+
   /* ─── Load tab data ─── */
   useEffect(() => {
-    if (activeTab === 'team' && teamMembers.length === 0 && !loadingTeam) {
-      setLoadingTeam(true);
-      Promise.all([
-        api.get(`/projects/${projectId}/team`).catch(() => ({ data: [] })),
-        api.get(`/projects/${projectId}/assignments`).catch(() => ({ data: { assignments: [], data: [] } })),
-      ]).then(([teamRes, assignRes]) => {
-        setTeamMembers(Array.isArray(teamRes.data) ? teamRes.data : teamRes.data?.teams || []);
-        const aData = assignRes.data?.assignments || assignRes.data?.data || assignRes.data || [];
-        setAssignments(Array.isArray(aData) ? aData : []);
-      }).finally(() => setLoadingTeam(false));
-    }
-
-    if (activeTab === 'documents' && documents.length === 0 && !loadingDocs) {
-      setLoadingDocs(true);
-      api.get('/documents', { params: { projectId, limit: 100 } })
-        .then((r) => {
-          const d = r.data?.documents || r.data?.data || r.data || [];
-          setDocuments(Array.isArray(d) ? d : []);
-        })
-        .catch(() => setDocuments([]))
-        .finally(() => setLoadingDocs(false));
-    }
-
-    if (activeTab === 'tasks' && tasks.length === 0 && !loadingTasks) {
+    if (activeTab === 'team' && !teamLoaded && !loadingTeam) reloadTeam();
+    if (activeTab === 'documents' && !docsLoaded && !loadingDocs) reloadDocuments();
+    if (activeTab === 'tasks' && !tasksLoaded && !loadingTasks) {
       setLoadingTasks(true);
       api.get('/tasks', { params: { projectId, limit: 100 } })
-        .then((r) => {
-          const t = r.data?.tasks || r.data?.data || r.data || [];
-          setTasks(Array.isArray(t) ? t : []);
-        })
+        .then((r) => { const t = r.data?.tasks || r.data?.data || r.data || []; setTasks(Array.isArray(t) ? t : []); setTasksLoaded(true); })
         .catch(() => setTasks([]))
         .finally(() => setLoadingTasks(false));
     }
-
-    if (activeTab === 'chat' && !channel && !loadingChat) {
-      loadOrCreateChannel();
-    }
-
-    if (activeTab === 'photos' && sites.length === 0 && !loadingPhotos) {
-      setLoadingPhotos(true);
-      api.get(`/projects/${projectId}/construction-sites`, { params: { limit: 100 } })
-        .then((r) => {
-          const s = r.data?.sites || r.data?.data || r.data || [];
-          setSites(Array.isArray(s) ? s : []);
-        })
-        .catch(() => setSites([]))
-        .finally(() => setLoadingPhotos(false));
-    }
+    if (activeTab === 'chat' && !channelChecked && !loadingChat) findChannel();
+    if (activeTab === 'photos' && !sitesLoaded && !loadingPhotos) reloadSites();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
@@ -247,49 +304,58 @@ export default function ProjectDetailPage() {
     try {
       const r = await api.get(`/chat-channels/${channelId}/messages`, { params: { limit: 50 } });
       const raw = r.data?.data || r.data?.messages || (Array.isArray(r.data) ? r.data : []);
-      const msgs: ChatMessage[] = Array.isArray(raw) ? raw : [];
-      setMessages(msgs.slice().reverse());
+      setMessages(Array.isArray(raw) ? raw.slice().reverse() : []);
       setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
-    } catch {
-      setMessages([]);
-    }
+    } catch { setMessages([]); }
   }, []);
 
-  const loadOrCreateChannel = useCallback(async () => {
+  const findChannel = useCallback(async () => {
     setLoadingChat(true);
     try {
       const r = await api.get('/chat-channels', { params: { limit: 200 } });
-      const channels: any[] = r.data?.channels || r.data?.data || r.data || [];
+      const channels: any[] = r.data?.data || r.data?.channels || [];
       const found = channels.find((c: any) => c.projectId === projectId || c.project_id === projectId);
-      if (found) {
-        setChannel(found);
-        await loadMessages(found.id);
-      }
-    } catch {
-      /* ignore */
-    } finally {
-      setLoadingChat(false);
-    }
+      if (found) { setChannel(found); await loadMessages(found.id); }
+    } catch { /* ignore */ }
+    finally { setLoadingChat(false); setChannelChecked(true); }
   }, [projectId, loadMessages]);
+
+  const getOrCreateChannel = useCallback(async (): Promise<ChatChannel | null> => {
+    if (channel) return channel;
+    try {
+      const r = await api.get('/chat-channels', { params: { limit: 200 } });
+      const channels: any[] = r.data?.data || r.data?.channels || [];
+      const found = channels.find((c: any) => c.projectId === projectId || c.project_id === projectId);
+      if (found) { setChannel(found); return found; }
+    } catch { /* ignore */ }
+    if (!project) return null;
+    try {
+      const r = await api.post('/chat-channels', { name: `Проект: ${project.name}`, channelType: 'group', projectId });
+      const created = r.data;
+      setChannel(created);
+      setChannelChecked(true);
+      return created;
+    } catch { return null; }
+  }, [channel, project, projectId]);
+
+  const addUsersToChannel = useCallback(async (userIds: number[]) => {
+    const ch = await getOrCreateChannel();
+    if (!ch || userIds.length === 0) return;
+    await Promise.allSettled(
+      userIds.map((userId) => api.post(`/chat-channels/${ch.id}/members`, { userId, role: 'member' }))
+    );
+  }, [getOrCreateChannel]);
 
   const handleCreateChannel = async () => {
     if (!project) return;
     setCreatingChannel(true);
     try {
-      const r = await api.post('/chat-channels', {
-        name: `Проект: ${project.name}`,
-        channelType: 'group',
-        projectId,
-      });
-      const created = r.data;
-      setChannel(created);
-      setMessages([]);
+      const r = await api.post('/chat-channels', { name: `Проект: ${project.name}`, channelType: 'group', projectId });
+      setChannel(r.data); setMessages([]);
+      setChannelChecked(true);
       addToast('success', 'Чат для проекта создан');
-    } catch {
-      addToast('error', 'Не удалось создать чат');
-    } finally {
-      setCreatingChannel(false);
-    }
+    } catch { addToast('error', 'Не удалось создать чат'); }
+    finally { setCreatingChannel(false); }
   };
 
   const handleSendMessage = async () => {
@@ -299,11 +365,115 @@ export default function ProjectDetailPage() {
       await api.post(`/chat-channels/${channel.id}/messages`, { messageText: chatInput.trim() });
       setChatInput('');
       await loadMessages(channel.id);
-    } catch {
-      addToast('error', 'Не удалось отправить сообщение');
-    } finally {
-      setSendingMsg(false);
-    }
+    } catch { addToast('error', 'Не удалось отправить сообщение'); }
+    finally { setSendingMsg(false); }
+  };
+
+  /* ─── Team actions ─── */
+  const handleAssignTeam = async (teamId: number) => {
+    try {
+      await api.post(`/projects/${projectId}/team`, { teamId });
+      // get team members to sync chat
+      try {
+        const r = await api.get(`/teams/${teamId}/members`);
+        const members: any[] = r.data?.members || r.data?.data || r.data || [];
+        const userIds = members.map((m: any) => m.userId || m.user?.id).filter(Boolean) as number[];
+        if (userIds.length > 0) await addUsersToChannel(userIds);
+      } catch { /* chat sync optional */ }
+      await reloadTeam();
+      addToast('success', 'Команда назначена и добавлена в чат');
+    } catch { addToast('error', 'Не удалось назначить команду'); }
+  };
+
+  const handleRemoveTeam = async (teamId: number) => {
+    setRemovingTeamId(teamId);
+    try {
+      await api.delete(`/projects/${projectId}/team/${teamId}`);
+      setTeamMembers((prev) => prev.filter((m) => m.teamId !== teamId));
+      addToast('success', 'Команда удалена из проекта');
+    } catch { addToast('error', 'Не удалось удалить команду'); }
+    finally { setRemovingTeamId(null); }
+  };
+
+  const handleAssignEmployee = async (userId: number, roleOnProject?: string) => {
+    try {
+      await api.post(`/projects/${projectId}/assignments`, { userId, roleOnProject });
+      await addUsersToChannel([userId]);
+      await reloadTeam();
+      addToast('success', 'Сотрудник назначен и добавлен в чат');
+    } catch { addToast('error', 'Не удалось назначить сотрудника'); }
+  };
+
+  const handleRemoveAssignment = async (assignmentId: number) => {
+    setRemovingAssignId(assignmentId);
+    try {
+      await api.delete(`/projects/${projectId}/assignments/${assignmentId}`);
+      setAssignments((prev) => prev.filter((a) => a.id !== assignmentId));
+      addToast('success', 'Сотрудник удалён из проекта');
+    } catch { addToast('error', 'Не удалось удалить сотрудника'); }
+    finally { setRemovingAssignId(null); }
+  };
+
+  /* ─── Document upload ─── */
+  const handleUploadDocument = async (file: File, title: string, docType: string, description: string) => {
+    const form = new FormData();
+    form.append('file', file);
+    const uploadRes = await api.post('/employee-documents/upload', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    const fileUrl: string = uploadRes.data?.fileUrl || uploadRes.data?.url || '';
+    const fileSize: number = uploadRes.data?.fileSize || file.size;
+    await api.post('/documents', {
+      title,
+      documentType: docType || undefined,
+      description: description || undefined,
+      projectId,
+      fileUrl,
+      fileSize,
+      fileType: file.type,
+      status: 'active',
+    });
+    await reloadDocuments();
+    addToast('success', 'Документ загружен');
+  };
+
+  /* ─── Photo upload ─── */
+  const handlePhotoFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setUploadingPhoto(true);
+    try {
+      // ensure at least one construction site exists
+      let targetSite = sites[0];
+      if (!targetSite) {
+        const r = await api.post(`/projects/${projectId}/construction-sites`, {
+          name: 'Основной объект',
+          address: project?.address || 'Не указан',
+        });
+        targetSite = r.data;
+        await reloadSites();
+        targetSite = sites[0] || r.data;
+      }
+
+      for (const file of Array.from(files)) {
+        const form = new FormData();
+        form.append('files', file);
+        const uploadRes = await api.post('/chat-channels/upload', form, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        const uploaded: any[] = Array.isArray(uploadRes.data) ? uploadRes.data : [uploadRes.data];
+        const newUrls = uploaded.map((u: any) => u.fileUrl || u.url).filter(Boolean);
+
+        // fetch current site photos and append
+        const siteRes = await api.get(`/construction-sites/${targetSite.id}`);
+        const existing: string[] = siteRes.data?.photos || [];
+        await api.put(`/construction-sites/${targetSite.id}`, {
+          photos: [...existing, ...newUrls],
+        });
+      }
+      await reloadSites();
+      addToast('success', `Загружено ${files.length} фото`);
+    } catch { addToast('error', 'Ошибка при загрузке фото'); }
+    finally { setUploadingPhoto(false); if (photoInputRef.current) photoInputRef.current.value = ''; }
   };
 
   /* ─── Render ─── */
@@ -315,15 +485,11 @@ export default function ProjectDetailPage() {
       </div>
     );
   }
-
   if (!project) return null;
 
   const status = STATUS_LABELS[project.status] || STATUS_LABELS[0];
   const priority = PRIORITY_LABELS[project.priority] || PRIORITY_LABELS[1];
-
-  const allPhotos = sites.flatMap((s) =>
-    (s.photos || []).map((url) => ({ url, siteName: s.name }))
-  );
+  const allPhotos = sites.flatMap((s) => (s.photos || []).map((url) => ({ url, siteName: s.name })));
 
   return (
     <div>
@@ -331,9 +497,7 @@ export default function ProjectDetailPage() {
       <div className="sm:flex sm:justify-between sm:items-start mb-6">
         <div>
           <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-2xl md:text-3xl text-gray-800 dark:text-gray-100 font-bold">
-              {project.name}
-            </h1>
+            <h1 className="text-2xl md:text-3xl text-gray-800 dark:text-gray-100 font-bold">{project.name}</h1>
             {project.code && (
               <span className="text-sm text-gray-400 font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">
                 {project.code}
@@ -348,13 +512,8 @@ export default function ProjectDetailPage() {
           )}
         </div>
         <div className="flex items-center gap-2 mt-3 sm:mt-0 shrink-0">
-          <Link href="/dashboard/projects" className="text-sm text-violet-500 hover:text-violet-600">
-            &larr; Назад
-          </Link>
-          <button
-            onClick={() => setShowEditModal(true)}
-            className="px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-lg transition-colors"
-          >
+          <Link href="/dashboard/projects" className="text-sm text-violet-500 hover:text-violet-600">&larr; Назад</Link>
+          <button onClick={() => setShowEditModal(true)} className="px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-lg transition-colors">
             Редактировать
           </button>
         </div>
@@ -364,41 +523,29 @@ export default function ProjectDetailPage() {
       <div className="border-b border-gray-200 dark:border-gray-700 mb-6">
         <nav className="flex gap-1 overflow-x-auto">
           {TABS.map((t) => (
-            <button
-              key={t.key}
-              onClick={() => setActiveTab(t.key)}
+            <button key={t.key} onClick={() => setActiveTab(t.key)}
               className={`px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
                 activeTab === t.key
                   ? 'border-violet-500 text-violet-600 dark:text-violet-400'
                   : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-              }`}
-            >
+              }`}>
               {t.label}
             </button>
           ))}
         </nav>
       </div>
 
-      {/* ─── TAB: Overview ─── */}
+      {/* ─── Overview ─── */}
       {activeTab === 'overview' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Main info */}
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-5 space-y-4">
             <h2 className="font-semibold text-gray-800 dark:text-gray-100">Основная информация</h2>
-            <InfoRow label="Статус" value={
-              <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${status.color}`}>
-                {status.label}
-              </span>
-            } />
-            <InfoRow label="Приоритет" value={
-              <span className={`text-sm font-medium ${priority.color}`}>{priority.label}</span>
-            } />
+            <InfoRow label="Статус" value={<span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${status.color}`}>{status.label}</span>} />
+            <InfoRow label="Приоритет" value={<span className={`text-sm font-medium ${priority.color}`}>{priority.label}</span>} />
             <InfoRow label="Руководитель" value={project.projectManager?.name || '—'} />
             <InfoRow label="Клиент" value={project.clientName || '—'} />
             <InfoRow label="Адрес" value={project.address || '—'} />
           </div>
-
-          {/* Dates & Budget */}
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-5 space-y-4">
             <h2 className="font-semibold text-gray-800 dark:text-gray-100">Сроки и бюджет</h2>
             <InfoRow label="Дата начала" value={fmt(project.startDate)} />
@@ -406,17 +553,15 @@ export default function ProjectDetailPage() {
             <InfoRow label="Фактическое окончание" value={fmt(project.actualEndDate)} />
             <InfoRow label="Бюджет" value={fmtMoney(project.budget)} />
             <InfoRow label="Фактические затраты" value={fmtMoney(project.actualCost)} />
-            {project.budget && project.actualCost != null && (
+            {project.budget != null && project.actualCost != null && (
               <div>
                 <div className="flex justify-between text-xs text-gray-500 mb-1">
                   <span>Освоение бюджета</span>
                   <span>{Math.min(100, Math.round((project.actualCost / project.budget) * 100))}%</span>
                 </div>
                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div
-                    className="bg-violet-500 h-2 rounded-full transition-all"
-                    style={{ width: `${Math.min(100, Math.round((project.actualCost! / project.budget!) * 100))}%` }}
-                  />
+                  <div className="bg-violet-500 h-2 rounded-full transition-all"
+                    style={{ width: `${Math.min(100, Math.round((project.actualCost / project.budget) * 100))}%` }} />
                 </div>
               </div>
             )}
@@ -424,18 +569,14 @@ export default function ProjectDetailPage() {
         </div>
       )}
 
-      {/* ─── TAB: Tasks ─── */}
+      {/* ─── Tasks ─── */}
       {activeTab === 'tasks' && (
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
             <h2 className="font-semibold text-gray-800 dark:text-gray-100">Задачи проекта</h2>
             <span className="text-xs text-gray-400">{tasks.length} задач</span>
           </div>
-          {loadingTasks ? (
-            <LoadingState />
-          ) : tasks.length === 0 ? (
-            <EmptyState text="Задачи не найдены" />
-          ) : (
+          {loadingTasks ? <LoadingState /> : tasks.length === 0 ? <EmptyState text="Задачи не найдены" /> : (
             <table className="table-auto w-full text-sm">
               <thead>
                 <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
@@ -448,22 +589,14 @@ export default function ProjectDetailPage() {
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
                 {tasks.map((t) => {
-                  const taskStatus = TASK_STATUS[t.status ?? 0] || TASK_STATUS[0];
-                  const taskPriority = TASK_PRIORITY[t.priority ?? 2] || TASK_PRIORITY[2];
+                  const ts = TASK_STATUS[t.status ?? 0] || TASK_STATUS[0];
+                  const tp = TASK_PRIORITY[t.priority ?? 2] || TASK_PRIORITY[2];
                   return (
                     <tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20">
                       <td className="py-2.5 px-4 font-medium text-gray-800 dark:text-gray-100">{t.title}</td>
-                      <td className="py-2.5 px-4">
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${taskStatus.color}`}>
-                          {taskStatus.label}
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-4">
-                        <span className={`text-xs font-medium ${taskPriority.color}`}>{taskPriority.label}</span>
-                      </td>
-                      <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">
-                        {fmt(t.dueDate || t.due_date)}
-                      </td>
+                      <td className="py-2.5 px-4"><span className={`text-xs px-2 py-0.5 rounded-full ${ts.color}`}>{ts.label}</span></td>
+                      <td className="py-2.5 px-4"><span className={`text-xs font-medium ${tp.color}`}>{tp.label}</span></td>
+                      <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{fmt(t.dueDate || t.due_date)}</td>
                       <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400 text-xs">
                         {t.assignees?.map((a) => a.userName || `#${a.userId}`).join(', ') || '—'}
                       </td>
@@ -476,42 +609,49 @@ export default function ProjectDetailPage() {
         </div>
       )}
 
-      {/* ─── TAB: Team ─── */}
+      {/* ─── Team ─── */}
       {activeTab === 'team' && (
         <div className="space-y-6">
-          {loadingTeam ? (
-            <LoadingState />
-          ) : (
+          {loadingTeam ? <LoadingState /> : (
             <>
-              {/* Teams */}
+              {/* Teams section */}
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
-                <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+                <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
                   <h2 className="font-semibold text-gray-800 dark:text-gray-100">Команды</h2>
+                  <button onClick={() => setShowAssignTeam(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Назначить команду
+                  </button>
                 </div>
-                {teamMembers.length === 0 ? (
-                  <EmptyState text="Команды не назначены" />
-                ) : (
+                {teamMembers.length === 0 ? <EmptyState text="Команды не назначены" /> : (
                   <table className="table-auto w-full text-sm">
                     <thead>
                       <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
                         <th className="py-3 px-4 text-left font-semibold">Команда</th>
                         <th className="py-3 px-4 text-left font-semibold">Дата назначения</th>
                         <th className="py-3 px-4 text-left font-semibold">Основная</th>
+                        <th className="py-3 px-4 text-center font-semibold w-20">Удалить</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
                       {teamMembers.map((m) => (
                         <tr key={m.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20">
-                          <td className="py-2.5 px-4 text-gray-800 dark:text-gray-100">
-                            {m.teamName || `Команда #${m.teamId}`}
-                          </td>
+                          <td className="py-2.5 px-4 text-gray-800 dark:text-gray-100">{m.teamName || `Команда #${m.teamId}`}</td>
                           <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{fmt(m.assignedAt)}</td>
                           <td className="py-2.5 px-4">
-                            {m.isPrimary && (
-                              <span className="text-xs bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 px-2 py-0.5 rounded-full">
-                                Основная
-                              </span>
-                            )}
+                            {m.isPrimary && <span className="text-xs bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 px-2 py-0.5 rounded-full">Основная</span>}
+                          </td>
+                          <td className="py-2.5 px-4 text-center">
+                            <button onClick={() => handleRemoveTeam(m.teamId)} disabled={removingTeamId === m.teamId}
+                              className="p-1.5 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-40" title="Удалить">
+                              {removingTeamId === m.teamId
+                                ? <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                : <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                              }
+                            </button>
                           </td>
                         </tr>
                       ))}
@@ -520,47 +660,52 @@ export default function ProjectDetailPage() {
                 )}
               </div>
 
-              {/* Employees */}
+              {/* Employees section */}
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
-                <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+                <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
                   <h2 className="font-semibold text-gray-800 dark:text-gray-100">Сотрудники</h2>
+                  <button onClick={() => setShowAssignEmployee(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Добавить сотрудника
+                  </button>
                 </div>
-                {assignments.length === 0 ? (
-                  <EmptyState text="Сотрудники не назначены" />
-                ) : (
+                {assignments.length === 0 ? <EmptyState text="Сотрудники не назначены" /> : (
                   <table className="table-auto w-full text-sm">
                     <thead>
                       <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
                         <th className="py-3 px-4 text-left font-semibold">Сотрудник</th>
-                        <th className="py-3 px-4 text-left font-semibold">Роль в проекте</th>
+                        <th className="py-3 px-4 text-left font-semibold">Роль</th>
                         <th className="py-3 px-4 text-left font-semibold">Статус</th>
                         <th className="py-3 px-4 text-left font-semibold">Назначен</th>
+                        <th className="py-3 px-4 text-center font-semibold w-20">Удалить</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
                       {assignments.map((a) => (
                         <tr key={a.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20">
                           <td className="py-2.5 px-4">
-                            <div className="font-medium text-gray-800 dark:text-gray-100">
-                              {a.userName || `Пользователь #${a.userId}`}
-                            </div>
-                            {a.userEmail && (
-                              <div className="text-xs text-gray-400">{a.userEmail}</div>
-                            )}
+                            <div className="font-medium text-gray-800 dark:text-gray-100">{a.userName || `#${a.userId}`}</div>
+                            {a.userEmail && <div className="text-xs text-gray-400">{a.userEmail}</div>}
                           </td>
-                          <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">
-                            {a.roleOnProject || '—'}
-                          </td>
+                          <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{a.roleOnProject || '—'}</td>
                           <td className="py-2.5 px-4">
-                            <span className={`text-xs px-2 py-0.5 rounded-full ${
-                              a.isActive
-                                ? 'bg-green-500/20 text-green-700 dark:text-green-400'
-                                : 'bg-gray-500/20 text-gray-600 dark:text-gray-400'
-                            }`}>
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${a.isActive ? 'bg-green-500/20 text-green-700 dark:text-green-400' : 'bg-gray-500/20 text-gray-600 dark:text-gray-400'}`}>
                               {a.isActive ? 'Активен' : 'Неактивен'}
                             </span>
                           </td>
                           <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{fmt(a.assignedAt)}</td>
+                          <td className="py-2.5 px-4 text-center">
+                            <button onClick={() => handleRemoveAssignment(a.id)} disabled={removingAssignId === a.id}
+                              className="p-1.5 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-40" title="Удалить">
+                              {removingAssignId === a.id
+                                ? <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                : <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                              }
+                            </button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -572,44 +717,41 @@ export default function ProjectDetailPage() {
         </div>
       )}
 
-      {/* ─── TAB: Documents ─── */}
+      {/* ─── Documents ─── */}
       {activeTab === 'documents' && (
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
             <h2 className="font-semibold text-gray-800 dark:text-gray-100">Документы проекта</h2>
+            <button onClick={() => setShowUploadDoc(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              </svg>
+              Загрузить документ
+            </button>
           </div>
-          {loadingDocs ? (
-            <LoadingState />
-          ) : documents.length === 0 ? (
-            <EmptyState text="Документы не найдены" />
-          ) : (
+          {loadingDocs ? <LoadingState /> : documents.length === 0 ? <EmptyState text="Документы не найдены" /> : (
             <table className="table-auto w-full text-sm">
               <thead>
                 <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
                   <th className="py-3 px-4 text-left font-semibold">Название</th>
                   <th className="py-3 px-4 text-left font-semibold">Тип</th>
-                  <th className="py-3 px-4 text-left font-semibold">Статус</th>
+                  <th className="py-3 px-4 text-left font-semibold">Размер</th>
                   <th className="py-3 px-4 text-left font-semibold">Дата</th>
-                  <th className="py-3 px-4 text-center font-semibold">Действия</th>
+                  <th className="py-3 px-4 text-center font-semibold">Скачать</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
                 {documents.map((doc) => (
                   <tr key={doc.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20">
                     <td className="py-2.5 px-4 font-medium text-gray-800 dark:text-gray-100">{doc.title}</td>
-                    <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">
-                      {DOC_TYPE_LABELS[doc.documentType || ''] || doc.documentType || '—'}
-                    </td>
-                    <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{doc.status || '—'}</td>
+                    <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{DOC_TYPE_LABELS[doc.documentType || ''] || doc.documentType || '—'}</td>
+                    <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{fmtSize(doc.fileSize)}</td>
                     <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{fmt(doc.createdAt)}</td>
                     <td className="py-2.5 px-4 text-center">
                       {doc.fileUrl && (
-                        <a
-                          href={doc.fileUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-violet-500 hover:text-violet-600 font-medium"
-                        >
+                        <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer"
+                          className="text-xs text-violet-500 hover:text-violet-600 font-medium">
                           Скачать
                         </a>
                       )}
@@ -622,21 +764,16 @@ export default function ProjectDetailPage() {
         </div>
       )}
 
-      {/* ─── TAB: Chat ─── */}
+      {/* ─── Chat ─── */}
       {activeTab === 'chat' && (
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden flex flex-col" style={{ height: '520px' }}>
           <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between shrink-0">
             <h2 className="font-semibold text-gray-800 dark:text-gray-100">
               {channel ? (channel.name || channel.channelName || 'Чат проекта') : 'Диалог'}
             </h2>
-            {channel && (
-              <span className="text-xs text-gray-400">{channel.membersCount ?? 0} участников</span>
-            )}
+            {channel && <span className="text-xs text-gray-400">{channel.membersCount ?? 0} участников</span>}
           </div>
-
-          {loadingChat ? (
-            <LoadingState />
-          ) : !channel ? (
+          {loadingChat ? <LoadingState /> : !channel ? (
             <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8 text-center">
               <div className="w-14 h-14 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
                 <svg className="w-7 h-7 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -645,23 +782,17 @@ export default function ProjectDetailPage() {
               </div>
               <div>
                 <p className="font-medium text-gray-700 dark:text-gray-200 mb-1">Чат для этого проекта не создан</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Создайте чат, чтобы общаться с командой</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">При назначении команды или сотрудника чат создаётся автоматически</p>
               </div>
-              <button
-                onClick={handleCreateChannel}
-                disabled={creatingChannel}
-                className="px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
-              >
+              <button onClick={handleCreateChannel} disabled={creatingChannel}
+                className="px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
                 {creatingChannel ? 'Создание...' : 'Создать чат'}
               </button>
             </div>
           ) : (
             <>
-              {/* Messages */}
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                {messages.length === 0 && (
-                  <p className="text-center text-sm text-gray-400 mt-8">Нет сообщений. Начните диалог!</p>
-                )}
+                {messages.length === 0 && <p className="text-center text-sm text-gray-400 mt-8">Нет сообщений. Начните диалог!</p>}
                 {messages.map((msg) => (
                   <div key={msg.id} className="flex gap-3">
                     <div className="w-8 h-8 rounded-full bg-violet-100 dark:bg-violet-900/40 flex items-center justify-center shrink-0">
@@ -671,12 +802,8 @@ export default function ProjectDetailPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-baseline gap-2 mb-0.5">
-                        <span className="text-sm font-medium text-gray-800 dark:text-gray-100">
-                          {msg.user?.name || msg.senderName || 'Пользователь'}
-                        </span>
-                        <span className="text-xs text-gray-400">
-                          {new Date(msg.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
-                        </span>
+                        <span className="text-sm font-medium text-gray-800 dark:text-gray-100">{msg.user?.name || msg.senderName || 'Пользователь'}</span>
+                        <span className="text-xs text-gray-400">{new Date(msg.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
                       <p className="text-sm text-gray-700 dark:text-gray-300 break-words">{msg.messageText}</p>
                     </div>
@@ -684,21 +811,13 @@ export default function ProjectDetailPage() {
                 ))}
                 <div ref={messagesEndRef} />
               </div>
-
-              {/* Input */}
               <div className="shrink-0 border-t border-gray-100 dark:border-gray-700 p-3 flex gap-2">
-                <input
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
+                <input value={chatInput} onChange={(e) => setChatInput(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
                   placeholder="Введите сообщение..."
-                  className="flex-1 px-3 py-2 text-sm bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100 placeholder-gray-400"
-                />
-                <button
-                  onClick={handleSendMessage}
-                  disabled={sendingMsg || !chatInput.trim()}
-                  className="px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
-                >
+                  className="flex-1 px-3 py-2 text-sm bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100 placeholder-gray-400" />
+                <button onClick={handleSendMessage} disabled={sendingMsg || !chatInput.trim()}
+                  className="px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
                   {sendingMsg ? '...' : 'Отправить'}
                 </button>
               </div>
@@ -707,21 +826,29 @@ export default function ProjectDetailPage() {
         </div>
       )}
 
-      {/* ─── TAB: Photos ─── */}
+      {/* ─── Photos ─── */}
       {activeTab === 'photos' && (
         <div className="space-y-6">
-          {loadingPhotos ? (
-            <LoadingState />
-          ) : sites.length === 0 ? (
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-10 text-center">
-              <div className="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mx-auto mb-3">
-                <svg className="w-7 h-7 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          {/* Upload button */}
+          <div className="flex justify-end">
+            <input ref={photoInputRef} type="file" accept="image/*" multiple className="hidden"
+              onChange={(e) => handlePhotoFiles(e.target.files)} />
+            <button onClick={() => photoInputRef.current?.click()} disabled={uploadingPhoto}
+              className="flex items-center gap-1.5 px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
+              {uploadingPhoto ? (
+                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
-              </div>
-              <p className="text-gray-500 dark:text-gray-400">Строительные объекты не найдены</p>
-            </div>
-          ) : allPhotos.length === 0 ? (
+              )}
+              {uploadingPhoto ? 'Загрузка...' : 'Добавить фото'}
+            </button>
+          </div>
+
+          {loadingPhotos ? <LoadingState /> : allPhotos.length === 0 ? (
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-10 text-center">
               <div className="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mx-auto mb-3">
                 <svg className="w-7 h-7 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -729,9 +856,7 @@ export default function ProjectDetailPage() {
                 </svg>
               </div>
               <p className="text-gray-500 dark:text-gray-400">Фотографии не загружены</p>
-              <p className="text-xs text-gray-400 mt-1">
-                Строительные объекты: {sites.map((s) => s.name).join(', ')}
-              </p>
+              <p className="text-xs text-gray-400 mt-1">Нажмите «Добавить фото» чтобы загрузить</p>
             </div>
           ) : (
             sites.map((site) => {
@@ -745,20 +870,10 @@ export default function ProjectDetailPage() {
                   </div>
                   <div className="p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                     {photos.map((url, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => setLightboxPhoto(url)}
-                        className="aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 hover:opacity-90 transition-opacity"
-                      >
-                        <img
-                          src={url}
-                          alt={`Фото ${idx + 1}`}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            (e.currentTarget as HTMLImageElement).src = '';
-                            (e.currentTarget.parentElement as HTMLElement).classList.add('flex', 'items-center', 'justify-center');
-                          }}
-                        />
+                      <button key={idx} onClick={() => setLightboxPhoto(url)}
+                        className="aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 hover:opacity-90 transition-opacity">
+                        <img src={url} alt={`Фото ${idx + 1}`} className="w-full h-full object-cover"
+                          onError={(e) => { (e.currentTarget as HTMLImageElement).src = ''; }} />
                       </button>
                     ))}
                   </div>
@@ -771,34 +886,52 @@ export default function ProjectDetailPage() {
 
       {/* Lightbox */}
       {lightboxPhoto && (
-        <div
-          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
-          onClick={() => setLightboxPhoto(null)}
-        >
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => setLightboxPhoto(null)}>
           <button className="absolute top-4 right-4 text-white hover:text-gray-300" onClick={() => setLightboxPhoto(null)}>
             <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          <img
-            src={lightboxPhoto}
-            alt="Просмотр фото"
-            className="max-w-full max-h-full rounded-lg shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          />
+          <img src={lightboxPhoto} alt="Просмотр фото" className="max-w-full max-h-full rounded-lg shadow-xl" onClick={(e) => e.stopPropagation()} />
         </div>
       )}
 
       {/* Edit Modal */}
       {showEditModal && (
-        <ProjectFormModal
-          project={project}
-          onClose={() => setShowEditModal(false)}
+        <ProjectFormModal project={project} onClose={() => setShowEditModal(false)}
           onSaved={() => {
             setShowEditModal(false);
             addToast('success', 'Проект обновлён');
             api.get(`/projects/${projectId}`).then((r) => setProject(r.data)).catch(() => {});
+          }} />
+      )}
+
+      {/* Assign Team Modal */}
+      {showAssignTeam && (
+        <AssignTeamModal
+          alreadyAssigned={teamMembers.map((m) => m.teamId)}
+          onAssign={async (teamId) => { await handleAssignTeam(teamId); setShowAssignTeam(false); }}
+          onClose={() => setShowAssignTeam(false)}
+        />
+      )}
+
+      {/* Assign Employee Modal */}
+      {showAssignEmployee && (
+        <AssignEmployeeModal
+          alreadyAssigned={assignments.map((a) => a.userId)}
+          onAssign={async (userId, role) => { await handleAssignEmployee(userId, role); setShowAssignEmployee(false); }}
+          onClose={() => setShowAssignEmployee(false)}
+        />
+      )}
+
+      {/* Upload Document Modal */}
+      {showUploadDoc && (
+        <UploadDocumentModal
+          onUpload={async (file, title, type, description) => {
+            await handleUploadDocument(file, title, type, description);
+            setShowUploadDoc(false);
           }}
+          onClose={() => setShowUploadDoc(false)}
         />
       )}
     </div>
@@ -811,21 +944,233 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-start justify-between gap-4">
       <span className="text-sm text-gray-500 dark:text-gray-400 shrink-0">{label}</span>
-      <span className="text-sm text-gray-800 dark:text-gray-100 text-right">
-        {typeof value === 'string' || typeof value === 'number' ? value : value}
-      </span>
+      <span className="text-sm text-gray-800 dark:text-gray-100 text-right">{value}</span>
     </div>
   );
 }
 
 function LoadingState() {
-  return (
-    <div className="p-8 text-center text-gray-500 dark:text-gray-400">Загрузка...</div>
-  );
+  return <div className="p-8 text-center text-gray-500 dark:text-gray-400">Загрузка...</div>;
 }
 
 function EmptyState({ text }: { text: string }) {
+  return <div className="p-8 text-center text-gray-500 dark:text-gray-400">{text}</div>;
+}
+
+/* ─── Modal: Assign Team ─── */
+
+function AssignTeamModal({
+  alreadyAssigned, onAssign, onClose,
+}: {
+  alreadyAssigned: number[];
+  onAssign: (teamId: number) => Promise<void>;
+  onClose: () => void;
+}) {
+  const [teams, setTeams] = useState<TeamOption[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [assigning, setAssigning] = useState<number | null>(null);
+
+  useEffect(() => {
+    api.get('/teams', { params: { limit: 100 } })
+      .then((r) => {
+        const d = r.data?.teams || r.data?.data || r.data || [];
+        setTeams(Array.isArray(d) ? d : []);
+      })
+      .catch(() => setTeams([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filtered = teams.filter((t) =>
+    t.name.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
-    <div className="p-8 text-center text-gray-500 dark:text-gray-400">{text}</div>
+    <ModalShell title="Назначить команду" onClose={onClose}>
+      <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Поиск команды..."
+        className="w-full px-3 py-2 mb-4 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100" />
+      {loading ? <LoadingState /> : filtered.length === 0 ? <EmptyState text="Команды не найдены" /> : (
+        <div className="space-y-2 max-h-72 overflow-y-auto">
+          {filtered.map((team) => {
+            const assigned = alreadyAssigned.includes(team.id);
+            return (
+              <div key={team.id} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/40">
+                <div>
+                  <div className="font-medium text-sm text-gray-800 dark:text-gray-100">{team.name}</div>
+                  {team.description && <div className="text-xs text-gray-400 mt-0.5">{team.description}</div>}
+                  <div className="text-xs text-gray-400 mt-0.5">
+                    {team._count?.members ?? team.membersCount ?? 0} участников
+                  </div>
+                </div>
+                {assigned ? (
+                  <span className="text-xs text-green-600 dark:text-green-400 font-medium">Назначена</span>
+                ) : (
+                  <button
+                    onClick={async () => { setAssigning(team.id); await onAssign(team.id); setAssigning(null); }}
+                    disabled={assigning === team.id}
+                    className="px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50">
+                    {assigning === team.id ? '...' : 'Назначить'}
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </ModalShell>
+  );
+}
+
+/* ─── Modal: Assign Employee ─── */
+
+function AssignEmployeeModal({
+  alreadyAssigned, onAssign, onClose,
+}: {
+  alreadyAssigned: number[];
+  onAssign: (userId: number, role?: string) => Promise<void>;
+  onClose: () => void;
+}) {
+  const [users, setUsers] = useState<UserOption[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [roleInput, setRoleInput] = useState('');
+  const [assigning, setAssigning] = useState<number | null>(null);
+
+  useEffect(() => {
+    api.get('/users', { params: { limit: 200 } })
+      .then((r) => {
+        const d = r.data?.users || r.data?.data || r.data || [];
+        setUsers(Array.isArray(d) ? d : []);
+      })
+      .catch(() => setUsers([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filtered = users.filter((u) =>
+    `${u.name} ${u.email}`.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <ModalShell title="Добавить сотрудника" onClose={onClose}>
+      <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Поиск сотрудника..."
+        className="w-full px-3 py-2 mb-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100" />
+      <input value={roleInput} onChange={(e) => setRoleInput(e.target.value)} placeholder="Роль в проекте (необязательно)"
+        className="w-full px-3 py-2 mb-4 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100" />
+      {loading ? <LoadingState /> : filtered.length === 0 ? <EmptyState text="Сотрудники не найдены" /> : (
+        <div className="space-y-2 max-h-72 overflow-y-auto">
+          {filtered.map((user) => {
+            const assigned = alreadyAssigned.includes(user.id);
+            return (
+              <div key={user.id} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/40">
+                <div>
+                  <div className="font-medium text-sm text-gray-800 dark:text-gray-100">{user.name}</div>
+                  <div className="text-xs text-gray-400">{user.email}</div>
+                  {user.position && <div className="text-xs text-gray-400">{user.position}</div>}
+                </div>
+                {assigned ? (
+                  <span className="text-xs text-green-600 dark:text-green-400 font-medium">Добавлен</span>
+                ) : (
+                  <button
+                    onClick={async () => { setAssigning(user.id); await onAssign(user.id, roleInput || undefined); setAssigning(null); }}
+                    disabled={assigning === user.id}
+                    className="px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50">
+                    {assigning === user.id ? '...' : 'Добавить'}
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </ModalShell>
+  );
+}
+
+/* ─── Modal: Upload Document ─── */
+
+function UploadDocumentModal({
+  onUpload, onClose,
+}: {
+  onUpload: (file: File, title: string, type: string, description: string) => Promise<void>;
+  onClose: () => void;
+}) {
+  const [file, setFile] = useState<File | null>(null);
+  const [title, setTitle] = useState('');
+  const [docType, setDocType] = useState('');
+  const [description, setDescription] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const addToast = useToastStore((s) => s.addToast);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!file || !title.trim()) return;
+    setUploading(true);
+    try {
+      await onUpload(file, title.trim(), docType, description);
+    } catch {
+      addToast('error', 'Ошибка при загрузке документа');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <ModalShell title="Загрузить документ" onClose={onClose}>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Название *</label>
+          <input value={title} onChange={(e) => setTitle(e.target.value)} required placeholder="Введите название документа"
+            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100" />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Тип документа</label>
+          <select value={docType} onChange={(e) => setDocType(e.target.value)}
+            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100">
+            <option value="">— Не выбрано —</option>
+            {DOC_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Описание</label>
+          <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} placeholder="Краткое описание"
+            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100 resize-none" />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Файл *</label>
+          <input type="file" required onChange={(e) => setFile(e.target.files?.[0] || null)}
+            className="w-full text-sm text-gray-500 dark:text-gray-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-violet-100 file:text-violet-700 hover:file:bg-violet-200 dark:file:bg-violet-900/40 dark:file:text-violet-300" />
+          {file && <p className="text-xs text-gray-400 mt-1">{file.name} · {fmtSize(file.size)}</p>}
+        </div>
+        <div className="flex justify-end gap-2 pt-2">
+          <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors">
+            Отмена
+          </button>
+          <button type="submit" disabled={uploading || !file || !title.trim()}
+            className="px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
+            {uploading ? 'Загрузка...' : 'Загрузить'}
+          </button>
+        </div>
+      </form>
+    </ModalShell>
+  );
+}
+
+/* ─── Modal Shell ─── */
+
+function ModalShell({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
+      <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+          <h3 className="font-semibold text-gray-800 dark:text-gray-100">{title}</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div className="p-5">{children}</div>
+      </div>
+    </div>
   );
 }
