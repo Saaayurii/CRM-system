@@ -232,13 +232,24 @@ export default function ProjectDetailPage() {
   const [lightboxPhoto, setLightboxPhoto] = useState<string | null>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
+  /* Overview summary */
+  const [overviewSummary, setOverviewSummary] = useState<{
+    teams: TeamMember[];
+    assignments: Assignment[];
+    tasks: Task[];
+    documents: Document[];
+    sites: ConstructionSite[];
+  } | null>(null);
+  const [overviewLoading, setOverviewLoading] = useState(false);
+
   /* ─── Load project ─── */
   useEffect(() => {
     api.get(`/projects/${projectId}`)
       .then((r) => setProject(r.data))
       .catch(() => router.push('/dashboard/projects'))
       .finally(() => setLoadingProject(false));
-  }, [projectId, router]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId]);
 
   /* ─── Reload helpers ─── */
   const reloadTeam = useCallback(async () => {
@@ -301,6 +312,29 @@ export default function ProjectDetailPage() {
 
   /* ─── Load tab data ─── */
   useEffect(() => {
+    if (activeTab === 'overview' && !overviewSummary && !overviewLoading) {
+      setOverviewLoading(true);
+      Promise.all([
+        api.get(`/projects/${projectId}/team`).catch(() => ({ data: [] })),
+        api.get(`/projects/${projectId}/assignments`).catch(() => ({ data: {} })),
+        api.get('/tasks', { params: { projectId, limit: 100 } }).catch(() => ({ data: [] })),
+        api.get('/documents', { params: { projectId, limit: 100 } }).catch(() => ({ data: [] })),
+        api.get(`/projects/${projectId}/construction-sites`, { params: { limit: 100 } }).catch(() => ({ data: [] })),
+      ]).then(([teamRes, assignRes, tasksRes, docsRes, sitesRes]) => {
+        const teams = Array.isArray(teamRes.data) ? teamRes.data : teamRes.data?.teams || [];
+        const aData = assignRes.data?.assignments || assignRes.data?.data || assignRes.data || [];
+        const tasks = Array.isArray(tasksRes.data) ? tasksRes.data : tasksRes.data?.tasks || tasksRes.data?.data || [];
+        const docs = Array.isArray(docsRes.data) ? docsRes.data : docsRes.data?.documents || docsRes.data?.data || [];
+        const sitesData = Array.isArray(sitesRes.data) ? sitesRes.data : sitesRes.data?.sites || sitesRes.data?.data || [];
+        setOverviewSummary({
+          teams: Array.isArray(teams) ? teams : [],
+          assignments: Array.isArray(aData) ? aData : [],
+          tasks: Array.isArray(tasks) ? tasks : [],
+          documents: Array.isArray(docs) ? docs : [],
+          sites: Array.isArray(sitesData) ? sitesData : [],
+        });
+      }).finally(() => setOverviewLoading(false));
+    }
     if (activeTab === 'team' && !teamLoaded && !loadingTeam) reloadTeam();
     if (activeTab === 'documents' && !docsLoaded && !loadingDocs) reloadDocuments();
     if (activeTab === 'tasks' && !tasksLoaded && !loadingTasks) reloadTasks();
@@ -547,6 +581,7 @@ export default function ProjectDetailPage() {
 
       {/* ─── Overview ─── */}
       {activeTab === 'overview' && (
+        <>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-5 space-y-4">
             <h2 className="font-semibold text-gray-800 dark:text-gray-100">Основная информация</h2>
@@ -577,6 +612,75 @@ export default function ProjectDetailPage() {
             )}
           </div>
         </div>
+
+        {/* ─── Overview Tree ─── */}
+        <div className="mt-4 bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+            <h2 className="font-semibold text-gray-800 dark:text-gray-100">Состав проекта</h2>
+          </div>
+          {overviewLoading ? (
+            <div className="p-6 text-center text-gray-500 dark:text-gray-400 text-sm">Загрузка...</div>
+          ) : !overviewSummary ? null : (
+            <div className="p-4 space-y-1">
+              <TreeSection
+                icon="👥"
+                label="Команды"
+                count={overviewSummary.teams.length}
+                items={overviewSummary.teams.map((m) => ({
+                  key: String(m.id),
+                  label: m.team?.name || m.teamName || `Команда #${m.teamId}`,
+                  sub: m.isPrimary ? 'Основная' : undefined,
+                }))}
+              />
+              <TreeSection
+                icon="👤"
+                label="Сотрудники"
+                count={overviewSummary.assignments.length}
+                items={overviewSummary.assignments.map((a) => ({
+                  key: String(a.id),
+                  label: a.userName || `#${a.userId}`,
+                  sub: a.roleOnProject || undefined,
+                }))}
+              />
+              <TreeSection
+                icon="✅"
+                label="Задачи"
+                count={overviewSummary.tasks.length}
+                items={[
+                  { key: 'new', label: `Новые: ${overviewSummary.tasks.filter((t) => (t.status ?? 0) === 0).length}` },
+                  { key: 'wip', label: `В работе: ${overviewSummary.tasks.filter((t) => t.status === 1).length}` },
+                  { key: 'review', label: `На проверке: ${overviewSummary.tasks.filter((t) => t.status === 2).length}` },
+                  { key: 'done', label: `Готово: ${overviewSummary.tasks.filter((t) => t.status === 3).length}` },
+                  { key: 'cancel', label: `Отменено: ${overviewSummary.tasks.filter((t) => t.status === 4).length}` },
+                ].filter((item) => {
+                  const n = Number(item.label.split(': ')[1]);
+                  return n > 0;
+                })}
+              />
+              <TreeSection
+                icon="📄"
+                label="Документы"
+                count={overviewSummary.documents.length}
+                items={overviewSummary.documents.map((d) => ({
+                  key: String(d.id),
+                  label: d.title,
+                  sub: d.documentType || undefined,
+                }))}
+              />
+              <TreeSection
+                icon="🏗️"
+                label="Объекты строительства"
+                count={overviewSummary.sites.length}
+                items={overviewSummary.sites.map((s) => ({
+                  key: String(s.id),
+                  label: s.name,
+                  sub: `${(s.photos || []).length} фото`,
+                }))}
+              />
+            </div>
+          )}
+        </div>
+        </>
       )}
 
       {/* ─── Tasks ─── */}
@@ -973,6 +1077,48 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
     <div className="flex items-start justify-between gap-4">
       <span className="text-sm text-gray-500 dark:text-gray-400 shrink-0">{label}</span>
       <span className="text-sm text-gray-800 dark:text-gray-100 text-right">{value}</span>
+    </div>
+  );
+}
+
+function TreeSection({
+  icon, label, count, items,
+}: {
+  icon: string;
+  label: string;
+  count: number;
+  items: { key: string; label: string; sub?: string }[];
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="rounded-lg overflow-hidden">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors rounded-lg text-left"
+      >
+        <span className="text-base leading-none">{icon}</span>
+        <span className="flex-1 text-sm font-medium text-gray-800 dark:text-gray-100">{label}</span>
+        <span className="text-xs text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">{count}</span>
+        <svg
+          className={`w-4 h-4 text-gray-400 transition-transform ${open ? 'rotate-90' : ''}`}
+          fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+      {open && (
+        <div className="ml-9 border-l-2 border-gray-100 dark:border-gray-700 pl-3 py-1 space-y-0.5">
+          {items.length === 0 ? (
+            <p className="text-xs text-gray-400 py-1">Нет данных</p>
+          ) : items.map((item) => (
+            <div key={item.key} className="flex items-center gap-2 py-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-gray-600 shrink-0" />
+              <span className="text-sm text-gray-700 dark:text-gray-300">{item.label}</span>
+              {item.sub && <span className="text-xs text-gray-400">· {item.sub}</span>}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
