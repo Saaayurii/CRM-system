@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import ProjectFormModal from '@/components/dashboard/ProjectFormModal';
@@ -51,6 +52,7 @@ async function fetchProjects(): Promise<Project[]> {
 }
 
 export default function ProjectsPage() {
+  const router = useRouter();
   const [showModal, setShowModal] = useState(false);
   const [editProject, setEditProject] = useState<Project | null>(null);
   const addToast = useToastStore((s) => s.addToast);
@@ -59,8 +61,7 @@ export default function ProjectsPage() {
     useOfflineData<Project[]>(fetchProjects, 'projects-page');
 
   const handleRowClick = (project: Project) => {
-    setEditProject(project);
-    setShowModal(true);
+    router.push(`/dashboard/projects/${project.id}`);
   };
 
   const handleCreate = () => {
@@ -145,6 +146,7 @@ export default function ProjectsPage() {
                   <th className="py-3 px-4 text-left font-semibold">Начало</th>
                   <th className="py-3 px-4 text-left font-semibold">Окончание</th>
                   <th className="py-3 px-4 text-right font-semibold">Бюджет</th>
+                  <th className="py-3 px-4 text-center font-semibold">Действия</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
@@ -175,6 +177,17 @@ export default function ProjectsPage() {
                       </td>
                       <td className="py-2.5 px-4 text-right text-gray-600 dark:text-gray-400">
                         {formatBudget(p.budget)}
+                      </td>
+                      <td className="py-2.5 px-4 text-center" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={() => { setEditProject(p); setShowModal(true); }}
+                          className="p-1.5 text-gray-400 hover:text-violet-500 transition-colors"
+                          title="Редактировать"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
                       </td>
                     </tr>
                   );
