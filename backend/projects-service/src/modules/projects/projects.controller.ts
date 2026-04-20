@@ -144,15 +144,15 @@ export class ProjectsController {
     );
   }
 
-  @Delete(':id/team/:userId')
+  @Delete(':id/team/:teamId')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Remove team member from project' })
-  @ApiResponse({ status: 204, description: 'Team member removed successfully' })
+  @ApiOperation({ summary: 'Remove team from project' })
+  @ApiResponse({ status: 204, description: 'Team removed successfully' })
   async removeTeamMember(
     @CurrentUser() user: RequestUser,
     @Param('id', ParseIntPipe) id: number,
-    @Param('userId', ParseIntPipe) userId: number,
+    @Param('teamId', ParseIntPipe) teamId: number,
   ): Promise<void> {
-    return this.projectsService.removeTeamMember(id, userId, user.accountId);
+    return this.projectsService.removeTeamMember(id, teamId, user.accountId);
   }
 }

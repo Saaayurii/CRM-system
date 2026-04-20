@@ -30,6 +30,7 @@ interface TeamMember {
   id: number;
   teamId: number;
   teamName?: string;
+  team?: { id: number; name: string };
   isPrimary?: boolean;
   assignedAt?: string;
 }
@@ -211,6 +212,7 @@ export default function ProjectDetailPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loadingTasks, setLoadingTasks] = useState(false);
   const [tasksLoaded, setTasksLoaded] = useState(false);
+  const [showCreateTask, setShowCreateTask] = useState(false);
 
   /* Chat tab */
   const [channel, setChannel] = useState<ChatChannel | null>(null);
@@ -269,6 +271,20 @@ export default function ProjectDetailPage() {
     }
   }, [projectId]);
 
+  const reloadTasks = useCallback(async () => {
+    setLoadingTasks(true);
+    try {
+      const r = await api.get('/tasks', { params: { projectId, limit: 100 } });
+      const t = r.data?.tasks || r.data?.data || r.data || [];
+      setTasks(Array.isArray(t) ? t : []);
+      setTasksLoaded(true);
+    } catch {
+      setTasks([]);
+    } finally {
+      setLoadingTasks(false);
+    }
+  }, [projectId]);
+
   const reloadSites = useCallback(async () => {
     setLoadingPhotos(true);
     try {
@@ -287,13 +303,7 @@ export default function ProjectDetailPage() {
   useEffect(() => {
     if (activeTab === 'team' && !teamLoaded && !loadingTeam) reloadTeam();
     if (activeTab === 'documents' && !docsLoaded && !loadingDocs) reloadDocuments();
-    if (activeTab === 'tasks' && !tasksLoaded && !loadingTasks) {
-      setLoadingTasks(true);
-      api.get('/tasks', { params: { projectId, limit: 100 } })
-        .then((r) => { const t = r.data?.tasks || r.data?.data || r.data || []; setTasks(Array.isArray(t) ? t : []); setTasksLoaded(true); })
-        .catch(() => setTasks([]))
-        .finally(() => setLoadingTasks(false));
-    }
+    if (activeTab === 'tasks' && !tasksLoaded && !loadingTasks) reloadTasks();
     if (activeTab === 'chat' && !channelChecked && !loadingChat) findChannel();
     if (activeTab === 'photos' && !sitesLoaded && !loadingPhotos) reloadSites();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -574,7 +584,16 @@ export default function ProjectDetailPage() {
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
             <h2 className="font-semibold text-gray-800 dark:text-gray-100">Задачи проекта</h2>
-            <span className="text-xs text-gray-400">{tasks.length} задач</span>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-gray-400">{tasks.length} задач</span>
+              <button onClick={() => setShowCreateTask(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                Создать задачу
+              </button>
+            </div>
           </div>
           {loadingTasks ? <LoadingState /> : tasks.length === 0 ? <EmptyState text="Задачи не найдены" /> : (
             <table className="table-auto w-full text-sm">
@@ -639,7 +658,7 @@ export default function ProjectDetailPage() {
                     <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
                       {teamMembers.map((m) => (
                         <tr key={m.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20">
-                          <td className="py-2.5 px-4 text-gray-800 dark:text-gray-100">{m.teamName || `Команда #${m.teamId}`}</td>
+                          <td className="py-2.5 px-4 text-gray-800 dark:text-gray-100">{m.team?.name || m.teamName || `Команда #${m.teamId}`}</td>
                           <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{fmt(m.assignedAt)}</td>
                           <td className="py-2.5 px-4">
                             {m.isPrimary && <span className="text-xs bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 px-2 py-0.5 rounded-full">Основная</span>}
@@ -924,6 +943,15 @@ export default function ProjectDetailPage() {
         />
       )}
 
+      {/* Create Task Modal */}
+      {showCreateTask && (
+        <CreateTaskModal
+          projectId={projectId}
+          onCreated={async () => { setShowCreateTask(false); await reloadTasks(); addToast('success', 'Задача создана'); }}
+          onClose={() => setShowCreateTask(false)}
+        />
+      )}
+
       {/* Upload Document Modal */}
       {showUploadDoc && (
         <UploadDocumentModal
@@ -1148,6 +1176,100 @@ function UploadDocumentModal({
           <button type="submit" disabled={uploading || !file || !title.trim()}
             className="px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
             {uploading ? 'Загрузка...' : 'Загрузить'}
+          </button>
+        </div>
+      </form>
+    </ModalShell>
+  );
+}
+
+/* ─── Modal: Create Task ─── */
+
+function CreateTaskModal({
+  projectId, onCreated, onClose,
+}: {
+  projectId: number;
+  onCreated: () => Promise<void>;
+  onClose: () => void;
+}) {
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [priority, setPriority] = useState(2);
+  const [status, setStatus] = useState(0);
+  const [dueDate, setDueDate] = useState('');
+  const [saving, setSaving] = useState(false);
+  const addToast = useToastStore((s) => s.addToast);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim()) return;
+    setSaving(true);
+    try {
+      await api.post('/tasks', {
+        title: title.trim(),
+        description: description.trim() || undefined,
+        projectId,
+        priority,
+        status,
+        dueDate: dueDate || undefined,
+      });
+      await onCreated();
+    } catch {
+      addToast('error', 'Не удалось создать задачу');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <ModalShell title="Создать задачу" onClose={onClose}>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Название *</label>
+          <input value={title} onChange={(e) => setTitle(e.target.value)} required placeholder="Введите название задачи"
+            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100" />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Описание</label>
+          <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} placeholder="Краткое описание"
+            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100 resize-none" />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Приоритет</label>
+            <select value={priority} onChange={(e) => setPriority(Number(e.target.value))}
+              className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100">
+              <option value={1}>Низкий</option>
+              <option value={2}>Средний</option>
+              <option value={3}>Высокий</option>
+              <option value={4}>Критический</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Статус</label>
+            <select value={status} onChange={(e) => setStatus(Number(e.target.value))}
+              className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100">
+              <option value={0}>Новая</option>
+              <option value={1}>В работе</option>
+              <option value={2}>На проверке</option>
+              <option value={3}>Готово</option>
+              <option value={4}>Отменена</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Срок выполнения</label>
+          <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)}
+            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100" />
+        </div>
+        <div className="flex justify-end gap-2 pt-2">
+          <button type="button" onClick={onClose}
+            className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors">
+            Отмена
+          </button>
+          <button type="submit" disabled={saving || !title.trim()}
+            className="px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
+            {saving ? 'Создание...' : 'Создать'}
           </button>
         </div>
       </form>

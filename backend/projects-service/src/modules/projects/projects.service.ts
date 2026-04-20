@@ -137,12 +137,12 @@ export class ProjectsService {
     try {
       return await this.projectRepository.addTeamMember(
         projectId,
-        addTeamMemberDto.userId,
-        addTeamMemberDto.role,
+        addTeamMemberDto.teamId,
+        addTeamMemberDto.isPrimary,
       );
     } catch (error: any) {
       if (error.code === 'P2002') {
-        throw new ConflictException('User is already a team member');
+        throw new ConflictException('Team is already assigned to project');
       }
       throw error;
     }
@@ -150,7 +150,7 @@ export class ProjectsService {
 
   async removeTeamMember(
     projectId: number,
-    userId: number,
+    teamId: number,
     requestingUserAccountId: number,
   ): Promise<void> {
     const project = await this.projectRepository.findById(projectId);
@@ -162,7 +162,7 @@ export class ProjectsService {
       throw new ForbiddenException('Access denied');
     }
 
-    await this.projectRepository.removeTeamMember(projectId, userId);
+    await this.projectRepository.removeTeamMember(projectId, teamId);
   }
 
   async getTeamMembers(projectId: number, requestingUserAccountId: number) {

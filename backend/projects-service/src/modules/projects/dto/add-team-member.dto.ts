@@ -1,21 +1,14 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  IsNotEmpty,
-  IsNumber,
-  IsOptional,
-  IsString,
-  MaxLength,
-} from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsNumber, IsOptional } from 'class-validator';
 
 export class AddTeamMemberDto {
-  @ApiProperty({ description: 'User ID to add to team', example: 1 })
+  @ApiProperty({ description: 'Team ID to assign to project', example: 1 })
   @IsNumber()
   @IsNotEmpty()
-  userId: number;
+  teamId: number;
 
-  @ApiPropertyOptional({ description: 'Role in project', example: 'Прораб' })
-  @IsString()
+  @ApiPropertyOptional({ description: 'Is primary team', example: false })
+  @IsBoolean()
   @IsOptional()
-  @MaxLength(100)
-  role?: string;
+  isPrimary?: boolean;
 }

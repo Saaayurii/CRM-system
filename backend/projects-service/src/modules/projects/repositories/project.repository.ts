@@ -107,22 +107,16 @@ export class ProjectRepository {
     return (this.prisma as any).project.count({ where });
   }
 
-  async addTeamMember(projectId: number, userId: number, role?: string) {
+  async addTeamMember(projectId: number, teamId: number, isPrimary?: boolean) {
     return (this.prisma as any).projectTeam.create({
-      data: { projectId, userId, role },
-      include: {
-        user: {
-          select: { id: true, name: true, email: true },
-        },
-      },
+      data: { projectId, teamId, isPrimary: isPrimary ?? false },
+      include: { team: true },
     });
   }
 
-  async removeTeamMember(projectId: number, userId: number) {
-    return (this.prisma as any).projectTeam.delete({
-      where: {
-        projectId_userId: { projectId, userId },
-      },
+  async removeTeamMember(projectId: number, teamId: number) {
+    return (this.prisma as any).projectTeam.deleteMany({
+      where: { projectId, teamId },
     });
   }
 

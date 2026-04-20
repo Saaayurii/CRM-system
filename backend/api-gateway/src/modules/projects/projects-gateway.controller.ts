@@ -126,16 +126,16 @@ export class ProjectsGatewayController {
     });
   }
 
-  @Delete(':id/team/:userId')
-  @ApiOperation({ summary: 'Remove team member' })
+  @Delete(':id/team/:teamId')
+  @ApiOperation({ summary: 'Remove team from project' })
   async removeTeamMember(
     @Req() req: Request,
     @Param('id') id: string,
-    @Param('userId') userId: string,
+    @Param('teamId') teamId: string,
   ) {
     return this.proxyService.forward('projects', {
       method: 'DELETE',
-      path: `/projects/${id}/team/${userId}`,
+      path: `/projects/${id}/team/${teamId}`,
       headers: { authorization: req.headers.authorization || '' },
     });
   }
