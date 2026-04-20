@@ -109,7 +109,7 @@ export default function EmployeesPage() {
                   const active = e.isActive ?? e.is_active ?? true;
                   const roleName = e.role?.name || ROLE_NAMES[e.roleId || e.role_id || 0] || '—';
                   return (
-                    <tr key={e.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20">
+                    <tr key={e.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer" onClick={() => setEditingEmployee(e)}>
                       <td className="py-2.5 px-4">
                         <div className="font-medium text-gray-800 dark:text-gray-100">{e.name || '—'}</div>
                         {e.position && <div className="text-xs text-gray-400">{e.position}</div>}
@@ -125,7 +125,7 @@ export default function EmployeesPage() {
                           {active ? 'Активен' : 'Неактивен'}
                         </span>
                       </td>
-                      <td className="py-2.5 px-4 text-center">
+                      <td className="py-2.5 px-4 text-center" onClick={(ev) => ev.stopPropagation()}>
                         <div className="flex items-center justify-center gap-1">
                           <button
                             onClick={() => setEditingEmployee(e)}

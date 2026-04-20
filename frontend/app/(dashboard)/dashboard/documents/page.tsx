@@ -270,7 +270,7 @@ export default function DocumentsPage() {
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
                 {documents.map((doc) => (
-                  <tr key={doc.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                  <tr key={doc.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors cursor-pointer" onClick={() => setPreviewDoc(doc)}>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <span className="text-lg">{typeIcons[doc.documentType || ''] || typeIcons.other}</span>
@@ -293,7 +293,7 @@ export default function DocumentsPage() {
                     <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
                       {new Date(doc.createdAt).toLocaleDateString('ru-RU')}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3" onClick={(ev) => ev.stopPropagation()}>
                       <div className="flex items-center justify-center gap-2">
                         <button
                           onClick={() => setPreviewDoc(doc)}

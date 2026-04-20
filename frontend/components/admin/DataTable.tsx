@@ -146,7 +146,7 @@ export default function DataTable<T extends Record<string, unknown>>({
               </tr>
             ) : (
               data.map((row, idx) => (
-                <tr key={(row.id as string | number) || idx} className="hover:bg-gray-50 dark:hover:bg-gray-900/20">
+                <tr key={(row.id as string | number) || idx} className={`hover:bg-gray-50 dark:hover:bg-gray-900/20 ${onEdit ? 'cursor-pointer' : ''}`} onClick={() => onEdit?.(row)}>
                   {columns.map((col) => (
                     <td key={col.key} className="py-2.5 px-4 text-gray-800 dark:text-gray-100">
                       {(() => {
@@ -164,7 +164,7 @@ export default function DataTable<T extends Record<string, unknown>>({
                     </td>
                   ))}
                   {(canEdit || canDelete || (customRowActions && customRowActions.length > 0)) && (
-                    <td className="py-2.5 px-4 text-right">
+                    <td className="py-2.5 px-4 text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex justify-end gap-1 flex-wrap">
                         {customRowActions && customRowActions.map((action) => {
                           const isThisLoading = action.key === 'pdf' && loadingRowId === (row.id as number);
