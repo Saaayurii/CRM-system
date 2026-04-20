@@ -86,6 +86,7 @@ interface ConstructionSite {
 interface Task {
   id: number;
   title: string;
+  description?: string;
   status?: number;
   priority?: number;
   dueDate?: string;
@@ -217,6 +218,14 @@ export default function ProjectDetailPage() {
   const [loadingTasks, setLoadingTasks] = useState(false);
   const [tasksLoaded, setTasksLoaded] = useState(false);
   const [showCreateTask, setShowCreateTask] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+
+  /* Team modals */
+  const [selectedTeamMember, setSelectedTeamMember] = useState<TeamMember | null>(null);
+  const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
+
+  /* Document modal */
+  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
 
   /* Chat tab */
   const [channel, setChannel] = useState<ChatChannel | null>(null);
@@ -696,7 +705,7 @@ export default function ProjectDetailPage() {
                   const ts = TASK_STATUS[t.status ?? 0] || TASK_STATUS[0];
                   const tp = TASK_PRIORITY[t.priority ?? 2] || TASK_PRIORITY[2];
                   return (
-                    <tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20">
+                    <tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer" onClick={() => setSelectedTask(t)}>
                       <td className="py-2.5 px-4 font-medium text-gray-800 dark:text-gray-100">{t.title}</td>
                       <td className="py-2.5 px-4"><span className={`text-xs px-2 py-0.5 rounded-full ${ts.color}`}>{ts.label}</span></td>
                       <td className="py-2.5 px-4"><span className={`text-xs font-medium ${tp.color}`}>{tp.label}</span></td>
@@ -742,13 +751,13 @@ export default function ProjectDetailPage() {
                     </thead>
                     <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
                       {teamMembers.map((m) => (
-                        <tr key={m.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20">
+                        <tr key={m.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer" onClick={() => setSelectedTeamMember(m)}>
                           <td className="py-2.5 px-4 text-gray-800 dark:text-gray-100">{m.team?.name || m.teamName || `Команда #${m.teamId}`}</td>
                           <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{fmt(m.assignedAt)}</td>
                           <td className="py-2.5 px-4">
                             {m.isPrimary && <span className="text-xs bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 px-2 py-0.5 rounded-full">Основная</span>}
                           </td>
-                          <td className="py-2.5 px-4 text-center">
+                          <td className="py-2.5 px-4 text-center" onClick={(e) => e.stopPropagation()}>
                             <button onClick={() => handleRemoveTeam(m.teamId)} disabled={removingTeamId === m.teamId}
                               className="p-1.5 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-40" title="Удалить">
                               {removingTeamId === m.teamId
@@ -789,7 +798,7 @@ export default function ProjectDetailPage() {
                     </thead>
                     <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
                       {assignments.map((a) => (
-                        <tr key={a.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20">
+                        <tr key={a.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer" onClick={() => setSelectedAssignment(a)}>
                           <td className="py-2.5 px-4">
                             <div className="font-medium text-gray-800 dark:text-gray-100">{a.userName || `#${a.userId}`}</div>
                             {a.userEmail && <div className="text-xs text-gray-400">{a.userEmail}</div>}
@@ -801,7 +810,7 @@ export default function ProjectDetailPage() {
                             </span>
                           </td>
                           <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{fmt(a.assignedAt)}</td>
-                          <td className="py-2.5 px-4 text-center">
+                          <td className="py-2.5 px-4 text-center" onClick={(e) => e.stopPropagation()}>
                             <button onClick={() => handleRemoveAssignment(a.id)} disabled={removingAssignId === a.id}
                               className="p-1.5 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-40" title="Удалить">
                               {removingAssignId === a.id
@@ -847,12 +856,12 @@ export default function ProjectDetailPage() {
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
                 {documents.map((doc) => (
-                  <tr key={doc.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20">
+                  <tr key={doc.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer" onClick={() => setSelectedDocument(doc)}>
                     <td className="py-2.5 px-4 font-medium text-gray-800 dark:text-gray-100">{doc.title}</td>
                     <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{DOC_TYPE_LABELS[doc.documentType || ''] || doc.documentType || '—'}</td>
                     <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{fmtSize(doc.fileSize)}</td>
                     <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{fmt(doc.createdAt)}</td>
-                    <td className="py-2.5 px-4 text-center">
+                    <td className="py-2.5 px-4 text-center" onClick={(e) => e.stopPropagation()}>
                       {doc.fileUrl && (
                         <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer"
                           className="text-xs text-violet-500 hover:text-violet-600 font-medium">
@@ -1008,6 +1017,46 @@ export default function ProjectDetailPage() {
             setShowUploadDoc(false);
           }}
           onClose={() => setShowUploadDoc(false)}
+        />
+      )}
+
+      {/* Edit Task Modal */}
+      {selectedTask && (
+        <EditTaskModal
+          task={selectedTask}
+          projectId={projectId}
+          onSaved={async () => { setSelectedTask(null); await reloadTasks(); addToast('success', 'Задача обновлена'); }}
+          onDeleted={async () => { setSelectedTask(null); await reloadTasks(); addToast('success', 'Задача удалена'); }}
+          onClose={() => setSelectedTask(null)}
+        />
+      )}
+
+      {/* Team Member Detail Modal */}
+      {selectedTeamMember && (
+        <TeamMemberDetailModal
+          member={selectedTeamMember}
+          projectId={projectId}
+          onRemoved={async () => { setSelectedTeamMember(null); await reloadTeam(); addToast('success', 'Команда удалена из проекта'); }}
+          onClose={() => setSelectedTeamMember(null)}
+        />
+      )}
+
+      {/* Assignment Detail Modal */}
+      {selectedAssignment && (
+        <AssignmentDetailModal
+          assignment={selectedAssignment}
+          projectId={projectId}
+          onRemoved={async () => { setSelectedAssignment(null); await reloadTeam(); addToast('success', 'Сотрудник удалён из проекта'); }}
+          onClose={() => setSelectedAssignment(null)}
+        />
+      )}
+
+      {/* Document Detail Modal */}
+      {selectedDocument && (
+        <DocumentDetailModal
+          document={selectedDocument}
+          onDeleted={async () => { setSelectedDocument(null); await reloadDocuments(); addToast('success', 'Документ удалён'); }}
+          onClose={() => setSelectedDocument(null)}
         />
       )}
     </div>
@@ -1292,8 +1341,26 @@ function ProjectChatPanel({ channelId, channelName }: { channelId: number; chann
   const bottomRef = useRef<HTMLDivElement>(null);
   const initialRef = useRef(true);
   const prevLenRef = useRef(0);
+  const [showParticipants, setShowParticipants] = useState(false);
+  const [participants, setParticipants] = useState<{ id: number; name: string; email: string; role?: string }[]>([]);
+  const [loadingParticipants, setLoadingParticipants] = useState(false);
 
   const membersCount = channels.find((c) => c.id === channelId)?.membersCount ?? 0;
+
+  const loadParticipants = useCallback(async () => {
+    setLoadingParticipants(true);
+    try {
+      const r = await api.get(`/chat-channels/${channelId}/members`);
+      const list = r.data?.members || r.data?.data || r.data || [];
+      setParticipants(Array.isArray(list) ? list.map((m: any) => ({
+        id: m.userId || m.user?.id || m.id,
+        name: m.user?.name || m.name || `#${m.userId || m.id}`,
+        email: m.user?.email || m.email || '',
+        role: m.role,
+      })) : []);
+    } catch { setParticipants([]); }
+    finally { setLoadingParticipants(false); }
+  }, [channelId]);
 
   useEffect(() => {
     connect();
@@ -1351,7 +1418,7 @@ function ProjectChatPanel({ channelId, channelName }: { channelId: number; chann
   }, [channelId, channelReadAts, user?.id]);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full relative">
       {/* Header */}
       <div className="px-5 py-3 border-b border-gray-100 dark:border-gray-700 flex items-center gap-3 shrink-0">
         <div className="w-8 h-8 rounded-full bg-violet-500 flex items-center justify-center shrink-0">
@@ -1363,7 +1430,56 @@ function ProjectChatPanel({ channelId, channelName }: { channelId: number; chann
           <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{channelName}</h3>
           <p className="text-xs text-gray-400">{membersCount} участник{membersCount === 1 ? '' : membersCount >= 2 && membersCount <= 4 ? 'а' : 'ов'}</p>
         </div>
+        <button
+          onClick={() => { setShowParticipants(true); loadParticipants(); }}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors"
+          title="Участники чата"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          Участники
+        </button>
       </div>
+
+      {/* Participants panel */}
+      {showParticipants && (
+        <div className="absolute inset-0 z-10 bg-white dark:bg-gray-800 flex flex-col" style={{ borderRadius: 'inherit' }}>
+          <div className="px-5 py-3 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between shrink-0">
+            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Участники чата</h3>
+            <button onClick={() => setShowParticipants(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4">
+            {loadingParticipants ? (
+              <div className="text-center text-sm text-gray-400 py-8">Загрузка...</div>
+            ) : participants.length === 0 ? (
+              <div className="text-center text-sm text-gray-400 py-8">Нет участников</div>
+            ) : (
+              <div className="space-y-2">
+                {participants.map((p) => (
+                  <div key={p.id} className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 dark:border-gray-700">
+                    <div className="w-8 h-8 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center text-sm font-medium text-violet-700 dark:text-violet-300 shrink-0">
+                      {p.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">{p.name}</div>
+                      {p.email && <div className="text-xs text-gray-400 truncate">{p.email}</div>}
+                    </div>
+                    {p.role && (
+                      <span className="text-xs text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full shrink-0">{p.role}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
 
       {/* Messages */}
       <div ref={containerRef} className="flex-1 overflow-y-auto p-4 space-y-1">
@@ -1501,6 +1617,399 @@ function CreateTaskModal({
           </button>
         </div>
       </form>
+    </ModalShell>
+  );
+}
+
+/* ─── Modal: Edit Task ─── */
+
+function EditTaskModal({
+  task, projectId, onSaved, onDeleted, onClose,
+}: {
+  task: Task;
+  projectId: number;
+  onSaved: () => Promise<void>;
+  onDeleted: () => Promise<void>;
+  onClose: () => void;
+}) {
+  const [title, setTitle] = useState(task.title);
+  const [description, setDescription] = useState(task.description || '');
+  const [status, setStatus] = useState(task.status ?? 0);
+  const [priority, setPriority] = useState(task.priority ?? 2);
+  const [dueDate, setDueDate] = useState(task.dueDate || task.due_date ? (task.dueDate || task.due_date || '').slice(0, 10) : '');
+  const [assignedToUserId, setAssignedToUserId] = useState<number | ''>(task.assignees?.[0]?.userId || '');
+  const [users, setUsers] = useState<UserOption[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const addToast = useToastStore((s) => s.addToast);
+
+  useEffect(() => {
+    api.get('/users', { params: { limit: 200 } })
+      .then((r) => { const d = r.data?.users || r.data?.data || r.data || []; setUsers(Array.isArray(d) ? d : []); })
+      .catch(() => setUsers([]));
+  }, []);
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim()) return;
+    setSaving(true);
+    try {
+      await api.put(`/tasks/${task.id}`, {
+        title: title.trim(),
+        description: description.trim() || undefined,
+        status,
+        priority,
+        dueDate: dueDate || undefined,
+        assignedToUserId: assignedToUserId || undefined,
+      });
+      await onSaved();
+    } catch {
+      addToast('error', 'Не удалось сохранить задачу');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await api.delete(`/tasks/${task.id}`);
+      await onDeleted();
+    } catch {
+      addToast('error', 'Не удалось удалить задачу');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <ModalShell title="Редактировать задачу" onClose={onClose}>
+      <form onSubmit={handleSave} className="space-y-4">
+        <div>
+          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Название *</label>
+          <input value={title} onChange={(e) => setTitle(e.target.value)} required
+            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100" />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Описание</label>
+          <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2}
+            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100 resize-none" />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Исполнитель</label>
+          <select value={assignedToUserId} onChange={(e) => setAssignedToUserId(e.target.value ? Number(e.target.value) : '')}
+            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100">
+            <option value="">— Не назначен —</option>
+            {users.map((u) => <option key={u.id} value={u.id}>{u.name} ({u.email})</option>)}
+          </select>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Статус</label>
+            <select value={status} onChange={(e) => setStatus(Number(e.target.value))}
+              className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100">
+              <option value={0}>Новая</option>
+              <option value={1}>В работе</option>
+              <option value={2}>На проверке</option>
+              <option value={3}>Готово</option>
+              <option value={4}>Отменена</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Приоритет</label>
+            <select value={priority} onChange={(e) => setPriority(Number(e.target.value))}
+              className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100">
+              <option value={1}>Низкий</option>
+              <option value={2}>Средний</option>
+              <option value={3}>Высокий</option>
+              <option value={4}>Критический</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Срок выполнения</label>
+          <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)}
+            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100" />
+        </div>
+        <div className="flex items-center justify-between gap-2 pt-2 border-t border-gray-100 dark:border-gray-700">
+          {confirmDelete ? (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-red-500">Удалить задачу?</span>
+              <button type="button" onClick={handleDelete} disabled={deleting}
+                className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded-lg disabled:opacity-50">
+                {deleting ? '...' : 'Да'}
+              </button>
+              <button type="button" onClick={() => setConfirmDelete(false)}
+                className="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+                Нет
+              </button>
+            </div>
+          ) : (
+            <button type="button" onClick={() => setConfirmDelete(true)}
+              className="text-xs text-red-500 hover:text-red-600 transition-colors">
+              Удалить задачу
+            </button>
+          )}
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors">
+              Отмена
+            </button>
+            <button type="submit" disabled={saving || !title.trim()}
+              className="px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
+              {saving ? 'Сохранение...' : 'Сохранить'}
+            </button>
+          </div>
+        </div>
+      </form>
+    </ModalShell>
+  );
+}
+
+/* ─── Modal: Team Member Detail ─── */
+
+function TeamMemberDetailModal({
+  member, projectId, onRemoved, onClose,
+}: {
+  member: TeamMember;
+  projectId: number;
+  onRemoved: () => Promise<void>;
+  onClose: () => void;
+}) {
+  const [removing, setRemoving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const addToast = useToastStore((s) => s.addToast);
+
+  const handleRemove = async () => {
+    setRemoving(true);
+    try {
+      await api.delete(`/projects/${projectId}/team/${member.teamId}`);
+      await onRemoved();
+    } catch {
+      addToast('error', 'Не удалось удалить команду');
+    } finally {
+      setRemoving(false);
+    }
+  };
+
+  const teamName = member.team?.name || member.teamName || `Команда #${member.teamId}`;
+
+  return (
+    <ModalShell title="Команда" onClose={onClose}>
+      <div className="space-y-4">
+        <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-900/30 rounded-xl">
+          <div className="w-10 h-10 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center text-base font-semibold text-violet-700 dark:text-violet-300 shrink-0">
+            {teamName.charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <div className="font-semibold text-gray-800 dark:text-gray-100">{teamName}</div>
+            {member.isPrimary && (
+              <span className="text-xs bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 px-2 py-0.5 rounded-full">Основная команда</span>
+            )}
+          </div>
+        </div>
+        <div className="space-y-2">
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-500 dark:text-gray-400">Дата назначения</span>
+            <span className="text-gray-800 dark:text-gray-100">{fmt(member.assignedAt)}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-500 dark:text-gray-400">ID команды</span>
+            <span className="text-gray-800 dark:text-gray-100">#{member.teamId}</span>
+          </div>
+        </div>
+        <div className="flex items-center justify-between gap-2 pt-3 border-t border-gray-100 dark:border-gray-700">
+          {confirmDelete ? (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-red-500">Удалить команду из проекта?</span>
+              <button onClick={handleRemove} disabled={removing}
+                className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded-lg disabled:opacity-50">
+                {removing ? '...' : 'Да'}
+              </button>
+              <button onClick={() => setConfirmDelete(false)} className="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+                Нет
+              </button>
+            </div>
+          ) : (
+            <button onClick={() => setConfirmDelete(true)} className="text-xs text-red-500 hover:text-red-600 transition-colors">
+              Убрать из проекта
+            </button>
+          )}
+          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors">
+            Закрыть
+          </button>
+        </div>
+      </div>
+    </ModalShell>
+  );
+}
+
+/* ─── Modal: Assignment Detail ─── */
+
+function AssignmentDetailModal({
+  assignment, projectId, onRemoved, onClose,
+}: {
+  assignment: Assignment;
+  projectId: number;
+  onRemoved: () => Promise<void>;
+  onClose: () => void;
+}) {
+  const [removing, setRemoving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const addToast = useToastStore((s) => s.addToast);
+
+  const handleRemove = async () => {
+    setRemoving(true);
+    try {
+      await api.delete(`/projects/${projectId}/assignments/${assignment.id}`);
+      await onRemoved();
+    } catch {
+      addToast('error', 'Не удалось удалить сотрудника');
+    } finally {
+      setRemoving(false);
+    }
+  };
+
+  return (
+    <ModalShell title="Сотрудник" onClose={onClose}>
+      <div className="space-y-4">
+        <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-900/30 rounded-xl">
+          <div className="w-10 h-10 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center text-base font-semibold text-violet-700 dark:text-violet-300 shrink-0">
+            {(assignment.userName || '?').charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <div className="font-semibold text-gray-800 dark:text-gray-100">{assignment.userName || `#${assignment.userId}`}</div>
+            {assignment.userEmail && <div className="text-xs text-gray-400">{assignment.userEmail}</div>}
+          </div>
+        </div>
+        <div className="space-y-2">
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-500 dark:text-gray-400">Роль в проекте</span>
+            <span className="text-gray-800 dark:text-gray-100">{assignment.roleOnProject || '—'}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-500 dark:text-gray-400">Статус</span>
+            <span className={`text-sm font-medium ${assignment.isActive ? 'text-green-600 dark:text-green-400' : 'text-gray-500'}`}>
+              {assignment.isActive ? 'Активен' : 'Неактивен'}
+            </span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-500 dark:text-gray-400">Назначен</span>
+            <span className="text-gray-800 dark:text-gray-100">{fmt(assignment.assignedAt)}</span>
+          </div>
+        </div>
+        <div className="flex items-center justify-between gap-2 pt-3 border-t border-gray-100 dark:border-gray-700">
+          {confirmDelete ? (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-red-500">Удалить сотрудника из проекта?</span>
+              <button onClick={handleRemove} disabled={removing}
+                className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded-lg disabled:opacity-50">
+                {removing ? '...' : 'Да'}
+              </button>
+              <button onClick={() => setConfirmDelete(false)} className="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+                Нет
+              </button>
+            </div>
+          ) : (
+            <button onClick={() => setConfirmDelete(true)} className="text-xs text-red-500 hover:text-red-600 transition-colors">
+              Убрать из проекта
+            </button>
+          )}
+          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors">
+            Закрыть
+          </button>
+        </div>
+      </div>
+    </ModalShell>
+  );
+}
+
+/* ─── Modal: Document Detail ─── */
+
+function DocumentDetailModal({
+  document, onDeleted, onClose,
+}: {
+  document: Document;
+  onDeleted: () => Promise<void>;
+  onClose: () => void;
+}) {
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const addToast = useToastStore((s) => s.addToast);
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await api.delete(`/documents/${document.id}`);
+      await onDeleted();
+    } catch {
+      addToast('error', 'Не удалось удалить документ');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <ModalShell title="Документ" onClose={onClose}>
+      <div className="space-y-4">
+        <div className="flex items-start gap-3 p-4 bg-gray-50 dark:bg-gray-900/30 rounded-xl">
+          <div className="w-10 h-10 rounded-lg bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center shrink-0">
+            <svg className="w-5 h-5 text-violet-600 dark:text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="font-semibold text-gray-800 dark:text-gray-100 break-words">{document.title}</div>
+            {document.documentType && (
+              <div className="text-xs text-gray-400 mt-0.5">{DOC_TYPE_LABELS[document.documentType] || document.documentType}</div>
+            )}
+          </div>
+        </div>
+        <div className="space-y-2">
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-500 dark:text-gray-400">Размер</span>
+            <span className="text-gray-800 dark:text-gray-100">{fmtSize(document.fileSize) || '—'}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-500 dark:text-gray-400">Дата загрузки</span>
+            <span className="text-gray-800 dark:text-gray-100">{fmt(document.createdAt)}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-500 dark:text-gray-400">Статус</span>
+            <span className="text-gray-800 dark:text-gray-100">{document.status || '—'}</span>
+          </div>
+        </div>
+        {document.fileUrl && (
+          <a href={document.fileUrl} target="_blank" rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 w-full py-2.5 border border-violet-200 dark:border-violet-700 text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg text-sm font-medium transition-colors">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Скачать файл
+          </a>
+        )}
+        <div className="flex items-center justify-between gap-2 pt-3 border-t border-gray-100 dark:border-gray-700">
+          {confirmDelete ? (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-red-500">Удалить документ?</span>
+              <button onClick={handleDelete} disabled={deleting}
+                className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded-lg disabled:opacity-50">
+                {deleting ? '...' : 'Да'}
+              </button>
+              <button onClick={() => setConfirmDelete(false)} className="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+                Нет
+              </button>
+            </div>
+          ) : (
+            <button onClick={() => setConfirmDelete(true)} className="text-xs text-red-500 hover:text-red-600 transition-colors">
+              Удалить документ
+            </button>
+          )}
+          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors">
+            Закрыть
+          </button>
+        </div>
+      </div>
     </ModalShell>
   );
 }
