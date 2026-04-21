@@ -403,6 +403,56 @@ export default function ProjectDetailPage() {
     finally { setCreatingChannel(false); }
   };
 
+  /* ─── Chat file sync ─── */
+  const handleChatFilesSent = useCallback(async (attachments: { fileUrl: string; fileName: string; fileSize: number; mimeType: string }[]) => {
+    for (const att of attachments) {
+      const isImage = att.mimeType?.startsWith('image/');
+      const isAudio = att.mimeType?.startsWith('audio/');
+
+      if (isAudio) continue; // голосовые сообщения не сохраняем
+
+      if (isImage) {
+        // Добавить в фото объекта строительства
+        try {
+          let targetSite = sites[0] ?? null;
+          if (!targetSite) {
+            const r = await api.get(`/projects/${projectId}/construction-sites`, { params: { limit: 1 } });
+            const s = r.data?.sites || r.data?.data || r.data || [];
+            targetSite = Array.isArray(s) && s.length > 0 ? s[0] : null;
+            if (!targetSite) {
+              const createRes = await api.post(`/projects/${projectId}/construction-sites`, {
+                name: 'Основной объект',
+                address: project?.address || 'Не указан',
+              });
+              targetSite = createRes.data;
+            }
+          }
+          if (targetSite) {
+            const siteRes = await api.get(`/construction-sites/${targetSite.id}`);
+            const existing: string[] = siteRes.data?.photos || [];
+            await api.put(`/construction-sites/${targetSite.id}`, {
+              photos: [...existing, att.fileUrl],
+            });
+            setSitesLoaded(false); // сбросить кэш чтобы вкладка перезагрузилась
+          }
+        } catch { /* синхронизация опциональна */ }
+      } else {
+        // Добавить в документы проекта
+        try {
+          await api.post('/documents', {
+            title: att.fileName,
+            projectId,
+            fileUrl: att.fileUrl,
+            fileSize: att.fileSize,
+            fileType: att.mimeType,
+            status: 'active',
+          });
+          setDocsLoaded(false); // сбросить кэш чтобы вкладка перезагрузилась
+        } catch { /* синхронизация опциональна */ }
+      }
+    }
+  }, [projectId, project, sites]);
+
   /* ─── Team actions ─── */
   const handleAssignTeam = async (teamId: number) => {
     try {
@@ -897,7 +947,7 @@ export default function ProjectDetailPage() {
               </button>
             </div>
           ) : (
-            <ProjectChatPanel channelId={channel.id} channelName={channel.name || channel.channelName || 'Чат проекта'} />
+            <ProjectChatPanel channelId={channel.id} channelName={channel.name || channel.channelName || 'Чат проекта'} onFilesSent={handleChatFilesSent} />
           )}
         </div>
       )}
@@ -1324,7 +1374,7 @@ function UploadDocumentModal({
 
 /* ─── Project Chat Panel ─── */
 
-function ProjectChatPanel({ channelId, channelName }: { channelId: number; channelName: string }) {
+function ProjectChatPanel({ channelId, channelName, onFilesSent }: { channelId: number; channelName: string; onFilesSent?: (attachments: any[]) => void }) {
   const connect = useChatStore((s) => s.connect);
   const setActiveChannel = useChatStore((s) => s.setActiveChannel);
   const fetchChannels = useChatStore((s) => s.fetchChannels);
@@ -1505,7 +1555,7 @@ function ProjectChatPanel({ channelId, channelName }: { channelId: number; chann
       </div>
 
       {/* Input */}
-      <ChatInput channelId={channelId} />
+      <ChatInput channelId={channelId} onFilesSent={onFilesSent} />
     </div>
   );
 }

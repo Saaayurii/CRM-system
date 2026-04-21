@@ -24,6 +24,7 @@ const EMOJI_CATEGORIES = [
 
 interface ChatInputProps {
   channelId: number;
+  onFilesSent?: (attachments: UploadedAttachment[]) => void;
 }
 
 interface PendingFile {
@@ -33,7 +34,7 @@ interface PendingFile {
   compressed: boolean; // true = compress image, false = send as original file
 }
 
-export default function ChatInput({ channelId }: ChatInputProps) {
+export default function ChatInput({ channelId, onFilesSent }: ChatInputProps) {
   const [text, setText] = useState('');
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
   const [isSending, setIsSending] = useState(false);
@@ -214,6 +215,10 @@ export default function ChatInput({ channelId }: ChatInputProps) {
       uploadedAttachments.length > 0 ? uploadedAttachments : undefined,
       replyToMessage?.id
     );
+
+    if (uploadedAttachments.length > 0) {
+      onFilesSent?.(uploadedAttachments);
+    }
 
     setText('');
     setPendingFiles([]);
