@@ -15,8 +15,8 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H 192.168.100.67 >> ~/.ssh/known_hosts
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no admin_315@192.168.100.67 "
+          ssh-keyscan -H 192.168.100.65 >> ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no admin_315@192.168.100.65 "
             cd /opt/crm-system &&
             git pull origin main &&
             bash /opt/crm-system/deploy.sh
