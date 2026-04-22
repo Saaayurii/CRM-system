@@ -10,14 +10,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Deploy to server
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H 192.168.100.65 >> ~/.ssh/known_hosts
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no admin_315@192.168.100.65 "
-            cd /opt/crm-system &&
-            git pull origin main &&
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 192.168.100.65
+          username: admin_315
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          command_timeout: 60m
+          script: |
+            cd /opt/crm-system
+            git pull origin main
+            cd backend
             bash /opt/crm-system/deploy.sh
-          "
