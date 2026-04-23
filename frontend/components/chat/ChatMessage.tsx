@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { ChatMessage as ChatMessageType } from '@/stores/chatStore';
 import MediaViewer, { MediaItem } from './MediaViewer';
 
@@ -89,9 +90,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, onRepl
           ) : (
             <>
               {/* Text */}
-              {message.text && (
-                <p className="text-sm whitespace-pre-wrap break-words">{message.text}</p>
-              )}
+              {message.text && renderText(message.text, isOwn)}
 
               {/* Attachments */}
               {message.attachments && message.attachments.length > 0 && (
@@ -304,6 +303,48 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, onRepl
       )}
     </div>
   );
+}
+
+// ── Task mention renderer ───────────────────────────────────
+
+const TASK_MENTION_RE = /#\[([^\]]+)\]\(task:(\d+)\)/g;
+
+function renderText(text: string, isOwn: boolean) {
+  const segments: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  TASK_MENTION_RE.lastIndex = 0;
+
+  while ((match = TASK_MENTION_RE.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      segments.push(<span key={lastIndex}>{text.slice(lastIndex, match.index)}</span>);
+    }
+    const [, title, id] = match;
+    segments.push(
+      <Link
+        key={match.index}
+        href={`/dashboard/tasks?edit=${id}`}
+        onClick={(e) => e.stopPropagation()}
+        className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium transition-colors ${
+          isOwn
+            ? 'bg-white/20 hover:bg-white/30 text-white'
+            : 'bg-violet-100 hover:bg-violet-200 dark:bg-violet-900/40 dark:hover:bg-violet-800/50 text-violet-700 dark:text-violet-300'
+        }`}
+      >
+        <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+        </svg>
+        {title}
+      </Link>
+    );
+    lastIndex = TASK_MENTION_RE.lastIndex;
+  }
+
+  if (lastIndex < text.length) {
+    segments.push(<span key={lastIndex}>{text.slice(lastIndex)}</span>);
+  }
+
+  return <p className="text-sm whitespace-pre-wrap break-words">{segments}</p>;
 }
 
 // ── Voice Message Player ────────────────────────────────────

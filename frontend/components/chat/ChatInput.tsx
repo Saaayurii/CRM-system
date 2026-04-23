@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useRef, useCallback, KeyboardEvent, useEffect } from 'react';
+import { useState, useRef, useCallback, KeyboardEvent, useEffect, useMemo } from 'react';
 import { useChatStore, UploadedAttachment } from '@/stores/chatStore';
+import api from '@/lib/api';
 
 const EMOJI_CATEGORIES = [
   {
@@ -42,6 +43,12 @@ export default function ChatInput({ channelId, onFilesSent }: ChatInputProps) {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [activeCategory, setActiveCategory] = useState(0);
 
+  const [tasks, setTasks] = useState<{ id: number; title: string }[]>([]);
+  const [showTaskPicker, setShowTaskPicker] = useState(false);
+  const [taskQuery, setTaskQuery] = useState('');
+  const [mentionStart, setMentionStart] = useState(-1);
+  const [selectedTaskIndex, setSelectedTaskIndex] = useState(0);
+
   // Voice recording state
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -49,6 +56,7 @@ export default function ChatInput({ channelId, onFilesSent }: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const taskPickerRef = useRef<HTMLDivElement>(null);
   const xhrMapRef = useRef<Map<string, XMLHttpRequest[]>>(new Map());
 
   // Voice recording refs
@@ -83,6 +91,28 @@ export default function ChatInput({ channelId, onFilesSent }: ChatInputProps) {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [showEmojiPicker]);
+
+  // Close task picker on outside click
+  useEffect(() => {
+    if (!showTaskPicker) return;
+    const handler = (e: MouseEvent) => {
+      if (taskPickerRef.current && !taskPickerRef.current.contains(e.target as Node)) {
+        setShowTaskPicker(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showTaskPicker]);
+
+  // Load tasks once for mention suggestions
+  useEffect(() => {
+    api.get('/tasks', { params: { limit: 200 } })
+      .then((res) => {
+        const arr = res.data.tasks || res.data.data || [];
+        setTasks(arr.map((t: any) => ({ id: t.id, title: t.title })));
+      })
+      .catch(() => {});
+  }, []);
 
   const insertEmoji = useCallback((emoji: string) => {
     const ta = textareaRef.current;
@@ -180,6 +210,47 @@ export default function ChatInput({ channelId, onFilesSent }: ChatInputProps) {
     [CHUNK_SIZE]
   );
 
+  const detectMention = useCallback((value: string, cursorPos: number) => {
+    const textBeforeCursor = value.slice(0, cursorPos);
+    const match = textBeforeCursor.match(/#([^\s]*)$/);
+    if (match) {
+      setMentionStart(cursorPos - match[0].length);
+      setTaskQuery(match[1]);
+      setShowTaskPicker(true);
+      setSelectedTaskIndex(0);
+    } else {
+      setShowTaskPicker(false);
+      setTaskQuery('');
+      setMentionStart(-1);
+    }
+  }, []);
+
+  const filteredTaskMentions = useMemo(() => {
+    if (!taskQuery) return tasks.slice(0, 8);
+    const q = taskQuery.toLowerCase();
+    return tasks.filter((t) => t.title.toLowerCase().includes(q)).slice(0, 8);
+  }, [tasks, taskQuery]);
+
+  const insertTaskMention = useCallback((task: { id: number; title: string }) => {
+    const ta = textareaRef.current;
+    const cursor = ta?.selectionStart ?? text.length;
+    const before = text.slice(0, mentionStart) + `#[${task.title}](task:${task.id}) `;
+    const after = text.slice(cursor);
+    const newText = before + after;
+    setText(newText);
+    setShowTaskPicker(false);
+    setTaskQuery('');
+    setMentionStart(-1);
+    requestAnimationFrame(() => {
+      if (ta) {
+        ta.selectionStart = ta.selectionEnd = before.length;
+        ta.focus();
+        ta.style.height = 'auto';
+        ta.style.height = Math.min(ta.scrollHeight, 120) + 'px';
+      }
+    });
+  }, [text, mentionStart]);
+
   const handleSend = useCallback(async () => {
     const trimmed = text.trim();
     if (!trimmed && pendingFiles.length === 0) return;
@@ -232,19 +303,42 @@ export default function ChatInput({ channelId, onFilesSent }: ChatInputProps) {
   }, [text, channelId, pendingFiles, sendMessage, stopTyping, replyToMessage, uploadFileWithProgress]);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (showTaskPicker && filteredTaskMentions.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSelectedTaskIndex((i) => Math.min(i + 1, filteredTaskMentions.length - 1));
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSelectedTaskIndex((i) => Math.max(i - 1, 0));
+        return;
+      }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        insertTaskMention(filteredTaskMentions[selectedTaskIndex]);
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setShowTaskPicker(false);
+        return;
+      }
+    }
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
   };
 
-  const handleTextChange = (value: string) => {
+  const handleTextChange = (value: string, cursorPos: number) => {
     setText(value);
     startTyping(channelId);
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
       textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 120) + 'px';
     }
+    detectMention(value, cursorPos);
   };
 
   const handleFileSelect = () => {
@@ -649,16 +743,47 @@ export default function ChatInput({ channelId, onFilesSent }: ChatInputProps) {
           </div>
 
           {/* Text input */}
-          <textarea
-            ref={textareaRef}
-            value={text}
-            onChange={(e) => handleTextChange(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Написать сообщение..."
-            rows={1}
-            disabled={isSending}
-            className="flex-1 resize-none px-3 py-2 bg-gray-100 dark:bg-gray-700 border-0 rounded-xl text-sm text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-violet-500 focus:outline-none max-h-[120px] disabled:opacity-50"
-          />
+          <div className="relative flex-1">
+            {showTaskPicker && filteredTaskMentions.length > 0 && (
+              <div
+                ref={taskPickerRef}
+                className="absolute bottom-full mb-1 left-0 right-0 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl shadow-xl overflow-hidden"
+              >
+                <div className="px-3 py-1.5 border-b border-gray-100 dark:border-gray-700">
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Задачи — нажмите ↑↓ для выбора, Enter для вставки</p>
+                </div>
+                <div className="overflow-y-auto max-h-44">
+                  {filteredTaskMentions.map((task, idx) => (
+                    <button
+                      key={task.id}
+                      onMouseDown={(e) => { e.preventDefault(); insertTaskMention(task); }}
+                      className={`w-full flex items-center gap-2 px-3 py-2 text-left text-sm transition-colors ${
+                        idx === selectedTaskIndex
+                          ? 'bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300'
+                          : 'text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                      }`}
+                    >
+                      <svg className="w-3.5 h-3.5 shrink-0 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                      </svg>
+                      <span className="truncate">{task.title}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <textarea
+              ref={textareaRef}
+              value={text}
+              onChange={(e) => handleTextChange(e.target.value, e.target.selectionStart ?? e.target.value.length)}
+              onSelect={(e) => detectMention(text, (e.target as HTMLTextAreaElement).selectionStart ?? text.length)}
+              onKeyDown={handleKeyDown}
+              placeholder="Написать сообщение... (# для упоминания задачи)"
+              rows={1}
+              disabled={isSending}
+              className="w-full resize-none px-3 py-2 bg-gray-100 dark:bg-gray-700 border-0 rounded-xl text-sm text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-violet-500 focus:outline-none max-h-[120px] disabled:opacity-50"
+            />
+          </div>
 
           {/* Mic button — always visible */}
           <button
