@@ -25,6 +25,7 @@ const EMOJI_CATEGORIES = [
 
 interface ChatInputProps {
   channelId: number;
+  projectId?: number;
   onFilesSent?: (attachments: UploadedAttachment[]) => void;
 }
 
@@ -35,7 +36,7 @@ interface PendingFile {
   compressed: boolean; // true = compress image, false = send as original file
 }
 
-export default function ChatInput({ channelId, onFilesSent }: ChatInputProps) {
+export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInputProps) {
   const [text, setText] = useState('');
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
   const [isSending, setIsSending] = useState(false);
@@ -104,15 +105,16 @@ export default function ChatInput({ channelId, onFilesSent }: ChatInputProps) {
     return () => document.removeEventListener('mousedown', handler);
   }, [showTaskPicker]);
 
-  // Load tasks once for mention suggestions
+  // Load tasks only for project-linked channels
   useEffect(() => {
-    api.get('/tasks', { params: { limit: 200 } })
+    if (!projectId) return;
+    api.get('/tasks', { params: { limit: 200, projectId } })
       .then((res) => {
         const arr = res.data.tasks || res.data.data || [];
         setTasks(arr.map((t: any) => ({ id: t.id, title: t.title })));
       })
       .catch(() => {});
-  }, []);
+  }, [projectId]);
 
   const insertEmoji = useCallback((emoji: string) => {
     const ta = textareaRef.current;
@@ -211,6 +213,7 @@ export default function ChatInput({ channelId, onFilesSent }: ChatInputProps) {
   );
 
   const detectMention = useCallback((value: string, cursorPos: number) => {
+    if (!projectId) return;
     const textBeforeCursor = value.slice(0, cursorPos);
     const match = textBeforeCursor.match(/#([^\s]*)$/);
     if (match) {
@@ -223,7 +226,7 @@ export default function ChatInput({ channelId, onFilesSent }: ChatInputProps) {
       setTaskQuery('');
       setMentionStart(-1);
     }
-  }, []);
+  }, [projectId]);
 
   const filteredTaskMentions = useMemo(() => {
     if (!taskQuery) return tasks.slice(0, 8);
@@ -778,7 +781,7 @@ export default function ChatInput({ channelId, onFilesSent }: ChatInputProps) {
               onChange={(e) => handleTextChange(e.target.value, e.target.selectionStart ?? e.target.value.length)}
               onSelect={(e) => detectMention(text, (e.target as HTMLTextAreaElement).selectionStart ?? text.length)}
               onKeyDown={handleKeyDown}
-              placeholder="Написать сообщение... (# для упоминания задачи)"
+              placeholder={projectId ? 'Написать сообщение... (# для упоминания задачи)' : 'Написать сообщение...'}
               rows={1}
               disabled={isSending}
               className="w-full resize-none px-3 py-2 bg-gray-100 dark:bg-gray-700 border-0 rounded-xl text-sm text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-violet-500 focus:outline-none max-h-[120px] disabled:opacity-50"

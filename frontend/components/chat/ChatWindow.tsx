@@ -288,7 +288,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
         )}
 
         {/* Input */}
-        <ChatInput channelId={activeChannelId} />
+        <ChatInput channelId={activeChannelId} projectId={activeChannel.projectId ?? undefined} />
       </div>
 
       {/* Info panel — desktop: right column; mobile: overlay */}

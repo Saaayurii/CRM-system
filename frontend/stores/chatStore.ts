@@ -52,6 +52,7 @@ export interface ChatChannel {
   channelName: string;
   avatarUrl?: string;
   membersCount: number;
+  projectId?: number | null;
   lastMessage?: {
     text: string;
     senderName: string;
@@ -131,6 +132,7 @@ function mapRawChannel(raw: any): ChatChannel {
     channelName: raw.channelName ?? raw.name ?? '',
     avatarUrl: raw.avatarUrl ?? undefined,
     membersCount: raw.membersCount ?? members.length,
+    projectId: raw.projectId ?? null,
     lastMessage: rawLastMsg
       ? {
           text: rawLastMsg.text ?? rawLastMsg.messageText ?? '',
