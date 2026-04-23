@@ -947,7 +947,7 @@ export default function ProjectDetailPage() {
               </button>
             </div>
           ) : (
-            <ProjectChatPanel channelId={channel.id} channelName={channel.name || channel.channelName || 'Чат проекта'} onFilesSent={handleChatFilesSent} />
+            <ProjectChatPanel channelId={channel.id} channelName={channel.name || channel.channelName || 'Чат проекта'} projectId={projectId} onFilesSent={handleChatFilesSent} />
           )}
         </div>
       )}
@@ -1374,7 +1374,7 @@ function UploadDocumentModal({
 
 /* ─── Project Chat Panel ─── */
 
-function ProjectChatPanel({ channelId, channelName, onFilesSent }: { channelId: number; channelName: string; onFilesSent?: (attachments: any[]) => void }) {
+function ProjectChatPanel({ channelId, channelName, projectId, onFilesSent }: { channelId: number; channelName: string; projectId?: number; onFilesSent?: (attachments: any[]) => void }) {
   const connect = useChatStore((s) => s.connect);
   const setActiveChannel = useChatStore((s) => s.setActiveChannel);
   const fetchChannels = useChatStore((s) => s.fetchChannels);
@@ -1555,7 +1555,7 @@ function ProjectChatPanel({ channelId, channelName, onFilesSent }: { channelId: 
       </div>
 
       {/* Input */}
-      <ChatInput channelId={channelId} onFilesSent={onFilesSent} />
+      <ChatInput channelId={channelId} projectId={projectId} onFilesSent={onFilesSent} />
     </div>
   );
 }
