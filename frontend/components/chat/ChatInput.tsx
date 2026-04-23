@@ -44,7 +44,7 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [activeCategory, setActiveCategory] = useState(0);
 
-  const [tasks, setTasks] = useState<{ id: number; title: string }[]>([]);
+  const [tasks, setTasks] = useState<{ id: number; title: string; status: number; priority: number; dueDate: string }[]>([]);
   const [showTaskPicker, setShowTaskPicker] = useState(false);
   const [taskQuery, setTaskQuery] = useState('');
   const [mentionStart, setMentionStart] = useState(-1);
@@ -61,7 +61,7 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
   const xhrMapRef = useRef<Map<string, XMLHttpRequest[]>>(new Map());
   // Refs to always-current picker state — used inside event handlers to avoid stale closures
   const showTaskPickerRef = useRef(false);
-  const filteredTaskMentionsRef = useRef<{ id: number; title: string }[]>([]);
+  const filteredTaskMentionsRef = useRef<{ id: number; title: string; status: number; priority: number; dueDate: string }[]>([]);
   const selectedTaskIndexRef = useRef(0);
 
   // Voice recording refs
@@ -115,7 +115,13 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
     api.get('/tasks', { params: { limit: 200, projectId } })
       .then((res) => {
         const arr = res.data.tasks || res.data.data || [];
-        setTasks(arr.map((t: any) => ({ id: t.id, title: t.title })));
+        setTasks(arr.map((t: any) => ({
+          id: t.id,
+          title: t.title,
+          status: Number(t.status ?? 0),
+          priority: Number(t.priority ?? 0),
+          dueDate: (t.dueDate || t.due_date || '').slice(0, 10),
+        })));
       })
       .catch(() => {});
   }, [projectId]);
@@ -243,10 +249,10 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
   filteredTaskMentionsRef.current = filteredTaskMentions;
   selectedTaskIndexRef.current = selectedTaskIndex;
 
-  const insertTaskMention = useCallback((task: { id: number; title: string }) => {
+  const insertTaskMention = useCallback((task: { id: number; title: string; status: number; priority: number; dueDate: string }) => {
     const ta = textareaRef.current;
     const cursor = ta?.selectionStart ?? text.length;
-    const before = text.slice(0, mentionStart) + `#[${task.title}](task:${task.id}) `;
+    const before = text.slice(0, mentionStart) + `#[${task.title}](task:${task.id}|${task.status}|${task.priority}|${task.dueDate}) `;
     const after = text.slice(cursor);
     const newText = before + after;
     setText(newText);

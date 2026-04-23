@@ -307,44 +307,151 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, onRepl
 
 // ── Task mention renderer ───────────────────────────────────
 
-const TASK_MENTION_RE = /#\[([^\]]+)\]\(task:(\d+)\)/g;
+// Matches both legacy #[Title](task:ID) and new #[Title](task:ID|status|priority|dueDate)
+const TASK_MENTION_RE = /#\[([^\]]+)\]\(task:(\d+)(?:\|(\d+)\|(\d+)\|([^)]*))?\)/g;
+
+const TASK_STATUS_LABELS: Record<number, { label: string; cls: string }> = {
+  0: { label: 'Новая',       cls: 'bg-gray-100 text-gray-600 dark:bg-gray-600/40 dark:text-gray-300' },
+  1: { label: 'Назначена',   cls: 'bg-sky-100 text-sky-700 dark:bg-sky-800/40 dark:text-sky-300' },
+  2: { label: 'В работе',    cls: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-800/40 dark:text-yellow-300' },
+  3: { label: 'На проверке', cls: 'bg-purple-100 text-purple-700 dark:bg-purple-800/40 dark:text-purple-300' },
+  4: { label: 'Завершена',   cls: 'bg-green-100 text-green-700 dark:bg-green-800/40 dark:text-green-300' },
+  5: { label: 'Отменена',    cls: 'bg-red-100 text-red-700 dark:bg-red-800/40 dark:text-red-300' },
+};
+
+const TASK_PRIORITY_LABELS: Record<number, { label: string; cls: string }> = {
+  1: { label: 'Низкий',      cls: 'bg-green-100 text-green-700 dark:bg-green-800/40 dark:text-green-300' },
+  2: { label: 'Средний',     cls: 'bg-sky-100 text-sky-700 dark:bg-sky-800/40 dark:text-sky-300' },
+  3: { label: 'Высокий',     cls: 'bg-orange-100 text-orange-700 dark:bg-orange-800/40 dark:text-orange-300' },
+  4: { label: 'Критический', cls: 'bg-red-100 text-red-700 dark:bg-red-800/40 dark:text-red-300' },
+};
+
+function fmtDate(d: string): string {
+  if (!d) return '';
+  try {
+    const dt = new Date(d);
+    if (isNaN(dt.getTime())) return '';
+    return `${String(dt.getDate()).padStart(2, '0')}.${String(dt.getMonth() + 1).padStart(2, '0')}.${dt.getFullYear()}`;
+  } catch { return ''; }
+}
+
+function TaskCard({ id, title, status, priority, dueDate, isOwn }: {
+  id: string; title: string; status: number; priority: number; dueDate: string; isOwn: boolean;
+}) {
+  const st = TASK_STATUS_LABELS[status];
+  const pr = TASK_PRIORITY_LABELS[priority];
+  const due = fmtDate(dueDate);
+
+  return (
+    <Link
+      href={`/dashboard/tasks?edit=${id}`}
+      onClick={(e) => e.stopPropagation()}
+      className={`mt-1.5 flex flex-col gap-1.5 rounded-xl p-2.5 border transition-colors no-underline ${
+        isOwn
+          ? 'bg-white/10 hover:bg-white/20 border-white/20'
+          : 'bg-gray-50 hover:bg-gray-100 dark:bg-gray-700/50 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-600'
+      }`}
+    >
+      {/* Title row */}
+      <div className="flex items-start gap-2">
+        <svg
+          className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${isOwn ? 'text-white/70' : 'text-violet-400'}`}
+          fill="none" stroke="currentColor" viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+        </svg>
+        <span className={`text-xs font-semibold leading-snug ${isOwn ? 'text-white' : 'text-gray-800 dark:text-gray-100'}`}>
+          {title}
+        </span>
+      </div>
+
+      {/* Badges row */}
+      {(st || pr || due) && (
+        <div className="flex items-center gap-1.5 flex-wrap pl-5">
+          {st && (
+            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
+              isOwn ? 'bg-white/20 text-white' : st.cls
+            }`}>
+              {st.label}
+            </span>
+          )}
+          {pr && (
+            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
+              isOwn ? 'bg-white/20 text-white' : pr.cls
+            }`}>
+              {pr.label}
+            </span>
+          )}
+          {due && (
+            <span className={`inline-flex items-center gap-0.5 text-[10px] ${isOwn ? 'text-white/70' : 'text-gray-400 dark:text-gray-500'}`}>
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              {due}
+            </span>
+          )}
+        </div>
+      )}
+    </Link>
+  );
+}
 
 function renderText(text: string, isOwn: boolean) {
-  const segments: React.ReactNode[] = [];
+  const textSegments: React.ReactNode[] = [];
+  const cards: React.ReactNode[] = [];
   let lastIndex = 0;
   let match: RegExpExecArray | null;
   TASK_MENTION_RE.lastIndex = 0;
 
   while ((match = TASK_MENTION_RE.exec(text)) !== null) {
     if (match.index > lastIndex) {
-      segments.push(<span key={lastIndex}>{text.slice(lastIndex, match.index)}</span>);
+      textSegments.push(<span key={lastIndex}>{text.slice(lastIndex, match.index)}</span>);
     }
-    const [, title, id] = match;
-    segments.push(
-      <Link
-        key={match.index}
-        href={`/dashboard/tasks?edit=${id}`}
-        onClick={(e) => e.stopPropagation()}
-        className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium transition-colors ${
-          isOwn
-            ? 'bg-white/20 hover:bg-white/30 text-white'
-            : 'bg-violet-100 hover:bg-violet-200 dark:bg-violet-900/40 dark:hover:bg-violet-800/50 text-violet-700 dark:text-violet-300'
-        }`}
-      >
-        <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-        </svg>
-        {title}
-      </Link>
-    );
+    const [, title, id, rawStatus, rawPriority, rawDue] = match;
+    const status = rawStatus ? Number(rawStatus) : -1;
+    const priority = rawPriority ? Number(rawPriority) : 0;
+    const dueDate = rawDue ?? '';
+
+    if (status >= 0) {
+      cards.push(
+        <TaskCard key={match.index} id={id} title={title} status={status} priority={priority} dueDate={dueDate} isOwn={isOwn} />
+      );
+    } else {
+      // Legacy format — render as simple chip
+      textSegments.push(
+        <Link
+          key={match.index}
+          href={`/dashboard/tasks?edit=${id}`}
+          onClick={(e) => e.stopPropagation()}
+          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium transition-colors ${
+            isOwn
+              ? 'bg-white/20 hover:bg-white/30 text-white'
+              : 'bg-violet-100 hover:bg-violet-200 dark:bg-violet-900/40 dark:hover:bg-violet-800/50 text-violet-700 dark:text-violet-300'
+          }`}
+        >
+          <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          </svg>
+          {title}
+        </Link>
+      );
+    }
     lastIndex = TASK_MENTION_RE.lastIndex;
   }
 
   if (lastIndex < text.length) {
-    segments.push(<span key={lastIndex}>{text.slice(lastIndex)}</span>);
+    textSegments.push(<span key={lastIndex}>{text.slice(lastIndex)}</span>);
   }
 
-  return <p className="text-sm whitespace-pre-wrap break-words">{segments}</p>;
+  return (
+    <div>
+      {textSegments.length > 0 && (
+        <p className="text-sm whitespace-pre-wrap break-words">{textSegments}</p>
+      )}
+      {cards}
+    </div>
+  );
 }
 
 // ── Voice Message Player ────────────────────────────────────
