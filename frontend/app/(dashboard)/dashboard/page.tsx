@@ -297,6 +297,7 @@ function SuperAdminDashboard({ user }: { user: any }) {
 
 /* ─── Admin Dashboard (roleId=2) ─────────────────────────────────────────── */
 function AdminDashboard({ user }: { user: any }) {
+  const router = useRouter();
   const now = new Date();
   const greeting = now.getHours() < 12 ? 'Доброе утро' : now.getHours() < 18 ? 'Добрый день' : 'Добрый вечер';
   const dateStr = now.toLocaleDateString('ru-RU', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
@@ -426,7 +427,11 @@ function AdminDashboard({ user }: { user: any }) {
                     const st = TASK_STATUS_MAP[Number(t.status)];
                     const pr = TASK_PRIORITY_MAP[Number(t.priority)];
                     return (
-                      <tr key={t.id} className="border-b border-gray-50 dark:border-gray-700/30 last:border-0">
+                      <tr
+                        key={t.id}
+                        onClick={() => router.push(`/dashboard/tasks?edit=${t.id}`)}
+                        className="border-b border-gray-50 dark:border-gray-700/30 last:border-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors"
+                      >
                         <td className="py-2.5 text-gray-800 dark:text-gray-100 font-medium truncate max-w-[200px]">{t.title}</td>
                         <td className="py-2.5">{st ? <StatusBadge label={st.label} color={st.color} /> : '—'}</td>
                         <td className="py-2.5">{pr ? <StatusBadge label={pr.label} color={pr.color} /> : '—'}</td>

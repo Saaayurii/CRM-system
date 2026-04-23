@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import TaskFormModal from '@/components/dashboard/TaskFormModal';
@@ -85,6 +86,7 @@ async function fetchTasksPageData(): Promise<TasksPageData> {
 
 export default function TasksPage() {
   const addToast = useToastStore((s) => s.addToast);
+  const searchParams = useSearchParams();
   const [showModal, setShowModal] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -102,6 +104,16 @@ export default function TasksPage() {
   const tasks = data?.tasks ?? [];
   const projects = data?.projects ?? [];
   const users = data?.users ?? [];
+
+  useEffect(() => {
+    const editId = searchParams.get('edit');
+    if (!editId || !tasks.length) return;
+    const task = tasks.find((t) => String(t.id) === editId);
+    if (task) {
+      setEditingTask(task);
+      setShowModal(true);
+    }
+  }, [tasks, searchParams]);
 
   const filteredTasks = useMemo(() => {
     return tasks.filter((t) => {
