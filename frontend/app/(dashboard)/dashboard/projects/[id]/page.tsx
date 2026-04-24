@@ -83,6 +83,50 @@ interface ConstructionSite {
   photos?: string[];
 }
 
+// Strip internal Docker/server hostnames from upload URLs so browser can load them
+function normalizePhotoUrl(url: string): string {
+  if (!url || (!url.startsWith('http://') && !url.startsWith('https://'))) return url;
+  try {
+    const parsed = new URL(url);
+    if (typeof window !== 'undefined' && parsed.origin === window.location.origin) return url;
+    return parsed.pathname;
+  } catch {
+    return url;
+  }
+}
+
+// Convert webp/heic files to JPEG via Canvas before upload for universal browser support
+function convertImageToJpeg(file: File): Promise<File> {
+  const needsConversion = ['image/webp', 'image/heic', 'image/heif'].includes(file.type);
+  if (!needsConversion) return Promise.resolve(file);
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) { resolve(file); return; }
+        ctx.drawImage(img, 0, 0);
+        canvas.toBlob((blob) => {
+          if (!blob) { resolve(file); return; }
+          const name = file.name.replace(/\.[^.]+$/, '.jpg');
+          resolve(new File([blob], name, { type: 'image/jpeg' }));
+        }, 'image/jpeg', 0.92);
+      };
+      img.onerror = () => resolve(file);
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => resolve(file);
+    reader.readAsDataURL(file);
+  });
+}
+
+const PHOTO_ERROR_PLACEHOLDER =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='1.5'%3E%3Crect x='3' y='3' width='18' height='18' rx='2'/%3E%3Ccircle cx='8.5' cy='8.5' r='1.5'/%3E%3Cpath d='m21 15-5-5L5 21'/%3E%3C/svg%3E";
+
 interface Task {
   id: number;
   title: string;
@@ -431,7 +475,7 @@ export default function ProjectDetailPage() {
             const siteRes = await api.get(`/construction-sites/${targetSite.id}`);
             const existing: string[] = siteRes.data?.photos || [];
             await api.put(`/construction-sites/${targetSite.id}`, {
-              photos: [...existing, att.fileUrl],
+              photos: [...existing, normalizePhotoUrl(att.fileUrl)],
             });
             setSitesLoaded(false); // сбросить кэш чтобы вкладка перезагрузилась
           }
@@ -538,14 +582,15 @@ export default function ProjectDetailPage() {
         targetSite = sites[0] || r.data;
       }
 
-      for (const file of Array.from(files)) {
+      for (const rawFile of Array.from(files)) {
+        const file = await convertImageToJpeg(rawFile);
         const form = new FormData();
         form.append('files', file);
         const uploadRes = await api.post('/chat-channels/upload', form, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
         const uploaded: any[] = Array.isArray(uploadRes.data) ? uploadRes.data : [uploadRes.data];
-        const newUrls = uploaded.map((u: any) => u.fileUrl || u.url).filter(Boolean);
+        const newUrls = uploaded.map((u: any) => normalizePhotoUrl(u.fileUrl || u.url)).filter(Boolean);
 
         // fetch current site photos and append
         const siteRes = await api.get(`/construction-sites/${targetSite.id}`);
@@ -999,7 +1044,7 @@ export default function ProjectDetailPage() {
                       <button key={idx} onClick={() => setLightboxPhoto(url)}
                         className="aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 hover:opacity-90 transition-opacity">
                         <img src={url} alt={`Фото ${idx + 1}`} className="w-full h-full object-cover"
-                          onError={(e) => { (e.currentTarget as HTMLImageElement).src = ''; }} />
+                          onError={(e) => { const el = e.currentTarget as HTMLImageElement; if (el.src !== PHOTO_ERROR_PLACEHOLDER) el.src = PHOTO_ERROR_PLACEHOLDER; }} />
                       </button>
                     ))}
                   </div>
