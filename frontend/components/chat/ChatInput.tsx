@@ -36,13 +36,21 @@ interface PendingFile {
   compressed: boolean; // true = compress image, false = send as original file
 }
 
+const DRAFT_KEY = (channelId: number) => `chat-draft-${channelId}`;
+
 export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInputProps) {
-  const [text, setText] = useState('');
+  const [text, setText] = useState(() => {
+    try { return localStorage.getItem(DRAFT_KEY(channelId)) ?? ''; } catch { return ''; }
+  });
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
   const [isSending, setIsSending] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [activeCategory, setActiveCategory] = useState(0);
+
+  const [isDraft, setIsDraft] = useState(() => {
+    try { return !!localStorage.getItem(DRAFT_KEY(channelId)); } catch { return false; }
+  });
 
   const [tasks, setTasks] = useState<{ id: number; title: string; status: number; priority: number; dueDate: string }[]>([]);
   const [showTaskPicker, setShowTaskPicker] = useState(false);
@@ -76,6 +84,36 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
   const stopTyping = useChatStore((s) => s.stopTyping);
   const replyToMessage = useChatStore((s) => s.replyToMessage);
   const setReplyToMessage = useChatStore((s) => s.setReplyToMessage);
+
+  // Restore draft when switching channels
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(DRAFT_KEY(channelId)) ?? '';
+      setText(saved);
+      setIsDraft(!!saved);
+      requestAnimationFrame(() => {
+        const ta = textareaRef.current;
+        if (ta) {
+          ta.style.height = 'auto';
+          ta.style.height = Math.min(ta.scrollHeight, 120) + 'px';
+        }
+      });
+    } catch { /* ignore */ }
+  }, [channelId]);
+
+  // Debounced draft save
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      try {
+        if (text) {
+          localStorage.setItem(DRAFT_KEY(channelId), text);
+        } else {
+          localStorage.removeItem(DRAFT_KEY(channelId));
+        }
+      } catch { /* ignore */ }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [text, channelId]);
 
   // Cleanup timers on unmount
   useEffect(() => {
@@ -310,6 +348,7 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
     }
 
     setText('');
+    try { localStorage.removeItem(DRAFT_KEY(channelId)); } catch { /* ignore */ }
     setPendingFiles([]);
     xhrMapRef.current.clear();
     stopTyping(channelId);
@@ -359,6 +398,7 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
 
   const handleTextChange = (value: string, cursorPos: number) => {
     setText(value);
+    if (isDraft) setIsDraft(false);
     startTyping(channelId);
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
@@ -557,6 +597,16 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
+        </div>
+      )}
+
+      {/* Draft indicator */}
+      {isDraft && text && (
+        <div className="flex items-center gap-1.5 mb-2 px-1">
+          <svg className="w-3 h-3 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+          </svg>
+          <span className="text-xs text-amber-500 dark:text-amber-400">Черновик восстановлен</span>
         </div>
       )}
 
