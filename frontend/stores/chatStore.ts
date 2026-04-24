@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { Socket } from 'socket.io-client';
 import { getSocket, disconnectSocket } from '@/lib/socket';
 import api from '@/lib/api';
+import { useToastStore } from '@/stores/toastStore';
 
 /* ───────── Types ───────── */
 
@@ -253,6 +254,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
             [message.channelId]: (unreadCounts[message.channelId] || 0) + 1,
           },
         });
+        const preview = message.text ? message.text.slice(0, 60) : 'Новое сообщение';
+        useToastStore.getState().addToast('info', `${message.senderName}: ${preview}`);
       }
     });
 

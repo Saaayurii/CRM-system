@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useChatStore } from '@/stores/chatStore';
 import ChatSidebar from '@/components/chat/ChatSidebar';
 import ChatWindow from '@/components/chat/ChatWindow';
@@ -11,8 +12,10 @@ export default function ChatPage() {
   const fetchChannels = useChatStore((s) => s.fetchChannels);
   const activeChannelId = useChatStore((s) => s.activeChannelId);
   const setActiveChannel = useChatStore((s) => s.setActiveChannel);
+  const channels = useChatStore((s) => s.channels);
 
   const [showSidebar, setShowSidebar] = useState(true);
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     connect();
@@ -23,6 +26,17 @@ export default function ChatPage() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Auto-select channel from URL param (e.g. push notification click)
+  useEffect(() => {
+    const channelId = searchParams.get('channelId');
+    if (!channelId || !channels.length) return;
+    const id = Number(channelId);
+    if (channels.find((c) => c.id === id)) {
+      setActiveChannel(id);
+      setShowSidebar(false);
+    }
+  }, [channels, searchParams, setActiveChannel]);
 
   // On mobile, selecting a channel hides sidebar
   const handleSelectChannel = () => {

@@ -273,11 +273,16 @@ self.addEventListener('push', (event) => {
         ? [100]
         : [200, 100, 200];
 
+  const tag =
+    data.notificationType === 'chat_message'
+      ? `chat_message_${data.entityId}`
+      : data.notificationType || 'crm-notification';
+
   const options = {
     body: data.message || '',
     icon: '/apple-touch-icon.png',
     badge: '/favicon.png',
-    tag: data.notificationType || 'crm-notification',
+    tag,
     renotify: true,
     vibrate,
     data: { url: data.actionUrl || '/dashboard' },
@@ -288,7 +293,16 @@ self.addEventListener('push', (event) => {
     timestamp: Date.now(),
   };
 
-  event.waitUntil(self.registration.showNotification(title, options));
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      const focused = windowClients.find((c) => c.focused);
+      if (focused) {
+        focused.postMessage({ type: 'PUSH_NOTIFICATION', data });
+        return;
+      }
+      return self.registration.showNotification(title, options);
+    })
+  );
 });
 
 // ─── Notification Click ───────────────────────────────────────────────────────

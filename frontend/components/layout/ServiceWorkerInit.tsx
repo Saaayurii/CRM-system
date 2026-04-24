@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { useToastStore } from '@/stores/toastStore';
 
 /**
  * Registers /sw.js and sets up Periodic Background Sync.
@@ -48,7 +49,7 @@ export default function ServiceWorkerInit() {
       }
     };
 
-    // Handle SYNC_COMPLETE messages from the service worker
+    // Handle messages from the service worker
     const handleSwMessage = (event: MessageEvent) => {
       if (event.data?.type === 'SYNC_COMPLETE') {
         const { synced, total, timestamp } = event.data;
@@ -56,13 +57,15 @@ export default function ServiceWorkerInit() {
           `[SW] Background sync complete: ${synced}/${total} routes updated at`,
           new Date(timestamp).toLocaleTimeString('ru-RU'),
         );
-
-        // Dispatch a custom event so Zustand stores can react
         window.dispatchEvent(
           new CustomEvent('sw:sync-complete', {
             detail: { synced, total, timestamp },
           }),
         );
+      } else if (event.data?.type === 'PUSH_NOTIFICATION') {
+        const { data } = event.data;
+        const message = data?.message || data?.title || 'Новое уведомление';
+        useToastStore.getState().addToast('info', message);
       }
     };
 
