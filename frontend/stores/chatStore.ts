@@ -86,6 +86,16 @@ function mapReactions(raw: any): ChatReaction[] {
   }));
 }
 
+function normalizeFileUrl(url: string): string {
+  if (!url) return url;
+  if (url.startsWith('/') || url.startsWith('http://') || url.startsWith('https://')) return url;
+  return `/uploads/chat/${url}`;
+}
+
+function normalizeAttachments(attachments: any[]): ChatAttachment[] {
+  return attachments.map((a) => ({ ...a, fileUrl: normalizeFileUrl(a.fileUrl ?? '') }));
+}
+
 export function mapRawMessage(raw: any): ChatMessage {
   const user = raw.user || {};
   const replyRaw = raw.replyToMessage;
@@ -105,7 +115,7 @@ export function mapRawMessage(raw: any): ChatMessage {
           senderName: replyRaw.senderName ?? getFullName(replyRaw.user ?? {}),
         }
       : null,
-    attachments: raw.attachments ?? [],
+    attachments: normalizeAttachments(raw.attachments ?? []),
     reactions: mapReactions(raw.reactions ?? {}),
     createdAt: raw.createdAt,
     updatedAt: raw.updatedAt,
