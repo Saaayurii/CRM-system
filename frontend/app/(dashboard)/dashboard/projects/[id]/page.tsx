@@ -83,16 +83,23 @@ interface ConstructionSite {
   photos?: string[];
 }
 
-// Strip internal Docker/server hostnames from upload URLs so browser can load them
+// Normalize upload URLs:
+// - Full HTTP URL with internal/external hostname → extract pathname
+// - Relative path starting with '/' → keep as-is
+// - Bare filename (UUID.ext) → prepend /uploads/chat/
 function normalizePhotoUrl(url: string): string {
-  if (!url || (!url.startsWith('http://') && !url.startsWith('https://'))) return url;
-  try {
-    const parsed = new URL(url);
-    if (typeof window !== 'undefined' && parsed.origin === window.location.origin) return url;
-    return parsed.pathname;
-  } catch {
-    return url;
+  if (!url) return url;
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    try {
+      const parsed = new URL(url);
+      if (typeof window !== 'undefined' && parsed.origin === window.location.origin) return url;
+      return parsed.pathname;
+    } catch {
+      return url;
+    }
   }
+  if (url.startsWith('/')) return url;
+  return `/uploads/chat/${url}`;
 }
 
 // Convert webp/heic files to JPEG via Canvas before upload for universal browser support
@@ -618,7 +625,7 @@ export default function ProjectDetailPage() {
 
   const status = STATUS_LABELS[project.status] || STATUS_LABELS[0];
   const priority = PRIORITY_LABELS[project.priority] || PRIORITY_LABELS[1];
-  const allPhotos = sites.flatMap((s) => (s.photos || []).map((url) => ({ url, siteName: s.name })));
+  const allPhotos = sites.flatMap((s) => (s.photos || []).map((url) => ({ url: normalizePhotoUrl(url), siteName: s.name })));
 
   return (
     <div>
@@ -1040,13 +1047,16 @@ export default function ProjectDetailPage() {
                     <p className="text-xs text-gray-400 mt-0.5">{photos.length} фото</p>
                   </div>
                   <div className="p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                    {photos.map((url, idx) => (
-                      <button key={idx} onClick={() => setLightboxPhoto(url)}
-                        className="aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 hover:opacity-90 transition-opacity">
-                        <img src={url} alt={`Фото ${idx + 1}`} className="w-full h-full object-cover"
-                          onError={(e) => { const el = e.currentTarget as HTMLImageElement; if (el.src !== PHOTO_ERROR_PLACEHOLDER) el.src = PHOTO_ERROR_PLACEHOLDER; }} />
-                      </button>
-                    ))}
+                    {photos.map((rawUrl, idx) => {
+                      const url = normalizePhotoUrl(rawUrl);
+                      return (
+                        <button key={idx} onClick={() => setLightboxPhoto(url)}
+                          className="aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 hover:opacity-90 transition-opacity">
+                          <img src={url} alt={`Фото ${idx + 1}`} className="w-full h-full object-cover"
+                            onError={(e) => { const el = e.currentTarget as HTMLImageElement; if (el.src !== PHOTO_ERROR_PLACEHOLDER) el.src = PHOTO_ERROR_PLACEHOLDER; }} />
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               );

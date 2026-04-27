@@ -18,10 +18,6 @@ const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 const HIDE_CONTROLS_AFTER = 3000;
 
 function buildStreamUrl(src: string): string {
-  if (src.startsWith('/uploads/chat/')) {
-    const file = src.replace('/uploads/chat/', '');
-    return `/api/chat/video?file=${encodeURIComponent(file)}`;
-  }
   return src;
 }
 
