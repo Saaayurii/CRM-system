@@ -1564,8 +1564,14 @@ function ProjectChatPanel({ channelId, channelName, projectId, onFilesSent }: { 
                       <div className="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">{p.name}</div>
                       {p.email && <div className="text-xs text-gray-400 truncate">{p.email}</div>}
                     </div>
-                    {p.role && (
-                      <span className="text-xs text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full shrink-0">{p.role}</span>
+                    {p.role && p.role !== 'member' && (
+                      <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 font-medium ${
+                        p.role === 'admin' || p.role === 'owner'
+                          ? 'bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                      }`}>
+                        {p.role === 'admin' ? 'Администратор' : p.role === 'owner' ? 'Владелец' : p.role}
+                      </span>
                     )}
                   </div>
                 ))}
