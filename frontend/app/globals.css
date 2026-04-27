@@ -209,3 +209,48 @@
 .animate-pulseSlowSoft {
   animation: auth-pulse-slow 10s ease-in-out infinite;
 }
+
+/* ── Task mention chip (contenteditable chat input) ─────────────────────── */
+.task-mention-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background-color: #ede9fe;
+  color: #6d28d9;
+  border-radius: 5px;
+  padding: 1px 6px;
+  font-size: 11px;
+  font-weight: 500;
+  margin: 0 1px;
+  cursor: default;
+  user-select: none;
+  vertical-align: middle;
+  line-height: 1.6;
+  max-width: 240px;
+}
+.task-mention-chip svg {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+}
+.task-mention-chip > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 180px;
+}
+.dark .task-mention-chip {
+  background-color: rgba(109, 40, 217, 0.25);
+  color: #c4b5fd;
+}
+
+/* Placeholder for contenteditable chat input */
+[data-placeholder]:empty::before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+  pointer-events: none;
+  display: block;
+}
+.dark [data-placeholder]:empty::before {
+  color: #6b7280;
+}
