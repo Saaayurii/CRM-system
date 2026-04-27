@@ -447,58 +447,23 @@ function renderText(text: string, isOwn: boolean) {
   );
 }
 
-// ── Video Thumbnail (off-screen canvas capture) ─────────────
+// ── Video Thumbnail ──────────────────────────────────────────
+// Renders a native <video> with a black background so the bubble
+// colour never bleeds through while the frame is loading.
+// Seeking to 0.001 s on metadata load forces first-frame display
+// in browsers that otherwise show a blank frame.
 
 function VideoThumbnail({ src, className }: { src: string; className?: string }) {
-  const [thumb, setThumb] = useState<string | null>(null);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    const video = document.createElement('video');
-    video.muted = true;
-    video.playsInline = true;
-    video.preload = 'metadata';
-
-    video.onloadedmetadata = () => {
-      if (cancelled) return;
-      video.currentTime = Math.min(0.5, video.duration * 0.05 || 0.5);
-    };
-
-    video.onseeked = () => {
-      if (cancelled) return;
-      try {
-        const canvas = document.createElement('canvas');
-        canvas.width = video.videoWidth || 320;
-        canvas.height = video.videoHeight || 180;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(video, 0, 0);
-          setThumb(canvas.toDataURL('image/jpeg', 0.85));
-        }
-      } catch { /* CORS taint — swallow */ }
-      setReady(true);
-      video.src = '';
-    };
-
-    video.onerror = () => { if (!cancelled) setReady(true); };
-    video.src = src;
-
-    return () => { cancelled = true; video.src = ''; };
-  }, [src]);
-
-  if (!ready) {
-    return <div className={`${className ?? ''} bg-gray-800 rounded-lg animate-pulse`} style={{ minHeight: 120 }} />;
-  }
-  if (thumb) {
-    return <img src={thumb} alt="" className={className} />;
-  }
   return (
-    <div className={`${className ?? ''} bg-gray-900 rounded-lg flex items-center justify-center`} style={{ minHeight: 120 }}>
-      <svg className="w-10 h-10 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.693v6.614a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
-      </svg>
-    </div>
+    <video
+      src={src}
+      preload="metadata"
+      muted
+      playsInline
+      onLoadedMetadata={(e) => { e.currentTarget.currentTime = 0.001; }}
+      className={className}
+      style={{ background: '#000', pointerEvents: 'none', minHeight: 80, display: 'block' }}
+    />
   );
 }
 
