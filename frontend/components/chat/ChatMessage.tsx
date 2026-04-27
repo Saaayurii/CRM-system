@@ -143,19 +143,12 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, onRepl
                             className="relative cursor-pointer rounded-lg overflow-hidden"
                             onClick={() => openViewer(mediaIndex)}
                           >
-                            <video
+                            <VideoThumbnail
                               src={att.fileUrl}
-                              preload="metadata"
-                              muted
-                              playsInline
-                              className="max-w-full max-h-52 rounded-lg block pointer-events-none"
-                              onLoadedMetadata={(e) => {
-                                // Seek to 1s to get a meaningful thumbnail frame
-                                e.currentTarget.currentTime = 1;
-                              }}
+                              className="max-w-full max-h-52 rounded-lg block"
                             />
                             {/* Play button overlay */}
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover/vid:bg-black/35 transition-colors rounded-lg">
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/25 group-hover/vid:bg-black/40 transition-colors rounded-lg">
                               <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
                                 <svg className="w-5 h-5 text-gray-800 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
                                   <path d="M8 5v14l11-7z" />
@@ -450,6 +443,61 @@ function renderText(text: string, isOwn: boolean) {
         <p className="text-sm whitespace-pre-wrap break-words">{textSegments}</p>
       )}
       {cards}
+    </div>
+  );
+}
+
+// ── Video Thumbnail (off-screen canvas capture) ─────────────
+
+function VideoThumbnail({ src, className }: { src: string; className?: string }) {
+  const [thumb, setThumb] = useState<string | null>(null);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const video = document.createElement('video');
+    video.muted = true;
+    video.playsInline = true;
+    video.preload = 'metadata';
+
+    video.onloadedmetadata = () => {
+      if (cancelled) return;
+      video.currentTime = Math.min(0.5, video.duration * 0.05 || 0.5);
+    };
+
+    video.onseeked = () => {
+      if (cancelled) return;
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth || 320;
+        canvas.height = video.videoHeight || 180;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(video, 0, 0);
+          setThumb(canvas.toDataURL('image/jpeg', 0.85));
+        }
+      } catch { /* CORS taint — swallow */ }
+      setReady(true);
+      video.src = '';
+    };
+
+    video.onerror = () => { if (!cancelled) setReady(true); };
+    video.src = src;
+
+    return () => { cancelled = true; video.src = ''; };
+  }, [src]);
+
+  if (!ready) {
+    return <div className={`${className ?? ''} bg-gray-800 rounded-lg animate-pulse`} style={{ minHeight: 120 }} />;
+  }
+  if (thumb) {
+    return <img src={thumb} alt="" className={className} />;
+  }
+  return (
+    <div className={`${className ?? ''} bg-gray-900 rounded-lg flex items-center justify-center`} style={{ minHeight: 120 }}>
+      <svg className="w-10 h-10 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.693v6.614a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
+      </svg>
     </div>
   );
 }
