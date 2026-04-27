@@ -32,11 +32,6 @@ services:
       # Server-side rewrite targets (Next.js rewrites run on the server)
       API_GATEWAY_INTERNAL_URL: http://api-gateway:3000
       CHAT_SERVICE_INTERNAL_URL: http://chat-service:3011
-    volumes:
-      # Share the same upload storage as api-gateway so files uploaded
-      # via the Next.js chunked-upload route land where nginx can serve them
-      # (nginx proxies /uploads/* → api-gateway which reads from /app/uploads)
-      - chat_uploads:/app/public/uploads
     depends_on:
       - api-gateway
     networks:

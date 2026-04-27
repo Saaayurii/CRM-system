@@ -38,7 +38,7 @@ export class ChatUploadController {
           cb(null, `${randomUUID()}${ext}`);
         },
       }),
-      limits: { fileSize: 50 * 1024 * 1024 }, // 50 MB
+      limits: { fileSize: 1 * 1024 * 1024 * 1024 }, // 1 GB
     }),
   )
   uploadFiles(

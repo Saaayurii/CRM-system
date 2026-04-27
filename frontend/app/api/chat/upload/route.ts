@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { mkdirSync, renameSync, unlinkSync } from 'fs';
+import { mkdirSync, renameSync, unlinkSync, readFileSync } from 'fs';
 import { appendFile } from 'fs/promises';
 import { join, extname } from 'path';
 import sharp from 'sharp';
+
+const API_GATEWAY = (process.env.API_GATEWAY_INTERNAL_URL ?? 'http://localhost:3000').replace(/\/$/, '');
 
 export const runtime = 'nodejs';
 
@@ -47,12 +49,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'Missing x-upload-id' }, { status: 400 });
     }
 
-    const uploadDir = join(process.cwd(), 'public', 'uploads', 'chat');
-    const tempDir   = join(uploadDir, 'temp');
+    const tempDir   = join('/tmp', 'chat-uploads');
     mkdirSync(tempDir, { recursive: true });
 
     const ext       = extname(fileName);
-    const tempPath  = join(tempDir,   `${uploadId}.tmp`);
+    const tempPath  = join(tempDir, `${uploadId}.tmp`);
 
     // Read chunk data from the raw body
     const chunkBuffer = await readBodyToBuffer(request.body);
@@ -76,7 +77,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (isImage) {
       // Compress to WebP
       finalName = `${uploadId}.webp`;
-      finalPath = join(uploadDir, finalName);
+      finalPath = join(tempDir, finalName);
       finalMime = 'image/webp';
 
       await sharp(tempPath)
@@ -98,21 +99,56 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
       finalSize = size;
     } else {
-      // Non-image: just move temp file as-is
+      // Non-image: just rename temp file in the same dir
       finalName = `${uploadId}${ext}`;
-      finalPath = join(uploadDir, finalName);
+      finalPath = join(tempDir, finalName);
       renameSync(tempPath, finalPath);
       finalMime = mimeType;
       finalSize = fileSize;
     }
 
-    return NextResponse.json({
-      fileName: isImage ? fileName.replace(/\.[^.]+$/, '.webp') : fileName,
-      fileSize: finalSize,
-      mimeType: finalMime,
-      fileUrl:  `/uploads/chat/${finalName}`,
-      ...(isImage && { originalSize: fileSize }),
-    });
+    // Forward assembled file to api-gateway so it lands in the chat_uploads volume
+    const authHeader = request.headers.get('authorization') ?? '';
+    const displayName = isImage ? fileName.replace(/\.[^.]+$/, '.webp') : fileName;
+
+    try {
+      const fileBuffer = readFileSync(finalPath);
+      const gwForm = new FormData();
+      gwForm.append('files', new Blob([fileBuffer], { type: finalMime }), displayName);
+
+      const gwRes = await fetch(`${API_GATEWAY}/api/v1/chat-channels/upload`, {
+        method: 'POST',
+        headers: authHeader ? { authorization: authHeader } : {},
+        body: gwForm,
+      });
+
+      // Clean up local file regardless of gateway result
+      try { unlinkSync(finalPath); } catch {}
+
+      if (!gwRes.ok) {
+        const errText = await gwRes.text().catch(() => '');
+        console.error('Gateway upload failed:', gwRes.status, errText);
+        return NextResponse.json({ error: 'Gateway upload failed' }, { status: 502 });
+      }
+
+      const [gwData] = await gwRes.json() as { fileName: string; fileSize: number; mimeType: string; fileUrl: string }[];
+
+      // Normalize to path-only (gateway may include full domain in APP_PUBLIC_URL)
+      let fileUrl = gwData.fileUrl ?? `/uploads/chat/${finalName}`;
+      try { fileUrl = new URL(fileUrl).pathname; } catch { /* already a path */ }
+
+      return NextResponse.json({
+        fileName: gwData.fileName,
+        fileSize: gwData.fileSize,
+        mimeType: gwData.mimeType,
+        fileUrl,
+        ...(isImage && { originalSize: fileSize }),
+      });
+    } catch (fwdError) {
+      try { unlinkSync(finalPath); } catch {}
+      console.error('Forward to gateway error:', fwdError);
+      return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
+    }
 
   } catch (error) {
     console.error('Chat upload error:', error);

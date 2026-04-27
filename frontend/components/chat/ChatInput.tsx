@@ -279,6 +279,10 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
             xhr.setRequestHeader('x-file-type',    file.type || '');
             xhr.setRequestHeader('x-compress',     String(pf.compressed));
             xhr.setRequestHeader('Content-Type',   'application/octet-stream');
+            try {
+              const token = localStorage.getItem('accessToken');
+              if (token) xhr.setRequestHeader('authorization', `Bearer ${token}`);
+            } catch { /* ignore */ }
 
             xhr.upload.onprogress = (e) => {
               if (e.lengthComputable) {
@@ -557,12 +561,15 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
     setIsSending(true);
     try {
       const uploadId = crypto.randomUUID();
+      let token = '';
+      try { token = localStorage.getItem('accessToken') ?? ''; } catch { /* ignore */ }
       const res = await fetch('/api/chat/upload', {
         method: 'POST',
         headers: {
           'x-upload-id': uploadId, 'x-chunk-index': '0', 'x-chunk-total': '1',
           'x-file-name': encodeURIComponent(audioFile.name), 'x-file-size': String(audioFile.size),
           'x-file-type': audioFile.type || 'audio/webm', 'Content-Type': 'application/octet-stream',
+          ...(token ? { authorization: `Bearer ${token}` } : {}),
         },
         body: audioFile,
       });
