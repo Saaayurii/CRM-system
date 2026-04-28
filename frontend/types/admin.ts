@@ -46,6 +46,10 @@ export interface CrudModuleConfig {
   customRowActions?: CustomRowAction[];
   /** Show a "Download PDF" button in the page header for each row via row-level action */
   hasPdf?: boolean;
+  /** Transform form data before POST (create) */
+  prepareCreate?: (data: Record<string, unknown>) => Record<string, unknown>;
+  /** Transform form data before PUT (update) */
+  prepareUpdate?: (data: Record<string, unknown>) => Record<string, unknown>;
 }
 
 export interface ModuleCategory {

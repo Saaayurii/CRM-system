@@ -9,6 +9,8 @@ import { useToastStore } from '@/stores/toastStore';
 interface UseCrudDataOptions {
   apiEndpoint: string;
   defaultLimit?: number;
+  prepareCreate?: (data: Record<string, unknown>) => Record<string, unknown>;
+  prepareUpdate?: (data: Record<string, unknown>) => Record<string, unknown>;
 }
 
 interface CrudState<T> {
@@ -22,7 +24,7 @@ interface CrudState<T> {
   sortDir: 'asc' | 'desc';
 }
 
-export function useCrudData<T extends Record<string, unknown>>({ apiEndpoint, defaultLimit = 20 }: UseCrudDataOptions) {
+export function useCrudData<T extends Record<string, unknown>>({ apiEndpoint, defaultLimit = 20, prepareCreate, prepareUpdate }: UseCrudDataOptions) {
   const addToast = useToastStore((s) => s.addToast);
   const [state, setState] = useState<CrudState<T>>({
     data: [],
@@ -97,7 +99,7 @@ export function useCrudData<T extends Record<string, unknown>>({ apiEndpoint, de
   const createItem = async (data: Record<string, unknown>): Promise<Record<string, unknown> | null> => {
     setSaving(true);
     try {
-      const { data: created } = await api.post(apiEndpoint, data);
+      const { data: created } = await api.post(apiEndpoint, prepareCreate ? prepareCreate(data) : data);
       addToast('success', 'Запись создана');
       setState((s) => ({
         ...s,
@@ -118,7 +120,7 @@ export function useCrudData<T extends Record<string, unknown>>({ apiEndpoint, de
   const updateItem = async (id: string | number, data: Record<string, unknown>) => {
     setSaving(true);
     try {
-      const { data: updated } = await api.put(`${apiEndpoint}/${id}`, data);
+      const { data: updated } = await api.put(`${apiEndpoint}/${id}`, prepareUpdate ? prepareUpdate(data) : data);
       addToast('success', 'Запись обновлена');
       setState((s) => ({
         ...s,

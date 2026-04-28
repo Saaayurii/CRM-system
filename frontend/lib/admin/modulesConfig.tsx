@@ -198,6 +198,10 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
       { key: 'phone', label: 'Телефон', type: 'text' },
       { key: 'newPassword', label: 'Пароль', type: 'password' },
     ],
+    prepareCreate: (data) => {
+      const { newPassword, ...rest } = data;
+      return newPassword ? { ...rest, password: newPassword } : rest;
+    },
   },
   projects: {
     slug: 'projects',
