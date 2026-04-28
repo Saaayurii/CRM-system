@@ -1,8 +1,11 @@
+import axios from 'axios';
 import { create } from 'zustand';
 import api from '@/lib/api';
 import { updateBadge } from '@/stores/notificationStore';
 import { normalizeFileUrl } from '@/lib/utils';
 import type { User, LoginRequest, LoginResponse, JwtPayload } from '@/types/auth';
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
 
 // Map of known roleId -> code (seeded in DB)
 export const ROLE_MAP: Record<number, { code: string; name: string }> = {
@@ -29,6 +32,7 @@ interface AuthState {
   login: (credentials: LoginRequest) => Promise<void>;
   logout: () => void;
   initialize: () => void;
+  refreshRole: () => Promise<void>;
   updateUser: (patch: Partial<User>) => void;
 }
 
@@ -48,58 +52,64 @@ function decodeJwt(token: string): JwtPayload | null {
   }
 }
 
-function roleFromId(roleId: number | null) {
+function roleFromId(roleId: number | null | undefined) {
   if (!roleId) return undefined;
   const r = ROLE_MAP[roleId];
   return r ? { id: roleId, code: r.code, name: r.name } : { id: roleId, code: 'unknown', name: 'Unknown' };
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+// Fetch fresh tokens via refresh endpoint (bypasses api interceptor to avoid loops)
+async function silentRefresh(): Promise<{ accessToken: string; refreshToken: string } | null> {
+  try {
+    const refreshToken = localStorage.getItem('refreshToken');
+    if (!refreshToken) return null;
+    const { data } = await axios.post(`${API_BASE_URL}/auth/refresh`, { refreshToken });
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   isAuthenticated: false,
   isLoading: true,
 
   login: async (credentials: LoginRequest) => {
-  try {
-    const { data } = await api.post<LoginResponse>('/auth/login', credentials);
+    try {
+      const { data } = await api.post<LoginResponse>('/auth/login', credentials);
 
-    localStorage.setItem('accessToken', data.accessToken);
-    localStorage.setItem('refreshToken', data.refreshToken);
-    if (data.sessionId) localStorage.setItem('sessionId', String(data.sessionId));
-    document.cookie = `crm-session=true; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+      localStorage.setItem('accessToken', data.accessToken);
+      localStorage.setItem('refreshToken', data.refreshToken);
+      if (data.sessionId) localStorage.setItem('sessionId', String(data.sessionId));
+      document.cookie = `crm-session=true; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
 
-    // Send token to Service Worker for background sync
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.ready.then((reg) => {
-        const sw = reg.active;
-        if (sw) {
-          sw.postMessage({ type: 'SET_TOKEN', token: data.accessToken });
-          sw.postMessage({ type: 'SYNC_NOW' }); // warm up cache right after login
-        }
-      }).catch(() => {});
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.ready.then((reg) => {
+          const sw = reg.active;
+          if (sw) {
+            sw.postMessage({ type: 'SET_TOKEN', token: data.accessToken });
+            sw.postMessage({ type: 'SYNC_NOW' });
+          }
+        }).catch(() => {});
+      }
+
+      const user = data.user;
+      user.role = roleFromId(user.roleId ?? null);
+      if (user.avatarUrl) user.avatarUrl = normalizeFileUrl(user.avatarUrl) ?? undefined;
+      set({ user, isAuthenticated: true });
+
+      console.log('[Auth] Login successful for user:', user.email);
+    } catch (err: unknown) {
+      if (err && typeof err === 'object' && 'response' in err) {
+        const resp = (err as { response?: { status: number; data?: { message?: string } } }).response;
+        console.error('[Auth] Login failed:', resp?.status, resp?.data?.message);
+      } else {
+        console.error('[Auth] Login failed (network/error):', err);
+      }
+      throw err;
     }
-
-    const user = data.user;
-    user.role = roleFromId(user.roleId ?? null);
-    if (user.avatarUrl) user.avatarUrl = normalizeFileUrl(user.avatarUrl) ?? undefined;
-    set({ user, isAuthenticated: true });
-
-    console.log('[Auth] Login successful for user:', user.email);
-
-  } catch (err: unknown) {
-    // Логируем ошибку в консоль для отладки
-    if (err && typeof err === 'object' && 'response' in err) {
-      const resp = (err as { response?: { status: number; data?: { message?: string } } }).response;
-      console.error('[Auth] Login failed:', resp?.status, resp?.data?.message);
-    } else {
-      console.error('[Auth] Login failed (network/error):', err);
-    }
-
-    // пробрасываем ошибку дальше, чтобы компонент LoginPage её обработал
-    throw err;
-  }
-},
-
+  },
 
   logout: () => {
     localStorage.removeItem('accessToken');
@@ -107,10 +117,8 @@ export const useAuthStore = create<AuthState>((set) => ({
     localStorage.removeItem('sessionId');
     document.cookie = 'crm-session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
 
-    // Clear app badge
     updateBadge(0);
 
-    // Clear token from Service Worker so background sync stops
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.ready.then((reg) => {
         reg.active?.postMessage({ type: 'SET_TOKEN', token: null });
@@ -125,6 +133,42 @@ export const useAuthStore = create<AuthState>((set) => ({
     set((state) => ({
       user: state.user ? { ...state.user, ...patch } : state.user,
     }));
+  },
+
+  // Fetch fresh role from DB and update tokens if role changed.
+  // Called on initialize() and can be called manually.
+  refreshRole: async () => {
+    try {
+      const { data: me } = await api.get<User>('/auth/me');
+      const tokenRoleId = decodeJwt(localStorage.getItem('accessToken') ?? '')?.roleId;
+      const freshRoleId = me.roleId ?? null;
+
+      set((state) => ({
+        user: state.user
+          ? {
+              ...state.user,
+              roleId: freshRoleId ?? undefined,
+              role: roleFromId(freshRoleId),
+              name: me.name || state.user.name,
+              email: me.email || state.user.email,
+              avatarUrl: me.avatarUrl ? (normalizeFileUrl(me.avatarUrl) ?? undefined) : state.user.avatarUrl,
+              isActive: me.isActive,
+            }
+          : state.user,
+      }));
+
+      // If role changed in DB vs token, silently get fresh tokens so
+      // subsequent API calls (and the next initialize) carry the new role.
+      if (freshRoleId !== tokenRoleId) {
+        const tokens = await silentRefresh();
+        if (tokens) {
+          localStorage.setItem('accessToken', tokens.accessToken);
+          localStorage.setItem('refreshToken', tokens.refreshToken);
+        }
+      }
+    } catch {
+      // Network failure — keep the token-based data as-is
+    }
   },
 
   initialize: () => {
@@ -143,6 +187,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       return;
     }
 
+    // Fast path: set user from cached token immediately (no flicker)
     set({
       user: {
         id: payload.sub,
@@ -157,5 +202,8 @@ export const useAuthStore = create<AuthState>((set) => ({
       isAuthenticated: true,
       isLoading: false,
     });
+
+    // Background: refresh role from DB so changes made by admin take effect
+    get().refreshRole();
   },
 }));
