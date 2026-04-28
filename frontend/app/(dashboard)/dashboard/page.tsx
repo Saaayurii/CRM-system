@@ -231,7 +231,7 @@ function SuperAdminDashboard({ user }: { user: any }) {
                   {projects.slice(0, 5).map((p: any) => {
                     const st = PROJECT_STATUS_MAP[Number(p.status)];
                     return (
-                      <tr key={p.id} className="border-b border-gray-50 dark:border-gray-700/30 last:border-0">
+                      <tr key={p.id} onClick={() => router.push(`/dashboard/projects/${p.id}`)} className="border-b border-gray-50 dark:border-gray-700/30 last:border-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
                         <td className="py-2.5 text-gray-800 dark:text-gray-100 font-medium truncate max-w-[200px]">{p.name}</td>
                         <td className="py-2.5">{st ? <StatusBadge label={st.label} color={st.color} /> : '—'}</td>
                         <td className="py-2.5 text-right text-gray-600 dark:text-gray-300">{p.budget != null ? `${Number(p.budget).toLocaleString('ru-RU')} ₽` : '—'}</td>

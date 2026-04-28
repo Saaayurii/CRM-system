@@ -358,6 +358,13 @@ export default function ProjectDetailPage() {
   const [financeActs, setFinanceActs] = useState<Act[]>([]);
   const [loadingFinance, setLoadingFinance] = useState(false);
   const [financeLoaded, setFinanceLoaded] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
+  const [showBudgetModal, setShowBudgetModal] = useState(false);
+  const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
+  const [showActModal, setShowActModal] = useState(false);
+  const [editingAct, setEditingAct] = useState<Act | null>(null);
+  const [savingFinance, setSavingFinance] = useState(false);
 
   /* Overview summary */
   const [overviewSummary, setOverviewSummary] = useState<{
@@ -436,6 +443,116 @@ export default function ProjectDetailPage() {
       setLoadingPhotos(false);
     }
   }, [projectId]);
+
+  const reloadFinance = useCallback(async () => {
+    setLoadingFinance(true);
+    try {
+      const [paymentsRes, budgetsRes, actsRes] = await Promise.all([
+        api.get('/payments', { params: { limit: 200 } }).catch(() => ({ data: {} })),
+        api.get('/budgets', { params: { limit: 200 } }).catch(() => ({ data: {} })),
+        api.get('/acts', { params: { limit: 200 } }).catch(() => ({ data: {} })),
+      ]);
+      setFinancePayments((paymentsRes.data?.data || paymentsRes.data?.payments || []).filter((p: Payment) => p.projectId === projectId));
+      setFinanceBudgets((budgetsRes.data?.data || budgetsRes.data?.budgets || []).filter((b: Budget) => b.projectId === projectId));
+      setFinanceActs((actsRes.data?.data || actsRes.data?.acts || []).filter((a: Act) => a.projectId === projectId));
+      setFinanceLoaded(true);
+    } finally {
+      setLoadingFinance(false);
+    }
+  }, [projectId]);
+
+  const handleSavePayment = useCallback(async (data: Omit<Payment, 'id'>) => {
+    setSavingFinance(true);
+    try {
+      if (editingPayment) {
+        await api.put(`/payments/${editingPayment.id}`, data);
+        addToast('success', 'Платёж обновлён');
+      } else {
+        await api.post('/payments', { ...data, projectId });
+        addToast('success', 'Платёж создан');
+      }
+      setShowPaymentModal(false);
+      setEditingPayment(null);
+      await reloadFinance();
+    } catch {
+      addToast('error', 'Ошибка при сохранении платежа');
+    } finally {
+      setSavingFinance(false);
+    }
+  }, [editingPayment, projectId, addToast, reloadFinance]);
+
+  const handleDeletePayment = useCallback(async (id: number) => {
+    if (!confirm('Удалить платёж?')) return;
+    try {
+      await api.delete(`/payments/${id}`);
+      addToast('success', 'Платёж удалён');
+      await reloadFinance();
+    } catch {
+      addToast('error', 'Ошибка при удалении');
+    }
+  }, [addToast, reloadFinance]);
+
+  const handleSaveBudget = useCallback(async (data: Omit<Budget, 'id'>) => {
+    setSavingFinance(true);
+    try {
+      if (editingBudget) {
+        await api.put(`/budgets/${editingBudget.id}`, data);
+        addToast('success', 'Бюджет обновлён');
+      } else {
+        await api.post('/budgets', { ...data, projectId });
+        addToast('success', 'Бюджет создан');
+      }
+      setShowBudgetModal(false);
+      setEditingBudget(null);
+      await reloadFinance();
+    } catch {
+      addToast('error', 'Ошибка при сохранении бюджета');
+    } finally {
+      setSavingFinance(false);
+    }
+  }, [editingBudget, projectId, addToast, reloadFinance]);
+
+  const handleDeleteBudget = useCallback(async (id: number) => {
+    if (!confirm('Удалить бюджет?')) return;
+    try {
+      await api.delete(`/budgets/${id}`);
+      addToast('success', 'Бюджет удалён');
+      await reloadFinance();
+    } catch {
+      addToast('error', 'Ошибка при удалении');
+    }
+  }, [addToast, reloadFinance]);
+
+  const handleSaveAct = useCallback(async (data: Omit<Act, 'id'>) => {
+    setSavingFinance(true);
+    try {
+      if (editingAct) {
+        await api.put(`/acts/${editingAct.id}`, data);
+        addToast('success', 'Акт обновлён');
+      } else {
+        await api.post('/acts', { ...data, projectId });
+        addToast('success', 'Акт создан');
+      }
+      setShowActModal(false);
+      setEditingAct(null);
+      await reloadFinance();
+    } catch {
+      addToast('error', 'Ошибка при сохранении акта');
+    } finally {
+      setSavingFinance(false);
+    }
+  }, [editingAct, projectId, addToast, reloadFinance]);
+
+  const handleDeleteAct = useCallback(async (id: number) => {
+    if (!confirm('Удалить акт?')) return;
+    try {
+      await api.delete(`/acts/${id}`);
+      addToast('success', 'Акт удалён');
+      await reloadFinance();
+    } catch {
+      addToast('error', 'Ошибка при удалении');
+    }
+  }, [addToast, reloadFinance]);
 
   /* ─── Load tab data ─── */
   useEffect(() => {
@@ -1158,7 +1275,11 @@ export default function ProjectDetailPage() {
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
                 <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center justify-between">
                   <h3 className="font-semibold text-gray-900 dark:text-gray-100">Бюджеты</h3>
-                  <span className="text-xs text-gray-400">{financeBudgets.length} записей</span>
+                  <button onClick={() => { setEditingBudget(null); setShowBudgetModal(true); }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                    Добавить
+                  </button>
                 </div>
                 {financeBudgets.length === 0 ? (
                   <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">Нет бюджетов для этого проекта</div>
@@ -1168,40 +1289,37 @@ export default function ProjectDetailPage() {
                       <thead>
                         <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
                           <th className="py-3 px-4 text-left font-semibold">Название</th>
-                          <th className="py-3 px-4 text-right font-semibold">Общий бюджет</th>
+                          <th className="py-3 px-4 text-right font-semibold">Общий</th>
                           <th className="py-3 px-4 text-right font-semibold">Потрачено</th>
                           <th className="py-3 px-4 text-right font-semibold">Выделено</th>
                           <th className="py-3 px-4 text-center font-semibold">Статус</th>
                           <th className="py-3 px-4 text-left font-semibold">Период</th>
+                          <th className="py-3 px-4 w-16"></th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
                         {financeBudgets.map((b) => (
-                          <tr key={b.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20">
+                          <tr key={b.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer"
+                            onClick={() => { setEditingBudget(b); setShowBudgetModal(true); }}>
                             <td className="py-3 px-4 text-gray-900 dark:text-gray-100 font-medium">{b.budgetName || '—'}</td>
-                            <td className="py-3 px-4 text-right text-gray-700 dark:text-gray-300">
-                              {b.totalBudget != null ? Number(b.totalBudget).toLocaleString('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }) : '—'}
-                            </td>
-                            <td className="py-3 px-4 text-right text-gray-700 dark:text-gray-300">
-                              {b.spentAmount != null ? Number(b.spentAmount).toLocaleString('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }) : '—'}
-                            </td>
-                            <td className="py-3 px-4 text-right text-gray-700 dark:text-gray-300">
-                              {b.allocatedAmount != null ? Number(b.allocatedAmount).toLocaleString('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }) : '—'}
-                            </td>
+                            <td className="py-3 px-4 text-right text-gray-700 dark:text-gray-300">{fmtMoney(b.totalBudget)}</td>
+                            <td className="py-3 px-4 text-right text-gray-700 dark:text-gray-300">{fmtMoney(b.spentAmount)}</td>
+                            <td className="py-3 px-4 text-right text-gray-700 dark:text-gray-300">{fmtMoney(b.allocatedAmount)}</td>
                             <td className="py-3 px-4 text-center">
-                              {b.status ? (
-                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                                  BUDGET_STATUS[b.status]?.color ?? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
-                                }`}>
+                              {b.status != null ? (
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${BUDGET_STATUS[b.status]?.color ?? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>
                                   {BUDGET_STATUS[b.status]?.label ?? b.status}
                                 </span>
                               ) : '—'}
                             </td>
-                            <td className="py-3 px-4 text-gray-500 dark:text-gray-400 text-xs">
-                              {b.startDate ? new Date(b.startDate).toLocaleDateString('ru-RU') : ''}
-                              {b.startDate && b.endDate ? ' – ' : ''}
-                              {b.endDate ? new Date(b.endDate).toLocaleDateString('ru-RU') : ''}
-                              {!b.startDate && !b.endDate ? '—' : ''}
+                            <td className="py-3 px-4 text-gray-500 dark:text-gray-400 text-xs whitespace-nowrap">
+                              {b.startDate ? fmt(b.startDate) : ''}{b.startDate && b.endDate ? ' – ' : ''}{b.endDate ? fmt(b.endDate) : ''}{!b.startDate && !b.endDate ? '—' : ''}
+                            </td>
+                            <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                              <button onClick={() => handleDeleteBudget(b.id)}
+                                className="p-1 text-gray-300 hover:text-red-500 dark:text-gray-600 dark:hover:text-red-400 transition-colors">
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                              </button>
                             </td>
                           </tr>
                         ))}
@@ -1215,7 +1333,11 @@ export default function ProjectDetailPage() {
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
                 <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center justify-between">
                   <h3 className="font-semibold text-gray-900 dark:text-gray-100">Платежи</h3>
-                  <span className="text-xs text-gray-400">{financePayments.length} записей</span>
+                  <button onClick={() => { setEditingPayment(null); setShowPaymentModal(true); }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                    Добавить
+                  </button>
                 </div>
                 {financePayments.length === 0 ? (
                   <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">Нет платежей для этого проекта</div>
@@ -1230,28 +1352,30 @@ export default function ProjectDetailPage() {
                           <th className="py-3 px-4 text-left font-semibold">Тип</th>
                           <th className="py-3 px-4 text-left font-semibold">Категория</th>
                           <th className="py-3 px-4 text-center font-semibold">Статус</th>
+                          <th className="py-3 px-4 w-16"></th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
                         {financePayments.map((p) => (
-                          <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20">
+                          <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer"
+                            onClick={() => { setEditingPayment(p); setShowPaymentModal(true); }}>
                             <td className="py-3 px-4 text-gray-500 dark:text-gray-400">{p.paymentNumber || p.id}</td>
-                            <td className="py-3 px-4 text-right font-semibold text-gray-900 dark:text-gray-100">
-                              {p.amount != null ? Number(p.amount).toLocaleString('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }) : '—'}
-                            </td>
-                            <td className="py-3 px-4 text-gray-600 dark:text-gray-300">
-                              {p.paymentDate ? new Date(p.paymentDate).toLocaleDateString('ru-RU') : '—'}
-                            </td>
+                            <td className="py-3 px-4 text-right font-semibold text-gray-900 dark:text-gray-100">{fmtMoney(p.amount)}</td>
+                            <td className="py-3 px-4 text-gray-600 dark:text-gray-300">{fmt(p.paymentDate)}</td>
                             <td className="py-3 px-4 text-gray-600 dark:text-gray-300">{p.paymentType || '—'}</td>
                             <td className="py-3 px-4 text-gray-600 dark:text-gray-300">{p.category || '—'}</td>
                             <td className="py-3 px-4 text-center">
-                              {p.status ? (
-                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                                  PAYMENT_STATUS[p.status]?.color ?? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
-                                }`}>
+                              {p.status != null ? (
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${PAYMENT_STATUS[p.status]?.color ?? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>
                                   {PAYMENT_STATUS[p.status]?.label ?? p.status}
                                 </span>
                               ) : '—'}
+                            </td>
+                            <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                              <button onClick={() => handleDeletePayment(p.id)}
+                                className="p-1 text-gray-300 hover:text-red-500 dark:text-gray-600 dark:hover:text-red-400 transition-colors">
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                              </button>
                             </td>
                           </tr>
                         ))}
@@ -1265,7 +1389,11 @@ export default function ProjectDetailPage() {
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
                 <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center justify-between">
                   <h3 className="font-semibold text-gray-900 dark:text-gray-100">Акты</h3>
-                  <span className="text-xs text-gray-400">{financeActs.length} записей</span>
+                  <button onClick={() => { setEditingAct(null); setShowActModal(true); }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                    Добавить
+                  </button>
                 </div>
                 {financeActs.length === 0 ? (
                   <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">Нет актов для этого проекта</div>
@@ -1279,27 +1407,29 @@ export default function ProjectDetailPage() {
                           <th className="py-3 px-4 text-left font-semibold">Дата</th>
                           <th className="py-3 px-4 text-right font-semibold">Сумма</th>
                           <th className="py-3 px-4 text-center font-semibold">Статус</th>
+                          <th className="py-3 px-4 w-16"></th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
                         {financeActs.map((a) => (
-                          <tr key={a.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20">
+                          <tr key={a.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer"
+                            onClick={() => { setEditingAct(a); setShowActModal(true); }}>
                             <td className="py-3 px-4 text-gray-500 dark:text-gray-400">{a.actNumber || a.id}</td>
                             <td className="py-3 px-4 text-gray-600 dark:text-gray-300">{a.actType || '—'}</td>
-                            <td className="py-3 px-4 text-gray-600 dark:text-gray-300">
-                              {a.actDate ? new Date(a.actDate).toLocaleDateString('ru-RU') : '—'}
-                            </td>
-                            <td className="py-3 px-4 text-right font-semibold text-gray-900 dark:text-gray-100">
-                              {a.totalAmount != null ? Number(a.totalAmount).toLocaleString('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }) : '—'}
-                            </td>
+                            <td className="py-3 px-4 text-gray-600 dark:text-gray-300">{fmt(a.actDate)}</td>
+                            <td className="py-3 px-4 text-right font-semibold text-gray-900 dark:text-gray-100">{fmtMoney(a.totalAmount)}</td>
                             <td className="py-3 px-4 text-center">
-                              {a.status ? (
-                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                                  ACT_STATUS[a.status]?.color ?? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
-                                }`}>
+                              {a.status != null ? (
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${ACT_STATUS[a.status]?.color ?? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>
                                   {ACT_STATUS[a.status]?.label ?? a.status}
                                 </span>
                               ) : '—'}
+                            </td>
+                            <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                              <button onClick={() => handleDeleteAct(a.id)}
+                                className="p-1 text-gray-300 hover:text-red-500 dark:text-gray-600 dark:hover:text-red-400 transition-colors">
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                              </button>
                             </td>
                           </tr>
                         ))}
@@ -1410,6 +1540,65 @@ export default function ProjectDetailPage() {
           document={selectedDocument}
           onDeleted={async () => { setSelectedDocument(null); await reloadDocuments(); addToast('success', 'Документ удалён'); }}
           onClose={() => setSelectedDocument(null)}
+        />
+      )}
+
+      {/* Payment Modal */}
+      {showPaymentModal && (
+        <FinanceModal
+          title={editingPayment ? 'Редактировать платёж' : 'Новый платёж'}
+          saving={savingFinance}
+          onClose={() => { setShowPaymentModal(false); setEditingPayment(null); }}
+          onSave={(data) => handleSavePayment(data as Omit<Payment, 'id'>)}
+          fields={[
+            { key: 'paymentNumber', label: 'Номер платежа', type: 'text', required: true },
+            { key: 'amount', label: 'Сумма', type: 'number', required: true },
+            { key: 'paymentDate', label: 'Дата платежа', type: 'date', required: true },
+            { key: 'paymentType', label: 'Тип платежа', type: 'text' },
+            { key: 'category', label: 'Категория', type: 'text' },
+            { key: 'status', label: 'Статус', type: 'select', options: Object.entries(PAYMENT_STATUS).map(([v, s]) => ({ value: Number(v), label: s.label })) },
+            { key: 'description', label: 'Описание', type: 'textarea' },
+          ]}
+          initialData={editingPayment ?? undefined}
+        />
+      )}
+
+      {/* Budget Modal */}
+      {showBudgetModal && (
+        <FinanceModal
+          title={editingBudget ? 'Редактировать бюджет' : 'Новый бюджет'}
+          saving={savingFinance}
+          onClose={() => { setShowBudgetModal(false); setEditingBudget(null); }}
+          onSave={(data) => handleSaveBudget(data as Omit<Budget, 'id'>)}
+          fields={[
+            { key: 'budgetName', label: 'Название бюджета', type: 'text', required: true },
+            { key: 'totalBudget', label: 'Общий бюджет', type: 'number', required: true },
+            { key: 'allocatedAmount', label: 'Выделено', type: 'number' },
+            { key: 'spentAmount', label: 'Потрачено', type: 'number' },
+            { key: 'startDate', label: 'Дата начала', type: 'date' },
+            { key: 'endDate', label: 'Дата окончания', type: 'date' },
+            { key: 'status', label: 'Статус', type: 'select', options: Object.entries(BUDGET_STATUS).map(([v, s]) => ({ value: Number(v), label: s.label })) },
+          ]}
+          initialData={editingBudget ?? undefined}
+        />
+      )}
+
+      {/* Act Modal */}
+      {showActModal && (
+        <FinanceModal
+          title={editingAct ? 'Редактировать акт' : 'Новый акт'}
+          saving={savingFinance}
+          onClose={() => { setShowActModal(false); setEditingAct(null); }}
+          onSave={(data) => handleSaveAct(data as Omit<Act, 'id'>)}
+          fields={[
+            { key: 'actNumber', label: 'Номер акта', type: 'text', required: true },
+            { key: 'actDate', label: 'Дата акта', type: 'date', required: true },
+            { key: 'actType', label: 'Тип акта', type: 'text' },
+            { key: 'totalAmount', label: 'Сумма', type: 'number' },
+            { key: 'status', label: 'Статус', type: 'select', options: Object.entries(ACT_STATUS).map(([v, s]) => ({ value: Number(v), label: s.label })) },
+            { key: 'description', label: 'Описание', type: 'textarea' },
+          ]}
+          initialData={editingAct ?? undefined}
         />
       )}
     </div>
