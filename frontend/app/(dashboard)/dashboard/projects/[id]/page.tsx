@@ -212,9 +212,69 @@ const TABS = [
   { key: 'tasks', label: 'Задачи' },
   { key: 'team', label: 'Команда' },
   { key: 'documents', label: 'Документы' },
+  { key: 'finance', label: 'Финансы' },
   { key: 'chat', label: 'Диалог' },
   { key: 'photos', label: 'Фотографии' },
 ] as const;
+
+interface Payment {
+  id: number;
+  paymentNumber: string;
+  amount: number;
+  currency?: string;
+  paymentDate: string;
+  paymentType?: string;
+  category?: string;
+  status?: number;
+  description?: string;
+  projectId?: number;
+}
+
+interface Budget {
+  id: number;
+  budgetName: string;
+  totalBudget: number;
+  allocatedAmount?: number;
+  spentAmount?: number;
+  budgetPeriod?: string;
+  startDate?: string;
+  endDate?: string;
+  status?: number;
+  projectId?: number;
+}
+
+interface Act {
+  id: number;
+  actNumber: string;
+  actType?: string;
+  actDate: string;
+  totalAmount?: number;
+  currency?: string;
+  status?: number;
+  description?: string;
+  projectId?: number;
+}
+
+const PAYMENT_STATUS: Record<number, { label: string; color: string }> = {
+  0: { label: 'Ожидание', color: 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-400' },
+  1: { label: 'Выполнен', color: 'bg-green-500/20 text-green-700 dark:text-green-400' },
+  2: { label: 'Отменён', color: 'bg-red-500/20 text-red-700 dark:text-red-400' },
+  3: { label: 'Возврат', color: 'bg-gray-500/20 text-gray-600 dark:text-gray-300' },
+};
+
+const ACT_STATUS: Record<number, { label: string; color: string }> = {
+  0: { label: 'Черновик', color: 'bg-gray-500/20 text-gray-600 dark:text-gray-300' },
+  1: { label: 'На подписи', color: 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-400' },
+  2: { label: 'Подписан', color: 'bg-green-500/20 text-green-700 dark:text-green-400' },
+  3: { label: 'Оспорен', color: 'bg-orange-500/20 text-orange-700 dark:text-orange-400' },
+  4: { label: 'Отменён', color: 'bg-red-500/20 text-red-700 dark:text-red-400' },
+};
+
+const BUDGET_STATUS: Record<number, { label: string; color: string }> = {
+  0: { label: 'Черновик', color: 'bg-gray-500/20 text-gray-600 dark:text-gray-300' },
+  1: { label: 'Активный', color: 'bg-green-500/20 text-green-700 dark:text-green-400' },
+  2: { label: 'Закрыт', color: 'bg-sky-500/20 text-sky-700 dark:text-sky-400' },
+};
 
 type TabKey = typeof TABS[number]['key'];
 
@@ -291,6 +351,13 @@ export default function ProjectDetailPage() {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [lightboxPhoto, setLightboxPhoto] = useState<string | null>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
+
+  /* Finance tab */
+  const [financePayments, setFinancePayments] = useState<Payment[]>([]);
+  const [financeBudgets, setFinanceBudgets] = useState<Budget[]>([]);
+  const [financeActs, setFinanceActs] = useState<Act[]>([]);
+  const [loadingFinance, setLoadingFinance] = useState(false);
+  const [financeLoaded, setFinanceLoaded] = useState(false);
 
   /* Overview summary */
   const [overviewSummary, setOverviewSummary] = useState<{
@@ -400,6 +467,21 @@ export default function ProjectDetailPage() {
     if (activeTab === 'tasks' && !tasksLoaded && !loadingTasks) reloadTasks();
     if (activeTab === 'chat' && !channelChecked && !loadingChat) findChannel();
     if (activeTab === 'photos' && !sitesLoaded && !loadingPhotos) reloadSites();
+    if (activeTab === 'finance' && !financeLoaded && !loadingFinance) {
+      setLoadingFinance(true);
+      Promise.all([
+        api.get('/payments', { params: { limit: 200 } }).catch(() => ({ data: {} })),
+        api.get('/budgets', { params: { limit: 200 } }).catch(() => ({ data: {} })),
+        api.get('/acts', { params: { limit: 200 } }).catch(() => ({ data: {} })),
+      ]).then(([paymentsRes, budgetsRes, actsRes]) => {
+        const payments: Payment[] = (paymentsRes.data?.data || paymentsRes.data?.payments || []).filter((p: Payment) => p.projectId === projectId);
+        const budgets: Budget[] = (budgetsRes.data?.data || budgetsRes.data?.budgets || []).filter((b: Budget) => b.projectId === projectId);
+        const acts: Act[] = (actsRes.data?.data || actsRes.data?.acts || []).filter((a: Act) => a.projectId === projectId);
+        setFinancePayments(payments);
+        setFinanceBudgets(budgets);
+        setFinanceActs(acts);
+      }).finally(() => { setLoadingFinance(false); setFinanceLoaded(true); });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
@@ -1061,6 +1143,172 @@ export default function ProjectDetailPage() {
                 </div>
               );
             })
+          )}
+        </div>
+      )}
+
+      {/* ─── Finance ─── */}
+      {activeTab === 'finance' && (
+        <div className="space-y-6">
+          {loadingFinance ? (
+            <LoadingState />
+          ) : (
+            <>
+              {/* Budgets */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center justify-between">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100">Бюджеты</h3>
+                  <span className="text-xs text-gray-400">{financeBudgets.length} записей</span>
+                </div>
+                {financeBudgets.length === 0 ? (
+                  <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">Нет бюджетов для этого проекта</div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
+                          <th className="py-3 px-4 text-left font-semibold">Название</th>
+                          <th className="py-3 px-4 text-right font-semibold">Общий бюджет</th>
+                          <th className="py-3 px-4 text-right font-semibold">Потрачено</th>
+                          <th className="py-3 px-4 text-right font-semibold">Выделено</th>
+                          <th className="py-3 px-4 text-center font-semibold">Статус</th>
+                          <th className="py-3 px-4 text-left font-semibold">Период</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
+                        {financeBudgets.map((b) => (
+                          <tr key={b.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20">
+                            <td className="py-3 px-4 text-gray-900 dark:text-gray-100 font-medium">{b.budgetName || '—'}</td>
+                            <td className="py-3 px-4 text-right text-gray-700 dark:text-gray-300">
+                              {b.totalBudget != null ? Number(b.totalBudget).toLocaleString('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }) : '—'}
+                            </td>
+                            <td className="py-3 px-4 text-right text-gray-700 dark:text-gray-300">
+                              {b.spentAmount != null ? Number(b.spentAmount).toLocaleString('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }) : '—'}
+                            </td>
+                            <td className="py-3 px-4 text-right text-gray-700 dark:text-gray-300">
+                              {b.allocatedAmount != null ? Number(b.allocatedAmount).toLocaleString('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }) : '—'}
+                            </td>
+                            <td className="py-3 px-4 text-center">
+                              {b.status ? (
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                                  BUDGET_STATUS[b.status]?.color ?? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
+                                }`}>
+                                  {BUDGET_STATUS[b.status]?.label ?? b.status}
+                                </span>
+                              ) : '—'}
+                            </td>
+                            <td className="py-3 px-4 text-gray-500 dark:text-gray-400 text-xs">
+                              {b.startDate ? new Date(b.startDate).toLocaleDateString('ru-RU') : ''}
+                              {b.startDate && b.endDate ? ' – ' : ''}
+                              {b.endDate ? new Date(b.endDate).toLocaleDateString('ru-RU') : ''}
+                              {!b.startDate && !b.endDate ? '—' : ''}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              {/* Payments */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center justify-between">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100">Платежи</h3>
+                  <span className="text-xs text-gray-400">{financePayments.length} записей</span>
+                </div>
+                {financePayments.length === 0 ? (
+                  <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">Нет платежей для этого проекта</div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
+                          <th className="py-3 px-4 text-left font-semibold">№</th>
+                          <th className="py-3 px-4 text-right font-semibold">Сумма</th>
+                          <th className="py-3 px-4 text-left font-semibold">Дата</th>
+                          <th className="py-3 px-4 text-left font-semibold">Тип</th>
+                          <th className="py-3 px-4 text-left font-semibold">Категория</th>
+                          <th className="py-3 px-4 text-center font-semibold">Статус</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
+                        {financePayments.map((p) => (
+                          <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20">
+                            <td className="py-3 px-4 text-gray-500 dark:text-gray-400">{p.paymentNumber || p.id}</td>
+                            <td className="py-3 px-4 text-right font-semibold text-gray-900 dark:text-gray-100">
+                              {p.amount != null ? Number(p.amount).toLocaleString('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }) : '—'}
+                            </td>
+                            <td className="py-3 px-4 text-gray-600 dark:text-gray-300">
+                              {p.paymentDate ? new Date(p.paymentDate).toLocaleDateString('ru-RU') : '—'}
+                            </td>
+                            <td className="py-3 px-4 text-gray-600 dark:text-gray-300">{p.paymentType || '—'}</td>
+                            <td className="py-3 px-4 text-gray-600 dark:text-gray-300">{p.category || '—'}</td>
+                            <td className="py-3 px-4 text-center">
+                              {p.status ? (
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                                  PAYMENT_STATUS[p.status]?.color ?? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
+                                }`}>
+                                  {PAYMENT_STATUS[p.status]?.label ?? p.status}
+                                </span>
+                              ) : '—'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              {/* Acts */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center justify-between">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100">Акты</h3>
+                  <span className="text-xs text-gray-400">{financeActs.length} записей</span>
+                </div>
+                {financeActs.length === 0 ? (
+                  <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">Нет актов для этого проекта</div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
+                          <th className="py-3 px-4 text-left font-semibold">№ акта</th>
+                          <th className="py-3 px-4 text-left font-semibold">Тип</th>
+                          <th className="py-3 px-4 text-left font-semibold">Дата</th>
+                          <th className="py-3 px-4 text-right font-semibold">Сумма</th>
+                          <th className="py-3 px-4 text-center font-semibold">Статус</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
+                        {financeActs.map((a) => (
+                          <tr key={a.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20">
+                            <td className="py-3 px-4 text-gray-500 dark:text-gray-400">{a.actNumber || a.id}</td>
+                            <td className="py-3 px-4 text-gray-600 dark:text-gray-300">{a.actType || '—'}</td>
+                            <td className="py-3 px-4 text-gray-600 dark:text-gray-300">
+                              {a.actDate ? new Date(a.actDate).toLocaleDateString('ru-RU') : '—'}
+                            </td>
+                            <td className="py-3 px-4 text-right font-semibold text-gray-900 dark:text-gray-100">
+                              {a.totalAmount != null ? Number(a.totalAmount).toLocaleString('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }) : '—'}
+                            </td>
+                            <td className="py-3 px-4 text-center">
+                              {a.status ? (
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                                  ACT_STATUS[a.status]?.color ?? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
+                                }`}>
+                                  {ACT_STATUS[a.status]?.label ?? a.status}
+                                </span>
+                              ) : '—'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </>
           )}
         </div>
       )}
