@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import type { ColumnDef } from '@/types/admin';
 import { TableSkeleton } from '@/components/ui/Skeleton';
 
+type ViewMode = 'table' | 'grid';
+
 interface DataTableProps<T extends Record<string, unknown>> {
   columns: ColumnDef<T>[];
   data: T[];
@@ -50,6 +52,17 @@ export default function DataTable<T extends Record<string, unknown>>({
   const [searchQuery, setSearchQuery] = useState('');
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('dataTableViewMode') as ViewMode) || 'table';
+    }
+    return 'table';
+  });
+
+  const handleViewMode = (mode: ViewMode) => {
+    setViewMode(mode);
+    localStorage.setItem('dataTableViewMode', mode);
+  };
 
   const totalPages = Math.max(1, Math.ceil(total / limit));
 
@@ -76,6 +89,19 @@ export default function DataTable<T extends Record<string, unknown>>({
     return <TableSkeleton rows={limit} />;
   }
 
+  const renderCellValue = (col: ColumnDef<T>, row: T) => {
+    try {
+      if (col.render) return col.render(row[col.key], row);
+      const val = row[col.key];
+      if (val === null || val === undefined) return '—';
+      if (typeof val === 'boolean') return val ? 'Да' : 'Нет';
+      if (typeof val === 'object') return JSON.stringify(val);
+      return String(val);
+    } catch {
+      return '—';
+    }
+  };
+
   return (
     <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl overflow-hidden">
       {/* Toolbar */}
@@ -98,74 +124,171 @@ export default function DataTable<T extends Record<string, unknown>>({
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
         </div>
-        {canCreate && onCreate && (
-          <button onClick={onCreate} className="btn-sm bg-violet-500 hover:bg-violet-600 text-white">
-            <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-            Создать
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {/* View mode toggle */}
+          <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
+            <button
+              onClick={() => handleViewMode('table')}
+              className={`p-1.5 rounded transition-colors ${viewMode === 'table' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}
+              title="Таблица"
+            >
+              <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+            </button>
+            <button
+              onClick={() => handleViewMode('grid')}
+              className={`p-1.5 rounded transition-colors ${viewMode === 'grid' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}
+              title="Карточки"
+            >
+              <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+              </svg>
+            </button>
+          </div>
+          {canCreate && onCreate && (
+            <button onClick={onCreate} className="btn-sm bg-violet-500 hover:bg-violet-600 text-white">
+              <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              Создать
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto">
-        <table className="table-auto w-full text-sm">
-          <thead>
-            <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
-              {columns.map((col) => (
-                <th
-                  key={col.key}
-                  className={`py-3 px-4 text-left font-semibold whitespace-nowrap ${
-                    col.sortable ? 'cursor-pointer hover:text-gray-600 dark:hover:text-gray-300 select-none' : ''
-                  }`}
-                  style={col.width ? { width: col.width } : undefined}
-                  onClick={col.sortable ? () => handleSort(col.key) : undefined}
-                >
-                  <div className="flex items-center gap-1">
-                    {col.header}
-                    {col.sortable && sortKey === col.key && (
-                      <svg className={`w-3 h-3 ${sortDir === 'desc' ? 'rotate-180' : ''}`} fill="currentColor" viewBox="0 0 12 12">
-                        <path d="M6 0l4 6H2z" />
-                      </svg>
-                    )}
-                  </div>
-                </th>
-              ))}
-              {(canEdit || canDelete || (customRowActions && customRowActions.length > 0)) && (
-                <th className="py-3 px-4 text-right font-semibold whitespace-nowrap w-32">Действия</th>
-              )}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
-            {data.length === 0 ? (
-              <tr>
-                <td colSpan={columns.length + (canEdit || canDelete ? 1 : 0)} className="py-8 text-center text-gray-500 dark:text-gray-400">
-                  Данные не найдены
-                </td>
+      {/* Table view */}
+      {viewMode === 'table' ? (
+        <div className="overflow-x-auto">
+          <table className="table-auto w-full text-sm">
+            <thead>
+              <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
+                {columns.map((col) => (
+                  <th
+                    key={col.key}
+                    className={`py-3 px-4 text-left font-semibold whitespace-nowrap ${
+                      col.sortable ? 'cursor-pointer hover:text-gray-600 dark:hover:text-gray-300 select-none' : ''
+                    }`}
+                    style={col.width ? { width: col.width } : undefined}
+                    onClick={col.sortable ? () => handleSort(col.key) : undefined}
+                  >
+                    <div className="flex items-center gap-1">
+                      {col.header}
+                      {col.sortable && sortKey === col.key && (
+                        <svg className={`w-3 h-3 ${sortDir === 'desc' ? 'rotate-180' : ''}`} fill="currentColor" viewBox="0 0 12 12">
+                          <path d="M6 0l4 6H2z" />
+                        </svg>
+                      )}
+                    </div>
+                  </th>
+                ))}
+                {(canEdit || canDelete || (customRowActions && customRowActions.length > 0)) && (
+                  <th className="py-3 px-4 text-right font-semibold whitespace-nowrap w-32">Действия</th>
+                )}
               </tr>
-            ) : (
-              data.map((row, idx) => (
-                <tr key={(row.id as string | number) || idx} className={`hover:bg-gray-50 dark:hover:bg-gray-900/20 ${onEdit ? 'cursor-pointer' : ''}`} onClick={() => onEdit?.(row)}>
-                  {columns.map((col) => (
-                    <td key={col.key} className="py-2.5 px-4 text-gray-800 dark:text-gray-100">
-                      {(() => {
-                        try {
-                          if (col.render) return col.render(row[col.key], row);
-                          const val = row[col.key];
-                          if (val === null || val === undefined) return '—';
-                          if (typeof val === 'boolean') return val ? 'Да' : 'Нет';
-                          if (typeof val === 'object') return JSON.stringify(val);
-                          return String(val);
-                        } catch {
-                          return '—';
-                        }
-                      })()}
-                    </td>
-                  ))}
-                  {(canEdit || canDelete || (customRowActions && customRowActions.length > 0)) && (
-                    <td className="py-2.5 px-4 text-right" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex justify-end gap-1 flex-wrap">
+            </thead>
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
+              {data.length === 0 ? (
+                <tr>
+                  <td colSpan={columns.length + (canEdit || canDelete ? 1 : 0)} className="py-8 text-center text-gray-500 dark:text-gray-400">
+                    Данные не найдены
+                  </td>
+                </tr>
+              ) : (
+                data.map((row, idx) => (
+                  <tr key={(row.id as string | number) || idx} className={`hover:bg-gray-50 dark:hover:bg-gray-900/20 ${onEdit ? 'cursor-pointer' : ''}`} onClick={() => onEdit?.(row)}>
+                    {columns.map((col) => (
+                      <td key={col.key} className="py-2.5 px-4 text-gray-800 dark:text-gray-100">
+                        {renderCellValue(col, row)}
+                      </td>
+                    ))}
+                    {(canEdit || canDelete || (customRowActions && customRowActions.length > 0)) && (
+                      <td className="py-2.5 px-4 text-right" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex justify-end gap-1 flex-wrap">
+                          {customRowActions && customRowActions.map((action) => {
+                            const isThisLoading = action.key === 'pdf' && loadingRowId === (row.id as number);
+                            return (
+                              <button
+                                key={action.key}
+                                onClick={() => onCustomAction?.(action.key, row)}
+                                disabled={isThisLoading}
+                                className="px-2 py-1 text-xs rounded bg-violet-100 text-violet-700 hover:bg-violet-200 dark:bg-violet-900/30 dark:text-violet-300 dark:hover:bg-violet-900/50 transition-colors whitespace-nowrap disabled:opacity-50"
+                                title={action.title ?? action.label}
+                              >
+                                {isThisLoading ? '...' : action.label}
+                              </button>
+                            );
+                          })}
+                          {canEdit && onEdit && (
+                            <button
+                              onClick={() => onEdit(row)}
+                              className="p-1.5 text-gray-400 hover:text-violet-500 transition-colors"
+                              title="Редактировать"
+                            >
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                            </button>
+                          )}
+                          {canDelete && onDelete && (
+                            <button
+                              onClick={() => onDelete(row)}
+                              className="p-1.5 text-gray-400 hover:text-red-500 transition-colors"
+                              title="Удалить"
+                            >
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        /* Grid / card view */
+        <div className="p-4">
+          {data.length === 0 ? (
+            <p className="py-8 text-center text-gray-500 dark:text-gray-400">Данные не найдены</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {data.map((row, idx) => {
+                const [firstCol, ...restCols] = columns;
+                return (
+                  <div
+                    key={(row.id as string | number) || idx}
+                    className="bg-gray-50 dark:bg-gray-900/30 border border-gray-200 dark:border-gray-700 rounded-lg p-4 flex flex-col gap-3 hover:shadow-md transition-shadow"
+                  >
+                    {/* Card title */}
+                    <div
+                      className={`font-semibold text-gray-800 dark:text-gray-100 text-sm leading-tight ${onEdit ? 'cursor-pointer hover:text-violet-600 dark:hover:text-violet-400' : ''}`}
+                      onClick={() => onEdit?.(row)}
+                    >
+                      {renderCellValue(firstCol, row)}
+                    </div>
+
+                    {/* Rest of fields */}
+                    {restCols.length > 0 && (
+                      <dl className="grid grid-cols-2 gap-x-3 gap-y-2">
+                        {restCols.map((col) => (
+                          <div key={col.key} className="min-w-0">
+                            <dt className="text-xs text-gray-400 dark:text-gray-500 truncate">{col.header}</dt>
+                            <dd className="text-xs text-gray-700 dark:text-gray-300 mt-0.5 truncate">
+                              {renderCellValue(col, row)}
+                            </dd>
+                          </div>
+                        ))}
+                      </dl>
+                    )}
+
+                    {/* Actions */}
+                    {(canEdit || canDelete || (customRowActions && customRowActions.length > 0)) && (
+                      <div className="flex items-center gap-1.5 pt-2 border-t border-gray-200 dark:border-gray-700 flex-wrap">
                         {customRowActions && customRowActions.map((action) => {
                           const isThisLoading = action.key === 'pdf' && loadingRowId === (row.id as number);
                           return (
@@ -173,7 +296,7 @@ export default function DataTable<T extends Record<string, unknown>>({
                               key={action.key}
                               onClick={() => onCustomAction?.(action.key, row)}
                               disabled={isThisLoading}
-                              className="px-2 py-1 text-xs rounded bg-violet-100 text-violet-700 hover:bg-violet-200 dark:bg-violet-900/30 dark:text-violet-300 dark:hover:bg-violet-900/50 transition-colors whitespace-nowrap disabled:opacity-50"
+                              className="px-2.5 py-1 text-xs rounded bg-violet-100 text-violet-700 hover:bg-violet-200 dark:bg-violet-900/30 dark:text-violet-300 dark:hover:bg-violet-900/50 transition-colors whitespace-nowrap disabled:opacity-50"
                               title={action.title ?? action.label}
                             >
                               {isThisLoading ? '...' : action.label}
@@ -183,34 +306,28 @@ export default function DataTable<T extends Record<string, unknown>>({
                         {canEdit && onEdit && (
                           <button
                             onClick={() => onEdit(row)}
-                            className="p-1.5 text-gray-400 hover:text-violet-500 transition-colors"
-                            title="Редактировать"
+                            className="flex-1 px-2.5 py-1 text-xs font-medium text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-500/10 rounded transition-colors text-center"
                           >
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
+                            Изменить
                           </button>
                         )}
                         {canDelete && onDelete && (
                           <button
                             onClick={() => onDelete(row)}
-                            className="p-1.5 text-gray-400 hover:text-red-500 transition-colors"
-                            title="Удалить"
+                            className="px-2.5 py-1 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded transition-colors"
                           >
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
+                            Удалить
                           </button>
                         )}
                       </div>
-                    </td>
-                  )}
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Pagination */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-2 px-4 sm:px-5 py-3 border-t border-gray-100 dark:border-gray-700/60">
