@@ -51,12 +51,25 @@ const REQUEST_TYPE_MAP: Record<string, string> = {
 
 const config = ADMIN_MODULES.leaves;
 
+type ViewMode = 'table' | 'grid';
+
 export default function HRTimeOffPage() {
   const crud = useCrudData<Record<string, unknown>>({ apiEndpoint: config.apiEndpoint });
   const addToast = useToastStore((s) => s.addToast);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Record<string, unknown> | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('dashViewMode') as ViewMode) || 'table';
+    }
+    return 'table';
+  });
+
+  const handleViewMode = (mode: ViewMode) => {
+    setViewMode(mode);
+    localStorage.setItem('dashViewMode', mode);
+  };
 
   async function handleAction(id: number, status: number) {
     setActionLoading(id);
@@ -84,12 +97,34 @@ export default function HRTimeOffPage() {
 
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Отпуска и отсутствия</h1>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="px-4 py-2 text-sm font-medium text-white bg-violet-500 hover:bg-violet-600 rounded-lg transition-colors"
-        >
-          + Новая заявка
-        </button>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
+            <button
+              onClick={() => handleViewMode('table')}
+              className={`p-1.5 rounded transition-colors ${viewMode === 'table' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}
+              title="Таблица"
+            >
+              <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+            </button>
+            <button
+              onClick={() => handleViewMode('grid')}
+              className={`p-1.5 rounded transition-colors ${viewMode === 'grid' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}
+              title="Карточки"
+            >
+              <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+              </svg>
+            </button>
+          </div>
+          <button
+            onClick={() => setShowCreate(true)}
+            className="px-4 py-2 text-sm font-medium text-white bg-violet-500 hover:bg-violet-600 rounded-lg transition-colors"
+          >
+            + Новая заявка
+          </button>
+        </div>
       </div>
 
       {/* Search */}
@@ -103,15 +138,15 @@ export default function HRTimeOffPage() {
         />
       </div>
 
-      {/* Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-        {crud.loading ? (
-          <div className="flex items-center justify-center h-48">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-500" />
-          </div>
-        ) : crud.data.length === 0 ? (
-          <div className="text-center py-12 text-gray-500 dark:text-gray-400">Нет заявок</div>
-        ) : (
+      {/* Content */}
+      {crud.loading ? (
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex items-center justify-center h-48">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-500" />
+        </div>
+      ) : crud.data.length === 0 ? (
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center py-12 text-gray-500 dark:text-gray-400">Нет заявок</div>
+      ) : viewMode === 'table' ? (
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -182,8 +217,74 @@ export default function HRTimeOffPage() {
               </tbody>
             </table>
           </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {crud.data.map((row) => {
+            const id = row.id as number;
+            const status = row.status;
+            const isPending = status === 0 || status === 'pending';
+            const st = STATUS_MAP[String(status ?? '')];
+            const userName = (row as any).user?.name;
+            return (
+              <div key={id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex flex-col gap-3 hover:shadow-md transition-shadow">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="font-semibold text-gray-800 dark:text-gray-100">
+                    {userName || `ID: ${row.userId}`}
+                  </p>
+                  {st ? <StatusBadge label={st.label} color={st.color} /> : null}
+                </div>
+                <dl className="grid grid-cols-2 gap-x-3 gap-y-2">
+                  <div>
+                    <dt className="text-xs text-gray-400 dark:text-gray-500">Тип</dt>
+                    <dd className="text-xs text-gray-700 dark:text-gray-300">
+                      {REQUEST_TYPE_MAP[String(row.requestType ?? '')] || String(row.requestType ?? '—')}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-gray-400 dark:text-gray-500">Дней</dt>
+                    <dd className="text-xs text-gray-700 dark:text-gray-300">{String(row.daysCount ?? '—')}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-gray-400 dark:text-gray-500">Начало</dt>
+                    <dd className="text-xs text-gray-700 dark:text-gray-300">{fmtDate(row.startDate)}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-gray-400 dark:text-gray-500">Окончание</dt>
+                    <dd className="text-xs text-gray-700 dark:text-gray-300">{fmtDate(row.endDate)}</dd>
+                  </div>
+                </dl>
+                <div className="flex items-center gap-1.5 pt-2 border-t border-gray-100 dark:border-gray-700 flex-wrap">
+                  {isPending && (
+                    <>
+                      <button
+                        onClick={() => handleAction(id, 1)}
+                        disabled={actionLoading === id}
+                        className="flex-1 px-2.5 py-1.5 text-xs font-medium rounded bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/40 dark:text-green-300 transition-colors disabled:opacity-50 text-center"
+                      >
+                        Одобрить
+                      </button>
+                      <button
+                        onClick={() => handleAction(id, 2)}
+                        disabled={actionLoading === id}
+                        className="flex-1 px-2.5 py-1.5 text-xs font-medium rounded bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/40 dark:text-red-300 transition-colors disabled:opacity-50 text-center"
+                      >
+                        Отклонить
+                      </button>
+                    </>
+                  )}
+                  <button
+                    onClick={() => setDeleteTarget(row)}
+                    className="px-2.5 py-1.5 text-xs font-medium rounded bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 transition-colors"
+                  >
+                    Удалить
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Pagination */}
       {crud.total > crud.limit && (

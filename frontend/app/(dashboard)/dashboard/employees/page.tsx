@@ -36,6 +36,8 @@ const ROLE_NAMES: Record<number, string> = {
   14: 'Аналитик',
 };
 
+type ViewMode = 'table' | 'grid';
+
 export default function EmployeesPage() {
   const addToast = useToastStore((s) => s.addToast);
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -43,6 +45,17 @@ export default function EmployeesPage() {
   const [error, setError] = useState('');
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('dashViewMode') as ViewMode) || 'table';
+    }
+    return 'table';
+  });
+
+  const handleViewMode = (mode: ViewMode) => {
+    setViewMode(mode);
+    localStorage.setItem('dashViewMode', mode);
+  };
 
   const fetchEmployees = async () => {
     try {
@@ -80,19 +93,41 @@ export default function EmployeesPage() {
           <h1 className="text-2xl md:text-3xl text-gray-800 dark:text-gray-100 font-bold">Сотрудники</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Список всех сотрудников</p>
         </div>
-        <Link href="/dashboard" className="text-sm text-violet-500 hover:text-violet-600 mt-2 sm:mt-0">
-          &larr; Назад
-        </Link>
+        <div className="flex items-center gap-3 mt-2 sm:mt-0">
+          <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
+            <button
+              onClick={() => handleViewMode('table')}
+              className={`p-1.5 rounded transition-colors ${viewMode === 'table' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}
+              title="Таблица"
+            >
+              <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+            </button>
+            <button
+              onClick={() => handleViewMode('grid')}
+              className={`p-1.5 rounded transition-colors ${viewMode === 'grid' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}
+              title="Карточки"
+            >
+              <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+              </svg>
+            </button>
+          </div>
+          <Link href="/dashboard" className="text-sm text-violet-500 hover:text-violet-600">
+            &larr; Назад
+          </Link>
+        </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl overflow-hidden">
-        {loading ? (
-          <div className="p-8 text-center text-gray-500 dark:text-gray-400">Загрузка...</div>
-        ) : error ? (
-          <div className="p-8 text-center text-red-500">{error}</div>
-        ) : employees.length === 0 ? (
-          <div className="p-8 text-center text-gray-500 dark:text-gray-400">Сотрудники не найдены</div>
-        ) : (
+      {loading ? (
+        <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-8 text-center text-gray-500 dark:text-gray-400">Загрузка...</div>
+      ) : error ? (
+        <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-8 text-center text-red-500">{error}</div>
+      ) : employees.length === 0 ? (
+        <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-8 text-center text-gray-500 dark:text-gray-400">Сотрудники не найдены</div>
+      ) : viewMode === 'table' ? (
+        <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="table-auto w-full text-sm">
               <thead>
@@ -160,8 +195,57 @@ export default function EmployeesPage() {
               </tbody>
             </table>
           </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {employees.map((e) => {
+            const active = e.isActive ?? e.is_active ?? true;
+            const roleName = e.role?.name || ROLE_NAMES[e.roleId || e.role_id || 0] || '—';
+            return (
+              <div key={e.id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex flex-col gap-3 hover:shadow-md transition-shadow">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-gray-800 dark:text-gray-100 truncate">{e.name || '—'}</p>
+                    {e.position && <p className="text-xs text-gray-400 truncate">{e.position}</p>}
+                  </div>
+                  <span className={`shrink-0 inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                    active
+                      ? 'bg-green-500/20 text-green-700 dark:text-green-400'
+                      : 'bg-red-500/20 text-red-700 dark:text-red-400'
+                  }`}>
+                    {active ? 'Активен' : 'Неактивен'}
+                  </span>
+                </div>
+                <dl className="grid grid-cols-1 gap-1.5">
+                  <div>
+                    <dt className="text-xs text-gray-400 dark:text-gray-500">Email</dt>
+                    <dd className="text-xs text-gray-700 dark:text-gray-300 truncate">{e.email}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-gray-400 dark:text-gray-500">Роль</dt>
+                    <dd className="text-xs text-gray-700 dark:text-gray-300">{roleName}</dd>
+                  </div>
+                </dl>
+                <div className="flex items-center gap-1.5 pt-2 border-t border-gray-100 dark:border-gray-700">
+                  <button
+                    onClick={() => setEditingEmployee(e)}
+                    className="flex-1 px-3 py-1.5 text-xs font-medium text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-500/10 rounded transition-colors text-center"
+                  >
+                    Изменить
+                  </button>
+                  <button
+                    onClick={() => handleDelete(e.id)}
+                    disabled={deletingId === e.id}
+                    className="px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded transition-colors disabled:opacity-50"
+                  >
+                    {deletingId === e.id ? '...' : 'Удалить'}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {editingEmployee && (
         <EmployeeFormModal

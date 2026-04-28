@@ -51,11 +51,24 @@ async function fetchProjects(): Promise<Project[]> {
   return data.projects || data.data || [];
 }
 
+type ViewMode = 'table' | 'grid';
+
 export default function ProjectsPage() {
   const router = useRouter();
   const [showModal, setShowModal] = useState(false);
   const [editProject, setEditProject] = useState<Project | null>(null);
   const addToast = useToastStore((s) => s.addToast);
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('dashViewMode') as ViewMode) || 'table';
+    }
+    return 'table';
+  });
+
+  const handleViewMode = (mode: ViewMode) => {
+    setViewMode(mode);
+    localStorage.setItem('dashViewMode', mode);
+  };
 
   const { data: projects, loading, error, isFromCache, cachedAt, refetch } =
     useOfflineData<Project[]>(fetchProjects, 'projects-page');
@@ -89,6 +102,26 @@ export default function ProjectsPage() {
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Список всех проектов</p>
         </div>
         <div className="flex items-center gap-3 mt-2 sm:mt-0">
+          <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
+            <button
+              onClick={() => handleViewMode('table')}
+              className={`p-1.5 rounded transition-colors ${viewMode === 'table' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}
+              title="Таблица"
+            >
+              <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+            </button>
+            <button
+              onClick={() => handleViewMode('grid')}
+              className={`p-1.5 rounded transition-colors ${viewMode === 'grid' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}
+              title="Карточки"
+            >
+              <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+              </svg>
+            </button>
+          </div>
           <Link href="/dashboard" className="text-sm text-violet-500 hover:text-violet-600">
             &larr; Назад
           </Link>
@@ -129,14 +162,14 @@ export default function ProjectsPage() {
         </div>
       )}
 
-      <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl overflow-hidden">
-        {loading ? (
-          <div className="p-8 text-center text-gray-500 dark:text-gray-400">Загрузка...</div>
-        ) : error ? (
-          <div className="p-8 text-center text-red-500">{error}</div>
-        ) : !projects || projects.length === 0 ? (
-          <div className="p-8 text-center text-gray-500 dark:text-gray-400">Проекты не найдены</div>
-        ) : (
+      {loading ? (
+        <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-8 text-center text-gray-500 dark:text-gray-400">Загрузка...</div>
+      ) : error ? (
+        <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-8 text-center text-red-500">{error}</div>
+      ) : !projects || projects.length === 0 ? (
+        <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-8 text-center text-gray-500 dark:text-gray-400">Проекты не найдены</div>
+      ) : viewMode === 'table' ? (
+        <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="table-auto w-full text-sm">
               <thead>
@@ -163,9 +196,7 @@ export default function ProjectsPage() {
                         {p.code && <div className="text-xs text-gray-400">{p.code}</div>}
                       </td>
                       <td className="py-2.5 px-4">
-                        <span
-                          className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${status.color}`}
-                        >
+                        <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${status.color}`}>
                           {status.label}
                         </span>
                       </td>
@@ -195,8 +226,56 @@ export default function ProjectsPage() {
               </tbody>
             </table>
           </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {projects.map((p) => {
+            const status = STATUS_LABELS[p.status] || STATUS_LABELS[0];
+            return (
+              <div key={p.id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex flex-col gap-3 hover:shadow-md transition-shadow">
+                <div
+                  className="font-semibold text-gray-800 dark:text-gray-100 cursor-pointer hover:text-violet-600 dark:hover:text-violet-400"
+                  onClick={() => handleRowClick(p)}
+                >
+                  {p.name}
+                  {p.code && <span className="ml-2 text-xs font-normal text-gray-400">{p.code}</span>}
+                </div>
+                <span className={`self-start inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${status.color}`}>
+                  {status.label}
+                </span>
+                <dl className="grid grid-cols-2 gap-x-3 gap-y-2">
+                  <div>
+                    <dt className="text-xs text-gray-400 dark:text-gray-500">Начало</dt>
+                    <dd className="text-xs text-gray-700 dark:text-gray-300">{formatDate(p.startDate || p.start_date)}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-gray-400 dark:text-gray-500">Окончание</dt>
+                    <dd className="text-xs text-gray-700 dark:text-gray-300">{formatDate(p.plannedEndDate || p.planned_end_date)}</dd>
+                  </div>
+                  <div className="col-span-2">
+                    <dt className="text-xs text-gray-400 dark:text-gray-500">Бюджет</dt>
+                    <dd className="text-xs text-gray-700 dark:text-gray-300">{formatBudget(p.budget)}</dd>
+                  </div>
+                </dl>
+                <div className="flex items-center gap-1.5 pt-2 border-t border-gray-100 dark:border-gray-700">
+                  <button
+                    onClick={() => handleRowClick(p)}
+                    className="flex-1 px-3 py-1.5 text-xs font-medium text-sky-600 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-500/10 rounded transition-colors text-center"
+                  >
+                    Открыть
+                  </button>
+                  <button
+                    onClick={() => { setEditProject(p); setShowModal(true); }}
+                    className="flex-1 px-3 py-1.5 text-xs font-medium text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-500/10 rounded transition-colors text-center"
+                  >
+                    Изменить
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {showModal && (
         <ProjectFormModal
