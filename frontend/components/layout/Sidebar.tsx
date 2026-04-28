@@ -131,419 +131,197 @@ export default function Sidebar() {
               <span className="lg:hidden lg:sidebar-expanded:block 2xl:block">Меню</span>
             </h3>
             <ul className="mt-3">
-              {/* Dashboard with sub-items */}
-              <SidebarLinkGroup activecondition={isDashboardActive}>
-                {(handleClick, open) => (
-                  <>
-                    <a
-                      href="#0"
-                      className={`block text-gray-800 dark:text-gray-100 transition duration-150 ${
-                        isDashboardActive ? '' : 'hover:text-gray-900 dark:hover:text-white'
-                      }`}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        handleClick();
-                        setSidebarExpanded(true);
-                      }}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center min-w-0">
-                          <svg
-                            className={`shrink-0 fill-current ${
-                              isDashboardActive ? 'text-violet-500' : 'text-gray-400 dark:text-gray-500'
-                            }`}
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="16"
-                            height="16"
-                            viewBox="0 0 16 16"
-                          >
-                            <path d="M5.936.278A7.983 7.983 0 0 1 8 0a8 8 0 1 1-8 8c0-.722.104-1.413.278-2.064a1 1 0 1 1 1.932.516A5.99 5.99 0 0 0 2 8a6 6 0 1 0 6-6c-.53 0-1.045.076-1.548.21A1 1 0 1 1 5.936.278Z" />
-                            <path d="M6.068 7.482A2.003 2.003 0 0 0 8 10a2 2 0 1 0-.518-3.932L3.707 2.293a1 1 0 0 0-1.414 1.414l3.775 3.775Z" />
-                          </svg>
-                          <span className="text-sm font-medium ml-4 lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200 truncate">
-                            Панель управления
-                          </span>
-                        </div>
-                        <div className="flex shrink-0 ml-2 lg:hidden lg:sidebar-expanded:flex 2xl:flex">
-                          <svg
-                            className={`w-3 h-3 shrink-0 ml-1 fill-current text-gray-400 dark:text-gray-500 transition-transform duration-200 ${open && 'rotate-180'}`}
-                            viewBox="0 0 12 12"
-                          >
-                            <path d="M5.9 11.4L.5 6l1.4-1.4 4 4 4-4L11.3 6z" />
-                          </svg>
-                        </div>
-                      </div>
-                    </a>
-                    <AnimatedSubmenu open={open}>
-                      <ul className="pl-8 mt-1">
-                        <li className="mb-1 last:mb-0">
-                          <NavLink
-                            href="/dashboard"
-                            className={`block transition duration-150 truncate ${
-                              pathname === '/dashboard'
-                                ? 'text-violet-500'
-                                : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                            }`}
-                          >
-                            <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
-                              Обзор
-                            </span>
-                          </NavLink>
-                        </li>
-                        <li className="mb-1 last:mb-0">
-                          <NavLink
-                            href="/dashboard/projects"
-                            className={`block transition duration-150 truncate ${
-                              pathname === '/dashboard/projects'
-                                ? 'text-violet-500'
-                                : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                            }`}
-                          >
-                            <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
-                              Проекты
-                            </span>
-                          </NavLink>
-                        </li>
-                        <li className="mb-1 last:mb-0">
-                          <NavLink
-                            href="/dashboard/tasks"
-                            className={`block transition duration-150 truncate ${
-                              pathname === '/dashboard/tasks'
-                                ? 'text-violet-500'
-                                : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                            }`}
-                          >
-                            <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
-                              Задачи
-                            </span>
-                          </NavLink>
-                        </li>
-                        <li className="mb-1 last:mb-0">
-                          <NavLink
-                            href="/dashboard/employees"
-                            className={`block transition duration-150 truncate ${
-                              pathname === '/dashboard/employees'
-                                ? 'text-violet-500'
-                                : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                            }`}
-                          >
-                            <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
-                              Сотрудники
-                            </span>
-                          </NavLink>
-                        </li>
-                        {isPM && (
-                          <li className="mb-1 last:mb-0">
-                            <NavLink
-                              href="/dashboard/pm/construction-sites"
-                              className={`block transition duration-150 truncate ${
-                                pathname === '/dashboard/pm/construction-sites'
-                                  ? 'text-violet-500'
-                                  : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                              }`}
-                            >
-                              <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
-                                Стройплощадки
-                              </span>
-                            </NavLink>
-                          </li>
-                        )}
-                        {isHR && (
-                          <>
-                            <li className="mb-1 last:mb-0">
-                              <NavLink
-                                href="/dashboard/hr/attendance"
-                                className={`block transition duration-150 truncate ${
-                                  pathname === '/dashboard/hr/attendance'
-                                    ? 'text-violet-500'
-                                    : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                                }`}
-                              >
-                                <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
-                                  Посещаемость
-                                </span>
-                              </NavLink>
-                            </li>
-                            <li className="mb-1 last:mb-0">
-                              <NavLink
-                                href="/dashboard/hr/time-off"
-                                className={`block transition duration-150 truncate ${
-                                  pathname === '/dashboard/hr/time-off'
-                                    ? 'text-violet-500'
-                                    : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                                }`}
-                              >
-                                <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
-                                  Отпуска
-                                </span>
-                              </NavLink>
-                            </li>
-                            <li className="mb-1 last:mb-0">
-                              <NavLink
-                                href="/dashboard/hr/documents"
-                                className={`block transition duration-150 truncate ${
-                                  pathname === '/dashboard/hr/documents'
-                                    ? 'text-violet-500'
-                                    : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                                }`}
-                              >
-                                <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
-                                  Документы сотрудников
-                                </span>
-                              </NavLink>
-                            </li>
-                          </>
-                        )}
-                        {isForeman && (
-                          <>
-                            <li className="mb-1 last:mb-0">
-                              <NavLink
-                                href="/dashboard/foreman/construction-sites"
-                                className={`block transition duration-150 truncate ${
-                                  pathname === '/dashboard/foreman/construction-sites'
-                                    ? 'text-violet-500'
-                                    : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                                }`}
-                              >
-                                <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
-                                  Стройплощадки
-                                </span>
-                              </NavLink>
-                            </li>
-                            <li className="mb-1 last:mb-0">
-                              <NavLink
-                                href="/dashboard/foreman/equipment"
-                                className={`block transition duration-150 truncate ${
-                                  pathname === '/dashboard/foreman/equipment'
-                                    ? 'text-violet-500'
-                                    : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                                }`}
-                              >
-                                <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
-                                  Оборудование
-                                </span>
-                              </NavLink>
-                            </li>
-                            <li className="mb-1 last:mb-0">
-                              <NavLink
-                                href="/dashboard/foreman/inspections"
-                                className={`block transition duration-150 truncate ${
-                                  pathname === '/dashboard/foreman/inspections'
-                                    ? 'text-violet-500'
-                                    : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                                }`}
-                              >
-                                <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
-                                  Проверки
-                                </span>
-                              </NavLink>
-                            </li>
-                          </>
-                        )}
-                        {isWorker && (
-                          <>
-                            <li className="mb-1 last:mb-0">
-                              <NavLink
-                                href="/dashboard/worker/attendance"
-                                className={`block transition duration-150 truncate ${
-                                  pathname === '/dashboard/worker/attendance'
-                                    ? 'text-violet-500'
-                                    : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                                }`}
-                              >
-                                <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
-                                  Посещаемость
-                                </span>
-                              </NavLink>
-                            </li>
-                            <li className="mb-1 last:mb-0">
-                              <NavLink
-                                href="/dashboard/worker/time-off"
-                                className={`block transition duration-150 truncate ${
-                                  pathname === '/dashboard/worker/time-off'
-                                    ? 'text-violet-500'
-                                    : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                                }`}
-                              >
-                                <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
-                                  Отпуска
-                                </span>
-                              </NavLink>
-                            </li>
-                            <li className="mb-1 last:mb-0">
-                              <NavLink
-                                href="/dashboard/worker/construction-sites"
-                                className={`block transition duration-150 truncate ${
-                                  pathname === '/dashboard/worker/construction-sites'
-                                    ? 'text-violet-500'
-                                    : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                                }`}
-                              >
-                                <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
-                                  Стройплощадки
-                                </span>
-                              </NavLink>
-                            </li>
-                          </>
-                        )}
-                        {isSupplier && (
-                          <>
-                            <li className="mb-1 last:mb-0">
-                              <NavLink href="/dashboard/supplier/suppliers" className={`block transition duration-150 truncate ${pathname === '/dashboard/supplier/suppliers' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
-                                <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Поставщики</span>
-                              </NavLink>
-                            </li>
-                            <li className="mb-1 last:mb-0">
-                              <NavLink href="/dashboard/supplier/orders" className={`block transition duration-150 truncate ${pathname === '/dashboard/supplier/orders' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
-                                <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Заказы</span>
-                              </NavLink>
-                            </li>
-                            <li className="mb-1 last:mb-0">
-                              <NavLink href="/dashboard/supplier/materials" className={`block transition duration-150 truncate ${pathname === '/dashboard/supplier/materials' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
-                                <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Материалы</span>
-                              </NavLink>
-                            </li>
-                          </>
-                        )}
-                        {isWarehouse && (
-                          <>
-                            <li className="mb-1 last:mb-0">
-                              <NavLink href="/dashboard/warehouse/materials" className={`block transition duration-150 truncate ${pathname === '/dashboard/warehouse/materials' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
-                                <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Материалы</span>
-                              </NavLink>
-                            </li>
-                            <li className="mb-1 last:mb-0">
-                              <NavLink href="/dashboard/warehouse/equipment" className={`block transition duration-150 truncate ${pathname === '/dashboard/warehouse/equipment' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
-                                <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Оборудование</span>
-                              </NavLink>
-                            </li>
-                            <li className="mb-1 last:mb-0">
-                              <NavLink href="/dashboard/warehouse/requests" className={`block transition duration-150 truncate ${pathname === '/dashboard/warehouse/requests' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
-                                <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Заявки</span>
-                              </NavLink>
-                            </li>
-                          </>
-                        )}
-                        {isAccountant && (
-                          <>
-                            <li className="mb-1 last:mb-0">
-                              <NavLink href="/dashboard/accountant/payments" className={`block transition duration-150 truncate ${pathname === '/dashboard/accountant/payments' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
-                                <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Платежи</span>
-                              </NavLink>
-                            </li>
-                            <li className="mb-1 last:mb-0">
-                              <NavLink href="/dashboard/accountant/budgets" className={`block transition duration-150 truncate ${pathname === '/dashboard/accountant/budgets' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
-                                <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Бюджеты</span>
-                              </NavLink>
-                            </li>
-                            <li className="mb-1 last:mb-0">
-                              <NavLink href="/dashboard/accountant/salaries" className={`block transition duration-150 truncate ${pathname === '/dashboard/accountant/salaries' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
-                                <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Зарплаты</span>
-                              </NavLink>
-                            </li>
-                          </>
-                        )}
-                        {isInspector && (
-                          <>
-                            <li className="mb-1 last:mb-0">
-                              <NavLink href="/dashboard/inspector/inspections" className={`block transition duration-150 truncate ${pathname === '/dashboard/inspector/inspections' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
-                                <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Инспекции</span>
-                              </NavLink>
-                            </li>
-                            <li className="mb-1 last:mb-0">
-                              <NavLink href="/dashboard/inspector/defects" className={`block transition duration-150 truncate ${pathname === '/dashboard/inspector/defects' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
-                                <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Дефекты</span>
-                              </NavLink>
-                            </li>
-                            <li className="mb-1 last:mb-0">
-                              <NavLink href="/dashboard/inspector/construction-sites" className={`block transition duration-150 truncate ${pathname === '/dashboard/inspector/construction-sites' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
-                                <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Стройплощадки</span>
-                              </NavLink>
-                            </li>
-                          </>
-                        )}
-                        <li className="mb-1 last:mb-0">
-                          <NavLink
-                            href="/dashboard/documents"
-                            className={`block transition duration-150 truncate ${
-                              pathname === '/dashboard/documents'
-                                ? 'text-violet-500'
-                                : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                            }`}
-                          >
-                            <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
-                              Документы
-                            </span>
-                          </NavLink>
-                        </li>
-                        {showTeams && (
-                          <li className="mb-1 last:mb-0">
-                            <NavLink
-                              href="/dashboard/teams"
-                              className={`block transition duration-150 truncate ${
-                                pathname === '/dashboard/teams'
-                                  ? 'text-violet-500'
-                                  : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                              }`}
-                            >
-                              <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
-                                Команды
-                              </span>
-                            </NavLink>
-                          </li>
-                        )}
-                        {showChat && (
-                          <li className="mb-1 last:mb-0">
-                            <NavLink
-                              href="/dashboard/chat"
-                              className={`block transition duration-150 truncate ${
-                                pathname === '/dashboard/chat'
-                                  ? 'text-violet-500'
-                                  : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                              }`}
-                            >
-                              <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
-                                Чат
-                              </span>
-                            </NavLink>
-                          </li>
-                        )}
-                        {isSuperAdmin ? (
-                          <li className="mb-1 last:mb-0">
-                            <NavLink
-                              href="/admin/settings"
-                              className={`block transition duration-150 truncate ${
-                                pathname === '/admin/settings'
-                                  ? 'text-violet-500'
-                                  : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                              }`}
-                            >
-                              <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
-                                Настройки
-                              </span>
-                            </NavLink>
-                          </li>
-                        ) : (
-                          <li className="mb-1 last:mb-0">
-                            <NavLink
-                              href="/dashboard/settings"
-                              className={`block transition duration-150 truncate ${
-                                pathname === '/dashboard/settings'
-                                  ? 'text-violet-500'
-                                  : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                              }`}
-                            >
-                              <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
-                                Настройки
-                              </span>
-                            </NavLink>
-                          </li>
-                        )}
-                      </ul>
-                    </AnimatedSubmenu>
-                  </>
-                )}
-              </SidebarLinkGroup>
+              <li className="mb-1 last:mb-0">
+                <NavLink href="/dashboard" className={`block py-2 px-3 rounded-lg transition duration-150 truncate ${pathname === '/dashboard' ? 'text-violet-500 bg-violet-50 dark:bg-violet-500/10' : 'text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Обзор</span>
+                </NavLink>
+              </li>
+              <li className="mb-1 last:mb-0">
+                <NavLink href="/dashboard/projects" className={`block py-2 px-3 rounded-lg transition duration-150 truncate ${pathname === '/dashboard/projects' ? 'text-violet-500 bg-violet-50 dark:bg-violet-500/10' : 'text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Проекты</span>
+                </NavLink>
+              </li>
+              <li className="mb-1 last:mb-0">
+                <NavLink href="/dashboard/tasks" className={`block py-2 px-3 rounded-lg transition duration-150 truncate ${pathname === '/dashboard/tasks' ? 'text-violet-500 bg-violet-50 dark:bg-violet-500/10' : 'text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Задачи</span>
+                </NavLink>
+              </li>
+              <li className="mb-1 last:mb-0">
+                <NavLink href="/dashboard/employees" className={`block py-2 px-3 rounded-lg transition duration-150 truncate ${pathname === '/dashboard/employees' ? 'text-violet-500 bg-violet-50 dark:bg-violet-500/10' : 'text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Сотрудники</span>
+                </NavLink>
+              </li>
+              {isPM && (
+                <li className="mb-1 last:mb-0">
+                  <NavLink href="/dashboard/pm/construction-sites" className={`block py-2 px-3 rounded-lg transition duration-150 truncate ${pathname === '/dashboard/pm/construction-sites' ? 'text-violet-500 bg-violet-50 dark:bg-violet-500/10' : 'text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                    <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Стройплощадки</span>
+                  </NavLink>
+                </li>
+              )}
+              {isHR && (
+                <>
+                  <li className="mb-1 last:mb-0">
+                    <NavLink href="/dashboard/hr/attendance" className={`block py-2 px-3 rounded-lg transition duration-150 truncate ${pathname === '/dashboard/hr/attendance' ? 'text-violet-500 bg-violet-50 dark:bg-violet-500/10' : 'text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Посещаемость</span>
+                    </NavLink>
+                  </li>
+                  <li className="mb-1 last:mb-0">
+                    <NavLink href="/dashboard/hr/time-off" className={`block py-2 px-3 rounded-lg transition duration-150 truncate ${pathname === '/dashboard/hr/time-off' ? 'text-violet-500 bg-violet-50 dark:bg-violet-500/10' : 'text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Отпуска</span>
+                    </NavLink>
+                  </li>
+                  <li className="mb-1 last:mb-0">
+                    <NavLink href="/dashboard/hr/documents" className={`block py-2 px-3 rounded-lg transition duration-150 truncate ${pathname === '/dashboard/hr/documents' ? 'text-violet-500 bg-violet-50 dark:bg-violet-500/10' : 'text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Документы сотрудников</span>
+                    </NavLink>
+                  </li>
+                </>
+              )}
+              {isForeman && (
+                <>
+                  <li className="mb-1 last:mb-0">
+                    <NavLink href="/dashboard/foreman/construction-sites" className={`block py-2 px-3 rounded-lg transition duration-150 truncate ${pathname === '/dashboard/foreman/construction-sites' ? 'text-violet-500 bg-violet-50 dark:bg-violet-500/10' : 'text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Стройплощадки</span>
+                    </NavLink>
+                  </li>
+                  <li className="mb-1 last:mb-0">
+                    <NavLink href="/dashboard/foreman/equipment" className={`block py-2 px-3 rounded-lg transition duration-150 truncate ${pathname === '/dashboard/foreman/equipment' ? 'text-violet-500 bg-violet-50 dark:bg-violet-500/10' : 'text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Оборудование</span>
+                    </NavLink>
+                  </li>
+                  <li className="mb-1 last:mb-0">
+                    <NavLink href="/dashboard/foreman/inspections" className={`block py-2 px-3 rounded-lg transition duration-150 truncate ${pathname === '/dashboard/foreman/inspections' ? 'text-violet-500 bg-violet-50 dark:bg-violet-500/10' : 'text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Проверки</span>
+                    </NavLink>
+                  </li>
+                </>
+              )}
+              {isWorker && (
+                <>
+                  <li className="mb-1 last:mb-0">
+                    <NavLink href="/dashboard/worker/attendance" className={`block py-2 px-3 rounded-lg transition duration-150 truncate ${pathname === '/dashboard/worker/attendance' ? 'text-violet-500 bg-violet-50 dark:bg-violet-500/10' : 'text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Посещаемость</span>
+                    </NavLink>
+                  </li>
+                  <li className="mb-1 last:mb-0">
+                    <NavLink href="/dashboard/worker/time-off" className={`block py-2 px-3 rounded-lg transition duration-150 truncate ${pathname === '/dashboard/worker/time-off' ? 'text-violet-500 bg-violet-50 dark:bg-violet-500/10' : 'text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Отпуска</span>
+                    </NavLink>
+                  </li>
+                  <li className="mb-1 last:mb-0">
+                    <NavLink href="/dashboard/worker/construction-sites" className={`block py-2 px-3 rounded-lg transition duration-150 truncate ${pathname === '/dashboard/worker/construction-sites' ? 'text-violet-500 bg-violet-50 dark:bg-violet-500/10' : 'text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Стройплощадки</span>
+                    </NavLink>
+                  </li>
+                </>
+              )}
+              {isSupplier && (
+                <>
+                  <li className="mb-1 last:mb-0">
+                    <NavLink href="/dashboard/supplier/suppliers" className={`block py-2 px-3 rounded-lg transition duration-150 truncate ${pathname === '/dashboard/supplier/suppliers' ? 'text-violet-500 bg-violet-50 dark:bg-violet-500/10' : 'text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Поставщики</span>
+                    </NavLink>
+                  </li>
+                  <li className="mb-1 last:mb-0">
+                    <NavLink href="/dashboard/supplier/orders" className={`block py-2 px-3 rounded-lg transition duration-150 truncate ${pathname === '/dashboard/supplier/orders' ? 'text-violet-500 bg-violet-50 dark:bg-violet-500/10' : 'text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Заказы</span>
+                    </NavLink>
+                  </li>
+                  <li className="mb-1 last:mb-0">
+                    <NavLink href="/dashboard/supplier/materials" className={`block py-2 px-3 rounded-lg transition duration-150 truncate ${pathname === '/dashboard/supplier/materials' ? 'text-violet-500 bg-violet-50 dark:bg-violet-500/10' : 'text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Материалы</span>
+                    </NavLink>
+                  </li>
+                </>
+              )}
+              {isWarehouse && (
+                <>
+                  <li className="mb-1 last:mb-0">
+                    <NavLink href="/dashboard/warehouse/materials" className={`block py-2 px-3 rounded-lg transition duration-150 truncate ${pathname === '/dashboard/warehouse/materials' ? 'text-violet-500 bg-violet-50 dark:bg-violet-500/10' : 'text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Материалы</span>
+                    </NavLink>
+                  </li>
+                  <li className="mb-1 last:mb-0">
+                    <NavLink href="/dashboard/warehouse/equipment" className={`block py-2 px-3 rounded-lg transition duration-150 truncate ${pathname === '/dashboard/warehouse/equipment' ? 'text-violet-500 bg-violet-50 dark:bg-violet-500/10' : 'text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Оборудование</span>
+                    </NavLink>
+                  </li>
+                  <li className="mb-1 last:mb-0">
+                    <NavLink href="/dashboard/warehouse/requests" className={`block py-2 px-3 rounded-lg transition duration-150 truncate ${pathname === '/dashboard/warehouse/requests' ? 'text-violet-500 bg-violet-50 dark:bg-violet-500/10' : 'text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Заявки</span>
+                    </NavLink>
+                  </li>
+                </>
+              )}
+              {isAccountant && (
+                <>
+                  <li className="mb-1 last:mb-0">
+                    <NavLink href="/dashboard/accountant/payments" className={`block py-2 px-3 rounded-lg transition duration-150 truncate ${pathname === '/dashboard/accountant/payments' ? 'text-violet-500 bg-violet-50 dark:bg-violet-500/10' : 'text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Платежи</span>
+                    </NavLink>
+                  </li>
+                  <li className="mb-1 last:mb-0">
+                    <NavLink href="/dashboard/accountant/budgets" className={`block py-2 px-3 rounded-lg transition duration-150 truncate ${pathname === '/dashboard/accountant/budgets' ? 'text-violet-500 bg-violet-50 dark:bg-violet-500/10' : 'text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Бюджеты</span>
+                    </NavLink>
+                  </li>
+                  <li className="mb-1 last:mb-0">
+                    <NavLink href="/dashboard/accountant/salaries" className={`block py-2 px-3 rounded-lg transition duration-150 truncate ${pathname === '/dashboard/accountant/salaries' ? 'text-violet-500 bg-violet-50 dark:bg-violet-500/10' : 'text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Зарплаты</span>
+                    </NavLink>
+                  </li>
+                </>
+              )}
+              {isInspector && (
+                <>
+                  <li className="mb-1 last:mb-0">
+                    <NavLink href="/dashboard/inspector/inspections" className={`block py-2 px-3 rounded-lg transition duration-150 truncate ${pathname === '/dashboard/inspector/inspections' ? 'text-violet-500 bg-violet-50 dark:bg-violet-500/10' : 'text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Инспекции</span>
+                    </NavLink>
+                  </li>
+                  <li className="mb-1 last:mb-0">
+                    <NavLink href="/dashboard/inspector/defects" className={`block py-2 px-3 rounded-lg transition duration-150 truncate ${pathname === '/dashboard/inspector/defects' ? 'text-violet-500 bg-violet-50 dark:bg-violet-500/10' : 'text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Дефекты</span>
+                    </NavLink>
+                  </li>
+                  <li className="mb-1 last:mb-0">
+                    <NavLink href="/dashboard/inspector/construction-sites" className={`block py-2 px-3 rounded-lg transition duration-150 truncate ${pathname === '/dashboard/inspector/construction-sites' ? 'text-violet-500 bg-violet-50 dark:bg-violet-500/10' : 'text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Стройплощадки</span>
+                    </NavLink>
+                  </li>
+                </>
+              )}
+              <li className="mb-1 last:mb-0">
+                <NavLink href="/dashboard/documents" className={`block py-2 px-3 rounded-lg transition duration-150 truncate ${pathname === '/dashboard/documents' ? 'text-violet-500 bg-violet-50 dark:bg-violet-500/10' : 'text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Документы</span>
+                </NavLink>
+              </li>
+              {showTeams && (
+                <li className="mb-1 last:mb-0">
+                  <NavLink href="/dashboard/teams" className={`block py-2 px-3 rounded-lg transition duration-150 truncate ${pathname === '/dashboard/teams' ? 'text-violet-500 bg-violet-50 dark:bg-violet-500/10' : 'text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                    <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Команды</span>
+                  </NavLink>
+                </li>
+              )}
+              {showChat && (
+                <li className="mb-1 last:mb-0">
+                  <NavLink href="/dashboard/chat" className={`block py-2 px-3 rounded-lg transition duration-150 truncate ${pathname === '/dashboard/chat' ? 'text-violet-500 bg-violet-50 dark:bg-violet-500/10' : 'text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                    <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Чат</span>
+                  </NavLink>
+                </li>
+              )}
+              <li className="mb-1 last:mb-0">
+                <NavLink
+                  href={isSuperAdmin ? '/admin/settings' : '/dashboard/settings'}
+                  className={`block py-2 px-3 rounded-lg transition duration-150 truncate ${
+                    pathname === '/admin/settings' || pathname === '/dashboard/settings'
+                      ? 'text-violet-500 bg-violet-50 dark:bg-violet-500/10'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                  }`}
+                >
+                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Настройки</span>
+                </NavLink>
+              </li>
 
               {/* Admin — only for super_admin */}
               {isSuperAdmin && (
