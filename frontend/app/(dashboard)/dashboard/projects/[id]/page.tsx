@@ -10,6 +10,9 @@ import { useChatStore } from '@/stores/chatStore';
 import { useAuthStore } from '@/stores/authStore';
 import ChatInput from '@/components/chat/ChatInput';
 import ChatMessageComponent from '@/components/chat/ChatMessage';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+} from 'recharts';
 
 /* ─── Types ─── */
 
@@ -1001,6 +1004,50 @@ export default function ProjectDetailPage() {
             </div>
           )}
         </div>
+
+        {/* ─── Finance Summary Chart ─── */}
+        {(project.budget != null || project.actualCost != null) && (
+          <div className="mt-4 bg-white dark:bg-gray-800 rounded-xl shadow-xs p-5">
+            <h2 className="font-semibold text-gray-800 dark:text-gray-100 mb-4">Финансы проекта</h2>
+            <ResponsiveContainer width="100%" height={180}>
+              <BarChart
+                data={[
+                  {
+                    name: 'Бюджет',
+                    Плановый: project.budget ?? 0,
+                    Фактический: project.actualCost ?? 0,
+                  },
+                ]}
+                barCategoryGap="40%"
+                barGap={6}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#6b7280' }} axisLine={false} tickLine={false} />
+                <YAxis
+                  tick={{ fontSize: 11, fill: '#6b7280' }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={(v) =>
+                    v >= 1_000_000
+                      ? `${(v / 1_000_000).toFixed(1)}М`
+                      : v >= 1_000
+                      ? `${(v / 1_000).toFixed(0)}К`
+                      : String(v)
+                  }
+                />
+                <Tooltip
+                  contentStyle={{ background: '#1f2937', border: 'none', borderRadius: 8, color: '#f3f4f6', fontSize: 12 }}
+                  formatter={(value: number) =>
+                    new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(value)
+                  }
+                />
+                <Legend wrapperStyle={{ fontSize: 12, color: '#6b7280' }} />
+                <Bar dataKey="Плановый" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Фактический" fill="#06b6d4" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
         </>
       )}
 

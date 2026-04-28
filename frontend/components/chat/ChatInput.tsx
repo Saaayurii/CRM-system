@@ -44,6 +44,16 @@ function escapeHtml(str: string): string {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+function createUserChipElement(user: { id: number; name: string }): HTMLSpanElement {
+  const chip = document.createElement('span');
+  chip.setAttribute('contenteditable', 'false');
+  chip.dataset.userId = String(user.id);
+  chip.dataset.name = user.name;
+  chip.className = 'user-mention-chip';
+  chip.textContent = `@${user.name}`;
+  return chip;
+}
+
 function createChipElement(task: { id: number; title: string; status: number; priority: number; dueDate: string }): HTMLSpanElement {
   const chip = document.createElement('span');
   chip.setAttribute('contenteditable', 'false');
@@ -61,6 +71,10 @@ function serializeEditor(el: HTMLDivElement): string {
   const process = (node: Node): string => {
     if (node.nodeType === Node.TEXT_NODE) return node.textContent ?? '';
     if (node instanceof HTMLElement) {
+      if (node.dataset.userId) {
+        const { userId, name } = node.dataset;
+        return `@[${name}](user:${userId}) `;
+      }
       if (node.dataset.taskId) {
         const { taskId, title, status, priority, dueDate } = node.dataset;
         return `#[${title}](task:${taskId}|${status}|${priority}|${dueDate}) `;
@@ -80,14 +94,18 @@ function serializeEditor(el: HTMLDivElement): string {
 function renderMarkdownInEditor(el: HTMLDivElement, md: string) {
   el.innerHTML = '';
   if (!md) return;
-  const mentionRe = /#\[([^\]]+)\]\(task:(\d+)\|(\d+)\|(\d+)\|([^)]*)\)/g;
+  const combinedRe = /#\[([^\]]+)\]\(task:(\d+)\|(\d+)\|(\d+)\|([^)]*)\)|@\[([^\]]+)\]\(user:(\d+)\)/g;
   let lastIdx = 0;
   let m: RegExpExecArray | null;
-  while ((m = mentionRe.exec(md)) !== null) {
+  while ((m = combinedRe.exec(md)) !== null) {
     if (m.index > lastIdx) el.appendChild(document.createTextNode(md.slice(lastIdx, m.index)));
-    el.appendChild(createChipElement({ id: Number(m[2]), title: m[1], status: Number(m[3]), priority: Number(m[4]), dueDate: m[5] }));
-    el.appendChild(document.createTextNode(' '));
-    lastIdx = mentionRe.lastIndex;
+    if (m[0].startsWith('#')) {
+      el.appendChild(createChipElement({ id: Number(m[2]), title: m[1], status: Number(m[3]), priority: Number(m[4]), dueDate: m[5] }));
+    } else {
+      el.appendChild(createUserChipElement({ id: Number(m[7]), name: m[6] }));
+    }
+    el.appendChild(document.createTextNode(' '));
+    lastIdx = combinedRe.lastIndex;
   }
   if (lastIdx < md.length) el.appendChild(document.createTextNode(md.slice(lastIdx)));
 }
@@ -114,6 +132,12 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
   const [mentionStart, setMentionStart] = useState(-1);
   const [selectedTaskIndex, setSelectedTaskIndex] = useState(0);
 
+
+  const [members, setMembers] = useState<{ id: number; name: string; avatarUrl?: string }[]>([]);
+  const [showUserPicker, setShowUserPicker] = useState(false);
+  const [userQuery, setUserQuery] = useState('');
+  const [atMentionStart, setAtMentionStart] = useState(-1);
+  const [selectedUserIndex, setSelectedUserIndex] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
 
@@ -129,6 +153,12 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
   const showTaskPickerRef = useRef(false);
   const filteredTaskMentionsRef = useRef<{ id: number; title: string; status: number; priority: number; dueDate: string }[]>([]);
   const selectedTaskIndexRef = useRef(0);
+
+  const atMentionNodeRef = useRef<Text | null>(null);
+  const userPickerRef = useRef<HTMLDivElement>(null);
+  const showUserPickerRef = useRef(false);
+  const filteredUserMentionsRef = useRef<{ id: number; name: string; avatarUrl?: string }[]>([]);
+  const selectedUserIndexRef = useRef(0);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -224,6 +254,20 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
       })
       .catch(() => {});
   }, [projectId]);
+
+  // Load channel members for @ mentions
+  useEffect(() => {
+    api.get(`/chat-channels/${channelId}/members`)
+      .then((res) => {
+        const arr = res.data?.members || res.data || [];
+        setMembers(arr.map((m: any) => ({
+          id: m.userId || m.id,
+          name: m.name || [m.firstName, m.lastName].filter(Boolean).join(' ') || m.email || '',
+          avatarUrl: m.avatarUrl,
+        })).filter((m: any) => m.name));
+      })
+      .catch(() => {});
+  }, [channelId]);
 
   const insertEmoji = useCallback((emoji: string) => {
     const el = editorRef.current;

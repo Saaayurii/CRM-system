@@ -244,6 +244,27 @@
   color: #c4b5fd;
 }
 
+/* ── User mention chip (contenteditable chat input) ─────────────────────── */
+.user-mention-chip {
+  display: inline-flex;
+  align-items: center;
+  background-color: #dbeafe;
+  color: #1d4ed8;
+  border-radius: 5px;
+  padding: 1px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  margin: 0 1px;
+  cursor: default;
+  user-select: none;
+  vertical-align: middle;
+  line-height: 1.6;
+}
+.dark .user-mention-chip {
+  background-color: rgba(59, 130, 246, 0.25);
+  color: #93c5fd;
+}
+
 /* Placeholder for contenteditable chat input */
 [data-placeholder]:empty::before {
   content: attr(data-placeholder);
