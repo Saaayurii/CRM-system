@@ -1559,7 +1559,7 @@ export default function ProjectDetailPage() {
             { key: 'status', label: 'Статус', type: 'select', options: Object.entries(PAYMENT_STATUS).map(([v, s]) => ({ value: Number(v), label: s.label })) },
             { key: 'description', label: 'Описание', type: 'textarea' },
           ]}
-          initialData={editingPayment ?? undefined}
+          initialData={editingPayment ? editingPayment as unknown as Record<string, unknown> : undefined}
         />
       )}
 
@@ -1579,7 +1579,7 @@ export default function ProjectDetailPage() {
             { key: 'endDate', label: 'Дата окончания', type: 'date' },
             { key: 'status', label: 'Статус', type: 'select', options: Object.entries(BUDGET_STATUS).map(([v, s]) => ({ value: Number(v), label: s.label })) },
           ]}
-          initialData={editingBudget ?? undefined}
+          initialData={editingBudget ? editingBudget as unknown as Record<string, unknown> : undefined}
         />
       )}
 
@@ -1598,7 +1598,7 @@ export default function ProjectDetailPage() {
             { key: 'status', label: 'Статус', type: 'select', options: Object.entries(ACT_STATUS).map(([v, s]) => ({ value: Number(v), label: s.label })) },
             { key: 'description', label: 'Описание', type: 'textarea' },
           ]}
-          initialData={editingAct ?? undefined}
+          initialData={editingAct ? editingAct as unknown as Record<string, unknown> : undefined}
         />
       )}
     </div>
@@ -2558,6 +2558,97 @@ function DocumentDetailModal({
           </button>
         </div>
       </div>
+    </ModalShell>
+  );
+}
+
+/* ─── Finance Modal ─── */
+
+interface FinanceField {
+  key: string;
+  label: string;
+  type: 'text' | 'number' | 'date' | 'textarea' | 'select';
+  required?: boolean;
+  options?: { value: number; label: string }[];
+}
+
+function FinanceModal({ title, fields, initialData, saving, onClose, onSave }: {
+  title: string;
+  fields: FinanceField[];
+  initialData?: Record<string, unknown>;
+  saving: boolean;
+  onClose: () => void;
+  onSave: (data: Record<string, unknown>) => void;
+}) {
+  const [form, setForm] = useState<Record<string, unknown>>(() => {
+    const defaults: Record<string, unknown> = {};
+    for (const f of fields) {
+      if (initialData && initialData[f.key] != null) {
+        if (f.type === 'date' && typeof initialData[f.key] === 'string') {
+          defaults[f.key] = (initialData[f.key] as string).slice(0, 10);
+        } else {
+          defaults[f.key] = initialData[f.key];
+        }
+      } else if (f.type === 'select' && f.options?.length) {
+        defaults[f.key] = f.options[0].value;
+      } else {
+        defaults[f.key] = f.type === 'number' ? '' : '';
+      }
+    }
+    return defaults;
+  });
+
+  const set = (key: string, val: unknown) => setForm((p) => ({ ...p, [key]: val }));
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const data: Record<string, unknown> = {};
+    for (const f of fields) {
+      const v = form[f.key];
+      if (v === '' || v == null) continue;
+      data[f.key] = f.type === 'number' ? Number(v) : v;
+    }
+    onSave(data);
+  };
+
+  const inputCls = "w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-violet-500/50";
+
+  return (
+    <ModalShell title={title} onClose={onClose}>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid grid-cols-1 gap-4 max-h-[60vh] overflow-y-auto pr-1">
+          {fields.map((f) => (
+            <div key={f.key}>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                {f.label}{f.required && <span className="text-red-500 ml-0.5">*</span>}
+              </label>
+              {f.type === 'textarea' ? (
+                <textarea rows={3} className={inputCls} value={String(form[f.key] ?? '')}
+                  onChange={(e) => set(f.key, e.target.value)} />
+              ) : f.type === 'select' ? (
+                <select className={inputCls} value={String(form[f.key] ?? '')}
+                  onChange={(e) => set(f.key, Number(e.target.value))}>
+                  {f.options?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              ) : (
+                <input type={f.type} required={f.required} className={inputCls}
+                  value={String(form[f.key] ?? '')}
+                  onChange={(e) => set(f.key, e.target.value)} />
+              )}
+            </div>
+          ))}
+        </div>
+        <div className="flex justify-end gap-3 pt-2 border-t border-gray-100 dark:border-gray-700">
+          <button type="button" onClick={onClose}
+            className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors">
+            Отмена
+          </button>
+          <button type="submit" disabled={saving}
+            className="px-5 py-2 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
+            {saving ? 'Сохранение...' : 'Сохранить'}
+          </button>
+        </div>
+      </form>
     </ModalShell>
   );
 }
