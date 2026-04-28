@@ -32,7 +32,7 @@ const roles: RoleAccess[] = [
   { role: 'hr_manager',       access: { 'Проекты': 'read', 'Задачи': 'read', 'Материалы': 'none', 'Склад': 'none', 'Финансы': 'read', 'HR': 'full', 'Инспекции': 'none', 'Отчёты': 'read' } },
   { role: 'project_manager',  access: { 'Проекты': 'full', 'Задачи': 'full', 'Материалы': 'read', 'Склад': 'read', 'Финансы': 'read', 'HR': 'read', 'Инспекции': 'read', 'Отчёты': 'read' } },
   { role: 'foreman',          access: { 'Проекты': 'read', 'Задачи': 'full', 'Материалы': 'read', 'Склад': 'read', 'Финансы': 'read', 'HR': 'none', 'Инспекции': 'full', 'Отчёты': 'read' } },
-  { role: 'supplier_manager', access: { 'Проекты': 'read', 'Задачи': 'read', 'Материалы': 'full', 'Склад': 'full', 'Финансы': 'read', 'HR': 'none', 'Инспекции': 'none', 'Отчёты': 'read' } },
+  { role: 'supplier_manager', access: { 'Проекты': 'full', 'Задачи': 'full', 'Материалы': 'full', 'Склад': 'full', 'Финансы': 'read', 'HR': 'none', 'Инспекции': 'none', 'Отчёты': 'read' } },
   { role: 'warehouse_keeper', access: { 'Проекты': 'none', 'Задачи': 'read', 'Материалы': 'read', 'Склад': 'full', 'Финансы': 'none', 'HR': 'none', 'Инспекции': 'none', 'Отчёты': 'read' } },
   { role: 'accountant',       access: { 'Проекты': 'read', 'Задачи': 'read', 'Материалы': 'read', 'Склад': 'read', 'Финансы': 'full', 'HR': 'read', 'Инспекции': 'none', 'Отчёты': 'read' } },
   { role: 'inspector',        access: { 'Проекты': 'read', 'Задачи': 'read', 'Материалы': 'none', 'Склад': 'none', 'Финансы': 'none', 'HR': 'none', 'Инспекции': 'full', 'Отчёты': 'read' } },
