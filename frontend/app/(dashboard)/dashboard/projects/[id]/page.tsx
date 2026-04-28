@@ -131,6 +131,34 @@ function convertImageToJpeg(file: File): Promise<File> {
   });
 }
 
+const ROLE_NAMES: Record<number, string> = {
+  1: 'Супер Администратор', 2: 'Администратор', 3: 'HR Менеджер',
+  4: 'Менеджер проектов', 5: 'Прораб', 6: 'Снабженец',
+  7: 'Кладовщик', 8: 'Бухгалтер', 9: 'Инспектор', 10: 'Рабочий',
+  11: 'Поставщик', 12: 'Подрядчик', 13: 'Наблюдатель', 14: 'Аналитик',
+};
+
+async function enrichAssignments(assignments: Assignment[]): Promise<Assignment[]> {
+  if (!assignments.length) return assignments;
+  try {
+    const r = await api.get('/users', { params: { limit: 500 } });
+    const users: UserOption[] = r.data?.users || r.data?.data || r.data || [];
+    const map = new Map(users.map((u) => [u.id, u]));
+    return assignments.map((a) => {
+      const u = map.get(a.userId);
+      if (!u) return a;
+      return {
+        ...a,
+        userName: a.userName || u.name,
+        userEmail: a.userEmail || u.email,
+        roleOnProject: a.roleOnProject || (u.roleId ? ROLE_NAMES[u.roleId] : undefined),
+      };
+    });
+  } catch {
+    return assignments;
+  }
+}
+
 const PHOTO_ERROR_PLACEHOLDER =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='1.5'%3E%3Crect x='3' y='3' width='18' height='18' rx='2'/%3E%3Ccircle cx='8.5' cy='8.5' r='1.5'/%3E%3Cpath d='m21 15-5-5L5 21'/%3E%3C/svg%3E";
 
@@ -395,7 +423,8 @@ export default function ProjectDetailPage() {
       ]);
       setTeamMembers(Array.isArray(teamRes.data) ? teamRes.data : teamRes.data?.teams || []);
       const aData = assignRes.data?.assignments || assignRes.data?.data || assignRes.data || [];
-      setAssignments(Array.isArray(aData) ? aData : []);
+      const raw: Assignment[] = Array.isArray(aData) ? aData : [];
+      setAssignments(await enrichAssignments(raw));
       setTeamLoaded(true);
     } finally {
       setLoadingTeam(false);
@@ -564,15 +593,16 @@ export default function ProjectDetailPage() {
         api.get('/tasks', { params: { projectId, limit: 100 } }).catch(() => ({ data: [] })),
         api.get('/documents', { params: { projectId, limit: 100 } }).catch(() => ({ data: [] })),
         api.get(`/projects/${projectId}/construction-sites`, { params: { limit: 100 } }).catch(() => ({ data: [] })),
-      ]).then(([teamRes, assignRes, tasksRes, docsRes, sitesRes]) => {
+      ]).then(async ([teamRes, assignRes, tasksRes, docsRes, sitesRes]) => {
         const teams = Array.isArray(teamRes.data) ? teamRes.data : teamRes.data?.teams || [];
         const aData = assignRes.data?.assignments || assignRes.data?.data || assignRes.data || [];
+        const rawAssignments: Assignment[] = Array.isArray(aData) ? aData : [];
         const tasks = Array.isArray(tasksRes.data) ? tasksRes.data : tasksRes.data?.tasks || tasksRes.data?.data || [];
         const docs = Array.isArray(docsRes.data) ? docsRes.data : docsRes.data?.documents || docsRes.data?.data || [];
         const sitesData = Array.isArray(sitesRes.data) ? sitesRes.data : sitesRes.data?.sites || sitesRes.data?.data || [];
         setOverviewSummary({
           teams: Array.isArray(teams) ? teams : [],
-          assignments: Array.isArray(aData) ? aData : [],
+          assignments: await enrichAssignments(rawAssignments),
           tasks: Array.isArray(tasks) ? tasks : [],
           documents: Array.isArray(docs) ? docs : [],
           sites: Array.isArray(sitesData) ? sitesData : [],
