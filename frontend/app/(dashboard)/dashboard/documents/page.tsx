@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import DocumentFormModal from '@/components/dashboard/DocumentFormModal';
+import FilePreviewModal from '@/components/ui/FilePreviewModal';
+import { normalizeFileUrl } from '@/lib/utils';
 
 interface Document {
   id: number;
@@ -415,127 +417,31 @@ export default function DocumentsPage() {
         )}
       </div>
 
-      {/* Preview Modal */}
-      {previewDoc && (
+      {/* File Preview Modal */}
+      {previewDoc && normalizeFileUrl(previewDoc.fileUrl) && (
+        <FilePreviewModal
+          fileUrl={previewDoc.fileUrl!}
+          fileName={previewDoc.title}
+          onClose={() => setPreviewDoc(null)}
+        />
+      )}
+
+      {/* Info modal for docs without a file */}
+      {previewDoc && !normalizeFileUrl(previewDoc.fileUrl) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/50" onClick={() => setPreviewDoc(null)} />
-          <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
-            <button
-              onClick={() => setPreviewDoc(null)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-            >
+          <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full p-6">
+            <button onClick={() => setPreviewDoc(null)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
-
-            <div className="flex items-center gap-3 mb-4">
-              <span className="text-3xl">{typeIcons[previewDoc.documentType || ''] || typeIcons.other}</span>
-              <div>
-                <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">{previewDoc.title}</h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {typeLabels[previewDoc.documentType || ''] || previewDoc.documentType || 'Документ'}
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              {previewDoc.description && (
-                <div>
-                  <p className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase mb-1">Описание</p>
-                  <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{previewDoc.description}</p>
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase mb-1">Статус</p>
-                  <span className={`inline-block text-xs px-2 py-0.5 rounded-full ${statusColors[previewDoc.status || ''] || statusColors.draft}`}>
-                    {statusLabels[previewDoc.status || ''] || previewDoc.status || '—'}
-                  </span>
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase mb-1">Версия</p>
-                  <p className="text-sm text-gray-700 dark:text-gray-300">{previewDoc.version || '1.0'}</p>
-                </div>
-                {(previewDoc.documentNumber || (previewDoc as any).document_number) && (
-                  <div>
-                    <p className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase mb-1">Номер</p>
-                    <p className="text-sm text-gray-700 dark:text-gray-300">{previewDoc.documentNumber || (previewDoc as any).document_number}</p>
-                  </div>
-                )}
-                <div>
-                  <p className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase mb-1">Размер файла</p>
-                  <p className="text-sm text-gray-700 dark:text-gray-300">{formatFileSize(previewDoc.fileSize)}</p>
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase mb-1">Дата создания</p>
-                  <p className="text-sm text-gray-700 dark:text-gray-300">{new Date(previewDoc.createdAt).toLocaleDateString('ru-RU')}</p>
-                </div>
-                {previewDoc.updatedAt && (
-                  <div>
-                    <p className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase mb-1">Обновлено</p>
-                    <p className="text-sm text-gray-700 dark:text-gray-300">{new Date(previewDoc.updatedAt).toLocaleDateString('ru-RU')}</p>
-                  </div>
-                )}
-              </div>
-
-              {((previewDoc as any).issue_date || (previewDoc as any).issueDate || (previewDoc as any).expiry_date || (previewDoc as any).expiryDate) && (
-                <div className="grid grid-cols-2 gap-4">
-                  {((previewDoc as any).issue_date || (previewDoc as any).issueDate) && (
-                    <div>
-                      <p className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase mb-1">Дата выдачи</p>
-                      <p className="text-sm text-gray-700 dark:text-gray-300">
-                        {new Date((previewDoc as any).issue_date || (previewDoc as any).issueDate).toLocaleDateString('ru-RU')}
-                      </p>
-                    </div>
-                  )}
-                  {((previewDoc as any).expiry_date || (previewDoc as any).expiryDate) && (
-                    <div>
-                      <p className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase mb-1">Истекает</p>
-                      <p className="text-sm text-gray-700 dark:text-gray-300">
-                        {new Date((previewDoc as any).expiry_date || (previewDoc as any).expiryDate).toLocaleDateString('ru-RU')}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {(previewDoc as any).tags && Array.isArray((previewDoc as any).tags) && (previewDoc as any).tags.length > 0 && (
-                <div>
-                  <p className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase mb-2">Теги</p>
-                  <div className="flex flex-wrap gap-1">
-                    {(previewDoc as any).tags.map((tag: string, i: number) => (
-                      <span key={i} className="text-xs px-2 py-0.5 bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-300 rounded-full">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700 flex gap-2">
-              {previewDoc.fileUrl && (
-                <a
-                  href={previewDoc.fileUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-lg transition-colors"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
-                  Скачать файл
-                </a>
-              )}
-              <button
-                onClick={() => {
-                  setPreviewDoc(null);
-                  handleEdit(previewDoc);
-                }}
-                className="px-4 py-2 bg-sky-500 hover:bg-sky-600 text-white text-sm font-medium rounded-lg transition-colors"
-              >
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-1">{previewDoc.title}</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{typeLabels[previewDoc.documentType || ''] || 'Документ'}</p>
+            {previewDoc.description && <p className="text-sm text-gray-700 dark:text-gray-300 mb-4">{previewDoc.description}</p>}
+            <p className="text-sm text-gray-400">Файл не прикреплён к этому документу.</p>
+            <div className="mt-4 flex gap-2">
+              <button onClick={() => { setPreviewDoc(null); handleEdit(previewDoc); }} className="px-4 py-2 bg-sky-500 hover:bg-sky-600 text-white text-sm font-medium rounded-lg transition-colors">
                 Редактировать
               </button>
             </div>

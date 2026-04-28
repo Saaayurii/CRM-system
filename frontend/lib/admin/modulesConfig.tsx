@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import type { CrudModuleConfig, ModuleCategory } from '@/types/admin';
 import { useToastStore } from '@/stores/toastStore';
+import FilePreviewButton from '@/components/ui/FilePreviewButton';
 
 // ─── UserName component ───────────────────────────────────────────────────────
 
@@ -828,20 +829,9 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
       {
         key: 'fileUrl',
         header: 'Файл',
-        render: (value) => value ? (
-          <a
-            href={String(value)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-violet-500 hover:text-violet-600 text-sm"
-            title="Открыть файл"
-          >
-            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-            </svg>
-            Открыть
-          </a>
-        ) : <span className="text-gray-400 text-sm">—</span>,
+        render: (value, row) => value
+          ? <FilePreviewButton fileUrl={String(value)} fileName={String((row as any).documentNumber || (row as any).documentType || 'Документ')} />
+          : <span className="text-gray-400 text-sm">—</span>,
       },
     ],
     formFields: [
@@ -1581,20 +1571,9 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
       {
         key: 'fileUrl',
         header: 'Файл',
-        render: (value) => value ? (
-          <a
-            href={String(value)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-violet-500 hover:text-violet-600 text-sm"
-            title="Открыть файл"
-          >
-            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-            </svg>
-            Открыть
-          </a>
-        ) : <span className="text-gray-400 text-sm">—</span>,
+        render: (value, row) => value
+          ? <FilePreviewButton fileUrl={String(value)} fileName={String((row as any).name || 'Отчёт')} />
+          : <span className="text-gray-400 text-sm">—</span>,
       },
       { key: 'createdAt', header: 'Создан', sortable: true, render: (v) => fmtDate(v) },
     ],
