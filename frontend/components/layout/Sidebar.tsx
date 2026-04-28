@@ -177,7 +177,7 @@ export default function Sidebar() {
                     <AnimatedSubmenu open={open}>
                       <ul className="pl-8 mt-1">
                         <li className="mb-1 last:mb-0">
-                          <Link
+                          <NavLink
                             href="/dashboard"
                             className={`block transition duration-150 truncate ${
                               pathname === '/dashboard'
@@ -188,10 +188,10 @@ export default function Sidebar() {
                             <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
                               Обзор
                             </span>
-                          </Link>
+                          </NavLink>
                         </li>
                         <li className="mb-1 last:mb-0">
-                          <Link
+                          <NavLink
                             href="/dashboard/projects"
                             className={`block transition duration-150 truncate ${
                               pathname === '/dashboard/projects'
@@ -202,10 +202,10 @@ export default function Sidebar() {
                             <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
                               Проекты
                             </span>
-                          </Link>
+                          </NavLink>
                         </li>
                         <li className="mb-1 last:mb-0">
-                          <Link
+                          <NavLink
                             href="/dashboard/tasks"
                             className={`block transition duration-150 truncate ${
                               pathname === '/dashboard/tasks'
@@ -216,10 +216,10 @@ export default function Sidebar() {
                             <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
                               Задачи
                             </span>
-                          </Link>
+                          </NavLink>
                         </li>
                         <li className="mb-1 last:mb-0">
-                          <Link
+                          <NavLink
                             href="/dashboard/employees"
                             className={`block transition duration-150 truncate ${
                               pathname === '/dashboard/employees'
@@ -230,11 +230,11 @@ export default function Sidebar() {
                             <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
                               Сотрудники
                             </span>
-                          </Link>
+                          </NavLink>
                         </li>
                         {isPM && (
                           <li className="mb-1 last:mb-0">
-                            <Link
+                            <NavLink
                               href="/dashboard/pm/construction-sites"
                               className={`block transition duration-150 truncate ${
                                 pathname === '/dashboard/pm/construction-sites'
@@ -245,13 +245,13 @@ export default function Sidebar() {
                               <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
                                 Стройплощадки
                               </span>
-                            </Link>
+                            </NavLink>
                           </li>
                         )}
                         {isHR && (
                           <>
                             <li className="mb-1 last:mb-0">
-                              <Link
+                              <NavLink
                                 href="/dashboard/hr/attendance"
                                 className={`block transition duration-150 truncate ${
                                   pathname === '/dashboard/hr/attendance'
@@ -262,10 +262,10 @@ export default function Sidebar() {
                                 <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
                                   Посещаемость
                                 </span>
-                              </Link>
+                              </NavLink>
                             </li>
                             <li className="mb-1 last:mb-0">
-                              <Link
+                              <NavLink
                                 href="/dashboard/hr/time-off"
                                 className={`block transition duration-150 truncate ${
                                   pathname === '/dashboard/hr/time-off'
@@ -276,10 +276,10 @@ export default function Sidebar() {
                                 <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
                                   Отпуска
                                 </span>
-                              </Link>
+                              </NavLink>
                             </li>
                             <li className="mb-1 last:mb-0">
-                              <Link
+                              <NavLink
                                 href="/dashboard/hr/documents"
                                 className={`block transition duration-150 truncate ${
                                   pathname === '/dashboard/hr/documents'
@@ -290,14 +290,14 @@ export default function Sidebar() {
                                 <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
                                   Документы сотрудников
                                 </span>
-                              </Link>
+                              </NavLink>
                             </li>
                           </>
                         )}
                         {isForeman && (
                           <>
                             <li className="mb-1 last:mb-0">
-                              <Link
+                              <NavLink
                                 href="/dashboard/foreman/construction-sites"
                                 className={`block transition duration-150 truncate ${
                                   pathname === '/dashboard/foreman/construction-sites'
@@ -308,10 +308,10 @@ export default function Sidebar() {
                                 <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
                                   Стройплощадки
                                 </span>
-                              </Link>
+                              </NavLink>
                             </li>
                             <li className="mb-1 last:mb-0">
-                              <Link
+                              <NavLink
                                 href="/dashboard/foreman/equipment"
                                 className={`block transition duration-150 truncate ${
                                   pathname === '/dashboard/foreman/equipment'
@@ -322,10 +322,10 @@ export default function Sidebar() {
                                 <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
                                   Оборудование
                                 </span>
-                              </Link>
+                              </NavLink>
                             </li>
                             <li className="mb-1 last:mb-0">
-                              <Link
+                              <NavLink
                                 href="/dashboard/foreman/inspections"
                                 className={`block transition duration-150 truncate ${
                                   pathname === '/dashboard/foreman/inspections'
@@ -336,14 +336,14 @@ export default function Sidebar() {
                                 <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
                                   Проверки
                                 </span>
-                              </Link>
+                              </NavLink>
                             </li>
                           </>
                         )}
                         {isWorker && (
                           <>
                             <li className="mb-1 last:mb-0">
-                              <Link
+                              <NavLink
                                 href="/dashboard/worker/attendance"
                                 className={`block transition duration-150 truncate ${
                                   pathname === '/dashboard/worker/attendance'
@@ -354,10 +354,10 @@ export default function Sidebar() {
                                 <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
                                   Посещаемость
                                 </span>
-                              </Link>
+                              </NavLink>
                             </li>
                             <li className="mb-1 last:mb-0">
-                              <Link
+                              <NavLink
                                 href="/dashboard/worker/time-off"
                                 className={`block transition duration-150 truncate ${
                                   pathname === '/dashboard/worker/time-off'
@@ -368,10 +368,10 @@ export default function Sidebar() {
                                 <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
                                   Отпуска
                                 </span>
-                              </Link>
+                              </NavLink>
                             </li>
                             <li className="mb-1 last:mb-0">
-                              <Link
+                              <NavLink
                                 href="/dashboard/worker/construction-sites"
                                 className={`block transition duration-150 truncate ${
                                   pathname === '/dashboard/worker/construction-sites'
@@ -382,88 +382,88 @@ export default function Sidebar() {
                                 <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
                                   Стройплощадки
                                 </span>
-                              </Link>
+                              </NavLink>
                             </li>
                           </>
                         )}
                         {isSupplier && (
                           <>
                             <li className="mb-1 last:mb-0">
-                              <Link href="/dashboard/supplier/suppliers" className={`block transition duration-150 truncate ${pathname === '/dashboard/supplier/suppliers' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                              <NavLink href="/dashboard/supplier/suppliers" className={`block transition duration-150 truncate ${pathname === '/dashboard/supplier/suppliers' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
                                 <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Поставщики</span>
-                              </Link>
+                              </NavLink>
                             </li>
                             <li className="mb-1 last:mb-0">
-                              <Link href="/dashboard/supplier/orders" className={`block transition duration-150 truncate ${pathname === '/dashboard/supplier/orders' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                              <NavLink href="/dashboard/supplier/orders" className={`block transition duration-150 truncate ${pathname === '/dashboard/supplier/orders' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
                                 <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Заказы</span>
-                              </Link>
+                              </NavLink>
                             </li>
                             <li className="mb-1 last:mb-0">
-                              <Link href="/dashboard/supplier/materials" className={`block transition duration-150 truncate ${pathname === '/dashboard/supplier/materials' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                              <NavLink href="/dashboard/supplier/materials" className={`block transition duration-150 truncate ${pathname === '/dashboard/supplier/materials' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
                                 <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Материалы</span>
-                              </Link>
+                              </NavLink>
                             </li>
                           </>
                         )}
                         {isWarehouse && (
                           <>
                             <li className="mb-1 last:mb-0">
-                              <Link href="/dashboard/warehouse/materials" className={`block transition duration-150 truncate ${pathname === '/dashboard/warehouse/materials' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                              <NavLink href="/dashboard/warehouse/materials" className={`block transition duration-150 truncate ${pathname === '/dashboard/warehouse/materials' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
                                 <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Материалы</span>
-                              </Link>
+                              </NavLink>
                             </li>
                             <li className="mb-1 last:mb-0">
-                              <Link href="/dashboard/warehouse/equipment" className={`block transition duration-150 truncate ${pathname === '/dashboard/warehouse/equipment' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                              <NavLink href="/dashboard/warehouse/equipment" className={`block transition duration-150 truncate ${pathname === '/dashboard/warehouse/equipment' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
                                 <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Оборудование</span>
-                              </Link>
+                              </NavLink>
                             </li>
                             <li className="mb-1 last:mb-0">
-                              <Link href="/dashboard/warehouse/requests" className={`block transition duration-150 truncate ${pathname === '/dashboard/warehouse/requests' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                              <NavLink href="/dashboard/warehouse/requests" className={`block transition duration-150 truncate ${pathname === '/dashboard/warehouse/requests' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
                                 <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Заявки</span>
-                              </Link>
+                              </NavLink>
                             </li>
                           </>
                         )}
                         {isAccountant && (
                           <>
                             <li className="mb-1 last:mb-0">
-                              <Link href="/dashboard/accountant/payments" className={`block transition duration-150 truncate ${pathname === '/dashboard/accountant/payments' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                              <NavLink href="/dashboard/accountant/payments" className={`block transition duration-150 truncate ${pathname === '/dashboard/accountant/payments' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
                                 <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Платежи</span>
-                              </Link>
+                              </NavLink>
                             </li>
                             <li className="mb-1 last:mb-0">
-                              <Link href="/dashboard/accountant/budgets" className={`block transition duration-150 truncate ${pathname === '/dashboard/accountant/budgets' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                              <NavLink href="/dashboard/accountant/budgets" className={`block transition duration-150 truncate ${pathname === '/dashboard/accountant/budgets' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
                                 <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Бюджеты</span>
-                              </Link>
+                              </NavLink>
                             </li>
                             <li className="mb-1 last:mb-0">
-                              <Link href="/dashboard/accountant/salaries" className={`block transition duration-150 truncate ${pathname === '/dashboard/accountant/salaries' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                              <NavLink href="/dashboard/accountant/salaries" className={`block transition duration-150 truncate ${pathname === '/dashboard/accountant/salaries' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
                                 <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Зарплаты</span>
-                              </Link>
+                              </NavLink>
                             </li>
                           </>
                         )}
                         {isInspector && (
                           <>
                             <li className="mb-1 last:mb-0">
-                              <Link href="/dashboard/inspector/inspections" className={`block transition duration-150 truncate ${pathname === '/dashboard/inspector/inspections' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                              <NavLink href="/dashboard/inspector/inspections" className={`block transition duration-150 truncate ${pathname === '/dashboard/inspector/inspections' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
                                 <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Инспекции</span>
-                              </Link>
+                              </NavLink>
                             </li>
                             <li className="mb-1 last:mb-0">
-                              <Link href="/dashboard/inspector/defects" className={`block transition duration-150 truncate ${pathname === '/dashboard/inspector/defects' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                              <NavLink href="/dashboard/inspector/defects" className={`block transition duration-150 truncate ${pathname === '/dashboard/inspector/defects' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
                                 <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Дефекты</span>
-                              </Link>
+                              </NavLink>
                             </li>
                             <li className="mb-1 last:mb-0">
-                              <Link href="/dashboard/inspector/construction-sites" className={`block transition duration-150 truncate ${pathname === '/dashboard/inspector/construction-sites' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                              <NavLink href="/dashboard/inspector/construction-sites" className={`block transition duration-150 truncate ${pathname === '/dashboard/inspector/construction-sites' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
                                 <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Стройплощадки</span>
-                              </Link>
+                              </NavLink>
                             </li>
                           </>
                         )}
                         <li className="mb-1 last:mb-0">
-                          <Link
+                          <NavLink
                             href="/dashboard/documents"
                             className={`block transition duration-150 truncate ${
                               pathname === '/dashboard/documents'
@@ -474,11 +474,11 @@ export default function Sidebar() {
                             <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
                               Документы
                             </span>
-                          </Link>
+                          </NavLink>
                         </li>
                         {showTeams && (
                           <li className="mb-1 last:mb-0">
-                            <Link
+                            <NavLink
                               href="/dashboard/teams"
                               className={`block transition duration-150 truncate ${
                                 pathname === '/dashboard/teams'
@@ -489,12 +489,12 @@ export default function Sidebar() {
                               <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
                                 Команды
                               </span>
-                            </Link>
+                            </NavLink>
                           </li>
                         )}
                         {showChat && (
                           <li className="mb-1 last:mb-0">
-                            <Link
+                            <NavLink
                               href="/dashboard/chat"
                               className={`block transition duration-150 truncate ${
                                 pathname === '/dashboard/chat'
@@ -505,12 +505,12 @@ export default function Sidebar() {
                               <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
                                 Чат
                               </span>
-                            </Link>
+                            </NavLink>
                           </li>
                         )}
                         {isSuperAdmin ? (
                           <li className="mb-1 last:mb-0">
-                            <Link
+                            <NavLink
                               href="/admin/settings"
                               className={`block transition duration-150 truncate ${
                                 pathname === '/admin/settings'
@@ -521,11 +521,11 @@ export default function Sidebar() {
                               <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
                                 Настройки
                               </span>
-                            </Link>
+                            </NavLink>
                           </li>
                         ) : (
                           <li className="mb-1 last:mb-0">
-                            <Link
+                            <NavLink
                               href="/dashboard/settings"
                               className={`block transition duration-150 truncate ${
                                 pathname === '/dashboard/settings'
@@ -536,7 +536,7 @@ export default function Sidebar() {
                               <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
                                 Настройки
                               </span>
-                            </Link>
+                            </NavLink>
                           </li>
                         )}
                       </ul>
@@ -591,7 +591,7 @@ export default function Sidebar() {
                       <AnimatedSubmenu open={open}>
                         <ul className="pl-8 mt-1">
                           <li className="mb-1 last:mb-0">
-                            <Link
+                            <NavLink
                               href="/admin"
                               className={`block transition duration-150 truncate ${
                                 pathname === '/admin'
@@ -602,10 +602,10 @@ export default function Sidebar() {
                               <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
                                 Инфраструктура
                               </span>
-                            </Link>
+                            </NavLink>
                           </li>
                           <li className="mb-1 last:mb-0">
-                            <Link
+                            <NavLink
                               href="/admin/users"
                               className={`block transition duration-150 truncate ${
                                 pathname === '/admin/users'
@@ -616,10 +616,10 @@ export default function Sidebar() {
                               <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
                                 Пользователи
                               </span>
-                            </Link>
+                            </NavLink>
                           </li>
                           <li className="mb-1 last:mb-0">
-                            <Link
+                            <NavLink
                               href="/admin/projects"
                               className={`block transition duration-150 truncate ${
                                 pathname === '/admin/projects'
@@ -630,7 +630,7 @@ export default function Sidebar() {
                               <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
                                 Проекты
                               </span>
-                            </Link>
+                            </NavLink>
                           </li>
                         </ul>
                       </AnimatedSubmenu>
