@@ -3259,9 +3259,16 @@ function ProjectChannelCreateModal({
   const addToast = useToastStore((s) => s.addToast);
 
   useEffect(() => {
-    if (projectMembers.length > 0) { setMembers(projectMembers); return; }
+    if (projectMembers.length > 0 && projectMembers.some((m) => m.userName)) {
+      setMembers(projectMembers);
+      return;
+    }
     api.get(`/projects/${projectId}/assignments`)
-      .then((r) => { const d = r.data?.assignments || r.data?.data || r.data || []; setMembers(Array.isArray(d) ? d : []); })
+      .then(async (r) => {
+        const d = r.data?.assignments || r.data?.data || r.data || [];
+        const raw: Assignment[] = Array.isArray(d) ? d : [];
+        setMembers(await enrichAssignments(raw));
+      })
       .catch(() => {});
   }, [projectId, projectMembers]);
 

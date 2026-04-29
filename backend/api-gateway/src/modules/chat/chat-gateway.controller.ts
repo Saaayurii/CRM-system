@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Patch,
   Delete,
   Body,
   Param,
@@ -33,16 +34,18 @@ export class ChatGatewayController {
   @ApiOperation({ summary: 'Get all chat channels' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
+  @ApiQuery({ name: 'projectId', required: false })
   async findAllChannels(
     @Req() req: Request,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
+    @Query('projectId') projectId?: number,
   ) {
     return this.proxyService.forward('chat', {
       method: 'GET',
       path: '/chat-channels',
       headers: { authorization: req.headers.authorization || '' },
-      params: { page, limit },
+      params: { page, limit, projectId },
     });
   }
 
@@ -130,6 +133,25 @@ export class ChatGatewayController {
     return this.proxyService.forward('chat', {
       method: 'POST',
       path: `/chat-channels/${id}/members`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Patch('chat-channels/:id/members/:userId')
+  @ApiOperation({ summary: 'Mute or unmute a channel member' })
+  async muteChannelMember(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+    @Body() body: any,
+  ) {
+    return this.proxyService.forward('chat', {
+      method: 'PATCH',
+      path: `/chat-channels/${id}/members/${userId}`,
       headers: {
         authorization: req.headers.authorization || '',
         'content-type': 'application/json',
