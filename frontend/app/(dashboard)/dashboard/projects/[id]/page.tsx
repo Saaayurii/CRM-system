@@ -51,6 +51,7 @@ interface Assignment {
   roleOnProject?: string;
   isActive?: boolean;
   assignedAt?: string;
+  availability?: number;
 }
 
 interface Document {
@@ -156,6 +157,7 @@ async function enrichAssignments(assignments: Assignment[]): Promise<Assignment[
         userName: a.userName || u.name,
         userEmail: a.userEmail || u.email,
         roleOnProject: a.roleOnProject || (u.roleId ? ROLE_NAMES[u.roleId] : undefined),
+        availability: (u as any).availability ?? a.availability,
       };
     });
   } catch {
@@ -776,10 +778,13 @@ export default function ProjectDetailPage() {
   const handleAssignEmployee = async (userId: number, roleOnProject?: string) => {
     try {
       await api.post(`/projects/${projectId}/assignments`, { userId, roleOnProject });
-      await addUsersToChannel([userId]);
-      await reloadTeam();
-      addToast('success', 'Сотрудник назначен и добавлен в чат');
-    } catch { addToast('error', 'Не удалось назначить сотрудника'); }
+    } catch {
+      addToast('error', 'Не удалось назначить сотрудника');
+      return;
+    }
+    addUsersToChannel([userId]).catch(() => {});
+    await reloadTeam();
+    addToast('success', 'Сотрудник добавлен в проект');
   };
 
   const handleRemoveAssignment = async (assignmentId: number) => {
@@ -1213,13 +1218,17 @@ export default function ProjectDetailPage() {
                       <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
                         <th className="py-3 px-4 text-left font-semibold">Сотрудник</th>
                         <th className="py-3 px-4 text-left font-semibold">Роль</th>
-                        <th className="py-3 px-4 text-left font-semibold">Статус</th>
+                        <th className="py-3 px-4 text-left font-semibold">В сети</th>
                         <th className="py-3 px-4 text-left font-semibold">Назначен</th>
                         <th className="py-3 px-4 text-center font-semibold w-20">Удалить</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
-                      {assignments.map((a) => (
+                      {assignments.map((a) => {
+                        const av = a.availability ?? -1;
+                        const onlineCls = av === 1 ? 'bg-green-400' : av === 2 ? 'bg-yellow-400' : 'bg-gray-400';
+                        const onlineLabel = av === 1 ? 'В сети' : av === 2 ? 'Занят' : av === 3 ? 'Отпуск' : av === 4 ? 'Болен' : 'Офлайн';
+                        return (
                         <tr key={a.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer" onClick={() => setSelectedAssignment(a)}>
                           <td className="py-2.5 px-4">
                             <div className="font-medium text-gray-800 dark:text-gray-100">{a.userName || `#${a.userId}`}</div>
@@ -1227,8 +1236,9 @@ export default function ProjectDetailPage() {
                           </td>
                           <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{a.roleOnProject || '—'}</td>
                           <td className="py-2.5 px-4">
-                            <span className={`text-xs px-2 py-0.5 rounded-full ${a.isActive ? 'bg-green-500/20 text-green-700 dark:text-green-400' : 'bg-gray-500/20 text-gray-600 dark:text-gray-400'}`}>
-                              {a.isActive ? 'Активен' : 'Неактивен'}
+                            <span className="flex items-center gap-1.5">
+                              <span className={`w-2 h-2 rounded-full shrink-0 ${onlineCls}`} />
+                              <span className="text-xs text-gray-600 dark:text-gray-400">{onlineLabel}</span>
                             </span>
                           </td>
                           <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{fmt(a.assignedAt)}</td>
@@ -1242,7 +1252,8 @@ export default function ProjectDetailPage() {
                             </button>
                           </td>
                         </tr>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </table>
                 )}
