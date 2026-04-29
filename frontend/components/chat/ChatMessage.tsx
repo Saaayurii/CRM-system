@@ -6,18 +6,21 @@ import { ChatMessage as ChatMessageType } from '@/stores/chatStore';
 import MediaViewer, { MediaItem } from './MediaViewer';
 import FilePreviewModal from '@/components/ui/FilePreviewModal';
 
+const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥', '👏', '🎉'];
+
 interface ChatMessageProps {
   message: ChatMessageType;
   isOwn: boolean;
   showAvatar: boolean;
   isRead: boolean;
   onReply: () => void;
+  onReact: (messageId: number, emoji: string) => void;
+  onDelete: (message: ChatMessageType) => void;
 }
 
-export default function ChatMessage({ message, isOwn, showAvatar, isRead, onReply }: ChatMessageProps) {
+export default function ChatMessage({ message, isOwn, showAvatar, isRead, onReply, onReact, onDelete }: ChatMessageProps) {
   const isVoice = message.messageType === 'voice';
 
-  // Build list of all media (image + video) attachments for the viewer
   const mediaItems: MediaItem[] = (message.attachments ?? [])
     .filter((a) => a.mimeType?.startsWith('image/') || a.mimeType?.startsWith('video/'))
     .map((a) => ({
@@ -28,14 +31,24 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, onRepl
 
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const [previewFile, setPreviewFile] = useState<{ url: string; name?: string } | null>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const emojiRef = useRef<HTMLDivElement>(null);
 
-  const openViewer = useCallback((mediaIndex: number) => {
-    setViewerIndex(mediaIndex);
-  }, []);
+  const openViewer = useCallback((mediaIndex: number) => setViewerIndex(mediaIndex), []);
+  const closeViewer = useCallback(() => setViewerIndex(null), []);
 
-  const closeViewer = useCallback(() => {
-    setViewerIndex(null);
-  }, []);
+  // Close emoji picker on outside click
+  useEffect(() => {
+    if (!showEmojiPicker) return;
+    const handler = (e: MouseEvent) => {
+      if (emojiRef.current && !emojiRef.current.contains(e.target as Node)) {
+        setShowEmojiPicker(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showEmojiPicker]);
 
   return (
     <div
@@ -263,29 +276,89 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, onRepl
             )}
           </div>
 
-          {/* Reply button (hover) */}
-          <button
-            onClick={onReply}
-            className={`absolute ${isOwn ? '-left-8' : '-right-8'} top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700`}
-            title="Ответить"
-          >
-            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-            </svg>
-          </button>
+          {/* Action buttons (hover) */}
+          <div className={`absolute ${isOwn ? '-left-20' : '-right-20'} top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5`}>
+            {/* Emoji reaction picker trigger */}
+            <div className="relative" ref={emojiRef}>
+              <button
+                onClick={() => setShowEmojiPicker((v) => !v)}
+                className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                title="Реакция"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </button>
+              {showEmojiPicker && (
+                <div className={`absolute ${isOwn ? 'right-0' : 'left-0'} bottom-8 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg p-2 flex gap-1`}>
+                  {QUICK_EMOJIS.map((emoji) => (
+                    <button
+                      key={emoji}
+                      onClick={() => { onReact(message.id, emoji); setShowEmojiPicker(false); }}
+                      className="text-xl hover:scale-125 transition-transform p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            {/* Reply */}
+            <button
+              onClick={onReply}
+              className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+              title="Ответить"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+              </svg>
+            </button>
+            {/* Delete (own messages only) */}
+            {isOwn && (
+              <button
+                onClick={() => setConfirmDelete(true)}
+                className="p-1.5 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-500 transition-colors"
+                title="Удалить"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Reactions */}
         {message.reactions && message.reactions.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-1">
             {message.reactions.map((r) => (
-              <span
+              <button
                 key={r.emoji}
-                className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 rounded-full"
+                onClick={() => onReact(message.id, r.emoji)}
+                className="inline-flex items-center gap-0.5 px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 hover:bg-violet-100 dark:hover:bg-violet-900/30 rounded-full border border-transparent hover:border-violet-300 dark:hover:border-violet-700 transition-colors"
               >
-                {r.emoji} {r.count}
-              </span>
+                {r.emoji} <span className="text-gray-600 dark:text-gray-300">{r.count}</span>
+              </button>
             ))}
+          </div>
+        )}
+
+        {/* Delete confirmation */}
+        {confirmDelete && (
+          <div className="mt-1 flex items-center gap-2 text-xs bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-3 py-1.5">
+            <span className="text-red-600 dark:text-red-400">Удалить сообщение?</span>
+            <button
+              onClick={() => { onDelete(message); setConfirmDelete(false); }}
+              className="px-2 py-0.5 bg-red-500 hover:bg-red-600 text-white rounded font-medium"
+            >
+              Да
+            </button>
+            <button
+              onClick={() => setConfirmDelete(false)}
+              className="px-2 py-0.5 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+            >
+              Нет
+            </button>
           </div>
         )}
       </div>

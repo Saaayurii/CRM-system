@@ -2210,6 +2210,19 @@ function ProjectChatPanel({ channelId, channelName, projectId, onFilesSent }: { 
 
   const membersCount = channels.find((c) => c.id === channelId)?.membersCount ?? 0;
 
+  const handleDeleteMessage = useCallback(async (msg: any) => {
+    if (msg.attachments && msg.attachments.length > 0) {
+      await Promise.allSettled(
+        msg.attachments.map((att: any) => {
+          const filename = att.fileUrl?.split('/').pop();
+          if (!filename) return Promise.resolve();
+          return api.delete(`/chat-channels/upload/${filename}`).catch(() => {});
+        })
+      );
+    }
+    deleteMessageSocket(msg.id);
+  }, [deleteMessageSocket]);
+
   const loadParticipants = useCallback(async () => {
     setLoadingParticipants(true);
     try {
@@ -2367,6 +2380,8 @@ function ProjectChatPanel({ channelId, channelName, projectId, onFilesSent }: { 
               showAvatar={showAvatar}
               isRead={isMessageRead(msg)}
               onReply={() => setReplyToMessage(msg)}
+              onReact={reactToMessage}
+              onDelete={handleDeleteMessage}
             />
           );
         })}

@@ -1,16 +1,19 @@
 import {
   Controller,
   Post,
+  Delete,
+  Param,
   UseInterceptors,
   UploadedFiles,
   BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { SkipThrottle } from '@nestjs/throttler';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 import { diskStorage } from 'multer';
-import { extname, join } from 'path';
-import { existsSync, mkdirSync } from 'fs';
+import { extname, join, basename } from 'path';
+import { existsSync, mkdirSync, unlinkSync } from 'fs';
 import { randomUUID } from 'crypto';
 
 const UPLOAD_DIR = join(process.cwd(), 'uploads', 'chat');
@@ -54,5 +57,22 @@ export class ChatUploadController {
       mimeType: file.mimetype,
       fileUrl: `${APP_PUBLIC_URL}/uploads/chat/${file.filename}`,
     }));
+  }
+
+  @Delete('upload/:filename')
+  @ApiOperation({ summary: 'Delete an uploaded chat file' })
+  deleteUpload(@Param('filename') filename: string) {
+    // Prevent path traversal
+    const safe = basename(filename);
+    const filePath = join(UPLOAD_DIR, safe);
+    if (!existsSync(filePath)) {
+      throw new NotFoundException('File not found');
+    }
+    try {
+      unlinkSync(filePath);
+    } catch {
+      // Ignore if already gone
+    }
+    return { deleted: safe };
   }
 }

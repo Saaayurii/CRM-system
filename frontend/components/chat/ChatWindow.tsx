@@ -20,6 +20,8 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
   const isLoadingMessages = useChatStore((s) => s.isLoadingMessages);
   const fetchMessages = useChatStore((s) => s.fetchMessages);
   const setReplyToMessage = useChatStore((s) => s.setReplyToMessage);
+  const deleteMessageSocket = useChatStore((s) => s.deleteMessage);
+  const reactToMessage = useChatStore((s) => s.reactToMessage);
   const onlineUsers = useChatStore((s) => s.onlineUsers);
   const channelReadAts = useChatStore((s) => s.channelReadAts);
   const user = useAuthStore((s) => s.user);
@@ -123,6 +125,21 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
     },
     [activeChannelId, channelReadAts, user?.id]
   );
+
+  // Delete message + its files
+  const handleDeleteMessage = useCallback(async (msg: ChatMessageType) => {
+    // Delete uploaded files first
+    if (msg.attachments && msg.attachments.length > 0) {
+      await Promise.allSettled(
+        msg.attachments.map((att) => {
+          const filename = att.fileUrl.split('/').pop();
+          if (!filename) return Promise.resolve();
+          return api.delete(`/chat-channels/upload/${filename}`).catch(() => {});
+        })
+      );
+    }
+    deleteMessageSocket(msg.id);
+  }, [deleteMessageSocket]);
 
   // No active channel
   if (!activeChannelId || !activeChannel) {
@@ -264,6 +281,8 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
                 showAvatar={showAvatar}
                 isRead={read}
                 onReply={() => setReplyToMessage(msg)}
+                onReact={reactToMessage}
+                onDelete={handleDeleteMessage}
               />
             );
           })}
