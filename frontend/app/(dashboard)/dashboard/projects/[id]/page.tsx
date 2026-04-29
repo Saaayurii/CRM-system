@@ -2481,7 +2481,30 @@ function AssignmentDetailModal({
 }) {
   const [removing, setRemoving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [userTasks, setUserTasks] = useState<any[]>([]);
+  const [loadingTasks, setLoadingTasks] = useState(true);
   const addToast = useToastStore((s) => s.addToast);
+
+  useEffect(() => {
+    const fetchUserTasks = async () => {
+      try {
+        const r = await api.get('/tasks', { params: { projectId, limit: 200 } });
+        const all: any[] = r.data?.data || r.data?.tasks || [];
+        setUserTasks(
+          all.filter((t) =>
+            Array.isArray(t.assignees)
+              ? t.assignees.some((a: any) => a.userId === assignment.userId)
+              : t.assigneeId === assignment.userId || t.userId === assignment.userId
+          )
+        );
+      } catch {
+        setUserTasks([]);
+      } finally {
+        setLoadingTasks(false);
+      }
+    };
+    fetchUserTasks();
+  }, [assignment.userId, projectId]);
 
   const handleRemove = async () => {
     setRemoving(true);
@@ -2523,6 +2546,35 @@ function AssignmentDetailModal({
             <span className="text-gray-800 dark:text-gray-100">{fmt(assignment.assignedAt)}</span>
           </div>
         </div>
+
+        {/* Tasks section */}
+        <div className="border-t border-gray-100 dark:border-gray-700 pt-3">
+          <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+            Задачи сотрудника
+          </div>
+          {loadingTasks ? (
+            <div className="text-xs text-gray-400 py-2">Загрузка...</div>
+          ) : userTasks.length === 0 ? (
+            <div className="text-xs text-gray-400 py-2">Нет задач в этом проекте</div>
+          ) : (
+            <ul className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+              {userTasks.map((t) => {
+                const ts = TASK_STATUS[t.status ?? 0] || TASK_STATUS[0];
+                const tp = TASK_PRIORITY[t.priority ?? 2] || TASK_PRIORITY[2];
+                return (
+                  <li key={t.id} className="flex items-center justify-between gap-2 text-xs bg-gray-50 dark:bg-gray-900/30 rounded-lg px-3 py-2">
+                    <span className="text-gray-800 dark:text-gray-100 font-medium truncate">{t.title}</span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className={`px-1.5 py-0.5 rounded-full text-xs ${ts.color}`}>{ts.label}</span>
+                      <span className={`text-xs font-medium ${tp.color}`}>{tp.label}</span>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+
         <div className="flex items-center justify-between gap-2 pt-3 border-t border-gray-100 dark:border-gray-700">
           {confirmDelete ? (
             <div className="flex items-center gap-2">
