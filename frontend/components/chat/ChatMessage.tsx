@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { ChatMessage as ChatMessageType } from '@/stores/chatStore';
 import MediaViewer, { MediaItem } from './MediaViewer';
+import FilePreviewModal from '@/components/ui/FilePreviewModal';
 
 interface ChatMessageProps {
   message: ChatMessageType;
@@ -26,6 +27,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, onRepl
     }));
 
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+  const [previewFile, setPreviewFile] = useState<{ url: string; name?: string } | null>(null);
 
   const openViewer = useCallback((mediaIndex: number) => {
     setViewerIndex(mediaIndex);
@@ -198,10 +200,11 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, onRepl
                     return (
                       <div
                         key={att.id ?? index}
-                        className={`flex items-center gap-2 p-2 rounded-lg text-sm ${
+                        onClick={() => setPreviewFile({ url: att.fileUrl, name: att.fileName })}
+                        className={`flex items-center gap-2 p-2 rounded-lg text-sm cursor-pointer transition-colors ${
                           isOwn
-                            ? 'bg-violet-400/30'
-                            : 'bg-gray-100 dark:bg-gray-700'
+                            ? 'bg-violet-400/30 hover:bg-violet-400/40'
+                            : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600'
                         }`}
                       >
                         <FileIcon mimeType={att.mimeType} />
@@ -222,6 +225,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, onRepl
                               : 'text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-600'
                           }`}
                           title="Скачать"
+                          onClick={(e) => e.stopPropagation()}
                         >
                           <DownloadIcon />
                         </a>
@@ -292,6 +296,15 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, onRepl
           items={mediaItems}
           initialIndex={viewerIndex}
           onClose={closeViewer}
+        />
+      )}
+
+      {/* File preview portal */}
+      {previewFile && (
+        <FilePreviewModal
+          fileUrl={previewFile.url}
+          fileName={previewFile.name}
+          onClose={() => setPreviewFile(null)}
         />
       )}
     </div>
