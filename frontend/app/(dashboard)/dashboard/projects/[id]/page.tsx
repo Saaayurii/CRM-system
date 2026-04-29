@@ -2648,6 +2648,11 @@ function EditTaskModal({
         dueDate: dueDate || undefined,
         assignedToUserId: assignedToUserId || undefined,
       });
+      // Sync taskAssignee table so the assignees column updates immediately
+      const assigneeList = assignedToUserId
+        ? [{ userId: Number(assignedToUserId), userName: members.find((m) => m.userId === Number(assignedToUserId))?.userName }]
+        : [];
+      await api.post(`/tasks/${task.id}/assignees`, { assignees: assigneeList }).catch(() => {});
       await onSaved();
     } catch {
       addToast('error', 'Не удалось сохранить задачу');
