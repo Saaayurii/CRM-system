@@ -933,24 +933,65 @@ export default function ProjectDetailPage() {
             <InfoRow label="Адрес" value={project.address || '—'} />
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-5 space-y-4">
-            <h2 className="font-semibold text-gray-800 dark:text-gray-100">Сроки и бюджет</h2>
-            <InfoRow label="Дата начала" value={fmt(project.startDate)} />
-            <InfoRow label="Плановое окончание" value={fmt(project.plannedEndDate)} />
-            <InfoRow label="Фактическое окончание" value={fmt(project.actualEndDate)} />
-            <InfoRow label="Бюджет" value={fmtMoney(project.budget)} />
-            <InfoRow label="Фактические затраты" value={fmtMoney(project.actualCost)} />
-            {project.budget != null && project.actualCost != null && (
-              <div>
-                <div className="flex justify-between text-xs text-gray-500 mb-1">
-                  <span>Освоение бюджета</span>
-                  <span>{Math.min(100, Math.round((project.actualCost / project.budget) * 100))}%</span>
-                </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div className="bg-violet-500 h-2 rounded-full transition-all"
-                    style={{ width: `${Math.min(100, Math.round((project.actualCost / project.budget) * 100))}%` }} />
-                </div>
-              </div>
-            )}
+            {(() => {
+              const dateOverrun = !!(project.actualEndDate && project.plannedEndDate && new Date(project.actualEndDate) > new Date(project.plannedEndDate));
+              const budgetOverrun = !!(project.actualCost != null && project.budget != null && project.actualCost > project.budget);
+              const hasOverrun = dateOverrun || budgetOverrun;
+              const pct = (project.budget != null && project.actualCost != null && project.budget > 0)
+                ? Math.round((project.actualCost / project.budget) * 100) : null;
+              const WarningIcon = () => (
+                <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                </svg>
+              );
+              return (
+                <>
+                  <div className="flex items-center justify-between">
+                    <h2 className="font-semibold text-gray-800 dark:text-gray-100">Сроки и бюджет</h2>
+                    {hasOverrun && (
+                      <span className="flex items-center gap-1 text-xs font-medium text-red-500 bg-red-50 dark:bg-red-900/20 px-2 py-0.5 rounded-full">
+                        <WarningIcon /> Превышение показателей
+                      </span>
+                    )}
+                  </div>
+                  {hasOverrun && (
+                    <div className="flex items-center gap-2 px-3 py-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-xs text-red-600 dark:text-red-400">
+                      <WarningIcon />
+                      Обнаружены превышения плановых показателей
+                    </div>
+                  )}
+                  <InfoRow label="Дата начала" value={fmt(project.startDate)} />
+                  <InfoRow label="Плановое окончание" value={fmt(project.plannedEndDate)} />
+                  <InfoRow label="Фактическое окончание" value={
+                    dateOverrun ? (
+                      <span className="flex items-center gap-1.5 text-red-500 font-semibold">
+                        <WarningIcon />{fmt(project.actualEndDate)}
+                      </span>
+                    ) : fmt(project.actualEndDate)
+                  } />
+                  <InfoRow label="Бюджет" value={fmtMoney(project.budget)} />
+                  <InfoRow label="Фактические затраты" value={
+                    budgetOverrun ? (
+                      <span className="flex items-center gap-1.5 text-red-500 font-semibold">
+                        <WarningIcon />{fmtMoney(project.actualCost)}
+                      </span>
+                    ) : fmtMoney(project.actualCost)
+                  } />
+                  {pct !== null && (
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-gray-500">Освоение бюджета</span>
+                        <span className={budgetOverrun ? 'text-red-500 font-semibold' : 'text-gray-500'}>{pct}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                        <div className={`${budgetOverrun ? 'bg-red-500' : 'bg-violet-500'} h-2 rounded-full transition-all`}
+                          style={{ width: `${Math.min(100, pct)}%` }} />
+                      </div>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </div>
         </div>
 
@@ -1459,7 +1500,141 @@ export default function ProjectDetailPage() {
             <LoadingState />
           ) : (
             <>
-              {/* Budgets */}
+              {/* ── Summary cards ── */}
+              {(() => {
+                const isIncome = (p: Payment) => /incoming|income|поступление|приход/i.test(p.paymentType || '');
+                const totalIncome = financePayments.filter(isIncome).reduce((s, p) => s + (p.amount ?? 0), 0);
+                const totalExpense = financePayments.filter((p) => !isIncome(p)).reduce((s, p) => s + (p.amount ?? 0), 0);
+                const balance = totalIncome - totalExpense;
+                const expensePct = project?.budget ? Math.round((totalExpense / project.budget) * 100) : null;
+                const chartData = [{
+                  name: 'Финансы проекта',
+                  'Бюджет': project?.budget ?? 0,
+                  'Поступления': totalIncome,
+                  'Расходы': totalExpense,
+                  'Факт. затраты': project?.actualCost ?? 0,
+                }];
+                return (
+                  <>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                      {/* Budget */}
+                      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-4">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Бюджет</p>
+                        <p className="text-xl font-bold text-violet-600 dark:text-violet-400">{fmtMoney(project?.budget) || '—'}</p>
+                      </div>
+                      {/* Income */}
+                      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-4">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Поступления</p>
+                        <p className="text-xl font-bold text-green-600 dark:text-green-400">{fmtMoney(totalIncome)}</p>
+                      </div>
+                      {/* Expense */}
+                      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-4">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Расходы</p>
+                        <p className="text-xl font-bold text-red-500">{fmtMoney(totalExpense)}</p>
+                        {expensePct !== null && (
+                          <p className={`text-xs mt-0.5 ${expensePct > 100 ? 'text-red-500 font-semibold' : 'text-gray-400'}`}>
+                            {expensePct}% от бюджета
+                          </p>
+                        )}
+                      </div>
+                      {/* Balance */}
+                      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-4">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Баланс</p>
+                        <p className={`text-xl font-bold ${balance >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500'}`}>
+                          {balance >= 0 ? '+' : ''}{fmtMoney(balance)}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* ── Correlation chart ── */}
+                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-5">
+                      <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">Корреляция финансов</h3>
+                      <ResponsiveContainer width="100%" height={200}>
+                        <BarChart data={chartData} barCategoryGap="30%" barGap={4}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                          <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#6b7280' }} axisLine={false} tickLine={false} />
+                          <YAxis tick={{ fontSize: 11, fill: '#6b7280' }} axisLine={false} tickLine={false}
+                            tickFormatter={(v) => v >= 1_000_000 ? `${(v/1_000_000).toFixed(1)}М` : v >= 1_000 ? `${(v/1_000).toFixed(0)}К` : String(v)} />
+                          <Tooltip contentStyle={{ background: '#1f2937', border: 'none', borderRadius: 8, color: '#f3f4f6', fontSize: 12 }}
+                            formatter={(v: number) => new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(v)} />
+                          <Legend wrapperStyle={{ fontSize: 12 }} />
+                          <Bar dataKey="Бюджет" fill="#8b5cf6" radius={[4,4,0,0]} />
+                          <Bar dataKey="Поступления" fill="#22c55e" radius={[4,4,0,0]} />
+                          <Bar dataKey="Расходы" fill="#ef4444" radius={[4,4,0,0]} />
+                          <Bar dataKey="Факт. затраты" fill="#f97316" radius={[4,4,0,0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </>
+                );
+              })()}
+
+              {/* ── Payments ── */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center justify-between">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100">Платежи</h3>
+                  <button onClick={() => { setEditingPayment(null); setShowPaymentModal(true); }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                    Добавить
+                  </button>
+                </div>
+                {financePayments.length === 0 ? (
+                  <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">Нет платежей для этого проекта</div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
+                          <th className="py-3 px-4 text-left font-semibold">№</th>
+                          <th className="py-3 px-4 text-left font-semibold">Направление</th>
+                          <th className="py-3 px-4 text-right font-semibold">Сумма</th>
+                          <th className="py-3 px-4 text-left font-semibold">Дата</th>
+                          <th className="py-3 px-4 text-left font-semibold">Тип</th>
+                          <th className="py-3 px-4 text-left font-semibold">Категория</th>
+                          <th className="py-3 px-4 text-center font-semibold">Статус</th>
+                          <th className="py-3 px-4 w-16"></th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
+                        {financePayments.map((p) => {
+                          const income = /incoming|income|поступление|приход/i.test(p.paymentType || '');
+                          return (
+                            <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer"
+                              onClick={() => { setEditingPayment(p); setShowPaymentModal(true); }}>
+                              <td className="py-3 px-4 text-gray-500 dark:text-gray-400">{p.paymentNumber || p.id}</td>
+                              <td className="py-3 px-4">
+                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${income ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'}`}>
+                                  {income ? '↑ Приход' : '↓ Расход'}
+                                </span>
+                              </td>
+                              <td className={`py-3 px-4 text-right font-semibold ${income ? 'text-green-600 dark:text-green-400' : 'text-red-500'}`}>{fmtMoney(p.amount)}</td>
+                              <td className="py-3 px-4 text-gray-600 dark:text-gray-300">{fmt(p.paymentDate)}</td>
+                              <td className="py-3 px-4 text-gray-600 dark:text-gray-300">{p.paymentType || '—'}</td>
+                              <td className="py-3 px-4 text-gray-600 dark:text-gray-300">{p.category || '—'}</td>
+                              <td className="py-3 px-4 text-center">
+                                {p.status != null ? (
+                                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${PAYMENT_STATUS[p.status]?.color ?? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>
+                                    {PAYMENT_STATUS[p.status]?.label ?? p.status}
+                                  </span>
+                                ) : '—'}
+                              </td>
+                              <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                                <button onClick={() => handleDeletePayment(p.id)}
+                                  className="p-1 text-gray-300 hover:text-red-500 dark:text-gray-600 dark:hover:text-red-400 transition-colors">
+                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              {/* ── Budgets ── */}
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
                 <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center justify-between">
                   <h3 className="font-semibold text-gray-900 dark:text-gray-100">Бюджеты</h3>
@@ -1486,94 +1661,49 @@ export default function ProjectDetailPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
-                        {financeBudgets.map((b) => (
-                          <tr key={b.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer"
-                            onClick={() => { setEditingBudget(b); setShowBudgetModal(true); }}>
-                            <td className="py-3 px-4 text-gray-900 dark:text-gray-100 font-medium">{b.budgetName || '—'}</td>
-                            <td className="py-3 px-4 text-right text-gray-700 dark:text-gray-300">{fmtMoney(b.totalBudget)}</td>
-                            <td className="py-3 px-4 text-right text-gray-700 dark:text-gray-300">{fmtMoney(b.spentAmount)}</td>
-                            <td className="py-3 px-4 text-right text-gray-700 dark:text-gray-300">{fmtMoney(b.allocatedAmount)}</td>
-                            <td className="py-3 px-4 text-center">
-                              {b.status != null ? (
-                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${BUDGET_STATUS[b.status]?.color ?? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>
-                                  {BUDGET_STATUS[b.status]?.label ?? b.status}
-                                </span>
-                              ) : '—'}
-                            </td>
-                            <td className="py-3 px-4 text-gray-500 dark:text-gray-400 text-xs whitespace-nowrap">
-                              {b.startDate ? fmt(b.startDate) : ''}{b.startDate && b.endDate ? ' – ' : ''}{b.endDate ? fmt(b.endDate) : ''}{!b.startDate && !b.endDate ? '—' : ''}
-                            </td>
-                            <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
-                              <button onClick={() => handleDeleteBudget(b.id)}
-                                className="p-1 text-gray-300 hover:text-red-500 dark:text-gray-600 dark:hover:text-red-400 transition-colors">
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
+                        {financeBudgets.map((b) => {
+                          const overSpent = b.spentAmount != null && b.totalBudget != null && b.spentAmount > b.totalBudget;
+                          return (
+                            <tr key={b.id}
+                              className={`cursor-pointer transition-colors ${overSpent ? 'bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-900/20'}`}
+                              onClick={() => { setEditingBudget(b); setShowBudgetModal(true); }}>
+                              <td className="py-3 px-4 text-gray-900 dark:text-gray-100 font-medium">{b.budgetName || '—'}</td>
+                              <td className="py-3 px-4 text-right text-gray-700 dark:text-gray-300">{fmtMoney(b.totalBudget)}</td>
+                              <td className="py-3 px-4 text-right">
+                                {overSpent ? (
+                                  <span className="flex items-center justify-end gap-1 text-red-500 font-semibold">
+                                    <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
+                                    {fmtMoney(b.spentAmount)}
+                                  </span>
+                                ) : <span className="text-gray-700 dark:text-gray-300">{fmtMoney(b.spentAmount)}</span>}
+                              </td>
+                              <td className="py-3 px-4 text-right text-gray-700 dark:text-gray-300">{fmtMoney(b.allocatedAmount)}</td>
+                              <td className="py-3 px-4 text-center">
+                                {b.status != null ? (
+                                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${BUDGET_STATUS[b.status]?.color ?? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>
+                                    {BUDGET_STATUS[b.status]?.label ?? b.status}
+                                  </span>
+                                ) : '—'}
+                              </td>
+                              <td className="py-3 px-4 text-gray-500 dark:text-gray-400 text-xs whitespace-nowrap">
+                                {b.startDate ? fmt(b.startDate) : ''}{b.startDate && b.endDate ? ' – ' : ''}{b.endDate ? fmt(b.endDate) : ''}{!b.startDate && !b.endDate ? '—' : ''}
+                              </td>
+                              <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                                <button onClick={() => handleDeleteBudget(b.id)}
+                                  className="p-1 text-gray-300 hover:text-red-500 dark:text-gray-600 dark:hover:text-red-400 transition-colors">
+                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
                 )}
               </div>
 
-              {/* Payments */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
-                <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center justify-between">
-                  <h3 className="font-semibold text-gray-900 dark:text-gray-100">Платежи</h3>
-                  <button onClick={() => { setEditingPayment(null); setShowPaymentModal(true); }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-                    Добавить
-                  </button>
-                </div>
-                {financePayments.length === 0 ? (
-                  <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">Нет платежей для этого проекта</div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
-                          <th className="py-3 px-4 text-left font-semibold">№</th>
-                          <th className="py-3 px-4 text-right font-semibold">Сумма</th>
-                          <th className="py-3 px-4 text-left font-semibold">Дата</th>
-                          <th className="py-3 px-4 text-left font-semibold">Тип</th>
-                          <th className="py-3 px-4 text-left font-semibold">Категория</th>
-                          <th className="py-3 px-4 text-center font-semibold">Статус</th>
-                          <th className="py-3 px-4 w-16"></th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
-                        {financePayments.map((p) => (
-                          <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer"
-                            onClick={() => { setEditingPayment(p); setShowPaymentModal(true); }}>
-                            <td className="py-3 px-4 text-gray-500 dark:text-gray-400">{p.paymentNumber || p.id}</td>
-                            <td className="py-3 px-4 text-right font-semibold text-gray-900 dark:text-gray-100">{fmtMoney(p.amount)}</td>
-                            <td className="py-3 px-4 text-gray-600 dark:text-gray-300">{fmt(p.paymentDate)}</td>
-                            <td className="py-3 px-4 text-gray-600 dark:text-gray-300">{p.paymentType || '—'}</td>
-                            <td className="py-3 px-4 text-gray-600 dark:text-gray-300">{p.category || '—'}</td>
-                            <td className="py-3 px-4 text-center">
-                              {p.status != null ? (
-                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${PAYMENT_STATUS[p.status]?.color ?? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>
-                                  {PAYMENT_STATUS[p.status]?.label ?? p.status}
-                                </span>
-                              ) : '—'}
-                            </td>
-                            <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
-                              <button onClick={() => handleDeletePayment(p.id)}
-                                className="p-1 text-gray-300 hover:text-red-500 dark:text-gray-600 dark:hover:text-red-400 transition-colors">
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-
-              {/* Acts */}
+              {/* ── Acts ── */}
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
                 <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center justify-between">
                   <h3 className="font-semibold text-gray-900 dark:text-gray-100">Акты</h3>
