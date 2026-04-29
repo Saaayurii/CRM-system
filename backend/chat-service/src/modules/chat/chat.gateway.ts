@@ -318,4 +318,51 @@ export class ChatGateway
     );
     return { event: 'channel:leave:ack', data: { channelId: data.channelId } };
   }
+
+  // --- Pinned messages ---
+
+  @UseGuards(WsJwtGuard)
+  @SubscribeMessage('message:pin')
+  async handlePinMessage(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody()
+    data: {
+      channelId: number;
+      messageId: number;
+      messageText?: string;
+      senderName?: string;
+    },
+  ) {
+    await this.chatService.pinMessage(
+      data.channelId,
+      data.messageId,
+      (data.messageText || '').slice(0, 200),
+      data.senderName || '',
+      client.user.accountId,
+    );
+
+    this.server.to(`channel:${data.channelId}`).emit('message:pinned', {
+      channelId: data.channelId,
+      pinnedMessageId: data.messageId,
+      pinnedMessageText: (data.messageText || '').slice(0, 200),
+      pinnedBySenderName: data.senderName || '',
+    });
+
+    return { event: 'message:pin:ack' };
+  }
+
+  @UseGuards(WsJwtGuard)
+  @SubscribeMessage('message:unpin')
+  async handleUnpinMessage(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() data: { channelId: number },
+  ) {
+    await this.chatService.unpinMessage(data.channelId, client.user.accountId);
+
+    this.server.to(`channel:${data.channelId}`).emit('message:unpinned', {
+      channelId: data.channelId,
+    });
+
+    return { event: 'message:unpin:ack' };
+  }
 }

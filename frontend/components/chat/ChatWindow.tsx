@@ -22,6 +22,8 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
   const setReplyToMessage = useChatStore((s) => s.setReplyToMessage);
   const deleteMessageSocket = useChatStore((s) => s.deleteMessage);
   const reactToMessage = useChatStore((s) => s.reactToMessage);
+  const pinMessageSocket = useChatStore((s) => s.pinMessage);
+  const unpinMessageSocket = useChatStore((s) => s.unpinMessage);
   const onlineUsers = useChatStore((s) => s.onlineUsers);
   const channelReadAts = useChatStore((s) => s.channelReadAts);
   const user = useAuthStore((s) => s.user);
@@ -197,6 +199,28 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
     deleteMessageSocket(msg.id);
   }, [deleteMessageSocket]);
 
+  // Pinned messages
+  const canPin = activeChannel?.channelType === 'direct' || isCurrentUserAdmin;
+  const pinnedMessage = activeChannel?.pinnedMessage ?? null;
+
+  const handlePin = useCallback((msg: ChatMessageType) => {
+    if (!activeChannelId) return;
+    const isPinned = pinnedMessage?.id === msg.id;
+    if (isPinned) {
+      unpinMessageSocket(activeChannelId);
+    } else {
+      pinMessageSocket(activeChannelId, msg.id, msg.text, msg.senderName);
+    }
+  }, [activeChannelId, pinnedMessage, pinMessageSocket, unpinMessageSocket]);
+
+  const scrollToPinnedMessage = useCallback(() => {
+    if (!pinnedMessage) return;
+    const el = messagesContainerRef.current?.querySelector(`[data-msgid="${pinnedMessage.id}"]`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [pinnedMessage]);
+
   // No active channel
   if (!activeChannelId || !activeChannel) {
     return (
@@ -365,6 +389,38 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
           </div>
         )}
 
+        {/* Pinned message banner */}
+        {pinnedMessage && (
+          <div
+            className="flex items-center gap-3 px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors shrink-0"
+            onClick={scrollToPinnedMessage}
+          >
+            <svg className="w-4 h-4 shrink-0 text-violet-500" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M5 17h14v-1.76a2 2 0 00-1.11-1.79l-1.78-.9A2 2 0 0115 10.76V6h1a2 2 0 000-4H8a2 2 0 000 4h1v4.76a2 2 0 01-1.11 1.79l-1.78.9A2 2 0 005 15.24V17zM12 17v4" />
+            </svg>
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] font-semibold text-violet-500 uppercase tracking-wide leading-none mb-0.5">Закреплено</p>
+              <p className="text-xs text-gray-600 dark:text-gray-300 truncate">
+                {pinnedMessage.text || '📎 Вложение'}
+              </p>
+            </div>
+            {canPin && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (activeChannelId) unpinMessageSocket(activeChannelId);
+                }}
+                className="shrink-0 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded transition-colors"
+                title="Открепить"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Messages */}
         <div
           ref={messagesContainerRef}
@@ -398,6 +454,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
             const read = isOwn ? isMessageRead(msg) : false;
             const activeMatch = searchMatches.length > 0 && searchMatches[matchIdx]?.msg.id === msg.id;
             const isMatchedMsg = showSearch && searchQuery.trim().length >= 2 && searchMatches.some((m) => m.msg.id === msg.id);
+            const isMsgPinned = pinnedMessage?.id === msg.id;
 
             return (
               <div key={msg.id} data-msgid={msg.id} className={activeMatch ? 'rounded-xl ring-2 ring-violet-400 dark:ring-violet-500 ring-offset-2 dark:ring-offset-gray-900' : ''}>
@@ -409,6 +466,9 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
                   onReply={() => setReplyToMessage(msg)}
                   onReact={reactToMessage}
                   onDelete={handleDeleteMessage}
+                  onPin={canPin ? handlePin : undefined}
+                  isPinned={isMsgPinned}
+                  canPin={canPin}
                   highlightQuery={isMatchedMsg ? searchQuery.trim() : undefined}
                 />
               </div>

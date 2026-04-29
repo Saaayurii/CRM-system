@@ -287,4 +287,24 @@ export class ChatService {
     const memberships = await this.chatRepository.findUserChannels(userId);
     return memberships.map((m: any) => m.channelId);
   }
+
+  // --- Pinned messages ---
+
+  async pinMessage(
+    channelId: number,
+    messageId: number,
+    messageText: string,
+    senderName: string,
+    accountId: number,
+  ) {
+    const channel = await this.chatRepository.findChannelById(channelId, accountId);
+    if (!channel) throw new NotFoundException('Channel not found');
+    return this.chatRepository.pinMessage(channelId, messageId, messageText, senderName);
+  }
+
+  async unpinMessage(channelId: number, accountId: number) {
+    const channel = await this.chatRepository.findChannelById(channelId, accountId);
+    if (!channel) throw new NotFoundException('Channel not found');
+    return this.chatRepository.unpinMessage(channelId);
+  }
 }

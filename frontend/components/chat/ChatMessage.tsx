@@ -16,10 +16,13 @@ interface ChatMessageProps {
   onReply: () => void;
   onReact: (messageId: number, emoji: string) => void;
   onDelete: (message: ChatMessageType) => void;
+  onPin?: (message: ChatMessageType) => void;
+  isPinned?: boolean;
+  canPin?: boolean;
   highlightQuery?: string;
 }
 
-export default function ChatMessage({ message, isOwn, showAvatar, isRead, onReply, onReact, onDelete, highlightQuery }: ChatMessageProps) {
+export default function ChatMessage({ message, isOwn, showAvatar, isRead, onReply, onReact, onDelete, onPin, isPinned, canPin, highlightQuery }: ChatMessageProps) {
   const isVoice = message.messageType === 'voice';
 
   const mediaItems: MediaItem[] = (message.attachments ?? [])
@@ -53,7 +56,8 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, onRepl
 
   return (
     <div
-      className={`flex gap-2 group ${isOwn ? 'flex-row-reverse' : ''} ${showAvatar ? 'mt-3' : 'mt-0.5'}`}
+      data-message-id={message.id}
+      className={`flex gap-2 group ${isOwn ? 'flex-row-reverse' : ''} ${showAvatar ? 'mt-3' : 'mt-0.5'} ${isPinned ? 'ring-1 ring-violet-300 dark:ring-violet-700 rounded-2xl' : ''}`}
     >
       {/* Avatar placeholder / real avatar */}
       <div className="w-8 shrink-0">
@@ -278,7 +282,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, onRepl
           </div>
 
           {/* Action buttons (hover) */}
-          <div className={`absolute ${isOwn ? '-left-20' : '-right-20'} top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5`}>
+          <div className={`absolute ${isOwn ? '-left-28' : '-right-28'} top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5`}>
             {/* Emoji reaction picker trigger */}
             <div className="relative" ref={emojiRef}>
               <button
@@ -314,6 +318,23 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, onRepl
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
               </svg>
             </button>
+            {/* Pin / unpin */}
+            {canPin && (
+              <button
+                onClick={() => onPin?.(message)}
+                className={`p-1.5 rounded-full transition-colors ${
+                  isPinned
+                    ? 'text-violet-500 hover:bg-violet-100 dark:hover:bg-violet-900/30'
+                    : 'text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-violet-500'
+                }`}
+                title={isPinned ? 'Открепить' : 'Закрепить'}
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill={isPinned ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="17" x2="12" y2="22" />
+                  <path d="M5 17h14v-1.76a2 2 0 00-1.11-1.79l-1.78-.9A2 2 0 0115 10.76V6h1a2 2 0 000-4H8a2 2 0 000 4h1v4.76a2 2 0 01-1.11 1.79l-1.78.9A2 2 0 005 15.24V17z" />
+                </svg>
+              </button>
+            )}
             {/* Delete (own messages only) */}
             {isOwn && (
               <button

@@ -310,4 +310,38 @@ export class ChatRepository {
 
     return summary;
   }
+
+  // --- Pinned messages ---
+
+  async pinMessage(channelId: number, messageId: number, messageText: string, senderName: string) {
+    const channel = await (this.prisma as any).chatChannel.findFirst({
+      where: { id: channelId },
+      select: { settings: true },
+    });
+    const settings = {
+      ...((channel?.settings as any) || {}),
+      pinnedMessageId: messageId,
+      pinnedMessageText: messageText,
+      pinnedBySenderName: senderName,
+    };
+    return (this.prisma as any).chatChannel.update({
+      where: { id: channelId },
+      data: { settings },
+    });
+  }
+
+  async unpinMessage(channelId: number) {
+    const channel = await (this.prisma as any).chatChannel.findFirst({
+      where: { id: channelId },
+      select: { settings: true },
+    });
+    const settings = { ...((channel?.settings as any) || {}) };
+    delete settings.pinnedMessageId;
+    delete settings.pinnedMessageText;
+    delete settings.pinnedBySenderName;
+    return (this.prisma as any).chatChannel.update({
+      where: { id: channelId },
+      data: { settings },
+    });
+  }
 }
