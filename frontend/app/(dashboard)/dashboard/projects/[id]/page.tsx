@@ -1065,9 +1065,34 @@ export default function ProjectDetailPage() {
       {/* ─── Tasks ─── */}
       {activeTab === 'tasks' && (
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
-            <h2 className="font-semibold text-gray-800 dark:text-gray-100">Задачи проекта</h2>
-            <div className="flex items-center gap-3">
+          <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between gap-3">
+            <h2 className="font-semibold text-gray-800 dark:text-gray-100 shrink-0">Задачи проекта</h2>
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              {/* Search */}
+              <div className="relative flex-1 max-w-xs">
+                <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  type="text" value={taskSearch} onChange={(e) => setTaskSearch(e.target.value)}
+                  placeholder="Поиск по названию..."
+                  className="w-full pl-8 pr-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-700 border-0 rounded-lg text-gray-800 dark:text-gray-200 placeholder-gray-400 focus:ring-2 focus:ring-violet-500 focus:outline-none"
+                />
+              </div>
+              {/* Status filter */}
+              <select value={taskStatusFilter} onChange={(e) => setTaskStatusFilter(e.target.value)}
+                className="text-xs px-2 py-1.5 bg-gray-100 dark:bg-gray-700 border-0 rounded-lg text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-violet-500 focus:outline-none">
+                <option value="">Все статусы</option>
+                {Object.entries(TASK_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+              </select>
+              {/* Priority filter */}
+              <select value={taskPriorityFilter} onChange={(e) => setTaskPriorityFilter(e.target.value)}
+                className="text-xs px-2 py-1.5 bg-gray-100 dark:bg-gray-700 border-0 rounded-lg text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-violet-500 focus:outline-none">
+                <option value="">Все приоритеты</option>
+                {Object.entries(TASK_PRIORITY).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+              </select>
+            </div>
+            <div className="flex items-center gap-3 shrink-0">
               <span className="text-xs text-gray-400">{tasks.length} задач</span>
               <button onClick={() => setShowCreateTask(true)}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
@@ -1078,36 +1103,44 @@ export default function ProjectDetailPage() {
               </button>
             </div>
           </div>
-          {loadingTasks ? <LoadingState /> : tasks.length === 0 ? <EmptyState text="Задачи не найдены" /> : (
-            <table className="table-auto w-full text-sm">
-              <thead>
-                <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
-                  <th className="py-3 px-4 text-left font-semibold">Название</th>
-                  <th className="py-3 px-4 text-left font-semibold">Статус</th>
-                  <th className="py-3 px-4 text-left font-semibold">Приоритет</th>
-                  <th className="py-3 px-4 text-left font-semibold">Срок</th>
-                  <th className="py-3 px-4 text-left font-semibold">Исполнители</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
-                {tasks.map((t) => {
-                  const ts = TASK_STATUS[t.status ?? 0] || TASK_STATUS[0];
-                  const tp = TASK_PRIORITY[t.priority ?? 2] || TASK_PRIORITY[2];
-                  return (
-                    <tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer" onClick={() => setSelectedTask(t)}>
-                      <td className="py-2.5 px-4 font-medium text-gray-800 dark:text-gray-100">{t.title}</td>
-                      <td className="py-2.5 px-4"><span className={`text-xs px-2 py-0.5 rounded-full ${ts.color}`}>{ts.label}</span></td>
-                      <td className="py-2.5 px-4"><span className={`text-xs font-medium ${tp.color}`}>{tp.label}</span></td>
-                      <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{fmt(t.dueDate || t.due_date)}</td>
-                      <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400 text-xs">
-                        {t.assignees?.map((a) => a.userName || `#${a.userId}`).join(', ') || '—'}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
+          {loadingTasks ? <LoadingState /> : tasks.length === 0 ? <EmptyState text="Задачи не найдены" /> : (() => {
+            const filtered = tasks.filter((t) => {
+              const matchSearch = !taskSearch || t.title.toLowerCase().includes(taskSearch.toLowerCase());
+              const matchStatus = !taskStatusFilter || String(t.status ?? 0) === taskStatusFilter;
+              const matchPriority = !taskPriorityFilter || String(t.priority ?? 2) === taskPriorityFilter;
+              return matchSearch && matchStatus && matchPriority;
+            });
+            return filtered.length === 0 ? <EmptyState text="Ничего не найдено" /> : (
+              <table className="table-auto w-full text-sm">
+                <thead>
+                  <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
+                    <th className="py-3 px-4 text-left font-semibold">Название</th>
+                    <th className="py-3 px-4 text-left font-semibold">Статус</th>
+                    <th className="py-3 px-4 text-left font-semibold">Приоритет</th>
+                    <th className="py-3 px-4 text-left font-semibold">Срок</th>
+                    <th className="py-3 px-4 text-left font-semibold">Исполнители</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
+                  {filtered.map((t) => {
+                    const ts = TASK_STATUS[t.status ?? 0] || TASK_STATUS[0];
+                    const tp = TASK_PRIORITY[t.priority ?? 2] || TASK_PRIORITY[2];
+                    return (
+                      <tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer" onClick={() => setSelectedTask(t)}>
+                        <td className="py-2.5 px-4 font-medium text-gray-800 dark:text-gray-100">{t.title}</td>
+                        <td className="py-2.5 px-4"><span className={`text-xs px-2 py-0.5 rounded-full ${ts.color}`}>{ts.label}</span></td>
+                        <td className="py-2.5 px-4"><span className={`text-xs font-medium ${tp.color}`}>{tp.label}</span></td>
+                        <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{fmt(t.dueDate || t.due_date)}</td>
+                        <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400 text-xs">
+                          {t.assignees?.map((a) => a.userName || `#${a.userId}`).join(', ') || '—'}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            );
+          })()}
         </div>
       )}
 
@@ -1222,47 +1255,73 @@ export default function ProjectDetailPage() {
       {/* ─── Documents ─── */}
       {activeTab === 'documents' && (
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
-            <h2 className="font-semibold text-gray-800 dark:text-gray-100">Документы проекта</h2>
+          <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between gap-3">
+            <h2 className="font-semibold text-gray-800 dark:text-gray-100 shrink-0">Документы проекта</h2>
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              {/* Search */}
+              <div className="relative flex-1 max-w-xs">
+                <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  type="text" value={docSearch} onChange={(e) => setDocSearch(e.target.value)}
+                  placeholder="Поиск по названию..."
+                  className="w-full pl-8 pr-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-700 border-0 rounded-lg text-gray-800 dark:text-gray-200 placeholder-gray-400 focus:ring-2 focus:ring-violet-500 focus:outline-none"
+                />
+              </div>
+              {/* Type filter */}
+              <select value={docTypeFilter} onChange={(e) => setDocTypeFilter(e.target.value)}
+                className="text-xs px-2 py-1.5 bg-gray-100 dark:bg-gray-700 border-0 rounded-lg text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-violet-500 focus:outline-none">
+                <option value="">Все типы</option>
+                {DOC_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </div>
             <button onClick={() => setShowUploadDoc(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors shrink-0">
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
               </svg>
               Загрузить документ
             </button>
           </div>
-          {loadingDocs ? <LoadingState /> : documents.length === 0 ? <EmptyState text="Документы не найдены" /> : (
-            <table className="table-auto w-full text-sm">
-              <thead>
-                <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
-                  <th className="py-3 px-4 text-left font-semibold">Название</th>
-                  <th className="py-3 px-4 text-left font-semibold">Тип</th>
-                  <th className="py-3 px-4 text-left font-semibold">Размер</th>
-                  <th className="py-3 px-4 text-left font-semibold">Дата</th>
-                  <th className="py-3 px-4 text-center font-semibold">Скачать</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
-                {documents.map((doc) => (
-                  <tr key={doc.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer" onClick={() => setSelectedDocument(doc)}>
-                    <td className="py-2.5 px-4 font-medium text-gray-800 dark:text-gray-100">{doc.title}</td>
-                    <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{DOC_TYPE_LABELS[doc.documentType || ''] || doc.documentType || '—'}</td>
-                    <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{fmtSize(doc.fileSize)}</td>
-                    <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{fmt(doc.createdAt)}</td>
-                    <td className="py-2.5 px-4 text-center" onClick={(e) => e.stopPropagation()}>
-                      {doc.fileUrl && (
-                        <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer"
-                          className="text-xs text-violet-500 hover:text-violet-600 font-medium">
-                          Скачать
-                        </a>
-                      )}
-                    </td>
+          {loadingDocs ? <LoadingState /> : documents.length === 0 ? <EmptyState text="Документы не найдены" /> : (() => {
+            const filtered = documents.filter((doc) => {
+              const matchSearch = !docSearch || doc.title.toLowerCase().includes(docSearch.toLowerCase());
+              const matchType = !docTypeFilter || doc.documentType === docTypeFilter;
+              return matchSearch && matchType;
+            });
+            return filtered.length === 0 ? <EmptyState text="Ничего не найдено" /> : (
+              <table className="table-auto w-full text-sm">
+                <thead>
+                  <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
+                    <th className="py-3 px-4 text-left font-semibold">Название</th>
+                    <th className="py-3 px-4 text-left font-semibold">Тип</th>
+                    <th className="py-3 px-4 text-left font-semibold">Размер</th>
+                    <th className="py-3 px-4 text-left font-semibold">Дата</th>
+                    <th className="py-3 px-4 text-center font-semibold">Скачать</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
+                  {filtered.map((doc) => (
+                    <tr key={doc.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer" onClick={() => setSelectedDocument(doc)}>
+                      <td className="py-2.5 px-4 font-medium text-gray-800 dark:text-gray-100">{doc.title}</td>
+                      <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{DOC_TYPE_LABELS[doc.documentType || ''] || doc.documentType || '—'}</td>
+                      <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{fmtSize(doc.fileSize)}</td>
+                      <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{fmt(doc.createdAt)}</td>
+                      <td className="py-2.5 px-4 text-center" onClick={(e) => e.stopPropagation()}>
+                        {doc.fileUrl && (
+                          <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer"
+                            className="text-xs text-violet-500 hover:text-violet-600 font-medium">
+                            Скачать
+                          </a>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            );
+          })()}
         </div>
       )}
 
@@ -1294,8 +1353,19 @@ export default function ProjectDetailPage() {
       {/* ─── Photos ─── */}
       {activeTab === 'photos' && (
         <div className="space-y-6">
-          {/* Upload button */}
-          <div className="flex justify-end">
+          {/* Top bar: search + upload */}
+          <div className="flex items-center gap-3">
+            <div className="relative flex-1 max-w-sm">
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="text" value={photoSearch} onChange={(e) => setPhotoSearch(e.target.value)}
+                placeholder="Фильтр по площадке..."
+                className="w-full pl-9 pr-3 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-800 dark:text-gray-200 placeholder-gray-400 focus:ring-2 focus:ring-violet-500 focus:outline-none"
+              />
+            </div>
+            <div className="flex-1" />
             <input ref={photoInputRef} type="file" accept="image/*" multiple className="hidden"
               onChange={(e) => handlePhotoFiles(e.target.files)} />
             <button onClick={() => photoInputRef.current?.click()} disabled={uploadingPhoto}
@@ -1324,7 +1394,7 @@ export default function ProjectDetailPage() {
               <p className="text-xs text-gray-400 mt-1">Нажмите «Добавить фото» чтобы загрузить</p>
             </div>
           ) : (
-            sites.map((site) => {
+            sites.filter((site) => !photoSearch || site.name.toLowerCase().includes(photoSearch.toLowerCase())).map((site) => {
               const photos = site.photos || [];
               if (photos.length === 0) return null;
               return (
