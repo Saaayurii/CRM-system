@@ -27,8 +27,12 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
   const user = useAuthStore((s) => s.user);
 
   const [showInfo, setShowInfo] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [matchIdx, setMatchIdx] = useState(0);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const prevMessagesLenRef = useRef(0);
   const initialLoadRef = useRef(false);
@@ -62,6 +66,51 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
     : activeChannel?.channelType === 'group'
     ? activeChannel.channelName || 'Группа'
     : partner?.name || partner?.email || activeChannel?.channelName || '';
+
+  // Compute search matches
+  const searchMatches = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (q.length < 2) return [];
+    return messages
+      .map((m, idx) => ({ msg: m, idx }))
+      .filter(({ msg }) => msg.text?.toLowerCase().includes(q));
+  }, [messages, searchQuery]);
+
+  // Reset match index when query changes
+  useEffect(() => { setMatchIdx(0); }, [searchQuery]);
+
+  // Scroll to active match
+  useEffect(() => {
+    if (searchMatches.length === 0) return;
+    const target = searchMatches[matchIdx];
+    if (!target) return;
+    const el = document.querySelector(`[data-msgid="${target.msg.id}"]`);
+    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [matchIdx, searchMatches]);
+
+  // Focus search input when opened
+  useEffect(() => {
+    if (showSearch) setTimeout(() => searchInputRef.current?.focus(), 50);
+    else setSearchQuery('');
+  }, [showSearch]);
+
+  // Ctrl+F to open search
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        setShowSearch(true);
+      }
+      if (e.key === 'Escape') setShowSearch(false);
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, []);
+
+  const stepMatch = (dir: 1 | -1) => {
+    if (searchMatches.length === 0) return;
+    setMatchIdx((i) => (i + dir + searchMatches.length) % searchMatches.length);
+  };
 
   // Mark initial load when channel changes
   useEffect(() => {
@@ -232,9 +281,24 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
             </p>
           </div>
 
+          {/* Search toggle */}
+          <button
+            onClick={() => { setShowSearch((v) => !v); setShowInfo(false); }}
+            className={`p-2 rounded-lg transition-colors ${
+              showSearch
+                ? 'bg-violet-100 text-violet-600 dark:bg-violet-500/20 dark:text-violet-400'
+                : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-200 dark:hover:bg-gray-700'
+            }`}
+            title="Поиск по сообщениям (Ctrl+F)"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </button>
+
           {/* Info / settings toggle */}
           <button
-            onClick={() => setShowInfo((v) => !v)}
+            onClick={() => { setShowInfo((v) => !v); setShowSearch(false); }}
             className={`p-2 rounded-lg transition-colors ${
               showInfo
                 ? 'bg-violet-100 text-violet-600 dark:bg-violet-500/20 dark:text-violet-400'
@@ -247,6 +311,59 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
             </svg>
           </button>
         </div>
+
+        {/* Search bar */}
+        {showSearch && (
+          <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shrink-0">
+            <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              ref={searchInputRef}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') stepMatch(e.shiftKey ? -1 : 1);
+                if (e.key === 'Escape') setShowSearch(false);
+              }}
+              placeholder="Поиск в переписке…"
+              className="flex-1 bg-transparent text-sm outline-none text-gray-800 dark:text-gray-100 placeholder:text-gray-400"
+            />
+            {searchQuery.trim().length >= 2 && (
+              <span className="text-xs text-gray-400 shrink-0 tabular-nums">
+                {searchMatches.length > 0 ? `${matchIdx + 1} / ${searchMatches.length}` : '0 результатов'}
+              </span>
+            )}
+            <button
+              onClick={() => stepMatch(-1)}
+              disabled={searchMatches.length === 0}
+              className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 disabled:opacity-30 transition-colors"
+              title="Предыдущее"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+              </svg>
+            </button>
+            <button
+              onClick={() => stepMatch(1)}
+              disabled={searchMatches.length === 0}
+              className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 disabled:opacity-30 transition-colors"
+              title="Следующее"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <button
+              onClick={() => setShowSearch(false)}
+              className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        )}
 
         {/* Messages */}
         <div
@@ -279,18 +396,22 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
             const isOwn = msg.senderId === user?.id;
             const showAvatar = idx === 0 || messages[idx - 1]?.senderId !== msg.senderId;
             const read = isOwn ? isMessageRead(msg) : false;
+            const activeMatch = searchMatches.length > 0 && searchMatches[matchIdx]?.msg.id === msg.id;
+            const isMatchedMsg = showSearch && searchQuery.trim().length >= 2 && searchMatches.some((m) => m.msg.id === msg.id);
 
             return (
-              <ChatMessage
-                key={msg.id}
-                message={msg}
-                isOwn={isOwn}
-                showAvatar={showAvatar}
-                isRead={read}
-                onReply={() => setReplyToMessage(msg)}
-                onReact={reactToMessage}
-                onDelete={handleDeleteMessage}
-              />
+              <div key={msg.id} data-msgid={msg.id} className={activeMatch ? 'rounded-xl ring-2 ring-violet-400 dark:ring-violet-500 ring-offset-2 dark:ring-offset-gray-900' : ''}>
+                <ChatMessage
+                  message={msg}
+                  isOwn={isOwn}
+                  showAvatar={showAvatar}
+                  isRead={read}
+                  onReply={() => setReplyToMessage(msg)}
+                  onReact={reactToMessage}
+                  onDelete={handleDeleteMessage}
+                  highlightQuery={isMatchedMsg ? searchQuery.trim() : undefined}
+                />
+              </div>
             );
           })}
 

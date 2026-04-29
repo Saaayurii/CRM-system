@@ -16,9 +16,10 @@ interface ChatMessageProps {
   onReply: () => void;
   onReact: (messageId: number, emoji: string) => void;
   onDelete: (message: ChatMessageType) => void;
+  highlightQuery?: string;
 }
 
-export default function ChatMessage({ message, isOwn, showAvatar, isRead, onReply, onReact, onDelete }: ChatMessageProps) {
+export default function ChatMessage({ message, isOwn, showAvatar, isRead, onReply, onReact, onDelete, highlightQuery }: ChatMessageProps) {
   const isVoice = message.messageType === 'voice';
 
   const mediaItems: MediaItem[] = (message.attachments ?? [])
@@ -105,7 +106,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, onRepl
           ) : (
             <>
               {/* Text */}
-              {message.text && renderText(message.text, isOwn)}
+              {message.text && renderText(message.text, isOwn, highlightQuery)}
 
               {/* Attachments */}
               {message.attachments && message.attachments.length > 0 && (
@@ -476,7 +477,28 @@ function TaskCard({ id, title, status, priority, dueDate, isOwn }: {
   );
 }
 
-function renderText(text: string, isOwn: boolean) {
+function highlightSegment(raw: string, query: string | undefined, isOwn: boolean): React.ReactNode {
+  if (!query) return raw;
+  const lower = raw.toLowerCase();
+  const q = query.toLowerCase();
+  const parts: React.ReactNode[] = [];
+  let start = 0;
+  let found = lower.indexOf(q, start);
+  while (found !== -1) {
+    if (found > start) parts.push(raw.slice(start, found));
+    parts.push(
+      <mark key={found} className={`rounded px-0.5 ${isOwn ? 'bg-white/40 text-white' : 'bg-yellow-200 dark:bg-yellow-700 text-gray-900 dark:text-gray-100'}`}>
+        {raw.slice(found, found + query.length)}
+      </mark>
+    );
+    start = found + query.length;
+    found = lower.indexOf(q, start);
+  }
+  if (start < raw.length) parts.push(raw.slice(start));
+  return <>{parts}</>;
+}
+
+function renderText(text: string, isOwn: boolean, highlightQuery?: string) {
   const textSegments: React.ReactNode[] = [];
   const cards: React.ReactNode[] = [];
   let lastIndex = 0;
@@ -485,7 +507,8 @@ function renderText(text: string, isOwn: boolean) {
 
   while ((match = MENTION_RE.exec(text)) !== null) {
     if (match.index > lastIndex) {
-      textSegments.push(<span key={lastIndex}>{text.slice(lastIndex, match.index)}</span>);
+      const raw = text.slice(lastIndex, match.index);
+      textSegments.push(<span key={lastIndex}>{highlightSegment(raw, highlightQuery, isOwn)}</span>);
     }
 
     if (match[0].startsWith('@')) {
@@ -538,7 +561,8 @@ function renderText(text: string, isOwn: boolean) {
   }
 
   if (lastIndex < text.length) {
-    textSegments.push(<span key={lastIndex}>{text.slice(lastIndex)}</span>);
+    const raw = text.slice(lastIndex);
+    textSegments.push(<span key={lastIndex}>{highlightSegment(raw, highlightQuery, isOwn)}</span>);
   }
 
   return (
