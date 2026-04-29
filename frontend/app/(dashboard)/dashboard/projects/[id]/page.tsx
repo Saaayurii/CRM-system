@@ -1556,7 +1556,7 @@ export default function ProjectDetailPage() {
                           <YAxis tick={{ fontSize: 11, fill: '#6b7280' }} axisLine={false} tickLine={false}
                             tickFormatter={(v) => v >= 1_000_000 ? `${(v/1_000_000).toFixed(1)}М` : v >= 1_000 ? `${(v/1_000).toFixed(0)}К` : String(v)} />
                           <Tooltip contentStyle={{ background: '#1f2937', border: 'none', borderRadius: 8, color: '#f3f4f6', fontSize: 12 }}
-                            formatter={(v: number) => new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(v)} />
+                            formatter={(v: number | undefined) => v == null ? '—' : new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(v)} />
                           <Legend wrapperStyle={{ fontSize: 12 }} />
                           <Bar dataKey="Бюджет" fill="#8b5cf6" radius={[4,4,0,0]} />
                           <Bar dataKey="Поступления" fill="#22c55e" radius={[4,4,0,0]} />
