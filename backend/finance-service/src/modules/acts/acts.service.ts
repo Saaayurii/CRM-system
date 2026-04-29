@@ -8,8 +8,8 @@ import { CreateActItemDto } from './dto/create-act-item.dto';
 export class ActsService {
   constructor(private readonly actRepository: ActRepository) {}
 
-  async findAll(accountId: number, page: number, limit: number) {
-    return this.actRepository.findAll(accountId, page, limit);
+  async findAll(accountId: number, page: number, limit: number, projectId?: number) {
+    return this.actRepository.findAll(accountId, page, limit, projectId);
   }
 
   async findById(id: number, accountId: number) {

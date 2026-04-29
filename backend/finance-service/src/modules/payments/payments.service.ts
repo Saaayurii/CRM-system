@@ -52,8 +52,8 @@ export class PaymentsService {
   }
 
   // Payments
-  async findAllPayments(accountId: number, page: number, limit: number) {
-    return this.paymentsRepository.findAll(accountId, page, limit);
+  async findAllPayments(accountId: number, page: number, limit: number, projectId?: number) {
+    return this.paymentsRepository.findAll(accountId, page, limit, projectId);
   }
 
   async findPaymentById(id: number, accountId: number) {

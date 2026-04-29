@@ -292,6 +292,13 @@ interface Act {
   projectId?: number;
 }
 
+const PAYMENT_DIRECTION = [
+  { value: 'incoming', label: '↑ Поступление' },
+  { value: 'outgoing', label: '↓ Расход' },
+  { value: 'advance', label: '→ Аванс' },
+  { value: 'refund', label: '↩ Возврат' },
+];
+
 const PAYMENT_STATUS: Record<number, { label: string; color: string }> = {
   0: { label: 'Ожидание', color: 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-400' },
   1: { label: 'Выполнен', color: 'bg-green-500/20 text-green-700 dark:text-green-400' },
@@ -323,6 +330,16 @@ function fmt(d?: string) {
 function fmtMoney(n?: number) {
   if (n == null) return '—';
   return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(n);
+}
+
+function paymentIsIncome(p: { paymentType?: string }): boolean {
+  return /^(incoming|income|поступление|приход|advance|аванс)$/i.test(p.paymentType?.trim() || '')
+    || /incoming|income|поступление|приход/i.test(p.paymentType || '');
+}
+
+function paymentIsExpense(p: { paymentType?: string }): boolean {
+  return /^(outgoing|expense|расход|refund|возврат)$/i.test(p.paymentType?.trim() || '')
+    || /outgoing|expense|расход/i.test(p.paymentType || '');
 }
 
 function fmtSize(bytes?: number) {
@@ -506,13 +523,13 @@ export default function ProjectDetailPage() {
     setLoadingFinance(true);
     try {
       const [paymentsRes, budgetsRes, actsRes] = await Promise.all([
-        api.get('/payments', { params: { limit: 200 } }).catch(() => ({ data: {} })),
-        api.get('/budgets', { params: { limit: 200 } }).catch(() => ({ data: {} })),
-        api.get('/acts', { params: { limit: 200 } }).catch(() => ({ data: {} })),
+        api.get('/payments', { params: { projectId, limit: 500 } }).catch(() => ({ data: {} })),
+        api.get('/budgets', { params: { projectId, limit: 500 } }).catch(() => ({ data: {} })),
+        api.get('/acts', { params: { projectId, limit: 500 } }).catch(() => ({ data: {} })),
       ]);
-      setFinancePayments((paymentsRes.data?.data || paymentsRes.data?.payments || []).filter((p: Payment) => p.projectId === projectId));
-      setFinanceBudgets((budgetsRes.data?.data || budgetsRes.data?.budgets || []).filter((b: Budget) => b.projectId === projectId));
-      setFinanceActs((actsRes.data?.data || actsRes.data?.acts || []).filter((a: Act) => a.projectId === projectId));
+      setFinancePayments(paymentsRes.data?.data || paymentsRes.data?.payments || []);
+      setFinanceBudgets(budgetsRes.data?.data || budgetsRes.data?.budgets || []);
+      setFinanceActs(actsRes.data?.data || actsRes.data?.acts || []);
       setFinanceLoaded(true);
     } finally {
       setLoadingFinance(false);
@@ -1624,9 +1641,10 @@ export default function ProjectDetailPage() {
             <>
               {/* ── Summary cards ── */}
               {(() => {
-                const isIncome = (p: Payment) => /incoming|income|поступление|приход/i.test(p.paymentType || '');
+                const isIncome = paymentIsIncome;
+                const isExpense = paymentIsExpense;
                 const totalIncome = financePayments.filter(isIncome).reduce((s, p) => s + (p.amount ?? 0), 0);
-                const totalExpense = financePayments.filter((p) => !isIncome(p)).reduce((s, p) => s + (p.amount ?? 0), 0);
+                const totalExpense = financePayments.filter(isExpense).reduce((s, p) => s + (p.amount ?? 0), 0);
                 const balance = totalIncome - totalExpense;
                 const expensePct = project?.budget ? Math.round((totalExpense / project.budget) * 100) : null;
                 const chartData = [{
@@ -1712,7 +1730,6 @@ export default function ProjectDetailPage() {
                           <th className="py-3 px-4 text-left font-semibold">Направление</th>
                           <th className="py-3 px-4 text-right font-semibold">Сумма</th>
                           <th className="py-3 px-4 text-left font-semibold">Дата</th>
-                          <th className="py-3 px-4 text-left font-semibold">Тип</th>
                           <th className="py-3 px-4 text-left font-semibold">Категория</th>
                           <th className="py-3 px-4 text-center font-semibold">Статус</th>
                           <th className="py-3 px-4 w-16"></th>
@@ -1720,19 +1737,26 @@ export default function ProjectDetailPage() {
                       </thead>
                       <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
                         {financePayments.map((p) => {
-                          const income = /incoming|income|поступление|приход/i.test(p.paymentType || '');
+                          const income = paymentIsIncome(p);
+                          const expense = paymentIsExpense(p);
+                          const dirLabel = PAYMENT_DIRECTION.find(d => d.value === p.paymentType)?.label || p.paymentType || '—';
+                          const dirColor = income
+                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                            : expense
+                            ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
+                            : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300';
                           return (
                             <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer"
                               onClick={() => { setEditingPayment(p); setShowPaymentModal(true); }}>
                               <td className="py-3 px-4 text-gray-500 dark:text-gray-400">{p.paymentNumber || p.id}</td>
                               <td className="py-3 px-4">
-                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${income ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'}`}>
-                                  {income ? '↑ Приход' : '↓ Расход'}
+                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${dirColor}`}>
+                                  {dirLabel}
                                 </span>
                               </td>
-                              <td className={`py-3 px-4 text-right font-semibold ${income ? 'text-green-600 dark:text-green-400' : 'text-red-500'}`}>{fmtMoney(p.amount)}</td>
+                              <td className={`py-3 px-4 text-right font-semibold ${income ? 'text-green-600 dark:text-green-400' : expense ? 'text-red-500' : 'text-gray-700 dark:text-gray-300'}`}>{income ? '+' : expense ? '−' : ''}{fmtMoney(p.amount)}</td>
                               <td className="py-3 px-4 text-gray-600 dark:text-gray-300">{fmt(p.paymentDate)}</td>
-                              <td className="py-3 px-4 text-gray-600 dark:text-gray-300">{p.paymentType || '—'}</td>
+                              <td className="py-3 px-4 text-gray-600 dark:text-gray-300">{p.category || '—'}</td>
                               <td className="py-3 px-4 text-gray-600 dark:text-gray-300">{p.category || '—'}</td>
                               <td className="py-3 px-4 text-center">
                                 {p.status != null ? (
@@ -1994,9 +2018,9 @@ export default function ProjectDetailPage() {
           onSave={(data) => handleSavePayment(data as Omit<Payment, 'id'>)}
           fields={[
             { key: 'paymentNumber', label: 'Номер платежа', type: 'text', required: true },
+            { key: 'paymentType', label: 'Направление', type: 'select', required: true, options: PAYMENT_DIRECTION },
             { key: 'amount', label: 'Сумма', type: 'number', required: true },
             { key: 'paymentDate', label: 'Дата платежа', type: 'date', required: true },
-            { key: 'paymentType', label: 'Тип платежа', type: 'text' },
             { key: 'category', label: 'Категория', type: 'text' },
             { key: 'status', label: 'Статус', type: 'select', options: Object.entries(PAYMENT_STATUS).map(([v, s]) => ({ value: Number(v), label: s.label })) },
             { key: 'description', label: 'Описание', type: 'textarea' },
@@ -3137,7 +3161,7 @@ interface FinanceField {
   label: string;
   type: 'text' | 'number' | 'date' | 'textarea' | 'select';
   required?: boolean;
-  options?: { value: number; label: string }[];
+  options?: { value: number | string; label: string }[];
 }
 
 function FinanceModal({ title, fields, initialData, saving, onClose, onSave }: {

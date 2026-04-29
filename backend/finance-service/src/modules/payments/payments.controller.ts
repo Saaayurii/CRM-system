@@ -88,12 +88,14 @@ export class PaymentsController {
   @ApiOperation({ summary: 'Get all payments' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'projectId', required: false, type: Number })
   findAll(
     @CurrentUser('accountId') accountId: number,
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 20,
+    @Query('projectId') projectId?: number,
   ) {
-    return this.paymentsService.findAllPayments(accountId, page, limit);
+    return this.paymentsService.findAllPayments(accountId, page, limit, projectId ? Number(projectId) : undefined);
   }
 
   @Get(':id')

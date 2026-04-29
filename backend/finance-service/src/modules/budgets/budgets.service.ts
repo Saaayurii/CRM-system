@@ -8,8 +8,8 @@ import { CreateBudgetItemDto } from './dto/create-budget-item.dto';
 export class BudgetsService {
   constructor(private readonly budgetRepository: BudgetRepository) {}
 
-  async findAll(accountId: number, page: number, limit: number) {
-    return this.budgetRepository.findAll(accountId, page, limit);
+  async findAll(accountId: number, page: number, limit: number, projectId?: number) {
+    return this.budgetRepository.findAll(accountId, page, limit, projectId);
   }
 
   async findById(id: number, accountId: number) {
