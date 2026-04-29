@@ -1675,7 +1675,7 @@ export default function ProjectDetailPage() {
       {showCreateTask && (
         <CreateTaskModal
           projectId={projectId}
-          onCreated={async () => { setShowCreateTask(false); await reloadTasks(); addToast('success', 'Задача создана'); }}
+          onCreated={async (newTask) => { setShowCreateTask(false); setTasks((prev) => [newTask, ...prev]); addToast('success', 'Задача создана'); reloadTasks(); }}
           onClose={() => setShowCreateTask(false)}
         />
       )}
@@ -2252,7 +2252,7 @@ function CreateTaskModal({
   projectId, onCreated, onClose,
 }: {
   projectId: number;
-  onCreated: () => Promise<void>;
+  onCreated: (task: any) => void;
   onClose: () => void;
 }) {
   const [title, setTitle] = useState('');
@@ -2276,7 +2276,7 @@ function CreateTaskModal({
     if (!title.trim()) return;
     setSaving(true);
     try {
-      await api.post('/tasks', {
+      const res = await api.post('/tasks', {
         title: title.trim(),
         description: description.trim() || undefined,
         projectId,
@@ -2285,7 +2285,7 @@ function CreateTaskModal({
         dueDate: dueDate || undefined,
         assignedToUserId: assignedToUserId || undefined,
       });
-      await onCreated();
+      onCreated(res.data);
     } catch {
       addToast('error', 'Не удалось создать задачу');
     } finally {
@@ -2601,12 +2601,13 @@ function AssignmentDetailModal({
       try {
         const r = await api.get('/tasks', { params: { projectId, limit: 200 } });
         const all: any[] = r.data?.data || r.data?.tasks || [];
+        const uid = Number(assignment.userId);
         setUserTasks(
-          all.filter((t) =>
-            Array.isArray(t.assignees)
-              ? t.assignees.some((a: any) => a.userId === assignment.userId)
-              : t.assigneeId === assignment.userId || t.userId === assignment.userId
-          )
+          all.filter((t) => {
+            if (Number(t.assignedToUserId) === uid) return true;
+            if (Array.isArray(t.assignees) && t.assignees.some((a: any) => Number(a.userId) === uid)) return true;
+            return Number(t.assigneeId) === uid || Number(t.userId) === uid;
+          })
         );
       } catch {
         setUserTasks([]);
