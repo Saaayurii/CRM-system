@@ -272,11 +272,14 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
     api.get(`/chat-channels/${channelId}/members`)
       .then((res) => {
         const arr = res.data?.members || res.data || [];
-        setMembers(arr.map((m: any) => ({
-          id: m.userId || m.id,
-          name: m.name || [m.firstName, m.lastName].filter(Boolean).join(' ') || m.email || '',
-          avatarUrl: m.avatarUrl,
-        })).filter((m: any) => m.name));
+        setMembers(arr.map((m: any) => {
+          const u = m.user || m;
+          return {
+            id: m.userId || u.id,
+            name: u.name || [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email || '',
+            avatarUrl: u.avatarUrl || u.avatar || null,
+          };
+        }).filter((m: any) => m.name));
       })
       .catch(() => {});
   }, [channelId]);
