@@ -1889,7 +1889,7 @@ export default function ProjectDetailPage() {
         <CreateTaskModal
           projectId={projectId}
           projectMembers={assignments}
-          onCreated={(newTask) => { setShowCreateTask(false); setTasks((prev) => [newTask, ...prev]); addToast('success', 'Задача создана'); }}
+          onCreated={async () => { setShowCreateTask(false); await reloadTasks(); addToast('success', 'Задача создана'); }}
           onClose={() => setShowCreateTask(false)}
         />
       )}
@@ -2485,7 +2485,7 @@ function CreateTaskModal({
 }: {
   projectId: number;
   projectMembers: Assignment[];
-  onCreated: (task: any) => void;
+  onCreated: (task?: any) => void;
   onClose: () => void;
 }) {
   const [title, setTitle] = useState('');
@@ -2499,13 +2499,17 @@ function CreateTaskModal({
   const addToast = useToastStore((s) => s.addToast);
 
   useEffect(() => {
-    if (projectMembers.length > 0) { setMembers(projectMembers); return; }
+    if (projectMembers.length > 0 && projectMembers.some((m) => m.userName)) {
+      setMembers(projectMembers);
+      return;
+    }
     api.get(`/projects/${projectId}/assignments`)
-      .then((r) => {
+      .then(async (r) => {
         const d = r.data?.assignments || r.data?.data || r.data || [];
-        setMembers(Array.isArray(d) ? d : []);
+        const raw: Assignment[] = Array.isArray(d) ? d : [];
+        setMembers(await enrichAssignments(raw));
       })
-      .catch(() => setMembers([]));
+      .catch(() => setMembers(projectMembers));
   }, [projectId, projectMembers]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -2522,7 +2526,15 @@ function CreateTaskModal({
         dueDate: dueDate || undefined,
         assignedToUserId: assignedToUserId || undefined,
       });
-      onCreated(res.data);
+      const newTask = res.data;
+      // Populate taskAssignee junction so assignees column shows immediately
+      if (assignedToUserId && newTask?.id) {
+        const member = members.find((m) => m.userId === Number(assignedToUserId));
+        await api.post(`/tasks/${newTask.id}/assignees`, {
+          assignees: [{ userId: Number(assignedToUserId), userName: member?.userName }],
+        }).catch(() => {});
+      }
+      onCreated(newTask);
     } catch {
       addToast('error', 'Не удалось создать задачу');
     } finally {
@@ -2626,13 +2638,17 @@ function EditTaskModal({
   const addToast = useToastStore((s) => s.addToast);
 
   useEffect(() => {
-    if (projectMembers.length > 0) { setMembers(projectMembers); return; }
+    if (projectMembers.length > 0 && projectMembers.some((m) => m.userName)) {
+      setMembers(projectMembers);
+      return;
+    }
     api.get(`/projects/${projectId}/assignments`)
-      .then((r) => {
+      .then(async (r) => {
         const d = r.data?.assignments || r.data?.data || r.data || [];
-        setMembers(Array.isArray(d) ? d : []);
+        const raw: Assignment[] = Array.isArray(d) ? d : [];
+        setMembers(await enrichAssignments(raw));
       })
-      .catch(() => setMembers([]));
+      .catch(() => setMembers(projectMembers));
   }, [projectId, projectMembers]);
 
   const handleSave = async (e: React.FormEvent) => {
