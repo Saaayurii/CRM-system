@@ -530,55 +530,17 @@ export default function Sidebar() {
 
               {/* Admin (super_admin only) */}
               {isSuperAdmin && (
-                <SidebarLinkGroup activecondition={pathname.includes('admin') && pathname !== '/admin/settings'}>
-                  {(handleClick, open) => (
-                    <>
-                      <a
-                        href="#0"
-                        className={`block text-gray-800 dark:text-gray-100 transition duration-150 ${pathname.includes('admin') ? '' : 'hover:text-gray-900 dark:hover:text-white'}`}
-                        onClick={(e) => { e.preventDefault(); handleClick(); setSidebarExpanded(true); }}
-                      >
-                        <div className="flex items-center justify-between py-2 px-3">
-                          <div className="flex items-center gap-3 min-w-0">
-                            <svg
-                              className={`w-5 h-5 shrink-0 fill-current ${pathname.includes('admin') ? 'text-violet-500' : 'text-gray-400 dark:text-gray-500'}`}
-                              xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"
-                            >
-                              <path d="M12 1a1 1 0 1 0-2 0v2a3 3 0 0 0 3 3h2a1 1 0 1 0 0-2h-2a1 1 0 0 1-1-1V1ZM1 10a1 1 0 1 0 0 2h2a1 1 0 0 1 1 1v2a1 1 0 1 0 2 0v-2a3 3 0 0 0-3-3H1ZM5 0a1 1 0 0 1 1 1v2a3 3 0 0 1-3 3H1a1 1 0 0 1 0-2h2a1 1 0 0 0 1-1V1a1 1 0 0 1 1-1ZM12 13a1 1 0 0 1 1-1h2a1 1 0 1 0 0-2h-2a3 3 0 0 0-3 3v2a1 1 0 1 0 2 0v-2Z" />
-                            </svg>
-                            <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200 truncate">
-                              Администрирование
-                            </span>
-                          </div>
-                          <div className="flex shrink-0 ml-2 lg:hidden lg:sidebar-expanded:flex 2xl:flex">
-                            <svg className={`w-3 h-3 shrink-0 ml-1 fill-current text-gray-400 dark:text-gray-500 transition-transform duration-200 ${open && 'rotate-180'}`} viewBox="0 0 12 12">
-                              <path d="M5.9 11.4L.5 6l1.4-1.4 4 4 4-4L11.3 6z" />
-                            </svg>
-                          </div>
-                        </div>
-                      </a>
-                      <AnimatedSubmenu open={open}>
-                        <ul className="pl-11 mt-1">
-                          <li className="mb-1 last:mb-0">
-                            <NavLink href="/admin" className={`block transition duration-150 truncate py-1.5 ${pathname === '/admin' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
-                              <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Инфраструктура</span>
-                            </NavLink>
-                          </li>
-                          <li className="mb-1 last:mb-0">
-                            <NavLink href="/admin/users" className={`block transition duration-150 truncate py-1.5 ${pathname === '/admin/users' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
-                              <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Пользователи</span>
-                            </NavLink>
-                          </li>
-                          <li className="mb-1 last:mb-0">
-                            <NavLink href="/admin/projects" className={`block transition duration-150 truncate py-1.5 ${pathname === '/admin/projects' ? 'text-violet-500' : 'text-gray-500/90 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
-                              <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Проекты</span>
-                            </NavLink>
-                          </li>
-                        </ul>
-                      </AnimatedSubmenu>
-                    </>
-                  )}
-                </SidebarLinkGroup>
+                <li className="mb-1 last:mb-0">
+                  <NavLink href="/admin" className={linkCls(pathname.startsWith('/admin') && pathname !== '/admin/settings')}>
+                    <svg
+                      className="w-5 h-5 shrink-0 fill-current"
+                      xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"
+                    >
+                      <path d="M12 1a1 1 0 1 0-2 0v2a3 3 0 0 0 3 3h2a1 1 0 1 0 0-2h-2a1 1 0 0 1-1-1V1ZM1 10a1 1 0 1 0 0 2h2a1 1 0 0 1 1 1v2a1 1 0 1 0 2 0v-2a3 3 0 0 0-3-3H1ZM5 0a1 1 0 0 1 1 1v2a3 3 0 0 1-3 3H1a1 1 0 0 1 0-2h2a1 1 0 0 0 1-1V1a1 1 0 0 1 1-1ZM12 13a1 1 0 0 1 1-1h2a1 1 0 1 0 0-2h-2a3 3 0 0 0-3 3v2a1 1 0 1 0 2 0v-2Z" />
+                    </svg>
+                    <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Администрирование</span>
+                  </NavLink>
+                </li>
               )}
             </ul>
           </div>
