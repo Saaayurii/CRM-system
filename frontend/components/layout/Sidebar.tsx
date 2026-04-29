@@ -550,7 +550,7 @@ export default function Sidebar() {
         <div className="pt-3 hidden lg:inline-flex justify-end mt-auto">
           <div className="w-12 pl-4 pr-3 py-2">
             <button
-              className="text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-400"
+              className="cursor-pointer text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-400"
               onClick={() => setSidebarExpanded(!sidebarExpanded)}
             >
               <span className="sr-only">Expand / collapse sidebar</span>
