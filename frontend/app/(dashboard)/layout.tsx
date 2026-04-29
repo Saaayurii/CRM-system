@@ -7,6 +7,7 @@ import MaintenanceGuard from '@/components/layout/MaintenanceGuard';
 import PushInit from '@/components/layout/PushInit';
 import PendingSync from '@/components/ui/PendingSync';
 import OfflineBanner from '@/components/ui/OfflineBanner';
+import QuickActionsButton from '@/components/ui/QuickActionsButton';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -21,6 +22,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
           </main>
         </div>
+        <QuickActionsButton />
         <ToastContainer />
         <PushInit />
         <PendingSync />
