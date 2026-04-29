@@ -1037,8 +1037,8 @@ export default function ProjectDetailPage() {
                 />
                 <Tooltip
                   contentStyle={{ background: '#1f2937', border: 'none', borderRadius: 8, color: '#f3f4f6', fontSize: 12 }}
-                  formatter={(value: number) =>
-                    new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(value)
+                  formatter={(value: number | undefined) =>
+                    new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(value ?? 0)
                   }
                 />
                 <Legend wrapperStyle={{ fontSize: 12, color: '#6b7280' }} />

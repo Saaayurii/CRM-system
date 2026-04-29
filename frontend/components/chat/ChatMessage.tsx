@@ -300,8 +300,8 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, onRepl
 
 // ── Task mention renderer ───────────────────────────────────
 
-// Matches both legacy #[Title](task:ID) and new #[Title](task:ID|status|priority|dueDate)
-const TASK_MENTION_RE = /#\[([^\]]+)\]\(task:(\d+)(?:\|(\d+)\|(\d+)\|([^)]*))?\)/g;
+// Matches #[Title](task:ID|status|priority|dueDate) and @[Name](user:ID)
+const MENTION_RE = /#\[([^\]]+)\]\(task:(\d+)(?:\|(\d+)\|(\d+)\|([^)]*))?\)|@\[([^\]]+)\]\(user:(\d+)\)/g;
 
 const TASK_STATUS_LABELS: Record<number, { label: string; cls: string }> = {
   0: { label: 'Новая',       cls: 'bg-gray-100 text-gray-600 dark:bg-gray-600/40 dark:text-gray-300' },
@@ -395,42 +395,60 @@ function renderText(text: string, isOwn: boolean) {
   const cards: React.ReactNode[] = [];
   let lastIndex = 0;
   let match: RegExpExecArray | null;
-  TASK_MENTION_RE.lastIndex = 0;
+  MENTION_RE.lastIndex = 0;
 
-  while ((match = TASK_MENTION_RE.exec(text)) !== null) {
+  while ((match = MENTION_RE.exec(text)) !== null) {
     if (match.index > lastIndex) {
       textSegments.push(<span key={lastIndex}>{text.slice(lastIndex, match.index)}</span>);
     }
-    const [, title, id, rawStatus, rawPriority, rawDue] = match;
-    const status = rawStatus ? Number(rawStatus) : -1;
-    const priority = rawPriority ? Number(rawPriority) : 0;
-    const dueDate = rawDue ?? '';
 
-    if (status >= 0) {
-      cards.push(
-        <TaskCard key={match.index} id={id} title={title} status={status} priority={priority} dueDate={dueDate} isOwn={isOwn} />
-      );
-    } else {
-      // Legacy format — render as simple chip
+    if (match[0].startsWith('@')) {
+      // User mention: @[Name](user:ID)
+      const userName = match[6];
       textSegments.push(
-        <Link
+        <span
           key={match.index}
-          href={`/dashboard/tasks?edit=${id}`}
-          onClick={(e) => e.stopPropagation()}
-          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium transition-colors ${
+          className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold ${
             isOwn
-              ? 'bg-white/20 hover:bg-white/30 text-white'
-              : 'bg-violet-100 hover:bg-violet-200 dark:bg-violet-900/40 dark:hover:bg-violet-800/50 text-violet-700 dark:text-violet-300'
+              ? 'bg-white/20 text-white'
+              : 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300'
           }`}
         >
-          <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-          </svg>
-          {title}
-        </Link>
+          @{userName}
+        </span>
       );
+    } else {
+      // Task mention: #[Title](task:ID|status|priority|dueDate)
+      const [, title, id, rawStatus, rawPriority, rawDue] = match;
+      const status = rawStatus ? Number(rawStatus) : -1;
+      const priority = rawPriority ? Number(rawPriority) : 0;
+      const dueDate = rawDue ?? '';
+
+      if (status >= 0) {
+        cards.push(
+          <TaskCard key={match.index} id={id} title={title} status={status} priority={priority} dueDate={dueDate} isOwn={isOwn} />
+        );
+      } else {
+        textSegments.push(
+          <Link
+            key={match.index}
+            href={`/dashboard/tasks?edit=${id}`}
+            onClick={(e) => e.stopPropagation()}
+            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium transition-colors ${
+              isOwn
+                ? 'bg-white/20 hover:bg-white/30 text-white'
+                : 'bg-violet-100 hover:bg-violet-200 dark:bg-violet-900/40 dark:hover:bg-violet-800/50 text-violet-700 dark:text-violet-300'
+            }`}
+          >
+            <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+            {title}
+          </Link>
+        );
+      }
     }
-    lastIndex = TASK_MENTION_RE.lastIndex;
+    lastIndex = MENTION_RE.lastIndex;
   }
 
   if (lastIndex < text.length) {

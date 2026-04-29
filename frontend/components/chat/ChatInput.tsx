@@ -238,6 +238,18 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
     return () => document.removeEventListener('mousedown', handler);
   }, [showTaskPicker]);
 
+  // Close user picker on outside click
+  useEffect(() => {
+    if (!showUserPicker) return;
+    const handler = (e: MouseEvent) => {
+      if (userPickerRef.current && !userPickerRef.current.contains(e.target as Node)) {
+        setShowUserPicker(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showUserPicker]);
+
   // Load tasks for project-linked channels
   useEffect(() => {
     if (!projectId) return;
@@ -366,7 +378,6 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
   );
 
   const detectMention = useCallback(() => {
-    if (!projectId) return;
     const el = editorRef.current;
     if (!el) return;
     const sel = window.getSelection();
@@ -374,20 +385,37 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
     const range = sel.getRangeAt(0);
 
     if (range.startContainer.nodeType !== Node.TEXT_NODE) {
-      setShowTaskPicker(false);
-      setTaskQuery('');
-      mentionNodeRef.current = null;
+      setShowTaskPicker(false); setTaskQuery(''); mentionNodeRef.current = null;
+      setShowUserPicker(false); setUserQuery(''); atMentionNodeRef.current = null;
       return;
     }
 
     const textNode = range.startContainer as Text;
     const textBefore = (textNode.textContent ?? '').slice(0, range.startOffset);
-    const match = textBefore.match(/#([^\s]*)$/);
 
-    if (match) {
+    // @ user mention
+    const atMatch = textBefore.match(/@([^\s@]*)$/);
+    if (atMatch) {
+      atMentionNodeRef.current = textNode;
+      setAtMentionStart(range.startOffset - atMatch[0].length);
+      setUserQuery(atMatch[1]);
+      setShowUserPicker(true);
+      setSelectedUserIndex(0);
+      setShowTaskPicker(false); setTaskQuery(''); mentionNodeRef.current = null;
+      return;
+    }
+    atMentionNodeRef.current = null;
+    setShowUserPicker(false);
+    setUserQuery('');
+    setAtMentionStart(-1);
+
+    // # task mention
+    if (!projectId) return;
+    const hashMatch = textBefore.match(/#([^\s]*)$/);
+    if (hashMatch) {
       mentionNodeRef.current = textNode;
-      setMentionStart(range.startOffset - match[0].length);
-      setTaskQuery(match[1]);
+      setMentionStart(range.startOffset - hashMatch[0].length);
+      setTaskQuery(hashMatch[1]);
       setShowTaskPicker(true);
       setSelectedTaskIndex(0);
     } else {
@@ -407,6 +435,16 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
   showTaskPickerRef.current = showTaskPicker;
   filteredTaskMentionsRef.current = filteredTaskMentions;
   selectedTaskIndexRef.current = selectedTaskIndex;
+
+  const filteredUserMentions = useMemo(() => {
+    if (!userQuery) return members.slice(0, 8);
+    const q = userQuery.toLowerCase();
+    return members.filter((m) => m.name.toLowerCase().includes(q)).slice(0, 8);
+  }, [members, userQuery]);
+
+  showUserPickerRef.current = showUserPicker;
+  filteredUserMentionsRef.current = filteredUserMentions;
+  selectedUserIndexRef.current = selectedUserIndex;
 
   const insertTaskMention = useCallback((task: { id: number; title: string; status: number; priority: number; dueDate: string }) => {
     const el = editorRef.current;
@@ -457,6 +495,50 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
     mentionNodeRef.current = null;
   }, [mentionStart]);
 
+  const insertUserMention = useCallback((user: { id: number; name: string }) => {
+    const el = editorRef.current;
+    if (!el) return;
+
+    const textNode = atMentionNodeRef.current;
+    const atOffset = atMentionStart;
+    const sel = window.getSelection();
+    if (!textNode || atOffset < 0 || !sel?.rangeCount) {
+      setShowUserPicker(false);
+      return;
+    }
+
+    const cursorOffset = sel.getRangeAt(0).startOffset;
+
+    const deleteRange = document.createRange();
+    deleteRange.setStart(textNode, atOffset);
+    deleteRange.setEnd(textNode, Math.min(cursorOffset, textNode.length));
+    deleteRange.deleteContents();
+
+    const chip = createUserChipElement(user);
+    const insertRange = document.createRange();
+    insertRange.setStart(textNode, atOffset);
+    insertRange.collapse(true);
+    insertRange.insertNode(chip);
+
+    const space = document.createTextNode(' ');
+    chip.after(space);
+
+    const newRange = document.createRange();
+    newRange.setStartAfter(space);
+    newRange.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(newRange);
+
+    el.focus();
+
+    const newText = serializeEditor(el);
+    setText(newText);
+    setShowUserPicker(false);
+    setUserQuery('');
+    setAtMentionStart(-1);
+    atMentionNodeRef.current = null;
+  }, [atMentionStart]);
+
   const handleSend = useCallback(async () => {
     const el = editorRef.current;
     const raw = el ? serializeEditor(el) : text;
@@ -498,6 +580,38 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
   }, [text, channelId, pendingFiles, sendMessage, stopTyping, replyToMessage, uploadFileWithProgress, onFilesSent]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent<HTMLDivElement>) => {
+    // User mention picker has priority
+    const userPickerOpen = showUserPickerRef.current;
+    const userMentions = filteredUserMentionsRef.current;
+    const userSelIdx = selectedUserIndexRef.current;
+    if (userPickerOpen && userMentions.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        const next = Math.min(userSelIdx + 1, userMentions.length - 1);
+        setSelectedUserIndex(next);
+        selectedUserIndexRef.current = next;
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        const next = Math.max(userSelIdx - 1, 0);
+        setSelectedUserIndex(next);
+        selectedUserIndexRef.current = next;
+        return;
+      }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        insertUserMention(userMentions[userSelIdx]);
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setShowUserPicker(false);
+        showUserPickerRef.current = false;
+        return;
+      }
+    }
+
     const pickerOpen = showTaskPickerRef.current;
     const mentions = filteredTaskMentionsRef.current;
     const selIdx = selectedTaskIndexRef.current;
@@ -532,7 +646,7 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
       e.preventDefault();
       handleSend();
     }
-  }, [insertTaskMention, handleSend]);
+  }, [insertUserMention, insertTaskMention, handleSend]);
 
   const handleInput = useCallback(() => {
     const el = editorRef.current;
@@ -670,6 +784,45 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
 
   return (
     <div className="relative border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3">
+      {/* User mention picker */}
+      {showUserPicker && filteredUserMentions.length > 0 && (
+        <div
+          ref={userPickerRef}
+          className="absolute bottom-full left-0 right-0 z-50 mx-4 mb-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl shadow-xl overflow-hidden"
+        >
+          <div className="px-3 py-1.5 border-b border-gray-100 dark:border-gray-700 flex items-center gap-2">
+            <svg className="w-3.5 h-3.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400">↑↓ выбор · Enter вставить · Esc закрыть</p>
+          </div>
+          <div className="overflow-y-auto max-h-44">
+            {filteredUserMentions.map((user, idx) => (
+              <button
+                key={user.id}
+                onMouseDown={(e) => { e.preventDefault(); insertUserMention(user); }}
+                className={`w-full flex items-center gap-2 px-3 py-2 text-left text-sm transition-colors ${
+                  idx === selectedUserIndex
+                    ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                    : 'text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                }`}
+              >
+                {user.avatarUrl ? (
+                  <img src={user.avatarUrl} alt="" className="w-6 h-6 rounded-full object-cover shrink-0" />
+                ) : (
+                  <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center shrink-0">
+                    <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400">
+                      {user.name.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                )}
+                <span className="truncate">{user.name}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Task mention picker */}
       {showTaskPicker && filteredTaskMentions.length > 0 && (
         <div
@@ -895,7 +1048,7 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
             onInput={handleInput}
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
-            data-placeholder={projectId ? 'Написать сообщение... (# для упоминания задачи)' : 'Написать сообщение...'}
+            data-placeholder={projectId ? 'Написать сообщение... (# задача, @ упоминание)' : 'Написать сообщение... (@ для упоминания)'}
             className={`flex-1 px-3 py-2 bg-gray-100 dark:bg-gray-700 border-0 rounded-xl text-sm text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-violet-500 focus:outline-none overflow-y-auto min-h-[38px] max-h-[120px] break-words leading-relaxed ${isSending ? 'opacity-50 cursor-not-allowed' : ''}`}
           />
 
