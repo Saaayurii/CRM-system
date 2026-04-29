@@ -1805,7 +1805,8 @@ export default function ProjectDetailPage() {
       {showCreateTask && (
         <CreateTaskModal
           projectId={projectId}
-          onCreated={async (newTask) => { setShowCreateTask(false); setTasks((prev) => [newTask, ...prev]); addToast('success', 'Задача создана'); reloadTasks(); }}
+          projectMembers={assignments}
+          onCreated={(newTask) => { setShowCreateTask(false); setTasks((prev) => [newTask, ...prev]); addToast('success', 'Задача создана'); }}
           onClose={() => setShowCreateTask(false)}
         />
       )}
@@ -1826,6 +1827,7 @@ export default function ProjectDetailPage() {
         <EditTaskModal
           task={selectedTask}
           projectId={projectId}
+          projectMembers={assignments}
           onSaved={async () => { setSelectedTask(null); await reloadTasks(); addToast('success', 'Задача обновлена'); }}
           onDeleted={async () => { setSelectedTask(null); await reloadTasks(); addToast('success', 'Задача удалена'); }}
           onClose={() => setSelectedTask(null)}
@@ -2379,9 +2381,10 @@ function ProjectChatPanel({ channelId, channelName, projectId, onFilesSent }: { 
 /* ─── Modal: Create Task ─── */
 
 function CreateTaskModal({
-  projectId, onCreated, onClose,
+  projectId, projectMembers, onCreated, onClose,
 }: {
   projectId: number;
+  projectMembers: Assignment[];
   onCreated: (task: any) => void;
   onClose: () => void;
 }) {
@@ -2391,15 +2394,19 @@ function CreateTaskModal({
   const [status, setStatus] = useState(0);
   const [dueDate, setDueDate] = useState('');
   const [assignedToUserId, setAssignedToUserId] = useState<number | ''>('');
-  const [users, setUsers] = useState<UserOption[]>([]);
+  const [members, setMembers] = useState<Assignment[]>(projectMembers);
   const [saving, setSaving] = useState(false);
   const addToast = useToastStore((s) => s.addToast);
 
   useEffect(() => {
-    api.get('/users', { params: { limit: 200 } })
-      .then((r) => { const d = r.data?.users || r.data?.data || r.data || []; setUsers(Array.isArray(d) ? d : []); })
-      .catch(() => setUsers([]));
-  }, []);
+    if (projectMembers.length > 0) { setMembers(projectMembers); return; }
+    api.get(`/projects/${projectId}/assignments`)
+      .then((r) => {
+        const d = r.data?.assignments || r.data?.data || r.data || [];
+        setMembers(Array.isArray(d) ? d : []);
+      })
+      .catch(() => setMembers([]));
+  }, [projectId, projectMembers]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -2441,8 +2448,15 @@ function CreateTaskModal({
           <select value={assignedToUserId} onChange={(e) => setAssignedToUserId(e.target.value ? Number(e.target.value) : '')}
             className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100">
             <option value="">— Не назначен —</option>
-            {users.map((u) => <option key={u.id} value={u.id}>{u.name} ({u.email})</option>)}
+            {members.map((m) => (
+              <option key={m.userId} value={m.userId}>
+                {m.userName || `Пользователь #${m.userId}`}{m.userEmail ? ` (${m.userEmail})` : ''}
+              </option>
+            ))}
           </select>
+          {members.length === 0 && (
+            <p className="text-xs text-amber-500 mt-1">Сначала добавьте сотрудников в проект на вкладке «Команда»</p>
+          )}
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -2490,10 +2504,11 @@ function CreateTaskModal({
 /* ─── Modal: Edit Task ─── */
 
 function EditTaskModal({
-  task, projectId, onSaved, onDeleted, onClose,
+  task, projectId, projectMembers, onSaved, onDeleted, onClose,
 }: {
   task: Task;
   projectId: number;
+  projectMembers: Assignment[];
   onSaved: () => Promise<void>;
   onDeleted: () => Promise<void>;
   onClose: () => void;
@@ -2504,17 +2519,21 @@ function EditTaskModal({
   const [priority, setPriority] = useState(task.priority ?? 2);
   const [dueDate, setDueDate] = useState(task.dueDate || task.due_date ? (task.dueDate || task.due_date || '').slice(0, 10) : '');
   const [assignedToUserId, setAssignedToUserId] = useState<number | ''>(task.assignees?.[0]?.userId || '');
-  const [users, setUsers] = useState<UserOption[]>([]);
+  const [members, setMembers] = useState<Assignment[]>(projectMembers);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const addToast = useToastStore((s) => s.addToast);
 
   useEffect(() => {
-    api.get('/users', { params: { limit: 200 } })
-      .then((r) => { const d = r.data?.users || r.data?.data || r.data || []; setUsers(Array.isArray(d) ? d : []); })
-      .catch(() => setUsers([]));
-  }, []);
+    if (projectMembers.length > 0) { setMembers(projectMembers); return; }
+    api.get(`/projects/${projectId}/assignments`)
+      .then((r) => {
+        const d = r.data?.assignments || r.data?.data || r.data || [];
+        setMembers(Array.isArray(d) ? d : []);
+      })
+      .catch(() => setMembers([]));
+  }, [projectId, projectMembers]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -2567,7 +2586,11 @@ function EditTaskModal({
           <select value={assignedToUserId} onChange={(e) => setAssignedToUserId(e.target.value ? Number(e.target.value) : '')}
             className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100">
             <option value="">— Не назначен —</option>
-            {users.map((u) => <option key={u.id} value={u.id}>{u.name} ({u.email})</option>)}
+            {members.map((m) => (
+              <option key={m.userId} value={m.userId}>
+                {m.userName || `Пользователь #${m.userId}`}{m.userEmail ? ` (${m.userEmail})` : ''}
+              </option>
+            ))}
           </select>
         </div>
         <div className="grid grid-cols-2 gap-3">
