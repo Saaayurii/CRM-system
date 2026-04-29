@@ -21,7 +21,7 @@ function AnimatedSubmenu({ open, children }: { open: boolean; children: React.Re
   return (
     <div
       ref={contentRef}
-      className="lg:hidden lg:sidebar-expanded:block 2xl:block overflow-hidden transition-all duration-300 ease-in-out"
+      className="lg:hidden lg:sidebar-expanded:block overflow-hidden transition-all duration-300 ease-in-out"
       style={{ maxHeight: open ? '24rem' : '0px', opacity: open ? 1 : 0 }}
     >
       {children}
@@ -249,7 +249,7 @@ export default function Sidebar() {
       <div
         id="sidebar"
         ref={sidebar}
-        className={`flex lg:flex! flex-col absolute z-40 left-0 top-0 lg:static lg:left-auto lg:top-auto lg:translate-x-0 h-[100dvh] overflow-y-scroll lg:overflow-y-auto no-scrollbar w-64 lg:w-20 lg:sidebar-expanded:!w-64 2xl:w-64! shrink-0 bg-white dark:bg-gray-800 p-4 transition-all duration-200 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-64'} rounded-r-2xl shadow-xs`}
+        className={`flex lg:flex! flex-col absolute z-40 left-0 top-0 lg:static lg:left-auto lg:top-auto lg:translate-x-0 h-[100dvh] overflow-y-scroll lg:overflow-y-auto no-scrollbar w-64 lg:w-20 lg:sidebar-expanded:!w-64 shrink-0 bg-white dark:bg-gray-800 p-4 transition-all duration-200 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-64'} rounded-r-2xl shadow-xs`}
       >
         {/* Header */}
         <div className="flex justify-between mb-10 pr-3 sm:px-2">
@@ -274,8 +274,8 @@ export default function Sidebar() {
         <div className="space-y-8">
           <div>
             <h3 className="text-xs uppercase text-gray-400 dark:text-gray-500 font-semibold pl-3">
-              <span className="hidden lg:block lg:sidebar-expanded:hidden 2xl:hidden text-center w-6" aria-hidden="true">&bull;&bull;&bull;</span>
-              <span className="lg:hidden lg:sidebar-expanded:block 2xl:block">Меню</span>
+              <span className="hidden lg:block lg:sidebar-expanded:hidden text-center w-6" aria-hidden="true">&bull;&bull;&bull;</span>
+              <span className="lg:hidden lg:sidebar-expanded:block">Меню</span>
             </h3>
             <ul className="mt-3">
 
@@ -283,7 +283,7 @@ export default function Sidebar() {
               <li className="mb-1 last:mb-0">
                 <NavLink href="/dashboard" className={linkCls(pathname === '/dashboard')}>
                   <IconDashboard />
-                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Обзор</span>
+                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Обзор</span>
                 </NavLink>
               </li>
 
@@ -291,7 +291,7 @@ export default function Sidebar() {
               <li className="mb-1 last:mb-0">
                 <NavLink href="/dashboard/projects" className={linkCls(pathname.startsWith('/dashboard/projects'))}>
                   <IconProjects />
-                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Проекты</span>
+                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Проекты</span>
                 </NavLink>
               </li>
 
@@ -299,7 +299,7 @@ export default function Sidebar() {
               <li className="mb-1 last:mb-0">
                 <NavLink href="/dashboard/tasks" className={linkCls(pathname === '/dashboard/tasks')}>
                   <IconTasks />
-                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Задачи</span>
+                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Задачи</span>
                 </NavLink>
               </li>
 
@@ -307,7 +307,7 @@ export default function Sidebar() {
               <li className="mb-1 last:mb-0">
                 <NavLink href="/dashboard/employees" className={linkCls(pathname === '/dashboard/employees')}>
                   <IconEmployees />
-                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Сотрудники</span>
+                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Сотрудники</span>
                 </NavLink>
               </li>
 
@@ -316,7 +316,7 @@ export default function Sidebar() {
                 <li className="mb-1 last:mb-0">
                   <NavLink href="/dashboard/pm/construction-sites" className={linkCls(pathname === '/dashboard/pm/construction-sites')}>
                     <IconSite />
-                    <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Стройплощадки</span>
+                    <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Стройплощадки</span>
                   </NavLink>
                 </li>
               )}
@@ -327,19 +327,19 @@ export default function Sidebar() {
                   <li className="mb-1 last:mb-0">
                     <NavLink href="/dashboard/hr/attendance" className={linkCls(pathname === '/dashboard/hr/attendance')}>
                       <IconAttendance />
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Посещаемость</span>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Посещаемость</span>
                     </NavLink>
                   </li>
                   <li className="mb-1 last:mb-0">
                     <NavLink href="/dashboard/hr/time-off" className={linkCls(pathname === '/dashboard/hr/time-off')}>
                       <IconTimeOff />
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Отпуска</span>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Отпуска</span>
                     </NavLink>
                   </li>
                   <li className="mb-1 last:mb-0">
                     <NavLink href="/dashboard/hr/documents" className={linkCls(pathname === '/dashboard/hr/documents')}>
                       <IconHRDocs />
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Документы сотрудников</span>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Документы сотрудников</span>
                     </NavLink>
                   </li>
                 </>
@@ -351,19 +351,19 @@ export default function Sidebar() {
                   <li className="mb-1 last:mb-0">
                     <NavLink href="/dashboard/foreman/construction-sites" className={linkCls(pathname === '/dashboard/foreman/construction-sites')}>
                       <IconSite />
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Стройплощадки</span>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Стройплощадки</span>
                     </NavLink>
                   </li>
                   <li className="mb-1 last:mb-0">
                     <NavLink href="/dashboard/foreman/equipment" className={linkCls(pathname === '/dashboard/foreman/equipment')}>
                       <IconEquipment />
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Оборудование</span>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Оборудование</span>
                     </NavLink>
                   </li>
                   <li className="mb-1 last:mb-0">
                     <NavLink href="/dashboard/foreman/inspections" className={linkCls(pathname === '/dashboard/foreman/inspections')}>
                       <IconInspections />
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Проверки</span>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Проверки</span>
                     </NavLink>
                   </li>
                 </>
@@ -375,19 +375,19 @@ export default function Sidebar() {
                   <li className="mb-1 last:mb-0">
                     <NavLink href="/dashboard/worker/attendance" className={linkCls(pathname === '/dashboard/worker/attendance')}>
                       <IconAttendance />
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Посещаемость</span>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Посещаемость</span>
                     </NavLink>
                   </li>
                   <li className="mb-1 last:mb-0">
                     <NavLink href="/dashboard/worker/time-off" className={linkCls(pathname === '/dashboard/worker/time-off')}>
                       <IconTimeOff />
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Отпуска</span>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Отпуска</span>
                     </NavLink>
                   </li>
                   <li className="mb-1 last:mb-0">
                     <NavLink href="/dashboard/worker/construction-sites" className={linkCls(pathname === '/dashboard/worker/construction-sites')}>
                       <IconSite />
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Стройплощадки</span>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Стройплощадки</span>
                     </NavLink>
                   </li>
                 </>
@@ -399,19 +399,19 @@ export default function Sidebar() {
                   <li className="mb-1 last:mb-0">
                     <NavLink href="/dashboard/supplier/suppliers" className={linkCls(pathname === '/dashboard/supplier/suppliers')}>
                       <IconSuppliers />
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Поставщики</span>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Поставщики</span>
                     </NavLink>
                   </li>
                   <li className="mb-1 last:mb-0">
                     <NavLink href="/dashboard/supplier/orders" className={linkCls(pathname === '/dashboard/supplier/orders')}>
                       <IconOrders />
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Заказы</span>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Заказы</span>
                     </NavLink>
                   </li>
                   <li className="mb-1 last:mb-0">
                     <NavLink href="/dashboard/supplier/materials" className={linkCls(pathname === '/dashboard/supplier/materials')}>
                       <IconMaterials />
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Материалы</span>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Материалы</span>
                     </NavLink>
                   </li>
                 </>
@@ -423,19 +423,19 @@ export default function Sidebar() {
                   <li className="mb-1 last:mb-0">
                     <NavLink href="/dashboard/warehouse/materials" className={linkCls(pathname === '/dashboard/warehouse/materials')}>
                       <IconMaterials />
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Материалы</span>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Материалы</span>
                     </NavLink>
                   </li>
                   <li className="mb-1 last:mb-0">
                     <NavLink href="/dashboard/warehouse/equipment" className={linkCls(pathname === '/dashboard/warehouse/equipment')}>
                       <IconEquipment />
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Оборудование</span>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Оборудование</span>
                     </NavLink>
                   </li>
                   <li className="mb-1 last:mb-0">
                     <NavLink href="/dashboard/warehouse/requests" className={linkCls(pathname === '/dashboard/warehouse/requests')}>
                       <IconRequests />
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Заявки</span>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Заявки</span>
                     </NavLink>
                   </li>
                 </>
@@ -447,19 +447,19 @@ export default function Sidebar() {
                   <li className="mb-1 last:mb-0">
                     <NavLink href="/dashboard/accountant/payments" className={linkCls(pathname === '/dashboard/accountant/payments')}>
                       <IconPayments />
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Платежи</span>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Платежи</span>
                     </NavLink>
                   </li>
                   <li className="mb-1 last:mb-0">
                     <NavLink href="/dashboard/accountant/budgets" className={linkCls(pathname === '/dashboard/accountant/budgets')}>
                       <IconBudgets />
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Бюджеты</span>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Бюджеты</span>
                     </NavLink>
                   </li>
                   <li className="mb-1 last:mb-0">
                     <NavLink href="/dashboard/accountant/salaries" className={linkCls(pathname === '/dashboard/accountant/salaries')}>
                       <IconSalaries />
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Зарплаты</span>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Зарплаты</span>
                     </NavLink>
                   </li>
                 </>
@@ -471,19 +471,19 @@ export default function Sidebar() {
                   <li className="mb-1 last:mb-0">
                     <NavLink href="/dashboard/inspector/inspections" className={linkCls(pathname === '/dashboard/inspector/inspections')}>
                       <IconInspections />
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Инспекции</span>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Инспекции</span>
                     </NavLink>
                   </li>
                   <li className="mb-1 last:mb-0">
                     <NavLink href="/dashboard/inspector/defects" className={linkCls(pathname === '/dashboard/inspector/defects')}>
                       <IconDefects />
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Дефекты</span>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Дефекты</span>
                     </NavLink>
                   </li>
                   <li className="mb-1 last:mb-0">
                     <NavLink href="/dashboard/inspector/construction-sites" className={linkCls(pathname === '/dashboard/inspector/construction-sites')}>
                       <IconSite />
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Стройплощадки</span>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Стройплощадки</span>
                     </NavLink>
                   </li>
                 </>
@@ -493,7 +493,7 @@ export default function Sidebar() {
               <li className="mb-1 last:mb-0">
                 <NavLink href="/dashboard/documents" className={linkCls(pathname === '/dashboard/documents')}>
                   <IconDocuments />
-                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Документы</span>
+                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Документы</span>
                 </NavLink>
               </li>
 
@@ -502,7 +502,7 @@ export default function Sidebar() {
                 <li className="mb-1 last:mb-0">
                   <NavLink href="/dashboard/teams" className={linkCls(pathname === '/dashboard/teams')}>
                     <IconTeams />
-                    <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Команды</span>
+                    <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Команды</span>
                   </NavLink>
                 </li>
               )}
@@ -512,7 +512,7 @@ export default function Sidebar() {
                 <li className="mb-1 last:mb-0">
                   <NavLink href="/dashboard/chat" className={linkCls(pathname === '/dashboard/chat')}>
                     <IconChat />
-                    <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Чат</span>
+                    <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Чат</span>
                   </NavLink>
                 </li>
               )}
@@ -524,7 +524,7 @@ export default function Sidebar() {
                   className={linkCls(pathname === '/admin/settings' || pathname === '/dashboard/settings')}
                 >
                   <IconSettings />
-                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Настройки</span>
+                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Настройки</span>
                 </NavLink>
               </li>
 
@@ -538,7 +538,7 @@ export default function Sidebar() {
                     >
                       <path d="M12 1a1 1 0 1 0-2 0v2a3 3 0 0 0 3 3h2a1 1 0 1 0 0-2h-2a1 1 0 0 1-1-1V1ZM1 10a1 1 0 1 0 0 2h2a1 1 0 0 1 1 1v2a1 1 0 1 0 2 0v-2a3 3 0 0 0-3-3H1ZM5 0a1 1 0 0 1 1 1v2a3 3 0 0 1-3 3H1a1 1 0 0 1 0-2h2a1 1 0 0 0 1-1V1a1 1 0 0 1 1-1ZM12 13a1 1 0 0 1 1-1h2a1 1 0 1 0 0-2h-2a3 3 0 0 0-3 3v2a1 1 0 1 0 2 0v-2Z" />
                     </svg>
-                    <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Администрирование</span>
+                    <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Администрирование</span>
                   </NavLink>
                 </li>
               )}
@@ -547,7 +547,7 @@ export default function Sidebar() {
         </div>
 
         {/* Expand / collapse button */}
-        <div className="pt-3 hidden lg:inline-flex 2xl:hidden justify-end mt-auto">
+        <div className="pt-3 hidden lg:inline-flex justify-end mt-auto">
           <div className="w-12 pl-4 pr-3 py-2">
             <button
               className="text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-400"
