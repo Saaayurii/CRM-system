@@ -172,6 +172,21 @@ export class ChatService {
     );
   }
 
+  async muteChannelMember(
+    channelId: number,
+    accountId: number,
+    requestingUserId: number,
+    targetUserId: number,
+    isMuted: boolean,
+  ) {
+    await this.findChannelById(channelId, accountId);
+    const requester = await this.chatRepository.findChannelMember(channelId, requestingUserId);
+    if (!requester || requester.role !== 'admin') {
+      throw new ForbiddenException('Only channel admins can mute members');
+    }
+    return this.chatRepository.updateChannelMember(channelId, targetUserId, { isMuted });
+  }
+
   async createMessage(
     channelId: number,
     accountId: number,
@@ -179,6 +194,11 @@ export class ChatService {
     dto: SendMessageDto,
   ) {
     await this.findChannelById(channelId, accountId);
+
+    const member = await this.chatRepository.findChannelMember(channelId, userId);
+    if (member?.isMuted) {
+      throw new ForbiddenException('You are restricted from sending messages in this channel');
+    }
 
     return this.chatRepository.createMessage({
       channelId,

@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Patch,
   Delete,
   Body,
   Param,
@@ -130,6 +131,19 @@ export class ChatController {
     @Body() dto: AddMemberDto,
   ) {
     return this.chatService.addChannelMember(id, accountId, dto);
+  }
+
+  @Patch(':id/members/:userId')
+  @ApiOperation({ summary: 'Mute or unmute a channel member' })
+  @ApiResponse({ status: 200, description: 'Member updated' })
+  muteChannelMember(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('userId', ParseIntPipe) userId: number,
+    @CurrentUser('accountId') accountId: number,
+    @CurrentUser('id') requestingUserId: number,
+    @Body('isMuted') isMuted: boolean,
+  ) {
+    return this.chatService.muteChannelMember(id, accountId, requestingUserId, userId, isMuted);
   }
 
   @Delete(':id/members/:userId')

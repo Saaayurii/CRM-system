@@ -60,7 +60,7 @@ export interface ChatChannel {
     senderName: string;
     createdAt: string;
   } | null;
-  members?: { id: number; name: string; avatarUrl?: string; email?: string }[];
+  members?: { id: number; name: string; avatarUrl?: string; email?: string; isMuted?: boolean; role?: string }[];
 }
 
 export interface CreateChannelDto {
@@ -131,6 +131,8 @@ function mapRawChannel(raw: any): ChatChannel {
       name: getFullName(u) || u.email || u.username || 'Unknown',
       avatarUrl: u.avatarUrl ?? undefined,
       email: u.email ?? undefined,
+      isMuted: m.isMuted ?? false,
+      role: m.role ?? 'member',
     };
   });
 

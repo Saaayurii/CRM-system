@@ -154,6 +154,13 @@ export class ChatRepository {
     });
   }
 
+  async updateChannelMember(channelId: number, userId: number, data: { isMuted?: boolean; role?: string }) {
+    return (this.prisma as any).chatChannelMember.updateMany({
+      where: { channelId, userId },
+      data,
+    });
+  }
+
   /** Lean query used by notification fan-out — returns only what's needed. */
   async getChannelForNotification(channelId: number) {
     return (this.prisma as any).chatChannel.findFirst({

@@ -666,7 +666,7 @@ export default function ProjectDetailPage() {
     setLoadingChat(true);
     try {
       const channels = await fetchProjectChannels(projectId);
-      setProjectChannels(channels);
+      setProjectChannels(channels as any);
       setChannelChecked(true);
     } catch { /* ignore */ }
     finally { setLoadingChat(false); }

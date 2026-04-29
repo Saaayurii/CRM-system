@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useCallback, useState } from 'react';
+import { useRef, useEffect, useCallback, useState, useMemo } from 'react';
 import { useChatStore, ChatChannel, ChatMessage as ChatMessageType } from '@/stores/chatStore';
 import { useAuthStore } from '@/stores/authStore';
 import api from '@/lib/api';
@@ -36,6 +36,13 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
 
   const activeChannel = channels.find((ch) => ch.id === activeChannelId);
   const channelTyping = activeChannelId ? typingUsers[activeChannelId] || [] : [];
+
+  const currentMember = useMemo(
+    () => activeChannel?.members?.find((m) => m.id === user?.id),
+    [activeChannel, user?.id],
+  );
+  const isCurrentUserMuted = currentMember?.isMuted ?? false;
+  const isCurrentUserAdmin = currentMember?.role === 'admin';
 
   // Self-chat detection
   const isSelf =
@@ -307,7 +314,18 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
         )}
 
         {/* Input */}
-        <ChatInput channelId={activeChannelId} projectId={activeChannel.projectId ?? undefined} />
+        {isCurrentUserMuted ? (
+          <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shrink-0">
+            <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+              <svg className="w-4 h-4 text-red-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+              </svg>
+              <span className="text-sm text-red-500 dark:text-red-400">Администратор ограничил возможность отправки сообщений</span>
+            </div>
+          </div>
+        ) : (
+          <ChatInput channelId={activeChannelId} projectId={activeChannel.projectId ?? undefined} />
+        )}
       </div>
 
       {/* Info panel — desktop: right column; mobile: overlay */}
@@ -320,6 +338,8 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
               partner={partner}
               isSelf={isSelf}
               isPartnerOnline={isPartnerOnline}
+              isAdmin={isCurrentUserAdmin}
+              currentUserId={user?.id}
               onClose={() => setShowInfo(false)}
             />
           </div>
@@ -330,6 +350,8 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
               partner={partner}
               isSelf={isSelf}
               isPartnerOnline={isPartnerOnline}
+              isAdmin={isCurrentUserAdmin}
+              currentUserId={user?.id}
               onClose={() => setShowInfo(false)}
             />
           </div>
@@ -346,17 +368,42 @@ interface InfoPanelProps {
   partner: { id: number; name: string; avatarUrl?: string; email?: string } | null | undefined;
   isSelf: boolean;
   isPartnerOnline: boolean;
+  isAdmin: boolean;
+  currentUserId?: number;
   onClose: () => void;
 }
 
-function InfoPanel({ channel, partner, isSelf, isPartnerOnline, onClose }: InfoPanelProps) {
+function InfoPanel({ channel, partner, isSelf, isPartnerOnline, isAdmin, currentUserId, onClose }: InfoPanelProps) {
   const [userDetails, setUserDetails] = useState<any>(null);
+  const [members, setMembers] = useState(channel.members ?? []);
+  const [mutingId, setMutingId] = useState<number | null>(null);
+  const updateChannels = useChatStore((s) => s.fetchChannels);
+
+  useEffect(() => {
+    setMembers(channel.members ?? []);
+  }, [channel.members]);
 
   useEffect(() => {
     if (!isSelf && channel.channelType === 'direct' && partner?.id) {
       api.get(`/users/${partner.id}`).then(({ data }) => setUserDetails(data)).catch(() => {});
     }
   }, [isSelf, channel.channelType, partner?.id]);
+
+  const handleToggleMute = async (memberId: number, currentlyMuted: boolean) => {
+    setMutingId(memberId);
+    try {
+      await api.patch(`/chat-channels/${channel.id}/members/${memberId}`, { isMuted: !currentlyMuted });
+      setMembers((prev) =>
+        prev.map((m) => (m.id === memberId ? { ...m, isMuted: !currentlyMuted } : m)),
+      );
+      // Refresh channels so the muted user's view updates on next fetch
+      updateChannels(1);
+    } catch {
+      // ignore
+    } finally {
+      setMutingId(null);
+    }
+  };
 
   const details = userDetails;
 
@@ -443,29 +490,65 @@ function InfoPanel({ channel, partner, isSelf, isPartnerOnline, onClose }: InfoP
         )}
 
         {/* Members (group) */}
-        {channel.channelType === 'group' && channel.members && channel.members.length > 0 && (
+        {channel.channelType === 'group' && members.length > 0 && (
           <div>
             <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2">
               Участники ({channel.membersCount})
             </p>
             <div className="space-y-2">
-              {channel.members.map((m) => (
-                <div key={m.id} className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-sky-500 flex items-center justify-center text-white text-xs font-semibold shrink-0">
-                    {m.avatarUrl ? (
-                      <img src={m.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
-                    ) : (
-                      getInitials(m.name)
+              {members.map((m) => {
+                const isSelf = m.id === currentUserId;
+                return (
+                  <div key={m.id} className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-sky-500 flex items-center justify-center text-white text-xs font-semibold shrink-0 overflow-hidden">
+                      {m.avatarUrl ? (
+                        <img src={m.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
+                      ) : (
+                        getInitials(m.name)
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1">
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">{m.name}</p>
+                        {m.role === 'admin' && (
+                          <span className="shrink-0 text-xs text-violet-500 font-medium">admin</span>
+                        )}
+                      </div>
+                      {m.isMuted && (
+                        <p className="text-xs text-red-400">Ограничен</p>
+                      )}
+                    </div>
+                    {isAdmin && !isSelf && (
+                      <button
+                        onClick={() => handleToggleMute(m.id, m.isMuted ?? false)}
+                        disabled={mutingId === m.id}
+                        title={m.isMuted ? 'Снять ограничение' : 'Ограничить отправку'}
+                        className={`shrink-0 p-1.5 rounded-lg transition-colors ${
+                          m.isMuted
+                            ? 'text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20'
+                            : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-red-400'
+                        }`}
+                      >
+                        {mutingId === m.id ? (
+                          <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                          </svg>
+                        ) : m.isMuted ? (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072M12 18.364V5.636m0 0L8.464 9.172M12 5.636l3.536 3.536" />
+                          </svg>
+                        ) : (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                          </svg>
+                        )}
+                      </button>
                     )}
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">{m.name}</p>
-                    {m.email && (
-                      <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{m.email}</p>
-                    )}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
