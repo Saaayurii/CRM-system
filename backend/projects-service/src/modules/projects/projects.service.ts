@@ -198,6 +198,7 @@ export class ProjectsService {
       priority: project.priority,
       address: project.address,
       coordinates: project.coordinates,
+      settings: project.settings,
       createdAt: project.createdAt,
       updatedAt: project.updatedAt,
     };

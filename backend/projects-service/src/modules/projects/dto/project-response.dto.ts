@@ -65,6 +65,9 @@ export class ProjectResponseDto {
   @ApiPropertyOptional()
   coordinates?: Record<string, any>;
 
+  @ApiPropertyOptional()
+  settings?: Record<string, any>;
+
   @ApiProperty()
   createdAt: Date;
 
