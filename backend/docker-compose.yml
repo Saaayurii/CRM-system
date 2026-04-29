@@ -950,6 +950,8 @@ services:
     environment:
       NODE_ENV: production
       API_GATEWAY_URL: http://api-gateway:3000
+      API_GATEWAY_INTERNAL_URL: http://api-gateway:3000
+      CHAT_SERVICE_INTERNAL_URL: http://chat-service:3011
     user: root
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock

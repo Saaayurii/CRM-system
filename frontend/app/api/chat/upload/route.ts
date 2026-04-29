@@ -4,7 +4,7 @@ import { appendFile } from 'fs/promises';
 import { join, extname } from 'path';
 import sharp from 'sharp';
 
-const API_GATEWAY = (process.env.API_GATEWAY_INTERNAL_URL ?? 'http://localhost:3000').replace(/\/$/, '');
+const API_GATEWAY = (process.env.API_GATEWAY_INTERNAL_URL ?? process.env.API_GATEWAY_URL ?? 'http://localhost:3000').replace(/\/$/, '');
 
 export const runtime = 'nodejs';
 

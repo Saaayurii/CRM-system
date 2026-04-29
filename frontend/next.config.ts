@@ -3,7 +3,7 @@ import type { NextConfig } from 'next';
 // Internal URLs: used by Next.js server-side rewrites (SSR → backend, Docker network)
 // Dev default: localhost. Production Docker: set via env (api-gateway:3000, chat-service:3011)
 const API_GATEWAY_INTERNAL_URL =
-  process.env.API_GATEWAY_INTERNAL_URL || 'http://localhost:3000';
+  process.env.API_GATEWAY_INTERNAL_URL || process.env.API_GATEWAY_URL || 'http://localhost:3000';
 const CHAT_SERVICE_INTERNAL_URL =
   process.env.CHAT_SERVICE_INTERNAL_URL || 'http://localhost:3011';
 
