@@ -336,6 +336,7 @@ export default function ProjectDetailPage() {
   const router = useRouter();
   const addToast = useToastStore((s) => s.addToast);
   const projectId = Number(id);
+  const onlineUsers = useChatStore((s) => s.onlineUsers);
 
   const [project, setProject] = useState<Project | null>(null);
   const [loadingProject, setLoadingProject] = useState(true);
@@ -1267,9 +1268,7 @@ export default function ProjectDetailPage() {
                     </thead>
                     <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
                       {assignments.map((a) => {
-                        const av = a.availability ?? -1;
-                        const onlineCls = av === 1 ? 'bg-green-400' : av === 2 ? 'bg-yellow-400' : 'bg-gray-400';
-                        const onlineLabel = av === 1 ? 'В сети' : av === 2 ? 'Занят' : av === 3 ? 'Отпуск' : av === 4 ? 'Болен' : 'Офлайн';
+                        const isOnline = onlineUsers.has(a.userId);
                         return (
                         <tr key={a.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer" onClick={() => setSelectedAssignment(a)}>
                           <td className="py-2.5 px-4">
@@ -1279,8 +1278,8 @@ export default function ProjectDetailPage() {
                           <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{a.roleOnProject || '—'}</td>
                           <td className="py-2.5 px-4">
                             <span className="flex items-center gap-1.5">
-                              <span className={`w-2 h-2 rounded-full shrink-0 ${onlineCls}`} />
-                              <span className="text-xs text-gray-600 dark:text-gray-400">{onlineLabel}</span>
+                              <span className={`w-2 h-2 rounded-full shrink-0 ${isOnline ? 'bg-green-400' : 'bg-gray-400'}`} />
+                              <span className="text-xs text-gray-600 dark:text-gray-400">{isOnline ? 'В сети' : 'Офлайн'}</span>
                             </span>
                           </td>
                           <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{fmt(a.assignedAt)}</td>
@@ -2196,6 +2195,8 @@ function ProjectChatPanel({ channelId, channelName, projectId, onFilesSent }: { 
   const fetchMessages = useChatStore((s) => s.fetchMessages);
   const channelReadAts = useChatStore((s) => s.channelReadAts);
   const setReplyToMessage = useChatStore((s) => s.setReplyToMessage);
+  const deleteMessageSocket = useChatStore((s) => s.deleteMessage);
+  const reactToMessage = useChatStore((s) => s.reactToMessage);
   const channels = useChatStore((s) => s.channels);
   const user = useAuthStore((s) => s.user);
 

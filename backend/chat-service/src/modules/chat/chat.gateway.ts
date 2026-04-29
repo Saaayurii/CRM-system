@@ -84,6 +84,10 @@ export class ChatGateway
         name: client.user.name,
       });
 
+      // Send current online snapshot to the newly connected client
+      const onlineUserIds = await this.presenceService.getOnlineUserIds();
+      client.emit('presence:snapshot', { userIds: onlineUserIds });
+
       this.logger.log(
         `User ${client.user.id} (${client.user.email}) connected — socket: ${client.id}, channels: ${channelIds.length}`,
       );

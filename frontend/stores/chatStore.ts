@@ -324,6 +324,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
     });
 
     // Presence
+    socket.on('presence:snapshot', (data: { userIds: number[] }) => {
+      set({ onlineUsers: new Set(data.userIds) });
+    });
+
     socket.on('presence:online', (data: { userId: number }) => {
       set((state) => {
         const next = new Set(state.onlineUsers);
