@@ -138,7 +138,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       try { fileUrl = new URL(fileUrl).pathname; } catch { /* already a path */ }
 
       return NextResponse.json({
-        fileName: gwData.fileName,
+        fileName: displayName,
         fileSize: gwData.fileSize,
         mimeType: gwData.mimeType,
         fileUrl,
