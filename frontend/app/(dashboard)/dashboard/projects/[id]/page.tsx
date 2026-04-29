@@ -362,6 +362,16 @@ export default function ProjectDetailPage() {
   const [tasksLoaded, setTasksLoaded] = useState(false);
   const [showCreateTask, setShowCreateTask] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [taskSearch, setTaskSearch] = useState('');
+  const [taskStatusFilter, setTaskStatusFilter] = useState<string>('');
+  const [taskPriorityFilter, setTaskPriorityFilter] = useState<string>('');
+
+  /* Documents search */
+  const [docSearch, setDocSearch] = useState('');
+  const [docTypeFilter, setDocTypeFilter] = useState('');
+
+  /* Photos search */
+  const [photoSearch, setPhotoSearch] = useState('');
 
   /* Team modals */
   const [selectedTeamMember, setSelectedTeamMember] = useState<TeamMember | null>(null);
