@@ -28,6 +28,8 @@ interface ProjectData {
   start_date?: string;
   planned_end_date?: string;
   actual_end_date?: string;
+  teamId?: number;
+  team_id?: number;
   address?: string;
   clientName?: string;
   client_name?: string;
