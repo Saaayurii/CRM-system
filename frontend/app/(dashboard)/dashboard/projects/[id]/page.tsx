@@ -372,8 +372,9 @@ export default function ProjectDetailPage() {
   const [docSearch, setDocSearch] = useState('');
   const [docTypeFilter, setDocTypeFilter] = useState('');
 
-  /* Photos search */
-  const [photoSearch, setPhotoSearch] = useState('');
+  /* Photos filter & sort */
+  const [photoSiteFilter, setPhotoSiteFilter] = useState('');
+  const [photoSort, setPhotoSort] = useState('default');
 
   /* Team modals */
   const [selectedTeamMember, setSelectedTeamMember] = useState<TeamMember | null>(null);
@@ -1364,18 +1365,29 @@ export default function ProjectDetailPage() {
       {/* ─── Photos ─── */}
       {activeTab === 'photos' && (
         <div className="space-y-6">
-          {/* Top bar: search + upload */}
-          <div className="flex items-center gap-3">
-            <div className="relative flex-1 max-w-sm">
-              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <input
-                type="text" value={photoSearch} onChange={(e) => setPhotoSearch(e.target.value)}
-                placeholder="Фильтр по площадке..."
-                className="w-full pl-9 pr-3 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-800 dark:text-gray-200 placeholder-gray-400 focus:ring-2 focus:ring-violet-500 focus:outline-none"
-              />
-            </div>
+          {/* Top bar: filters + upload */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <select
+              value={photoSiteFilter}
+              onChange={(e) => setPhotoSiteFilter(e.target.value)}
+              className="py-2 pl-3 pr-8 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-violet-500 focus:outline-none"
+            >
+              <option value="">Все площадки</option>
+              {sites.filter((s) => (s.photos || []).length > 0).map((s) => (
+                <option key={s.id} value={String(s.id)}>{s.name}</option>
+              ))}
+            </select>
+            <select
+              value={photoSort}
+              onChange={(e) => setPhotoSort(e.target.value)}
+              className="py-2 pl-3 pr-8 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-violet-500 focus:outline-none"
+            >
+              <option value="default">По умолчанию</option>
+              <option value="most">Больше фото</option>
+              <option value="least">Меньше фото</option>
+              <option value="az">Название А-Я</option>
+              <option value="za">Название Я-А</option>
+            </select>
             <div className="flex-1" />
             <input ref={photoInputRef} type="file" accept="image/*" multiple className="hidden"
               onChange={(e) => handlePhotoFiles(e.target.files)} />
@@ -1405,9 +1417,16 @@ export default function ProjectDetailPage() {
               <p className="text-xs text-gray-400 mt-1">Нажмите «Добавить фото» чтобы загрузить</p>
             </div>
           ) : (
-            sites.filter((site) => !photoSearch || site.name.toLowerCase().includes(photoSearch.toLowerCase())).map((site) => {
+            (() => {
+              let filtered = sites.filter((s) => (s.photos || []).length > 0);
+              if (photoSiteFilter) filtered = filtered.filter((s) => String(s.id) === photoSiteFilter);
+              if (photoSort === 'most') filtered = [...filtered].sort((a, b) => (b.photos?.length ?? 0) - (a.photos?.length ?? 0));
+              else if (photoSort === 'least') filtered = [...filtered].sort((a, b) => (a.photos?.length ?? 0) - (b.photos?.length ?? 0));
+              else if (photoSort === 'az') filtered = [...filtered].sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+              else if (photoSort === 'za') filtered = [...filtered].sort((a, b) => b.name.localeCompare(a.name, 'ru'));
+              return filtered;
+            })().map((site) => {
               const photos = site.photos || [];
-              if (photos.length === 0) return null;
               return (
                 <div key={site.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
                   <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700">
