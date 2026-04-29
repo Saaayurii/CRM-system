@@ -785,16 +785,26 @@ export default function ProjectDetailPage() {
     finally { setRemovingTeamId(null); }
   };
 
-  const handleAssignEmployee = async (userId: number, roleOnProject?: string) => {
+  const handleAssignEmployee = async (user: UserOption, roleOnProject?: string) => {
     try {
-      await api.post(`/projects/${projectId}/assignments`, { userId, roleOnProject });
+      const res = await api.post(`/projects/${projectId}/assignments`, { userId: user.id, roleOnProject });
+      const newAssignment: Assignment = {
+        id: res.data?.id ?? Date.now(),
+        userId: user.id,
+        userName: user.name,
+        userEmail: user.email,
+        roleOnProject: roleOnProject || (user.roleId ? ROLE_NAMES[user.roleId] : undefined),
+        isActive: true,
+        assignedAt: new Date().toISOString(),
+      };
+      setAssignments((prev) => [...prev, newAssignment]);
+      addToast('success', 'Сотрудник добавлен в проект');
     } catch {
       addToast('error', 'Не удалось назначить сотрудника');
       return;
     }
-    addUsersToChannel([userId]).catch(() => {});
-    await reloadTeam();
-    addToast('success', 'Сотрудник добавлен в проект');
+    addUsersToChannel([user.id]).catch(() => {});
+    reloadTeam();
   };
 
   const handleRemoveAssignment = async (assignmentId: number) => {
@@ -1869,7 +1879,7 @@ export default function ProjectDetailPage() {
       {showAssignEmployee && (
         <AssignEmployeeModal
           alreadyAssigned={assignments.map((a) => Number((a as any).userId || (a as any).user_id || 0)).filter(Boolean)}
-          onAssign={async (userId, role) => { await handleAssignEmployee(userId, role); setShowAssignEmployee(false); }}
+          onAssign={async (user, role) => { await handleAssignEmployee(user, role); setShowAssignEmployee(false); }}
           onClose={() => setShowAssignEmployee(false)}
         />
       )}
@@ -2129,7 +2139,7 @@ function AssignEmployeeModal({
   alreadyAssigned, onAssign, onClose,
 }: {
   alreadyAssigned: number[];
-  onAssign: (userId: number, role?: string) => Promise<void>;
+  onAssign: (user: UserOption, role?: string) => Promise<void>;
   onClose: () => void;
 }) {
   const [users, setUsers] = useState<UserOption[]>([]);
@@ -2173,7 +2183,7 @@ function AssignEmployeeModal({
                   <span className="text-xs text-green-600 dark:text-green-400 font-medium">Добавлен</span>
                 ) : (
                   <button
-                    onClick={async () => { setAssigning(user.id); await onAssign(user.id, roleInput || undefined); setAssigning(null); }}
+                    onClick={async () => { setAssigning(user.id); await onAssign(user, roleInput || undefined); setAssigning(null); }}
                     disabled={assigning === user.id}
                     className="px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50">
                     {assigning === user.id ? '...' : 'Добавить'}
