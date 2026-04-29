@@ -340,6 +340,8 @@ export default function ProjectDetailPage() {
   const addToast = useToastStore((s) => s.addToast);
   const projectId = Number(id);
   const onlineUsers = useChatStore((s) => s.onlineUsers);
+  const fetchProjectChannels = useChatStore((s) => s.fetchProjectChannels);
+  const createChannelInStore = useChatStore((s) => s.createChannel);
 
   const [project, setProject] = useState<Project | null>(null);
   const [loadingProject, setLoadingProject] = useState(true);
@@ -388,10 +390,11 @@ export default function ProjectDetailPage() {
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
 
   /* Chat tab */
-  const [channel, setChannel] = useState<ChatChannel | null>(null);
+  const [projectChannels, setProjectChannels] = useState<ChatChannel[]>([]);
+  const [activeProjectChannelId, setActiveProjectChannelId] = useState<number | null>(null);
   const [channelChecked, setChannelChecked] = useState(false);
   const [loadingChat, setLoadingChat] = useState(false);
-  const [creatingChannel, setCreatingChannel] = useState(false);
+  const [showCreateChannelModal, setShowCreateChannelModal] = useState(false);
 
   /* Photos tab */
   const [sites, setSites] = useState<ConstructionSite[]>([]);
@@ -638,7 +641,7 @@ export default function ProjectDetailPage() {
     if (activeTab === 'team' && !teamLoaded && !loadingTeam) reloadTeam();
     if (activeTab === 'documents' && !docsLoaded && !loadingDocs) reloadDocuments();
     if (activeTab === 'tasks' && !tasksLoaded && !loadingTasks) reloadTasks();
-    if (activeTab === 'chat' && !channelChecked && !loadingChat) findChannel();
+    if (activeTab === 'chat' && !channelChecked && !loadingChat) loadProjectChannels();
     if (activeTab === 'photos' && !sitesLoaded && !loadingPhotos) reloadSites();
     if (activeTab === 'finance' && !financeLoaded && !loadingFinance) {
       setLoadingFinance(true);
@@ -659,55 +662,36 @@ export default function ProjectDetailPage() {
   }, [activeTab]);
 
   /* ─── Chat helpers ─── */
-  const findChannel = useCallback(async () => {
+  const loadProjectChannels = useCallback(async () => {
     setLoadingChat(true);
     try {
-      const r = await api.get('/chat-channels', { params: { limit: 200 } });
-      const list: any[] = r.data?.data || r.data?.channels || [];
-      const found = list.find((c: any) => c.projectId === projectId || c.project_id === projectId);
-      if (found) setChannel(found);
+      const channels = await fetchProjectChannels(projectId);
+      setProjectChannels(channels);
+      setChannelChecked(true);
     } catch { /* ignore */ }
-    finally { setLoadingChat(false); setChannelChecked(true); }
-  }, [projectId]);
-
-  const getOrCreateChannel = useCallback(async (): Promise<ChatChannel | null> => {
-    if (channel) return channel;
-    try {
-      const r = await api.get('/chat-channels', { params: { limit: 200 } });
-      const list: any[] = r.data?.data || r.data?.channels || [];
-      const found = list.find((c: any) => c.projectId === projectId || c.project_id === projectId);
-      if (found) { setChannel(found); return found; }
-    } catch { /* ignore */ }
-    if (!project) return null;
-    try {
-      const r = await api.post('/chat-channels', { name: `Проект: ${project.name}`, channelType: 'group', projectId });
-      setChannel(r.data); setChannelChecked(true);
-      return r.data;
-    } catch { return null; }
-  }, [channel, project, projectId]);
+    finally { setLoadingChat(false); }
+  }, [projectId, fetchProjectChannels]);
 
   const addUsersToChannel = useCallback(async (userIds: number[]) => {
-    const ch = await getOrCreateChannel();
-    if (!ch || userIds.length === 0) return;
+    if (userIds.length === 0) return;
+    // add to all project channels, or create a general channel if none exist
+    let targetChannels = projectChannels;
+    if (targetChannels.length === 0 && project) {
+      try {
+        const r = await api.post('/chat-channels', {
+          name: `Общий: ${project.name}`, channelType: 'group', projectId,
+        });
+        targetChannels = [r.data];
+        setProjectChannels([r.data]);
+      } catch { return; }
+    }
+    if (targetChannels.length === 0) return;
+    const ch = targetChannels[0];
     await Promise.allSettled(
       userIds.map((userId) => api.post(`/chat-channels/${ch.id}/members`, { userId, role: 'member' }))
     );
-    // refresh channel to update member count in store
     useChatStore.getState().fetchChannels(1);
-    const refreshed = await api.get(`/chat-channels/${ch.id}`).catch(() => null);
-    if (refreshed) setChannel(refreshed.data);
-  }, [getOrCreateChannel]);
-
-  const handleCreateChannel = async () => {
-    if (!project) return;
-    setCreatingChannel(true);
-    try {
-      const r = await api.post('/chat-channels', { name: `Проект: ${project.name}`, channelType: 'group', projectId });
-      setChannel(r.data); setChannelChecked(true);
-      addToast('success', 'Чат для проекта создан');
-    } catch { addToast('error', 'Не удалось создать чат'); }
-    finally { setCreatingChannel(false); }
-  };
+  }, [projectChannels, project, projectId]);
 
   /* ─── Chat file sync ─── */
   const handleChatFilesSent = useCallback(async (attachments: { fileUrl: string; fileName: string; fileSize: number; mimeType: string }[]) => {
@@ -1397,27 +1381,82 @@ export default function ProjectDetailPage() {
 
       {/* ─── Chat ─── */}
       {activeTab === 'chat' && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden flex flex-col" style={{ height: '600px' }}>
-          {loadingChat ? <LoadingState /> : !channel ? (
-            <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8 text-center">
-              <div className="w-14 h-14 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
-                <svg className="w-7 h-7 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+        <div className="flex gap-4" style={{ height: '640px' }}>
+          {/* Sidebar: channel list */}
+          <div className="w-64 shrink-0 bg-white dark:bg-gray-800 rounded-xl shadow-xs flex flex-col overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+              <h3 className="font-semibold text-sm text-gray-800 dark:text-gray-100">Каналы проекта</h3>
+              <button onClick={() => setShowCreateChannelModal(true)}
+                className="p-1.5 text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors" title="Создать канал">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                 </svg>
-              </div>
-              <div>
-                <p className="font-medium text-gray-700 dark:text-gray-200 mb-1">Чат для этого проекта не создан</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">При назначении команды или сотрудника чат создаётся автоматически</p>
-              </div>
-              <button onClick={handleCreateChannel} disabled={creatingChannel}
-                className="px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
-                {creatingChannel ? 'Создание...' : 'Создать чат'}
               </button>
             </div>
-          ) : (
-            <ProjectChatPanel channelId={channel.id} channelName={channel.name || channel.channelName || 'Чат проекта'} projectId={projectId} onFilesSent={handleChatFilesSent} />
-          )}
+            <div className="flex-1 overflow-y-auto py-1">
+              {loadingChat ? (
+                <div className="p-4 flex justify-center"><div className="w-5 h-5 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" /></div>
+              ) : projectChannels.length === 0 ? (
+                <div className="p-4 text-center">
+                  <p className="text-xs text-gray-400 mb-2">Каналов пока нет</p>
+                  <button onClick={() => setShowCreateChannelModal(true)}
+                    className="text-xs text-violet-500 hover:text-violet-600 transition-colors">+ Создать первый</button>
+                </div>
+              ) : (
+                projectChannels.map((ch) => (
+                  <button key={ch.id} onClick={() => setActiveProjectChannelId(ch.id)}
+                    className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-left transition-colors ${activeProjectChannelId === ch.id ? 'bg-violet-50 dark:bg-violet-500/10' : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'}`}>
+                    <div className="w-8 h-8 rounded-full bg-violet-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                      {(ch.channelName || '#').charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-medium truncate ${activeProjectChannelId === ch.id ? 'text-violet-600 dark:text-violet-400' : 'text-gray-800 dark:text-gray-100'}`}>
+                        {ch.channelName || `Канал #${ch.id}`}
+                      </p>
+                      <p className="text-xs text-gray-400 truncate">{ch.membersCount} участников</p>
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Chat window */}
+          <div className="flex-1 bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden flex flex-col">
+            {!activeProjectChannelId ? (
+              <div className="flex-1 flex flex-col items-center justify-center gap-3 p-8 text-center">
+                <svg className="w-10 h-10 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                <p className="text-sm text-gray-400">{projectChannels.length === 0 ? 'Создайте первый канал' : 'Выберите канал для общения'}</p>
+              </div>
+            ) : (
+              <ProjectChatPanel
+                key={activeProjectChannelId}
+                channelId={activeProjectChannelId}
+                channelName={projectChannels.find((c) => c.id === activeProjectChannelId)?.channelName || 'Канал'}
+                projectId={projectId}
+                onFilesSent={handleChatFilesSent}
+              />
+            )}
+          </div>
         </div>
+      )}
+
+      {/* Create channel modal */}
+      {showCreateChannelModal && (
+        <ProjectChannelCreateModal
+          projectId={projectId}
+          projectName={project?.name || ''}
+          projectMembers={assignments}
+          onCreated={(ch) => {
+            setProjectChannels((prev) => [...prev, ch]);
+            setActiveProjectChannelId(ch.id);
+            setShowCreateChannelModal(false);
+            useChatStore.getState().fetchChannels(1);
+          }}
+          onClose={() => setShowCreateChannelModal(false)}
+        />
       )}
 
       {/* ─── Photos ─── */}
@@ -3199,5 +3238,107 @@ function ModalShell({ title, children, onClose }: { title: string; children: Rea
         <div className="p-5">{children}</div>
       </div>
     </div>
+  );
+}
+
+/* ─── Modal: Create Project Channel ─── */
+
+function ProjectChannelCreateModal({
+  projectId, projectName, projectMembers, onCreated, onClose,
+}: {
+  projectId: number;
+  projectName: string;
+  projectMembers: Assignment[];
+  onCreated: (channel: ChatChannel) => void;
+  onClose: () => void;
+}) {
+  const [name, setName] = useState('');
+  const [selectedMemberIds, setSelectedMemberIds] = useState<number[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [members, setMembers] = useState<Assignment[]>(projectMembers);
+  const addToast = useToastStore((s) => s.addToast);
+
+  useEffect(() => {
+    if (projectMembers.length > 0) { setMembers(projectMembers); return; }
+    api.get(`/projects/${projectId}/assignments`)
+      .then((r) => { const d = r.data?.assignments || r.data?.data || r.data || []; setMembers(Array.isArray(d) ? d : []); })
+      .catch(() => {});
+  }, [projectId, projectMembers]);
+
+  const toggleMember = (userId: number) => {
+    setSelectedMemberIds((prev) =>
+      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
+    );
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+    setSaving(true);
+    try {
+      const r = await api.post('/chat-channels', {
+        name: name.trim(),
+        channelType: 'group',
+        projectId,
+        memberIds: selectedMemberIds,
+        settings: { projectName },
+      });
+      onCreated(r.data);
+    } catch {
+      addToast('error', 'Не удалось создать канал');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <ModalShell title="Новый канал" onClose={onClose}>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Название канала *</label>
+          <input
+            value={name} onChange={(e) => setName(e.target.value)} required autoFocus
+            placeholder={`Например: Общий ${projectName}`}
+            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
+            Участники{' '}
+            <span className="text-violet-500">{selectedMemberIds.length > 0 ? `(${selectedMemberIds.length} выбрано)` : '— только участники проекта'}</span>
+          </label>
+          {members.length === 0 ? (
+            <p className="text-xs text-gray-400">Нет участников в проекте</p>
+          ) : (
+            <div className="space-y-1.5 max-h-48 overflow-y-auto">
+              {members.map((m) => {
+                const checked = selectedMemberIds.includes(m.userId);
+                return (
+                  <label key={m.userId} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/40 cursor-pointer">
+                    <input type="checkbox" checked={checked} onChange={() => toggleMember(m.userId)}
+                      className="rounded text-violet-500 focus:ring-violet-500" />
+                    <div className="w-7 h-7 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center text-xs font-semibold text-violet-700 dark:text-violet-300 shrink-0">
+                      {(m.userName || '?').charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">{m.userName || `#${m.userId}`}</p>
+                      {m.userEmail && <p className="text-xs text-gray-400 truncate">{m.userEmail}</p>}
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+          )}
+        </div>
+        <div className="flex justify-end gap-2 pt-1">
+          <button type="button" onClick={onClose}
+            className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 transition-colors">Отмена</button>
+          <button type="submit" disabled={saving || !name.trim()}
+            className="px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition-colors">
+            {saving ? 'Создание...' : 'Создать'}
+          </button>
+        </div>
+      </form>
+    </ModalShell>
   );
 }

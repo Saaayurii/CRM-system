@@ -38,18 +38,21 @@ export class ChatController {
   @ApiOperation({ summary: 'Get all chat channels' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'projectId', required: false, type: Number })
   @ApiResponse({ status: 200, description: 'Channels retrieved' })
   findAllChannels(
     @CurrentUser('accountId') accountId: number,
     @CurrentUser('id') userId: number,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
+    @Query('projectId') projectId?: string,
   ) {
     return this.chatService.findAllChannels(
       accountId,
       userId,
       page ? parseInt(page, 10) : 1,
       limit ? parseInt(limit, 10) : 20,
+      projectId ? parseInt(projectId, 10) : undefined,
     );
   }
 

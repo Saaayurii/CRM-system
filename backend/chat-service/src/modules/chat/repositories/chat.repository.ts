@@ -14,12 +14,14 @@ export class ChatRepository {
     userId: number,
     page: number = 1,
     limit: number = 20,
+    projectId?: number,
   ) {
     const skip = (page - 1) * limit;
-    const where = {
+    const where: any = {
       accountId,
       members: { some: { userId } },
     };
+    if (projectId) where.projectId = projectId;
 
     const [data, total] = await Promise.all([
       (this.prisma as any).chatChannel.findMany({

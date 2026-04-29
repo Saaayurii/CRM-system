@@ -28,8 +28,9 @@ export class ChatService {
     userId: number,
     page: number = 1,
     limit: number = 20,
+    projectId?: number,
   ) {
-    return this.chatRepository.findAllChannels(accountId, userId, page, limit);
+    return this.chatRepository.findAllChannels(accountId, userId, page, limit, projectId);
   }
 
   async findChannelById(id: number, accountId: number) {

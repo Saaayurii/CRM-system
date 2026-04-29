@@ -23,6 +23,7 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
 
   const [search, setSearch] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [activeFolder, setActiveFolder] = useState<'all' | number>('all');
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const handleSelect = useCallback(
@@ -49,15 +50,31 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
     return () => el.removeEventListener('scroll', handleScroll);
   }, [handleScroll]);
 
-  // Separate "Избранное" (self-chat) and sort it to top
+  // Build project folders from group channels that have a projectId
+  const projectFolders = Array.from(
+    channels
+      .filter((ch) => ch.projectId != null)
+      .reduce((map, ch) => {
+        const pid = ch.projectId!;
+        if (!map.has(pid)) map.set(pid, ch.projectName || `Проект #${pid}`);
+        return map;
+      }, new Map<number, string>())
+      .entries()
+  );
+
+  // Filter by folder then search
+  const folderFiltered = activeFolder === 'all'
+    ? channels
+    : channels.filter((ch) => ch.projectId === activeFolder);
+
   const allFiltered = search.trim()
-    ? channels.filter((ch) => {
+    ? folderFiltered.filter((ch) => {
         const name = isSelfChat(ch, user?.id) ? 'Избранное' : getChannelDisplayName(ch, user?.id);
         return name.toLowerCase().includes(search.toLowerCase());
       })
-    : channels;
+    : folderFiltered;
 
-  const selfChat = allFiltered.find((ch) => isSelfChat(ch, user?.id));
+  const selfChat = activeFolder === 'all' ? allFiltered.find((ch) => isSelfChat(ch, user?.id)) : undefined;
   const otherChats = allFiltered.filter((ch) => !isSelfChat(ch, user?.id));
   const filtered = selfChat ? [selfChat, ...otherChats] : otherChats;
 
@@ -95,6 +112,27 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
           />
         </div>
       </div>
+
+      {/* Folder tabs */}
+      {projectFolders.length > 0 && (
+        <div className="flex gap-1 px-3 pb-2 overflow-x-auto scrollbar-none">
+          <button
+            onClick={() => setActiveFolder('all')}
+            className={`shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors ${activeFolder === 'all' ? 'bg-violet-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'}`}
+          >
+            Все чаты
+          </button>
+          {projectFolders.map(([pid, pname]) => (
+            <button
+              key={pid}
+              onClick={() => setActiveFolder(pid)}
+              className={`shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors ${activeFolder === pid ? 'bg-violet-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'}`}
+            >
+              {pname}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Channel list */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto">

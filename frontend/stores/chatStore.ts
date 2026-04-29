@@ -54,6 +54,7 @@ export interface ChatChannel {
   avatarUrl?: string;
   membersCount: number;
   projectId?: number | null;
+  projectName?: string | null;
   lastMessage?: {
     text: string;
     senderName: string;
@@ -144,6 +145,7 @@ function mapRawChannel(raw: any): ChatChannel {
     avatarUrl: raw.avatarUrl ?? undefined,
     membersCount: raw.membersCount ?? members.length,
     projectId: raw.projectId ?? null,
+    projectName: raw.project?.name ?? raw.projectName ?? raw.settings?.projectName ?? null,
     lastMessage: rawLastMsg
       ? {
           text: rawLastMsg.text ?? rawLastMsg.messageText ?? '',
@@ -186,6 +188,7 @@ interface ChatState {
   stopTyping: (channelId: number) => void;
   setActiveChannel: (channelId: number | null) => Promise<void>;
   fetchChannels: (page?: number) => Promise<void>;
+  fetchProjectChannels: (projectId: number) => Promise<ChatChannel[]>;
   fetchMessages: (channelId: number, cursor?: number) => Promise<void>;
   createChannel: (dto: CreateChannelDto) => Promise<ChatChannel | null>;
   setReplyToMessage: (message: ChatMessage | null) => void;
@@ -534,6 +537,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }
     } catch {
       set({ isLoadingChannels: false });
+    }
+  },
+
+  fetchProjectChannels: async (projectId: number): Promise<ChatChannel[]> => {
+    try {
+      const { data } = await api.get('/chat-channels', { params: { projectId, limit: 100 } });
+      const raw = data.data || data;
+      return Array.isArray(raw) ? raw.map((ch: any) => mapRawChannel(ch)) : [];
+    } catch {
+      return [];
     }
   },
 
