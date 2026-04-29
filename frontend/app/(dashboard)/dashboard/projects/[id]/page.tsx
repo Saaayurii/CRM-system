@@ -31,7 +31,9 @@ interface Project {
   actualCost?: number;
   address?: string;
   clientName?: string;
+  projectManagerId?: number;
   projectManager?: { id: number; name: string; email: string };
+  settings?: Record<string, any>;
 }
 
 interface TeamMember {
@@ -249,6 +251,7 @@ const TABS = [
   { key: 'finance', label: 'Финансы' },
   { key: 'chat', label: 'Диалог' },
   { key: 'photos', label: 'Фотографии' },
+  { key: 'notes', label: 'Заметки' },
 ] as const;
 
 interface Payment {
@@ -396,6 +399,11 @@ export default function ProjectDetailPage() {
   const [sitesLoaded, setSitesLoaded] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [lightboxPhoto, setLightboxPhoto] = useState<string | null>(null);
+
+  /* Notes tab */
+  const [notesText, setNotesText] = useState('');
+  const [notesEditing, setNotesEditing] = useState(false);
+  const [notesSaving, setNotesSaving] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
   /* Finance tab */
@@ -425,7 +433,7 @@ export default function ProjectDetailPage() {
   /* ─── Load project ─── */
   useEffect(() => {
     api.get(`/projects/${projectId}`)
-      .then((r) => setProject(r.data))
+      .then((r) => { setProject(r.data); setNotesText(r.data?.settings?.notes || ''); })
       .catch(() => router.push('/dashboard/projects'))
       .finally(() => setLoadingProject(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1492,6 +1500,72 @@ export default function ProjectDetailPage() {
         </div>
       )}
 
+      {/* ─── Notes ─── */}
+      {activeTab === 'notes' && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+            <h2 className="font-semibold text-gray-800 dark:text-gray-100">Заметки проекта</h2>
+            {!notesEditing && (
+              <button onClick={() => setNotesEditing(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Редактировать
+              </button>
+            )}
+          </div>
+          <div className="p-5">
+            {notesEditing ? (
+              <div className="space-y-3">
+                <textarea
+                  value={notesText}
+                  onChange={(e) => setNotesText(e.target.value)}
+                  rows={10}
+                  autoFocus
+                  placeholder="Введите заметки по проекту..."
+                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 text-gray-800 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 resize-y"
+                />
+                <div className="flex gap-2 justify-end">
+                  <button onClick={() => { setNotesEditing(false); setNotesText(project?.settings?.notes || ''); }}
+                    className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors">
+                    Отмена
+                  </button>
+                  <button disabled={notesSaving} onClick={async () => {
+                    setNotesSaving(true);
+                    try {
+                      const r = await api.put(`/projects/${projectId}`, {
+                        settings: { ...(project?.settings || {}), notes: notesText.trim() },
+                      });
+                      setProject(r.data);
+                      setNotesEditing(false);
+                      addToast('success', 'Заметки сохранены');
+                    } catch { addToast('error', 'Не удалось сохранить заметки'); }
+                    finally { setNotesSaving(false); }
+                  }}
+                    className="px-4 py-2 text-sm font-medium bg-violet-500 hover:bg-violet-600 text-white rounded-lg disabled:opacity-50 transition-colors">
+                    {notesSaving ? 'Сохранение...' : 'Сохранить'}
+                  </button>
+                </div>
+              </div>
+            ) : notesText ? (
+              <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{notesText}</p>
+            ) : (
+              <div className="py-12 text-center">
+                <svg className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                <p className="text-sm text-gray-400">Заметок пока нет</p>
+                <button onClick={() => setNotesEditing(true)}
+                  className="mt-2 text-xs text-violet-500 hover:text-violet-600 transition-colors">
+                  Добавить заметку
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ─── Finance ─── */}
       {activeTab === 'finance' && (
         <div className="space-y-6">
@@ -1778,7 +1852,7 @@ export default function ProjectDetailPage() {
           onSaved={() => {
             setShowEditModal(false);
             addToast('success', 'Проект обновлён');
-            api.get(`/projects/${projectId}`).then((r) => setProject(r.data)).catch(() => {});
+            api.get(`/projects/${projectId}`).then((r) => { setProject(r.data); setNotesText(r.data?.settings?.notes || ''); }).catch(() => {});
           }} />
       )}
 

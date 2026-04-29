@@ -28,13 +28,12 @@ interface ProjectData {
   start_date?: string;
   planned_end_date?: string;
   actual_end_date?: string;
-  teamId?: number;
-  team_id?: number;
   address?: string;
   clientName?: string;
   client_name?: string;
-  notes?: string;
+  settings?: Record<string, any>;
   projectManager?: { id: number; name: string; email: string };
+  projectManagerId?: number;
   managerId?: number;
   manager_id?: number;
 }
@@ -82,11 +81,11 @@ export default function ProjectFormModal({ project, onClose, onSaved }: ProjectF
   const [actualEndDate, setActualEndDate] = useState(toDateInput(project?.actualEndDate || project?.actual_end_date));
   const [teamId, setTeamId] = useState<number | ''>(project?.teamId || project?.team_id || '');
   const [managerId, setManagerId] = useState<number | ''>(
-    project?.managerId || project?.manager_id || project?.projectManager?.id || ''
+    project?.projectManagerId || project?.managerId || project?.manager_id || project?.projectManager?.id || ''
   );
   const [address, setAddress] = useState(project?.address || '');
   const [clientName, setClientName] = useState(project?.clientName || project?.client_name || '');
-  const [notes, setNotes] = useState(project?.notes || '');
+  const [notes, setNotes] = useState<string>(project?.settings?.notes || '');
 
   const [teams, setTeams] = useState<Team[]>([]);
   const [users, setUsers] = useState<UserOption[]>([]);
@@ -127,11 +126,10 @@ export default function ProjectFormModal({ project, onClose, onSaved }: ProjectF
     if (startDate) payload.startDate = startDate;
     if (plannedEndDate) payload.plannedEndDate = plannedEndDate;
     if (actualEndDate) payload.actualEndDate = actualEndDate;
-    if (teamId) payload.teamId = teamId;
-    if (managerId) payload.managerId = managerId;
+    if (managerId) payload.projectManagerId = managerId;
     if (address.trim()) payload.address = address.trim();
     if (clientName.trim()) payload.clientName = clientName.trim();
-    if (notes.trim()) payload.notes = notes.trim();
+    payload.settings = { ...(project?.settings || {}), notes: notes.trim() };
 
     try {
       if (isEdit) {
