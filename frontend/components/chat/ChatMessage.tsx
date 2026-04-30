@@ -54,6 +54,17 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, onRepl
     return () => document.removeEventListener('mousedown', handler);
   }, [showEmojiPicker]);
 
+  // Системное сообщение (закрепление, открепление и т.п.)
+  if (message.messageType === 'system') {
+    return (
+      <div data-message-id={message.id} className="flex justify-center py-1.5">
+        <span className="text-xs text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-800/80 px-3 py-1 rounded-full select-none">
+          {message.text}
+        </span>
+      </div>
+    );
+  }
+
   return (
     <div
       data-message-id={message.id}

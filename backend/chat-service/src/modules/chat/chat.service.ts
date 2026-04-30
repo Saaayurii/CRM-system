@@ -296,15 +296,32 @@ export class ChatService {
     messageText: string,
     senderName: string,
     accountId: number,
+    pinnerName: string,
   ) {
     const channel = await this.chatRepository.findChannelById(channelId, accountId);
     if (!channel) throw new NotFoundException('Channel not found');
-    return this.chatRepository.pinMessage(channelId, messageId, messageText, senderName);
+    const pinnedMessages = await this.chatRepository.pinMessage(channelId, messageId, messageText, senderName);
+    const systemMessage = await this.chatRepository.createMessage({
+      channelId,
+      userId: null,
+      messageText: `📌 ${pinnerName} закрепил сообщение`,
+      messageType: 'system',
+      attachments: [],
+    });
+    return { pinnedMessages, systemMessage };
   }
 
-  async unpinMessage(channelId: number, accountId: number) {
+  async unpinMessage(channelId: number, messageId: number, accountId: number, pinnerName: string) {
     const channel = await this.chatRepository.findChannelById(channelId, accountId);
     if (!channel) throw new NotFoundException('Channel not found');
-    return this.chatRepository.unpinMessage(channelId);
+    const pinnedMessages = await this.chatRepository.unpinMessage(channelId, messageId);
+    const systemMessage = await this.chatRepository.createMessage({
+      channelId,
+      userId: null,
+      messageText: `🔓 ${pinnerName} открепил сообщение`,
+      messageType: 'system',
+      attachments: [],
+    });
+    return { pinnedMessages, systemMessage };
   }
 }

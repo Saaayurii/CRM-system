@@ -201,25 +201,35 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
 
   // Pinned messages
   const canPin = activeChannel?.channelType === 'direct' || isCurrentUserAdmin;
-  const pinnedMessage = activeChannel?.pinnedMessage ?? null;
+  const pinnedMessages = activeChannel?.pinnedMessages ?? [];
+  const [pinnedIndex, setPinnedIndex] = useState(0);
+
+  // При смене канала или изменении списка — показываем последнее закреплённое
+  useEffect(() => {
+    setPinnedIndex(pinnedMessages.length > 0 ? pinnedMessages.length - 1 : 0);
+  }, [activeChannelId, pinnedMessages.length]);
+
+  const currentPinned = pinnedMessages.length > 0 ? pinnedMessages[pinnedIndex] : null;
 
   const handlePin = useCallback((msg: ChatMessageType) => {
     if (!activeChannelId) return;
-    const isPinned = pinnedMessage?.id === msg.id;
-    if (isPinned) {
-      unpinMessageSocket(activeChannelId);
+    const alreadyPinned = pinnedMessages.some((p) => p.id === msg.id);
+    if (alreadyPinned) {
+      unpinMessageSocket(activeChannelId, msg.id);
     } else {
       pinMessageSocket(activeChannelId, msg.id, msg.text, msg.senderName);
     }
-  }, [activeChannelId, pinnedMessage, pinMessageSocket, unpinMessageSocket]);
+  }, [activeChannelId, pinnedMessages, pinMessageSocket, unpinMessageSocket]);
 
-  const scrollToPinnedMessage = useCallback(() => {
-    if (!pinnedMessage) return;
-    const el = messagesContainerRef.current?.querySelector(`[data-msgid="${pinnedMessage.id}"]`);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  const handleBannerClick = useCallback(() => {
+    if (!currentPinned) return;
+    const el = messagesContainerRef.current?.querySelector(`[data-msgid="${currentPinned.id}"]`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // Перелистываем к предыдущему (как в ТГ)
+    if (pinnedMessages.length > 1) {
+      setPinnedIndex((i) => (i - 1 + pinnedMessages.length) % pinnedMessages.length);
     }
-  }, [pinnedMessage]);
+  }, [currentPinned, pinnedMessages]);
 
   // No active channel
   if (!activeChannelId || !activeChannel) {
@@ -390,25 +400,45 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
         )}
 
         {/* Pinned message banner */}
-        {pinnedMessage && (
+        {currentPinned && (
           <div
             className="flex items-center gap-3 px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors shrink-0"
-            onClick={scrollToPinnedMessage}
+            onClick={handleBannerClick}
           >
-            <svg className="w-4 h-4 shrink-0 text-violet-500" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M5 17h14v-1.76a2 2 0 00-1.11-1.79l-1.78-.9A2 2 0 0115 10.76V6h1a2 2 0 000-4H8a2 2 0 000 4h1v4.76a2 2 0 01-1.11 1.79l-1.78.9A2 2 0 005 15.24V17zM12 17v4" />
-            </svg>
+            {/* Полоска-индикатор слева */}
+            <div className="flex flex-col items-center gap-0.5 shrink-0">
+              {pinnedMessages.length > 1
+                ? pinnedMessages.map((_, i) => (
+                    <div
+                      key={i}
+                      className={`rounded-full transition-all ${
+                        i === pinnedIndex
+                          ? 'w-1 h-3 bg-violet-500'
+                          : 'w-1 h-1 bg-violet-300 dark:bg-violet-700'
+                      }`}
+                    />
+                  ))
+                : <div className="w-1 h-5 bg-violet-500 rounded-full" />}
+            </div>
+
+            {/* Текст */}
             <div className="flex-1 min-w-0">
-              <p className="text-[10px] font-semibold text-violet-500 uppercase tracking-wide leading-none mb-0.5">Закреплено</p>
+              <p className="text-[10px] font-semibold text-violet-500 leading-none mb-0.5">
+                {pinnedMessages.length > 1
+                  ? `Закреплённое сообщение · ${pinnedIndex + 1}/${pinnedMessages.length}`
+                  : 'Закреплённое сообщение'}
+              </p>
               <p className="text-xs text-gray-600 dark:text-gray-300 truncate">
-                {pinnedMessage.text || '📎 Вложение'}
+                {currentPinned.text || '📎 Вложение'}
               </p>
             </div>
+
+            {/* Открепить */}
             {canPin && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (activeChannelId) unpinMessageSocket(activeChannelId);
+                  if (activeChannelId && currentPinned) unpinMessageSocket(activeChannelId, currentPinned.id);
                 }}
                 className="shrink-0 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded transition-colors"
                 title="Открепить"
@@ -454,7 +484,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
             const read = isOwn ? isMessageRead(msg) : false;
             const activeMatch = searchMatches.length > 0 && searchMatches[matchIdx]?.msg.id === msg.id;
             const isMatchedMsg = showSearch && searchQuery.trim().length >= 2 && searchMatches.some((m) => m.msg.id === msg.id);
-            const isMsgPinned = pinnedMessage?.id === msg.id;
+            const isMsgPinned = pinnedMessages.some((p) => p.id === msg.id);
 
             return (
               <div key={msg.id} data-msgid={msg.id} className={activeMatch ? 'rounded-xl ring-2 ring-violet-400 dark:ring-violet-500 ring-offset-2 dark:ring-offset-gray-900' : ''}>

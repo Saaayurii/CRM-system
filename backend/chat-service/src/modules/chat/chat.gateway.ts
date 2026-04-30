@@ -333,20 +333,21 @@ export class ChatGateway
       senderName?: string;
     },
   ) {
-    await this.chatService.pinMessage(
+    const { pinnedMessages, systemMessage } = await this.chatService.pinMessage(
       data.channelId,
       data.messageId,
       (data.messageText || '').slice(0, 200),
       data.senderName || '',
       client.user.accountId,
+      client.user.name,
     );
 
     this.server.to(`channel:${data.channelId}`).emit('message:pinned', {
       channelId: data.channelId,
-      pinnedMessageId: data.messageId,
-      pinnedMessageText: (data.messageText || '').slice(0, 200),
-      pinnedBySenderName: data.senderName || '',
+      pinnedMessages,
     });
+
+    this.server.to(`channel:${data.channelId}`).emit('message:new', systemMessage);
 
     return { event: 'message:pin:ack' };
   }
@@ -355,13 +356,21 @@ export class ChatGateway
   @SubscribeMessage('message:unpin')
   async handleUnpinMessage(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() data: { channelId: number },
+    @MessageBody() data: { channelId: number; messageId: number },
   ) {
-    await this.chatService.unpinMessage(data.channelId, client.user.accountId);
+    const { pinnedMessages, systemMessage } = await this.chatService.unpinMessage(
+      data.channelId,
+      data.messageId,
+      client.user.accountId,
+      client.user.name,
+    );
 
     this.server.to(`channel:${data.channelId}`).emit('message:unpinned', {
       channelId: data.channelId,
+      pinnedMessages,
     });
+
+    this.server.to(`channel:${data.channelId}`).emit('message:new', systemMessage);
 
     return { event: 'message:unpin:ack' };
   }

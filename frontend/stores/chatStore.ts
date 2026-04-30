@@ -61,7 +61,7 @@ export interface ChatChannel {
     createdAt: string;
   } | null;
   members?: { id: number; name: string; avatarUrl?: string; email?: string; isMuted?: boolean; role?: string }[];
-  pinnedMessage?: { id: number; text: string; senderName: string } | null;
+  pinnedMessages?: { id: number; text: string; senderName: string; pinnedAt: string }[];
 }
 
 export interface CreateChannelDto {
@@ -142,13 +142,18 @@ function mapRawChannel(raw: any): ChatChannel {
   const lastMsgUser = rawLastMsg?.user;
 
   const settings = raw.settings || {};
-  const pinnedMessage = settings.pinnedMessageId
-    ? {
-        id: settings.pinnedMessageId as number,
-        text: (settings.pinnedMessageText as string) || '',
-        senderName: (settings.pinnedBySenderName as string) || '',
-      }
-    : null;
+  // Поддержка нового формата (массив) и старого (одно сообщение)
+  let pinnedMessages: { id: number; text: string; senderName: string; pinnedAt: string }[] = [];
+  if (Array.isArray(settings.pinnedMessages) && settings.pinnedMessages.length > 0) {
+    pinnedMessages = settings.pinnedMessages;
+  } else if (settings.pinnedMessageId) {
+    pinnedMessages = [{
+      id: settings.pinnedMessageId as number,
+      text: (settings.pinnedMessageText as string) || '',
+      senderName: (settings.pinnedBySenderName as string) || '',
+      pinnedAt: new Date().toISOString(),
+    }];
+  }
 
   return {
     id: raw.id,
@@ -166,7 +171,7 @@ function mapRawChannel(raw: any): ChatChannel {
         }
       : raw.lastMessage ?? null,
     members,
-    pinnedMessage,
+    pinnedMessages,
   };
 }
 
@@ -206,7 +211,7 @@ interface ChatState {
   createChannel: (dto: CreateChannelDto) => Promise<ChatChannel | null>;
   setReplyToMessage: (message: ChatMessage | null) => void;
   pinMessage: (channelId: number, messageId: number, messageText: string, senderName: string) => void;
-  unpinMessage: (channelId: number) => void;
+  unpinMessage: (channelId: number, messageId: number) => void;
 }
 
 let socketRef: Socket | null = null;
@@ -380,20 +385,18 @@ export const useChatStore = create<ChatState>((set, get) => ({
     );
 
     // Pinned messages
-    socket.on('message:pinned', (data: { channelId: number; pinnedMessageId: number; pinnedMessageText: string; pinnedBySenderName: string }) => {
+    socket.on('message:pinned', (data: { channelId: number; pinnedMessages: { id: number; text: string; senderName: string; pinnedAt: string }[] }) => {
       set((state) => ({
         channels: state.channels.map((ch) =>
-          ch.id === data.channelId
-            ? { ...ch, pinnedMessage: { id: data.pinnedMessageId, text: data.pinnedMessageText, senderName: data.pinnedBySenderName } }
-            : ch
+          ch.id === data.channelId ? { ...ch, pinnedMessages: data.pinnedMessages } : ch
         ),
       }));
     });
 
-    socket.on('message:unpinned', (data: { channelId: number }) => {
+    socket.on('message:unpinned', (data: { channelId: number; pinnedMessages: { id: number; text: string; senderName: string; pinnedAt: string }[] }) => {
       set((state) => ({
         channels: state.channels.map((ch) =>
-          ch.id === data.channelId ? { ...ch, pinnedMessage: null } : ch
+          ch.id === data.channelId ? { ...ch, pinnedMessages: data.pinnedMessages } : ch
         ),
       }));
     });
@@ -639,8 +642,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
     socketRef.emit('message:pin', { channelId, messageId, messageText, senderName });
   },
 
-  unpinMessage: (channelId) => {
+  unpinMessage: (channelId, messageId) => {
     if (!socketRef?.connected) return;
-    socketRef.emit('message:unpin', { channelId });
+    socketRef.emit('message:unpin', { channelId, messageId });
   },
 }));

@@ -318,30 +318,35 @@ export class ChatRepository {
       where: { id: channelId },
       select: { settings: true },
     });
-    const settings = {
-      ...((channel?.settings as any) || {}),
-      pinnedMessageId: messageId,
-      pinnedMessageText: messageText,
-      pinnedBySenderName: senderName,
-    };
-    return (this.prisma as any).chatChannel.update({
+    const s = { ...((channel?.settings as any) || {}) };
+    const list: any[] = s.pinnedMessages || [];
+    // Убираем дубликат если уже закреплено, добавляем в конец
+    const filtered = list.filter((p: any) => p.id !== messageId);
+    filtered.push({ id: messageId, text: messageText, senderName, pinnedAt: new Date().toISOString() });
+    s.pinnedMessages = filtered;
+    // Чистим старый формат одиночного закрепления
+    delete s.pinnedMessageId;
+    delete s.pinnedMessageText;
+    delete s.pinnedBySenderName;
+    const updated = await (this.prisma as any).chatChannel.update({
       where: { id: channelId },
-      data: { settings },
+      data: { settings: s },
     });
+    return (updated.settings as any)?.pinnedMessages as any[] || [];
   }
 
-  async unpinMessage(channelId: number) {
+  async unpinMessage(channelId: number, messageId: number) {
     const channel = await (this.prisma as any).chatChannel.findFirst({
       where: { id: channelId },
       select: { settings: true },
     });
-    const settings = { ...((channel?.settings as any) || {}) };
-    delete settings.pinnedMessageId;
-    delete settings.pinnedMessageText;
-    delete settings.pinnedBySenderName;
-    return (this.prisma as any).chatChannel.update({
+    const s = { ...((channel?.settings as any) || {}) };
+    const list: any[] = s.pinnedMessages || [];
+    s.pinnedMessages = list.filter((p: any) => p.id !== messageId);
+    const updated = await (this.prisma as any).chatChannel.update({
       where: { id: channelId },
-      data: { settings },
+      data: { settings: s },
     });
+    return (updated.settings as any)?.pinnedMessages as any[] || [];
   }
 }
