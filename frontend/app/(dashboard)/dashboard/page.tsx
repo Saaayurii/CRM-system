@@ -99,6 +99,25 @@ const TASK_STATUS_COLORS: Record<string, string> = {
 };
 
 /* ─── SuperAdmin Dashboard (roleId=1) ────────────────────────────────────── */
+function ViewToggle({ mode, onChange }: { mode: 'table' | 'grid'; onChange: (m: 'table' | 'grid') => void }) {
+  return (
+    <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
+      <button onClick={() => onChange('table')} title="Таблица"
+        className={`p-1.5 rounded transition-colors ${mode === 'table' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}>
+        <svg className="w-3.5 h-3.5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+        </svg>
+      </button>
+      <button onClick={() => onChange('grid')} title="Карточки"
+        className={`p-1.5 rounded transition-colors ${mode === 'grid' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}>
+        <svg className="w-3.5 h-3.5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
 function SuperAdminDashboard({ user }: { user: any }) {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -108,6 +127,9 @@ function SuperAdminDashboard({ user }: { user: any }) {
   const [teamCount, setTeamCount] = useState<number | null>(null);
   const [projectsByStatus, setProjectsByStatus] = useState<any[]>([]);
   const [tasksByPriority, setTasksByPriority] = useState<any[]>([]);
+  const [recentViewMode, setRecentViewMode] = useState<'table' | 'grid'>(() =>
+    typeof window !== 'undefined' ? ((localStorage.getItem('dashRecentViewMode') as 'table' | 'grid') || 'table') : 'table'
+  );
 
   useEffect(() => {
     (async () => {
@@ -205,18 +227,21 @@ function SuperAdminDashboard({ user }: { user: any }) {
         </button>
       </div>
 
-      {/* Recent projects table */}
+      {/* Recent projects */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs mb-6">
-        <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center justify-between">
+        <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center justify-between gap-3">
           <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Последние проекты</h3>
-          <Link href="/dashboard/projects" className="text-xs text-violet-500 hover:text-violet-600 font-medium">Все проекты</Link>
+          <div className="flex items-center gap-3">
+            <ViewToggle mode={recentViewMode} onChange={(m) => { setRecentViewMode(m); localStorage.setItem('dashRecentViewMode', m); }} />
+            <Link href="/dashboard/projects" className="text-xs text-violet-500 hover:text-violet-600 font-medium">Все проекты</Link>
+          </div>
         </div>
         <div className="p-5">
           {loading ? (
             <div className="flex justify-center py-4"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-violet-500" /></div>
           ) : projects.length === 0 ? (
             <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Нет проектов</p>
-          ) : (
+          ) : recentViewMode === 'table' ? (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -241,6 +266,37 @@ function SuperAdminDashboard({ user }: { user: any }) {
                   })}
                 </tbody>
               </table>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {projects.slice(0, 6).map((p: any) => {
+                const st = PROJECT_STATUS_MAP[Number(p.status)];
+                return (
+                  <div key={p.id} onClick={() => router.push(`/dashboard/projects/${p.id}`)}
+                    className="flex flex-col gap-2 p-4 border border-gray-200 dark:border-gray-700 rounded-xl cursor-pointer hover:shadow-md hover:border-violet-300 dark:hover:border-violet-700 transition-all">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="font-semibold text-sm text-gray-800 dark:text-gray-100 line-clamp-2">{p.name}</p>
+                      {st && <StatusBadge label={st.label} color={st.color} />}
+                    </div>
+                    <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 mt-1">
+                      <div>
+                        <dt className="text-xs text-gray-400 dark:text-gray-500">Бюджет</dt>
+                        <dd className="text-xs font-medium text-gray-700 dark:text-gray-300">{p.budget != null ? `${Number(p.budget).toLocaleString('ru-RU')} ₽` : '—'}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs text-gray-400 dark:text-gray-500">Начало</dt>
+                        <dd className="text-xs font-medium text-gray-700 dark:text-gray-300">{fmtDate(p.startDate)}</dd>
+                      </div>
+                      {p.plannedEndDate && (
+                        <div className="col-span-2">
+                          <dt className="text-xs text-gray-400 dark:text-gray-500">Окончание</dt>
+                          <dd className="text-xs font-medium text-gray-700 dark:text-gray-300">{fmtDate(p.plannedEndDate)}</dd>
+                        </div>
+                      )}
+                    </dl>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

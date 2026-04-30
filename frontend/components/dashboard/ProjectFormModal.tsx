@@ -43,7 +43,7 @@ interface ProjectData {
 interface ProjectFormModalProps {
   project?: ProjectData | null;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (updated?: any) => void;
 }
 
 const STATUS_OPTIONS = [
@@ -134,12 +134,15 @@ export default function ProjectFormModal({ project, onClose, onSaved }: ProjectF
     payload.settings = { ...(project?.settings || {}), notes: notes.trim() };
 
     try {
+      let updated: any;
       if (isEdit) {
-        await api.put(`/projects/${project!.id}`, payload);
+        const res = await api.put(`/projects/${project!.id}`, payload);
+        updated = res.data;
       } else {
-        await api.post('/projects', payload);
+        const res = await api.post('/projects', payload);
+        updated = res.data;
       }
-      onSaved();
+      onSaved(updated);
     } catch {
       setError(isEdit ? 'Не удалось обновить проект' : 'Не удалось создать проект');
     } finally {
