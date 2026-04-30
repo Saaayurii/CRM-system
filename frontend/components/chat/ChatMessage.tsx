@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { ChatMessage as ChatMessageType } from '@/stores/chatStore';
 import MediaViewer, { MediaItem } from './MediaViewer';
@@ -37,22 +37,47 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, onRepl
   const [previewFile, setPreviewFile] = useState<{ url: string; name?: string } | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [showMobileActions, setShowMobileActions] = useState(false);
   const emojiRef = useRef<HTMLDivElement>(null);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const touchMoved = useRef(false);
 
   const openViewer = useCallback((mediaIndex: number) => setViewerIndex(mediaIndex), []);
   const closeViewer = useCallback(() => setViewerIndex(null), []);
 
-  // Close emoji picker on outside click
+  // Long press to show actions on touch devices
+  const handleTouchStart = useCallback(() => {
+    touchMoved.current = false;
+    longPressTimer.current = setTimeout(() => {
+      if (!touchMoved.current) setShowMobileActions(true);
+    }, 500);
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+  }, []);
+
+  const handleTouchMove = useCallback(() => {
+    touchMoved.current = true;
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+  }, []);
+
+  // Close emoji picker and mobile actions on outside click/tap
   useEffect(() => {
-    if (!showEmojiPicker) return;
-    const handler = (e: MouseEvent) => {
+    if (!showEmojiPicker && !showMobileActions) return;
+    const handler = (e: MouseEvent | TouchEvent) => {
       if (emojiRef.current && !emojiRef.current.contains(e.target as Node)) {
         setShowEmojiPicker(false);
       }
+      setShowMobileActions(false);
     };
     document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [showEmojiPicker]);
+    document.addEventListener('touchstart', handler);
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      document.removeEventListener('touchstart', handler);
+    };
+  }, [showEmojiPicker, showMobileActions]);
 
   // Системное сообщение (закрепление, открепление и т.п.)
   if (message.messageType === 'system') {
@@ -69,6 +94,9 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, onRepl
     <div
       data-message-id={message.id}
       className={`flex gap-2 group ${isOwn ? 'flex-row-reverse' : ''} ${showAvatar ? 'mt-3' : 'mt-0.5'} ${isPinned ? 'ring-1 ring-violet-300 dark:ring-violet-700 rounded-2xl' : ''}`}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onTouchMove={handleTouchMove}
     >
       {/* Avatar placeholder / real avatar */}
       <div className="w-8 shrink-0">
@@ -292,72 +320,16 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, onRepl
             )}
           </div>
 
-          {/* Action buttons (hover) */}
-          <div className={`absolute ${isOwn ? '-left-28' : '-right-28'} top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5`}>
-            {/* Emoji reaction picker trigger */}
-            <div className="relative" ref={emojiRef}>
-              <button
-                onClick={() => setShowEmojiPicker((v) => !v)}
-                className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                title="Реакция"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </button>
-              {showEmojiPicker && (
-                <div className={`absolute ${isOwn ? 'right-0' : 'left-0'} bottom-8 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg p-2 flex gap-1`}>
-                  {QUICK_EMOJIS.map((emoji) => (
-                    <button
-                      key={emoji}
-                      onClick={() => { onReact(message.id, emoji); setShowEmojiPicker(false); }}
-                      className="text-xl hover:scale-125 transition-transform p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
-                    >
-                      {emoji}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            {/* Reply */}
-            <button
-              onClick={onReply}
-              className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-              title="Ответить"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-              </svg>
-            </button>
-            {/* Pin / unpin */}
-            {canPin && (
-              <button
-                onClick={() => onPin?.(message)}
-                className={`p-1.5 rounded-full transition-colors ${
-                  isPinned
-                    ? 'text-violet-500 hover:bg-violet-100 dark:hover:bg-violet-900/30'
-                    : 'text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-violet-500'
-                }`}
-                title={isPinned ? 'Открепить' : 'Закрепить'}
-              >
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill={isPinned ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="12" y1="17" x2="12" y2="22" />
-                  <path d="M5 17h14v-1.76a2 2 0 00-1.11-1.79l-1.78-.9A2 2 0 0115 10.76V6h1a2 2 0 000-4H8a2 2 0 000 4h1v4.76a2 2 0 01-1.11 1.79l-1.78.9A2 2 0 005 15.24V17z" />
-                </svg>
-              </button>
-            )}
-            {/* Delete (own messages only) */}
-            {isOwn && (
-              <button
-                onClick={() => setConfirmDelete(true)}
-                className="p-1.5 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-500 transition-colors"
-                title="Удалить"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </button>
-            )}
+          {/* Action buttons — desktop: hover side panel; mobile: long-press inline toolbar */}
+          {/* Desktop hover */}
+          <div className={`absolute ${isOwn ? '-left-28' : '-right-28'} top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:flex items-center gap-0.5`}>
+            <ActionButtons
+              isOwn={isOwn} isPinned={isPinned} canPin={canPin}
+              emojiRef={emojiRef} showEmojiPicker={showEmojiPicker}
+              setShowEmojiPicker={setShowEmojiPicker}
+              onReply={onReply} onPin={onPin ? () => onPin(message) : undefined} onDelete={() => setConfirmDelete(true)}
+              onReact={(emoji: string) => { onReact(message.id, emoji); setShowEmojiPicker(false); }}
+            />
           </div>
         </div>
 
@@ -395,6 +367,32 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, onRepl
           </div>
         )}
       </div>
+
+      {/* Mobile long-press action toolbar */}
+      {showMobileActions && (
+        <div
+          className={`sm:hidden flex items-center gap-1 mt-1 p-1 rounded-xl bg-white dark:bg-gray-800 shadow-lg border border-gray-100 dark:border-gray-700 ${isOwn ? 'self-end mr-8' : 'self-start ml-8'}`}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button onClick={() => { onReact(message.id, '👍'); setShowMobileActions(false); }} className="p-2 text-lg hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">👍</button>
+          <button onClick={() => { onReact(message.id, '❤️'); setShowMobileActions(false); }} className="p-2 text-lg hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">❤️</button>
+          <button onClick={() => { onReact(message.id, '😂'); setShowMobileActions(false); }} className="p-2 text-lg hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">😂</button>
+          <div className="w-px h-6 bg-gray-200 dark:bg-gray-600 mx-0.5" />
+          <button onClick={() => { onReply(); setShowMobileActions(false); }} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500" title="Ответить">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
+          </button>
+          {canPin && (
+            <button onClick={() => { onPin?.(message); setShowMobileActions(false); }} className={`p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 ${isPinned ? 'text-violet-500' : 'text-gray-500'}`} title={isPinned ? 'Открепить' : 'Закрепить'}>
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill={isPinned ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="17" x2="12" y2="22" /><path d="M5 17h14v-1.76a2 2 0 00-1.11-1.79l-1.78-.9A2 2 0 0115 10.76V6h1a2 2 0 000-4H8a2 2 0 000 4h1v4.76a2 2 0 01-1.11 1.79l-1.78.9A2 2 0 005 15.24V17z" /></svg>
+            </button>
+          )}
+          {isOwn && (
+            <button onClick={() => { setConfirmDelete(true); setShowMobileActions(false); }} className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-400" title="Удалить">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Media viewer portal */}
       {viewerIndex !== null && mediaItems.length > 0 && (
@@ -508,7 +506,6 @@ function TaskCard({ id, title, status, priority, dueDate, isOwn }: {
     </Link>
   );
 }
-
 function highlightSegment(raw: string, query: string | undefined, isOwn: boolean): React.ReactNode {
   if (!query) return raw;
   const lower = raw.toLowerCase();
@@ -878,4 +875,58 @@ function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} Б`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} КБ`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} МБ`;
+}
+
+// Desktop side action buttons (shown on group-hover, hidden on mobile via sm:flex)
+function ActionButtons({ isOwn, isPinned, canPin, emojiRef, showEmojiPicker, setShowEmojiPicker, onReply, onPin, onDelete, onReact }: {
+  isOwn: boolean; isPinned?: boolean; canPin?: boolean;
+  emojiRef: React.RefObject<HTMLDivElement | null>;
+  showEmojiPicker: boolean; setShowEmojiPicker: (v: boolean) => void;
+  onReply: () => void; onPin?: () => void; onDelete: () => void;
+  onReact: (emoji: string) => void;
+}) {
+  return (
+    <>
+      <div className="relative" ref={emojiRef}>
+        <button onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+          className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors" title="Реакция">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </button>
+        {showEmojiPicker && (
+          <div className={`absolute ${isOwn ? 'right-0' : 'left-0'} bottom-8 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg p-2 flex gap-1`}>
+            {QUICK_EMOJIS.map((emoji) => (
+              <button key={emoji} onClick={() => onReact(emoji)}
+                className="text-xl hover:scale-125 transition-transform p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">{emoji}</button>
+            ))}
+          </div>
+        )}
+      </div>
+      <button onClick={onReply}
+        className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors" title="Ответить">
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+        </svg>
+      </button>
+      {canPin && (
+        <button onClick={onPin}
+          className={`p-1.5 rounded-full transition-colors ${isPinned ? 'text-violet-500 hover:bg-violet-100 dark:hover:bg-violet-900/30' : 'text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-violet-500'}`}
+          title={isPinned ? 'Открепить' : 'Закрепить'}>
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill={isPinned ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="17" x2="12" y2="22" />
+            <path d="M5 17h14v-1.76a2 2 0 00-1.11-1.79l-1.78-.9A2 2 0 0115 10.76V6h1a2 2 0 000-4H8a2 2 0 000 4h1v4.76a2 2 0 01-1.11 1.79l-1.78.9A2 2 0 005 15.24V17z" />
+          </svg>
+        </button>
+      )}
+      {isOwn && (
+        <button onClick={onDelete}
+          className="p-1.5 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-500 transition-colors" title="Удалить">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+        </button>
+      )}
+    </>
+  );
 }

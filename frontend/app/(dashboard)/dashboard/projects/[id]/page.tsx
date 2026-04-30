@@ -342,6 +342,25 @@ function paymentIsExpense(p: { paymentType?: string }): boolean {
     || /outgoing|expense|расход/i.test(p.paymentType || '');
 }
 
+function FinanceViewToggle({ mode, onChange }: { mode: 'table' | 'grid'; onChange: (m: 'table' | 'grid') => void }) {
+  return (
+    <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
+      <button onClick={() => onChange('table')} title="Таблица"
+        className={`p-1.5 rounded transition-colors ${mode === 'table' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}>
+        <svg className="w-3.5 h-3.5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+        </svg>
+      </button>
+      <button onClick={() => onChange('grid')} title="Карточки"
+        className={`p-1.5 rounded transition-colors ${mode === 'grid' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}>
+        <svg className="w-3.5 h-3.5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
 function fmtSize(bytes?: number) {
   if (!bytes) return '';
   if (bytes < 1024) return `${bytes} Б`;
@@ -412,6 +431,7 @@ export default function ProjectDetailPage() {
   const [channelChecked, setChannelChecked] = useState(false);
   const [loadingChat, setLoadingChat] = useState(false);
   const [showCreateChannelModal, setShowCreateChannelModal] = useState(false);
+  const [mobileChatOpen, setMobileChatOpen] = useState(false);
 
   /* Photos tab */
   const [sites, setSites] = useState<ConstructionSite[]>([]);
@@ -441,6 +461,12 @@ export default function ProjectDetailPage() {
   const [savingFinance, setSavingFinance] = useState(false);
   const [financeViewMode, setFinanceViewMode] = useState<'table' | 'grid'>(() =>
     typeof window !== 'undefined' ? ((localStorage.getItem('financeViewMode') as 'table' | 'grid') || 'table') : 'table'
+  );
+  const [budgetsViewMode, setBudgetsViewMode] = useState<'table' | 'grid'>(() =>
+    typeof window !== 'undefined' ? ((localStorage.getItem('budgetsViewMode') as 'table' | 'grid') || 'table') : 'table'
+  );
+  const [actsViewMode, setActsViewMode] = useState<'table' | 'grid'>(() =>
+    typeof window !== 'undefined' ? ((localStorage.getItem('actsViewMode') as 'table' | 'grid') || 'table') : 'table'
   );
 
   /* Overview summary */
@@ -1410,8 +1436,8 @@ export default function ProjectDetailPage() {
       {/* ─── Chat ─── */}
       {activeTab === 'chat' && (
         <div className="flex gap-4" style={{ height: '640px' }}>
-          {/* Sidebar: channel list */}
-          <div className="w-64 shrink-0 bg-white dark:bg-gray-800 rounded-xl shadow-xs flex flex-col overflow-hidden">
+          {/* Sidebar: channel list — hidden on mobile when chat is open */}
+          <div className={`${mobileChatOpen ? 'hidden sm:flex' : 'flex'} w-full sm:w-64 shrink-0 bg-white dark:bg-gray-800 rounded-xl shadow-xs flex-col overflow-hidden`}>
             <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
               <h3 className="font-semibold text-sm text-gray-800 dark:text-gray-100">Каналы проекта</h3>
               <button onClick={() => setShowCreateChannelModal(true)}
@@ -1432,7 +1458,7 @@ export default function ProjectDetailPage() {
                 </div>
               ) : (
                 projectChannels.map((ch) => (
-                  <button key={ch.id} onClick={() => setActiveProjectChannelId(ch.id)}
+                  <button key={ch.id} onClick={() => { setActiveProjectChannelId(ch.id); setMobileChatOpen(true); }}
                     className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-left transition-colors ${activeProjectChannelId === ch.id ? 'bg-violet-50 dark:bg-violet-500/10' : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'}`}>
                     <div className="w-8 h-8 rounded-full bg-violet-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
                       {(ch.channelName || ch.name || '#').charAt(0).toUpperCase()}
@@ -1449,8 +1475,8 @@ export default function ProjectDetailPage() {
             </div>
           </div>
 
-          {/* Chat window */}
-          <div className="flex-1 bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden flex flex-col">
+          {/* Chat window — hidden on mobile when no channel selected */}
+          <div className={`${mobileChatOpen ? 'flex' : 'hidden sm:flex'} flex-1 bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden flex-col`}>
             {!activeProjectChannelId ? (
               <div className="flex-1 flex flex-col items-center justify-center gap-3 p-8 text-center">
                 <svg className="w-10 h-10 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -1465,6 +1491,7 @@ export default function ProjectDetailPage() {
                 channelName={(() => { const c = projectChannels.find((c) => c.id === activeProjectChannelId); return c?.channelName || c?.name || 'Канал'; })()}
                 projectId={projectId}
                 onFilesSent={handleChatFilesSent}
+                onBack={() => setMobileChatOpen(false)}
               />
             )}
           </div>
@@ -1722,8 +1749,9 @@ export default function ProjectDetailPage() {
 
               {/* ── Payments ── */}
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
-                <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center justify-between">
-                  <h3 className="font-semibold text-gray-900 dark:text-gray-100">Платежи</h3>
+                <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-3">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">Платежи</h3>
+                  <FinanceViewToggle mode={financeViewMode} onChange={(m) => { setFinanceViewMode(m); localStorage.setItem('financeViewMode', m); }} />
                   <button onClick={() => { setEditingPayment(null); setShowPaymentModal(true); }}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
@@ -1732,7 +1760,7 @@ export default function ProjectDetailPage() {
                 </div>
                 {financePayments.length === 0 ? (
                   <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">Нет платежей для этого проекта</div>
-                ) : (
+                ) : financeViewMode === 'table' ? (
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
@@ -1768,7 +1796,6 @@ export default function ProjectDetailPage() {
                               <td className={`py-3 px-4 text-right font-semibold ${income ? 'text-green-600 dark:text-green-400' : expense ? 'text-red-500' : 'text-gray-700 dark:text-gray-300'}`}>{income ? '+' : expense ? '−' : ''}{fmtMoney(p.amount)}</td>
                               <td className="py-3 px-4 text-gray-600 dark:text-gray-300">{fmt(p.paymentDate)}</td>
                               <td className="py-3 px-4 text-gray-600 dark:text-gray-300">{p.category || '—'}</td>
-                              <td className="py-3 px-4 text-gray-600 dark:text-gray-300">{p.category || '—'}</td>
                               <td className="py-3 px-4 text-center">
                                 {p.status != null ? (
                                   <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${PAYMENT_STATUS[p.status]?.color ?? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>
@@ -1788,13 +1815,63 @@ export default function ProjectDetailPage() {
                       </tbody>
                     </table>
                   </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-5">
+                    {financePayments.map((p) => {
+                      const income = paymentIsIncome(p);
+                      const expense = paymentIsExpense(p);
+                      const dirLabel = PAYMENT_DIRECTION.find(d => d.value === p.paymentType)?.label || p.paymentType || '—';
+                      const dirColor = income
+                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                        : expense
+                        ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
+                        : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300';
+                      return (
+                        <div key={p.id} className="bg-gray-50 dark:bg-gray-900/30 rounded-xl p-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-900/50 transition-colors border border-gray-100 dark:border-gray-700/40"
+                          onClick={() => { setEditingPayment(p); setShowPaymentModal(true); }}>
+                          <div className="flex items-start justify-between mb-3">
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${dirColor}`}>{dirLabel}</span>
+                            <button onClick={(e) => { e.stopPropagation(); handleDeletePayment(p.id); }}
+                              className="p-1 text-gray-300 hover:text-red-500 dark:text-gray-600 dark:hover:text-red-400 transition-colors">
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            </button>
+                          </div>
+                          <p className={`text-2xl font-bold mb-3 ${income ? 'text-green-600 dark:text-green-400' : expense ? 'text-red-500' : 'text-gray-900 dark:text-gray-100'}`}>
+                            {income ? '+' : expense ? '−' : ''}{fmtMoney(p.amount)}
+                          </p>
+                          <div className="space-y-1.5 text-xs text-gray-500 dark:text-gray-400">
+                            <div className="flex justify-between">
+                              <span>Дата:</span>
+                              <span className="text-gray-700 dark:text-gray-300">{fmt(p.paymentDate)}</span>
+                            </div>
+                            {p.category && (
+                              <div className="flex justify-between">
+                                <span>Категория:</span>
+                                <span className="text-gray-700 dark:text-gray-300 truncate ml-2">{p.category}</span>
+                              </div>
+                            )}
+                            {p.status != null && (
+                              <div className="flex justify-between items-center">
+                                <span>Статус:</span>
+                                <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${PAYMENT_STATUS[p.status]?.color ?? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>
+                                  {PAYMENT_STATUS[p.status]?.label ?? p.status}
+                                </span>
+                              </div>
+                            )}
+                            {p.description && <p className="text-gray-400 dark:text-gray-500 truncate pt-0.5">{p.description}</p>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
               </div>
 
               {/* ── Budgets ── */}
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
-                <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center justify-between">
-                  <h3 className="font-semibold text-gray-900 dark:text-gray-100">Бюджеты</h3>
+                <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-3">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">Бюджеты</h3>
+                  <FinanceViewToggle mode={budgetsViewMode} onChange={(m) => { setBudgetsViewMode(m); localStorage.setItem('budgetsViewMode', m); }} />
                   <button onClick={() => { setEditingBudget(null); setShowBudgetModal(true); }}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
@@ -1803,7 +1880,7 @@ export default function ProjectDetailPage() {
                 </div>
                 {financeBudgets.length === 0 ? (
                   <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">Нет бюджетов для этого проекта</div>
-                ) : (
+                ) : budgetsViewMode === 'table' ? (
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
@@ -1857,13 +1934,69 @@ export default function ProjectDetailPage() {
                       </tbody>
                     </table>
                   </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-5">
+                    {financeBudgets.map((b) => {
+                      const overSpent = b.spentAmount != null && b.totalBudget != null && b.spentAmount > b.totalBudget;
+                      const pct = b.totalBudget && b.spentAmount != null ? Math.min(100, Math.round((b.spentAmount / b.totalBudget) * 100)) : null;
+                      return (
+                        <div key={b.id} className={`rounded-xl p-4 cursor-pointer transition-colors border ${overSpent ? 'bg-red-50 dark:bg-red-900/10 border-red-100 dark:border-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/20' : 'bg-gray-50 dark:bg-gray-900/30 border-gray-100 dark:border-gray-700/40 hover:bg-gray-100 dark:hover:bg-gray-900/50'}`}
+                          onClick={() => { setEditingBudget(b); setShowBudgetModal(true); }}>
+                          <div className="flex items-start justify-between mb-2">
+                            <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm leading-tight">{b.budgetName || '—'}</p>
+                            <button onClick={(e) => { e.stopPropagation(); handleDeleteBudget(b.id); }}
+                              className="p-1 text-gray-300 hover:text-red-500 dark:text-gray-600 dark:hover:text-red-400 transition-colors shrink-0">
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            </button>
+                          </div>
+                          <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">{fmtMoney(b.totalBudget)}</p>
+                          {pct != null && (
+                            <div className="mb-3">
+                              <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
+                                <span>Использовано</span>
+                                <span className={overSpent ? 'text-red-500 font-semibold' : ''}>{pct}%</span>
+                              </div>
+                              <div className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                <div className={`h-full rounded-full ${overSpent ? 'bg-red-500' : 'bg-violet-500'}`} style={{ width: `${pct}%` }} />
+                              </div>
+                            </div>
+                          )}
+                          <div className="space-y-1.5 text-xs text-gray-500 dark:text-gray-400">
+                            <div className="flex justify-between">
+                              <span>Потрачено:</span>
+                              <span className={overSpent ? 'text-red-500 font-semibold' : 'text-gray-700 dark:text-gray-300'}>{fmtMoney(b.spentAmount)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Выделено:</span>
+                              <span className="text-gray-700 dark:text-gray-300">{fmtMoney(b.allocatedAmount)}</span>
+                            </div>
+                            {b.status != null && (
+                              <div className="flex justify-between items-center">
+                                <span>Статус:</span>
+                                <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${BUDGET_STATUS[b.status]?.color ?? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>
+                                  {BUDGET_STATUS[b.status]?.label ?? b.status}
+                                </span>
+                              </div>
+                            )}
+                            {(b.startDate || b.endDate) && (
+                              <div className="flex justify-between">
+                                <span>Период:</span>
+                                <span className="text-gray-700 dark:text-gray-300">{b.startDate ? fmt(b.startDate) : ''}{b.startDate && b.endDate ? ' – ' : ''}{b.endDate ? fmt(b.endDate) : ''}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
               </div>
 
               {/* ── Acts ── */}
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
-                <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center justify-between">
-                  <h3 className="font-semibold text-gray-900 dark:text-gray-100">Акты</h3>
+                <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-3">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">Акты</h3>
+                  <FinanceViewToggle mode={actsViewMode} onChange={(m) => { setActsViewMode(m); localStorage.setItem('actsViewMode', m); }} />
                   <button onClick={() => { setEditingAct(null); setShowActModal(true); }}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
@@ -1872,7 +2005,7 @@ export default function ProjectDetailPage() {
                 </div>
                 {financeActs.length === 0 ? (
                   <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">Нет актов для этого проекта</div>
-                ) : (
+                ) : actsViewMode === 'table' ? (
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
@@ -1911,6 +2044,39 @@ export default function ProjectDetailPage() {
                       </tbody>
                     </table>
                   </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-5">
+                    {financeActs.map((a) => (
+                      <div key={a.id} className="bg-gray-50 dark:bg-gray-900/30 rounded-xl p-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-900/50 transition-colors border border-gray-100 dark:border-gray-700/40"
+                        onClick={() => { setEditingAct(a); setShowActModal(true); }}>
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <p className="text-xs text-gray-400 dark:text-gray-500 mb-0.5">№ {a.actNumber || a.id}</p>
+                            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{a.actType || '—'}</p>
+                          </div>
+                          <button onClick={(e) => { e.stopPropagation(); handleDeleteAct(a.id); }}
+                            className="p-1 text-gray-300 hover:text-red-500 dark:text-gray-600 dark:hover:text-red-400 transition-colors shrink-0">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                          </button>
+                        </div>
+                        <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">{fmtMoney(a.totalAmount)}</p>
+                        <div className="space-y-1.5 text-xs text-gray-500 dark:text-gray-400">
+                          <div className="flex justify-between">
+                            <span>Дата:</span>
+                            <span className="text-gray-700 dark:text-gray-300">{fmt(a.actDate)}</span>
+                          </div>
+                          {a.status != null && (
+                            <div className="flex justify-between items-center">
+                              <span>Статус:</span>
+                              <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${ACT_STATUS[a.status]?.color ?? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>
+                                {ACT_STATUS[a.status]?.label ?? a.status}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             </>
@@ -1933,10 +2099,17 @@ export default function ProjectDetailPage() {
       {/* Edit Modal */}
       {showEditModal && (
         <ProjectFormModal project={project} onClose={() => setShowEditModal(false)}
-          onSaved={() => {
+          onSaved={(updated) => {
             setShowEditModal(false);
             addToast('success', 'Проект обновлён');
-            api.get(`/projects/${projectId}`).then((r) => { setProject(r.data); setNotesText(r.data?.settings?.notes || ''); }).catch(() => {});
+            if (updated) {
+              setProject(updated);
+              setNotesText(updated?.settings?.notes || '');
+            } else {
+              api.get(`/projects/${projectId}`)
+                .then((r) => { setProject(r.data); setNotesText(r.data?.settings?.notes || ''); })
+                .catch(() => {});
+            }
           }} />
       )}
 
@@ -2343,7 +2516,7 @@ function UploadDocumentModal({
 
 /* ─── Project Chat Panel ─── */
 
-function ProjectChatPanel({ channelId, channelName, projectId, onFilesSent }: { channelId: number; channelName: string; projectId?: number; onFilesSent?: (attachments: any[]) => void }) {
+function ProjectChatPanel({ channelId, channelName, projectId, onFilesSent, onBack }: { channelId: number; channelName: string; projectId?: number; onFilesSent?: (attachments: any[]) => void; onBack?: () => void }) {
   const connect = useChatStore((s) => s.connect);
   const setActiveChannel = useChatStore((s) => s.setActiveChannel);
   const fetchChannels = useChatStore((s) => s.fetchChannels);
@@ -2466,6 +2639,16 @@ function ProjectChatPanel({ channelId, channelName, projectId, onFilesSent }: { 
     <div className="flex flex-col h-full relative">
       {/* Header */}
       <div className="px-5 py-3 border-b border-gray-100 dark:border-gray-700 flex items-center gap-3 shrink-0">
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="sm:hidden p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg transition-colors -ml-1"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+        )}
         <div className="w-8 h-8 rounded-full bg-violet-500 flex items-center justify-center shrink-0">
           <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
