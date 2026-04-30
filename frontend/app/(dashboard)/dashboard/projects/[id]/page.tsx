@@ -1424,11 +1424,11 @@ export default function ProjectDetailPage() {
                   <button key={ch.id} onClick={() => setActiveProjectChannelId(ch.id)}
                     className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-left transition-colors ${activeProjectChannelId === ch.id ? 'bg-violet-50 dark:bg-violet-500/10' : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'}`}>
                     <div className="w-8 h-8 rounded-full bg-violet-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
-                      {(ch.channelName || '#').charAt(0).toUpperCase()}
+                      {(ch.channelName || ch.name || '#').charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className={`text-sm font-medium truncate ${activeProjectChannelId === ch.id ? 'text-violet-600 dark:text-violet-400' : 'text-gray-800 dark:text-gray-100'}`}>
-                        {ch.channelName || `Канал #${ch.id}`}
+                        {ch.channelName || ch.name || `Канал #${ch.id}`}
                       </p>
                       <p className="text-xs text-gray-400 truncate">{ch.membersCount} участников</p>
                     </div>
@@ -1451,7 +1451,7 @@ export default function ProjectDetailPage() {
               <ProjectChatPanel
                 key={activeProjectChannelId}
                 channelId={activeProjectChannelId}
-                channelName={projectChannels.find((c) => c.id === activeProjectChannelId)?.channelName || 'Канал'}
+                channelName={(() => { const c = projectChannels.find((c) => c.id === activeProjectChannelId); return c?.channelName || c?.name || 'Канал'; })()}
                 projectId={projectId}
                 onFilesSent={handleChatFilesSent}
               />
@@ -2352,8 +2352,9 @@ function ProjectChatPanel({ channelId, channelName, projectId, onFilesSent }: { 
   const initialRef = useRef(true);
   const prevLenRef = useRef(0);
   const [showParticipants, setShowParticipants] = useState(false);
-  const [participants, setParticipants] = useState<{ id: number; name: string; email: string; role?: string }[]>([]);
+  const [participants, setParticipants] = useState<{ id: number; name: string; email: string; role?: string; isMuted?: boolean }[]>([]);
   const [loadingParticipants, setLoadingParticipants] = useState(false);
+  const [mutingId, setMutingId] = useState<number | null>(null);
 
   const membersCount = channels.find((c) => c.id === channelId)?.membersCount ?? 0;
 
@@ -3314,7 +3315,14 @@ function ProjectChannelCreateModal({
         memberIds: selectedMemberIds,
         settings: { projectName },
       });
-      onCreated(r.data);
+      const raw = r.data;
+      onCreated({
+        id: raw.id,
+        name: raw.name,
+        channelName: raw.channelName ?? raw.name ?? '',
+        projectId: raw.projectId,
+        membersCount: raw.members?.length ?? raw._count?.members ?? 0,
+      });
     } catch {
       addToast('error', 'Не удалось создать канал');
     } finally {
