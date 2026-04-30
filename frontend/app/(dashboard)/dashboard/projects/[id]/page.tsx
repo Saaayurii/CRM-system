@@ -439,6 +439,9 @@ export default function ProjectDetailPage() {
   const [showActModal, setShowActModal] = useState(false);
   const [editingAct, setEditingAct] = useState<Act | null>(null);
   const [savingFinance, setSavingFinance] = useState(false);
+  const [financeViewMode, setFinanceViewMode] = useState<'table' | 'grid'>(() =>
+    typeof window !== 'undefined' ? ((localStorage.getItem('financeViewMode') as 'table' | 'grid') || 'table') : 'table'
+  );
 
   /* Overview summary */
   const [overviewSummary, setOverviewSummary] = useState<{
@@ -951,6 +954,14 @@ export default function ProjectDetailPage() {
             <InfoRow label="Руководитель" value={project.projectManager?.name || '—'} />
             <InfoRow label="Клиент" value={project.clientName || '—'} />
             <InfoRow label="Адрес" value={project.address || '—'} />
+            {project.settings?.notes && (
+              <div className="pt-1 border-t border-gray-100 dark:border-gray-700/60">
+                <p className="text-xs font-medium text-gray-400 dark:text-gray-500 mb-1.5">Заметки</p>
+                <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
+                  {project.settings.notes}
+                </p>
+              </div>
+            )}
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-5 space-y-4">
             {(() => {
@@ -2381,9 +2392,19 @@ function ProjectChatPanel({ channelId, channelName, projectId, onFilesSent }: { 
         name: m.user?.name || m.name || `#${m.userId || m.id}`,
         email: m.user?.email || m.email || '',
         role: m.role,
+        isMuted: m.isMuted ?? false,
       })) : []);
     } catch { setParticipants([]); }
     finally { setLoadingParticipants(false); }
+  }, [channelId]);
+
+  const handleMuteMember = useCallback(async (memberId: number, currentlyMuted: boolean) => {
+    setMutingId(memberId);
+    try {
+      await api.patch(`/chat-channels/${channelId}/members/${memberId}`, { isMuted: !currentlyMuted });
+      setParticipants((prev) => prev.map((p) => p.id === memberId ? { ...p, isMuted: !currentlyMuted } : p));
+    } catch { /* ignore */ }
+    finally { setMutingId(null); }
   }, [channelId]);
 
   useEffect(() => {
@@ -2484,26 +2505,58 @@ function ProjectChatPanel({ channelId, channelName, projectId, onFilesSent }: { 
               <div className="text-center text-sm text-gray-400 py-8">Нет участников</div>
             ) : (
               <div className="space-y-2">
-                {participants.map((p) => (
-                  <div key={p.id} className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 dark:border-gray-700">
-                    <div className="w-8 h-8 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center text-sm font-medium text-violet-700 dark:text-violet-300 shrink-0">
-                      {p.name.charAt(0).toUpperCase()}
+                {(() => {
+                  const currentUserRole = participants.find((p) => p.id === user?.id)?.role;
+                  const isAdmin = currentUserRole === 'admin' || currentUserRole === 'owner';
+                  return participants.map((p) => (
+                    <div key={p.id} className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 dark:border-gray-700">
+                      <div className="w-8 h-8 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center text-sm font-medium text-violet-700 dark:text-violet-300 shrink-0">
+                        {p.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">{p.name}</div>
+                        {p.email && <div className="text-xs text-gray-400 truncate">{p.email}</div>}
+                      </div>
+                      {p.role && p.role !== 'member' && (
+                        <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 font-medium ${
+                          p.role === 'admin' || p.role === 'owner'
+                            ? 'bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300'
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                        }`}>
+                          {p.role === 'admin' ? 'Администратор' : p.role === 'owner' ? 'Владелец' : p.role}
+                        </span>
+                      )}
+                      {isAdmin && p.id !== user?.id && (
+                        <button
+                          onClick={() => handleMuteMember(p.id, p.isMuted ?? false)}
+                          disabled={mutingId === p.id}
+                          title={p.isMuted ? 'Снять мьют' : 'Замьютить'}
+                          className={`shrink-0 p-1.5 rounded-lg transition-colors ${
+                            p.isMuted
+                              ? 'text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20'
+                              : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
+                          } disabled:opacity-50`}
+                        >
+                          {mutingId === p.id ? (
+                            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                            </svg>
+                          ) : p.isMuted ? (
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                            </svg>
+                          ) : (
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072M12 6v12m0 0l-3-3m3 3l3-3M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                            </svg>
+                          )}
+                        </button>
+                      )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">{p.name}</div>
-                      {p.email && <div className="text-xs text-gray-400 truncate">{p.email}</div>}
-                    </div>
-                    {p.role && p.role !== 'member' && (
-                      <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 font-medium ${
-                        p.role === 'admin' || p.role === 'owner'
-                          ? 'bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300'
-                          : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
-                      }`}>
-                        {p.role === 'admin' ? 'Администратор' : p.role === 'owner' ? 'Владелец' : p.role}
-                      </span>
-                    )}
-                  </div>
-                ))}
+                  ));
+                })()}
               </div>
             )}
           </div>
