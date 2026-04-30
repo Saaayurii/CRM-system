@@ -4,6 +4,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useChatStore, ChatChannel } from '@/stores/chatStore';
 import { useAuthStore } from '@/stores/authStore';
 import CreateChannelModal from './CreateChannelModal';
+import api from '@/lib/api';
 
 interface ChatSidebarProps {
   onSelectChannel: () => void;
@@ -24,7 +25,27 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
   const [search, setSearch] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [activeFolder, setActiveFolder] = useState<'all' | number>('all');
+  const [projectNames, setProjectNames] = useState<Map<number, string>>(new Map());
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Fetch real project names for any projectId that has no name in channel settings
+  useEffect(() => {
+    const missingIds = [...new Set(
+      channels
+        .filter((ch) => ch.projectId != null && !ch.projectName)
+        .map((ch) => ch.projectId as number)
+    )];
+    if (missingIds.length === 0) return;
+
+    api.get('/projects', { params: { limit: 200 } })
+      .then(({ data }) => {
+        const projects: { id: number; name: string }[] = data?.projects || data?.data || data || [];
+        const map = new Map<number, string>();
+        for (const p of projects) map.set(p.id, p.name);
+        setProjectNames(map);
+      })
+      .catch(() => {});
+  }, [channels]);
 
   const handleSelect = useCallback(
     async (channelId: number) => {
@@ -50,15 +71,18 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
     return () => el.removeEventListener('scroll', handleScroll);
   }, [handleScroll]);
 
-  // Build project folders from group channels that have a projectId
+  // Build project folders — prefer channel.projectName, then fetched name, then fallback
   const projectFolders = Array.from(
     channels
       .filter((ch) => ch.projectId != null)
       .reduce((map, ch) => {
         const pid = ch.projectId!;
-        if (!map.has(pid)) map.set(pid, ch.projectName || `Проект #${pid}`);
+        if (!map.has(pid)) {
+          const name = ch.projectName || projectNames.get(pid) || null;
+          map.set(pid, name);
+        }
         return map;
-      }, new Map<number, string>())
+      }, new Map<number, string | null>())
       .entries()
   );
 
@@ -115,22 +139,37 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
 
       {/* Folder tabs */}
       {projectFolders.length > 0 && (
-        <div className="flex gap-1 px-3 pb-2 overflow-x-auto scrollbar-none">
-          <button
-            onClick={() => setActiveFolder('all')}
-            className={`shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors ${activeFolder === 'all' ? 'bg-violet-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'}`}
-          >
-            Все чаты
-          </button>
-          {projectFolders.map(([pid, pname]) => (
-            <button
-              key={pid}
-              onClick={() => setActiveFolder(pid)}
-              className={`shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors ${activeFolder === pid ? 'bg-violet-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'}`}
-            >
-              {pname}
-            </button>
-          ))}
+        <div className="border-b border-gray-100 dark:border-gray-700/60">
+          <div className="relative">
+            <div className="flex gap-1 px-3 py-2 overflow-x-auto scrollbar-none">
+              <button
+                onClick={() => setActiveFolder('all')}
+                className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${
+                  activeFolder === 'all'
+                    ? 'bg-violet-500 text-white shadow-sm'
+                    : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-800 dark:hover:text-gray-200'
+                }`}
+              >
+                Все чаты
+              </button>
+              {projectFolders.map(([pid, pname]) => (
+                <button
+                  key={pid}
+                  onClick={() => setActiveFolder(pid)}
+                  className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap max-w-[120px] truncate ${
+                    activeFolder === pid
+                      ? 'bg-violet-500 text-white shadow-sm'
+                      : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-800 dark:hover:text-gray-200'
+                  }`}
+                  title={pname ?? `Проект #${pid}`}
+                >
+                  {pname ?? `Проект #${pid}`}
+                </button>
+              ))}
+            </div>
+            {/* right fade hint */}
+            <div className="pointer-events-none absolute right-0 top-0 h-full w-6 bg-gradient-to-l from-white dark:from-gray-800" />
+          </div>
         </div>
       )}
 
