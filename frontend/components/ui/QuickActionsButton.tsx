@@ -41,8 +41,6 @@ export default function QuickActionsButton() {
   const rootRef = useRef<HTMLDivElement>(null);
   const chatWindowOpen = useChatStore((s) => s.chatWindowOpen);
 
-  if (chatWindowOpen) return null;
-
   // Close on outside click
   useEffect(() => {
     if (!open && !panel) return;
@@ -79,6 +77,8 @@ export default function QuickActionsButton() {
   };
 
   const closePanel = () => setPanel(null);
+
+  if (chatWindowOpen) return null;
 
   return (
     <div ref={rootRef} className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
