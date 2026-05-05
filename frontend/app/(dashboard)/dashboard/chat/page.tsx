@@ -48,10 +48,10 @@ export default function ChatPage() {
     setActiveChannel(null);
   };
 
-  // On mobile: fixed fullscreen when in a conversation, normal height when on list
+  // On mobile: fixed fullscreen always (avoids py-8 layout padding issues)
   const mobileClass = activeChannelId
     ? 'max-lg:fixed max-lg:inset-0 max-lg:z-50'
-    : 'max-lg:h-[calc(100dvh-64px-4rem)]';
+    : 'max-lg:fixed max-lg:inset-x-0 max-lg:top-16 max-lg:bottom-0 max-lg:z-10';
 
   return (
     <div className={`flex ${mobileClass} lg:h-[calc(100dvh-64px-4rem)] bg-white dark:bg-gray-900 max-lg:rounded-none lg:rounded-xl shadow-xs overflow-hidden`}>
