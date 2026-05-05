@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
+import { useDraft } from '@/hooks/useDraft';
+import DraftBanner from '@/components/ui/DraftBanner';
 
 interface DocumentFormModalProps {
   document?: any | null;
@@ -49,7 +51,8 @@ export default function DocumentFormModal({ document, onClose, onSaved }: Docume
   const [projects, setProjects] = useState<Project[]>([]);
   const [uploadingFile, setUploadingFile] = useState(false);
 
-  const [formData, setFormData] = useState({
+  const isNew = !document?.id;
+  const initialForm = {
     title: document?.title || '',
     documentType: document?.documentType || document?.document_type || 'other',
     documentNumber: document?.documentNumber || document?.document_number || '',
@@ -64,7 +67,17 @@ export default function DocumentFormModal({ document, onClose, onSaved }: Docume
     status: document?.status || 'draft',
     accessLevel: document?.accessLevel || document?.access_level || 'internal',
     tags: document?.tags ? (Array.isArray(document.tags) ? document.tags.join(', ') : '') : '',
-  });
+  };
+  const draft = useDraft('document:new', initialForm);
+  const [formData, setFormDataRaw] = useState(initialForm);
+
+  const setFormData = (updater: typeof initialForm | ((prev: typeof initialForm) => typeof initialForm)) => {
+    setFormDataRaw((prev) => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      if (isNew) draft.set(next);
+      return next;
+    });
+  };
 
   useEffect(() => {
     api.get('/projects', { params: { limit: 100 } })
@@ -129,6 +142,7 @@ export default function DocumentFormModal({ document, onClose, onSaved }: Docume
       } else {
         await api.post('/documents', payload);
         addToast('success', 'Документ создан');
+        draft.clearDraft();
       }
 
       onSaved();
@@ -155,6 +169,12 @@ export default function DocumentFormModal({ document, onClose, onSaved }: Docume
             </svg>
           </button>
         </div>
+        {isNew && draft.hasDraft && (
+          <DraftBanner
+            onRestore={() => { draft.restoreDraft(); setFormDataRaw(draft.value); }}
+            onDiscard={() => draft.clearDraft()}
+          />
+        )}
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {/* Title */}

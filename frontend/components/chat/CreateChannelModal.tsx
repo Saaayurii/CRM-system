@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import { useChatStore } from '@/stores/chatStore';
 import { useAuthStore } from '@/stores/authStore';
+import { useDraft } from '@/hooks/useDraft';
+import DraftBanner from '@/components/ui/DraftBanner';
 
 interface CreateChannelModalProps {
   onClose: () => void;
@@ -16,12 +18,16 @@ interface UserOption {
 }
 
 export default function CreateChannelModal({ onClose }: CreateChannelModalProps) {
-  const [channelType, setChannelType] = useState<'direct' | 'group'>('direct');
-  const [channelName, setChannelName] = useState('');
+  const draft = useDraft('channel:new', { channelType: 'direct' as 'direct' | 'group', channelName: '' });
+  const [channelType, setChannelTypeRaw] = useState<'direct' | 'group'>('direct');
+  const [channelName, setChannelNameRaw] = useState('');
   const [search, setSearch] = useState('');
   const [users, setUsers] = useState<UserOption[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<UserOption[]>([]);
   const [loading, setLoading] = useState(false);
+
+  const setChannelType = (v: 'direct' | 'group') => { setChannelTypeRaw(v); draft.set((p) => ({ ...p, channelType: v })); };
+  const setChannelName = (v: string) => { setChannelNameRaw(v); draft.set((p) => ({ ...p, channelName: v })); };
 
   const createChannel = useChatStore((s) => s.createChannel);
   const setActiveChannel = useChatStore((s) => s.setActiveChannel);
@@ -79,23 +85,32 @@ export default function CreateChannelModal({ onClose }: CreateChannelModalProps)
     }
 
     setLoading(false);
+    draft.clearDraft();
     onClose();
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="fixed inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full p-6">
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-
-        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">Новый чат</h2>
+      <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full overflow-hidden">
+        <div className="px-6 pt-6 pb-0 flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Новый чат</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        {draft.hasDraft && (
+          <DraftBanner
+            onRestore={() => { draft.restoreDraft(); setChannelTypeRaw(draft.value.channelType); setChannelNameRaw(draft.value.channelName); }}
+            onDiscard={() => draft.clearDraft()}
+          />
+        )}
+        <div className="px-6 pb-6">
 
         {/* Channel type toggle */}
         <div className="flex gap-2 mb-4">
@@ -230,6 +245,7 @@ export default function CreateChannelModal({ onClose }: CreateChannelModalProps)
         >
           {loading ? 'Создание...' : 'Создать'}
         </button>
+        </div>
       </div>
     </div>
   );

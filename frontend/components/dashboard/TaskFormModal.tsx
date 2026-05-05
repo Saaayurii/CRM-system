@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import { useOfflineForm } from '@/hooks/useOfflineForm';
+import { useDraft } from '@/hooks/useDraft';
+import DraftBanner from '@/components/ui/DraftBanner';
 
 interface TaskFormModalProps {
   task?: any | null;
@@ -56,7 +58,8 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
   const [projects, setProjects] = useState<Project[]>([]);
   const [users, setUsers] = useState<User[]>([]);
 
-  const [formData, setFormData] = useState({
+  const isNew = !task?.id;
+  const initialForm = {
     title: task?.title || '',
     description: task?.description || '',
     status: task?.status ?? 0,
@@ -65,7 +68,15 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
     assignedToUserId: task?.assignedToUserId || task?.assigned_to_user_id || '',
     dueDate: task?.dueDate?.split('T')[0] || task?.due_date?.split('T')[0] || '',
     estimatedHours: task?.estimatedHours || task?.estimated_hours || '',
-  });
+  };
+  const draft = useDraft('task:new', initialForm);
+  const [formData, setFormDataRaw] = useState(initialForm);
+
+  const setFormData = (updater: any) => {
+    const next = typeof updater === 'function' ? updater(formData) : updater;
+    setFormDataRaw(next);
+    if (isNew) draft.set(next);
+  };
 
   useEffect(() => {
     Promise.all([
@@ -80,7 +91,7 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
   }, []);
 
   const handleChange = (field: string, value: any) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev: typeof initialForm) => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -111,7 +122,7 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
       } else {
         const result = await submitCreate(payload, label);
         if (result.ok && !result.queued) addToast('success', 'Задача создана');
-        if (result.ok) onSaved();
+        if (result.ok) { draft.clearDraft(); onSaved(); }
       }
     } catch (err: any) {
       addToast('error', err.response?.data?.message || 'Ошибка при сохранении');
@@ -136,6 +147,12 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
             </svg>
           </button>
         </div>
+        {isNew && draft.hasDraft && (
+          <DraftBanner
+            onRestore={() => { draft.restoreDraft(); setFormDataRaw(draft.value); }}
+            onDiscard={() => draft.clearDraft()}
+          />
+        )}
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {/* Title */}

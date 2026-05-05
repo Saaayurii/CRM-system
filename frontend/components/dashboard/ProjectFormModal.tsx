@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import api from '@/lib/api';
+import { useDraft } from '@/hooks/useDraft';
+import DraftBanner from '@/components/ui/DraftBanner';
 
 interface Team {
   id: number;
@@ -72,22 +74,47 @@ const LABEL_CLS = 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb
 export default function ProjectFormModal({ project, onClose, onSaved }: ProjectFormModalProps) {
   const isEdit = !!project?.id;
 
-  const [name, setName] = useState(project?.name || '');
-  const [description, setDescription] = useState(project?.description || '');
-  const [status, setStatus] = useState<number>(project?.status ?? 0);
-  const [priority, setPriority] = useState<number>(project?.priority ?? 2);
-  const [budget, setBudget] = useState<string>(project?.budget != null ? String(project.budget) : '');
-  const [actualCost, setActualCost] = useState<string>(project?.actualCost != null ? String(project.actualCost) : '');
-  const [startDate, setStartDate] = useState(toDateInput(project?.startDate || project?.start_date));
-  const [plannedEndDate, setPlannedEndDate] = useState(toDateInput(project?.plannedEndDate || project?.planned_end_date));
-  const [actualEndDate, setActualEndDate] = useState(toDateInput(project?.actualEndDate || project?.actual_end_date));
-  const [teamId, setTeamId] = useState<number | ''>(project?.teamId || project?.team_id || '');
-  const [managerId, setManagerId] = useState<number | ''>(
-    project?.projectManagerId || project?.managerId || project?.manager_id || project?.projectManager?.id || ''
-  );
-  const [address, setAddress] = useState(project?.address || '');
-  const [clientName, setClientName] = useState(project?.clientName || project?.client_name || '');
-  const [notes, setNotes] = useState<string>(project?.settings?.notes || '');
+  const initialDraft = {
+    name: project?.name || '',
+    description: project?.description || '',
+    status: project?.status ?? 0,
+    priority: project?.priority ?? 2,
+    budget: project?.budget != null ? String(project.budget) : '',
+    actualCost: project?.actualCost != null ? String(project.actualCost) : '',
+    startDate: toDateInput(project?.startDate || project?.start_date),
+    plannedEndDate: toDateInput(project?.plannedEndDate || project?.planned_end_date),
+    actualEndDate: toDateInput(project?.actualEndDate || project?.actual_end_date),
+    teamId: String(project?.teamId || project?.team_id || ''),
+    managerId: String(project?.projectManagerId || project?.managerId || project?.manager_id || project?.projectManager?.id || ''),
+    address: project?.address || '',
+    clientName: project?.clientName || project?.client_name || '',
+    notes: project?.settings?.notes || '',
+  };
+
+  const draft = useDraft('project:new', initialDraft);
+
+  const [name, setName] = useState(initialDraft.name);
+  const [description, setDescription] = useState(initialDraft.description);
+  const [status, setStatus] = useState<number>(initialDraft.status);
+  const [priority, setPriority] = useState<number>(initialDraft.priority);
+  const [budget, setBudget] = useState<string>(initialDraft.budget);
+  const [actualCost, setActualCost] = useState<string>(initialDraft.actualCost);
+  const [startDate, setStartDate] = useState(initialDraft.startDate);
+  const [plannedEndDate, setPlannedEndDate] = useState(initialDraft.plannedEndDate);
+  const [actualEndDate, setActualEndDate] = useState(initialDraft.actualEndDate);
+  const [teamId, setTeamId] = useState<number | ''>(initialDraft.teamId ? Number(initialDraft.teamId) : '');
+  const [managerId, setManagerId] = useState<number | ''>(initialDraft.managerId ? Number(initialDraft.managerId) : '');
+  const [address, setAddress] = useState(initialDraft.address);
+  const [clientName, setClientName] = useState(initialDraft.clientName);
+  const [notes, setNotes] = useState<string>(initialDraft.notes);
+
+  const applyDraft = useCallback((d: typeof initialDraft) => {
+    setName(d.name); setDescription(d.description); setStatus(Number(d.status));
+    setPriority(Number(d.priority)); setBudget(d.budget); setActualCost(d.actualCost);
+    setStartDate(d.startDate); setPlannedEndDate(d.plannedEndDate); setActualEndDate(d.actualEndDate);
+    setTeamId(d.teamId ? Number(d.teamId) : ''); setManagerId(d.managerId ? Number(d.managerId) : '');
+    setAddress(d.address); setClientName(d.clientName); setNotes(d.notes);
+  }, []);
 
   const [teams, setTeams] = useState<Team[]>([]);
   const [users, setUsers] = useState<UserOption[]>([]);
@@ -107,6 +134,13 @@ export default function ProjectFormModal({ project, onClose, onSaved }: ProjectF
     };
     fetchData();
   }, []);
+
+  // Auto-save draft on field changes (only for new projects)
+  useEffect(() => {
+    if (isEdit) return;
+    draft.set({ name, description, status, priority, budget, actualCost, startDate, plannedEndDate, actualEndDate, teamId: String(teamId), managerId: String(managerId), address, clientName, notes });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEdit, name, description, status, priority, budget, actualCost, startDate, plannedEndDate, actualEndDate, teamId, managerId, address, clientName, notes]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -141,6 +175,7 @@ export default function ProjectFormModal({ project, onClose, onSaved }: ProjectF
       } else {
         const res = await api.post('/projects', payload);
         updated = res.data;
+        draft.clearDraft();
       }
       onSaved(updated);
     } catch {
@@ -164,6 +199,13 @@ export default function ProjectFormModal({ project, onClose, onSaved }: ProjectF
             </svg>
           </button>
         </div>
+
+        {!isEdit && draft.hasDraft && (
+          <DraftBanner
+            onRestore={() => { draft.restoreDraft(); applyDraft(draft.value); }}
+            onDiscard={() => draft.clearDraft()}
+          />
+        )}
 
         {error && (
           <div className="mb-4 text-sm text-red-500 bg-red-50 dark:bg-red-500/10 rounded-lg px-3 py-2">{error}</div>
