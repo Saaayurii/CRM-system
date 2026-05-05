@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useChatStore } from '@/stores/chatStore';
 import ChatSidebar from '@/components/chat/ChatSidebar';
@@ -16,6 +16,32 @@ export default function ChatPage() {
 
   const [showSidebar, setShowSidebar] = useState(true);
   const searchParams = useSearchParams();
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  // iOS: when keyboard opens, visual viewport shrinks but fixed elements don't move.
+  // Track visualViewport and resize the container to fit the visible area.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => {
+      const el = chatContainerRef.current;
+      if (!el || window.innerWidth >= 1024) return;
+      el.style.height = `${vv.height}px`;
+      el.style.top = `${vv.offsetTop}px`;
+      el.style.bottom = 'auto';
+    };
+    const reset = () => {
+      const el = chatContainerRef.current;
+      if (el) { el.style.height = ''; el.style.top = ''; el.style.bottom = ''; }
+    };
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    return () => {
+      vv.removeEventListener('resize', update);
+      vv.removeEventListener('scroll', update);
+      reset();
+    };
+  }, []);
 
   useEffect(() => {
     connect();
@@ -54,7 +80,7 @@ export default function ChatPage() {
     : 'max-lg:fixed max-lg:inset-x-0 max-lg:top-16 max-lg:bottom-0 max-lg:z-10';
 
   return (
-    <div className={`flex ${mobileClass} lg:h-[calc(100dvh-64px-4rem)] bg-white dark:bg-gray-900 max-lg:rounded-none lg:rounded-xl shadow-xs overflow-hidden`}>
+    <div ref={chatContainerRef} className={`flex ${mobileClass} lg:h-[calc(100dvh-64px-4rem)] bg-white dark:bg-gray-900 max-lg:rounded-none lg:rounded-xl shadow-xs overflow-hidden`}>
       {/* Sidebar: always visible on lg+, toggle on mobile */}
       <div
         className={`${

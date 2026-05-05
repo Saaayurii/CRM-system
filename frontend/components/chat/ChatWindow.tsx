@@ -34,6 +34,18 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
     return () => setChatWindowOpen(false);
   }, [setChatWindowOpen]);
 
+  // Scroll to bottom when keyboard appears (iOS visual viewport resize)
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const onResize = () => {
+      // Small timeout lets the container resize first
+      setTimeout(() => messagesEndRef.current?.scrollIntoView(), 50);
+    };
+    vv.addEventListener('resize', onResize);
+    return () => vv.removeEventListener('resize', onResize);
+  }, []);
+
   const [showInfo, setShowInfo] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
