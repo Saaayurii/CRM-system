@@ -90,6 +90,15 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, onRepl
       name: a.fileName,
     }));
 
+  const mediaAtts = (message.attachments ?? []).filter(
+    (a) => a.mimeType?.startsWith('image/') || a.mimeType?.startsWith('video/')
+  );
+  const nonMediaAtts = (message.attachments ?? []).filter(
+    (a) => !a.mimeType?.startsWith('image/') && !a.mimeType?.startsWith('video/')
+  );
+  const hasAlbum = mediaAtts.length >= 2;
+  const albumCornerClass = isOwn ? 'rounded-tl-2xl rounded-tr-sm' : 'rounded-tl-sm rounded-tr-2xl';
+
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const [previewFile, setPreviewFile] = useState<{ url: string; name?: string } | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -209,88 +218,67 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, onRepl
             <VoicePlayer src={message.attachments[0].fileUrl} isOwn={isOwn} />
           ) : (
             <>
-              {/* Text */}
+              {/* Media album — full-width at top (Telegram style), rendered before text */}
+              {hasAlbum && (
+                <div className={`overflow-hidden -mx-3 -mt-2 mb-2 ${albumCornerClass}`}>
+                  <MediaAlbum items={mediaAtts} mediaItems={mediaItems} onOpen={openViewer} />
+                </div>
+              )}
+
+              {/* Text (caption if album, otherwise regular message text) */}
               {message.text && renderText(message.text, isOwn, highlightQuery)}
 
-              {/* Attachments */}
-              {message.attachments && message.attachments.length > 0 && (
+              {/* Single image */}
+              {!hasAlbum && mediaAtts.length === 1 && mediaAtts[0].mimeType?.startsWith('image/') && (() => {
+                const att = mediaAtts[0];
+                const mediaIndex = mediaItems.findIndex((m) => m.url === att.fileUrl);
+                return (
+                  <div key={att.id} className="relative group/img mt-1">
+                    <img src={att.fileUrl} alt={att.fileName}
+                      className="max-w-full max-h-60 rounded-lg object-cover block cursor-zoom-in"
+                      onClick={() => openViewer(mediaIndex)}
+                      onError={(e) => { e.currentTarget.style.display = 'none'; (e.currentTarget.nextElementSibling as HTMLElement)?.classList.remove('hidden'); }}
+                    />
+                    <div className={`hidden items-center gap-2 p-2 rounded-lg text-sm ${isOwn ? 'bg-violet-400/30' : 'bg-gray-100 dark:bg-gray-700'}`}>
+                      <FileIcon mimeType={att.mimeType} /><span className="truncate text-sm">{att.fileName}</span>
+                    </div>
+                    <a href={att.fileUrl} download={att.fileName} target="_blank" rel="noopener noreferrer"
+                      className="absolute bottom-1.5 right-1.5 opacity-0 group-hover/img:opacity-100 transition-opacity bg-black/50 hover:bg-black/70 rounded-full p-1"
+                      onClick={(e) => e.stopPropagation()}>
+                      <DownloadIcon />
+                    </a>
+                  </div>
+                );
+              })()}
+
+              {/* Single video */}
+              {!hasAlbum && mediaAtts.length === 1 && mediaAtts[0].mimeType?.startsWith('video/') && (() => {
+                const att = mediaAtts[0];
+                const mediaIndex = mediaItems.findIndex((m) => m.url === att.fileUrl);
+                return (
+                  <div key={att.id} className="relative group/vid mt-1">
+                    <div className="relative cursor-pointer rounded-lg overflow-hidden" onClick={() => openViewer(mediaIndex)}>
+                      <VideoThumbnail src={att.fileUrl} className="max-w-full max-h-52 rounded-lg block" />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/25 group-hover/vid:bg-black/40 transition-colors rounded-lg">
+                        <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
+                          <svg className="w-5 h-5 text-gray-800 ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                        </div>
+                      </div>
+                    </div>
+                    <a href={att.fileUrl} download={att.fileName} target="_blank" rel="noopener noreferrer"
+                      className="absolute top-1.5 right-1.5 opacity-0 group-hover/vid:opacity-100 transition-opacity bg-black/50 hover:bg-black/70 rounded-full p-1"
+                      onClick={(e) => e.stopPropagation()}>
+                      <DownloadIcon />
+                    </a>
+                  </div>
+                );
+              })()}
+
+              {/* Audio and document files */}
+              {nonMediaAtts.length > 0 && (
                 <div className="mt-1 space-y-1">
-                  {message.attachments.map((att, index) => {
-                    const isImage = att.mimeType?.startsWith('image/');
-                    const isVideo = att.mimeType?.startsWith('video/');
+                  {nonMediaAtts.map((att, index) => {
                     const isAudio = att.mimeType?.startsWith('audio/');
-
-                    if (isImage) {
-                      const mediaIndex = mediaItems.findIndex((m) => m.url === att.fileUrl);
-                      return (
-                        <div key={att.id ?? index} className="relative group/img">
-                          <img
-                            src={att.fileUrl}
-                            alt={att.fileName}
-                            className="max-w-full max-h-60 rounded-lg object-cover block cursor-zoom-in"
-                            onClick={() => openViewer(mediaIndex)}
-                            onError={(e) => {
-                              const el = e.currentTarget;
-                              el.style.display = 'none';
-                              el.nextElementSibling?.classList.remove('hidden');
-                            }}
-                          />
-                          <div className={`hidden items-center gap-2 p-2 rounded-lg text-sm ${isOwn ? 'bg-violet-400/30' : 'bg-gray-100 dark:bg-gray-700'}`}>
-                            <FileIcon mimeType={att.mimeType} />
-                            <span className="truncate text-sm">{att.fileName}</span>
-                          </div>
-                          <a
-                            href={att.fileUrl}
-                            download={att.fileName}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="absolute bottom-1.5 right-1.5 opacity-0 group-hover/img:opacity-100 transition-opacity bg-black/50 hover:bg-black/70 rounded-full p-1"
-                            title="Скачать"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <DownloadIcon />
-                          </a>
-                        </div>
-                      );
-                    }
-
-                    if (isVideo) {
-                      const mediaIndex = mediaItems.findIndex((m) => m.url === att.fileUrl);
-                      return (
-                        <div key={att.id ?? index} className="relative group/vid">
-                          {/* Thumbnail overlay — click opens viewer */}
-                          <div
-                            className="relative cursor-pointer rounded-lg overflow-hidden"
-                            onClick={() => openViewer(mediaIndex)}
-                          >
-                            <VideoThumbnail
-                              src={att.fileUrl}
-                              className="max-w-full max-h-52 rounded-lg block"
-                            />
-                            {/* Play button overlay */}
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/25 group-hover/vid:bg-black/40 transition-colors rounded-lg">
-                              <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
-                                <svg className="w-5 h-5 text-gray-800 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
-                                  <path d="M8 5v14l11-7z" />
-                                </svg>
-                              </div>
-                            </div>
-                          </div>
-                          <a
-                            href={att.fileUrl}
-                            download={att.fileName}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="absolute top-1.5 right-1.5 opacity-0 group-hover/vid:opacity-100 transition-opacity bg-black/50 hover:bg-black/70 rounded-full p-1"
-                            title="Скачать"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <DownloadIcon />
-                          </a>
-                        </div>
-                      );
-                    }
-
                     if (isAudio) {
                       return (
                         <div key={att.id ?? index} className={`flex flex-col gap-1 p-2 rounded-lg ${isOwn ? 'bg-violet-400/30' : 'bg-gray-100 dark:bg-gray-700'}`}>
@@ -299,14 +287,8 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, onRepl
                               <FileIcon mimeType={att.mimeType} />
                               <span className="truncate text-sm font-medium">{att.fileName}</span>
                             </div>
-                            <a
-                              href={att.fileUrl}
-                              download={att.fileName}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className={`shrink-0 p-1 rounded-full hover:bg-black/10 ${isOwn ? 'text-violet-200' : 'text-gray-500'}`}
-                              title="Скачать"
-                            >
+                            <a href={att.fileUrl} download={att.fileName} target="_blank" rel="noopener noreferrer"
+                              className={`shrink-0 p-1 rounded-full hover:bg-black/10 ${isOwn ? 'text-violet-200' : 'text-gray-500'}`}>
                               <DownloadIcon />
                             </a>
                           </div>
@@ -314,17 +296,12 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, onRepl
                         </div>
                       );
                     }
-
                     return (
-                      <div
-                        key={att.id ?? index}
+                      <div key={att.id ?? index}
                         onClick={() => setPreviewFile({ url: att.fileUrl, name: att.fileName })}
                         className={`flex items-center gap-2 p-2 rounded-lg text-sm cursor-pointer transition-colors ${
-                          isOwn
-                            ? 'bg-violet-400/30 hover:bg-violet-400/40'
-                            : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600'
-                        }`}
-                      >
+                          isOwn ? 'bg-violet-400/30 hover:bg-violet-400/40' : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600'
+                        }`}>
                         <FileIcon mimeType={att.mimeType} />
                         <div className="min-w-0 flex-1">
                           <p className="truncate font-medium text-sm">{att.fileName}</p>
@@ -332,19 +309,9 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, onRepl
                             {getFileExt(att.fileName)} · {formatSize(att.fileSize)}
                           </p>
                         </div>
-                        <a
-                          href={att.fileUrl}
-                          download={att.fileName}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={`shrink-0 p-1.5 rounded-full transition-colors ${
-                            isOwn
-                              ? 'text-violet-200 hover:bg-violet-400/30'
-                              : 'text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-600'
-                          }`}
-                          title="Скачать"
-                          onClick={(e) => e.stopPropagation()}
-                        >
+                        <a href={att.fileUrl} download={att.fileName} target="_blank" rel="noopener noreferrer"
+                          className={`shrink-0 p-1.5 rounded-full transition-colors ${isOwn ? 'text-violet-200 hover:bg-violet-400/30' : 'text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-600'}`}
+                          onClick={(e) => e.stopPropagation()}>
                           <DownloadIcon />
                         </a>
                       </div>
@@ -753,6 +720,89 @@ function renderText(text: string, isOwn: boolean, highlightQuery?: string) {
         <p className="text-sm whitespace-pre-wrap break-words">{textSegments}</p>
       )}
       {cards}
+    </div>
+  );
+}
+
+// ── Media Album (Telegram-style grid for multiple images/videos) ─────────────
+
+function MediaAlbum({
+  items,
+  mediaItems,
+  onOpen,
+}: {
+  items: Array<{ fileUrl: string; mimeType?: string; fileName: string; id?: number }>;
+  mediaItems: Array<{ url: string; type: 'image' | 'video'; name?: string }>;
+  onOpen: (index: number) => void;
+}) {
+  const count = items.length;
+  const getIdx = (item: { fileUrl: string }) => mediaItems.findIndex((m) => m.url === item.fileUrl);
+
+  const renderCell = (
+    item: typeof items[0],
+    key: React.Key,
+    className: string,
+    overflowCount?: number,
+  ) => {
+    const isVid = item.mimeType?.startsWith('video/');
+    const idx = getIdx(item);
+    const showOverflow = overflowCount != null && overflowCount > 0;
+    return (
+      <div key={key} className={`relative overflow-hidden cursor-pointer ${className}`} onClick={() => onOpen(idx)}>
+        {isVid
+          ? <VideoThumbnail src={item.fileUrl} className="w-full h-full object-cover" />
+          : <img src={item.fileUrl} alt={item.fileName} className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+        }
+        {isVid && !showOverflow && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/25 pointer-events-none">
+            <div className="w-9 h-9 rounded-full bg-white/90 flex items-center justify-center shadow">
+              <svg className="w-3.5 h-3.5 text-gray-800 ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+            </div>
+          </div>
+        )}
+        {showOverflow && (
+          <div className="absolute inset-0 bg-black/60 flex items-center justify-center pointer-events-none">
+            <span className="text-white text-2xl font-bold">+{overflowCount}</span>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  if (count === 2) {
+    return (
+      <div className="flex gap-0.5 h-44">
+        {renderCell(items[0], items[0].id ?? 0, 'flex-1')}
+        {renderCell(items[1], items[1].id ?? 1, 'flex-1')}
+      </div>
+    );
+  }
+
+  if (count === 3) {
+    return (
+      <div className="flex flex-col gap-0.5">
+        <div className="h-40">{renderCell(items[0], items[0].id ?? 0, 'w-full h-full')}</div>
+        <div className="flex gap-0.5 h-28">
+          {renderCell(items[1], items[1].id ?? 1, 'flex-1')}
+          {renderCell(items[2], items[2].id ?? 2, 'flex-1')}
+        </div>
+      </div>
+    );
+  }
+
+  // 4+ items: 1 large + up to 3 thumbnails below, last thumb shows overflow count
+  const thumbs = items.slice(1, 4);
+  const overflow = count - 4; // items hidden beyond what we show
+
+  return (
+    <div className="flex flex-col gap-0.5">
+      <div className="h-44">{renderCell(items[0], items[0].id ?? 0, 'w-full h-full')}</div>
+      <div className="flex gap-0.5 h-28">
+        {thumbs.map((item, i) => {
+          const isLast = i === thumbs.length - 1 && overflow > 0;
+          return renderCell(item, item.id ?? (i + 1), 'flex-1', isLast ? overflow : undefined);
+        })}
+      </div>
     </div>
   );
 }
