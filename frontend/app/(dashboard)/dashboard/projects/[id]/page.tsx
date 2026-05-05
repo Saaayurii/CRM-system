@@ -254,6 +254,42 @@ const TABS = [
   { key: 'notes', label: 'Заметки' },
 ] as const;
 
+type TabKey = typeof TABS[number]['key'];
+
+function TabsNav({ activeTab, onSelect }: { activeTab: TabKey; onSelect: (k: TabKey) => void }) {
+  const navRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const nav = navRef.current;
+    if (!nav) return;
+    const activeBtn = nav.querySelector('[data-active="true"]') as HTMLElement | null;
+    if (!activeBtn) return;
+    const left = activeBtn.offsetLeft - nav.offsetWidth / 2 + activeBtn.offsetWidth / 2;
+    nav.scrollTo({ left, behavior: 'smooth' });
+  }, [activeTab]);
+
+  return (
+    <div className="border-b border-gray-200 dark:border-gray-700 mb-6">
+      <nav ref={navRef} className="flex gap-1 overflow-x-auto scrollbar-none">
+        {TABS.map((t) => (
+          <button
+            key={t.key}
+            data-active={activeTab === t.key ? 'true' : 'false'}
+            onClick={() => onSelect(t.key)}
+            className={`px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+              activeTab === t.key
+                ? 'border-violet-500 text-violet-600 dark:text-violet-400'
+                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </nav>
+    </div>
+  );
+}
+
 interface Payment {
   id: number;
   paymentNumber: string;
@@ -319,8 +355,6 @@ const BUDGET_STATUS: Record<number, { label: string; color: string }> = {
   1: { label: 'Активный', color: 'bg-green-500/20 text-green-700 dark:text-green-400' },
   2: { label: 'Закрыт', color: 'bg-sky-500/20 text-sky-700 dark:text-sky-400' },
 };
-
-type TabKey = typeof TABS[number]['key'];
 
 function fmt(d?: string) {
   if (!d) return '—';
@@ -963,20 +997,8 @@ export default function ProjectDetailPage() {
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200 dark:border-gray-700 mb-6">
-        <nav className="flex gap-1 overflow-x-auto">
-          {TABS.map((t) => (
-            <button key={t.key} onClick={() => setActiveTab(t.key)}
-              className={`px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
-                activeTab === t.key
-                  ? 'border-violet-500 text-violet-600 dark:text-violet-400'
-                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-              }`}>
-              {t.label}
-            </button>
-          ))}
-        </nav>
-      </div>
+      <TabsNav activeTab={activeTab} onSelect={setActiveTab} />
+
 
       {/* ─── Overview ─── */}
       {activeTab === 'overview' && (
