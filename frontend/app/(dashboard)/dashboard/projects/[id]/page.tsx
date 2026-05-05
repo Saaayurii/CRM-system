@@ -63,6 +63,7 @@ interface Document {
   status?: string;
   fileUrl?: string;
   fileSize?: number;
+  fileType?: string;
   createdAt: string;
 }
 
@@ -250,7 +251,7 @@ const TABS = [
   { key: 'documents', label: 'Документы' },
   { key: 'finance', label: 'Финансы' },
   { key: 'chat', label: 'Диалог' },
-  { key: 'photos', label: 'Фотографии' },
+  { key: 'photos', label: 'Медиа' },
   { key: 'notes', label: 'Заметки' },
 ] as const;
 
@@ -787,11 +788,12 @@ export default function ProjectDetailPage() {
   const handleChatFilesSent = useCallback(async (attachments: { fileUrl: string; fileName: string; fileSize: number; mimeType: string }[]) => {
     for (const att of attachments) {
       const isImage = att.mimeType?.startsWith('image/');
+      const isVideo = att.mimeType?.startsWith('video/');
       const isAudio = att.mimeType?.startsWith('audio/');
 
       if (isAudio) continue; // голосовые сообщения не сохраняем
 
-      if (isImage) {
+      if (isImage || isVideo) {
         // Добавить в фото объекта строительства
         try {
           let targetSite = sites[0] ?? null;
@@ -932,7 +934,8 @@ export default function ProjectDetailPage() {
       }
 
       for (const rawFile of Array.from(files)) {
-        const file = await convertImageToJpeg(rawFile);
+        const isVid = rawFile.type.startsWith('video/');
+        const file = isVid ? rawFile : await convertImageToJpeg(rawFile);
         const form = new FormData();
         form.append('files', file);
         const uploadRes = await api.post('/chat-channels/upload', form, {
@@ -949,7 +952,7 @@ export default function ProjectDetailPage() {
         });
       }
       await reloadSites();
-      addToast('success', `Загружено ${files.length} фото`);
+      addToast('success', `Загружено ${files.length} медиа`);
     } catch { addToast('error', 'Ошибка при загрузке фото'); }
     finally { setUploadingPhoto(false); if (photoInputRef.current) photoInputRef.current.value = ''; }
   };
@@ -1570,57 +1573,117 @@ export default function ProjectDetailPage() {
               return matchSearch && matchType;
             });
             if (filtered.length === 0) return <EmptyState text="Ничего не найдено" />;
+            const getDocIcon = (doc: Document) => {
+              const url = doc.fileUrl || '';
+              const mime = doc.fileType || '';
+              if (mime.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i.test(url)) {
+                return { type: 'image', url };
+              }
+              if (mime.startsWith('video/') || /\.(mp4|mov|avi|webm|mkv|m4v)(\?|$)/i.test(url)) {
+                return { type: 'video', url };
+              }
+              if (mime === 'application/pdf' || /\.pdf(\?|$)/i.test(url)) return { type: 'pdf' };
+              if (/\.(doc|docx)(\?|$)/i.test(url)) return { type: 'word' };
+              if (/\.(xls|xlsx)(\?|$)/i.test(url)) return { type: 'excel' };
+              return { type: 'file' };
+            };
             if (docViewMode === 'grid') return (
               <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {filtered.map((doc) => (
-                  <div key={doc.id} className="bg-gray-50 dark:bg-gray-900/30 rounded-xl p-4 cursor-pointer hover:ring-2 hover:ring-violet-300 dark:hover:ring-violet-600 transition-all" onClick={() => setSelectedDocument(doc)}>
-                    <div className="font-medium text-gray-800 dark:text-gray-100 mb-1 line-clamp-2">{doc.title}</div>
-                    <div className="text-xs text-gray-400 mb-2">{DOC_TYPE_LABELS[doc.documentType || ''] || doc.documentType || '—'}</div>
-                    <div className="flex items-center justify-between text-xs text-gray-400">
-                      <span>{fmtSize(doc.fileSize)}</span>
-                      <span>{fmt(doc.createdAt)}</span>
-                    </div>
-                    {doc.fileUrl && (
-                      <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
-                        className="mt-3 block text-center text-xs text-violet-500 hover:text-violet-600 font-medium py-1.5 bg-violet-50 dark:bg-violet-900/20 rounded-lg transition-colors">
-                        Скачать
-                      </a>
-                    )}
-                  </div>
-                ))}
-              </div>
-            );
-            return (
-              <div className="overflow-x-auto">
-                <table className="table-auto w-full text-sm min-w-[480px]">
-                  <thead>
-                    <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
-                      <th className="py-3 px-4 text-left font-semibold">Название</th>
-                      <th className="py-3 px-4 text-left font-semibold">Тип</th>
-                      <th className="py-3 px-4 text-left font-semibold">Размер</th>
-                      <th className="py-3 px-4 text-left font-semibold">Дата</th>
-                      <th className="py-3 px-4 text-center font-semibold">Скачать</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
-                    {filtered.map((doc) => (
-                      <tr key={doc.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer" onClick={() => setSelectedDocument(doc)}>
-                        <td className="py-2.5 px-4 font-medium text-gray-800 dark:text-gray-100">{doc.title}</td>
-                        <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{DOC_TYPE_LABELS[doc.documentType || ''] || doc.documentType || '—'}</td>
-                        <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{fmtSize(doc.fileSize)}</td>
-                        <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{fmt(doc.createdAt)}</td>
-                        <td className="py-2.5 px-4 text-center" onClick={(e) => e.stopPropagation()}>
+                {filtered.map((doc) => {
+                  const icon = getDocIcon(doc);
+                  return (
+                    <div key={doc.id} className="bg-gray-50 dark:bg-gray-900/30 rounded-xl overflow-hidden">
+                      {/* Preview */}
+                      <div className="h-36 bg-gray-100 dark:bg-gray-700 flex items-center justify-center relative overflow-hidden">
+                        {icon.type === 'image' ? (
+                          <img src={icon.url} alt="" className="w-full h-full object-cover" />
+                        ) : icon.type === 'video' ? (
+                          <div className="w-full h-full relative">
+                            <video src={icon.url} className="w-full h-full object-cover" muted preload="metadata" />
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                              <div className="w-10 h-10 rounded-full bg-black/50 flex items-center justify-center">
+                                <svg className="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center gap-1">
+                            <span className="text-3xl">{icon.type === 'pdf' ? '📄' : icon.type === 'word' ? '📝' : icon.type === 'excel' ? '📊' : '📎'}</span>
+                            <span className="text-xs text-gray-400 uppercase">{(doc.fileUrl || '').split('.').pop()?.split('?')[0]}</span>
+                          </div>
+                        )}
+                      </div>
+                      {/* Info + actions */}
+                      <div className="p-3">
+                        <div className="font-medium text-gray-800 dark:text-gray-100 text-sm line-clamp-1 mb-0.5">{doc.title}</div>
+                        <div className="flex items-center justify-between text-xs text-gray-400 mb-2">
+                          <span>{fmtSize(doc.fileSize)}</span>
+                          <span>{fmt(doc.createdAt)}</span>
+                        </div>
+                        <div className="flex gap-1.5">
                           {doc.fileUrl && (
                             <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer"
-                              className="text-xs text-violet-500 hover:text-violet-600 font-medium">
+                              className="flex-1 flex items-center justify-center gap-1 py-1.5 text-xs bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400 hover:bg-violet-100 dark:hover:bg-violet-900/40 rounded-lg transition-colors font-medium">
+                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                               Скачать
                             </a>
                           )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                          <button onClick={() => setSelectedDocument(doc)}
+                            className="p-1.5 text-gray-400 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors" title="Информация">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+            return (
+              <div className="divide-y divide-gray-100 dark:divide-gray-700/60">
+                {filtered.map((doc) => {
+                  const icon = getDocIcon(doc);
+                  return (
+                    <div key={doc.id} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-900/20 transition-colors">
+                      {/* Thumbnail */}
+                      <div className="w-12 h-12 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center shrink-0 overflow-hidden">
+                        {icon.type === 'image' ? (
+                          <img src={icon.url} alt="" className="w-full h-full object-cover" />
+                        ) : icon.type === 'video' ? (
+                          <div className="w-full h-full relative flex items-center justify-center bg-gray-800">
+                            <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                          </div>
+                        ) : (
+                          <span className="text-2xl">{icon.type === 'pdf' ? '📄' : icon.type === 'word' ? '📝' : icon.type === 'excel' ? '📊' : '📎'}</span>
+                        )}
+                      </div>
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-gray-800 dark:text-gray-100 text-sm truncate">{doc.title}</div>
+                        <div className="flex items-center gap-2 text-xs text-gray-400 mt-0.5">
+                          <span>{DOC_TYPE_LABELS[doc.documentType || ''] || doc.documentType || '—'}</span>
+                          <span>·</span>
+                          <span>{fmtSize(doc.fileSize)}</span>
+                          <span>·</span>
+                          <span>{fmt(doc.createdAt)}</span>
+                        </div>
+                      </div>
+                      {/* Actions */}
+                      <div className="flex items-center gap-1 shrink-0">
+                        {doc.fileUrl && (
+                          <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer"
+                            className="p-1.5 text-gray-400 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors" title="Скачать">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                          </a>
+                        )}
+                        <button onClick={() => setSelectedDocument(doc)}
+                          className="p-1.5 text-gray-400 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors" title="Информация">
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             );
           })()}
@@ -1729,13 +1792,13 @@ export default function ProjectDetailPage() {
               className="py-2 pl-3 pr-8 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-violet-500 focus:outline-none"
             >
               <option value="default">По умолчанию</option>
-              <option value="most">Больше фото</option>
-              <option value="least">Меньше фото</option>
+              <option value="most">Больше медиа</option>
+              <option value="least">Меньше медиа</option>
               <option value="az">Название А-Я</option>
               <option value="za">Название Я-А</option>
             </select>
             <div className="flex-1" />
-            <input ref={photoInputRef} type="file" accept="image/*" multiple className="hidden"
+            <input ref={photoInputRef} type="file" accept="image/*,video/*" multiple className="hidden"
               onChange={(e) => handlePhotoFiles(e.target.files)} />
             <button onClick={() => photoInputRef.current?.click()} disabled={uploadingPhoto}
               className="flex items-center gap-1.5 px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
@@ -1748,7 +1811,7 @@ export default function ProjectDetailPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               )}
-              {uploadingPhoto ? 'Загрузка...' : 'Добавить фото'}
+              {uploadingPhoto ? 'Загрузка...' : 'Добавить медиа'}
             </button>
           </div>
 
@@ -1759,8 +1822,8 @@ export default function ProjectDetailPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
-              <p className="text-gray-500 dark:text-gray-400">Фотографии не загружены</p>
-              <p className="text-xs text-gray-400 mt-1">Нажмите «Добавить фото» чтобы загрузить</p>
+              <p className="text-gray-500 dark:text-gray-400">Медиафайлы не загружены</p>
+              <p className="text-xs text-gray-400 mt-1">Нажмите «Добавить медиа» чтобы загрузить фото или видео</p>
             </div>
           ) : (
             (() => {
@@ -1777,23 +1840,35 @@ export default function ProjectDetailPage() {
                 <div key={site.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
                   <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700">
                     <h3 className="font-semibold text-gray-800 dark:text-gray-100">{site.name}</h3>
-                    <p className="text-xs text-gray-400 mt-0.5">{photos.length} фото</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{photos.length} медиафайлов</p>
                   </div>
                   <div className="p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                     {photos.map((rawUrl, idx) => {
                       const url = normalizePhotoUrl(rawUrl);
                       const isDeleting = deletingPhoto === rawUrl;
+                      const isVidUrl = /\.(mp4|mov|avi|webm|mkv|m4v)(\?|$)/i.test(url);
                       return (
                         <div key={idx} className="relative group aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700">
                           <button onClick={() => setLightboxPhoto(url)} className="w-full h-full">
-                            <img src={url} alt={`Фото ${idx + 1}`} className="w-full h-full object-cover hover:opacity-90 transition-opacity"
-                              onError={(e) => { const el = e.currentTarget as HTMLImageElement; if (el.src !== PHOTO_ERROR_PLACEHOLDER) el.src = PHOTO_ERROR_PLACEHOLDER; }} />
+                            {isVidUrl ? (
+                              <div className="w-full h-full relative">
+                                <video src={url} className="w-full h-full object-cover" muted playsInline preload="metadata" />
+                                <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                                  <div className="w-10 h-10 rounded-full bg-black/50 flex items-center justify-center">
+                                    <svg className="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <img src={url} alt={`Медиа ${idx + 1}`} className="w-full h-full object-cover hover:opacity-90 transition-opacity"
+                                onError={(e) => { const el = e.currentTarget as HTMLImageElement; if (el.src !== PHOTO_ERROR_PLACEHOLDER) el.src = PHOTO_ERROR_PLACEHOLDER; }} />
+                            )}
                           </button>
                           <button
                             onClick={(e) => { e.stopPropagation(); handleDeletePhoto(site, rawUrl); }}
                             disabled={isDeleting}
                             className="absolute top-1.5 right-1.5 w-7 h-7 flex items-center justify-center bg-black/60 hover:bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all disabled:opacity-50"
-                            title="Удалить фото"
+                            title="Удалить"
                           >
                             {isDeleting ? (
                               <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>
@@ -2309,7 +2384,11 @@ export default function ProjectDetailPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          <img src={lightboxPhoto} alt="Просмотр фото" className="max-w-full max-h-full rounded-lg shadow-xl" onClick={(e) => e.stopPropagation()} />
+          {/\.(mp4|mov|avi|webm|mkv|m4v)(\?|$)/i.test(lightboxPhoto) ? (
+            <video src={lightboxPhoto} controls autoPlay className="max-w-full max-h-full rounded-lg shadow-xl" onClick={(e) => e.stopPropagation()} />
+          ) : (
+            <img src={lightboxPhoto} alt="Просмотр" className="max-w-full max-h-full rounded-lg shadow-xl" onClick={(e) => e.stopPropagation()} />
+          )}
         </div>
       )}
 
