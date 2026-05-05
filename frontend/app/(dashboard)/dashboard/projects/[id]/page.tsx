@@ -3627,8 +3627,11 @@ function FinanceModal({ title, fields, initialData, saving, onClose, onSave }: {
                   onChange={(e) => set(f.key, e.target.value)} />
               ) : f.type === 'select' ? (
                 <select className={inputCls} value={String(form[f.key] ?? '')}
-                  onChange={(e) => set(f.key, Number(e.target.value))}>
-                  {f.options?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  onChange={(e) => {
+                    const opt = f.options?.find((o) => String(o.value) === e.target.value);
+                    set(f.key, opt ? opt.value : e.target.value);
+                  }}>
+                  {f.options?.map((o) => <option key={String(o.value)} value={String(o.value)}>{o.label}</option>)}
                 </select>
               ) : (
                 <input type={f.type} required={f.required} className={inputCls}
