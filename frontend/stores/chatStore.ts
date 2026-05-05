@@ -193,8 +193,10 @@ interface ChatState {
   hasMoreChannels: boolean;
   isLoadingChannels: boolean;
   replyToMessage: ChatMessage | null;
+  chatWindowOpen: boolean;
 
   // Actions
+  setChatWindowOpen: (open: boolean) => void;
   connect: () => void;
   disconnect: () => void;
   sendMessage: (channelId: number, text: string, attachments?: UploadedAttachment[], replyToMessageId?: number, messageType?: string) => void;
@@ -232,6 +234,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   hasMoreChannels: true,
   isLoadingChannels: false,
   replyToMessage: null,
+  chatWindowOpen: false,
 
   connect: () => {
     if (socketRef?.connected) return;
@@ -633,6 +636,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
   },
 
+  setChatWindowOpen: (open) => set({ chatWindowOpen: open }),
   setReplyToMessage: (message) => {
     set({ replyToMessage: message });
   },

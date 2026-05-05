@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
+import { useChatStore } from '@/stores/chatStore';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -38,6 +39,9 @@ export default function QuickActionsButton() {
   const [open, setOpen] = useState(false);
   const [panel, setPanel] = useState<Panel>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const chatWindowOpen = useChatStore((s) => s.chatWindowOpen);
+
+  if (chatWindowOpen) return null;
 
   // Close on outside click
   useEffect(() => {

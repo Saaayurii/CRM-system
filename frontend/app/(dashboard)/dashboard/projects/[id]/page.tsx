@@ -2529,7 +2529,13 @@ function ProjectChatPanel({ channelId, channelName, projectId, onFilesSent, onBa
   const deleteMessageSocket = useChatStore((s) => s.deleteMessage);
   const reactToMessage = useChatStore((s) => s.reactToMessage);
   const channels = useChatStore((s) => s.channels);
+  const setChatWindowOpen = useChatStore((s) => s.setChatWindowOpen);
   const user = useAuthStore((s) => s.user);
+
+  useEffect(() => {
+    setChatWindowOpen(true);
+    return () => setChatWindowOpen(false);
+  }, [setChatWindowOpen]);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);

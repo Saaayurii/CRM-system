@@ -26,7 +26,13 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
   const unpinMessageSocket = useChatStore((s) => s.unpinMessage);
   const onlineUsers = useChatStore((s) => s.onlineUsers);
   const channelReadAts = useChatStore((s) => s.channelReadAts);
+  const setChatWindowOpen = useChatStore((s) => s.setChatWindowOpen);
   const user = useAuthStore((s) => s.user);
+
+  useEffect(() => {
+    setChatWindowOpen(true);
+    return () => setChatWindowOpen(false);
+  }, [setChatWindowOpen]);
 
   const [showInfo, setShowInfo] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
