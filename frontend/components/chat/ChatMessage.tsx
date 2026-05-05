@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
+import { useToastStore } from '@/stores/toastStore';
 import { ChatMessage as ChatMessageType } from '@/stores/chatStore';
 import MediaViewer, { MediaItem } from './MediaViewer';
 import FilePreviewModal from '@/components/ui/FilePreviewModal';
@@ -78,6 +79,7 @@ interface ChatMessageProps {
 }
 
 export default function ChatMessage({ message, isOwn, showAvatar, isRead, onReply, onReact, onDelete, onPin, isPinned, canPin, highlightQuery }: ChatMessageProps) {
+  const addToast = useToastStore((s) => s.addToast);
   const isVoice = message.messageType === 'voice';
 
   const mediaItems: MediaItem[] = (message.attachments ?? [])
@@ -500,7 +502,9 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, onRepl
             {message.text && (
               <button
                 onClick={() => {
-                  navigator.clipboard?.writeText(message.text!).catch(() => {});
+                  navigator.clipboard?.writeText(message.text!).then(() => {
+                    addToast('success', 'Сообщение скопировано');
+                  }).catch(() => {});
                   setShowMobileActions(false);
                 }}
                 className="w-full flex items-center justify-between px-5 py-3.5 text-white hover:bg-white/10 active:bg-white/15 transition-colors border-b border-white/10"
