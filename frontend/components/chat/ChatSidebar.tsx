@@ -27,6 +27,7 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
   const [activeFolder, setActiveFolder] = useState<'all' | number>('all');
   const [projectNames, setProjectNames] = useState<Map<number, string>>(new Map());
   const scrollRef = useRef<HTMLDivElement>(null);
+  const tabsScrollRef = useRef<HTMLDivElement>(null);
 
   // Fetch real project names for any projectId that has no name in channel settings
   useEffect(() => {
@@ -70,6 +71,16 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
     el.addEventListener('scroll', handleScroll);
     return () => el.removeEventListener('scroll', handleScroll);
   }, [handleScroll]);
+
+  // Scroll active folder tab into center when it changes
+  useEffect(() => {
+    const container = tabsScrollRef.current;
+    if (!container) return;
+    const activeBtn = container.querySelector('[data-active="true"]') as HTMLElement | null;
+    if (!activeBtn) return;
+    const left = activeBtn.offsetLeft - container.offsetWidth / 2 + activeBtn.offsetWidth / 2;
+    container.scrollTo({ left, behavior: 'smooth' });
+  }, [activeFolder]);
 
   // Build project folders — prefer channel.projectName, then fetched name, then fallback
   const projectFolders = Array.from(
@@ -141,8 +152,9 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
       {projectFolders.length > 0 && (
         <div className="border-b border-gray-100 dark:border-gray-700/60">
           <div className="relative">
-            <div className="flex gap-1 px-3 py-2 overflow-x-auto scrollbar-none">
+            <div ref={tabsScrollRef} className="flex gap-1 px-3 py-2 overflow-x-auto scrollbar-none">
               <button
+                data-active={activeFolder === 'all' ? 'true' : 'false'}
                 onClick={() => setActiveFolder('all')}
                 className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${
                   activeFolder === 'all'
@@ -155,6 +167,7 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
               {projectFolders.map(([pid, pname]) => (
                 <button
                   key={pid}
+                  data-active={activeFolder === pid ? 'true' : 'false'}
                   onClick={() => setActiveFolder(pid)}
                   className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap max-w-[120px] truncate ${
                     activeFolder === pid
