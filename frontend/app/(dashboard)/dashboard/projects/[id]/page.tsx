@@ -34,6 +34,7 @@ interface Project {
   projectManagerId?: number;
   projectManager?: { id: number; name: string; email: string };
   settings?: Record<string, any>;
+  updatedAt?: string;
 }
 
 interface TeamMember {
@@ -502,6 +503,8 @@ export default function ProjectDetailPage() {
   const [showBudgetModal, setShowBudgetModal] = useState(false);
   const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
   const [showActModal, setShowActModal] = useState(false);
+  const [showInactiveModal, setShowInactiveModal] = useState(false);
+  const [closingProject, setClosingProject] = useState(false);
   const [editingAct, setEditingAct] = useState<Act | null>(null);
   const [savingFinance, setSavingFinance] = useState(false);
   const [financeViewMode, setFinanceViewMode] = useState<'table' | 'grid'>(() =>
@@ -532,6 +535,18 @@ export default function ProjectDetailPage() {
       .finally(() => setLoadingProject(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
+
+  /* ─── Inactivity check — show close modal after 14 days without updates ─── */
+  useEffect(() => {
+    if (!project) return;
+    if (project.status === 3 || project.status === 4) return; // already completed / cancelled
+    const dismissKey = `project_inactive_dismissed_${project.id}`;
+    const dismissed = localStorage.getItem(dismissKey);
+    if (dismissed && Date.now() - Number(dismissed) < 7 * 24 * 60 * 60 * 1000) return;
+    if (!project.updatedAt) return;
+    const daysSince = (Date.now() - new Date(project.updatedAt).getTime()) / (1000 * 60 * 60 * 24);
+    if (daysSince >= 14) setShowInactiveModal(true);
+  }, [project]);
 
   /* ─── Reload helpers ─── */
   const reloadTeam = useCallback(async () => {
@@ -702,6 +717,27 @@ export default function ProjectDetailPage() {
       addToast('error', 'Ошибка при удалении');
     }
   }, [addToast, reloadFinance]);
+
+  const handleCloseProjectInactive = useCallback(async () => {
+    if (!project) return;
+    setClosingProject(true);
+    try {
+      const r = await api.put(`/projects/${projectId}`, { status: 3 });
+      setProject(r.data);
+      setShowInactiveModal(false);
+      addToast('success', 'Проект завершён');
+    } catch {
+      addToast('error', 'Не удалось завершить проект');
+    } finally {
+      setClosingProject(false);
+    }
+  }, [project, projectId, addToast]);
+
+  const handleDismissInactiveModal = useCallback(() => {
+    if (!project) return;
+    localStorage.setItem(`project_inactive_dismissed_${project.id}`, String(Date.now()));
+    setShowInactiveModal(false);
+  }, [project]);
 
   /* ─── Load tab data ─── */
   useEffect(() => {
@@ -2552,6 +2588,47 @@ export default function ProjectDetailPage() {
           initialData={editingAct ? editingAct as unknown as Record<string, unknown> : undefined}
         />
       )}
+
+      {/* ── Inactive project modal ── */}
+      {showInactiveModal && project && (() => {
+        const daysInactive = project.updatedAt
+          ? Math.floor((Date.now() - new Date(project.updatedAt).getTime()) / (1000 * 60 * 60 * 24))
+          : 14;
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md p-6 animate-in fade-in zoom-in-95 duration-200">
+              <div className="flex items-center justify-center w-14 h-14 rounded-full bg-amber-100 dark:bg-amber-900/30 mx-auto mb-4">
+                <svg className="w-7 h-7 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 text-center mb-2">
+                Проект неактивен
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 text-center mb-1">
+                Проект <span className="font-medium text-gray-700 dark:text-gray-300">«{project.name}»</span>
+              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 text-center mb-6">
+                не обновлялся <span className="font-semibold text-amber-600 dark:text-amber-400">{daysInactive} {daysInactive === 1 ? 'день' : daysInactive < 5 ? 'дня' : 'дней'}</span>.
+                Хотите завершить его?
+              </p>
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={handleCloseProjectInactive}
+                  disabled={closingProject}
+                  className="w-full py-2.5 bg-violet-500 hover:bg-violet-600 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors">
+                  {closingProject ? 'Завершаем...' : 'Завершить проект'}
+                </button>
+                <button
+                  onClick={handleDismissInactiveModal}
+                  className="w-full py-2.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 rounded-xl transition-colors">
+                  Отложить на неделю
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
