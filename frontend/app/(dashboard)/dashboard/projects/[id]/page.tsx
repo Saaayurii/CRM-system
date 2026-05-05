@@ -2710,6 +2710,11 @@ function ProjectChatPanel({ channelId, channelName, projectId, onFilesSent, onBa
   const [participants, setParticipants] = useState<{ id: number; name: string; email: string; role?: string; isMuted?: boolean }[]>([]);
   const [loadingParticipants, setLoadingParticipants] = useState(false);
   const [mutingId, setMutingId] = useState<number | null>(null);
+  const [removingId, setRemovingId] = useState<number | null>(null);
+  const [showAddMember, setShowAddMember] = useState(false);
+  const [projectMemberOptions, setProjectMemberOptions] = useState<{ id: number; name: string; email: string }[]>([]);
+  const [loadingProjectMembers, setLoadingProjectMembers] = useState(false);
+  const [addingUserId, setAddingUserId] = useState<number | null>(null);
 
   const membersCount = channels.find((c) => c.id === channelId)?.membersCount ?? 0;
 
@@ -2750,6 +2755,58 @@ function ProjectChatPanel({ channelId, channelName, projectId, onFilesSent, onBa
     } catch { /* ignore */ }
     finally { setMutingId(null); }
   }, [channelId]);
+
+  const handleRemoveMember = useCallback(async (memberId: number, memberName: string) => {
+    setRemovingId(memberId);
+    try {
+      await api.delete(`/chat-channels/${channelId}/members/${memberId}`);
+      await api.post('/notifications', {
+        userId: memberId,
+        title: 'Вас удалили из чата',
+        message: `Вы были удалены из канала "${channelName}"`,
+        notificationType: 'system_alert',
+        channels: ['in_app'],
+        priority: 2,
+      }).catch(() => {});
+      setParticipants((prev) => prev.filter((p) => p.id !== memberId));
+      setProjectMemberOptions((prev) => {
+        const already = prev.find((m) => m.id === memberId);
+        if (already) return prev;
+        return [...prev, { id: memberId, name: memberName, email: '' }];
+      });
+    } catch { /* ignore */ }
+    finally { setRemovingId(null); }
+  }, [channelId, channelName]);
+
+  const loadProjectMembers = useCallback(async () => {
+    if (!projectId) return;
+    setLoadingProjectMembers(true);
+    try {
+      const r = await api.get(`/projects/${projectId}/assignments`);
+      const raw = r.data?.assignments || r.data?.data || r.data || [];
+      const inChat = new Set(participants.map((p) => p.id));
+      setProjectMemberOptions(
+        raw
+          .filter((a: any) => { const uid = a.userId || a.user?.id; return uid && !inChat.has(uid); })
+          .map((a: any) => ({
+            id: a.userId || a.user?.id,
+            name: a.user?.name || a.name || `#${a.userId}`,
+            email: a.user?.email || a.email || '',
+          }))
+      );
+    } catch { setProjectMemberOptions([]); }
+    finally { setLoadingProjectMembers(false); }
+  }, [projectId, participants]);
+
+  const handleAddMember = useCallback(async (userId: number) => {
+    setAddingUserId(userId);
+    try {
+      await api.post(`/chat-channels/${channelId}/members`, { userId });
+      await loadParticipants();
+      setProjectMemberOptions((prev) => prev.filter((m) => m.id !== userId));
+    } catch { /* ignore */ }
+    finally { setAddingUserId(null); }
+  }, [channelId, loadParticipants]);
 
   useEffect(() => {
     connect();
@@ -2844,14 +2901,69 @@ function ProjectChatPanel({ channelId, channelName, projectId, onFilesSent, onBa
       {/* Participants panel */}
       {showParticipants && (
         <div className="absolute inset-0 z-10 bg-white dark:bg-gray-800 flex flex-col" style={{ borderRadius: 'inherit' }}>
+          {/* Panel header */}
           <div className="px-5 py-3 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between shrink-0">
             <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Участники чата</h3>
-            <button onClick={() => setShowParticipants(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+            <div className="flex items-center gap-1">
+              {(() => {
+                const role = participants.find((p) => p.id === user?.id)?.role;
+                return (role === 'admin' || role === 'owner') && projectId ? (
+                  <button
+                    onClick={() => { setShowAddMember((v) => !v); if (!showAddMember) loadProjectMembers(); }}
+                    className={`p-1.5 rounded-lg transition-colors ${showAddMember ? 'bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400' : 'text-gray-400 hover:text-violet-600 hover:bg-violet-50 dark:hover:bg-violet-900/20'}`}
+                    title="Добавить участника"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                    </svg>
+                  </button>
+                ) : null;
+              })()}
+              <button
+                onClick={() => { setShowParticipants(false); setShowAddMember(false); }}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
           </div>
+
+          {/* Add member from project */}
+          {showAddMember && (
+            <div className="px-4 pt-3 pb-3 border-b border-gray-100 dark:border-gray-700 shrink-0">
+              <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2">Добавить из проекта</p>
+              {loadingProjectMembers ? (
+                <div className="text-xs text-gray-400 text-center py-2">Загрузка...</div>
+              ) : projectMemberOptions.length === 0 ? (
+                <div className="text-xs text-gray-400 text-center py-2">Все участники проекта уже в чате</div>
+              ) : (
+                <div className="space-y-1 max-h-40 overflow-y-auto">
+                  {projectMemberOptions.map((m) => (
+                    <div key={m.id} className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                      <div className="w-7 h-7 rounded-full bg-sky-100 dark:bg-sky-900/30 flex items-center justify-center text-xs font-medium text-sky-700 dark:text-sky-300 shrink-0">
+                        {m.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm text-gray-800 dark:text-gray-100 truncate">{m.name}</div>
+                        {m.email && <div className="text-xs text-gray-400 truncate">{m.email}</div>}
+                      </div>
+                      <button
+                        onClick={() => handleAddMember(m.id)}
+                        disabled={addingUserId === m.id}
+                        className="shrink-0 px-2.5 py-1 text-xs bg-violet-500 hover:bg-violet-600 text-white rounded-lg transition-colors disabled:opacity-50 font-medium"
+                      >
+                        {addingUserId === m.id ? '...' : 'Добавить'}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Members list */}
           <div className="flex-1 overflow-y-auto p-4">
             {loadingParticipants ? (
               <div className="text-center text-sm text-gray-400 py-8">Загрузка...</div>
@@ -2881,32 +2993,42 @@ function ProjectChatPanel({ channelId, channelName, projectId, onFilesSent, onBa
                         </span>
                       )}
                       {isAdmin && p.id !== user?.id && (
-                        <button
-                          onClick={() => handleMuteMember(p.id, p.isMuted ?? false)}
-                          disabled={mutingId === p.id}
-                          title={p.isMuted ? 'Снять мьют' : 'Замьютить'}
-                          className={`shrink-0 p-1.5 rounded-lg transition-colors ${
-                            p.isMuted
-                              ? 'text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20'
-                              : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
-                          } disabled:opacity-50`}
-                        >
-                          {mutingId === p.id ? (
-                            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                            </svg>
-                          ) : p.isMuted ? (
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
-                            </svg>
-                          ) : (
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072M12 6v12m0 0l-3-3m3 3l3-3M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                            </svg>
-                          )}
-                        </button>
+                        <>
+                          {/* Mute/unmute */}
+                          <button
+                            onClick={() => handleMuteMember(p.id, p.isMuted ?? false)}
+                            disabled={mutingId === p.id}
+                            title={p.isMuted ? 'Снять мьют' : 'Замьютить'}
+                            className={`shrink-0 p-1.5 rounded-lg transition-colors ${
+                              p.isMuted
+                                ? 'text-orange-500 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20'
+                                : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            } disabled:opacity-50`}
+                          >
+                            {mutingId === p.id ? (
+                              <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" /></svg>
+                            ) : p.isMuted ? (
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /><path strokeLinecap="round" strokeLinejoin="round" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" /></svg>
+                            ) : (
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072M12 6v12m0 0l-3-3m3 3l3-3M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
+                            )}
+                          </button>
+                          {/* Remove from chat */}
+                          <button
+                            onClick={() => handleRemoveMember(p.id, p.name)}
+                            disabled={removingId === p.id}
+                            title="Удалить из чата"
+                            className="shrink-0 p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
+                          >
+                            {removingId === p.id ? (
+                              <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" /></svg>
+                            ) : (
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6" />
+                              </svg>
+                            )}
+                          </button>
+                        </>
                       )}
                     </div>
                   ));
