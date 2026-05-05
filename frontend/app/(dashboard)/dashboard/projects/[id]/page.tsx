@@ -3862,8 +3862,13 @@ function DocumentDetailModal({
 }) {
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
   const addToast = useToastStore((s) => s.addToast);
+
+  const url = document.fileUrl || '';
+  const mime = document.fileType || '';
+  const isImg = mime.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i.test(url);
+  const isVid = mime.startsWith('video/') || /\.(mp4|mov|avi|webm|mkv|m4v)(\?|$)/i.test(url);
+  const isPdf = mime === 'application/pdf' || /\.pdf(\?|$)/i.test(url);
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -3878,80 +3883,91 @@ function DocumentDetailModal({
   };
 
   return (
-    <ModalShell title="Документ" onClose={onClose}>
-      <div className="space-y-4">
-        <div className="flex items-start gap-3 p-4 bg-gray-50 dark:bg-gray-900/30 rounded-xl">
-          <div className="w-10 h-10 rounded-lg bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center shrink-0">
-            <svg className="w-5 h-5 text-violet-600 dark:text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" onClick={onClose}>
+      <div
+        className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col md:flex-row overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Preview */}
+        <div className="flex-1 min-h-[200px] md:min-h-0 bg-gray-100 dark:bg-gray-900 flex items-center justify-center overflow-hidden">
+          {isVid ? (
+            <video src={url} controls autoPlay className="max-w-full max-h-full" style={{ maxHeight: '70vh' }} />
+          ) : isImg ? (
+            <img src={url} alt={document.title} className="max-w-full max-h-full object-contain" style={{ maxHeight: '70vh' }} />
+          ) : isPdf ? (
+            <iframe src={url} className="w-full h-full" style={{ minHeight: '400px' }} title={document.title} />
+          ) : (
+            <div className="flex flex-col items-center gap-3 p-8 text-center">
+              <span className="text-6xl">📄</span>
+              <p className="text-sm text-gray-400">Предпросмотр недоступен</p>
+            </div>
+          )}
+        </div>
+
+        {/* Info panel */}
+        <div className="w-full md:w-72 shrink-0 flex flex-col border-t md:border-t-0 md:border-l border-gray-100 dark:border-gray-700">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+            <h3 className="font-semibold text-gray-800 dark:text-gray-100 text-sm">Информация</h3>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1 rounded-lg">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="font-semibold text-gray-800 dark:text-gray-100 break-words">{document.title}</div>
+          <div className="flex-1 overflow-y-auto p-5 space-y-4">
+            <div>
+              <p className="text-xs text-gray-400 mb-1">Название</p>
+              <p className="text-sm text-gray-800 dark:text-gray-100 break-words">{document.title}</p>
+            </div>
             {document.documentType && (
-              <div className="text-xs text-gray-400 mt-0.5">{DOC_TYPE_LABELS[document.documentType] || document.documentType}</div>
+              <div>
+                <p className="text-xs text-gray-400 mb-1">Тип</p>
+                <p className="text-sm text-gray-800 dark:text-gray-100">{DOC_TYPE_LABELS[document.documentType] || document.documentType}</p>
+              </div>
+            )}
+            <div>
+              <p className="text-xs text-gray-400 mb-1">Размер</p>
+              <p className="text-sm text-gray-800 dark:text-gray-100">{fmtSize(document.fileSize) || '—'}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-400 mb-1">Дата загрузки</p>
+              <p className="text-sm text-gray-800 dark:text-gray-100">{fmt(document.createdAt)}</p>
+            </div>
+          </div>
+          <div className="p-5 border-t border-gray-100 dark:border-gray-700 space-y-2">
+            {url && (
+              <a href={url} target="_blank" rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 w-full py-2.5 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-xl transition-colors">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Скачать
+              </a>
+            )}
+            {confirmDelete ? (
+              <div className="flex gap-2">
+                <button onClick={handleDelete} disabled={deleting}
+                  className="flex-1 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-xl transition-colors disabled:opacity-50">
+                  {deleting ? '...' : 'Да, удалить'}
+                </button>
+                <button onClick={() => setConfirmDelete(false)}
+                  className="flex-1 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors">
+                  Отмена
+                </button>
+              </div>
+            ) : (
+              <button onClick={() => setConfirmDelete(true)}
+                className="flex items-center justify-center gap-2 w-full py-2.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 text-sm font-medium rounded-xl transition-colors border border-red-200 dark:border-red-800/50">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                Удалить документ
+              </button>
             )}
           </div>
         </div>
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-500 dark:text-gray-400">Размер</span>
-            <span className="text-gray-800 dark:text-gray-100">{fmtSize(document.fileSize) || '—'}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-500 dark:text-gray-400">Дата загрузки</span>
-            <span className="text-gray-800 dark:text-gray-100">{fmt(document.createdAt)}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-500 dark:text-gray-400">Статус</span>
-            <span className="text-gray-800 dark:text-gray-100">{document.status || '—'}</span>
-          </div>
-        </div>
-        {document.fileUrl && (
-          <div className="flex gap-2">
-            <button onClick={() => setShowPreview(true)}
-              className="flex-1 flex items-center justify-center gap-2 py-2.5 border border-violet-200 dark:border-violet-700 text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg text-sm font-medium transition-colors">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
-              Просмотреть
-            </button>
-            <a href={document.fileUrl} target="_blank" rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 px-4 py-2.5 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg text-sm font-medium transition-colors">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-              Скачать
-            </a>
-          </div>
-        )}
-        {showPreview && document.fileUrl && (
-          <FilePreviewModal fileUrl={document.fileUrl} fileName={document.title} onClose={() => setShowPreview(false)} />
-        )}
-        <div className="flex items-center justify-between gap-2 pt-3 border-t border-gray-100 dark:border-gray-700">
-          {confirmDelete ? (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-red-500">Удалить документ?</span>
-              <button onClick={handleDelete} disabled={deleting}
-                className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded-lg disabled:opacity-50">
-                {deleting ? '...' : 'Да'}
-              </button>
-              <button onClick={() => setConfirmDelete(false)} className="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
-                Нет
-              </button>
-            </div>
-          ) : (
-            <button onClick={() => setConfirmDelete(true)} className="text-xs text-red-500 hover:text-red-600 transition-colors">
-              Удалить документ
-            </button>
-          )}
-          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors">
-            Закрыть
-          </button>
-        </div>
       </div>
-    </ModalShell>
+    </div>
   );
 }
 

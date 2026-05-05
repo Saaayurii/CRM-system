@@ -53,7 +53,7 @@ model User {
   accountId  Int     @map("account_id")
   roleId     Int?    @map("role_id")
   name       String  @db.VarChar(255)
-  email      String  @unique @db.VarChar(255)
+  email      String  @db.VarChar(255) // uniqueness enforced via partial index (deleted_at IS NULL) in DB
   phone      String? @db.VarChar(50)
   avatarUrl  String? @map("avatar_url") @db.VarChar(500)
 

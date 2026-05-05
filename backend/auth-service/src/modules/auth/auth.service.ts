@@ -358,12 +358,24 @@ export class AuthService {
   // ── Registration Requests ──────────────────────────────────────────
 
   async createRegistrationRequest(dto: CreateRegistrationRequestDto): Promise<MessageResponseDto> {
-    const existingUser = await this.userRepository.findByEmail(dto.email);
+    const emailLower = dto.email.trim().toLowerCase();
+
+    // Check for active user with this email
+    const existingUser = await this.userRepository.findByEmail(emailLower);
     if (existingUser) {
-      throw new ConflictException('Пользователь с таким email уже существует');
+      throw new ConflictException('Пользователь с таким email уже зарегистрирован в системе');
     }
 
-    const pendingRequest = await this.registrationRequestRepository.findPendingByEmail(dto.email);
+    // Check for soft-deleted user (email was used before, inform but allow)
+    const deletedUser = await this.userRepository.findDeletedByEmail(emailLower);
+    if (deletedUser) {
+      throw new ConflictException(
+        'Email ранее использовался в системе. Обратитесь к администратору для восстановления доступа',
+      );
+    }
+
+    // Check for pending request with the same email
+    const pendingRequest = await this.registrationRequestRepository.findPendingByEmail(emailLower);
     if (pendingRequest) {
       throw new ConflictException('Заявка с таким email уже подана и ожидает рассмотрения');
     }
@@ -372,7 +384,7 @@ export class AuthService {
 
     await this.registrationRequestRepository.create({
       name: dto.name,
-      email: dto.email,
+      email: emailLower,
       phone: dto.phone || null,
       birthDate: dto.birthDate ? new Date(dto.birthDate) : null,
       passwordDigest,
@@ -380,7 +392,7 @@ export class AuthService {
       accountId: 1,
     });
 
-    this.logger.log(`Registration request created: ${dto.email}`);
+    this.logger.log(`Registration request created: ${emailLower}`);
     return { message: 'Заявка на регистрацию отправлена' };
   }
 
@@ -399,6 +411,14 @@ export class AuthService {
 
     const role = await this.roleRepository.findById(dto.roleId);
     if (!role) throw new NotFoundException('Роль не найдена');
+
+    // Guard: active user with the same email may have been created since the request was submitted
+    const activeUser = await this.userRepository.findByEmail(request.email);
+    if (activeUser) {
+      throw new ConflictException(
+        `Пользователь с email ${request.email} уже активен в системе. Отклоните заявку.`,
+      );
+    }
 
     await this.userRepository.create({
       name: request.name,

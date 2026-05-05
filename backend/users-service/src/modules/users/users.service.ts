@@ -69,13 +69,19 @@ export class UsersService {
     createUserDto: CreateUserDto,
     requestingUserAccountId: number,
   ): Promise<UserResponseDto> {
+    const emailLower = createUserDto.email.trim().toLowerCase();
 
-    // Check if email already exists
-    const existingUser = await this.userRepository.findByEmail(
-      createUserDto.email,
-    );
+    const existingUser = await this.userRepository.findByEmail(emailLower);
     if (existingUser) {
-      throw new ConflictException('User with this email already exists');
+      throw new ConflictException('Пользователь с таким email уже существует в системе');
+    }
+
+    const deletedUser = await this.userRepository.findDeletedByEmail(emailLower);
+    if (deletedUser) {
+      throw new ConflictException(
+        `Email ${emailLower} ранее использовался удалённым пользователем «${deletedUser.name}». ` +
+        'Для создания нового пользователя сначала измените email удалённого пользователя или обратитесь к администратору БД.',
+      );
     }
 
     let passwordDigest: string | undefined;
@@ -85,6 +91,7 @@ export class UsersService {
 
     const user = await this.userRepository.create({
       ...createUserDto,
+      email: emailLower,
       accountId: requestingUserAccountId,
       passwordDigest,
     });

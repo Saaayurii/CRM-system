@@ -16,10 +16,13 @@ export class UserRepository {
 
   async findByEmail(email: string) {
     return (this.prisma as any).user.findFirst({
-      where: {
-        email,
-        deletedAt: null,
-      },
+      where: { email, deletedAt: null },
+    });
+  }
+
+  async findDeletedByEmail(email: string) {
+    return (this.prisma as any).user.findFirst({
+      where: { email, deletedAt: { not: null } },
     });
   }
 
