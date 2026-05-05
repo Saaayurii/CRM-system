@@ -1795,11 +1795,18 @@ export default function ProjectDetailPage() {
                   </button>
                   <button disabled={notesSaving} onClick={async () => {
                     setNotesSaving(true);
+                    const savedNotes = notesText.trim();
                     try {
                       const r = await api.put(`/projects/${projectId}`, {
-                        settings: { ...(project?.settings || {}), notes: notesText.trim() },
+                        settings: { ...(project?.settings || {}), notes: savedNotes },
                       });
-                      setProject(r.data);
+                      // Merge API response with explicit notes value so both
+                      // the notes tab and the overview card update immediately
+                      setProject((prev) => ({
+                        ...(r.data ?? prev ?? {}),
+                        settings: { ...((r.data ?? prev)?.settings ?? {}), notes: savedNotes },
+                      }));
+                      setNotesText(savedNotes);
                       setNotesEditing(false);
                       addToast('success', 'Заметки сохранены');
                     } catch { addToast('error', 'Не удалось сохранить заметки'); }
