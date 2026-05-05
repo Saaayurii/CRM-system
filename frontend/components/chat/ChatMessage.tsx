@@ -148,10 +148,11 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, onRepl
   return (
     <div
       data-message-id={message.id}
-      className={`flex gap-2 group ${isOwn ? 'flex-row-reverse' : ''} ${showAvatar ? 'mt-3' : 'mt-0.5'} ${isPinned ? 'ring-1 ring-violet-300 dark:ring-violet-700 rounded-2xl' : ''}`}
+      className={`flex gap-2 group select-none ${isOwn ? 'flex-row-reverse' : ''} ${showAvatar ? 'mt-3' : 'mt-0.5'} ${isPinned ? 'ring-1 ring-violet-300 dark:ring-violet-700 rounded-2xl' : ''}`}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       onTouchMove={handleTouchMove}
+      onContextMenu={(e) => e.preventDefault()}
     >
       {/* Avatar placeholder / real avatar */}
       <div className="w-8 shrink-0">
@@ -426,7 +427,10 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, onRepl
       {/* Mobile long-press context menu — Telegram style (portal) */}
       {showMobileActions && typeof document !== 'undefined' && createPortal(
         <div
-          className="sm:hidden fixed inset-0 z-[9999] flex flex-col items-center justify-center px-6 gap-4"
+          className="sm:hidden fixed inset-0 z-[9999] flex flex-col items-center justify-center px-5 gap-3"
+          onTouchStart={(e) => e.stopPropagation()}
+          onTouchEnd={(e) => e.stopPropagation()}
+          onTouchMove={(e) => e.stopPropagation()}
           onClick={() => setShowMobileActions(false)}
         >
           {/* Blurred backdrop */}
@@ -446,6 +450,30 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, onRepl
                 {emoji}
               </button>
             ))}
+          </div>
+
+          {/* Message preview bubble */}
+          <div
+            className={`relative z-10 w-full flex ${isOwn ? 'justify-end' : 'justify-start'}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className={`max-w-[75%] rounded-2xl px-3 py-2 shadow-lg ${
+              isOwn
+                ? 'bg-violet-500 text-white rounded-tr-sm'
+                : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 rounded-tl-sm'
+            }`}>
+              {message.text && (
+                <p className="text-sm whitespace-pre-wrap break-words line-clamp-4">{message.text}</p>
+              )}
+              {!message.text && message.attachments && message.attachments.length > 0 && (
+                <p className={`text-sm ${isOwn ? 'text-violet-200' : 'text-gray-500 dark:text-gray-400'}`}>
+                  📎 {message.attachments[0].fileName}
+                </p>
+              )}
+              <div className={`text-[10px] mt-0.5 ${isOwn ? 'text-right text-violet-200' : 'text-gray-400 dark:text-gray-500'}`}>
+                {formatTime(message.createdAt)}
+              </div>
+            </div>
           </div>
 
           {/* Actions card */}
