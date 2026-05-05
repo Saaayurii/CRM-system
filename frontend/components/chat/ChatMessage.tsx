@@ -94,6 +94,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, onRepl
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [showMobileActions, setShowMobileActions] = useState(false);
   const emojiRef = useRef<HTMLDivElement>(null);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const touchMoved = useRef(false);
 
@@ -121,6 +122,8 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, onRepl
   useEffect(() => {
     if (!showEmojiPicker && !showMobileActions) return;
     const handler = (e: MouseEvent | TouchEvent) => {
+      // Don't close if the touch/click is inside the mobile overlay menu
+      if (mobileMenuRef.current?.contains(e.target as Node)) return;
       if (emojiRef.current && !emojiRef.current.contains(e.target as Node)) {
         setShowEmojiPicker(false);
       }
@@ -427,6 +430,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, onRepl
       {/* Mobile long-press context menu — Telegram style (portal) */}
       {showMobileActions && typeof document !== 'undefined' && createPortal(
         <div
+          ref={mobileMenuRef}
           className="sm:hidden fixed inset-0 z-[9999] flex flex-col items-center justify-center px-5 gap-3"
           onTouchStart={(e) => e.stopPropagation()}
           onTouchEnd={(e) => e.stopPropagation()}
