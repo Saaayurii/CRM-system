@@ -409,10 +409,19 @@ export default function ProjectDetailPage() {
   const [taskSearch, setTaskSearch] = useState('');
   const [taskStatusFilter, setTaskStatusFilter] = useState<string>('');
   const [taskPriorityFilter, setTaskPriorityFilter] = useState<string>('');
+  const [taskViewMode, setTaskViewMode] = useState<'table'|'grid'>(() =>
+    typeof window !== 'undefined' ? (localStorage.getItem('projTaskView') as 'table'|'grid') || 'table' : 'table'
+  );
+  const [teamViewMode, setTeamViewMode] = useState<'table'|'grid'>(() =>
+    typeof window !== 'undefined' ? (localStorage.getItem('projTeamView') as 'table'|'grid') || 'table' : 'table'
+  );
 
   /* Documents search */
   const [docSearch, setDocSearch] = useState('');
   const [docTypeFilter, setDocTypeFilter] = useState('');
+  const [docViewMode, setDocViewMode] = useState<'table'|'grid'>(() =>
+    typeof window !== 'undefined' ? (localStorage.getItem('projDocView') as 'table'|'grid') || 'table' : 'table'
+  );
 
   /* Photos filter & sort */
   const [photoSiteFilter, setPhotoSiteFilter] = useState('');
@@ -1169,17 +1178,18 @@ export default function ProjectDetailPage() {
       {/* ─── Tasks ─── */}
       {activeTab === 'tasks' && (
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between gap-3">
+          {/* Header */}
+          <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="font-semibold text-gray-800 dark:text-gray-100 shrink-0">Задачи проекта</h2>
-            <div className="flex items-center gap-2 flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
               {/* Search */}
-              <div className="relative flex-1 max-w-xs">
+              <div className="relative flex-1 min-w-[120px] max-w-xs">
                 <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
                 <input
                   type="text" value={taskSearch} onChange={(e) => setTaskSearch(e.target.value)}
-                  placeholder="Поиск по названию..."
+                  placeholder="Поиск..."
                   className="w-full pl-8 pr-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-700 border-0 rounded-lg text-gray-800 dark:text-gray-200 placeholder-gray-400 focus:ring-2 focus:ring-violet-500 focus:outline-none"
                 />
               </div>
@@ -1196,14 +1206,26 @@ export default function ProjectDetailPage() {
                 {Object.entries(TASK_PRIORITY).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
               </select>
             </div>
-            <div className="flex items-center gap-3 shrink-0">
+            <div className="flex items-center gap-2 shrink-0">
+              {/* View toggle */}
+              <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
+                <button onClick={() => { setTaskViewMode('table'); localStorage.setItem('projTaskView','table'); }}
+                  className={`p-1.5 rounded transition-colors ${taskViewMode==='table' ? 'bg-white dark:bg-gray-600 shadow-sm text-violet-600' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`} title="Таблица">
+                  <svg className="w-4 h-4 fill-current" viewBox="0 0 16 16"><path d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2zm15 2h-4v3h4V4zm0 4h-4v3h4V8zm0 4h-4v3h3a1 1 0 0 0 1-1v-2zm-5 3v-3H6v3h4zm-5 0v-3H1v2a1 1 0 0 0 1 1h3zm-4-4h4V8H1v3zm0-4h4V4H1v3zm5-3v3h4V4H6zm4 4H6v3h4V8z"/></svg>
+                </button>
+                <button onClick={() => { setTaskViewMode('grid'); localStorage.setItem('projTaskView','grid'); }}
+                  className={`p-1.5 rounded transition-colors ${taskViewMode==='grid' ? 'bg-white dark:bg-gray-600 shadow-sm text-violet-600' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`} title="Карточки">
+                  <svg className="w-4 h-4 fill-current" viewBox="0 0 16 16"><path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zm8 0A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm-8 8A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5v-3zm8 0A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 13.5v-3z"/></svg>
+                </button>
+              </div>
               <span className="text-xs text-gray-400">{tasks.length} задач</span>
               <button onClick={() => setShowCreateTask(true)}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                 </svg>
-                Создать задачу
+                <span className="hidden sm:inline">Создать задачу</span>
+                <span className="sm:hidden">Создать</span>
               </button>
             </div>
           </div>
@@ -1214,35 +1236,59 @@ export default function ProjectDetailPage() {
               const matchPriority = !taskPriorityFilter || String(t.priority ?? 2) === taskPriorityFilter;
               return matchSearch && matchStatus && matchPriority;
             });
-            return filtered.length === 0 ? <EmptyState text="Ничего не найдено" /> : (
-              <table className="table-auto w-full text-sm">
-                <thead>
-                  <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
-                    <th className="py-3 px-4 text-left font-semibold">Название</th>
-                    <th className="py-3 px-4 text-left font-semibold">Статус</th>
-                    <th className="py-3 px-4 text-left font-semibold">Приоритет</th>
-                    <th className="py-3 px-4 text-left font-semibold">Срок</th>
-                    <th className="py-3 px-4 text-left font-semibold">Исполнители</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
-                  {filtered.map((t) => {
-                    const ts = TASK_STATUS[t.status ?? 0] || TASK_STATUS[0];
-                    const tp = TASK_PRIORITY[t.priority ?? 2] || TASK_PRIORITY[2];
-                    return (
-                      <tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer" onClick={() => setSelectedTask(t)}>
-                        <td className="py-2.5 px-4 font-medium text-gray-800 dark:text-gray-100">{t.title}</td>
-                        <td className="py-2.5 px-4"><span className={`text-xs px-2 py-0.5 rounded-full ${ts.color}`}>{ts.label}</span></td>
-                        <td className="py-2.5 px-4"><span className={`text-xs font-medium ${tp.color}`}>{tp.label}</span></td>
-                        <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{fmt(t.dueDate || t.due_date)}</td>
-                        <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400 text-xs">
-                          {t.assignees?.map((a) => a.userName || `#${a.userId}`).join(', ') || '—'}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+            if (filtered.length === 0) return <EmptyState text="Ничего не найдено" />;
+            if (taskViewMode === 'grid') return (
+              <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {filtered.map((t) => {
+                  const ts = TASK_STATUS[t.status ?? 0] || TASK_STATUS[0];
+                  const tp = TASK_PRIORITY[t.priority ?? 2] || TASK_PRIORITY[2];
+                  return (
+                    <div key={t.id} className="bg-gray-50 dark:bg-gray-900/30 rounded-xl p-4 cursor-pointer hover:ring-2 hover:ring-violet-300 dark:hover:ring-violet-600 transition-all" onClick={() => setSelectedTask(t)}>
+                      <div className="font-medium text-gray-800 dark:text-gray-100 mb-2 line-clamp-2">{t.title}</div>
+                      <div className="flex items-center gap-2 flex-wrap mb-2">
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${ts.color}`}>{ts.label}</span>
+                        <span className={`text-xs font-medium ${tp.color}`}>{tp.label}</span>
+                      </div>
+                      <div className="text-xs text-gray-400">{fmt(t.dueDate || t.due_date) || '—'}</div>
+                      {(t.assignees?.length ?? 0) > 0 && (
+                        <div className="mt-1 text-xs text-gray-400 truncate">{t.assignees?.map((a) => a.userName || `#${a.userId}`).join(', ')}</div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+            return (
+              <div className="overflow-x-auto">
+                <table className="table-auto w-full text-sm min-w-[480px]">
+                  <thead>
+                    <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
+                      <th className="py-3 px-4 text-left font-semibold">Название</th>
+                      <th className="py-3 px-4 text-left font-semibold">Статус</th>
+                      <th className="py-3 px-4 text-left font-semibold">Приоритет</th>
+                      <th className="py-3 px-4 text-left font-semibold">Срок</th>
+                      <th className="py-3 px-4 text-left font-semibold">Исполнители</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
+                    {filtered.map((t) => {
+                      const ts = TASK_STATUS[t.status ?? 0] || TASK_STATUS[0];
+                      const tp = TASK_PRIORITY[t.priority ?? 2] || TASK_PRIORITY[2];
+                      return (
+                        <tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer" onClick={() => setSelectedTask(t)}>
+                          <td className="py-2.5 px-4 font-medium text-gray-800 dark:text-gray-100">{t.title}</td>
+                          <td className="py-2.5 px-4"><span className={`text-xs px-2 py-0.5 rounded-full ${ts.color}`}>{ts.label}</span></td>
+                          <td className="py-2.5 px-4"><span className={`text-xs font-medium ${tp.color}`}>{tp.label}</span></td>
+                          <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{fmt(t.dueDate || t.due_date)}</td>
+                          <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400 text-xs">
+                            {t.assignees?.map((a) => a.userName || `#${a.userId}`).join(', ') || '—'}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             );
           })()}
         </div>
@@ -1255,104 +1301,179 @@ export default function ProjectDetailPage() {
             <>
               {/* Teams section */}
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
-                <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between gap-2">
                   <h2 className="font-semibold text-gray-800 dark:text-gray-100">Команды</h2>
-                  <button onClick={() => setShowAssignTeam(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                    </svg>
-                    Назначить команду
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
+                      <button onClick={() => { setTeamViewMode('table'); localStorage.setItem('projTeamView','table'); }}
+                        className={`p-1.5 rounded transition-colors ${teamViewMode==='table' ? 'bg-white dark:bg-gray-600 shadow-sm text-violet-600' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`} title="Таблица">
+                        <svg className="w-4 h-4 fill-current" viewBox="0 0 16 16"><path d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2zm15 2h-4v3h4V4zm0 4h-4v3h4V8zm0 4h-4v3h3a1 1 0 0 0 1-1v-2zm-5 3v-3H6v3h4zm-5 0v-3H1v2a1 1 0 0 0 1 1h3zm-4-4h4V8H1v3zm0-4h4V4H1v3zm5-3v3h4V4H6zm4 4H6v3h4V8z"/></svg>
+                      </button>
+                      <button onClick={() => { setTeamViewMode('grid'); localStorage.setItem('projTeamView','grid'); }}
+                        className={`p-1.5 rounded transition-colors ${teamViewMode==='grid' ? 'bg-white dark:bg-gray-600 shadow-sm text-violet-600' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`} title="Карточки">
+                        <svg className="w-4 h-4 fill-current" viewBox="0 0 16 16"><path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zm8 0A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm-8 8A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5v-3zm8 0A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 13.5v-3z"/></svg>
+                      </button>
+                    </div>
+                    <button onClick={() => setShowAssignTeam(true)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                      </svg>
+                      <span className="hidden sm:inline">Назначить команду</span>
+                      <span className="sm:hidden">Добавить</span>
+                    </button>
+                  </div>
                 </div>
-                {teamMembers.length === 0 ? <EmptyState text="Команды не назначены" /> : (
-                  <table className="table-auto w-full text-sm">
-                    <thead>
-                      <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
-                        <th className="py-3 px-4 text-left font-semibold">Команда</th>
-                        <th className="py-3 px-4 text-left font-semibold">Дата назначения</th>
-                        <th className="py-3 px-4 text-left font-semibold">Основная</th>
-                        <th className="py-3 px-4 text-center font-semibold w-20">Удалить</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
-                      {teamMembers.map((m) => (
-                        <tr key={m.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer" onClick={() => setSelectedTeamMember(m)}>
-                          <td className="py-2.5 px-4 text-gray-800 dark:text-gray-100">{m.team?.name || m.teamName || `Команда #${m.teamId}`}</td>
-                          <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{fmt(m.assignedAt)}</td>
-                          <td className="py-2.5 px-4">
-                            {m.isPrimary && <span className="text-xs bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 px-2 py-0.5 rounded-full">Основная</span>}
-                          </td>
-                          <td className="py-2.5 px-4 text-center" onClick={(e) => e.stopPropagation()}>
-                            <button onClick={() => handleRemoveTeam(m.teamId)} disabled={removingTeamId === m.teamId}
-                              className="p-1.5 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-40" title="Удалить">
-                              {removingTeamId === m.teamId
-                                ? <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                                : <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                              }
-                            </button>
-                          </td>
+                {teamMembers.length === 0 ? <EmptyState text="Команды не назначены" /> : teamViewMode === 'grid' ? (
+                  <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {teamMembers.map((m) => (
+                      <div key={m.id} className="bg-gray-50 dark:bg-gray-900/30 rounded-xl p-4 cursor-pointer hover:ring-2 hover:ring-violet-300 dark:hover:ring-violet-600 transition-all flex items-start justify-between" onClick={() => setSelectedTeamMember(m)}>
+                        <div>
+                          <div className="font-medium text-gray-800 dark:text-gray-100">{m.team?.name || m.teamName || `Команда #${m.teamId}`}</div>
+                          <div className="text-xs text-gray-400 mt-1">{fmt(m.assignedAt)}</div>
+                          {m.isPrimary && <span className="mt-2 inline-block text-xs bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 px-2 py-0.5 rounded-full">Основная</span>}
+                        </div>
+                        <button onClick={(e) => { e.stopPropagation(); handleRemoveTeam(m.teamId); }} disabled={removingTeamId === m.teamId}
+                          className="p-1.5 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-40 shrink-0" title="Удалить">
+                          {removingTeamId === m.teamId
+                            ? <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                            : <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                          }
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="table-auto w-full text-sm min-w-[400px]">
+                      <thead>
+                        <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
+                          <th className="py-3 px-4 text-left font-semibold">Команда</th>
+                          <th className="py-3 px-4 text-left font-semibold">Дата назначения</th>
+                          <th className="py-3 px-4 text-left font-semibold">Основная</th>
+                          <th className="py-3 px-4 text-center font-semibold w-20">Удалить</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
+                        {teamMembers.map((m) => (
+                          <tr key={m.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer" onClick={() => setSelectedTeamMember(m)}>
+                            <td className="py-2.5 px-4 text-gray-800 dark:text-gray-100">{m.team?.name || m.teamName || `Команда #${m.teamId}`}</td>
+                            <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{fmt(m.assignedAt)}</td>
+                            <td className="py-2.5 px-4">
+                              {m.isPrimary && <span className="text-xs bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 px-2 py-0.5 rounded-full">Основная</span>}
+                            </td>
+                            <td className="py-2.5 px-4 text-center" onClick={(e) => e.stopPropagation()}>
+                              <button onClick={() => handleRemoveTeam(m.teamId)} disabled={removingTeamId === m.teamId}
+                                className="p-1.5 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-40" title="Удалить">
+                                {removingTeamId === m.teamId
+                                  ? <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                  : <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                }
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
               </div>
 
               {/* Employees section */}
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
-                <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between gap-2">
                   <h2 className="font-semibold text-gray-800 dark:text-gray-100">Сотрудники</h2>
-                  <button onClick={() => setShowAssignEmployee(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                    </svg>
-                    Добавить сотрудника
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
+                      <button onClick={() => { setTeamViewMode('table'); localStorage.setItem('projTeamView','table'); }}
+                        className={`p-1.5 rounded transition-colors ${teamViewMode==='table' ? 'bg-white dark:bg-gray-600 shadow-sm text-violet-600' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`} title="Таблица">
+                        <svg className="w-4 h-4 fill-current" viewBox="0 0 16 16"><path d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2zm15 2h-4v3h4V4zm0 4h-4v3h4V8zm0 4h-4v3h3a1 1 0 0 0 1-1v-2zm-5 3v-3H6v3h4zm-5 0v-3H1v2a1 1 0 0 0 1 1h3zm-4-4h4V8H1v3zm0-4h4V4H1v3zm5-3v3h4V4H6zm4 4H6v3h4V8z"/></svg>
+                      </button>
+                      <button onClick={() => { setTeamViewMode('grid'); localStorage.setItem('projTeamView','grid'); }}
+                        className={`p-1.5 rounded transition-colors ${teamViewMode==='grid' ? 'bg-white dark:bg-gray-600 shadow-sm text-violet-600' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`} title="Карточки">
+                        <svg className="w-4 h-4 fill-current" viewBox="0 0 16 16"><path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zm8 0A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm-8 8A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5v-3zm8 0A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 13.5v-3z"/></svg>
+                      </button>
+                    </div>
+                    <button onClick={() => setShowAssignEmployee(true)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                      </svg>
+                      <span className="hidden sm:inline">Добавить сотрудника</span>
+                      <span className="sm:hidden">Добавить</span>
+                    </button>
+                  </div>
                 </div>
-                {assignments.length === 0 ? <EmptyState text="Сотрудники не назначены" /> : (
-                  <table className="table-auto w-full text-sm">
-                    <thead>
-                      <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
-                        <th className="py-3 px-4 text-left font-semibold">Сотрудник</th>
-                        <th className="py-3 px-4 text-left font-semibold">Роль</th>
-                        <th className="py-3 px-4 text-left font-semibold">В сети</th>
-                        <th className="py-3 px-4 text-left font-semibold">Назначен</th>
-                        <th className="py-3 px-4 text-center font-semibold w-20">Удалить</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
-                      {assignments.map((a) => {
-                        const isOnline = onlineUsers.has(a.userId);
-                        return (
-                        <tr key={a.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer" onClick={() => setSelectedAssignment(a)}>
-                          <td className="py-2.5 px-4">
-                            <div className="font-medium text-gray-800 dark:text-gray-100">{a.userName || `#${a.userId}`}</div>
-                            {a.userEmail && <div className="text-xs text-gray-400">{a.userEmail}</div>}
-                          </td>
-                          <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{a.roleOnProject || '—'}</td>
-                          <td className="py-2.5 px-4">
-                            <span className="flex items-center gap-1.5">
+                {assignments.length === 0 ? <EmptyState text="Сотрудники не назначены" /> : teamViewMode === 'grid' ? (
+                  <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {assignments.map((a) => {
+                      const isOnline = onlineUsers.has(a.userId);
+                      return (
+                        <div key={a.id} className="bg-gray-50 dark:bg-gray-900/30 rounded-xl p-4 cursor-pointer hover:ring-2 hover:ring-violet-300 dark:hover:ring-violet-600 transition-all flex items-start justify-between" onClick={() => setSelectedAssignment(a)}>
+                          <div className="min-w-0">
+                            <div className="font-medium text-gray-800 dark:text-gray-100 truncate">{a.userName || `#${a.userId}`}</div>
+                            {a.userEmail && <div className="text-xs text-gray-400 truncate">{a.userEmail}</div>}
+                            <div className="text-xs text-gray-400 mt-1">{a.roleOnProject || '—'}</div>
+                            <span className="flex items-center gap-1.5 mt-2">
                               <span className={`w-2 h-2 rounded-full shrink-0 ${isOnline ? 'bg-green-400' : 'bg-gray-400'}`} />
-                              <span className="text-xs text-gray-600 dark:text-gray-400">{isOnline ? 'В сети' : 'Офлайн'}</span>
+                              <span className="text-xs text-gray-500 dark:text-gray-400">{isOnline ? 'В сети' : 'Офлайн'}</span>
                             </span>
-                          </td>
-                          <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{fmt(a.assignedAt)}</td>
-                          <td className="py-2.5 px-4 text-center" onClick={(e) => e.stopPropagation()}>
-                            <button onClick={() => handleRemoveAssignment(a.id)} disabled={removingAssignId === a.id}
-                              className="p-1.5 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-40" title="Удалить">
-                              {removingAssignId === a.id
-                                ? <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                                : <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                              }
-                            </button>
-                          </td>
+                          </div>
+                          <button onClick={(e) => { e.stopPropagation(); handleRemoveAssignment(a.id); }} disabled={removingAssignId === a.id}
+                            className="p-1.5 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-40 shrink-0" title="Удалить">
+                            {removingAssignId === a.id
+                              ? <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                              : <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            }
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="table-auto w-full text-sm min-w-[480px]">
+                      <thead>
+                        <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
+                          <th className="py-3 px-4 text-left font-semibold">Сотрудник</th>
+                          <th className="py-3 px-4 text-left font-semibold">Роль</th>
+                          <th className="py-3 px-4 text-left font-semibold">В сети</th>
+                          <th className="py-3 px-4 text-left font-semibold">Назначен</th>
+                          <th className="py-3 px-4 text-center font-semibold w-20">Удалить</th>
                         </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
+                        {assignments.map((a) => {
+                          const isOnline = onlineUsers.has(a.userId);
+                          return (
+                          <tr key={a.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer" onClick={() => setSelectedAssignment(a)}>
+                            <td className="py-2.5 px-4">
+                              <div className="font-medium text-gray-800 dark:text-gray-100">{a.userName || `#${a.userId}`}</div>
+                              {a.userEmail && <div className="text-xs text-gray-400">{a.userEmail}</div>}
+                            </td>
+                            <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{a.roleOnProject || '—'}</td>
+                            <td className="py-2.5 px-4">
+                              <span className="flex items-center gap-1.5">
+                                <span className={`w-2 h-2 rounded-full shrink-0 ${isOnline ? 'bg-green-400' : 'bg-gray-400'}`} />
+                                <span className="text-xs text-gray-600 dark:text-gray-400">{isOnline ? 'В сети' : 'Офлайн'}</span>
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{fmt(a.assignedAt)}</td>
+                            <td className="py-2.5 px-4 text-center" onClick={(e) => e.stopPropagation()}>
+                              <button onClick={() => handleRemoveAssignment(a.id)} disabled={removingAssignId === a.id}
+                                className="p-1.5 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-40" title="Удалить">
+                                {removingAssignId === a.id
+                                  ? <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                  : <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                }
+                              </button>
+                            </td>
+                          </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
               </div>
             </>
@@ -1363,17 +1484,17 @@ export default function ProjectDetailPage() {
       {/* ─── Documents ─── */}
       {activeTab === 'documents' && (
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between gap-3">
+          <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="font-semibold text-gray-800 dark:text-gray-100 shrink-0">Документы проекта</h2>
-            <div className="flex items-center gap-2 flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
               {/* Search */}
-              <div className="relative flex-1 max-w-xs">
+              <div className="relative flex-1 min-w-[120px] max-w-xs">
                 <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
                 <input
                   type="text" value={docSearch} onChange={(e) => setDocSearch(e.target.value)}
-                  placeholder="Поиск по названию..."
+                  placeholder="Поиск..."
                   className="w-full pl-8 pr-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-700 border-0 rounded-lg text-gray-800 dark:text-gray-200 placeholder-gray-400 focus:ring-2 focus:ring-violet-500 focus:outline-none"
                 />
               </div>
@@ -1384,13 +1505,27 @@ export default function ProjectDetailPage() {
                 {DOC_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
-            <button onClick={() => setShowUploadDoc(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors shrink-0">
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-              </svg>
-              Загрузить документ
-            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              {/* View toggle */}
+              <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
+                <button onClick={() => { setDocViewMode('table'); localStorage.setItem('projDocView','table'); }}
+                  className={`p-1.5 rounded transition-colors ${docViewMode==='table' ? 'bg-white dark:bg-gray-600 shadow-sm text-violet-600' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`} title="Таблица">
+                  <svg className="w-4 h-4 fill-current" viewBox="0 0 16 16"><path d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2zm15 2h-4v3h4V4zm0 4h-4v3h4V8zm0 4h-4v3h3a1 1 0 0 0 1-1v-2zm-5 3v-3H6v3h4zm-5 0v-3H1v2a1 1 0 0 0 1 1h3zm-4-4h4V8H1v3zm0-4h4V4H1v3zm5-3v3h4V4H6zm4 4H6v3h4V8z"/></svg>
+                </button>
+                <button onClick={() => { setDocViewMode('grid'); localStorage.setItem('projDocView','grid'); }}
+                  className={`p-1.5 rounded transition-colors ${docViewMode==='grid' ? 'bg-white dark:bg-gray-600 shadow-sm text-violet-600' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`} title="Карточки">
+                  <svg className="w-4 h-4 fill-current" viewBox="0 0 16 16"><path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zm8 0A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm-8 8A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5v-3zm8 0A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 13.5v-3z"/></svg>
+                </button>
+              </div>
+              <button onClick={() => setShowUploadDoc(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+                <span className="hidden sm:inline">Загрузить документ</span>
+                <span className="sm:hidden">Загрузить</span>
+              </button>
+            </div>
           </div>
           {loadingDocs ? <LoadingState /> : documents.length === 0 ? <EmptyState text="Документы не найдены" /> : (() => {
             const filtered = documents.filter((doc) => {
@@ -1398,36 +1533,59 @@ export default function ProjectDetailPage() {
               const matchType = !docTypeFilter || doc.documentType === docTypeFilter;
               return matchSearch && matchType;
             });
-            return filtered.length === 0 ? <EmptyState text="Ничего не найдено" /> : (
-              <table className="table-auto w-full text-sm">
-                <thead>
-                  <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
-                    <th className="py-3 px-4 text-left font-semibold">Название</th>
-                    <th className="py-3 px-4 text-left font-semibold">Тип</th>
-                    <th className="py-3 px-4 text-left font-semibold">Размер</th>
-                    <th className="py-3 px-4 text-left font-semibold">Дата</th>
-                    <th className="py-3 px-4 text-center font-semibold">Скачать</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
-                  {filtered.map((doc) => (
-                    <tr key={doc.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer" onClick={() => setSelectedDocument(doc)}>
-                      <td className="py-2.5 px-4 font-medium text-gray-800 dark:text-gray-100">{doc.title}</td>
-                      <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{DOC_TYPE_LABELS[doc.documentType || ''] || doc.documentType || '—'}</td>
-                      <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{fmtSize(doc.fileSize)}</td>
-                      <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{fmt(doc.createdAt)}</td>
-                      <td className="py-2.5 px-4 text-center" onClick={(e) => e.stopPropagation()}>
-                        {doc.fileUrl && (
-                          <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer"
-                            className="text-xs text-violet-500 hover:text-violet-600 font-medium">
-                            Скачать
-                          </a>
-                        )}
-                      </td>
+            if (filtered.length === 0) return <EmptyState text="Ничего не найдено" />;
+            if (docViewMode === 'grid') return (
+              <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {filtered.map((doc) => (
+                  <div key={doc.id} className="bg-gray-50 dark:bg-gray-900/30 rounded-xl p-4 cursor-pointer hover:ring-2 hover:ring-violet-300 dark:hover:ring-violet-600 transition-all" onClick={() => setSelectedDocument(doc)}>
+                    <div className="font-medium text-gray-800 dark:text-gray-100 mb-1 line-clamp-2">{doc.title}</div>
+                    <div className="text-xs text-gray-400 mb-2">{DOC_TYPE_LABELS[doc.documentType || ''] || doc.documentType || '—'}</div>
+                    <div className="flex items-center justify-between text-xs text-gray-400">
+                      <span>{fmtSize(doc.fileSize)}</span>
+                      <span>{fmt(doc.createdAt)}</span>
+                    </div>
+                    {doc.fileUrl && (
+                      <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+                        className="mt-3 block text-center text-xs text-violet-500 hover:text-violet-600 font-medium py-1.5 bg-violet-50 dark:bg-violet-900/20 rounded-lg transition-colors">
+                        Скачать
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            );
+            return (
+              <div className="overflow-x-auto">
+                <table className="table-auto w-full text-sm min-w-[480px]">
+                  <thead>
+                    <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
+                      <th className="py-3 px-4 text-left font-semibold">Название</th>
+                      <th className="py-3 px-4 text-left font-semibold">Тип</th>
+                      <th className="py-3 px-4 text-left font-semibold">Размер</th>
+                      <th className="py-3 px-4 text-left font-semibold">Дата</th>
+                      <th className="py-3 px-4 text-center font-semibold">Скачать</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
+                    {filtered.map((doc) => (
+                      <tr key={doc.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer" onClick={() => setSelectedDocument(doc)}>
+                        <td className="py-2.5 px-4 font-medium text-gray-800 dark:text-gray-100">{doc.title}</td>
+                        <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{DOC_TYPE_LABELS[doc.documentType || ''] || doc.documentType || '—'}</td>
+                        <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{fmtSize(doc.fileSize)}</td>
+                        <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{fmt(doc.createdAt)}</td>
+                        <td className="py-2.5 px-4 text-center" onClick={(e) => e.stopPropagation()}>
+                          {doc.fileUrl && (
+                            <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer"
+                              className="text-xs text-violet-500 hover:text-violet-600 font-medium">
+                              Скачать
+                            </a>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             );
           })()}
         </div>
