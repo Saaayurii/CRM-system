@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { ChatMessage as ChatMessageType } from '@/stores/chatStore';
 import MediaViewer, { MediaItem } from './MediaViewer';
@@ -422,30 +423,92 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, onRepl
         )}
       </div>
 
-      {/* Mobile long-press action toolbar */}
-      {showMobileActions && (
+      {/* Mobile long-press context menu — Telegram style (portal) */}
+      {showMobileActions && typeof document !== 'undefined' && createPortal(
         <div
-          className={`sm:hidden flex items-center gap-1 mt-1 p-1 rounded-xl bg-white dark:bg-gray-800 shadow-lg border border-gray-100 dark:border-gray-700 ${isOwn ? 'self-end mr-8' : 'self-start ml-8'}`}
-          onClick={(e) => e.stopPropagation()}
+          className="sm:hidden fixed inset-0 z-[9999] flex flex-col items-center justify-center px-6 gap-4"
+          onClick={() => setShowMobileActions(false)}
         >
-          <button onClick={() => { onReact(message.id, '👍'); setShowMobileActions(false); }} className="p-2 text-lg hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">👍</button>
-          <button onClick={() => { onReact(message.id, '❤️'); setShowMobileActions(false); }} className="p-2 text-lg hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">❤️</button>
-          <button onClick={() => { onReact(message.id, '😂'); setShowMobileActions(false); }} className="p-2 text-lg hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">😂</button>
-          <div className="w-px h-6 bg-gray-200 dark:bg-gray-600 mx-0.5" />
-          <button onClick={() => { onReply(); setShowMobileActions(false); }} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500" title="Ответить">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
-          </button>
-          {canPin && (
-            <button onClick={() => { onPin?.(message); setShowMobileActions(false); }} className={`p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 ${isPinned ? 'text-violet-500' : 'text-gray-500'}`} title={isPinned ? 'Открепить' : 'Закрепить'}>
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill={isPinned ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="17" x2="12" y2="22" /><path d="M5 17h14v-1.76a2 2 0 00-1.11-1.79l-1.78-.9A2 2 0 0115 10.76V6h1a2 2 0 000-4H8a2 2 0 000 4h1v4.76a2 2 0 01-1.11 1.79l-1.78.9A2 2 0 005 15.24V17z" /></svg>
+          {/* Blurred backdrop */}
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+
+          {/* Emoji reaction pill */}
+          <div
+            className="relative z-10 bg-gray-900/90 rounded-full px-2 py-1.5 flex items-center gap-0.5 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {QUICK_EMOJIS.map((emoji) => (
+              <button
+                key={emoji}
+                onClick={() => { onReact(message.id, emoji); setShowMobileActions(false); }}
+                className="text-2xl p-1.5 rounded-full hover:bg-white/10 active:scale-90 transition-all"
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+
+          {/* Actions card */}
+          <div
+            className="relative z-10 w-full max-w-sm bg-gray-900/95 rounded-2xl overflow-hidden shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Reply */}
+            <button
+              onClick={() => { onReply(); setShowMobileActions(false); }}
+              className="w-full flex items-center justify-between px-5 py-3.5 text-white hover:bg-white/10 active:bg-white/15 transition-colors border-b border-white/10"
+            >
+              <span className="text-[15px]">Ответить</span>
+              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+              </svg>
             </button>
-          )}
-          {isOwn && (
-            <button onClick={() => { setConfirmDelete(true); setShowMobileActions(false); }} className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-400" title="Удалить">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-            </button>
-          )}
-        </div>
+
+            {/* Copy */}
+            {message.text && (
+              <button
+                onClick={() => {
+                  navigator.clipboard?.writeText(message.text!).catch(() => {});
+                  setShowMobileActions(false);
+                }}
+                className="w-full flex items-center justify-between px-5 py-3.5 text-white hover:bg-white/10 active:bg-white/15 transition-colors border-b border-white/10"
+              >
+                <span className="text-[15px]">Скопировать</span>
+                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+              </button>
+            )}
+
+            {/* Pin / Unpin */}
+            {canPin && (
+              <button
+                onClick={() => { onPin?.(message); setShowMobileActions(false); }}
+                className="w-full flex items-center justify-between px-5 py-3.5 text-white hover:bg-white/10 active:bg-white/15 transition-colors border-b border-white/10"
+              >
+                <span className="text-[15px]">{isPinned ? 'Открепить' : 'Закрепить'}</span>
+                <svg className="w-5 h-5 text-gray-400" viewBox="0 0 24 24" fill={isPinned ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="17" x2="12" y2="22" />
+                  <path d="M5 17h14v-1.76a2 2 0 00-1.11-1.79l-1.78-.9A2 2 0 0115 10.76V6h1a2 2 0 000-4H8a2 2 0 000 4h1v4.76a2 2 0 01-1.11 1.79l-1.78.9A2 2 0 005 15.24V17z" />
+                </svg>
+              </button>
+            )}
+
+            {/* Delete (own messages only) */}
+            {isOwn && (
+              <button
+                onClick={() => { setConfirmDelete(true); setShowMobileActions(false); }}
+                className="w-full flex items-center justify-between px-5 py-3.5 text-red-400 hover:bg-white/10 active:bg-white/15 transition-colors"
+              >
+                <span className="text-[15px]">Удалить</span>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            )}
+          </div>
+        </div>,
+        document.body
       )}
 
       {/* Media viewer portal */}
