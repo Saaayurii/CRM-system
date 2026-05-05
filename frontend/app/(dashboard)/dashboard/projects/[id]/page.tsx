@@ -563,17 +563,17 @@ export default function ProjectDetailPage() {
     }
   }, [projectId]);
 
-  const reloadTasks = useCallback(async () => {
-    setLoadingTasks(true);
+  const reloadTasks = useCallback(async (silent = false) => {
+    if (!silent) setLoadingTasks(true);
     try {
       const r = await api.get('/tasks', { params: { projectId, limit: 100 } });
       const t = r.data?.tasks || r.data?.data || r.data || [];
       setTasks(Array.isArray(t) ? t : []);
       setTasksLoaded(true);
     } catch {
-      setTasks([]);
+      if (!silent) setTasks([]);
     } finally {
-      setLoadingTasks(false);
+      if (!silent) setLoadingTasks(false);
     }
   }, [projectId]);
 
@@ -2323,7 +2323,12 @@ export default function ProjectDetailPage() {
         <CreateTaskModal
           projectId={projectId}
           projectMembers={assignments}
-          onCreated={async () => { setShowCreateTask(false); await reloadTasks(); addToast('success', 'Задача создана'); }}
+          onCreated={async (newTask) => {
+            setShowCreateTask(false);
+            if (newTask?.id) setTasks((prev) => [...prev, newTask]);
+            addToast('success', 'Задача создана');
+            reloadTasks(true);
+          }}
           onClose={() => setShowCreateTask(false)}
         />
       )}
