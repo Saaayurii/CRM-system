@@ -11,6 +11,7 @@ import { useAuthStore } from '@/stores/authStore';
 import ChatInput from '@/components/chat/ChatInput';
 import ChatMessageComponent from '@/components/chat/ChatMessage';
 import FilePreviewModal from '@/components/ui/FilePreviewModal';
+import { useDownloadPdf } from '@/lib/hooks/useDownloadPdf';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
@@ -419,6 +420,7 @@ export default function ProjectDetailPage() {
   const [loadingProject, setLoadingProject] = useState(true);
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
   const [showEditModal, setShowEditModal] = useState(false);
+const { download: downloadPdf, loading: pdfLoading } = useDownloadPdf();
 
   /* Team tab */
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
@@ -1044,6 +1046,29 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
         </div>
         <div className="flex items-center gap-2 mt-3 sm:mt-0 shrink-0">
           <Link href="/dashboard/projects" className="text-sm text-violet-500 hover:text-violet-600">&larr; Назад</Link>
+          {project && (
+            <button
+              onClick={() => downloadPdf('project-detail', project.name, [{
+                Название: project.name,
+                Код: project.code || '—',
+                Статус: (STATUS_LABELS[project.status] || STATUS_LABELS[0]).label,
+                Описание: project.description || '—',
+                Начало: project.startDate ? new Date(project.startDate).toLocaleDateString('ru-RU') : '—',
+                Завершение: project.plannedEndDate ? new Date(project.plannedEndDate).toLocaleDateString('ru-RU') : '—',
+                Бюджет: project.budget ? `${Number(project.budget).toLocaleString('ru-RU')} ₽` : '—',
+                Задач: tasks.length,
+                Документов: documents.length,
+                Участников: assignments.length,
+              }])}
+              disabled={pdfLoading}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:border-violet-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors disabled:opacity-50"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              {pdfLoading ? 'PDF...' : 'PDF'}
+            </button>
+          )}
           <button onClick={() => setShowEditModal(true)} className="px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-lg transition-colors">
             Редактировать
           </button>

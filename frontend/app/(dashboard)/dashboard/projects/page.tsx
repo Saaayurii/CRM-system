@@ -124,6 +124,23 @@ export default function ProjectsPage() {
               </svg>
             </button>
           </div>
+          <button
+            onClick={() => downloadPdf('projects', 'Проекты', (projects ?? []).map((p) => ({
+              Название: p.name,
+              Код: p.code || '—',
+              Статус: (STATUS_LABELS[p.status] || STATUS_LABELS[0]).label,
+              Начало: p.startDate ? new Date(p.startDate).toLocaleDateString('ru-RU') : '—',
+              Завершение: p.plannedEndDate ? new Date(p.plannedEndDate).toLocaleDateString('ru-RU') : '—',
+              Бюджет: p.budget ? `${Number(p.budget).toLocaleString('ru-RU')} ₽` : '—',
+            })))}
+            disabled={pdfLoading || !projects?.length}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:border-violet-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors disabled:opacity-50"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            {pdfLoading ? 'PDF...' : 'PDF'}
+          </button>
           <Link href="/dashboard" className="text-sm text-violet-500 hover:text-violet-600">
             &larr; Назад
           </Link>
