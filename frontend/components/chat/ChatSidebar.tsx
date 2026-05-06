@@ -187,7 +187,7 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
       )}
 
       {/* Channel list */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-none">
         {filtered.length === 0 && !isLoadingChannels && (
           <div className="p-4 text-center text-sm text-gray-400 dark:text-gray-500">
             {search ? 'Ничего не найдено' : 'Нет чатов'}

@@ -3,6 +3,14 @@
 @import 'tailwindcss';
 @import '../css/utility-patterns.css' layer(components);
 
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 @plugin "@tailwindcss/forms" {
   strategy: base;
 }
