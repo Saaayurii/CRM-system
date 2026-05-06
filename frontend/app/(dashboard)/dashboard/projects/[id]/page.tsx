@@ -1786,6 +1786,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                 channelId={activeProjectChannelId}
                 channelName={(() => { const c = projectChannels.find((c) => c.id === activeProjectChannelId); return c?.channelName || c?.name || 'Канал'; })()}
                 projectId={projectId}
+                projectMembers={assignments}
                 onFilesSent={handleChatFilesSent}
                 onBack={() => setMobileChatOpen(false)}
               />
@@ -2905,7 +2906,7 @@ function UploadDocumentModal({
 
 /* ─── Project Chat Panel ─── */
 
-function ProjectChatPanel({ channelId, channelName, projectId, onFilesSent, onBack }: { channelId: number; channelName: string; projectId?: number; onFilesSent?: (attachments: any[]) => void; onBack?: () => void }) {
+function ProjectChatPanel({ channelId, channelName, projectId, projectMembers = [], onFilesSent, onBack }: { channelId: number; channelName: string; projectId?: number; projectMembers?: Assignment[]; onFilesSent?: (attachments: any[]) => void; onBack?: () => void }) {
   const connect = useChatStore((s) => s.connect);
   const setActiveChannel = useChatStore((s) => s.setActiveChannel);
   const fetchChannels = useChatStore((s) => s.fetchChannels);
@@ -3029,21 +3030,34 @@ function ProjectChatPanel({ channelId, channelName, projectId, onFilesSent, onBa
     if (!projectId) return;
     setLoadingProjectMembers(true);
     try {
-      const r = await api.get(`/projects/${projectId}/assignments`);
-      const raw = r.data?.assignments || r.data?.data || r.data || [];
       const inChat = new Set(participants.map((p) => p.id));
-      setProjectMemberOptions(
-        raw
-          .filter((a: any) => { const uid = a.userId || a.user?.id; return uid && !inChat.has(uid); })
-          .map((a: any) => ({
-            id: a.userId || a.user?.id,
-            name: a.user?.name || a.name || `#${a.userId}`,
-            email: a.user?.email || a.email || '',
-          }))
-      );
+      if (projectMembers.length > 0) {
+        setProjectMemberOptions(
+          projectMembers
+            .filter((a) => a.userId && !inChat.has(a.userId))
+            .map((a) => ({
+              id: a.userId,
+              name: a.userName || `#${a.userId}`,
+              email: a.userEmail || '',
+            }))
+        );
+      } else {
+        const r = await api.get(`/projects/${projectId}/assignments`);
+        const raw = r.data?.assignments || r.data?.data || r.data || [];
+        const enriched = await enrichAssignments(raw);
+        setProjectMemberOptions(
+          enriched
+            .filter((a: any) => { const uid = a.userId || a.user?.id; return uid && !inChat.has(uid); })
+            .map((a: any) => ({
+              id: a.userId || a.user?.id,
+              name: a.userName || a.user?.name || a.name || `#${a.userId}`,
+              email: a.userEmail || a.user?.email || a.email || '',
+            }))
+        );
+      }
     } catch { setProjectMemberOptions([]); }
     finally { setLoadingProjectMembers(false); }
-  }, [projectId, participants]);
+  }, [projectId, participants, projectMembers]);
 
   const handleAddMember = useCallback(async (userId: number) => {
     setAddingUserId(userId);
