@@ -201,6 +201,7 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
           const unread = unreadCounts[channel.id] || 0;
           const isActive = channel.id === activeChannelId;
           const isOnline = !isSelf && isDirectChannelOnline(channel, user?.id, onlineUsers);
+          const isDeletedUser = !isSelf && channel.channelType === 'direct' && displayName === 'Удалённый пользователь';
 
           return (
             <button
@@ -218,6 +219,8 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
                   className={`w-11 h-11 rounded-full flex items-center justify-center text-white font-semibold text-sm overflow-hidden ${
                     isSelf
                       ? 'bg-amber-400'
+                      : isDeletedUser
+                      ? 'bg-gray-400 dark:bg-gray-600'
                       : channel.channelType === 'group'
                       ? 'bg-violet-500'
                       : 'bg-sky-500'
@@ -228,6 +231,10 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
                   ) : isSelf ? (
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                    </svg>
+                  ) : isDeletedUser ? (
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
                     </svg>
                   ) : (
                     getInitials(displayName)
@@ -262,7 +269,7 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
                   <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                     {channel.lastMessage
                       ? channel.channelType === 'group'
-                        ? `${channel.lastMessage.senderName}: ${channel.lastMessage.text}`
+                        ? `${isDeletedEmail(channel.lastMessage.senderName) ? 'Удалённый пользователь' : (channel.lastMessage.senderName || 'Удалённый пользователь')}: ${channel.lastMessage.text}`
                         : channel.lastMessage.text
                       : 'Нет сообщений'}
                   </p>
@@ -305,11 +312,18 @@ function isSelfChat(channel: ChatChannel, currentUserId?: number): boolean {
   return channel.members.every((m) => m.id === currentUserId);
 }
 
+function isDeletedEmail(email?: string | null): boolean {
+  return !!email && /^deleted_\d+_\d+@crm\.deleted$/.test(email);
+}
+
 function getChannelDisplayName(channel: ChatChannel, currentUserId?: number): string {
   if (channel.channelType === 'group') return channel.channelName || 'Группа';
   if (channel.members && channel.members.length > 0) {
     const other = channel.members.find((m) => m.id !== currentUserId);
-    if (other) return other.name || other.email || channel.channelName;
+    if (other) {
+      if (!other.name && isDeletedEmail(other.email)) return 'Удалённый пользователь';
+      return other.name || (isDeletedEmail(other.email) ? 'Удалённый пользователь' : other.email) || channel.channelName;
+    }
   }
   return channel.channelName || 'Прямое сообщение';
 }

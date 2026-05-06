@@ -727,27 +727,33 @@ function InfoPanel({ channel, partner, isSelf, isPartnerOnline, isAdmin, current
             <div className="space-y-2">
               {members.map((m) => {
                 const isSelf = m.id === currentUserId;
+                const isDeleted = !m.name || /^deleted_\d+_\d+@crm\.deleted$/.test(m.email ?? '');
+                const displayName = isDeleted ? 'Удалённый пользователь' : m.name;
                 return (
                   <div key={m.id} className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-sky-500 flex items-center justify-center text-white text-xs font-semibold shrink-0 overflow-hidden">
-                      {m.avatarUrl ? (
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0 overflow-hidden ${isDeleted ? 'bg-gray-400 dark:bg-gray-600' : 'bg-sky-500'}`}>
+                      {isDeleted ? (
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
+                        </svg>
+                      ) : m.avatarUrl ? (
                         <img src={m.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
                       ) : (
                         getInitials(m.name)
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1">
-                        <p className="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">{m.name}</p>
-                        {m.role === 'admin' && (
-                          <span className="shrink-0 text-xs text-violet-500 font-medium">admin</span>
+                      <p className={`text-sm font-medium truncate ${isDeleted ? 'text-gray-400 dark:text-gray-500 italic' : 'text-gray-800 dark:text-gray-100'}`}>
+                        {displayName}
+                        {!isDeleted && m.role === 'admin' && (
+                          <span className="ml-1 text-xs text-violet-500 font-medium not-italic">admin</span>
                         )}
-                      </div>
-                      {m.isMuted && (
+                      </p>
+                      {!isDeleted && m.isMuted && (
                         <p className="text-xs text-red-400">Ограничен</p>
                       )}
                     </div>
-                    {isAdmin && !isSelf && (
+                    {isAdmin && !isSelf && !isDeleted && (
                       <button
                         onClick={() => handleToggleMute(m.id, m.isMuted ?? false)}
                         disabled={mutingId === m.id}

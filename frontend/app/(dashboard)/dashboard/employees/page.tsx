@@ -60,7 +60,8 @@ export default function EmployeesPage() {
   const fetchEmployees = async () => {
     try {
       const { data } = await api.get('/users');
-      setEmployees(data.users || data.data || []);
+      const all: Employee[] = data.users || data.data || [];
+      setEmployees(all.filter((e) => (e.roleId ?? e.role_id) !== 1));
     } catch {
       setError('Не удалось загрузить список сотрудников');
     } finally {

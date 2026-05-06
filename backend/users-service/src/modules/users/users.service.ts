@@ -126,15 +126,16 @@ export class UsersService {
   async remove(id: number, requestingUserAccountId: number): Promise<void> {
     const user = await this.userRepository.findById(id);
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException('Пользователь не найден');
     }
 
-    // Check if requesting user has access to this user
     if (user.accountId !== requestingUserAccountId) {
-      throw new ForbiddenException('Access denied');
+      throw new ForbiddenException('Нет доступа');
     }
 
-    await this.userRepository.softDelete(id);
+    // Obfuscate email so the address can be reused for a new account
+    const obfuscatedEmail = `deleted_${id}_${Date.now()}@crm.deleted`;
+    await this.userRepository.softDeleteWithEmail(id, obfuscatedEmail);
   }
 
   async changePassword(

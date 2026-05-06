@@ -113,9 +113,17 @@ export class UserRepository {
   async softDelete(id: number) {
     return (this.prisma as any).user.update({
       where: { id },
+      data: { deletedAt: new Date(), isActive: false },
+    });
+  }
+
+  async softDeleteWithEmail(id: number, obfuscatedEmail: string) {
+    return (this.prisma as any).user.update({
+      where: { id },
       data: {
         deletedAt: new Date(),
         isActive: false,
+        email: obfuscatedEmail, // free the original email for reuse
       },
     });
   }

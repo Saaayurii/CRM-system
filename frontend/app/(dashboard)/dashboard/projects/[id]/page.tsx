@@ -469,6 +469,7 @@ export default function ProjectDetailPage() {
 
   /* Document modal */
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
+const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
 
   /* Chat tab */
   const [projectChannels, setProjectChannels] = useState<ChatChannel[]>([]);
@@ -1680,7 +1681,9 @@ export default function ProjectDetailPage() {
                 {filtered.map((doc) => {
                   const icon = getDocIcon(doc);
                   return (
-                    <div key={doc.id} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-900/20 transition-colors">
+                    <div key={doc.id}
+                      onClick={() => doc.fileUrl && setPreviewDoc(doc)}
+                      className={`flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-900/20 transition-colors ${doc.fileUrl ? 'cursor-pointer' : ''}`}>
                       {/* Thumbnail */}
                       <div className="w-12 h-12 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center shrink-0 overflow-hidden">
                         {icon.type === 'image' ? (
@@ -1705,7 +1708,7 @@ export default function ProjectDetailPage() {
                         </div>
                       </div>
                       {/* Actions */}
-                      <div className="flex items-center gap-1 shrink-0">
+                      <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
                         {doc.fileUrl && (
                           <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer"
                             className="p-1.5 text-gray-400 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors" title="Скачать">
@@ -2527,6 +2530,14 @@ export default function ProjectDetailPage() {
           document={selectedDocument}
           onDeleted={async () => { setSelectedDocument(null); await reloadDocuments(); addToast('success', 'Документ удалён'); }}
           onClose={() => setSelectedDocument(null)}
+        />
+      )}
+
+      {previewDoc?.fileUrl && (
+        <FilePreviewModal
+          fileUrl={previewDoc.fileUrl}
+          fileName={previewDoc.title}
+          onClose={() => setPreviewDoc(null)}
         />
       )}
 
@@ -4104,14 +4115,15 @@ function ProjectChannelCreateModal({
 
   useEffect(() => {
     if (projectMembers.length > 0 && projectMembers.some((m) => m.userName)) {
-      setMembers(projectMembers);
+      setMembers(projectMembers.filter((m) => !!m.userName));
       return;
     }
     api.get(`/projects/${projectId}/assignments`)
       .then(async (r) => {
         const d = r.data?.assignments || r.data?.data || r.data || [];
         const raw: Assignment[] = Array.isArray(d) ? d : [];
-        setMembers(await enrichAssignments(raw));
+        const enriched = await enrichAssignments(raw);
+        setMembers(enriched.filter((m) => !!m.userName));
       })
       .catch(() => {});
   }, [projectId, projectMembers]);

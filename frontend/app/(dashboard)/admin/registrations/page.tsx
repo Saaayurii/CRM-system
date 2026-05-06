@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
+import { AxiosError } from 'axios';
 
 const ROLE_OPTIONS: { value: number; label: string }[] = [
   { value: 10, label: 'Рабочий' },
@@ -93,6 +94,13 @@ export default function RegistrationsPage() {
     }
   }
 
+  function extractApiError(err: unknown, fallback: string): string {
+    const e = err as AxiosError<{ message?: string | string[] }>;
+    const msg = e?.response?.data?.message;
+    if (Array.isArray(msg)) return msg.join('; ');
+    return msg || fallback;
+  }
+
   async function handleApprove(id: number, roleId: number) {
     setActionLoading(id);
     try {
@@ -101,8 +109,8 @@ export default function RegistrationsPage() {
       setApproveState(null);
       loadPending();
       loadHistory();
-    } catch {
-      addToast('error', 'Ошибка при одобрении заявки');
+    } catch (err) {
+      addToast('error', extractApiError(err, 'Ошибка при одобрении заявки'));
     } finally {
       setActionLoading(null);
     }
@@ -116,8 +124,8 @@ export default function RegistrationsPage() {
       setRejectState(null);
       loadPending();
       loadHistory();
-    } catch {
-      addToast('error', 'Ошибка при отклонении заявки');
+    } catch (err) {
+      addToast('error', extractApiError(err, 'Ошибка при отклонении заявки'));
     } finally {
       setActionLoading(null);
     }
