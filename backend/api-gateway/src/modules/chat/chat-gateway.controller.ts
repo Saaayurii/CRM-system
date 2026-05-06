@@ -83,6 +83,20 @@ export class ChatGatewayController {
     });
   }
 
+  @Post('chat-channels/import-telegram')
+  @ApiOperation({ summary: 'Import Telegram chat export as CRM channel' })
+  async importTelegram(@Req() req: Request, @Body() body: any) {
+    return this.proxyService.forward('chat', {
+      method: 'POST',
+      path: '/chat-channels/import-telegram',
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
   @Put('chat-channels/:id')
   @ApiOperation({ summary: 'Update chat channel' })
   async updateChannel(

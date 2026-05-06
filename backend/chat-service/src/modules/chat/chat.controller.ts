@@ -75,6 +75,17 @@ export class ChatController {
     return this.chatService.createChannel(accountId, userId, dto);
   }
 
+  @Post('import-telegram')
+  @ApiOperation({ summary: 'Import a Telegram chat export as a CRM channel' })
+  @ApiResponse({ status: 201, description: 'Channel created with imported messages' })
+  importTelegram(
+    @CurrentUser('accountId') accountId: number,
+    @CurrentUser('id') userId: number,
+    @Body() body: any,
+  ) {
+    return this.chatService.importTelegram(accountId, userId, body);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get chat channel by ID' })
   @ApiResponse({ status: 200, description: 'Channel retrieved' })

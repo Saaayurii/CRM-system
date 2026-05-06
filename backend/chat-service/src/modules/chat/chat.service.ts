@@ -93,6 +93,44 @@ export class ChatService {
     });
   }
 
+  async importTelegram(accountId: number, userId: number, body: any) {
+    const { name, type, telegramId, messages = [] } = body;
+
+    // Create a group channel tagged as TG import
+    const channel = await this.chatRepository.createChannel({
+      accountId,
+      channelType: 'group',
+      name: `[TG] ${name || 'Диалог'}`,
+      createdByUserId: userId,
+      isPrivate: false,
+      settings: { telegramImport: true, telegramId, telegramType: type },
+      members: { create: [{ userId, role: 'admin' }] },
+    });
+
+    // Bulk-insert messages in chunks to avoid timeouts
+    const CHUNK = 100;
+    for (let i = 0; i < messages.length; i += CHUNK) {
+      const chunk = messages.slice(i, i + CHUNK);
+      await Promise.all(
+        chunk.map((m: any) => {
+          const senderPrefix = m.from && m.from !== 'Неизвестно' ? `**${m.from}:** ` : '';
+          const text = `${senderPrefix}${m.text || ''}`.trim();
+          if (!text) return null;
+          return this.chatRepository.createMessage({
+            channelId: channel.id,
+            userId,
+            messageText: text,
+            messageType: 'text',
+            attachments: [{ type: 'tg_meta', from: m.from, fromId: m.fromId, tgDate: m.date, mediaType: m.mediaType, forwardedFrom: m.forwardedFrom }],
+            createdAt: m.date ? new Date(m.date) : undefined,
+          });
+        }).filter(Boolean),
+      );
+    }
+
+    return { channelId: channel.id, name: channel.name, imported: messages.length };
+  }
+
   async updateChannel(id: number, accountId: number, dto: UpdateChannelDto) {
     await this.findChannelById(id, accountId);
     await this.chatRepository.updateChannel(id, accountId, dto);

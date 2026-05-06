@@ -132,6 +132,21 @@ export default function AdminSidebar({ onNavigate }: AdminSidebarProps) {
         )}
       </Link>
 
+      <Link
+        href="/admin/telegram"
+        onClick={onNavigate}
+        className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium mb-1 transition-colors ${
+          pathname === '/admin/telegram'
+            ? 'bg-violet-500/10 text-violet-600 dark:text-violet-400'
+            : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/30'
+        }`}
+      >
+        <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-2.012 9.482c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.875.739z"/>
+        </svg>
+        Импорт Telegram
+      </Link>
+
       {MODULE_CATEGORIES.map((category, idx) => (
         <CategoryGroup
           key={category.name}
