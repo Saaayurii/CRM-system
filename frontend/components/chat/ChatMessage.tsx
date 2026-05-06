@@ -78,9 +78,18 @@ interface ChatMessageProps {
   highlightQuery?: string;
 }
 
+const DELETED_EMAIL_RE = /^deleted_\d+_\d+@crm\.deleted$/;
+
+function resolveDisplayName(name?: string): string {
+  if (!name || DELETED_EMAIL_RE.test(name)) return 'Удалённый пользователь';
+  return name;
+}
+
 export default function ChatMessage({ message, isOwn, showAvatar, isRead, onReply, onReact, onDelete, onPin, isPinned, canPin, highlightQuery }: ChatMessageProps) {
   const addToast = useToastStore((s) => s.addToast);
   const isVoice = message.messageType === 'voice';
+  const displaySenderName = resolveDisplayName(message.senderName);
+  const isSenderDeleted = !message.senderName || DELETED_EMAIL_RE.test(message.senderName);
 
   const mediaItems: MediaItem[] = (message.attachments ?? [])
     .filter((a) => a.mimeType?.startsWith('image/') || a.mimeType?.startsWith('video/'))
@@ -171,15 +180,15 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, onRepl
       {/* Avatar placeholder / real avatar */}
       <div className="w-8 shrink-0">
         {showAvatar && !isOwn && (
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold ${message.senderName ? 'bg-sky-500' : 'bg-gray-400 dark:bg-gray-600'}`}>
-            {message.senderAvatarUrl ? (
-              <img src={message.senderAvatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
-            ) : message.senderName ? (
-              getInitials(message.senderName)
-            ) : (
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold ${isSenderDeleted ? 'bg-gray-400 dark:bg-gray-600' : 'bg-sky-500'}`}>
+            {isSenderDeleted ? (
               <svg className="w-4 h-4 text-white/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
+            ) : message.senderAvatarUrl ? (
+              <img src={message.senderAvatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
+            ) : (
+              getInitials(displaySenderName)
             )}
           </div>
         )}
@@ -189,8 +198,8 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, onRepl
       <div className={`max-w-[70%] min-w-[80px] flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}>
         {/* Sender name */}
         {showAvatar && !isOwn && (
-          <p className={`text-xs font-medium mb-0.5 ml-1 ${message.senderName ? 'text-gray-500 dark:text-gray-400' : 'text-gray-400 dark:text-gray-600 italic'}`}>
-            {message.senderName || 'Удалённый пользователь'}
+          <p className={`text-xs font-medium mb-0.5 ml-1 ${isSenderDeleted ? 'text-gray-400 dark:text-gray-600 italic' : 'text-gray-500 dark:text-gray-400'}`}>
+            {displaySenderName}
           </p>
         )}
 

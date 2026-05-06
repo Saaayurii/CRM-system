@@ -3258,18 +3258,27 @@ function ProjectChatPanel({ channelId, channelName, projectId, projectMembers = 
             ) : (
               <div className="space-y-2">
                 {(() => {
+                  const DELETED_RE = /^deleted_\d+_\d+@crm\.deleted$/;
                   const currentUserRole = participants.find((p) => p.id === user?.id)?.role;
                   const isAdmin = currentUserRole === 'admin' || currentUserRole === 'owner';
-                  return participants.map((p) => (
+                  return participants.map((p) => {
+                    const isDeleted = DELETED_RE.test(p.email ?? '');
+                    const displayName = isDeleted ? 'Удалённый пользователь' : p.name;
+                    return (
                     <div key={p.id} className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 dark:border-gray-700">
-                      <div className="w-8 h-8 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center text-sm font-medium text-violet-700 dark:text-violet-300 shrink-0">
-                        {p.name.charAt(0).toUpperCase()}
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium shrink-0 ${isDeleted ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500' : 'bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300'}`}>
+                        {isDeleted ? (
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          </svg>
+                        ) : (
+                          p.name.charAt(0).toUpperCase()
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">{p.name}</div>
-                        {p.email && <div className="text-xs text-gray-400 truncate">{p.email}</div>}
+                        <div className={`text-sm font-medium truncate ${isDeleted ? 'text-gray-400 dark:text-gray-500 italic' : 'text-gray-800 dark:text-gray-100'}`}>{displayName}</div>
                       </div>
-                      {p.role && p.role !== 'member' && (
+                      {!isDeleted && p.role && p.role !== 'member' && (
                         <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 font-medium ${
                           p.role === 'admin' || p.role === 'owner'
                             ? 'bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300'
@@ -3278,7 +3287,7 @@ function ProjectChatPanel({ channelId, channelName, projectId, projectMembers = 
                           {p.role === 'admin' ? 'Администратор' : p.role === 'owner' ? 'Владелец' : p.role}
                         </span>
                       )}
-                      {isAdmin && p.id !== user?.id && (
+                      {isAdmin && p.id !== user?.id && !isDeleted && (
                         <>
                           {/* Mute/unmute */}
                           <button
@@ -3317,7 +3326,8 @@ function ProjectChatPanel({ channelId, channelName, projectId, projectMembers = 
                         </>
                       )}
                     </div>
-                  ));
+                  );
+                  });
                 })()}
               </div>
             )}
