@@ -27,8 +27,8 @@ export default function CreateChannelModal({ onClose }: CreateChannelModalProps)
   const [selectedUsers, setSelectedUsers] = useState<UserOption[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const setChannelType = (v: 'direct' | 'group') => { setChannelTypeRaw(v); draft.set((p) => ({ ...p, channelType: v })); };
-  const setChannelName = (v: string) => { setChannelNameRaw(v); draft.set((p) => ({ ...p, channelName: v })); };
+  const setChannelType = (v: 'direct' | 'group') => { setChannelTypeRaw(v); draft.set({ channelType: v, channelName: channelName }); };
+  const setChannelName = (v: string) => { setChannelNameRaw(v); draft.set({ channelType: channelType, channelName: v }); };
 
   const createChannel = useChatStore((s) => s.createChannel);
   const setActiveChannel = useChatStore((s) => s.setActiveChannel);
