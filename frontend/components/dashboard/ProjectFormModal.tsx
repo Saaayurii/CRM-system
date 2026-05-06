@@ -202,7 +202,7 @@ export default function ProjectFormModal({ project, onClose, onSaved }: ProjectF
 
         {!isEdit && draft.hasDraft && (
           <DraftBanner
-            onRestore={() => { draft.restoreDraft(); applyDraft(draft.value); }}
+            onRestore={() => { const d = draft.restoreDraft(); if (d) applyDraft(d); }}
             onDiscard={() => draft.clearDraft()}
           />
         )}

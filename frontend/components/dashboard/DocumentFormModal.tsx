@@ -171,7 +171,7 @@ export default function DocumentFormModal({ document, onClose, onSaved }: Docume
         </div>
         {isNew && draft.hasDraft && (
           <DraftBanner
-            onRestore={() => { draft.restoreDraft(); setFormDataRaw(draft.value); }}
+            onRestore={() => { const d = draft.restoreDraft(); if (d) setFormDataRaw(d); }}
             onDiscard={() => draft.clearDraft()}
           />
         )}

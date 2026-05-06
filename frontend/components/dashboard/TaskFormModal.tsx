@@ -149,7 +149,7 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
         </div>
         {isNew && draft.hasDraft && (
           <DraftBanner
-            onRestore={() => { draft.restoreDraft(); setFormDataRaw(draft.value); }}
+            onRestore={() => { const d = draft.restoreDraft(); if (d) setFormDataRaw(d); }}
             onDiscard={() => draft.clearDraft()}
           />
         )}

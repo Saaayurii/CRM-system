@@ -38,14 +38,17 @@ export function useDraft<T extends Record<string, any>>(key: string, initialValu
     });
   }, [storageKey]);
 
-  const restoreDraft = useCallback(() => {
+  const restoreDraft = useCallback((): T | null => {
     try {
       const raw = localStorage.getItem(storageKey);
       if (raw) {
-        setValue(JSON.parse(raw));
+        const parsed: T = JSON.parse(raw);
+        setValue(parsed);
         setHasDraft(false);
+        return parsed;
       }
     } catch {}
+    return null;
   }, [storageKey]);
 
   const clearDraft = useCallback(() => {

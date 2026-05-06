@@ -79,10 +79,18 @@ interface ChatMessageProps {
 }
 
 const DELETED_EMAIL_RE = /^deleted_\d+_\d+@crm\.deleted$/;
+const TG_SENDER_RE = /^\*\*(.+?):\*\* ?([\s\S]*)$/;
 
 function resolveDisplayName(name?: string): string {
   if (!name || DELETED_EMAIL_RE.test(name)) return 'Удалённый пользователь';
   return name;
+}
+
+function parseTgMessage(text?: string): { sender: string; body: string } | null {
+  if (!text) return null;
+  const m = TG_SENDER_RE.exec(text);
+  if (!m) return null;
+  return { sender: m[1], body: m[2] };
 }
 
 export default function ChatMessage({ message, isOwn, showAvatar, isRead, onReply, onReact, onDelete, onPin, isPinned, canPin, highlightQuery }: ChatMessageProps) {
@@ -90,6 +98,14 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, onRepl
   const isVoice = message.messageType === 'voice';
   const displaySenderName = resolveDisplayName(message.senderName);
   const isSenderDeleted = !message.senderName || DELETED_EMAIL_RE.test(message.senderName);
+
+  // Detect TG-imported message: has tg_meta attachment or **Sender:** prefix
+  const tgMeta = (message.attachments as any[] ?? []).find((a: any) => a.type === 'tg_meta');
+  const tgParsed = !tgMeta ? parseTgMessage(message.text) : null;
+  const isTgMessage = !!tgMeta || !!tgParsed;
+  const tgSender: string = tgMeta?.from || tgParsed?.sender || '';
+  const tgBody: string | undefined = tgParsed?.body ?? (tgMeta ? message.text : undefined);
+  const displayText = isTgMessage ? tgBody : message.text;
 
   const mediaItems: MediaItem[] = (message.attachments ?? [])
     .filter((a) => a.mimeType?.startsWith('image/') || a.mimeType?.startsWith('video/'))
@@ -103,7 +119,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, onRepl
     (a) => a.mimeType?.startsWith('image/') || a.mimeType?.startsWith('video/')
   );
   const nonMediaAtts = (message.attachments ?? []).filter(
-    (a) => !a.mimeType?.startsWith('image/') && !a.mimeType?.startsWith('video/')
+    (a: any) => !a.mimeType?.startsWith('image/') && !a.mimeType?.startsWith('video/') && a.type !== 'tg_meta'
   );
   const hasAlbum = mediaAtts.length >= 2;
   const albumCornerClass = isOwn ? 'rounded-tl-2xl rounded-tr-sm' : 'rounded-tl-sm rounded-tr-2xl';
@@ -238,8 +254,18 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, onRepl
                 </div>
               )}
 
+              {/* TG sender badge */}
+              {isTgMessage && tgSender && (
+                <div className={`flex items-center gap-1 mb-1 text-xs font-medium ${isOwn ? 'text-white/80' : 'text-sky-500 dark:text-sky-400'}`}>
+                  <svg className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-2.012 9.482c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.875.739z"/>
+                  </svg>
+                  {tgSender}
+                </div>
+              )}
+
               {/* Text (caption if album, otherwise regular message text) */}
-              {message.text && renderText(message.text, isOwn, highlightQuery)}
+              {displayText && renderText(displayText, isOwn, highlightQuery)}
 
               {/* Single image */}
               {!hasAlbum && mediaAtts.length === 1 && mediaAtts[0].mimeType?.startsWith('image/') && (() => {
@@ -660,6 +686,20 @@ function highlightSegment(raw: string, query: string | undefined, isOwn: boolean
   return <>{parts}</>;
 }
 
+function renderInlineBold(text: string, isOwn: boolean, highlightQuery?: string): React.ReactNode[] {
+  const parts: React.ReactNode[] = [];
+  const boldRe = /\*\*(.+?)\*\*/g;
+  let last = 0;
+  let m: RegExpExecArray | null;
+  while ((m = boldRe.exec(text)) !== null) {
+    if (m.index > last) parts.push(<span key={last}>{highlightSegment(text.slice(last, m.index), highlightQuery, isOwn)}</span>);
+    parts.push(<strong key={m.index} className="font-semibold">{m[1]}</strong>);
+    last = boldRe.lastIndex;
+  }
+  if (last < text.length) parts.push(<span key={last}>{highlightSegment(text.slice(last), highlightQuery, isOwn)}</span>);
+  return parts;
+}
+
 function renderText(text: string, isOwn: boolean, highlightQuery?: string) {
   const textSegments: React.ReactNode[] = [];
   const cards: React.ReactNode[] = [];
@@ -670,7 +710,7 @@ function renderText(text: string, isOwn: boolean, highlightQuery?: string) {
   while ((match = MENTION_RE.exec(text)) !== null) {
     if (match.index > lastIndex) {
       const raw = text.slice(lastIndex, match.index);
-      textSegments.push(<span key={lastIndex}>{highlightSegment(raw, highlightQuery, isOwn)}</span>);
+      textSegments.push(<span key={lastIndex}>{renderInlineBold(raw, isOwn, highlightQuery)}</span>);
     }
 
     if (match[0].startsWith('@')) {
@@ -724,7 +764,7 @@ function renderText(text: string, isOwn: boolean, highlightQuery?: string) {
 
   if (lastIndex < text.length) {
     const raw = text.slice(lastIndex);
-    textSegments.push(<span key={lastIndex}>{highlightSegment(raw, highlightQuery, isOwn)}</span>);
+    textSegments.push(<span key={lastIndex}>{renderInlineBold(raw, isOwn, highlightQuery)}</span>);
   }
 
   return (

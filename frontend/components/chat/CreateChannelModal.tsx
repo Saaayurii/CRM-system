@@ -107,7 +107,7 @@ export default function CreateChannelModal({ onClose }: CreateChannelModalProps)
         </div>
         {draft.hasDraft && (
           <DraftBanner
-            onRestore={() => { draft.restoreDraft(); setChannelTypeRaw(draft.value.channelType); setChannelNameRaw(draft.value.channelName); }}
+            onRestore={() => { const d = draft.restoreDraft(); if (d) { setChannelTypeRaw(d.channelType); setChannelNameRaw(d.channelName); } }}
             onDiscard={() => draft.clearDraft()}
           />
         )}
