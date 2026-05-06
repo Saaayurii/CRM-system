@@ -7,6 +7,7 @@ import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import TaskFormModal from '@/components/dashboard/TaskFormModal';
 import { useOfflineData } from '@/hooks/useOfflineData';
+import { useDownloadPdf } from '@/lib/hooks/useDownloadPdf';
 
 interface Assignee {
   userId: number;
@@ -88,6 +89,7 @@ type ViewMode = 'table' | 'grid';
 
 export default function TasksPage() {
   const addToast = useToastStore((s) => s.addToast);
+  const { download: downloadPdf, loading: pdfLoading } = useDownloadPdf();
   const searchParams = useSearchParams();
   const [showModal, setShowModal] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);

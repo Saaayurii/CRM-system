@@ -7,6 +7,7 @@ import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import ProjectFormModal from '@/components/dashboard/ProjectFormModal';
 import { useOfflineData } from '@/hooks/useOfflineData';
+import { useDownloadPdf } from '@/lib/hooks/useDownloadPdf';
 
 interface Project {
   id: number;
@@ -58,6 +59,7 @@ export default function ProjectsPage() {
   const [showModal, setShowModal] = useState(false);
   const [editProject, setEditProject] = useState<Project | null>(null);
   const addToast = useToastStore((s) => s.addToast);
+  const { download: downloadPdf, loading: pdfLoading } = useDownloadPdf();
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     if (typeof window !== 'undefined') {
       return (localStorage.getItem('dashViewMode') as ViewMode) || 'table';

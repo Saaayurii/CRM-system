@@ -3333,7 +3333,7 @@ function ProjectChatPanel({ channelId, channelName, projectId, projectMembers = 
       )}
 
       {/* Messages */}
-      <div ref={containerRef} className="flex-1 overflow-y-auto p-4 space-y-1">
+      <div ref={containerRef} className="flex-1 overflow-y-auto p-4 space-y-1 bg-gray-50 dark:bg-gray-900">
         {isLoadingMessages && <div className="text-center text-xs text-gray-400 py-2">Загрузка...</div>}
         {!isLoadingMessages && messages.length === 0 && (
           <p className="text-center text-sm text-gray-400 mt-12">Нет сообщений. Начните диалог!</p>

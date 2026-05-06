@@ -6,6 +6,7 @@ import { useToastStore } from '@/stores/toastStore';
 import DocumentFormModal from '@/components/dashboard/DocumentFormModal';
 import FilePreviewModal from '@/components/ui/FilePreviewModal';
 import { normalizeFileUrl } from '@/lib/utils';
+import { useDownloadPdf } from '@/lib/hooks/useDownloadPdf';
 
 interface Document {
   id: number;

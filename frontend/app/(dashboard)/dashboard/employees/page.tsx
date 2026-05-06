@@ -5,6 +5,7 @@ import Link from 'next/link';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import EmployeeFormModal from '@/components/dashboard/EmployeeFormModal';
+import { useDownloadPdf } from '@/lib/hooks/useDownloadPdf';
 
 interface Employee {
   id: number;
@@ -40,6 +41,7 @@ type ViewMode = 'table' | 'grid';
 
 export default function EmployeesPage() {
   const addToast = useToastStore((s) => s.addToast);
+  const { download: downloadPdf, loading: pdfLoading } = useDownloadPdf();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
