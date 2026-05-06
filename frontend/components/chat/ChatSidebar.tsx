@@ -152,7 +152,7 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
       {projectFolders.length > 0 && (
         <div className="border-b border-gray-100 dark:border-gray-700/60">
           <div className="relative">
-            <div ref={tabsScrollRef} className="flex gap-1 px-3 py-2 overflow-x-auto scrollbar-none">
+            <div ref={tabsScrollRef} className="flex gap-1 px-3 py-2" style={{ overflowX: 'scroll', scrollbarWidth: 'none', msOverflowStyle: 'none' } as React.CSSProperties}>
               <button
                 data-active={activeFolder === 'all' ? 'true' : 'false'}
                 onClick={() => setActiveFolder('all')}
@@ -321,8 +321,10 @@ function getChannelDisplayName(channel: ChatChannel, currentUserId?: number): st
   if (channel.members && channel.members.length > 0) {
     const other = channel.members.find((m) => m.id !== currentUserId);
     if (other) {
-      if (!other.name && isDeletedEmail(other.email)) return 'Удалённый пользователь';
-      return other.name || (isDeletedEmail(other.email) ? 'Удалённый пользователь' : other.email) || channel.channelName;
+      if (isDeletedEmail(other.name) || isDeletedEmail(other.email) || !other.name) {
+        return 'Удалённый пользователь';
+      }
+      return other.name || channel.channelName;
     }
   }
   return channel.channelName || 'Прямое сообщение';
