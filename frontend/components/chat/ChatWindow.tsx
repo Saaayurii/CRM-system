@@ -291,8 +291,13 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
 
           {/* Avatar */}
           <div className="relative shrink-0">
+            {(() => {
+              const avatarSrc = activeChannel.channelType === 'direct'
+                ? (partner?.avatarUrl ?? activeChannel.avatarUrl)
+                : activeChannel.avatarUrl;
+              return (
             <div
-              className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-semibold ${
+              className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-semibold overflow-hidden ${
                 isSelf
                   ? 'bg-amber-400'
                   : activeChannel.channelType === 'group'
@@ -300,8 +305,8 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
                   : 'bg-sky-500'
               }`}
             >
-              {activeChannel.avatarUrl ? (
-                <img src={activeChannel.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
+              {avatarSrc ? (
+                <img src={avatarSrc} alt="" className="w-full h-full rounded-full object-cover" />
               ) : isSelf ? (
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
@@ -310,6 +315,8 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
                 getInitials(channelDisplayName)
               )}
             </div>
+              );
+            })()}
             {!isSelf && activeChannel.channelType === 'direct' && isPartnerOnline && (
               <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full" />
             )}

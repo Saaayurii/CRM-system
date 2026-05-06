@@ -321,10 +321,10 @@ function getChannelDisplayName(channel: ChatChannel, currentUserId?: number): st
   if (channel.members && channel.members.length > 0) {
     const other = channel.members.find((m) => m.id !== currentUserId);
     if (other) {
-      if (isDeletedEmail(other.name) || isDeletedEmail(other.email) || !other.name) {
+      if (isDeletedEmail(other.name) || isDeletedEmail(other.email)) {
         return 'Удалённый пользователь';
       }
-      return other.name || channel.channelName;
+      return other.name || other.email || channel.channelName || 'Прямое сообщение';
     }
   }
   return channel.channelName || 'Прямое сообщение';
