@@ -9,12 +9,16 @@ const api = axios.create({
   },
 });
 
-// Request interceptor — attach Bearer token
+// Request interceptor — attach Bearer token and optional account override
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   if (typeof window !== 'undefined') {
     const token = localStorage.getItem('accessToken');
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    const selectedAccountId = localStorage.getItem('selectedAccountId');
+    if (selectedAccountId && config.headers) {
+      config.headers['X-Account-Id'] = selectedAccountId;
     }
   }
   return config;

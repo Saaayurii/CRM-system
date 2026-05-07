@@ -2,7 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+import { Request } from 'express';
 import { JwtPayload } from '../interfaces/jwt-payload.interface';
+
+const SUPER_ADMIN_ROLE_ID = 1;
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -19,15 +22,27 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       ]),
       ignoreExpiration: false,
       secretOrKey: secret,
+      passReqToCallback: true,
     });
   }
 
-  async validate(payload: JwtPayload): Promise<JwtPayload> {
+  async validate(req: Request, payload: JwtPayload): Promise<JwtPayload> {
+    let accountId = payload.accountId;
+
+    // Super admin can impersonate any account via X-Account-Id header
+    if (payload.roleId === SUPER_ADMIN_ROLE_ID) {
+      const headerValue = req.headers['x-account-id'];
+      const overrideId = Array.isArray(headerValue) ? headerValue[0] : headerValue;
+      if (overrideId && /^\d+$/.test(overrideId)) {
+        accountId = Number(overrideId);
+      }
+    }
+
     return {
       sub: payload.sub,
       email: payload.email,
       roleId: payload.roleId,
-      accountId: payload.accountId,
+      accountId,
     };
   }
 }

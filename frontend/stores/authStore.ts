@@ -142,11 +142,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   switchAccount: (accountId, accountName, accountLogoUrl) => {
     set({ selectedAccountId: accountId });
     localStorage.setItem('selectedAccountId', String(accountId));
+    // Full reload so all stores re-fetch data under the new accountId
+    if (typeof window !== 'undefined') {
+      window.location.href = '/dashboard';
+    }
   },
 
   resetAccountSwitch: () => {
     set({ selectedAccountId: null });
     localStorage.removeItem('selectedAccountId');
+    // Full reload to restore super admin's own account data
+    if (typeof window !== 'undefined') {
+      window.location.href = '/dashboard';
+    }
   },
 
   // Fetch fresh role from DB and update tokens if role changed.
