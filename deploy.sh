@@ -127,6 +127,15 @@ if [ "$SSL" = true ]; then
 fi
 
 # ── Deploy ───────────────────────────────────────────────────
+info "Removing stale containers that conflict by container_name..."
+grep "container_name:" docker-compose.yml | awk '{print $2}' | while read -r cname; do
+  old_id=$(docker ps -a --filter "name=^/${cname}$" --format "{{.ID}}" 2>/dev/null)
+  if [ -n "$old_id" ]; then
+    warn "Removing stale container: ${cname} (${old_id})"
+    docker rm -f "$old_id" 2>/dev/null || true
+  fi
+done
+
 info "Starting services..."
 docker compose up -d --remove-orphans
 
