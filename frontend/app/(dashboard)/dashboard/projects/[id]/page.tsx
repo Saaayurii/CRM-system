@@ -154,6 +154,23 @@ async function enrichAssignments(assignments: Assignment[]): Promise<Assignment[
     const r = await api.get('/users', { params: { limit: 500 } });
     const users: UserOption[] = r.data?.users || r.data?.data || r.data || [];
     const map = new Map(users.map((u) => [u.id, u]));
+
+    // Fetch individual records for users missing from bulk list (e.g. soft-deleted)
+    const missingIds = assignments
+      .filter((a) => !map.has(a.userId) && !a.userName)
+      .map((a) => a.userId);
+    if (missingIds.length > 0) {
+      await Promise.allSettled(
+        missingIds.map(async (id) => {
+          try {
+            const res = await api.get(`/users/${id}`);
+            const u = res.data?.user || res.data;
+            if (u?.id) map.set(u.id, u);
+          } catch { /* ignore */ }
+        })
+      );
+    }
+
     return assignments.map((a) => {
       const u = map.get(a.userId);
       if (!u) return a;
