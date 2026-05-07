@@ -237,6 +237,12 @@ export default function RegisterCompanyPage() {
         <span className="text-sm text-gray-500 dark:text-gray-400">Сотрудник компании? </span>
         <a href="/auth/register" className="text-sm font-medium text-violet-500 hover:text-violet-600 dark:hover:text-violet-400">Отправить заявку</a>
       </div>
+      <p className="mt-4 text-center text-xs text-gray-400 dark:text-gray-500">
+        Регистрируясь, вы соглашаетесь с{' '}
+        <a href="/privacy" className="underline hover:text-violet-500 transition-colors">
+          политикой конфиденциальности
+        </a>
+      </p>
     </div>
   );
 }
