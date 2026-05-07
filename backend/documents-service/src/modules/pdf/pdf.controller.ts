@@ -35,6 +35,22 @@ export class PdfController {
     return this.pdfService.generateListPdf(body.entityType, body.rows, body.title);
   }
 
+  @Post('generate-project-report')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Generate detailed project report PDF' })
+  async generateProjectReport(
+    @Body() body: {
+      project: Record<string, unknown>;
+      assignments: Record<string, unknown>[];
+      tasks: Record<string, unknown>[];
+      payments: Record<string, unknown>[];
+      budgets: Record<string, unknown>[];
+      notes: string;
+    },
+  ) {
+    return this.pdfService.generateProjectReport(body);
+  }
+
   @Get('download/:filename')
   @Public()
   @ApiOperation({ summary: 'Download a generated PDF file' })

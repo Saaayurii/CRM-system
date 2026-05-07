@@ -11,7 +11,6 @@ import { useAuthStore } from '@/stores/authStore';
 import ChatInput from '@/components/chat/ChatInput';
 import ChatMessageComponent from '@/components/chat/ChatMessage';
 import FilePreviewModal from '@/components/ui/FilePreviewModal';
-import { useDownloadPdf } from '@/lib/hooks/useDownloadPdf';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
@@ -521,7 +520,7 @@ export default function ProjectDetailPage() {
   const [loadingProject, setLoadingProject] = useState(true);
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
   const [showEditModal, setShowEditModal] = useState(false);
-const { download: downloadPdf, loading: pdfLoading } = useDownloadPdf();
+const [pdfLoading, setPdfLoading] = useState(false);
 
   /* Team tab */
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
@@ -1250,6 +1249,48 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
     finally { setDeletingPhoto(null); }
   }, []);
 
+  /* ─── PDF Report ─── */
+  const downloadProjectPdf = async () => {
+    if (!project || pdfLoading) return;
+    setPdfLoading(true);
+    try {
+      // fetch finance data if not yet loaded
+      let pdfPayments = financePayments;
+      let pdfBudgets = financeBudgets;
+      if (!financeLoaded) {
+        const [pr, br] = await Promise.all([
+          api.get('/payments', { params: { limit: 200 } }).catch(() => ({ data: {} })),
+          api.get('/budgets', { params: { limit: 200 } }).catch(() => ({ data: {} })),
+        ]);
+        pdfPayments = (pr.data?.data || pr.data?.payments || []).filter((p: any) => p.projectId === projectId);
+        pdfBudgets = (br.data?.data || br.data?.budgets || []).filter((b: any) => b.projectId === projectId);
+      }
+
+      const { data: gen } = await api.post('/documents/pdf/generate-project-report', {
+        project,
+        assignments,
+        tasks,
+        payments: pdfPayments,
+        budgets: pdfBudgets,
+        notes: notesText,
+      });
+      const { data: blob } = await api.get(`/documents/pdf/download/${gen.filename}`, { responseType: 'blob' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = gen.filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      addToast('success', 'PDF сформирован');
+    } catch {
+      addToast('error', 'Не удалось сформировать PDF');
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
   /* ─── Render ─── */
 
   if (loadingProject) {
@@ -1289,18 +1330,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
           <Link href="/dashboard/projects" className="text-sm text-violet-500 hover:text-violet-600">&larr; Назад</Link>
           {project && (
             <button
-              onClick={() => downloadPdf('project-detail', project.name, [{
-                Название: project.name,
-                Код: project.code || '—',
-                Статус: (STATUS_LABELS[project.status] || STATUS_LABELS[0]).label,
-                Описание: project.description || '—',
-                Начало: project.startDate ? new Date(project.startDate).toLocaleDateString('ru-RU') : '—',
-                Завершение: project.plannedEndDate ? new Date(project.plannedEndDate).toLocaleDateString('ru-RU') : '—',
-                Бюджет: project.budget ? `${Number(project.budget).toLocaleString('ru-RU')} ₽` : '—',
-                Задач: tasks.length,
-                Документов: documents.length,
-                Участников: assignments.length,
-              }])}
+              onClick={downloadProjectPdf}
               disabled={pdfLoading}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:border-violet-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors disabled:opacity-50"
             >

@@ -492,6 +492,235 @@ export class PdfService {
     }
   }
 
+  async generateProjectReport(data: {
+    project: Record<string, unknown>;
+    assignments: Record<string, unknown>[];
+    tasks: Record<string, unknown>[];
+    payments: Record<string, unknown>[];
+    budgets: Record<string, unknown>[];
+    notes: string;
+  }): Promise<{ filename: string; downloadUrl: string }> {
+    const { project, assignments, tasks, payments, budgets, notes } = data;
+    const timestamp = Date.now();
+    const filename = `project-report-${project.id ?? timestamp}-${timestamp}.pdf`;
+    const filepath = path.join(PDF_DIR, filename);
+
+    await new Promise<void>((resolve, reject) => {
+      const doc = new PDFDocument({ margin: 50, size: 'A4' });
+      const stream = fs.createWriteStream(filepath);
+      doc.pipe(stream);
+
+      const W = doc.page.width;
+      const MARGIN = 50;
+      const CONTENT_W = W - MARGIN * 2;
+
+      // ── Section heading helper ───────────────────────────────────
+      const sectionHeader = (title: string) => {
+        if (doc.y > doc.page.height - 120) doc.addPage();
+        const y = doc.y + 14;
+        doc.rect(MARGIN, y, CONTENT_W, 24).fill('#5B21B6');
+        doc.fontSize(10).font(FONT_BOLD).fillColor('#FFFFFF')
+          .text(title.toUpperCase(), MARGIN + 10, y + 7, { width: CONTENT_W - 20 });
+        doc.fillColor('#1F2937');
+        doc.y = y + 32;
+      };
+
+      // ── Row helper (label / value two-column) ───────────────────
+      const infoRow = (label: string, value: string) => {
+        if (doc.y > doc.page.height - 80) doc.addPage();
+        const y = doc.y;
+        doc.fontSize(9).font(FONT_BOLD).fillColor('#6B7280').text(label.toUpperCase(), MARGIN, y, { width: 160 });
+        doc.fontSize(10).font(FONT).fillColor('#111827').text(value, MARGIN + 170, y, { width: CONTENT_W - 170 });
+        doc.y = Math.max(doc.y, y + 16) + 4;
+        doc.moveTo(MARGIN, doc.y - 2).lineTo(W - MARGIN, doc.y - 2).strokeColor('#F3F4F6').stroke();
+      };
+
+      // ── Mini table helper ────────────────────────────────────────
+      const miniTable = (
+        headers: string[],
+        rows: string[][],
+        colRatios: number[],
+      ) => {
+        const colWidths = colRatios.map((r) => Math.floor(CONTENT_W * r));
+        // header row
+        let y = doc.y;
+        doc.rect(MARGIN, y, CONTENT_W, 18).fill('#F3F4F6');
+        let x = MARGIN;
+        headers.forEach((h, i) => {
+          doc.fontSize(8).font(FONT_BOLD).fillColor('#374151').text(h, x + 4, y + 4, { width: colWidths[i] - 6, ellipsis: true });
+          x += colWidths[i];
+        });
+        y += 20;
+
+        rows.forEach((row, ri) => {
+          if (y > doc.page.height - 60) {
+            doc.addPage();
+            y = 50;
+          }
+          if (ri % 2 === 0) doc.rect(MARGIN, y, CONTENT_W, 16).fill('#F9FAFB');
+          x = MARGIN;
+          row.forEach((cell, ci) => {
+            doc.fontSize(8).font(FONT).fillColor('#111827').text(cell, x + 4, y + 3, { width: colWidths[ci] - 6, ellipsis: true });
+            x += colWidths[ci];
+          });
+          doc.moveTo(MARGIN, y + 16).lineTo(W - MARGIN, y + 16).strokeColor('#E5E7EB').stroke();
+          y += 17;
+        });
+        doc.y = y + 6;
+      };
+
+      // ══════════════════════════════════════════════════════════════
+      // PAGE HEADER
+      // ══════════════════════════════════════════════════════════════
+      doc.rect(0, 0, W, 80).fill('#5B21B6');
+      doc.fillColor('#FFFFFF').fontSize(22).font(FONT_BOLD).text('CRM System', MARGIN, 18);
+      doc.fontSize(11).font(FONT).text('Отчёт по проекту', MARGIN, 46);
+      // date top-right
+      doc.fontSize(9).fillColor('#C4B5FD')
+        .text(fmtDate(new Date().toISOString()), W - 200, 32, { width: 150, align: 'right' });
+      doc.fillColor('#1F2937');
+
+      // ── Project title ────────────────────────────────────────────
+      doc.y = 96;
+      doc.fontSize(18).font(FONT_BOLD).fillColor('#111827')
+        .text(val(project.name), MARGIN, doc.y, { width: CONTENT_W });
+      doc.fontSize(10).font(FONT).fillColor('#6B7280')
+        .text(`Код: ${val(project.code)}  |  Статус: ${STATUS_LABELS['projects']?.[Number(project.status)] ?? val(project.status)}`, MARGIN, doc.y + 4);
+      doc.moveTo(MARGIN, doc.y + 14).lineTo(W - MARGIN, doc.y + 14).strokeColor('#E5E7EB').stroke();
+      doc.y = doc.y + 22;
+
+      // ══════════════════════════════════════════════════════════════
+      // SECTION 1 — ОБЩАЯ ИНФОРМАЦИЯ
+      // ══════════════════════════════════════════════════════════════
+      sectionHeader('Общая информация');
+      infoRow('Описание', val(project.description));
+      infoRow('Клиент', val(project.clientName));
+      infoRow('Адрес', val(project.address));
+      infoRow('Дата начала', fmtDate(project.startDate));
+      infoRow('Плановое окончание', fmtDate(project.plannedEndDate));
+      if (project.actualEndDate) infoRow('Фактическое окончание', fmtDate(project.actualEndDate));
+      infoRow('Бюджет', project.budget ? `${Number(project.budget).toLocaleString('ru-RU')} ₽` : '—');
+      infoRow('Приоритет', PRIORITY_LABELS[Number(project.priority)] ?? val(project.priority));
+
+      // ══════════════════════════════════════════════════════════════
+      // SECTION 2 — КОМАНДА
+      // ══════════════════════════════════════════════════════════════
+      sectionHeader(`Команда (${assignments.length} участников)`);
+      if (assignments.length === 0) {
+        doc.fontSize(9).font(FONT).fillColor('#9CA3AF').text('Нет назначений', MARGIN, doc.y);
+        doc.y += 18;
+      } else {
+        miniTable(
+          ['ФИО', 'Должность', 'Роль', 'С даты'],
+          assignments.map((a) => [
+            val(a.userName ?? a.name),
+            val(a.position ?? a.userPosition),
+            val(a.roleName ?? a.role),
+            fmtDate(a.assignedAt ?? a.createdAt),
+          ]),
+          [0.35, 0.25, 0.25, 0.15],
+        );
+      }
+
+      // ══════════════════════════════════════════════════════════════
+      // SECTION 3 — ЗАДАЧИ
+      // ══════════════════════════════════════════════════════════════
+      const taskStatusLabels = STATUS_LABELS['tasks'] ?? {};
+      const taskStats = [0, 1, 2, 3, 4].map((s) => ({
+        label: taskStatusLabels[s] ?? String(s),
+        count: tasks.filter((t) => Number(t.status) === s).length,
+      })).filter((s) => s.count > 0);
+
+      sectionHeader(`Задачи (${tasks.length})`);
+
+      if (taskStats.length > 0) {
+        const statsLine = taskStats.map((s) => `${s.label}: ${s.count}`).join('  |  ');
+        doc.fontSize(9).font(FONT).fillColor('#6B7280').text(statsLine, MARGIN, doc.y);
+        doc.y += 14;
+      }
+
+      if (tasks.length === 0) {
+        doc.fontSize(9).font(FONT).fillColor('#9CA3AF').text('Нет задач', MARGIN, doc.y);
+        doc.y += 18;
+      } else {
+        miniTable(
+          ['Задача', 'Статус', 'Приоритет', 'Исполнители', 'Срок'],
+          tasks.slice(0, 50).map((t) => [
+            val(t.title),
+            taskStatusLabels[Number(t.status)] ?? val(t.status),
+            PRIORITY_LABELS[Number(t.priority)] ?? val(t.priority),
+            Array.isArray(t.assignees) ? (t.assignees as any[]).map((a) => a.userName || `#${a.userId}`).join(', ') || '—' : val(t.assigneeName),
+            fmtDate(t.dueDate),
+          ]),
+          [0.30, 0.16, 0.14, 0.25, 0.15],
+        );
+        if (tasks.length > 50) {
+          doc.fontSize(8).fillColor('#9CA3AF').text(`... и ещё ${tasks.length - 50} задач`, MARGIN, doc.y);
+          doc.y += 14;
+        }
+      }
+
+      // ══════════════════════════════════════════════════════════════
+      // SECTION 4 — ФИНАНСЫ
+      // ══════════════════════════════════════════════════════════════
+      sectionHeader('Финансы');
+
+      if (budgets.length > 0) {
+        const totalAllocated = budgets.reduce((s, b) => s + Number(b.allocatedAmount ?? 0), 0);
+        const totalSpent = budgets.reduce((s, b) => s + Number(b.spentAmount ?? b.spent ?? 0), 0);
+        infoRow('Выделено по бюджетам', `${totalAllocated.toLocaleString('ru-RU')} ₽`);
+        infoRow('Израсходовано', `${totalSpent.toLocaleString('ru-RU')} ₽`);
+        infoRow('Остаток', `${(totalAllocated - totalSpent).toLocaleString('ru-RU')} ₽`);
+        doc.y += 6;
+      }
+
+      if (payments.length > 0) {
+        doc.fontSize(9).font(FONT_BOLD).fillColor('#374151').text('Платежи:', MARGIN, doc.y);
+        doc.y += 12;
+        miniTable(
+          ['Описание', 'Сумма', 'Статус', 'Дата'],
+          payments.slice(0, 30).map((p) => [
+            val(p.description),
+            p.amount ? `${Number(p.amount).toLocaleString('ru-RU')} ₽` : '—',
+            STATUS_LABELS['payments']?.[Number(p.status)] ?? val(p.status),
+            fmtDate(p.paymentDate ?? p.createdAt),
+          ]),
+          [0.40, 0.20, 0.20, 0.20],
+        );
+      }
+
+      if (budgets.length === 0 && payments.length === 0) {
+        doc.fontSize(9).font(FONT).fillColor('#9CA3AF').text('Нет финансовых данных', MARGIN, doc.y);
+        doc.y += 18;
+      }
+
+      // ══════════════════════════════════════════════════════════════
+      // SECTION 5 — ЗАМЕТКИ
+      // ══════════════════════════════════════════════════════════════
+      if (notes?.trim()) {
+        sectionHeader('Заметки');
+        doc.fontSize(10).font(FONT).fillColor('#1F2937')
+          .text(notes.trim(), MARGIN, doc.y, { width: CONTENT_W, lineGap: 3 });
+        doc.y += 10;
+      }
+
+      // ── Footer ───────────────────────────────────────────────────
+      const footerY = doc.page.height - 36;
+      doc.moveTo(MARGIN, footerY - 6).lineTo(W - MARGIN, footerY - 6).strokeColor('#E5E7EB').stroke();
+      doc.fontSize(8).fillColor('#9CA3AF').font(FONT)
+        .text(
+          `Сформировано: ${fmtDate(new Date().toISOString())}  |  ${filename}`,
+          MARGIN, footerY, { width: CONTENT_W, align: 'center' },
+        );
+
+      doc.end();
+      stream.on('finish', resolve);
+      stream.on('error', reject);
+    });
+
+    return { filename, downloadUrl: `/pdf/download/${filename}` };
+  }
+
   streamPdf(filename: string): { stream: fs.ReadStream; size: number } {
     const filepath = path.join(PDF_DIR, filename);
     if (!fs.existsSync(filepath)) {
