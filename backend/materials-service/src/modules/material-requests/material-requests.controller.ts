@@ -46,6 +46,7 @@ export class MaterialRequestsController {
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'status', required: false, type: Number })
+  @ApiQuery({ name: 'projectId', required: false, type: Number })
   @ApiResponse({
     status: 200,
     description: 'Material requests retrieved successfully',
@@ -55,12 +56,14 @@ export class MaterialRequestsController {
     @Query('page') page?: number,
     @Query('limit') limit?: number,
     @Query('status') status?: number,
+    @Query('projectId') projectId?: number,
   ) {
     return this.materialRequestsService.findAll(
       user.accountId,
       page || 1,
       limit || 20,
       status,
+      projectId,
     );
   }
 

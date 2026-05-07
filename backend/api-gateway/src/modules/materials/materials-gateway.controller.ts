@@ -173,17 +173,19 @@ export class MaterialsGatewayController {
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
   @ApiQuery({ name: 'status', required: false })
+  @ApiQuery({ name: 'projectId', required: false })
   async findAllRequests(
     @Req() req: Request,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
     @Query('status') status?: number,
+    @Query('projectId') projectId?: number,
   ) {
     return this.proxyService.forward('materials', {
       method: 'GET',
       path: '/material-requests',
       headers: { authorization: req.headers.authorization || '' },
-      params: { page, limit, status },
+      params: { page, limit, status, projectId },
     });
   }
 

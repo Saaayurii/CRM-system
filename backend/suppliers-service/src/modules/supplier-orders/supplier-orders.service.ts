@@ -21,6 +21,7 @@ export class SupplierOrdersService {
     page: number = 1,
     limit: number = 20,
     status?: number,
+    projectId?: number,
   ): Promise<{ orders: any[]; total: number; page: number; limit: number }> {
     const skip = (page - 1) * limit;
     const [orders, total] = await Promise.all([
@@ -28,6 +29,7 @@ export class SupplierOrdersService {
         skip,
         take: limit,
         status,
+        projectId,
       }),
       this.supplierOrderRepository.count(accountId, status),
     ]);

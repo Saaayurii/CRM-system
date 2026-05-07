@@ -12,7 +12,7 @@ export class SupplierOrderRepository {
 
   async findAll(
     accountId: number,
-    options?: { skip?: number; take?: number; status?: number },
+    options?: { skip?: number; take?: number; status?: number; projectId?: number },
   ) {
     const where: any = {
       accountId,
@@ -20,6 +20,9 @@ export class SupplierOrderRepository {
     };
     if (options?.status !== undefined) {
       where.status = options.status;
+    }
+    if (options?.projectId !== undefined) {
+      where.projectId = options.projectId;
     }
 
     return (this.prisma as any).supplierOrder.findMany({

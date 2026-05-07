@@ -288,10 +288,69 @@ const TABS = [
   { key: 'team', label: 'Команда' },
   { key: 'documents', label: 'Документы' },
   { key: 'finance', label: 'Финансы' },
+  { key: 'resources', label: 'Ресурсы' },
   { key: 'chat', label: 'Диалог' },
   { key: 'photos', label: 'Медиа' },
   { key: 'notes', label: 'Заметки' },
 ] as const;
+
+interface MaterialRequest {
+  id: number;
+  requestNumber: string;
+  status: number;
+  priority: number;
+  requestDate: string;
+  neededByDate?: string;
+  purpose?: string;
+  requestedBy?: { id: number; name: string; email: string };
+  items?: { id: number; material?: { name: string; unit: string }; requestedQuantity: number }[];
+}
+
+interface SupplierOrder {
+  id: number;
+  orderNumber: string;
+  status: number;
+  orderDate: string;
+  totalAmount?: number;
+  currency?: string;
+  supplier?: { id: number; name: string };
+  items?: { id: number; quantity: number }[];
+}
+
+interface Equipment {
+  id: number;
+  name: string;
+  equipmentType?: string;
+  status?: number;
+  serialNumber?: string;
+  model?: string;
+}
+
+const MATERIAL_REQUEST_STATUS: Record<number, { label: string; color: string }> = {
+  0: { label: 'Новая', color: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300' },
+  1: { label: 'На рассмотрении', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' },
+  2: { label: 'Согласована', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' },
+  3: { label: 'Заказана', color: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300' },
+  4: { label: 'Частично', color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300' },
+  5: { label: 'Выполнена', color: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300' },
+  6: { label: 'Отклонена', color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' },
+};
+
+const SUPPLIER_ORDER_STATUS: Record<number, { label: string; color: string }> = {
+  0: { label: 'Черновик', color: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300' },
+  1: { label: 'Отправлен', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' },
+  2: { label: 'Подтверждён', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' },
+  3: { label: 'Частично', color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300' },
+  4: { label: 'Доставлен', color: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300' },
+  5: { label: 'Отменён', color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' },
+};
+
+const EQUIPMENT_STATUS: Record<number, { label: string; color: string }> = {
+  0: { label: 'Доступно', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' },
+  1: { label: 'В работе', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' },
+  2: { label: 'На обслуживании', color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300' },
+  3: { label: 'Неисправно', color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' },
+};
 
 type TabKey = typeof TABS[number]['key'];
 
@@ -556,6 +615,14 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
     typeof window !== 'undefined' ? ((localStorage.getItem('actsViewMode') as 'table' | 'grid') || 'table') : 'table'
   );
 
+  /* Resources tab */
+  const [materialRequests, setMaterialRequests] = useState<MaterialRequest[]>([]);
+  const [supplierOrders, setSupplierOrders] = useState<SupplierOrder[]>([]);
+  const [equipmentList, setEquipmentList] = useState<Equipment[]>([]);
+  const [loadingResources, setLoadingResources] = useState(false);
+  const [resourcesLoaded, setResourcesLoaded] = useState(false);
+  const [resourceSubTab, setResourceSubTab] = useState<'materials' | 'orders' | 'equipment'>('materials');
+
   /* Overview summary */
   const [overviewSummary, setOverviewSummary] = useState<{
     teams: TeamMember[];
@@ -630,6 +697,29 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
       if (!silent) setTasks([]);
     } finally {
       if (!silent) setLoadingTasks(false);
+    }
+  }, [projectId]);
+
+  const reloadResources = useCallback(async () => {
+    setLoadingResources(true);
+    try {
+      const [matRes, ordersRes, equipRes] = await Promise.allSettled([
+        api.get('/material-requests', { params: { projectId, limit: 200 } }),
+        api.get('/supplier-orders', { params: { projectId, limit: 200 } }),
+        api.get('/equipment', { params: { limit: 200 } }),
+      ]);
+      setMaterialRequests(matRes.status === 'fulfilled'
+        ? (matRes.value.data?.materialRequests || matRes.value.data?.data || matRes.value.data || [])
+        : []);
+      setSupplierOrders(ordersRes.status === 'fulfilled'
+        ? (ordersRes.value.data?.orders || ordersRes.value.data?.data || ordersRes.value.data || [])
+        : []);
+      setEquipmentList(equipRes.status === 'fulfilled'
+        ? (equipRes.value.data?.equipment || equipRes.value.data?.data || equipRes.value.data || [])
+        : []);
+      setResourcesLoaded(true);
+    } finally {
+      setLoadingResources(false);
     }
   }, [projectId]);
 
@@ -807,6 +897,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
     if (activeTab === 'team' && !teamLoaded && !loadingTeam) reloadTeam();
     if (activeTab === 'documents' && !docsLoaded && !loadingDocs) reloadDocuments();
     if (activeTab === 'tasks' && !tasksLoaded && !loadingTasks) reloadTasks();
+    if (activeTab === 'resources' && !resourcesLoaded && !loadingResources) reloadResources();
     if (activeTab === 'chat' && !channelChecked && !loadingChat) loadProjectChannels();
     if (activeTab === 'photos' && !sitesLoaded && !loadingPhotos) reloadSites();
     if (activeTab === 'finance' && !financeLoaded && !loadingFinance) {
@@ -2492,6 +2583,200 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                   </div>
                 )}
               </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ─── Resources ─── */}
+      {activeTab === 'resources' && (
+        <div className="space-y-4">
+          {/* Sub-nav */}
+          <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700 pb-0">
+            {([
+              { key: 'materials', label: 'Материальные заявки', count: materialRequests.length },
+              { key: 'orders', label: 'Заказы поставщикам', count: supplierOrders.length },
+              { key: 'equipment', label: 'Оборудование', count: equipmentList.length },
+            ] as const).map((t) => (
+              <button
+                key={t.key}
+                onClick={() => setResourceSubTab(t.key)}
+                className={`px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 transition-colors ${
+                  resourceSubTab === t.key
+                    ? 'border-violet-500 text-violet-600 dark:text-violet-400'
+                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                }`}
+              >
+                {t.label}
+                {!loadingResources && t.count > 0 && (
+                  <span className="ml-1.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-1.5 py-0.5 rounded-full">{t.count}</span>
+                )}
+              </button>
+            ))}
+          </div>
+
+          {loadingResources ? (
+            <LoadingState />
+          ) : (
+            <>
+              {/* ── Material Requests ── */}
+              {resourceSubTab === 'materials' && (
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Материальные заявки проекта</h3>
+                    <button
+                      onClick={reloadResources}
+                      className="text-xs text-violet-500 hover:text-violet-600 transition-colors"
+                    >
+                      Обновить
+                    </button>
+                  </div>
+                  {materialRequests.length === 0 ? (
+                    <div className="text-center py-12 text-gray-400">
+                      <svg className="w-10 h-10 mx-auto mb-3 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                      </svg>
+                      <p className="text-sm">Нет материальных заявок для этого проекта</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-50 dark:bg-gray-800/60">
+                          <tr>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">№ заявки</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Статус</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Цель</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Позиций</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Запросил</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Дата заявки</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Нужно до</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
+                          {materialRequests.map((mr) => (
+                            <tr key={mr.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
+                              <td className="px-4 py-3 font-mono text-xs text-violet-600 dark:text-violet-400 font-medium">{mr.requestNumber}</td>
+                              <td className="px-4 py-3">
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${MATERIAL_REQUEST_STATUS[mr.status]?.color ?? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>
+                                  {MATERIAL_REQUEST_STATUS[mr.status]?.label ?? mr.status}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-gray-700 dark:text-gray-300 max-w-[200px] truncate">{mr.purpose || '—'}</td>
+                              <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{mr.items?.length ?? 0}</td>
+                              <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{mr.requestedBy?.name || '—'}</td>
+                              <td className="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs">{mr.requestDate ? new Date(mr.requestDate).toLocaleDateString('ru-RU') : '—'}</td>
+                              <td className="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs">{mr.neededByDate ? new Date(mr.neededByDate).toLocaleDateString('ru-RU') : '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ── Supplier Orders ── */}
+              {resourceSubTab === 'orders' && (
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Заказы поставщикам по проекту</h3>
+                    <button onClick={reloadResources} className="text-xs text-violet-500 hover:text-violet-600 transition-colors">Обновить</button>
+                  </div>
+                  {supplierOrders.length === 0 ? (
+                    <div className="text-center py-12 text-gray-400">
+                      <svg className="w-10 h-10 mx-auto mb-3 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                      </svg>
+                      <p className="text-sm">Нет заказов поставщикам для этого проекта</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-50 dark:bg-gray-800/60">
+                          <tr>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">№ заказа</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Статус</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Поставщик</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Позиций</th>
+                            <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Сумма</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Дата заказа</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
+                          {supplierOrders.map((so) => (
+                            <tr key={so.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
+                              <td className="px-4 py-3 font-mono text-xs text-violet-600 dark:text-violet-400 font-medium">{so.orderNumber}</td>
+                              <td className="px-4 py-3">
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${SUPPLIER_ORDER_STATUS[so.status]?.color ?? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>
+                                  {SUPPLIER_ORDER_STATUS[so.status]?.label ?? so.status}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{so.supplier?.name || '—'}</td>
+                              <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{so.items?.length ?? 0}</td>
+                              <td className="px-4 py-3 text-right font-medium text-gray-800 dark:text-gray-200">
+                                {so.totalAmount != null
+                                  ? new Intl.NumberFormat('ru-RU', { style: 'currency', currency: so.currency || 'RUB', maximumFractionDigits: 0 }).format(so.totalAmount)
+                                  : '—'}
+                              </td>
+                              <td className="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs">{so.orderDate ? new Date(so.orderDate).toLocaleDateString('ru-RU') : '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ── Equipment ── */}
+              {resourceSubTab === 'equipment' && (
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Оборудование</h3>
+                    <button onClick={reloadResources} className="text-xs text-violet-500 hover:text-violet-600 transition-colors">Обновить</button>
+                  </div>
+                  {equipmentList.length === 0 ? (
+                    <div className="text-center py-12 text-gray-400">
+                      <svg className="w-10 h-10 mx-auto mb-3 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 011.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.56.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.893.149c-.425.07-.765.383-.93.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 01-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.397.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 01-.12-1.45l.527-.737c.25-.35.273-.806.108-1.204-.165-.397-.505-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.108-1.204l-.526-.738a1.125 1.125 0 01.12-1.45l.773-.773a1.125 1.125 0 011.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      <p className="text-sm">Оборудование не найдено</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-50 dark:bg-gray-800/60">
+                          <tr>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Название</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Тип</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Модель</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Серийный №</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Статус</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
+                          {equipmentList.map((eq) => (
+                            <tr key={eq.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
+                              <td className="px-4 py-3 font-medium text-gray-800 dark:text-gray-200">{eq.name}</td>
+                              <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{eq.equipmentType || '—'}</td>
+                              <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{eq.model || '—'}</td>
+                              <td className="px-4 py-3 font-mono text-xs text-gray-500 dark:text-gray-400">{eq.serialNumber || '—'}</td>
+                              <td className="px-4 py-3">
+                                {eq.status != null ? (
+                                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${EQUIPMENT_STATUS[eq.status]?.color ?? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>
+                                    {EQUIPMENT_STATUS[eq.status]?.label ?? eq.status}
+                                  </span>
+                                ) : '—'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
             </>
           )}
         </div>

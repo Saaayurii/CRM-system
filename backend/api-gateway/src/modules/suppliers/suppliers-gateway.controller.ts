@@ -131,17 +131,19 @@ export class SuppliersGatewayController {
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
   @ApiQuery({ name: 'status', required: false })
+  @ApiQuery({ name: 'projectId', required: false })
   async findAllOrders(
     @Req() req: Request,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
     @Query('status') status?: number,
+    @Query('projectId') projectId?: number,
   ) {
     return this.proxyService.forward('suppliers', {
       method: 'GET',
       path: '/supplier-orders',
       headers: { authorization: req.headers.authorization || '' },
-      params: { page, limit, status },
+      params: { page, limit, status, projectId },
     });
   }
 

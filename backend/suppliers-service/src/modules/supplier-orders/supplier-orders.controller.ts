@@ -49,6 +49,7 @@ export class SupplierOrdersController {
     type: Number,
     description: 'Order status (0-5)',
   })
+  @ApiQuery({ name: 'projectId', required: false, type: Number })
   @ApiResponse({
     status: 200,
     description: 'Supplier orders retrieved successfully',
@@ -58,12 +59,14 @@ export class SupplierOrdersController {
     @Query('page') page?: number,
     @Query('limit') limit?: number,
     @Query('status') status?: number,
+    @Query('projectId') projectId?: number,
   ) {
     return this.supplierOrdersService.findAll(
       user.accountId,
       page || 1,
       limit || 20,
       status,
+      projectId,
     );
   }
 

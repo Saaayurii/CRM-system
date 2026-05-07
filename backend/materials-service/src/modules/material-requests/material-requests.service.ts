@@ -22,6 +22,7 @@ export class MaterialRequestsService {
     page: number = 1,
     limit: number = 20,
     status?: number,
+    projectId?: number,
   ): Promise<{
     materialRequests: any[];
     total: number;
@@ -34,6 +35,7 @@ export class MaterialRequestsService {
         skip,
         take: limit,
         status,
+        projectId,
       }),
       this.materialRequestRepository.count(accountId, status),
     ]);
