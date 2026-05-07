@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsEmail,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
   MinLength,
@@ -9,6 +10,10 @@ import {
 } from 'class-validator';
 
 export class CreateRegistrationRequestDto {
+  @ApiPropertyOptional({ description: 'Account ID', example: 1 })
+  @IsNumber()
+  @IsOptional()
+  accountId?: number;
   @ApiProperty({ description: 'Full name', example: 'Иванов Иван Иванович' })
   @IsString()
   @IsNotEmpty()

@@ -83,14 +83,14 @@ export class AuthService {
     userAgent = '',
     ipAddress = '',
   ): Promise<AuthResponseDto> {
-    const existingUser = await this.userRepository.findByEmail(registerDto.email);
-    if (existingUser) {
-      throw new ConflictException('Email already exists');
-    }
-
     const account = await this.accountRepository.findById(registerDto.accountId);
     if (!account) {
       throw new NotFoundException('Account not found or inactive');
+    }
+
+    const existingUser = await this.userRepository.findByEmailAndAccount(registerDto.email, registerDto.accountId);
+    if (existingUser) {
+      throw new ConflictException('Email already exists');
     }
 
     const role = await this.roleRepository.findById(registerDto.roleId);
@@ -157,7 +157,9 @@ export class AuthService {
     userAgent = '',
     ipAddress = '',
   ): Promise<AuthResponseDto> {
-    const user = await this.userRepository.findByEmail(loginDto.email);
+    const user = loginDto.accountId
+      ? await this.userRepository.findByEmailAndAccount(loginDto.email, loginDto.accountId)
+      : await this.userRepository.findByEmail(loginDto.email);
     if (!user) {
       const regRequest = await this.registrationRequestRepository.findByEmail(loginDto.email);
       if (regRequest) {
@@ -372,15 +374,16 @@ export class AuthService {
 
   async createRegistrationRequest(dto: CreateRegistrationRequestDto): Promise<MessageResponseDto> {
     const emailLower = dto.email.trim().toLowerCase();
+    const accountId = dto.accountId ?? 1;
 
-    // Check for active user with this email
-    const existingUser = await this.userRepository.findByEmail(emailLower);
+    // Check for active user with this email within the same account
+    const existingUser = await this.userRepository.findByEmailAndAccount(emailLower, accountId);
     if (existingUser) {
       throw new ConflictException('Пользователь с таким email уже зарегистрирован в системе');
     }
 
-    // Check for soft-deleted user (email was used before, inform but allow)
-    const deletedUser = await this.userRepository.findDeletedByEmail(emailLower);
+    // Check for soft-deleted user (email was used before in this account)
+    const deletedUser = await this.userRepository.findDeletedByEmailAndAccount(emailLower, accountId);
     if (deletedUser) {
       throw new ConflictException(
         'Email ранее использовался в системе. Обратитесь к администратору для восстановления доступа',
@@ -402,7 +405,7 @@ export class AuthService {
       birthDate: dto.birthDate ? new Date(dto.birthDate) : null,
       passwordDigest,
       status: 0,
-      accountId: 1,
+      accountId,
     });
 
     this.logger.log(`Registration request created: ${emailLower}`);
@@ -480,9 +483,6 @@ export class AuthService {
     userAgent = '',
     ipAddress = '',
   ): Promise<AuthResponseDto> {
-    const existingUser = await this.userRepository.findByEmail(dto.adminEmail);
-    if (existingUser) throw new ConflictException('Email already exists');
-
     const account = await this.accountRepository.create({
       name: dto.companyName,
       logoUrl: dto.logoUrl,

@@ -20,9 +20,21 @@ export class UserRepository {
     });
   }
 
+  async findByEmailAndAccount(email: string, accountId: number) {
+    return (this.prisma as any).user.findFirst({
+      where: { email, accountId, deletedAt: null },
+    });
+  }
+
   async findDeletedByEmail(email: string) {
     return (this.prisma as any).user.findFirst({
       where: { email, deletedAt: { not: null } },
+    });
+  }
+
+  async findDeletedByEmailAndAccount(email: string, accountId: number) {
+    return (this.prisma as any).user.findFirst({
+      where: { email, accountId, deletedAt: { not: null } },
     });
   }
 
