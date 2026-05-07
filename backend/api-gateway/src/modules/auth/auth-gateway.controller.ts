@@ -226,7 +226,8 @@ export class AuthGatewayController {
     });
   }
 
-  @Post('auth/register-company')
+  @Post('register-company')
+  @Public()
   @ApiOperation({ summary: 'Register a new company with admin user' })
   async registerCompany(@Body() body: unknown) {
     return this.proxyService.forward('auth', {
