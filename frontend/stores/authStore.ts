@@ -30,6 +30,8 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   selectedAccountId: number | null;
+  selectedAccountName: string | null;
+  selectedAccountLogo: string | null;
   login: (credentials: LoginRequest) => Promise<void>;
   logout: () => void;
   initialize: () => void;
@@ -78,6 +80,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isAuthenticated: false,
   isLoading: true,
   selectedAccountId: null,
+  selectedAccountName: null,
+  selectedAccountLogo: null,
 
   login: async (credentials: LoginRequest) => {
     try {
@@ -140,18 +144,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   switchAccount: (accountId, accountName, accountLogoUrl) => {
-    set({ selectedAccountId: accountId });
+    set({ selectedAccountId: accountId, selectedAccountName: accountName, selectedAccountLogo: accountLogoUrl ?? null });
     localStorage.setItem('selectedAccountId', String(accountId));
-    // Full reload so all stores re-fetch data under the new accountId
+    localStorage.setItem('selectedAccountName', accountName);
+    if (accountLogoUrl) localStorage.setItem('selectedAccountLogo', accountLogoUrl);
+    else localStorage.removeItem('selectedAccountLogo');
     if (typeof window !== 'undefined') {
       window.location.href = '/dashboard';
     }
   },
 
   resetAccountSwitch: () => {
-    set({ selectedAccountId: null });
+    set({ selectedAccountId: null, selectedAccountName: null, selectedAccountLogo: null });
     localStorage.removeItem('selectedAccountId');
-    // Full reload to restore super admin's own account data
+    localStorage.removeItem('selectedAccountName');
+    localStorage.removeItem('selectedAccountLogo');
     if (typeof window !== 'undefined') {
       window.location.href = '/dashboard';
     }
@@ -232,6 +239,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       isAuthenticated: true,
       isLoading: false,
       selectedAccountId: storedAccountId ? Number(storedAccountId) : null,
+      selectedAccountName: localStorage.getItem('selectedAccountName'),
+      selectedAccountLogo: localStorage.getItem('selectedAccountLogo'),
     });
 
     // Background: refresh role from DB so changes made by admin take effect
