@@ -513,7 +513,7 @@ services:
     container_name: crm-chat-service
     restart: unless-stopped
     ports:
-      - "127.0.0.1:${CHAT_SERVICE_PORT:-3011}:3011"
+      - "0.0.0.0:${CHAT_SERVICE_PORT:-3011}:3011"
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       PORT: 3011
