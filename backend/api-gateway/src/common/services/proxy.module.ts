@@ -1,6 +1,7 @@
 import { Module, Global } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { ProxyService } from './proxy.service';
+import { RequestContextService } from './request-context.service';
 
 @Global()
 @Module({
@@ -10,7 +11,7 @@ import { ProxyService } from './proxy.service';
       maxRedirects: 5,
     }),
   ],
-  providers: [ProxyService],
-  exports: [ProxyService, HttpModule],
+  providers: [ProxyService, RequestContextService],
+  exports: [ProxyService, HttpModule, RequestContextService],
 })
 export class ProxyModule {}

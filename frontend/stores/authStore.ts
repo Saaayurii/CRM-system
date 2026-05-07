@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import api from '@/lib/api';
 import { updateBadge } from '@/stores/notificationStore';
 import { normalizeFileUrl } from '@/lib/utils';
+import { clearAllCached } from '@/lib/offlineCache';
 import type { User, LoginRequest, LoginResponse, JwtPayload } from '@/types/auth';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
@@ -150,7 +151,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (accountLogoUrl) localStorage.setItem('selectedAccountLogo', accountLogoUrl);
     else localStorage.removeItem('selectedAccountLogo');
     if (typeof window !== 'undefined') {
-      window.location.href = '/dashboard';
+      clearAllCached().finally(() => { window.location.href = '/dashboard'; });
     }
   },
 
@@ -160,7 +161,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     localStorage.removeItem('selectedAccountName');
     localStorage.removeItem('selectedAccountLogo');
     if (typeof window !== 'undefined') {
-      window.location.href = '/dashboard';
+      clearAllCached().finally(() => { window.location.href = '/dashboard'; });
     }
   },
 

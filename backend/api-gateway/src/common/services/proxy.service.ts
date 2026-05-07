@@ -3,6 +3,7 @@ import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
 import { AxiosRequestConfig, AxiosResponse } from 'axios';
+import { RequestContextService } from './request-context.service';
 
 export interface ProxyOptions {
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
@@ -20,6 +21,7 @@ export class ProxyService {
   constructor(
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
+    private readonly requestContext: RequestContextService,
   ) {
     this.serviceUrls = {
       auth:
@@ -101,11 +103,15 @@ export class ProxyService {
     }
 
     const url = `${baseUrl}${options.path}`;
+    const accountIdOverride = this.requestContext.getAccountIdOverride();
+    const extraHeaders: Record<string, string> = accountIdOverride
+      ? { 'x-account-id': accountIdOverride }
+      : {};
     const config: AxiosRequestConfig = {
       method: options.method,
       url,
       data: options.data,
-      headers: options.headers,
+      headers: { ...extraHeaders, ...options.headers },
       params: options.params,
     };
 

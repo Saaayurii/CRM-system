@@ -71,3 +71,17 @@ export async function deleteCached(key: string): Promise<void> {
     // silent
   }
 }
+
+export async function clearAllCached(): Promise<void> {
+  try {
+    const db = await openCacheDB();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE, 'readwrite');
+      tx.objectStore(STORE).clear();
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch {
+    // silent
+  }
+}
