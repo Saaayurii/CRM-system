@@ -352,6 +352,12 @@ const EQUIPMENT_STATUS: Record<number, { label: string; color: string }> = {
   3: { label: 'Неисправно', color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' },
 };
 
+const EQUIPMENT_TYPE_LABELS: Record<string, string> = {
+  vehicle: 'Транспорт',
+  tool: 'Инструмент',
+  machinery: 'Спецтехника',
+};
+
 type TabKey = typeof TABS[number]['key'];
 
 function TabsNav({ activeTab, onSelect }: { activeTab: TabKey; onSelect: (k: TabKey) => void }) {
@@ -622,6 +628,17 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   const [loadingResources, setLoadingResources] = useState(false);
   const [resourcesLoaded, setResourcesLoaded] = useState(false);
   const [resourceSubTab, setResourceSubTab] = useState<'materials' | 'orders' | 'equipment'>('materials');
+  const [savingResource, setSavingResource] = useState(false);
+  /* Material request modal */
+  const [showMRModal, setShowMRModal] = useState(false);
+  const [editingMR, setEditingMR] = useState<MaterialRequest | null>(null);
+  /* Supplier order modal */
+  const [showSOModal, setShowSOModal] = useState(false);
+  const [editingSO, setEditingSO] = useState<SupplierOrder | null>(null);
+  const [suppliersList, setSuppliersList] = useState<{ id: number; name: string }[]>([]);
+  /* Equipment modal */
+  const [showEqModal, setShowEqModal] = useState(false);
+  const [editingEq, setEditingEq] = useState<Equipment | null>(null);
 
   /* Overview summary */
   const [overviewSummary, setOverviewSummary] = useState<{
@@ -703,10 +720,11 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   const reloadResources = useCallback(async () => {
     setLoadingResources(true);
     try {
-      const [matRes, ordersRes, equipRes] = await Promise.allSettled([
+      const [matRes, ordersRes, equipRes, suppRes] = await Promise.allSettled([
         api.get('/material-requests', { params: { projectId, limit: 200 } }),
         api.get('/supplier-orders', { params: { projectId, limit: 200 } }),
         api.get('/equipment', { params: { limit: 200 } }),
+        api.get('/suppliers', { params: { limit: 500 } }),
       ]);
       setMaterialRequests(matRes.status === 'fulfilled'
         ? (matRes.value.data?.materialRequests || matRes.value.data?.data || matRes.value.data || [])
@@ -717,11 +735,95 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
       setEquipmentList(equipRes.status === 'fulfilled'
         ? (equipRes.value.data?.equipment || equipRes.value.data?.data || equipRes.value.data || [])
         : []);
+      if (suppRes.status === 'fulfilled') {
+        const s = suppRes.value.data?.suppliers || suppRes.value.data?.data || suppRes.value.data || [];
+        setSuppliersList(Array.isArray(s) ? s.map((x: any) => ({ id: x.id, name: x.name })) : []);
+      }
       setResourcesLoaded(true);
     } finally {
       setLoadingResources(false);
     }
   }, [projectId]);
+
+  const handleSaveMaterialRequest = useCallback(async (data: Record<string, unknown>) => {
+    setSavingResource(true);
+    try {
+      if (editingMR) {
+        await api.put(`/material-requests/${editingMR.id}`, data);
+        addToast('success', 'Заявка обновлена');
+      } else {
+        const num = `MR-${Date.now()}`;
+        await api.post('/material-requests', { ...data, projectId, requestNumber: num, accountId: 0 });
+        addToast('success', 'Заявка создана');
+      }
+      setShowMRModal(false);
+      setEditingMR(null);
+      await reloadResources();
+    } catch { addToast('error', 'Ошибка при сохранении заявки'); }
+    finally { setSavingResource(false); }
+  }, [editingMR, projectId, addToast, reloadResources]);
+
+  const handleDeleteMaterialRequest = useCallback(async (id: number) => {
+    if (!confirm('Удалить материальную заявку?')) return;
+    try {
+      await api.delete(`/material-requests/${id}`);
+      addToast('success', 'Заявка удалена');
+      setMaterialRequests((p) => p.filter((r) => r.id !== id));
+    } catch { addToast('error', 'Ошибка при удалении'); }
+  }, [addToast]);
+
+  const handleSaveSupplierOrder = useCallback(async (data: Record<string, unknown>) => {
+    setSavingResource(true);
+    try {
+      if (editingSO) {
+        await api.put(`/supplier-orders/${editingSO.id}`, data);
+        addToast('success', 'Заказ обновлён');
+      } else {
+        const num = `SO-${Date.now()}`;
+        await api.post('/supplier-orders', { ...data, projectId, orderNumber: num, accountId: 0 });
+        addToast('success', 'Заказ создан');
+      }
+      setShowSOModal(false);
+      setEditingSO(null);
+      await reloadResources();
+    } catch { addToast('error', 'Ошибка при сохранении заказа'); }
+    finally { setSavingResource(false); }
+  }, [editingSO, projectId, addToast, reloadResources]);
+
+  const handleDeleteSupplierOrder = useCallback(async (id: number) => {
+    if (!confirm('Удалить заказ поставщику?')) return;
+    try {
+      await api.delete(`/supplier-orders/${id}`);
+      addToast('success', 'Заказ удалён');
+      setSupplierOrders((p) => p.filter((o) => o.id !== id));
+    } catch { addToast('error', 'Ошибка при удалении'); }
+  }, [addToast]);
+
+  const handleSaveEquipment = useCallback(async (data: Record<string, unknown>) => {
+    setSavingResource(true);
+    try {
+      if (editingEq) {
+        await api.put(`/equipment/${editingEq.id}`, data);
+        addToast('success', 'Оборудование обновлено');
+      } else {
+        await api.post('/equipment', { ...data, accountId: 0 });
+        addToast('success', 'Оборудование добавлено');
+      }
+      setShowEqModal(false);
+      setEditingEq(null);
+      await reloadResources();
+    } catch { addToast('error', 'Ошибка при сохранении'); }
+    finally { setSavingResource(false); }
+  }, [editingEq, addToast, reloadResources]);
+
+  const handleDeleteEquipment = useCallback(async (id: number) => {
+    if (!confirm('Удалить оборудование?')) return;
+    try {
+      await api.delete(`/equipment/${id}`);
+      addToast('success', 'Оборудование удалено');
+      setEquipmentList((p) => p.filter((e) => e.id !== id));
+    } catch { addToast('error', 'Ошибка при удалении'); }
+  }, [addToast]);
 
   const reloadSites = useCallback(async () => {
     setLoadingPhotos(true);
@@ -2590,9 +2692,9 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
 
       {/* ─── Resources ─── */}
       {activeTab === 'resources' && (
-        <div className="space-y-4">
+        <div className="space-y-6">
           {/* Sub-nav */}
-          <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700 pb-0">
+          <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700">
             {([
               { key: 'materials', label: 'Материальные заявки', count: materialRequests.length },
               { key: 'orders', label: 'Заказы поставщикам', count: supplierOrders.length },
@@ -2601,7 +2703,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
               <button
                 key={t.key}
                 onClick={() => setResourceSubTab(t.key)}
-                className={`px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 transition-colors ${
+                className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
                   resourceSubTab === t.key
                     ? 'border-violet-500 text-violet-600 dark:text-violet-400'
                     : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
@@ -2621,51 +2723,53 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
             <>
               {/* ── Material Requests ── */}
               {resourceSubTab === 'materials' && (
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Материальные заявки проекта</h3>
-                    <button
-                      onClick={reloadResources}
-                      className="text-xs text-violet-500 hover:text-violet-600 transition-colors"
-                    >
-                      Обновить
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
+                  <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-3">
+                    <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">Материальные заявки</h3>
+                    <button onClick={() => { setEditingMR(null); setShowMRModal(true); }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                      Добавить
                     </button>
                   </div>
                   {materialRequests.length === 0 ? (
-                    <div className="text-center py-12 text-gray-400">
-                      <svg className="w-10 h-10 mx-auto mb-3 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                      </svg>
-                      <p className="text-sm">Нет материальных заявок для этого проекта</p>
-                    </div>
+                    <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">Нет материальных заявок для этого проекта</div>
                   ) : (
-                    <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
+                    <div className="overflow-x-auto">
                       <table className="w-full text-sm">
-                        <thead className="bg-gray-50 dark:bg-gray-800/60">
-                          <tr>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">№ заявки</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Статус</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Цель</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Позиций</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Запросил</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Дата заявки</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Нужно до</th>
+                        <thead>
+                          <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
+                            <th className="py-3 px-4 text-left font-semibold">№ заявки</th>
+                            <th className="py-3 px-4 text-left font-semibold">Статус</th>
+                            <th className="py-3 px-4 text-left font-semibold">Цель</th>
+                            <th className="py-3 px-4 text-left font-semibold">Позиций</th>
+                            <th className="py-3 px-4 text-left font-semibold">Запросил</th>
+                            <th className="py-3 px-4 text-left font-semibold">Дата заявки</th>
+                            <th className="py-3 px-4 text-left font-semibold">Нужно до</th>
+                            <th className="py-3 px-4 w-10"></th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
                           {materialRequests.map((mr) => (
-                            <tr key={mr.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
-                              <td className="px-4 py-3 font-mono text-xs text-violet-600 dark:text-violet-400 font-medium">{mr.requestNumber}</td>
-                              <td className="px-4 py-3">
+                            <tr key={mr.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer transition-colors"
+                              onClick={() => { setEditingMR(mr); setShowMRModal(true); }}>
+                              <td className="py-3 px-4 font-mono text-xs text-violet-600 dark:text-violet-400 font-medium">{mr.requestNumber}</td>
+                              <td className="py-3 px-4">
                                 <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${MATERIAL_REQUEST_STATUS[mr.status]?.color ?? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>
                                   {MATERIAL_REQUEST_STATUS[mr.status]?.label ?? mr.status}
                                 </span>
                               </td>
-                              <td className="px-4 py-3 text-gray-700 dark:text-gray-300 max-w-[200px] truncate">{mr.purpose || '—'}</td>
-                              <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{mr.items?.length ?? 0}</td>
-                              <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{mr.requestedBy?.name || '—'}</td>
-                              <td className="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs">{mr.requestDate ? new Date(mr.requestDate).toLocaleDateString('ru-RU') : '—'}</td>
-                              <td className="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs">{mr.neededByDate ? new Date(mr.neededByDate).toLocaleDateString('ru-RU') : '—'}</td>
+                              <td className="py-3 px-4 text-gray-700 dark:text-gray-300 max-w-[180px] truncate">{mr.purpose || '—'}</td>
+                              <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{mr.items?.length ?? 0}</td>
+                              <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{mr.requestedBy?.name || '—'}</td>
+                              <td className="py-3 px-4 text-gray-500 dark:text-gray-400">{mr.requestDate ? new Date(mr.requestDate).toLocaleDateString('ru-RU') : '—'}</td>
+                              <td className="py-3 px-4 text-gray-500 dark:text-gray-400">{mr.neededByDate ? new Date(mr.neededByDate).toLocaleDateString('ru-RU') : '—'}</td>
+                              <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                                <button onClick={() => handleDeleteMaterialRequest(mr.id)}
+                                  className="p-1 text-gray-300 hover:text-red-500 dark:text-gray-600 dark:hover:text-red-400 transition-colors">
+                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                </button>
+                              </td>
                             </tr>
                           ))}
                         </tbody>
@@ -2677,48 +2781,55 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
 
               {/* ── Supplier Orders ── */}
               {resourceSubTab === 'orders' && (
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Заказы поставщикам по проекту</h3>
-                    <button onClick={reloadResources} className="text-xs text-violet-500 hover:text-violet-600 transition-colors">Обновить</button>
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
+                  <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-3">
+                    <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">Заказы поставщикам</h3>
+                    <button onClick={() => { setEditingSO(null); setShowSOModal(true); }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                      Добавить
+                    </button>
                   </div>
                   {supplierOrders.length === 0 ? (
-                    <div className="text-center py-12 text-gray-400">
-                      <svg className="w-10 h-10 mx-auto mb-3 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                      </svg>
-                      <p className="text-sm">Нет заказов поставщикам для этого проекта</p>
-                    </div>
+                    <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">Нет заказов поставщикам для этого проекта</div>
                   ) : (
-                    <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
+                    <div className="overflow-x-auto">
                       <table className="w-full text-sm">
-                        <thead className="bg-gray-50 dark:bg-gray-800/60">
-                          <tr>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">№ заказа</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Статус</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Поставщик</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Позиций</th>
-                            <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Сумма</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Дата заказа</th>
+                        <thead>
+                          <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
+                            <th className="py-3 px-4 text-left font-semibold">№ заказа</th>
+                            <th className="py-3 px-4 text-left font-semibold">Статус</th>
+                            <th className="py-3 px-4 text-left font-semibold">Поставщик</th>
+                            <th className="py-3 px-4 text-left font-semibold">Позиций</th>
+                            <th className="py-3 px-4 text-right font-semibold">Сумма</th>
+                            <th className="py-3 px-4 text-left font-semibold">Дата заказа</th>
+                            <th className="py-3 px-4 w-10"></th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
                           {supplierOrders.map((so) => (
-                            <tr key={so.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
-                              <td className="px-4 py-3 font-mono text-xs text-violet-600 dark:text-violet-400 font-medium">{so.orderNumber}</td>
-                              <td className="px-4 py-3">
+                            <tr key={so.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer transition-colors"
+                              onClick={() => { setEditingSO(so); setShowSOModal(true); }}>
+                              <td className="py-3 px-4 font-mono text-xs text-violet-600 dark:text-violet-400 font-medium">{so.orderNumber}</td>
+                              <td className="py-3 px-4">
                                 <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${SUPPLIER_ORDER_STATUS[so.status]?.color ?? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>
                                   {SUPPLIER_ORDER_STATUS[so.status]?.label ?? so.status}
                                 </span>
                               </td>
-                              <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{so.supplier?.name || '—'}</td>
-                              <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{so.items?.length ?? 0}</td>
-                              <td className="px-4 py-3 text-right font-medium text-gray-800 dark:text-gray-200">
+                              <td className="py-3 px-4 text-gray-700 dark:text-gray-300">{so.supplier?.name || '—'}</td>
+                              <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{so.items?.length ?? 0}</td>
+                              <td className="py-3 px-4 text-right font-semibold text-gray-800 dark:text-gray-200">
                                 {so.totalAmount != null
                                   ? new Intl.NumberFormat('ru-RU', { style: 'currency', currency: so.currency || 'RUB', maximumFractionDigits: 0 }).format(so.totalAmount)
                                   : '—'}
                               </td>
-                              <td className="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs">{so.orderDate ? new Date(so.orderDate).toLocaleDateString('ru-RU') : '—'}</td>
+                              <td className="py-3 px-4 text-gray-600 dark:text-gray-300">{so.orderDate ? new Date(so.orderDate).toLocaleDateString('ru-RU') : '—'}</td>
+                              <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                                <button onClick={() => handleDeleteSupplierOrder(so.id)}
+                                  className="p-1 text-gray-300 hover:text-red-500 dark:text-gray-600 dark:hover:text-red-400 transition-colors">
+                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                </button>
+                              </td>
                             </tr>
                           ))}
                         </tbody>
@@ -2730,44 +2841,50 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
 
               {/* ── Equipment ── */}
               {resourceSubTab === 'equipment' && (
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Оборудование</h3>
-                    <button onClick={reloadResources} className="text-xs text-violet-500 hover:text-violet-600 transition-colors">Обновить</button>
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
+                  <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-3">
+                    <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">Оборудование</h3>
+                    <button onClick={() => { setEditingEq(null); setShowEqModal(true); }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                      Добавить
+                    </button>
                   </div>
                   {equipmentList.length === 0 ? (
-                    <div className="text-center py-12 text-gray-400">
-                      <svg className="w-10 h-10 mx-auto mb-3 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 011.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.56.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.893.149c-.425.07-.765.383-.93.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 01-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.397.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 01-.12-1.45l.527-.737c.25-.35.273-.806.108-1.204-.165-.397-.505-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.108-1.204l-.526-.738a1.125 1.125 0 01.12-1.45l.773-.773a1.125 1.125 0 011.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                      <p className="text-sm">Оборудование не найдено</p>
-                    </div>
+                    <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">Оборудование не найдено</div>
                   ) : (
-                    <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
+                    <div className="overflow-x-auto">
                       <table className="w-full text-sm">
-                        <thead className="bg-gray-50 dark:bg-gray-800/60">
-                          <tr>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Название</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Тип</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Модель</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Серийный №</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Статус</th>
+                        <thead>
+                          <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
+                            <th className="py-3 px-4 text-left font-semibold">Название</th>
+                            <th className="py-3 px-4 text-left font-semibold">Тип</th>
+                            <th className="py-3 px-4 text-left font-semibold">Модель</th>
+                            <th className="py-3 px-4 text-left font-semibold">Серийный №</th>
+                            <th className="py-3 px-4 text-left font-semibold">Статус</th>
+                            <th className="py-3 px-4 w-10"></th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
                           {equipmentList.map((eq) => (
-                            <tr key={eq.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
-                              <td className="px-4 py-3 font-medium text-gray-800 dark:text-gray-200">{eq.name}</td>
-                              <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{eq.equipmentType || '—'}</td>
-                              <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{eq.model || '—'}</td>
-                              <td className="px-4 py-3 font-mono text-xs text-gray-500 dark:text-gray-400">{eq.serialNumber || '—'}</td>
-                              <td className="px-4 py-3">
+                            <tr key={eq.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer transition-colors"
+                              onClick={() => { setEditingEq(eq); setShowEqModal(true); }}>
+                              <td className="py-3 px-4 font-medium text-gray-800 dark:text-gray-200">{eq.name}</td>
+                              <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{eq.equipmentType ? (EQUIPMENT_TYPE_LABELS[eq.equipmentType] ?? eq.equipmentType) : '—'}</td>
+                              <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{eq.model || '—'}</td>
+                              <td className="py-3 px-4 font-mono text-xs text-gray-500 dark:text-gray-400">{eq.serialNumber || '—'}</td>
+                              <td className="py-3 px-4">
                                 {eq.status != null ? (
                                   <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${EQUIPMENT_STATUS[eq.status]?.color ?? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>
                                     {EQUIPMENT_STATUS[eq.status]?.label ?? eq.status}
                                   </span>
                                 ) : '—'}
+                              </td>
+                              <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                                <button onClick={() => handleDeleteEquipment(eq.id)}
+                                  className="p-1 text-gray-300 hover:text-red-500 dark:text-gray-600 dark:hover:text-red-400 transition-colors">
+                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                </button>
                               </td>
                             </tr>
                           ))}
@@ -2796,6 +2913,103 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
             <img src={lightboxPhoto} alt="Просмотр" className="max-w-full max-h-full rounded-lg shadow-xl" onClick={(e) => e.stopPropagation()} />
           )}
         </div>
+      )}
+
+      {/* Material Request Modal */}
+      {showMRModal && (
+        <FinanceModal
+          title={editingMR ? 'Материальная заявка' : 'Новая заявка'}
+          saving={savingResource}
+          initialData={editingMR ? {
+            purpose: editingMR.purpose,
+            status: editingMR.status,
+            priority: editingMR.priority,
+            requestDate: editingMR.requestDate,
+            neededByDate: editingMR.neededByDate,
+          } : undefined}
+          fields={[
+            { key: 'purpose', label: 'Цель / назначение', type: 'text' },
+            {
+              key: 'status', label: 'Статус', type: 'select',
+              options: Object.entries(MATERIAL_REQUEST_STATUS).map(([v, s]) => ({ value: Number(v), label: s.label })),
+            },
+            {
+              key: 'priority', label: 'Приоритет', type: 'select',
+              options: [{ value: 1, label: 'Низкий' }, { value: 2, label: 'Средний' }, { value: 3, label: 'Высокий' }],
+            },
+            { key: 'requestDate', label: 'Дата заявки', type: 'date', required: true },
+            { key: 'neededByDate', label: 'Нужно до', type: 'date' },
+          ]}
+          onClose={() => { setShowMRModal(false); setEditingMR(null); }}
+          onSave={(data) => handleSaveMaterialRequest(data)}
+        />
+      )}
+
+      {/* Supplier Order Modal */}
+      {showSOModal && (
+        <FinanceModal
+          title={editingSO ? 'Заказ поставщику' : 'Новый заказ поставщику'}
+          saving={savingResource}
+          initialData={editingSO ? {
+            supplierId: editingSO.supplier?.id,
+            status: editingSO.status,
+            orderDate: editingSO.orderDate,
+            totalAmount: editingSO.totalAmount,
+            currency: editingSO.currency,
+          } : undefined}
+          fields={[
+            ...(suppliersList.length > 0 ? [{
+              key: 'supplierId', label: 'Поставщик', type: 'select' as const,
+              options: suppliersList.map((s) => ({ value: s.id, label: s.name })),
+            }] : [{ key: 'supplierId', label: 'ID поставщика', type: 'number' as const }]),
+            {
+              key: 'status', label: 'Статус', type: 'select',
+              options: Object.entries(SUPPLIER_ORDER_STATUS).map(([v, s]) => ({ value: Number(v), label: s.label })),
+            },
+            { key: 'orderDate', label: 'Дата заказа', type: 'date', required: true },
+            { key: 'totalAmount', label: 'Сумма', type: 'number' },
+            {
+              key: 'currency', label: 'Валюта', type: 'select',
+              options: [{ value: 'RUB', label: 'RUB' }, { value: 'USD', label: 'USD' }, { value: 'EUR', label: 'EUR' }],
+            },
+          ]}
+          onClose={() => { setShowSOModal(false); setEditingSO(null); }}
+          onSave={(data) => handleSaveSupplierOrder(data)}
+        />
+      )}
+
+      {/* Equipment Modal */}
+      {showEqModal && (
+        <FinanceModal
+          title={editingEq ? 'Оборудование' : 'Добавить оборудование'}
+          saving={savingResource}
+          initialData={editingEq ? {
+            name: editingEq.name,
+            equipmentType: editingEq.equipmentType,
+            model: editingEq.model,
+            serialNumber: editingEq.serialNumber,
+            status: editingEq.status,
+          } : undefined}
+          fields={[
+            { key: 'name', label: 'Название', type: 'text', required: true },
+            {
+              key: 'equipmentType', label: 'Тип', type: 'select',
+              options: [
+                { value: 'machinery', label: 'Спецтехника' },
+                { value: 'vehicle', label: 'Транспорт' },
+                { value: 'tool', label: 'Инструмент' },
+              ],
+            },
+            { key: 'model', label: 'Модель', type: 'text' },
+            { key: 'serialNumber', label: 'Серийный номер', type: 'text' },
+            {
+              key: 'status', label: 'Статус', type: 'select',
+              options: Object.entries(EQUIPMENT_STATUS).map(([v, s]) => ({ value: Number(v), label: s.label })),
+            },
+          ]}
+          onClose={() => { setShowEqModal(false); setEditingEq(null); }}
+          onSave={(data) => handleSaveEquipment(data)}
+        />
       )}
 
       {/* Edit Modal */}
