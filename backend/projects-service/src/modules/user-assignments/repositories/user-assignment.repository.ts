@@ -22,6 +22,7 @@ export class UserAssignmentRepository {
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
+        include: { user: true },
       }),
       (this.prisma as any).userProjectAssignment.count({ where }),
     ]);

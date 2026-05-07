@@ -52,10 +52,12 @@ interface Assignment {
   userId: number;
   userName?: string;
   userEmail?: string;
+  userAvatarUrl?: string;
   roleOnProject?: string;
   isActive?: boolean;
   assignedAt?: string;
   availability?: number;
+  user?: { id: number; name: string; email: string; avatarUrl?: string };
 }
 
 interface Document {
@@ -150,15 +152,30 @@ const ROLE_NAMES: Record<number, string> = {
 
 async function enrichAssignments(assignments: Assignment[]): Promise<Assignment[]> {
   if (!assignments.length) return assignments;
+
+  // First pass: extract from embedded user object (returned by backend include: { user: true })
+  const preEnriched = assignments.map((a) => {
+    if (a.user) {
+      return {
+        ...a,
+        userName: a.userName || a.user.name,
+        userEmail: a.userEmail || a.user.email,
+        userAvatarUrl: a.userAvatarUrl || a.user.avatarUrl,
+      };
+    }
+    return a;
+  });
+
+  // Second pass: fetch remaining unknowns from /users
+  const stillMissing = preEnriched.filter((a) => !a.userName);
+  if (!stillMissing.length) return preEnriched;
+
   try {
     const r = await api.get('/users', { params: { limit: 500 } });
     const users: UserOption[] = r.data?.users || r.data?.data || r.data || [];
     const map = new Map(users.map((u) => [u.id, u]));
 
-    // Fetch individual records for users missing from bulk list (e.g. soft-deleted)
-    const missingIds = assignments
-      .filter((a) => !map.has(a.userId) && !a.userName)
-      .map((a) => a.userId);
+    const missingIds = stillMissing.filter((a) => !map.has(a.userId)).map((a) => a.userId);
     if (missingIds.length > 0) {
       await Promise.allSettled(
         missingIds.map(async (id) => {
@@ -171,19 +188,21 @@ async function enrichAssignments(assignments: Assignment[]): Promise<Assignment[
       );
     }
 
-    return assignments.map((a) => {
+    return preEnriched.map((a) => {
+      if (a.userName) return a;
       const u = map.get(a.userId);
       if (!u) return a;
       return {
         ...a,
-        userName: a.userName || u.name,
-        userEmail: a.userEmail || u.email,
+        userName: u.name,
+        userEmail: u.email,
+        userAvatarUrl: (u as any).avatarUrl,
         roleOnProject: a.roleOnProject || (u.roleId ? ROLE_NAMES[u.roleId] : undefined),
         availability: (u as any).availability ?? a.availability,
       };
     });
   } catch {
-    return assignments;
+    return preEnriched;
   }
 }
 
@@ -2996,12 +3015,12 @@ function ProjectChatPanel({ channelId, channelName, projectId, projectMembers = 
   const initialRef = useRef(true);
   const prevLenRef = useRef(0);
   const [showParticipants, setShowParticipants] = useState(false);
-  const [participants, setParticipants] = useState<{ id: number; name: string; email: string; role?: string; isMuted?: boolean }[]>([]);
+  const [participants, setParticipants] = useState<{ id: number; name: string; email: string; avatarUrl?: string; role?: string; isMuted?: boolean }[]>([]);
   const [loadingParticipants, setLoadingParticipants] = useState(false);
   const [mutingId, setMutingId] = useState<number | null>(null);
   const [removingId, setRemovingId] = useState<number | null>(null);
   const [showAddMember, setShowAddMember] = useState(false);
-  const [projectMemberOptions, setProjectMemberOptions] = useState<{ id: number; name: string; email: string }[]>([]);
+  const [projectMemberOptions, setProjectMemberOptions] = useState<{ id: number; name: string; email: string; avatarUrl?: string }[]>([]);
   const [loadingProjectMembers, setLoadingProjectMembers] = useState(false);
   const [addingUserId, setAddingUserId] = useState<number | null>(null);
 
@@ -3050,6 +3069,7 @@ function ProjectChatPanel({ channelId, channelName, projectId, projectMembers = 
         id: m.userId || m.user?.id || m.id,
         name: m.user?.name || m.name || `#${m.userId || m.id}`,
         email: m.user?.email || m.email || '',
+        avatarUrl: m.user?.avatarUrl || m.avatarUrl,
         role: m.role,
         isMuted: m.isMuted ?? false,
       })) : []);
@@ -3101,6 +3121,7 @@ function ProjectChatPanel({ channelId, channelName, projectId, projectMembers = 
               id: a.userId,
               name: a.userName || `#${a.userId}`,
               email: a.userEmail || '',
+              avatarUrl: a.userAvatarUrl,
             }))
         );
       } else {
@@ -3113,6 +3134,7 @@ function ProjectChatPanel({ channelId, channelName, projectId, projectMembers = 
             .map((a: any) => ({
               id: a.userId || a.user?.id,
               name: a.userName || a.user?.name || a.name || `#${a.userId}`,
+              avatarUrl: a.userAvatarUrl || a.user?.avatarUrl,
               email: a.userEmail || a.user?.email || a.email || '',
             }))
         );
@@ -3278,8 +3300,11 @@ function ProjectChatPanel({ channelId, channelName, projectId, projectMembers = 
                 <div className="space-y-1 max-h-40 overflow-y-auto">
                   {projectMemberOptions.map((m) => (
                     <div key={m.id} className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                      <div className="w-7 h-7 rounded-full bg-sky-100 dark:bg-sky-900/30 flex items-center justify-center text-xs font-medium text-sky-700 dark:text-sky-300 shrink-0">
+                      <div className="w-7 h-7 rounded-full bg-sky-100 dark:bg-sky-900/30 flex items-center justify-center text-xs font-medium text-sky-700 dark:text-sky-300 shrink-0 relative overflow-hidden">
                         {m.name.charAt(0).toUpperCase()}
+                        {m.avatarUrl && (
+                          <img src={m.avatarUrl} alt="" className="absolute inset-0 w-full h-full object-cover z-10" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="text-sm text-gray-800 dark:text-gray-100 truncate">{m.name}</div>
@@ -3316,13 +3341,16 @@ function ProjectChatPanel({ channelId, channelName, projectId, projectMembers = 
                     const displayName = isDeleted ? 'Удалённый пользователь' : p.name;
                     return (
                     <div key={p.id} className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 dark:border-gray-700">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium shrink-0 ${isDeleted ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500' : 'bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300'}`}>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium shrink-0 relative overflow-hidden ${isDeleted ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500' : 'bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300'}`}>
                         {isDeleted ? (
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                           </svg>
                         ) : (
                           p.name.charAt(0).toUpperCase()
+                        )}
+                        {!isDeleted && p.avatarUrl && (
+                          <img src={p.avatarUrl} alt="" className="absolute inset-0 w-full h-full object-cover z-10" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -3883,8 +3911,11 @@ function AssignmentDetailModal({
     <ModalShell title="Сотрудник" onClose={onClose}>
       <div className="space-y-4">
         <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-900/30 rounded-xl">
-          <div className="w-10 h-10 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center text-base font-semibold text-violet-700 dark:text-violet-300 shrink-0">
+          <div className="w-10 h-10 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center text-base font-semibold text-violet-700 dark:text-violet-300 shrink-0 relative overflow-hidden">
             {(assignment.userName || '?').charAt(0).toUpperCase()}
+            {assignment.userAvatarUrl && (
+              <img src={assignment.userAvatarUrl} alt="" className="absolute inset-0 w-full h-full object-cover z-10" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+            )}
           </div>
           <div>
             <div className="font-semibold text-gray-800 dark:text-gray-100">{assignment.userName || `#${assignment.userId}`}</div>

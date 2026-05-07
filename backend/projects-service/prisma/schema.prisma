@@ -31,6 +31,7 @@ model User {
 
   account         Account       @relation(fields: [accountId], references: [id], onDelete: Cascade)
   managedProjects Project[]     @relation("ProjectManager")
+  projectAssignments UserProjectAssignment[]
 
   @@map("users")
 }
@@ -155,6 +156,7 @@ model UserProjectAssignment {
   updatedAt           DateTime  @default(now()) @updatedAt @map("updated_at")
 
   project             Project   @relation("ProjectAssignments", fields: [projectId], references: [id], onDelete: Cascade)
+  user                User      @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([projectId])
