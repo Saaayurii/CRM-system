@@ -3169,6 +3169,19 @@ function ProjectChatPanel({ channelId, channelName, projectId, projectMembers = 
     );
   }, [channelId, channelReadAts, user?.id]);
 
+  const getMessageReaders = useCallback((msg: any): { id: number; name: string; avatarUrl?: string }[] => {
+    if (msg.senderId !== user?.id) return [];
+    const reads = channelReadAts[channelId] || {};
+    const members = activeChannel?.members || [];
+    return Object.entries(reads)
+      .filter(([uid, readAt]) => Number(uid) !== user?.id && new Date(readAt as string) >= new Date(msg.createdAt))
+      .map(([uid]) => {
+        const m = members.find((mb: any) => mb.id === Number(uid));
+        return m ? { id: m.id, name: m.name || m.email || 'Пользователь', avatarUrl: m.avatarUrl } : null;
+      })
+      .filter(Boolean) as { id: number; name: string; avatarUrl?: string }[];
+  }, [channelId, channelReadAts, user?.id, activeChannel?.members]);
+
   return (
     <div className="flex flex-col h-full relative">
       {/* Header */}
@@ -3404,6 +3417,7 @@ function ProjectChatPanel({ channelId, channelName, projectId, projectMembers = 
               isOwn={msg.senderId === user?.id}
               showAvatar={showAvatar}
               isRead={isMessageRead(msg)}
+              readers={getMessageReaders(msg)}
               onReply={() => setReplyToMessage(msg)}
               onReact={reactToMessage}
               onDelete={handleDeleteMessage}

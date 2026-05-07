@@ -202,6 +202,22 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
     [activeChannelId, channelReadAts, user?.id]
   );
 
+  const getMessageReaders = useCallback(
+    (msg: ChatMessageType): { id: number; name: string; avatarUrl?: string }[] => {
+      if (!activeChannelId || msg.senderId !== user?.id) return [];
+      const reads = channelReadAts[activeChannelId] || {};
+      const members = activeChannel?.members || [];
+      return Object.entries(reads)
+        .filter(([uid, readAt]) => Number(uid) !== user?.id && new Date(readAt) >= new Date(msg.createdAt))
+        .map(([uid]) => {
+          const m = members.find((m) => m.id === Number(uid));
+          return m ? { id: m.id, name: m.name || m.email || 'Пользователь', avatarUrl: m.avatarUrl } : null;
+        })
+        .filter(Boolean) as { id: number; name: string; avatarUrl?: string }[];
+    },
+    [activeChannelId, channelReadAts, user?.id, activeChannel?.members]
+  );
+
   // Delete message + its files
   const handleDeleteMessage = useCallback(async (msg: ChatMessageType) => {
     // Delete uploaded files first
@@ -507,6 +523,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
             const isOwn = msg.senderId === user?.id;
             const showAvatar = idx === 0 || messages[idx - 1]?.senderId !== msg.senderId;
             const read = isOwn ? isMessageRead(msg) : false;
+            const readers = isOwn ? getMessageReaders(msg) : [];
             const activeMatch = searchMatches.length > 0 && searchMatches[matchIdx]?.msg.id === msg.id;
             const isMatchedMsg = showSearch && searchQuery.trim().length >= 2 && searchMatches.some((m) => m.msg.id === msg.id);
             const isMsgPinned = pinnedMessages.some((p) => p.id === msg.id);
@@ -518,6 +535,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
                   isOwn={isOwn}
                   showAvatar={showAvatar}
                   isRead={read}
+                  readers={readers}
                   onReply={() => setReplyToMessage(msg)}
                   onReact={reactToMessage}
                   onDelete={handleDeleteMessage}

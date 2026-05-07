@@ -64,11 +64,18 @@ function ActionButtons({ isOwn, isPinned, canPin, emojiRef, showEmojiPicker, set
   );
 }
 
+interface Reader {
+  id: number;
+  name: string;
+  avatarUrl?: string;
+}
+
 interface ChatMessageProps {
   message: ChatMessageType;
   isOwn: boolean;
   showAvatar: boolean;
   isRead: boolean;
+  readers?: Reader[];
   onReply: () => void;
   onReact: (messageId: number, emoji: string) => void;
   onDelete: (message: ChatMessageType) => void;
@@ -80,6 +87,67 @@ interface ChatMessageProps {
 
 const DELETED_EMAIL_RE = /^deleted_\d+_\d+@crm\.deleted$/;
 const TG_SENDER_RE = /^\*\*(.+?):\*\* ?([\s\S]*)$/;
+
+/* ─── Readers tooltip ─── */
+function ReaderAvatar({ reader, size = 'sm' }: { reader: Reader; size?: 'sm' | 'xs' }) {
+  const sz = size === 'xs' ? 'w-4 h-4 text-[8px]' : 'w-6 h-6 text-[10px]';
+  const initials = reader.name.split(' ').map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || '?';
+  return (
+    <div className={`${sz} rounded-full bg-sky-500 flex items-center justify-center text-white font-semibold shrink-0 overflow-hidden ring-1 ring-white dark:ring-gray-800`}>
+      {reader.avatarUrl
+        ? <img src={reader.avatarUrl} alt={reader.name} className="w-full h-full object-cover" />
+        : initials}
+    </div>
+  );
+}
+
+function ReadersTooltip({ readers }: { readers: Reader[] }) {
+  const [open, setOpen] = useState(false);
+  const MAX_VISIBLE = 3;
+  const visible = readers.slice(0, MAX_VISIBLE);
+  const extra = readers.length - MAX_VISIBLE;
+
+  return (
+    <div
+      className="relative flex items-center"
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+    >
+      {/* Stacked mini avatars */}
+      <div className="flex items-center">
+        {visible.map((r, i) => (
+          <div key={r.id} className={i > 0 ? '-ml-1' : ''}>
+            <ReaderAvatar reader={r} size="xs" />
+          </div>
+        ))}
+        {extra > 0 && (
+          <div className="-ml-1 w-4 h-4 rounded-full bg-gray-400 dark:bg-gray-600 flex items-center justify-center text-[8px] text-white font-semibold ring-1 ring-white dark:ring-gray-800">
+            +{extra}
+          </div>
+        )}
+      </div>
+
+      {/* Tooltip */}
+      {open && (
+        <div className="absolute bottom-full right-0 mb-1.5 z-50 bg-gray-900 dark:bg-gray-700 rounded-xl shadow-xl py-2 px-2 min-w-[140px] max-w-[220px]">
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide px-1 mb-1.5">
+            Прочитали ({readers.length})
+          </p>
+          <div className="space-y-1.5">
+            {readers.map((r) => (
+              <div key={r.id} className="flex items-center gap-2">
+                <ReaderAvatar reader={r} size="sm" />
+                <span className="text-xs text-white truncate">{r.name}</span>
+              </div>
+            ))}
+          </div>
+          {/* Arrow */}
+          <div className="absolute -bottom-1 right-3 w-2 h-2 bg-gray-900 dark:bg-gray-700 rotate-45" />
+        </div>
+      )}
+    </div>
+  );
+}
 
 function resolveDisplayName(name?: string): string {
   if (!name || DELETED_EMAIL_RE.test(name)) return 'Удалённый пользователь';
@@ -93,7 +161,7 @@ function parseTgMessage(text?: string): { sender: string; body: string } | null 
   return { sender: m[1], body: m[2] };
 }
 
-export default function ChatMessage({ message, isOwn, showAvatar, isRead, onReply, onReact, onDelete, onPin, isPinned, canPin, highlightQuery }: ChatMessageProps) {
+export default function ChatMessage({ message, isOwn, showAvatar, isRead, readers = [], onReply, onReact, onDelete, onPin, isPinned, canPin, highlightQuery }: ChatMessageProps) {
   const addToast = useToastStore((s) => s.addToast);
   const isVoice = message.messageType === 'voice';
   const displaySenderName = resolveDisplayName(message.senderName);
@@ -361,7 +429,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, onRepl
             </>
           )}
 
-          {/* Time + edited + read checkmark */}
+          {/* Time + edited + read checkmark + readers */}
           <div className={`flex items-center gap-1 mt-0.5 ${isOwn ? 'justify-end' : 'justify-start'}`}>
             {message.isEdited && (
               <span className={`text-[10px] ${isOwn ? 'text-violet-200' : 'text-gray-400 dark:text-gray-500'}`}>
@@ -372,18 +440,25 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, onRepl
               {formatTime(message.createdAt)}
             </span>
             {isOwn && (
-              <span className={`text-[10px] leading-none ${isRead ? 'text-sky-300' : 'text-violet-200'}`}>
-                {isRead ? (
-                  <svg className="w-4 h-3 inline" viewBox="0 0 18 11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="1,6 4.5,10 10,2" />
-                    <polyline points="6,6 9.5,10 17,1" />
-                  </svg>
-                ) : (
-                  <svg className="w-3 h-3 inline" viewBox="0 0 12 9" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="1,4.5 4.5,8 11,1" />
-                  </svg>
+              <div className="flex items-center gap-1">
+                {/* Reader avatars (group chat) */}
+                {readers.length > 0 && (
+                  <ReadersTooltip readers={readers} />
                 )}
-              </span>
+                {/* Checkmark */}
+                <span className={`text-[10px] leading-none ${isRead ? 'text-sky-300' : 'text-violet-200'}`}>
+                  {isRead ? (
+                    <svg className="w-4 h-3 inline" viewBox="0 0 18 11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="1,6 4.5,10 10,2" />
+                      <polyline points="6,6 9.5,10 17,1" />
+                    </svg>
+                  ) : (
+                    <svg className="w-3 h-3 inline" viewBox="0 0 12 9" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="1,4.5 4.5,8 11,1" />
+                    </svg>
+                  )}
+                </span>
+              </div>
             )}
           </div>
 
