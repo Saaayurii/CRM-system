@@ -792,6 +792,18 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   }, [activeTab]);
 
   /* ─── Chat helpers ─── */
+  const handleDeleteChannel = useCallback(async (ch: ChatChannel) => {
+    if (!confirm(`Удалить канал «${ch.channelName || ch.name || `#${ch.id}`}»? Это действие нельзя отменить.`)) return;
+    try {
+      await api.delete(`/chat-channels/${ch.id}`);
+      setProjectChannels((prev) => prev.filter((c) => c.id !== ch.id));
+      if (activeProjectChannelId === ch.id) setActiveProjectChannelId(null);
+      addToast('success', 'Канал удалён');
+    } catch {
+      addToast('error', 'Не удалось удалить канал');
+    }
+  }, [activeProjectChannelId, addToast]);
+
   const loadProjectChannels = useCallback(async () => {
     setLoadingChat(true);
     try {
@@ -1779,8 +1791,8 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                 </div>
               ) : (
                 projectChannels.map((ch) => (
-                  <button key={ch.id} onClick={() => { setActiveProjectChannelId(ch.id); setMobileChatOpen(true); }}
-                    className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-left transition-colors ${activeProjectChannelId === ch.id ? 'bg-violet-50 dark:bg-violet-500/10' : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'}`}>
+                  <div key={ch.id} className={`group flex items-center gap-2.5 px-4 py-2.5 transition-colors cursor-pointer ${activeProjectChannelId === ch.id ? 'bg-violet-50 dark:bg-violet-500/10' : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'}`}
+                    onClick={() => { setActiveProjectChannelId(ch.id); setMobileChatOpen(true); }}>
                     <div className="w-8 h-8 rounded-full bg-violet-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
                       {(ch.channelName || ch.name || '#').charAt(0).toUpperCase()}
                     </div>
@@ -1790,7 +1802,15 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                       </p>
                       <p className="text-xs text-gray-400 truncate">{ch.membersCount} участников</p>
                     </div>
-                  </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleDeleteChannel(ch); }}
+                      className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-all shrink-0"
+                      title="Удалить канал">
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
                 ))
               )}
             </div>
