@@ -187,11 +187,17 @@ export class AuthService {
 
     await this.userRepository.updateSignInInfo(user.id);
 
+    const account = await this.accountRepository.findById(user.accountId);
+    const isGlobalAdmin = (user.settings as any)?.isGlobalAdmin === true;
+
     const jwtPayload: JwtPayload = {
       sub: user.id,
       email: user.email,
       roleId: user.roleId,
       accountId: user.accountId,
+      accountName: account?.name,
+      accountLogoUrl: account?.settings?.logoUrl ?? undefined,
+      isGlobalAdmin: isGlobalAdmin || undefined,
     };
 
     const tokenPair = this.tokenService.generateTokenPair(jwtPayload);
@@ -234,11 +240,17 @@ export class AuthService {
       if (!user) throw new UnauthorizedException('User not found');
       if (!user.isActive) throw new UnauthorizedException('User account is inactive');
 
+      const account = await this.accountRepository.findById(user.accountId);
+      const isGlobalAdmin = (user.settings as any)?.isGlobalAdmin === true;
+
       const jwtPayload: JwtPayload = {
         sub: user.id,
         email: user.email,
         roleId: user.roleId,
         accountId: user.accountId,
+        accountName: account?.name,
+        accountLogoUrl: account?.settings?.logoUrl ?? undefined,
+        isGlobalAdmin: isGlobalAdmin || undefined,
       };
 
       const tokenPair = this.tokenService.generateTokenPair(jwtPayload);
