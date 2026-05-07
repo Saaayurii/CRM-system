@@ -3,6 +3,9 @@ export interface JwtPayload {
   email: string;
   roleId: number | null;
   accountId: number;
+  accountName?: string;
+  accountLogoUrl?: string;
+  isGlobalAdmin?: boolean;
   sid?: number; // session ID
   iat?: number;
   exp?: number;
