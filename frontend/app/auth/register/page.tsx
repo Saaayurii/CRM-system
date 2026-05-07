@@ -333,6 +333,12 @@ export default function RegisterPage() {
           Войти
         </a>
       </div>
+      <p className="mt-4 text-center text-xs text-gray-400 dark:text-gray-500">
+        Регистрируясь, вы соглашаетесь с{' '}
+        <a href="/privacy" className="underline hover:text-violet-500 transition-colors">
+          политикой конфиденциальности
+        </a>
+      </p>
     </div>
   );
 }
