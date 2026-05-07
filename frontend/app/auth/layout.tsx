@@ -1,5 +1,7 @@
 'use client';
 
+import CookieBanner from '@/components/ui/CookieBanner';
+
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <main className="bg-gradient-to-b from-white to-gray-100 dark:from-gray-900 dark:to-gray-800 min-h-screen">
@@ -37,6 +39,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </div>
       </div>
 
+    <CookieBanner />
     </main>
   );
 }

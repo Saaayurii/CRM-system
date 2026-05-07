@@ -17,6 +17,9 @@ export interface User {
   phone?: string;
   avatarUrl?: string;
   accountId: number;
+  accountName?: string;
+  accountLogoUrl?: string;
+  isGlobalAdmin?: boolean;
   roleId?: number;
   position?: string;
   isActive: boolean;
@@ -36,6 +39,9 @@ export interface JwtPayload {
   email: string;
   roleId: number | null;
   accountId: number;
+  accountName?: string;
+  accountLogoUrl?: string;
+  isGlobalAdmin?: boolean;
   iat: number;
   exp: number;
 }

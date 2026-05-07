@@ -7,6 +7,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { RegisterDto } from './dto/register.dto';
+import { RegisterCompanyDto } from './dto/register-company.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { CreateRegistrationRequestDto } from './dto/create-registration-request.dto';
@@ -460,6 +461,93 @@ export class AuthService {
 
     this.logger.log(`Registration request rejected: ${request.email}`);
     return { message: 'Заявка отклонена' };
+  }
+
+  async registerCompany(
+    dto: RegisterCompanyDto,
+    userAgent = '',
+    ipAddress = '',
+  ): Promise<AuthResponseDto> {
+    const existingUser = await this.userRepository.findByEmail(dto.adminEmail);
+    if (existingUser) throw new ConflictException('Email already exists');
+
+    const account = await this.accountRepository.create({
+      name: dto.companyName,
+      logoUrl: dto.logoUrl,
+    });
+
+    const adminRole = await this.roleRepository.findByCode('admin');
+    if (!adminRole) throw new NotFoundException('Role admin not found');
+
+    const passwordDigest = await this.passwordService.hash(dto.adminPassword);
+
+    const user = await this.userRepository.create({
+      name: dto.adminName,
+      email: dto.adminEmail,
+      passwordDigest,
+      phone: dto.adminPhone,
+      account: { connect: { id: account.id } },
+      role: { connect: { id: adminRole.id } },
+      confirmedAt: new Date(),
+    });
+
+    const tokenPair = this.tokenService.generateTokenPair({
+      sub: user.id,
+      email: user.email,
+      roleId: user.roleId,
+      accountId: user.accountId,
+      accountName: account.name,
+    });
+
+    await this.sessionRepository.enforceLimit(user.id, 5);
+    const session = await this.sessionRepository.create({
+      userId: user.id,
+      refreshToken: tokenPair.refreshToken,
+      expiresAt: tokenPair.refreshTokenExpiresAt,
+      userAgent: userAgent || undefined,
+      ipAddress: ipAddress || undefined,
+    });
+
+    await this.userRepository.updateRefreshToken(
+      user.id,
+      tokenPair.refreshToken,
+      tokenPair.refreshTokenExpiresAt,
+    );
+
+    const accessToken = this.tokenService.generateAccessToken({
+      sub: user.id,
+      email: user.email,
+      roleId: user.roleId,
+      accountId: user.accountId,
+      accountName: account.name,
+      sid: session.id,
+    });
+
+    this.logger.log(`Company registered: ${account.name}, admin: ${user.email}`);
+
+    return {
+      accessToken,
+      refreshToken: tokenPair.refreshToken,
+      sessionId: session.id,
+      user: this.mapUserToResponse(user),
+    };
+  }
+
+  async getAccounts() {
+    const accounts = await this.accountRepository.findAll();
+    return accounts.map((a: any) => ({
+      id: a.id,
+      name: a.name,
+      subdomain: a.subdomain,
+      logoUrl: a.settings?.logoUrl ?? null,
+      status: a.status,
+      createdAt: a.createdAt,
+      userCount: a._count?.users ?? 0,
+    }));
+  }
+
+  async updateAccount(id: number, data: { status?: number; name?: string }) {
+    return this.accountRepository.update(id, data);
   }
 
   private mapUserToResponse(user: any): UserResponseDto {

@@ -22,6 +22,7 @@ import {
 } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
+import { RegisterCompanyDto } from './dto/register-company.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { CreateRegistrationRequestDto } from './dto/create-registration-request.dto';
@@ -191,6 +192,40 @@ export class AuthController {
   ): Promise<MessageResponseDto> {
     this.checkAdminOrHR(user);
     return this.authService.rejectRegistrationRequest(id, dto, user.sub);
+  }
+
+  // ── Company Registration ───────────────────────────────────────────
+
+  @Post('register-company')
+  @Public()
+  @ApiOperation({ summary: 'Register a new company with admin user' })
+  @ApiResponse({ status: 201, description: 'Company and admin created', type: AuthResponseDto })
+  async registerCompany(@Body() dto: RegisterCompanyDto, @Req() req: any): Promise<AuthResponseDto> {
+    const userAgent = (req.headers['x-user-agent'] || req.headers['user-agent'] || '') as string;
+    const ipAddress = (req.headers['x-real-ip'] || req.headers['x-forwarded-for'] || req.ip || '') as string;
+    return this.authService.registerCompany(dto, userAgent, normalizeIp(ipAddress.split(',')[0].trim()));
+  }
+
+  // ── Accounts (Global Super Admin) ─────────────────────────────────
+
+  @Get('accounts')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get all accounts (Global Super Admin only)' })
+  async getAccounts(@CurrentUser() user: UserPayload) {
+    if (user.roleId !== 1) throw new ForbiddenException('Доступ запрещён');
+    return this.authService.getAccounts();
+  }
+
+  @Put('accounts/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update account status (Global Super Admin only)' })
+  async updateAccount(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { status?: number; name?: string },
+    @CurrentUser() user: UserPayload,
+  ) {
+    if (user.roleId !== 1) throw new ForbiddenException('Доступ запрещён');
+    return this.authService.updateAccount(id, body);
   }
 
   private checkAdminOrHR(user: UserPayload) {

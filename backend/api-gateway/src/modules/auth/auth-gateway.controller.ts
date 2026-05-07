@@ -225,4 +225,42 @@ export class AuthGatewayController {
       headers: { Authorization: authorization },
     });
   }
+
+  @Post('auth/register-company')
+  @ApiOperation({ summary: 'Register a new company with admin user' })
+  async registerCompany(@Body() body: unknown) {
+    return this.proxyService.forward('auth', {
+      method: 'POST',
+      path: '/auth/register-company',
+      data: body,
+      headers: { 'content-type': 'application/json' },
+    });
+  }
+
+  @Get('accounts')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get all accounts (Global Super Admin)' })
+  async getAccounts(@Headers('authorization') authorization: string) {
+    return this.proxyService.forward('auth', {
+      method: 'GET',
+      path: '/auth/accounts',
+      headers: { Authorization: authorization },
+    });
+  }
+
+  @Put('accounts/:id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update account' })
+  async updateAccount(
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @Headers('authorization') authorization: string,
+  ) {
+    return this.proxyService.forward('auth', {
+      method: 'PUT',
+      path: `/auth/accounts/${id}`,
+      data: body,
+      headers: { Authorization: authorization, 'content-type': 'application/json' },
+    });
+  }
 }

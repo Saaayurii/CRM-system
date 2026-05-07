@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { MODULE_CATEGORIES } from '@/lib/admin/modules';
 import type { ModuleCategory } from '@/types/admin';
 import api from '@/lib/api';
+import { useAuthStore } from '@/stores/authStore';
 
 interface AdminSidebarProps {
   onNavigate?: () => void;
@@ -68,6 +69,7 @@ function CategoryGroup({ category, pathname, onNavigate, open, onToggle }: {
 export default function AdminSidebar({ onNavigate }: AdminSidebarProps) {
   const pathname = usePathname();
   const [pendingCount, setPendingCount] = useState(0);
+  const isGlobalAdmin = useAuthStore((s) => s.user?.isGlobalAdmin);
 
   // Accordion: find the initially active category
   const initialOpen = MODULE_CATEGORIES.findIndex((cat) =>
@@ -131,6 +133,23 @@ export default function AdminSidebar({ onNavigate }: AdminSidebarProps) {
           </span>
         )}
       </Link>
+
+      {isGlobalAdmin && (
+        <Link
+          href="/admin/companies"
+          onClick={onNavigate}
+          className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium mb-1 transition-colors ${
+            pathname === '/admin/companies'
+              ? 'bg-violet-500/10 text-violet-600 dark:text-violet-400'
+              : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/30'
+          }`}
+        >
+          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
+          </svg>
+          Компании
+        </Link>
+      )}
 
       <Link
         href="/admin/telegram"

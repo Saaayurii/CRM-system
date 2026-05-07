@@ -29,11 +29,14 @@ interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  selectedAccountId: number | null;
   login: (credentials: LoginRequest) => Promise<void>;
   logout: () => void;
   initialize: () => void;
   refreshRole: () => Promise<void>;
   updateUser: (patch: Partial<User>) => void;
+  switchAccount: (accountId: number, accountName: string, accountLogoUrl?: string) => void;
+  resetAccountSwitch: () => void;
 }
 
 function decodeJwt(token: string): JwtPayload | null {
@@ -74,6 +77,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   isAuthenticated: false,
   isLoading: true,
+  selectedAccountId: null,
 
   login: async (credentials: LoginRequest) => {
     try {
@@ -135,6 +139,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }));
   },
 
+  switchAccount: (accountId, accountName, accountLogoUrl) => {
+    set({ selectedAccountId: accountId });
+    localStorage.setItem('selectedAccountId', String(accountId));
+  },
+
+  resetAccountSwitch: () => {
+    set({ selectedAccountId: null });
+    localStorage.removeItem('selectedAccountId');
+  },
+
   // Fetch fresh role from DB and update tokens if role changed.
   // Called on initialize() and can be called manually.
   refreshRole: async () => {
@@ -153,6 +167,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               email: me.email || state.user.email,
               avatarUrl: me.avatarUrl ? (normalizeFileUrl(me.avatarUrl) ?? undefined) : state.user.avatarUrl,
               isActive: me.isActive,
+              accountName: (me as any).accountName ?? state.user.accountName,
+              accountLogoUrl: (me as any).accountLogoUrl ?? state.user.accountLogoUrl,
+              isGlobalAdmin: (me as any).isGlobalAdmin ?? state.user.isGlobalAdmin,
             }
           : state.user,
       }));
@@ -187,6 +204,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       return;
     }
 
+    const storedAccountId = localStorage.getItem('selectedAccountId');
+
     // Fast path: set user from cached token immediately (no flicker)
     set({
       user: {
@@ -194,6 +213,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         email: payload.email,
         name: '',
         accountId: payload.accountId,
+        accountName: payload.accountName,
+        accountLogoUrl: payload.accountLogoUrl,
+        isGlobalAdmin: payload.isGlobalAdmin ?? false,
         roleId: payload.roleId ?? undefined,
         isActive: true,
         createdAt: '',
@@ -201,6 +223,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       },
       isAuthenticated: true,
       isLoading: false,
+      selectedAccountId: storedAccountId ? Number(storedAccountId) : null,
     });
 
     // Background: refresh role from DB so changes made by admin take effect

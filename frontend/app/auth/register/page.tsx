@@ -29,6 +29,7 @@ const COUNTRIES = [
 ];
 
 export default function RegisterPage() {
+  const [companyName, setCompanyName] = useState('');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -77,7 +78,7 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
-      const payload: any = { name, email, password };
+      const payload: any = { name, email, password, companyName };
       if (phone.trim()) payload.phone = `${selectedCountry.code}${phone.trim()}`;
       if (birthDate) payload.birthDate = birthDate;
 
@@ -129,6 +130,21 @@ export default function RegisterPage() {
 
       <form onSubmit={handleSubmit}>
         <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300" htmlFor="companyName">
+              Название компании <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="companyName"
+              className="form-input w-full"
+              type="text"
+              value={companyName}
+              onChange={(e) => setCompanyName(e.target.value)}
+              placeholder="ООО «Ромашка»"
+              required
+            />
+          </div>
+
           <div>
             <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300" htmlFor="name">
               ФИО <span className="text-red-500">*</span>
@@ -324,13 +340,17 @@ export default function RegisterPage() {
         </div>
       </form>
 
-      <div className="mt-6 text-center">
+      <div className="mt-4 text-center">
         <span className="text-sm text-gray-500 dark:text-gray-400">Уже есть аккаунт? </span>
-        <a
-          href="/auth/login"
-          className="text-sm font-medium text-violet-500 hover:text-violet-600 dark:hover:text-violet-400"
-        >
+        <a href="/auth/login" className="text-sm font-medium text-violet-500 hover:text-violet-600 dark:hover:text-violet-400">
           Войти
+        </a>
+      </div>
+
+      <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 text-center">
+        <span className="text-sm text-gray-500 dark:text-gray-400">Хотите зарегистрировать свою компанию? </span>
+        <a href="/auth/register-company" className="text-sm font-medium text-violet-500 hover:text-violet-600 dark:hover:text-violet-400">
+          Создать аккаунт →
         </a>
       </div>
       <p className="mt-4 text-center text-xs text-gray-400 dark:text-gray-500">
