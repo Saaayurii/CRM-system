@@ -5,25 +5,27 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { AxiosError } from 'axios';
 
-function getLoginErrorMessage(err: unknown): string {
-  if (err instanceof AxiosError) {
-    if (!err.response) {
-      return 'Сервер недоступен. Проверьте подключение к сети';
+type LoginError = { message: string; kind: 'error' | 'warning' };
+
+function getLoginError(err: unknown): LoginError {
+  const serverMsg = (err instanceof AxiosError)
+    ? (err.response?.data as { message?: string })?.message
+    : (err as any)?.response?.data?.message;
+
+  const status = (err instanceof AxiosError)
+    ? err.response?.status
+    : (err as any)?.response?.status;
+
+  if (!status) return { message: 'Сервер недоступен. Проверьте подключение к сети', kind: 'error' };
+
+  if (status === 401) {
+    if (serverMsg && serverMsg.includes('заявка')) {
+      return { message: serverMsg, kind: 'warning' };
     }
-    const status = err.response.status;
-    if (status === 401) return 'Неверный email или пароль';
-    if (status === 403) return 'Аккаунт деактивирован';
-    const serverMsg = (err.response.data as { message?: string })?.message;
-    if (serverMsg) return serverMsg;
-    return `Ошибка сервера (${status})`;
+    return { message: 'Неверный email или пароль', kind: 'error' };
   }
-  if (err && typeof err === 'object' && 'response' in err) {
-    const resp = (err as { response?: { status?: number; data?: { message?: string } } }).response;
-    if (resp?.status === 401) return 'Неверный email или пароль';
-    if (resp?.status === 403) return 'Аккаунт деактивирован';
-    return resp?.data?.message || 'Ошибка авторизации';
-  }
-  return 'Сервер недоступен. Проверьте подключение к сети';
+  if (status === 403) return { message: 'Аккаунт деактивирован', kind: 'error' };
+  return { message: serverMsg || `Ошибка сервера (${status})`, kind: 'error' };
 }
 
 export default function LoginPage() {
@@ -31,20 +33,20 @@ export default function LoginPage() {
   const login = useAuthStore((s) => s.login);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [loginError, setLoginError] = useState<LoginError | null>(null);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setError('');
+    setLoginError(null);
     setLoading(true);
 
     try {
       await login({ email, password });
       router.push('/dashboard');
     } catch (err: unknown) {
-      setError(getLoginErrorMessage(err));
+      setLoginError(getLoginError(err));
     } finally {
       setLoading(false);
     }
@@ -54,12 +56,20 @@ export default function LoginPage() {
     <div className="w-full max-w-sm">
       <h1 className="text-3xl text-gray-800 dark:text-gray-100 font-bold mb-6">Вход в систему</h1>
 
-      {error && (
+      {loginError && loginError.kind === 'warning' && (
+        <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-300 dark:border-amber-500/30 text-amber-800 dark:text-amber-300 px-4 py-3 rounded-lg mb-4 text-sm flex items-start gap-2">
+          <svg className="w-5 h-5 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+          </svg>
+          <span>{loginError.message}</span>
+        </div>
+      )}
+      {loginError && loginError.kind === 'error' && (
         <div className="bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 px-4 py-3 rounded-lg mb-4 text-sm flex items-start gap-2">
           <svg className="w-5 h-5 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
           </svg>
-          <span>{error}</span>
+          <span>{loginError.message}</span>
         </div>
       )}
 

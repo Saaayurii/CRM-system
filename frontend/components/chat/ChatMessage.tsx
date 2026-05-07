@@ -93,10 +93,16 @@ function ReaderAvatar({ reader, size = 'sm' }: { reader: Reader; size?: 'sm' | '
   const sz = size === 'xs' ? 'w-4 h-4 text-[8px]' : 'w-6 h-6 text-[10px]';
   const initials = reader.name.split(' ').map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || '?';
   return (
-    <div className={`${sz} rounded-full bg-sky-500 flex items-center justify-center text-white font-semibold shrink-0 overflow-hidden ring-1 ring-white dark:ring-gray-800`}>
-      {reader.avatarUrl
-        ? <img src={reader.avatarUrl} alt={reader.name} className="w-full h-full object-cover" />
-        : initials}
+    <div className={`${sz} rounded-full bg-sky-500 flex items-center justify-center text-white font-semibold shrink-0 overflow-hidden relative ring-1 ring-white dark:ring-gray-800`}>
+      {initials}
+      {reader.avatarUrl && (
+        <img
+          src={reader.avatarUrl}
+          alt={reader.name}
+          className="absolute inset-0 w-full h-full object-cover z-10"
+          onError={(e) => { e.currentTarget.style.display = 'none'; }}
+        />
+      )}
     </div>
   );
 }
@@ -264,15 +270,21 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
       {/* Avatar placeholder / real avatar */}
       <div className="w-8 shrink-0">
         {showAvatar && !isOwn && (
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold ${isSenderDeleted ? 'bg-gray-400 dark:bg-gray-600' : 'bg-sky-500'}`}>
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold relative overflow-hidden ${isSenderDeleted ? 'bg-gray-400 dark:bg-gray-600' : 'bg-sky-500'}`}>
             {isSenderDeleted ? (
               <svg className="w-4 h-4 text-white/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
-            ) : message.senderAvatarUrl ? (
-              <img src={message.senderAvatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
             ) : (
               getInitials(displaySenderName)
+            )}
+            {!isSenderDeleted && message.senderAvatarUrl && (
+              <img
+                src={message.senderAvatarUrl}
+                alt=""
+                className="absolute inset-0 w-full h-full rounded-full object-cover z-10"
+                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+              />
             )}
           </div>
         )}

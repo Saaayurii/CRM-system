@@ -216,7 +216,7 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
               {/* Avatar */}
               <div className="relative shrink-0">
                 <div
-                  className={`w-11 h-11 rounded-full flex items-center justify-center text-white font-semibold text-sm overflow-hidden ${
+                  className={`w-11 h-11 rounded-full flex items-center justify-center text-white font-semibold text-sm overflow-hidden relative ${
                     isSelf
                       ? 'bg-amber-400'
                       : isDeletedUser
@@ -226,9 +226,7 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
                       : 'bg-sky-500'
                   }`}
                 >
-                  {avatarUrl ? (
-                    <img src={avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
-                  ) : isSelf ? (
+                  {isSelf ? (
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                     </svg>
@@ -238,6 +236,14 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
                     </svg>
                   ) : (
                     getInitials(displayName)
+                  )}
+                  {avatarUrl && (
+                    <img
+                      src={avatarUrl}
+                      alt=""
+                      className="absolute inset-0 w-full h-full rounded-full object-cover z-10"
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                    />
                   )}
                 </div>
                 {!isSelf && channel.channelType === 'direct' && isOnline && (

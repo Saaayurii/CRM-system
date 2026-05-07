@@ -313,7 +313,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
                 : activeChannel.avatarUrl;
               return (
             <div
-              className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-semibold overflow-hidden ${
+              className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-semibold overflow-hidden relative ${
                 isSelf
                   ? 'bg-amber-400'
                   : activeChannel.channelType === 'group'
@@ -321,14 +321,20 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
                   : 'bg-sky-500'
               }`}
             >
-              {avatarSrc ? (
-                <img src={avatarSrc} alt="" className="w-full h-full rounded-full object-cover" />
-              ) : isSelf ? (
+              {isSelf ? (
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                 </svg>
               ) : (
                 getInitials(channelDisplayName)
+              )}
+              {avatarSrc && (
+                <img
+                  src={avatarSrc}
+                  alt=""
+                  className="absolute inset-0 w-full h-full rounded-full object-cover z-10"
+                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                />
               )}
             </div>
               );
@@ -682,7 +688,7 @@ function InfoPanel({ channel, partner, isSelf, isPartnerOnline, isAdmin, current
         {/* Avatar + name */}
         <div className="flex flex-col items-center gap-2 py-4">
           <div
-            className={`w-16 h-16 rounded-full flex items-center justify-center text-white text-xl font-bold ${
+            className={`w-16 h-16 rounded-full flex items-center justify-center text-white text-xl font-bold relative overflow-hidden ${
               isSelf
                 ? 'bg-amber-400'
                 : channel.channelType === 'group'
@@ -690,14 +696,20 @@ function InfoPanel({ channel, partner, isSelf, isPartnerOnline, isAdmin, current
                 : 'bg-sky-500'
             }`}
           >
-            {channel.avatarUrl ? (
-              <img src={channel.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
-            ) : isSelf ? (
+            {isSelf ? (
               <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
               </svg>
             ) : (
               getInitials(partner?.name || channel.channelName)
+            )}
+            {(channel.avatarUrl || (!isSelf && channel.channelType === 'direct' && partner?.avatarUrl)) && (
+              <img
+                src={channel.avatarUrl || partner?.avatarUrl}
+                alt=""
+                className="absolute inset-0 w-full h-full rounded-full object-cover z-10"
+                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+              />
             )}
           </div>
 
@@ -756,15 +768,21 @@ function InfoPanel({ channel, partner, isSelf, isPartnerOnline, isAdmin, current
                 const displayName = isDeleted ? 'Удалённый пользователь' : m.name;
                 return (
                   <div key={m.id} className="flex items-center gap-2">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0 overflow-hidden ${isDeleted ? 'bg-gray-400 dark:bg-gray-600' : 'bg-sky-500'}`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0 overflow-hidden relative ${isDeleted ? 'bg-gray-400 dark:bg-gray-600' : 'bg-sky-500'}`}>
                       {isDeleted ? (
                         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                           <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
                         </svg>
-                      ) : m.avatarUrl ? (
-                        <img src={m.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
                       ) : (
                         getInitials(m.name)
+                      )}
+                      {!isDeleted && m.avatarUrl && (
+                        <img
+                          src={m.avatarUrl}
+                          alt=""
+                          className="absolute inset-0 w-full h-full rounded-full object-cover z-10"
+                          onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                        />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
