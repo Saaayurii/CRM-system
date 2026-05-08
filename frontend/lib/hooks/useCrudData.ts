@@ -5,6 +5,7 @@ import api from '@/lib/api';
 import { AxiosError } from 'axios';
 import { categorizeError } from '@/lib/errors';
 import { useToastStore } from '@/stores/toastStore';
+import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 
 interface UseCrudDataOptions {
   apiEndpoint: string;
@@ -92,6 +93,8 @@ export function useCrudData<T extends Record<string, unknown>>({ apiEndpoint, de
     fetchData();
   }, [fetchData]);
 
+  useAutoRefresh(fetchData);
+
   const setPage = (page: number) => setState((s) => ({ ...s, page }));
   const setSearch = (search: string) => setState((s) => ({ ...s, search }));
   const setSort = (sortKey: string, sortDir: 'asc' | 'desc') => setState((s) => ({ ...s, sortKey, sortDir }));
@@ -130,7 +133,17 @@ export function useCrudData<T extends Record<string, unknown>>({ apiEndpoint, de
       }));
       return true;
     } catch (err) {
-      const diagnostic = categorizeError(err as AxiosError, apiEndpoint);
+      const axiosErr = err as AxiosError;
+      if (axiosErr.response?.status === 404 || axiosErr.response?.status === 410) {
+        addToast('warning', 'Запись уже была удалена другим пользователем');
+        setState((s) => ({
+          ...s,
+          data: s.data.filter((item) => item.id !== id),
+          total: Math.max(0, s.total - 1),
+        }));
+        return false;
+      }
+      const diagnostic = categorizeError(axiosErr, apiEndpoint);
       addToast('error', diagnostic.message);
       return false;
     } finally {
@@ -150,7 +163,18 @@ export function useCrudData<T extends Record<string, unknown>>({ apiEndpoint, de
       }));
       return true;
     } catch (err) {
-      const diagnostic = categorizeError(err as AxiosError, apiEndpoint);
+      const axiosErr = err as AxiosError;
+      if (axiosErr.response?.status === 404 || axiosErr.response?.status === 410) {
+        // Already deleted by another user — silently remove from list
+        addToast('warning', 'Запись уже была удалена другим пользователем');
+        setState((s) => ({
+          ...s,
+          data: s.data.filter((item) => item.id !== id),
+          total: Math.max(0, s.total - 1),
+        }));
+        return true;
+      }
+      const diagnostic = categorizeError(axiosErr, apiEndpoint);
       addToast('error', diagnostic.message);
       return false;
     } finally {

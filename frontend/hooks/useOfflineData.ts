@@ -78,11 +78,28 @@ export function useOfflineData<T>(
     fetch(true);
   }, [fetch]);
 
-  // Auto-refetch when connectivity returns
+  // Auto-refetch when connectivity returns, on window focus, or on tab visibility
   useEffect(() => {
     const handleOnline = () => fetch(false);
+    const handleFocus = () => fetch(false);
+    const handleVisible = () => {
+      if (document.visibilityState === 'visible') fetch(false);
+    };
+
     window.addEventListener('online', handleOnline);
-    return () => window.removeEventListener('online', handleOnline);
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisible);
+
+    const intervalId = setInterval(() => {
+      if (document.visibilityState === 'visible') fetch(false);
+    }, 30_000);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisible);
+      clearInterval(intervalId);
+    };
   }, [fetch]);
 
   return {

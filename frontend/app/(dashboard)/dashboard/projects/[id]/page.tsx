@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import api from '@/lib/api';
+import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 import ProjectFormModal from '@/components/dashboard/ProjectFormModal';
 import { useToastStore } from '@/stores/toastStore';
 import { useChatStore } from '@/stores/chatStore';
@@ -954,7 +955,8 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
     if (!project) return;
     setClosingProject(true);
     try {
-      const r = await api.put(`/projects/${projectId}`, { status: 3 });
+      const today = new Date().toISOString().split('T')[0];
+      const r = await api.put(`/projects/${projectId}`, { status: 3, actualEndDate: today });
       setProject(r.data);
       setShowInactiveModal(false);
       addToast('success', 'Проект завершён');
@@ -1020,6 +1022,19 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
+
+  /* ─── Auto-refresh active tab every 30s + on window focus ─── */
+  const activeTabRefresh = useCallback(() => {
+    if (activeTab === 'tasks' && tasksLoaded) reloadTasks(true);
+    else if (activeTab === 'team' && teamLoaded) reloadTeam();
+    else if (activeTab === 'documents' && docsLoaded) reloadDocuments();
+    else if (activeTab === 'finance' && financeLoaded) reloadFinance();
+    else if (activeTab === 'resources' && resourcesLoaded) reloadResources();
+    else if (activeTab === 'photos' && sitesLoaded) reloadSites();
+  }, [activeTab, tasksLoaded, teamLoaded, docsLoaded, financeLoaded, resourcesLoaded, sitesLoaded,
+      reloadTasks, reloadTeam, reloadDocuments, reloadFinance, reloadResources, reloadSites]);
+
+  useAutoRefresh(activeTabRefresh);
 
   /* ─── Chat helpers ─── */
   const handleDeleteChannel = useCallback(async (ch: ChatChannel) => {
@@ -1374,7 +1389,18 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-5 space-y-4">
             {(() => {
-              const dateOverrun = !!(project.actualEndDate && project.plannedEndDate && new Date(project.actualEndDate) > new Date(project.plannedEndDate));
+              // Derive dates from tasks (overview summary has tasks loaded for this tab)
+              const allTasks: any[] = overviewSummary?.tasks?.length ? overviewSummary.tasks : tasks;
+              const taskDueDates = allTasks.map((t) => t.dueDate).filter(Boolean).map((d: string) => new Date(d));
+              const completedTaskDates = allTasks.filter((t) => t.status === 3).map((t) => t.dueDate || t.updatedAt).filter(Boolean).map((d: string) => new Date(d));
+              const derivedPlanned = taskDueDates.length > 0 ? new Date(Math.max(...taskDueDates.map((d) => d.getTime()))) : null;
+              const derivedActual = completedTaskDates.length > 0 ? new Date(Math.max(...completedTaskDates.map((d) => d.getTime()))) : null;
+
+              const displayPlanned = project.plannedEndDate || derivedPlanned?.toISOString();
+              const displayActual = project.actualEndDate || derivedActual?.toISOString();
+              const fromTasks = !project.plannedEndDate && !!derivedPlanned;
+
+              const dateOverrun = !!(displayActual && displayPlanned && new Date(displayActual) > new Date(displayPlanned));
               const budgetOverrun = !!(project.actualCost != null && project.budget != null && project.actualCost > project.budget);
               const hasOverrun = dateOverrun || budgetOverrun;
               const pct = (project.budget != null && project.actualCost != null && project.budget > 0)
@@ -1401,13 +1427,27 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                     </div>
                   )}
                   <InfoRow label="Дата начала" value={fmt(project.startDate)} />
-                  <InfoRow label="Плановое окончание" value={fmt(project.plannedEndDate)} />
+                  <InfoRow label="Плановое окончание" value={
+                    <span className="flex items-center gap-1.5">
+                      {fmt(displayPlanned)}
+                      {fromTasks && displayPlanned && (
+                        <span className="text-xs text-gray-400 font-normal">(по задачам)</span>
+                      )}
+                    </span>
+                  } />
                   <InfoRow label="Фактическое окончание" value={
                     dateOverrun ? (
                       <span className="flex items-center gap-1.5 text-red-500 font-semibold">
-                        <WarningIcon />{fmt(project.actualEndDate)}
+                        <WarningIcon />{fmt(displayActual)}
                       </span>
-                    ) : fmt(project.actualEndDate)
+                    ) : (
+                      <span className="flex items-center gap-1.5">
+                        {fmt(displayActual)}
+                        {!project.actualEndDate && displayActual && (
+                          <span className="text-xs text-gray-400 font-normal">(по задачам)</span>
+                        )}
+                      </span>
+                    )
                   } />
                   <InfoRow label="Бюджет" value={fmtMoney(project.budget)} />
                   <InfoRow label="Фактические затраты" value={
