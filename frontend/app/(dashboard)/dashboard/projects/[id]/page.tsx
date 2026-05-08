@@ -579,6 +579,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   const [channelChecked, setChannelChecked] = useState(false);
   const [loadingChat, setLoadingChat] = useState(false);
   const [showCreateChannelModal, setShowCreateChannelModal] = useState(false);
+  const [editingChannel, setEditingChannel] = useState<ChatChannel | null>(null);
   const [mobileChatOpen, setMobileChatOpen] = useState(false);
 
   /* Photos tab */
@@ -2052,8 +2053,10 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                 projectChannels.map((ch) => (
                   <div key={ch.id} className={`group flex items-center gap-2.5 px-4 py-2.5 transition-colors cursor-pointer ${activeProjectChannelId === ch.id ? 'bg-violet-50 dark:bg-violet-500/10' : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'}`}
                     onClick={() => { setActiveProjectChannelId(ch.id); setMobileChatOpen(true); }}>
-                    <div className="w-8 h-8 rounded-full bg-violet-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
-                      {(ch.channelName || ch.name || '#').charAt(0).toUpperCase()}
+                    <div className="w-8 h-8 rounded-full bg-violet-500 flex items-center justify-center text-white text-xs font-bold shrink-0 overflow-hidden relative">
+                      {ch.avatarUrl
+                        ? <img src={ch.avatarUrl} alt="" className="absolute inset-0 w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                        : (ch.channelName || ch.name || '#').charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className={`text-sm font-medium truncate ${activeProjectChannelId === ch.id ? 'text-violet-600 dark:text-violet-400' : 'text-gray-800 dark:text-gray-100'}`}>
@@ -2061,14 +2064,24 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                       </p>
                       <p className="text-xs text-gray-400 truncate">{ch.membersCount} участников</p>
                     </div>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleDeleteChannel(ch); }}
-                      className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-all shrink-0"
-                      title="Удалить канал">
-                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
+                    <div className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 shrink-0">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setEditingChannel(ch); }}
+                        className="p-1 text-gray-400 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded transition-all"
+                        title="Редактировать канал">
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDeleteChannel(ch); }}
+                        className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-all"
+                        title="Удалить канал">
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                 ))
               )}
@@ -2112,6 +2125,18 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
             useChatStore.getState().fetchChannels(1);
           }}
           onClose={() => setShowCreateChannelModal(false)}
+        />
+      )}
+
+      {/* Edit channel modal */}
+      {editingChannel && (
+        <ProjectChannelEditModal
+          channel={editingChannel}
+          onSaved={(updated) => {
+            setProjectChannels((prev) => prev.map((c) => c.id === updated.id ? { ...c, ...updated } : c));
+            setEditingChannel(null);
+          }}
+          onClose={() => setEditingChannel(null)}
         />
       )}
 
@@ -4758,6 +4783,26 @@ function ModalShell({ title, children, onClose }: { title: string; children: Rea
 
 /* ─── Modal: Create Project Channel ─── */
 
+function AvatarPicker({ preview, onFile, onClear }: { preview: string | null; onFile: (f: File) => void; onClear: () => void }) {
+  const ref = useRef<HTMLInputElement>(null);
+  return (
+    <div className="flex items-center gap-3 mb-3">
+      <button type="button" onClick={() => ref.current?.click()}
+        className="relative w-14 h-14 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center shrink-0 overflow-hidden border-2 border-dashed border-violet-300 dark:border-violet-700 hover:border-violet-500 transition-colors"
+        title="Загрузить аватар">
+        {preview
+          ? <img src={preview} alt="" className="w-full h-full object-cover" />
+          : <svg className="w-6 h-6 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+        }
+      </button>
+      <input ref={ref} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); }} />
+      {preview && (
+        <button type="button" onClick={onClear} className="text-xs text-red-400 hover:text-red-600 transition-colors">Удалить фото</button>
+      )}
+    </div>
+  );
+}
+
 function ProjectChannelCreateModal({
   projectId, projectName, projectMembers, onCreated, onClose,
 }: {
@@ -4771,6 +4816,8 @@ function ProjectChannelCreateModal({
   const [selectedMemberIds, setSelectedMemberIds] = useState<number[]>([]);
   const [saving, setSaving] = useState(false);
   const [members, setMembers] = useState<Assignment[]>(projectMembers);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const addToast = useToastStore((s) => s.addToast);
 
   useEffect(() => {
@@ -4799,12 +4846,23 @@ function ProjectChannelCreateModal({
     if (!name.trim()) return;
     setSaving(true);
     try {
+      let avatarUrl: string | undefined;
+      if (avatarFile) {
+        try {
+          const fd = new FormData();
+          fd.append('file', avatarFile);
+          const { data: up } = await api.post('/documents/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+          avatarUrl = up.url || up.fileUrl;
+        } catch { /* ignore */ }
+      }
+
       const r = await api.post('/chat-channels', {
         name: name.trim(),
         channelType: 'group',
         projectId,
         memberIds: selectedMemberIds,
         settings: { projectName },
+        avatarUrl,
       });
       const raw = r.data;
       onCreated({
@@ -4813,6 +4871,7 @@ function ProjectChannelCreateModal({
         channelName: raw.channelName ?? raw.name ?? '',
         projectId: raw.projectId,
         membersCount: raw.members?.length ?? raw._count?.members ?? 0,
+        avatarUrl,
       });
     } catch {
       addToast('error', 'Не удалось создать канал');
@@ -4826,11 +4885,18 @@ function ProjectChannelCreateModal({
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Название канала *</label>
-          <input
-            value={name} onChange={(e) => setName(e.target.value)} required autoFocus
-            placeholder={`Например: Общий ${projectName}`}
-            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100"
-          />
+          <div className="flex items-center gap-3">
+            <AvatarPicker
+              preview={avatarPreview}
+              onFile={(f) => { setAvatarFile(f); setAvatarPreview(URL.createObjectURL(f)); }}
+              onClear={() => { setAvatarFile(null); setAvatarPreview(null); }}
+            />
+            <input
+              value={name} onChange={(e) => setName(e.target.value)} required autoFocus
+              placeholder={`Например: Общий ${projectName}`}
+              className="flex-1 px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100"
+            />
+          </div>
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
@@ -4866,6 +4932,75 @@ function ProjectChannelCreateModal({
           <button type="submit" disabled={saving || !name.trim()}
             className="px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition-colors">
             {saving ? 'Создание...' : 'Создать'}
+          </button>
+        </div>
+      </form>
+    </ModalShell>
+  );
+}
+
+function ProjectChannelEditModal({
+  channel, onSaved, onClose,
+}: {
+  channel: ChatChannel;
+  onSaved: (updated: Partial<ChatChannel> & { id: number }) => void;
+  onClose: () => void;
+}) {
+  const [name, setName] = useState(channel.channelName || channel.name || '');
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(channel.avatarUrl || null);
+  const [saving, setSaving] = useState(false);
+  const addToast = useToastStore((s) => s.addToast);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+    setSaving(true);
+    try {
+      let avatarUrl = channel.avatarUrl;
+      if (avatarFile) {
+        try {
+          const fd = new FormData();
+          fd.append('file', avatarFile);
+          const { data: up } = await api.post('/documents/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+          avatarUrl = up.url || up.fileUrl;
+        } catch { /* ignore */ }
+      }
+
+      await api.put(`/chat-channels/${channel.id}`, { name: name.trim(), avatarUrl });
+      addToast('success', 'Канал обновлён');
+      onSaved({ id: channel.id, channelName: name.trim(), name: name.trim(), avatarUrl });
+    } catch {
+      addToast('error', 'Не удалось сохранить изменения');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <ModalShell title="Редактировать канал" onClose={onClose}>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Название канала *</label>
+          <div className="flex items-center gap-3">
+            <AvatarPicker
+              preview={avatarPreview}
+              onFile={(f) => { setAvatarFile(f); setAvatarPreview(URL.createObjectURL(f)); }}
+              onClear={() => { setAvatarFile(null); setAvatarPreview(null); }}
+            />
+            <input
+              value={name} onChange={(e) => setName(e.target.value)} required autoFocus
+              placeholder="Название канала"
+              className="flex-1 px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100"
+            />
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 pt-1">
+          <button type="button" onClick={onClose}
+            className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 transition-colors">Отмена</button>
+          <button type="submit" disabled={saving || !name.trim()}
+            className="px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition-colors">
+            {saving ? 'Сохранение...' : 'Сохранить'}
           </button>
         </div>
       </form>

@@ -27,4 +27,10 @@ export class UpdateChannelDto {
   @ApiPropertyOptional({ description: 'Channel settings JSON' })
   @IsOptional()
   settings?: any;
+
+  @ApiPropertyOptional({ description: 'Avatar URL', maxLength: 500 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  avatarUrl?: string;
 }

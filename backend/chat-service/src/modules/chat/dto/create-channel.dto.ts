@@ -50,6 +50,12 @@ export class CreateChannelDto {
   @IsOptional()
   settings?: any;
 
+  @ApiPropertyOptional({ description: 'Avatar URL', maxLength: 500 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  avatarUrl?: string;
+
   @ApiPropertyOptional({ description: 'Member user IDs to add on creation', type: [Number] })
   @IsOptional()
   @IsArray()
