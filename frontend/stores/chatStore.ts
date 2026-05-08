@@ -68,6 +68,9 @@ export interface CreateChannelDto {
   channelType: 'direct' | 'group';
   name?: string;
   memberIds?: number[];
+  avatarUrl?: string;
+  projectId?: number;
+  settings?: Record<string, unknown>;
 }
 
 /* ───────── Raw→Typed Mappers ───────── */

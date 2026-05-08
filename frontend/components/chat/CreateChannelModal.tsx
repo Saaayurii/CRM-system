@@ -87,9 +87,9 @@ export default function CreateChannelModal({ onClose }: CreateChannelModalProps)
     if (avatarFile && channelType === 'group') {
       try {
         const fd = new FormData();
-        fd.append('file', avatarFile);
-        const { data } = await api.post('/documents/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-        avatarUrl = data.url || data.fileUrl;
+        fd.append('files', avatarFile);
+        const { data } = await api.post('/chat-channels/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        avatarUrl = Array.isArray(data) ? data[0]?.fileUrl : (data.fileUrl || data.url);
       } catch { /* ignore avatar upload failure */ }
     }
 
@@ -98,7 +98,7 @@ export default function CreateChannelModal({ onClose }: CreateChannelModalProps)
       name: channelType === 'group' ? channelName : undefined,
       memberIds: selectedUsers.map((u) => u.id),
       avatarUrl,
-    } as any);
+    });
 
     if (channel) {
       await setActiveChannel(channel.id);

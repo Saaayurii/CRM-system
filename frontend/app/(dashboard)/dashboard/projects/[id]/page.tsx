@@ -2065,7 +2065,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                       </p>
                       <p className="text-xs text-gray-400 truncate">{ch.membersCount} участников</p>
                     </div>
-                    <div className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 shrink-0">
+                    <div className="flex items-center gap-0.5 shrink-0">
                       <button
                         onClick={(e) => { e.stopPropagation(); setEditingChannel(ch); }}
                         className="p-1 text-gray-400 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded transition-all"
@@ -4851,9 +4851,9 @@ function ProjectChannelCreateModal({
       if (avatarFile) {
         try {
           const fd = new FormData();
-          fd.append('file', avatarFile);
-          const { data: up } = await api.post('/documents/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-          avatarUrl = up.url || up.fileUrl;
+          fd.append('files', avatarFile);
+          const { data: up } = await api.post('/chat-channels/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+          avatarUrl = Array.isArray(up) ? up[0]?.fileUrl : (up.fileUrl || up.url);
         } catch { /* ignore */ }
       }
 
@@ -4962,9 +4962,9 @@ function ProjectChannelEditModal({
       if (avatarFile) {
         try {
           const fd = new FormData();
-          fd.append('file', avatarFile);
-          const { data: up } = await api.post('/documents/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-          avatarUrl = up.url || up.fileUrl;
+          fd.append('files', avatarFile);
+          const { data: up } = await api.post('/chat-channels/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+          avatarUrl = Array.isArray(up) ? up[0]?.fileUrl : (up.fileUrl || up.url);
         } catch { /* ignore */ }
       }
 

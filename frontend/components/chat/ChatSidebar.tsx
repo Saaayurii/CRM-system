@@ -5,6 +5,7 @@ import { useChatStore, ChatChannel } from '@/stores/chatStore';
 import { useAuthStore } from '@/stores/authStore';
 import CreateChannelModal from './CreateChannelModal';
 import api from '@/lib/api';
+import { useToastStore } from '@/stores/toastStore';
 
 interface ChatSidebarProps {
   onSelectChannel: () => void;
@@ -25,6 +26,8 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
   const [search, setSearch] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [activeFolder, setActiveFolder] = useState<'all' | number>('all');
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const addToast = useToastStore((s) => s.addToast);
   const [projectNames, setProjectNames] = useState<Map<number, string>>(new Map());
   const scrollRef = useRef<HTMLDivElement>(null);
   const tabsScrollRef = useRef<HTMLDivElement>(null);
@@ -71,6 +74,22 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
     el.addEventListener('scroll', handleScroll);
     return () => el.removeEventListener('scroll', handleScroll);
   }, [handleScroll]);
+
+  const handleDeleteChannel = useCallback(async (ch: ChatChannel, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm(`Удалить чат «${ch.channelName || ch.channelType === 'direct' ? '' : ch.channelName}»? Это действие нельзя отменить.`)) return;
+    setDeletingId(ch.id);
+    try {
+      await api.delete(`/chat-channels/${ch.id}`);
+      fetchChannels(1);
+      if (activeChannelId === ch.id) setActiveChannel(null);
+      addToast('success', 'Чат удалён');
+    } catch {
+      addToast('error', 'Не удалось удалить чат');
+    } finally {
+      setDeletingId(null);
+    }
+  }, [activeChannelId, fetchChannels, setActiveChannel, addToast]);
 
   // Scroll active folder tab into center when it changes
   useEffect(() => {
@@ -203,27 +222,21 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
           const isOnline = !isSelf && isDirectChannelOnline(channel, user?.id, onlineUsers);
           const isDeletedUser = !isSelf && channel.channelType === 'direct' && displayName === 'Удалённый пользователь';
 
+          const canDelete = !isSelf && channel.channelType === 'group';
+
           return (
-            <button
+            <div
               key={channel.id}
-              onClick={() => handleSelect(channel.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
-                isActive
-                  ? 'bg-violet-50 dark:bg-violet-500/10'
-                  : 'hover:bg-gray-50 dark:hover:bg-gray-800'
+              className={`group relative flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors ${
+                isActive ? 'bg-violet-50 dark:bg-violet-500/10' : 'hover:bg-gray-50 dark:hover:bg-gray-800'
               }`}
+              onClick={() => handleSelect(channel.id)}
             >
               {/* Avatar */}
               <div className="relative shrink-0">
                 <div
                   className={`w-11 h-11 rounded-full flex items-center justify-center text-white font-semibold text-sm overflow-hidden relative ${
-                    isSelf
-                      ? 'bg-amber-400'
-                      : isDeletedUser
-                      ? 'bg-gray-400 dark:bg-gray-600'
-                      : channel.channelType === 'group'
-                      ? 'bg-violet-500'
-                      : 'bg-sky-500'
+                    isSelf ? 'bg-amber-400' : isDeletedUser ? 'bg-gray-400 dark:bg-gray-600' : channel.channelType === 'group' ? 'bg-violet-500' : 'bg-sky-500'
                   }`}
                 >
                   {isSelf ? (
@@ -238,12 +251,7 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
                     getInitials(displayName)
                   )}
                   {avatarUrl && (
-                    <img
-                      src={avatarUrl}
-                      alt=""
-                      className="absolute inset-0 w-full h-full rounded-full object-cover z-10"
-                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                    />
+                    <img src={avatarUrl} alt="" className="absolute inset-0 w-full h-full rounded-full object-cover z-10" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                   )}
                 </div>
                 {!isSelf && channel.channelType === 'direct' && isOnline && (
@@ -254,18 +262,10 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
               {/* Content */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
-                  <span
-                    className={`text-sm font-medium truncate ${
-                      isActive
-                        ? 'text-violet-600 dark:text-violet-400'
-                        : isSelf
-                        ? 'text-amber-600 dark:text-amber-400'
-                        : 'text-gray-800 dark:text-gray-100'
-                    }`}
-                  >
+                  <span className={`text-sm font-medium truncate ${isActive ? 'text-violet-600 dark:text-violet-400' : isSelf ? 'text-amber-600 dark:text-amber-400' : 'text-gray-800 dark:text-gray-100'}`}>
                     {displayName}
                   </span>
-                  {channel.lastMessage && (
+                  {channel.lastMessage && !canDelete && (
                     <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0 ml-2">
                       {formatTime(channel.lastMessage.createdAt)}
                     </span>
@@ -286,7 +286,27 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
                   )}
                 </div>
               </div>
-            </button>
+
+              {/* Delete button for group chats */}
+              {canDelete && (
+                <button
+                  onClick={(e) => handleDeleteChannel(channel, e)}
+                  disabled={deletingId === channel.id}
+                  className="opacity-0 group-hover:opacity-100 shrink-0 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all disabled:opacity-30"
+                  title="Удалить группу"
+                >
+                  {deletingId === channel.id ? (
+                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  ) : (
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  )}
+                </button>
+              )}
+            </div>
           );
         })}
 
