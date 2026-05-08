@@ -76,6 +76,7 @@ interface ChatChannel {
   channelName?: string;
   projectId?: number;
   membersCount?: number;
+  avatarUrl?: string;
 }
 
 interface ChatMessage {
