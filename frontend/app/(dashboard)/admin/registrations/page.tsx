@@ -27,7 +27,7 @@ interface RegRequest {
   rejectReason?: string;
   reviewedBy?: number | null;
   reviewedAt?: string;
-  reviewer?: { id: number; name: string } | null;
+  reviewer?: { id: number; name: string; roleId?: number } | null;
   createdAt: string;
 }
 
@@ -167,7 +167,14 @@ export default function RegistrationsPage() {
     }
   }
 
+  const ROLE_NAMES: Record<number, string> = {
+    1: 'Супер-Админ', 2: 'Администратор', 3: 'HR-Менеджер', 4: 'Руководитель проекта',
+    5: 'Прораб', 6: 'Снабженец', 7: 'Кладовщик', 8: 'Бухгалтер',
+    9: 'Инспектор', 10: 'Рабочий',
+  };
+
   function reviewerLabel(r: RegRequest): string {
+    if (r.reviewer?.roleId) return ROLE_NAMES[r.reviewer.roleId] ?? r.reviewer.name;
     if (r.reviewer?.name) return r.reviewer.name;
     if (r.reviewedBy) return `Пользователь #${r.reviewedBy}`;
     return '—';
