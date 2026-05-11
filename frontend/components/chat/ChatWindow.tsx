@@ -51,17 +51,65 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [matchIdx, setMatchIdx] = useState(0);
   const [highlightedMsgId, setHighlightedMsgId] = useState<number | null>(null);
+  const pendingScrollIdRef = useRef<number | null>(null);
+  const scrollFetchAttemptsRef = useRef(0);
+  const MAX_SCROLL_FETCHES = 20; // 20 × 50 = 1000 сообщений максимум
+
+  const doHighlightScroll = useCallback((id: number) => {
+    const container = messagesContainerRef.current;
+    const el = container?.querySelector(`[data-msgid="${id}"]`);
+    if (!el) return false;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setHighlightedMsgId(id);
+    setTimeout(() => setHighlightedMsgId(null), 1700);
+    return true;
+  }, []);
 
   const scrollToMessage = useCallback((id: number) => {
-    const container = messagesContainerRef.current;
-    if (!container) return;
-    const el = container.querySelector(`[data-msgid="${id}"]`);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      setHighlightedMsgId(id);
-      setTimeout(() => setHighlightedMsgId(null), 1700);
+    if (doHighlightScroll(id)) return;
+    // Сообщение не загружено — запускаем подгрузку
+    pendingScrollIdRef.current = id;
+    scrollFetchAttemptsRef.current = 0;
+  }, [doHighlightScroll]);
+
+  // После каждой загрузки сообщений — проверяем есть ли ожидаемый элемент в DOM
+  useEffect(() => {
+    const id = pendingScrollIdRef.current;
+    if (id === null || isLoadingMessages) return;
+
+    if (doHighlightScroll(id)) {
+      pendingScrollIdRef.current = null;
+      scrollFetchAttemptsRef.current = 0;
+      return;
     }
-  }, []);
+
+    // Ещё не нашли — грузим следующую пачку
+    if (!hasMoreMessages || scrollFetchAttemptsRef.current >= MAX_SCROLL_FETCHES || !activeChannelId) {
+      pendingScrollIdRef.current = null;
+      scrollFetchAttemptsRef.current = 0;
+      return;
+    }
+
+    const firstMsgId = messages[0]?.id;
+    if (!firstMsgId) { pendingScrollIdRef.current = null; return; }
+
+    scrollFetchAttemptsRef.current++;
+    // Сохраняем scrollHeight чтобы не прыгать при prepend
+    const container = messagesContainerRef.current;
+    const prevHeight = container?.scrollHeight ?? 0;
+    fetchMessages(activeChannelId, firstMsgId).then(() => {
+      // Восстанавливаем позицию только если ещё не нашли (иначе doHighlightScroll сделает своё)
+      if (pendingScrollIdRef.current !== null && container) {
+        container.scrollTop = container.scrollHeight - prevHeight;
+      }
+    });
+  }, [messages, isLoadingMessages, hasMoreMessages, activeChannelId, fetchMessages, doHighlightScroll]);
+
+  // При смене канала сбрасываем ожидающий скролл
+  useEffect(() => {
+    pendingScrollIdRef.current = null;
+    scrollFetchAttemptsRef.current = 0;
+  }, [activeChannelId]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -526,7 +574,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
           {isLoadingMessages && messages.length > 0 && (
             <div className="flex items-center justify-center gap-2 py-2 text-xs text-gray-400 dark:text-gray-500">
               <div className="w-4 h-4 border-2 border-violet-400 border-t-transparent rounded-full animate-spin" />
-              Загружаем более старые сообщения…
+              {pendingScrollIdRef.current !== null ? 'Ищем сообщение…' : 'Загружаем более старые сообщения…'}
             </div>
           )}
 
