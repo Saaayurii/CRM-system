@@ -563,6 +563,7 @@ export class AuthService {
   }
 
   private mapUserToResponse(user: any): UserResponseDto {
+    const isGlobalAdmin = (user.settings as any)?.isGlobalAdmin === true;
     return {
       id: user.id,
       name: user.name,
@@ -574,6 +575,7 @@ export class AuthService {
       position: user.position ?? undefined,
       isActive: user.isActive,
       createdAt: user.createdAt,
+      isGlobalAdmin: isGlobalAdmin || undefined,
     };
   }
 }

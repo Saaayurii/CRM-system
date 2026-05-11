@@ -76,6 +76,22 @@ async function silentRefresh(): Promise<{ accessToken: string; refreshToken: str
   }
 }
 
+function clearSwApiCache() {
+  try {
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_API_CACHE' });
+    }
+  } catch { }
+}
+
+function navigateToDashboard() {
+  if (window.location.pathname === '/dashboard') {
+    window.location.reload();
+  } else {
+    window.location.href = '/dashboard';
+  }
+}
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   isAuthenticated: false,
@@ -151,7 +167,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (accountLogoUrl) localStorage.setItem('selectedAccountLogo', accountLogoUrl);
     else localStorage.removeItem('selectedAccountLogo');
     if (typeof window !== 'undefined') {
-      clearAllCached().finally(() => { window.location.href = '/dashboard'; });
+      clearSwApiCache();
+      clearAllCached().finally(() => navigateToDashboard());
     }
   },
 
@@ -161,7 +178,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     localStorage.removeItem('selectedAccountName');
     localStorage.removeItem('selectedAccountLogo');
     if (typeof window !== 'undefined') {
-      clearAllCached().finally(() => { window.location.href = '/dashboard'; });
+      clearSwApiCache();
+      clearAllCached().finally(() => navigateToDashboard());
     }
   },
 

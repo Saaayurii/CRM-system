@@ -29,7 +29,7 @@ function CompanyName() {
   const [loading, setLoading] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  const isGlobal = user?.isGlobalAdmin;
+  const isGlobal = user?.isGlobalAdmin || user?.roleId === 1;
   const activeId = selectedAccountId ?? user?.accountId;
   const activeAccount = accounts.find((a) => a.id === activeId);
   // Use persisted name immediately (survives page reload), fall back to loaded list

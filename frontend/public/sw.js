@@ -108,6 +108,11 @@ self.addEventListener('message', (event) => {
   if (event.data.type === 'SYNC_NOW') {
     syncCrmData().catch(() => {});
   }
+
+  // Clear cached API responses when user switches company account
+  if (event.data.type === 'CLEAR_API_CACHE') {
+    caches.delete(API_CACHE_NAME).catch(() => {});
+  }
 });
 
 // ─── Stale-While-Revalidate for API sync routes ───────────────────────────────

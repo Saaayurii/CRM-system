@@ -30,6 +30,9 @@ export class UserResponseDto {
 
   @ApiProperty({ example: '2024-01-01T00:00:00.000Z' })
   createdAt: Date;
+
+  @ApiPropertyOptional({ example: true })
+  isGlobalAdmin?: boolean;
 }
 
 export class TokenResponseDto {
