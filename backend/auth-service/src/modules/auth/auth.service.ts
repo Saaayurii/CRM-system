@@ -633,7 +633,7 @@ export class AuthService {
     }));
   }
 
-  async updateAccount(id: number, data: { status?: number; name?: string }) {
+  async updateAccount(id: number, data: { status?: number; name?: string; subdomain?: string }) {
     return this.accountRepository.update(id, data);
   }
 
