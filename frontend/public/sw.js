@@ -7,7 +7,7 @@
  */
 
 const CACHE_NAME = 'crm-v2';
-const API_CACHE_NAME = 'crm-api-v1';
+const API_CACHE_NAME = 'crm-api-v2';
 const OFFLINE_URL = '/dashboard';
 
 // Assets to pre-cache on install
@@ -115,38 +115,30 @@ self.addEventListener('message', (event) => {
   }
 });
 
-// ─── Stale-While-Revalidate for API sync routes ───────────────────────────────
+// ─── Network-First for API sync routes (fallback to cache when offline) ──────
 function isMatchingSyncRoute(url) {
   return SYNC_ROUTES.some((route) => url.includes(route));
 }
 
-async function staleWhileRevalidate(request) {
+async function networkFirstWithCacheFallback(request) {
   const cache = await caches.open(API_CACHE_NAME);
-  const cached = await cache.match(request);
 
-  const fetchAndUpdate = fetch(request.clone())
-    .then((response) => {
-      if (response.ok) {
-        cache.put(request, response.clone());
-      }
-      return response;
-    })
-    .catch(() => null);
+  try {
+    const response = await fetch(request.clone());
+    if (response.ok) {
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch {
+    // Network failed — serve from cache so offline mode still works
+    const cached = await cache.match(request);
+    if (cached) return cached;
 
-  // Serve cached immediately, refresh in background
-  if (cached) {
-    fetchAndUpdate.catch(() => {}); // fire and forget
-    return cached;
+    return new Response(JSON.stringify({ data: [], message: 'Offline' }), {
+      status: 503,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
-
-  // No cache yet — wait for network
-  const fresh = await fetchAndUpdate;
-  if (fresh) return fresh;
-
-  return new Response(JSON.stringify({ data: [], message: 'Offline' }), {
-    status: 503,
-    headers: { 'Content-Type': 'application/json' },
-  });
 }
 
 // ─── Fetch ────────────────────────────────────────────────────────────────────
@@ -159,7 +151,7 @@ self.addEventListener('fetch', (event) => {
     request.url.startsWith(self.location.origin) &&
     isMatchingSyncRoute(request.url)
   ) {
-    event.respondWith(staleWhileRevalidate(request));
+    event.respondWith(networkFirstWithCacheFallback(request));
     return;
   }
 
