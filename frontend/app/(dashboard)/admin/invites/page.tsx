@@ -12,6 +12,7 @@ interface Invite {
   expiresAt: string | null;
   usedAt: string | null;
   usedByAccountId: number | null;
+  usedByAccountName: string | null;
   createdAt: string;
 }
 
@@ -158,7 +159,7 @@ export default function InvitesPage() {
                   <th className="py-3 px-4 text-left font-semibold text-gray-600 dark:text-gray-400">Статус</th>
                   <th className="py-3 px-4 text-left font-semibold text-gray-600 dark:text-gray-400">Создан</th>
                   <th className="py-3 px-4 text-left font-semibold text-gray-600 dark:text-gray-400">Истекает</th>
-                  <th className="py-3 px-4 text-left font-semibold text-gray-600 dark:text-gray-400">Использован</th>
+                  <th className="py-3 px-4 text-left font-semibold text-gray-600 dark:text-gray-400">Использован / Кем</th>
                   <th className="py-3 px-4 text-right font-semibold text-gray-600 dark:text-gray-400">Действия</th>
                 </tr>
               </thead>
@@ -178,7 +179,16 @@ export default function InvitesPage() {
                       </td>
                       <td className="py-3 px-4 text-gray-500 dark:text-gray-400 text-xs">{fmt(inv.createdAt)}</td>
                       <td className="py-3 px-4 text-gray-500 dark:text-gray-400 text-xs">{fmt(inv.expiresAt)}</td>
-                      <td className="py-3 px-4 text-gray-500 dark:text-gray-400 text-xs">{fmt(inv.usedAt)}</td>
+                      <td className="py-3 px-4 text-xs">
+                        {inv.usedAt ? (
+                          <div>
+                            <div className="text-gray-500 dark:text-gray-400">{fmt(inv.usedAt)}</div>
+                            {inv.usedByAccountName && (
+                              <div className="text-gray-700 dark:text-gray-300 font-medium mt-0.5">{inv.usedByAccountName}</div>
+                            )}
+                          </div>
+                        ) : <span className="text-gray-400">—</span>}
+                      </td>
                       <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end gap-2">
                           {isActive && (

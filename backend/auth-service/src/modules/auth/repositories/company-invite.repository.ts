@@ -19,9 +19,21 @@ export class CompanyInviteRepository {
   }
 
   async findAll() {
-    return (this.prisma as any).companyInvite.findMany({
-      orderBy: { createdAt: 'desc' },
-    });
+    return this.prisma.$queryRaw`
+      SELECT
+        ci.id,
+        ci.token,
+        ci.created_by AS "createdBy",
+        ci.note,
+        ci.expires_at AS "expiresAt",
+        ci.used_at AS "usedAt",
+        ci.used_by_account_id AS "usedByAccountId",
+        ci.created_at AS "createdAt",
+        a.name AS "usedByAccountName"
+      FROM company_invites ci
+      LEFT JOIN accounts a ON a.id = ci.used_by_account_id
+      ORDER BY ci.created_at DESC
+    `;
   }
 
   async markUsed(token: string, accountId: number) {
