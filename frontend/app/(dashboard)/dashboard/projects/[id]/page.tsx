@@ -973,6 +973,22 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
     setShowInactiveModal(false);
   }, [project]);
 
+  const handleQuickStatusChange = useCallback(async (newStatus: number) => {
+    if (!project) return;
+    const today = new Date().toISOString().split('T')[0];
+    const payload: Record<string, unknown> = { status: newStatus };
+    if ((newStatus === 3 || newStatus === 4) && !project.actualEndDate) {
+      payload.actualEndDate = today;
+    }
+    try {
+      const r = await api.put(`/projects/${projectId}`, payload);
+      setProject(r.data);
+      addToast('success', 'Статус обновлён');
+    } catch {
+      addToast('error', 'Не удалось изменить статус');
+    }
+  }, [project, projectId, addToast]);
+
   /* ─── Load tab data ─── */
   useEffect(() => {
     if (activeTab === 'overview' && !overviewSummary && !overviewLoading) {
@@ -1373,7 +1389,17 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-5 space-y-4">
             <h2 className="font-semibold text-gray-800 dark:text-gray-100">Основная информация</h2>
-            <InfoRow label="Статус" value={<span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${status.color}`}>{status.label}</span>} />
+            <InfoRow label="Статус" value={
+              <select
+                value={project.status}
+                onChange={(e) => handleQuickStatusChange(Number(e.target.value))}
+                className={`text-xs font-medium rounded-full px-2.5 py-0.5 border-0 cursor-pointer focus:ring-1 focus:ring-violet-400 ${status.color}`}
+              >
+                {Object.entries(STATUS_LABELS).map(([val, { label }]) => (
+                  <option key={val} value={val}>{label}</option>
+                ))}
+              </select>
+            } />
             <InfoRow label="Приоритет" value={<span className={`text-sm font-medium ${priority.color}`}>{priority.label}</span>} />
             <InfoRow label="Руководитель" value={project.projectManager?.name || '—'} />
             <InfoRow label="Клиент" value={project.clientName || '—'} />

@@ -238,7 +238,17 @@ export default function ProjectFormModal({ project, onClose, onSaved }: ProjectF
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className={LABEL_CLS}>Статус</label>
-              <select value={status} onChange={(e) => setStatus(Number(e.target.value))} className={INPUT_CLS}>
+              <select
+                value={status}
+                onChange={(e) => {
+                  const newStatus = Number(e.target.value);
+                  setStatus(newStatus);
+                  if ((newStatus === 3 || newStatus === 4) && !actualEndDate) {
+                    setActualEndDate(new Date().toISOString().split('T')[0]);
+                  }
+                }}
+                className={INPUT_CLS}
+              >
                 {STATUS_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
