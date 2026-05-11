@@ -361,6 +361,14 @@ export default function TasksPage() {
                   const status = STATUS_LABELS[t.status] || STATUS_LABELS[0];
                   const priority = PRIORITY_LABELS[t.priority] || PRIORITY_LABELS[2];
                   const assignee = t.assignedToUser || t.assigned_to_user;
+                  const assigneeId = t.assignedToUserId || t.assigned_to_user_id;
+                  const resolvedUser = assigneeId ? users.find((u) => u.id === assigneeId) : null;
+                  const assigneeName =
+                    t.assignees && t.assignees.length > 0
+                      ? t.assignees.map((a) => a.userName || `#${a.userId}`).join(', ')
+                      : assignee?.name || assignee?.email
+                        || resolvedUser?.name || resolvedUser?.email
+                        || '—';
                   return (
                     <tr
                       key={t.id}
@@ -378,9 +386,7 @@ export default function TasksPage() {
                         <span className={`text-xs font-medium ${priority.color}`}>{priority.label}</span>
                       </td>
                       <td className="py-2.5 px-4 text-gray-600 dark:text-gray-400">
-                        {t.assignees && t.assignees.length > 0
-                          ? t.assignees.map((a) => a.userName || `#${a.userId}`).join(', ')
-                          : assignee?.name || assignee?.email || '—'}
+                        {assigneeName}
                       </td>
                       <td className="py-2.5 px-4 text-gray-600 dark:text-gray-400">
                         {formatDate(t.dueDate || t.due_date)}
@@ -427,9 +433,14 @@ export default function TasksPage() {
             const status = STATUS_LABELS[t.status] || STATUS_LABELS[0];
             const priority = PRIORITY_LABELS[t.priority] || PRIORITY_LABELS[2];
             const assignee = t.assignedToUser || t.assigned_to_user;
-            const assigneeName = t.assignees && t.assignees.length > 0
-              ? t.assignees.map((a) => a.userName || `#${a.userId}`).join(', ')
-              : assignee?.name || assignee?.email || '—';
+            const assigneeId = t.assignedToUserId || t.assigned_to_user_id;
+            const resolvedUser = assigneeId ? users.find((u) => u.id === assigneeId) : null;
+            const assigneeName =
+              t.assignees && t.assignees.length > 0
+                ? t.assignees.map((a) => a.userName || `#${a.userId}`).join(', ')
+                : assignee?.name || assignee?.email
+                  || resolvedUser?.name || resolvedUser?.email
+                  || '—';
             return (
               <div key={t.id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex flex-col gap-3 hover:shadow-md transition-shadow">
                 <div
