@@ -565,6 +565,7 @@ const [pdfLoading, setPdfLoading] = useState(false);
 
   /* Photos filter & sort */
   const [photoSiteFilter, setPhotoSiteFilter] = useState('');
+  const [photoTypeFilter, setPhotoTypeFilter] = useState<'all'|'image'|'video'>('all');
   const [photoSort, setPhotoSort] = useState('default');
 
   /* Team modals */
@@ -2212,27 +2213,55 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
         <div className="space-y-6">
           {/* Top bar: filters + upload */}
           <div className="flex items-center gap-3 flex-wrap">
-            <select
-              value={photoSiteFilter}
-              onChange={(e) => setPhotoSiteFilter(e.target.value)}
-              className="py-2 pl-3 pr-8 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-violet-500 focus:outline-none"
-            >
-              <option value="">Все площадки</option>
-              {sites.filter((s) => (s.photos || []).length > 0).map((s) => (
-                <option key={s.id} value={String(s.id)}>{s.name}</option>
+            {/* Site filter */}
+            <div className="relative">
+              <select
+                value={photoSiteFilter}
+                onChange={(e) => setPhotoSiteFilter(e.target.value)}
+                className="appearance-none py-2 pl-3 pr-8 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-violet-500 focus:outline-none cursor-pointer"
+              >
+                <option value="">Все площадки</option>
+                {sites.filter((s) => (s.photos || []).length > 0).map((s) => (
+                  <option key={s.id} value={String(s.id)}>{s.name}</option>
+                ))}
+              </select>
+              <svg className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+            {/* File type filter */}
+            <div className="flex items-center bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-0.5 gap-0.5">
+              {([['all','Все'],['image','Фото'],['video','Видео']] as const).map(([val, label]) => (
+                <button
+                  key={val}
+                  onClick={() => setPhotoTypeFilter(val)}
+                  className={`px-3 py-1.5 text-sm rounded-md font-medium transition-colors ${
+                    photoTypeFilter === val
+                      ? 'bg-white dark:bg-gray-700 text-violet-600 shadow-sm'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                  }`}
+                >
+                  {label}
+                </button>
               ))}
-            </select>
-            <select
-              value={photoSort}
-              onChange={(e) => setPhotoSort(e.target.value)}
-              className="py-2 pl-3 pr-8 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-violet-500 focus:outline-none"
-            >
-              <option value="default">По умолчанию</option>
-              <option value="most">Больше медиа</option>
-              <option value="least">Меньше медиа</option>
-              <option value="az">Название А-Я</option>
-              <option value="za">Название Я-А</option>
-            </select>
+            </div>
+            {/* Sort */}
+            <div className="relative">
+              <select
+                value={photoSort}
+                onChange={(e) => setPhotoSort(e.target.value)}
+                className="appearance-none py-2 pl-3 pr-8 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-violet-500 focus:outline-none cursor-pointer"
+              >
+                <option value="default">По умолчанию</option>
+                <option value="most">Больше медиа</option>
+                <option value="least">Меньше медиа</option>
+                <option value="az">Название А-Я</option>
+                <option value="za">Название Я-А</option>
+              </select>
+              <svg className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
             <div className="flex-1" />
             <input ref={photoInputRef} type="file" accept="image/*,video/*" multiple className="hidden"
               onChange={(e) => handlePhotoFiles(e.target.files)} />
@@ -2263,7 +2292,15 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
             </div>
           ) : (
             (() => {
-              let filtered = sites.filter((s) => (s.photos || []).length > 0);
+              const isVid = (u: string) => /\.(mp4|mov|avi|webm|mkv|m4v)(\?|$)/i.test(u);
+              let filtered = sites
+                .map((s) => {
+                  let photos = s.photos || [];
+                  if (photoTypeFilter === 'image') photos = photos.filter((u) => !isVid(normalizePhotoUrl(u)));
+                  else if (photoTypeFilter === 'video') photos = photos.filter((u) => isVid(normalizePhotoUrl(u)));
+                  return { ...s, photos };
+                })
+                .filter((s) => s.photos.length > 0);
               if (photoSiteFilter) filtered = filtered.filter((s) => String(s.id) === photoSiteFilter);
               if (photoSort === 'most') filtered = [...filtered].sort((a, b) => (b.photos?.length ?? 0) - (a.photos?.length ?? 0));
               else if (photoSort === 'least') filtered = [...filtered].sort((a, b) => (a.photos?.length ?? 0) - (b.photos?.length ?? 0));
