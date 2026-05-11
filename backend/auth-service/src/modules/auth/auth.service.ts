@@ -460,11 +460,11 @@ export class AuthService {
     const role = await this.roleRepository.findById(dto.roleId);
     if (!role) throw new NotFoundException('Роль не найдена');
 
-    // Guard: active user with the same email may have been created since the request was submitted
-    const activeUser = await this.userRepository.findByEmail(request.email);
+    // Guard: check only within the same account — same email in other companies is allowed
+    const activeUser = await this.userRepository.findByEmailAndAccount(request.email, request.accountId);
     if (activeUser) {
       throw new ConflictException(
-        `Пользователь с email ${request.email} уже активен в системе. Отклоните заявку.`,
+        `Пользователь с email ${request.email} уже зарегистрирован в этой компании. Отклоните заявку.`,
       );
     }
 

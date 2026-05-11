@@ -84,7 +84,7 @@ function RegisterCompanyForm() {
         } catch { /* logo upload is optional */ }
       }
 
-      await api.post('/auth/register-company', {
+      const { data: regData } = await api.post('/auth/register-company', {
         companyName,
         logoUrl,
         adminName,
@@ -94,7 +94,15 @@ function RegisterCompanyForm() {
         inviteToken,
       });
 
-      await login({ email: adminEmail, password: adminPassword });
+      // Use tokens returned directly from registration — avoids multi-account selector
+      if (regData.accessToken) {
+        localStorage.setItem('accessToken', regData.accessToken);
+        localStorage.setItem('refreshToken', regData.refreshToken);
+        if (regData.sessionId) localStorage.setItem('sessionId', String(regData.sessionId));
+        document.cookie = `crm-session=true; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+      } else {
+        await login({ email: adminEmail, password: adminPassword, accountId: regData.user?.accountId });
+      }
       router.replace('/dashboard');
     } catch (err: unknown) {
       const message =
