@@ -49,12 +49,21 @@ export class TokenResponseDto {
   refreshToken: string;
 }
 
+export class AccountChoiceDto {
+  @ApiProperty() id: number;
+  @ApiProperty() name: string;
+  @ApiPropertyOptional() logoUrl?: string;
+}
+
 export class AuthResponseDto extends TokenResponseDto {
   @ApiPropertyOptional({ example: 42 })
   sessionId?: number;
 
-  @ApiProperty({ type: UserResponseDto })
-  user: UserResponseDto;
+  @ApiPropertyOptional({ type: UserResponseDto })
+  user?: UserResponseDto;
+
+  @ApiPropertyOptional({ type: [AccountChoiceDto], description: 'Present when email belongs to multiple companies' })
+  accounts?: AccountChoiceDto[];
 }
 
 export class MessageResponseDto {

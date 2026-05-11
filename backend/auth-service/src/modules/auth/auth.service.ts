@@ -160,22 +160,51 @@ export class AuthService {
     userAgent = '',
     ipAddress = '',
   ): Promise<AuthResponseDto> {
-    const user = loginDto.accountId
-      ? await this.userRepository.findByEmailAndAccount(loginDto.email, loginDto.accountId)
-      : await this.userRepository.findByEmail(loginDto.email);
-    if (!user) {
-      const regRequest = await this.registrationRequestRepository.findByEmail(loginDto.email);
-      if (regRequest) {
-        if (regRequest.status === 0) {
-          throw new UnauthorizedException('Ваша заявка на регистрацию ещё не рассмотрена');
+    // Multi-account flow: when no accountId, check all users with this email
+    if (!loginDto.accountId) {
+      const allUsers = await this.userRepository.findAllByEmail(loginDto.email);
+
+      if (allUsers.length === 0) {
+        const regRequest = await this.registrationRequestRepository.findByEmail(loginDto.email);
+        if (regRequest) {
+          if (regRequest.status === 0) throw new UnauthorizedException('Ваша заявка на регистрацию ещё не рассмотрена');
+          if (regRequest.status === 2) {
+            const reason = regRequest.rejectReason ? `: ${regRequest.rejectReason}` : '';
+            throw new UnauthorizedException(`Ваша заявка отклонена${reason}`);
+          }
         }
-        if (regRequest.status === 2) {
-          const reason = regRequest.rejectReason ? `: ${regRequest.rejectReason}` : '';
-          throw new UnauthorizedException(`Ваша заявка отклонена${reason}`);
-        }
+        throw new UnauthorizedException('Invalid credentials');
       }
-      throw new UnauthorizedException('Invalid credentials');
+
+      // Verify password against active users
+      const validUsers: typeof allUsers = [];
+      for (const u of allUsers) {
+        if (!u.isActive || !u.passwordDigest) continue;
+        const ok = await this.passwordService.compare(loginDto.password, u.passwordDigest);
+        if (ok) validUsers.push(u);
+      }
+
+      if (validUsers.length === 0) throw new UnauthorizedException('Invalid credentials');
+
+      // Multiple valid accounts — ask user to pick one
+      if (validUsers.length > 1) {
+        return {
+          accessToken: '',
+          refreshToken: '',
+          accounts: validUsers.map((u) => ({
+            id: u.account.id,
+            name: u.account.name,
+            logoUrl: (u.account.settings as any)?.logoUrl ?? undefined,
+          })),
+        };
+      }
+
+      // Exactly one match — continue with normal flow using that user
+      loginDto = { ...loginDto, accountId: validUsers[0].accountId };
     }
+
+    const user = await this.userRepository.findByEmailAndAccount(loginDto.email, loginDto.accountId!);
+    if (!user) throw new UnauthorizedException('Invalid credentials');
 
     if (!user.isActive) {
       throw new UnauthorizedException('User account is inactive');

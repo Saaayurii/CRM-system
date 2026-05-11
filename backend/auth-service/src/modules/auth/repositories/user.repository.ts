@@ -20,6 +20,13 @@ export class UserRepository {
     });
   }
 
+  async findAllByEmail(email: string) {
+    return (this.prisma as any).user.findMany({
+      where: { email, deletedAt: null },
+      include: { account: { select: { id: true, name: true, settings: true } } },
+    });
+  }
+
   async findByEmailAndAccount(email: string, accountId: number) {
     return (this.prisma as any).user.findFirst({
       where: { email, accountId, deletedAt: null },

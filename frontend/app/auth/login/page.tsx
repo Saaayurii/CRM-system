@@ -3,7 +3,14 @@
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
+import api from '@/lib/api';
 import { AxiosError } from 'axios';
+
+interface AccountChoice {
+  id: number;
+  name: string;
+  logoUrl?: string;
+}
 
 type LoginError = { message: string; kind: 'error' | 'warning' };
 
@@ -31,27 +38,100 @@ function getLoginError(err: unknown): LoginError {
 export default function LoginPage() {
   const router = useRouter();
   const login = useAuthStore((s) => s.login);
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState<LoginError | null>(null);
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+  const [accounts, setAccounts] = useState<AccountChoice[] | null>(null);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setLoginError(null);
     setLoading(true);
-
     try {
+      const { data } = await api.post('/auth/login', { email, password });
+      if (data.accounts?.length > 0) {
+        setAccounts(data.accounts);
+        return;
+      }
       await login({ email, password });
       router.push('/dashboard');
-    } catch (err: unknown) {
+    } catch (err) {
       setLoginError(getLoginError(err));
     } finally {
       setLoading(false);
     }
   };
 
+  const handleSelectAccount = async (accountId: number) => {
+    setLoginError(null);
+    setLoading(true);
+    try {
+      await login({ email, password, accountId });
+      router.push('/dashboard');
+    } catch (err) {
+      setAccounts(null);
+      setLoginError(getLoginError(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ── Company selection screen ──
+  if (accounts) {
+    return (
+      <div className="w-full max-w-sm">
+        <button
+          onClick={() => setAccounts(null)}
+          className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 mb-5 transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+          </svg>
+          Назад
+        </button>
+
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-1">Выберите компанию</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+          Email <span className="font-medium text-gray-700 dark:text-gray-300">{email}</span> зарегистрирован в нескольких организациях
+        </p>
+
+        <div className="space-y-2">
+          {accounts.map((acc) => (
+            <button
+              key={acc.id}
+              onClick={() => handleSelectAccount(acc.id)}
+              disabled={loading}
+              className="w-full flex items-center gap-4 p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:border-violet-400 dark:hover:border-violet-500 hover:shadow-sm transition-all text-left disabled:opacity-50 group"
+            >
+              <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center shrink-0 overflow-hidden">
+                {acc.logoUrl ? (
+                  <img src={acc.logoUrl} alt="" className="w-full h-full object-contain" />
+                ) : (
+                  <span className="text-sm font-bold text-gray-500 dark:text-gray-300">
+                    {acc.name[0]?.toUpperCase()}
+                  </span>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
+                  {acc.name}
+                </p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">ID: {acc.id}</p>
+              </div>
+              <svg className="w-4 h-4 text-gray-300 dark:text-gray-600 group-hover:text-violet-500 transition-colors shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+              </svg>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // ── Login form ──
   return (
     <div className="w-full max-w-sm">
       <h1 className="text-3xl text-gray-800 dark:text-gray-100 font-bold mb-6">Вход в систему</h1>
