@@ -34,7 +34,7 @@ export class RegistrationRequestRepository {
       where,
       orderBy: { createdAt: 'desc' },
       include: {
-        reviewer: { select: { id: true, name: true } },
+        reviewer: { select: { id: true, name: true, roleId: true } },
       },
     });
   }
