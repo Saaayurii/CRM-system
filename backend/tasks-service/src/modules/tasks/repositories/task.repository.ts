@@ -91,9 +91,28 @@ export class TaskRepository {
       updateData.progressPercentage = 100;
     }
 
-    return (this.prisma as any).task.update({
+    await (this.prisma as any).task.update({
       where: { id },
       data: updateData,
+    });
+
+    // Keep task_assignees in sync with assignedToUserId
+    if (data.assignedToUserId !== undefined) {
+      await (this.prisma as any).taskAssignee.deleteMany({ where: { taskId: id } });
+      if (data.assignedToUserId) {
+        await (this.prisma as any).taskAssignee.create({
+          data: { taskId: id, userId: data.assignedToUserId, userName: null },
+        });
+      }
+    }
+
+    // Return the full task with relations so the caller has fresh data
+    return (this.prisma as any).task.findFirst({
+      where: { id },
+      include: {
+        assignees: true,
+        project: { select: { id: true, name: true } },
+      },
     });
   }
 
