@@ -31,6 +31,15 @@ export class UserResponseDto {
     name: string;
   };
 
+  @ApiPropertyOptional({ example: '2023-01-15' })
+  hireDate?: string;
+
+  @ApiPropertyOptional({ example: '1990-05-20' })
+  birthDate?: string;
+
+  @ApiPropertyOptional({ example: 'г. Москва, ул. Примерная, 1' })
+  address?: string;
+
   @ApiPropertyOptional({ description: 'Hashed password (read-only)' })
   passwordDigest?: string;
 

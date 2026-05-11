@@ -15,6 +15,12 @@ interface Employee {
   position?: string;
   isActive?: boolean;
   is_active?: boolean;
+  availability?: number;
+  hireDate?: string;
+  hire_date?: string;
+  birthDate?: string;
+  birth_date?: string;
+  address?: string;
   role?: { name: string; code: string };
   roleId?: number;
   role_id?: number;

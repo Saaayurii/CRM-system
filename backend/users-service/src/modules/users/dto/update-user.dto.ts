@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsBoolean,
+  IsDateString,
   IsEmail,
   IsNumber,
   IsOptional,
@@ -67,6 +68,22 @@ export class UpdateUserDto {
   @IsOptional()
   @MaxLength(500)
   avatarUrl?: string;
+
+  @ApiPropertyOptional({ description: 'Hire date', example: '2023-01-15' })
+  @IsDateString()
+  @IsOptional()
+  hireDate?: string;
+
+  @ApiPropertyOptional({ description: 'Birth date', example: '1990-05-20' })
+  @IsDateString()
+  @IsOptional()
+  birthDate?: string;
+
+  @ApiPropertyOptional({ description: 'Address', example: 'г. Москва, ул. Примерная, 1' })
+  @IsString()
+  @IsOptional()
+  @MaxLength(500)
+  address?: string;
 
   @ApiPropertyOptional({ description: 'Set new password (admin use)', minLength: 6 })
   @IsString()

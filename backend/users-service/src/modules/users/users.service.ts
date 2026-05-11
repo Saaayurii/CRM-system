@@ -179,6 +179,9 @@ export class UsersService {
       passwordDigest: user.passwordDigest ?? undefined,
       isActive: user.isActive,
       availability: user.availability,
+      hireDate: user.hireDate ? user.hireDate.toISOString().slice(0, 10) : undefined,
+      birthDate: user.birthDate ? user.birthDate.toISOString().slice(0, 10) : undefined,
+      address: user.address ?? undefined,
       createdAt: user.createdAt,
     };
   }
