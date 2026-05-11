@@ -526,7 +526,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
       {showMobileActions && typeof document !== 'undefined' && createPortal(
         <div
           ref={mobileMenuRef}
-          className="sm:hidden fixed inset-0 z-[9999] flex flex-col items-center justify-center px-5 gap-3"
+          className="fixed inset-0 z-[9999] flex flex-col items-center justify-center px-5 gap-3"
           onTouchStart={(e) => e.stopPropagation()}
           onTouchEnd={(e) => e.stopPropagation()}
           onTouchMove={(e) => e.stopPropagation()}
