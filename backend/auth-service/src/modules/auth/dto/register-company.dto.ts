@@ -32,4 +32,9 @@ export class RegisterCompanyDto {
   @IsOptional()
   @IsString()
   adminPhone?: string;
+
+  @ApiProperty({ description: 'One-time invite token required for registration' })
+  @IsNotEmpty()
+  @IsString()
+  inviteToken: string;
 }

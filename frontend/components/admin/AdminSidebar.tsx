@@ -151,6 +151,23 @@ export default function AdminSidebar({ onNavigate }: AdminSidebarProps) {
         </Link>
       )}
 
+      {isGlobalAdmin && (
+        <Link
+          href="/admin/invites"
+          onClick={onNavigate}
+          className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium mb-1 transition-colors ${
+            pathname === '/admin/invites'
+              ? 'bg-violet-500/10 text-violet-600 dark:text-violet-400'
+              : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/30'
+          }`}
+        >
+          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+          </svg>
+          Инвайты
+        </Link>
+      )}
+
       <Link
         href="/admin/telegram"
         onClick={onNavigate}

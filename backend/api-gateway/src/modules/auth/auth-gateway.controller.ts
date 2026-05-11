@@ -237,4 +237,51 @@ export class AuthGatewayController {
       headers: { 'content-type': 'application/json' },
     });
   }
+
+  // ── Company Invites ──────────────────────────────────────────────────────
+
+  @Post('invites')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create company invite (Super Admin only)' })
+  async createInvite(@Body() body: unknown, @Req() req: any) {
+    return this.proxyService.forward('auth', {
+      method: 'POST',
+      path: '/auth/invites',
+      data: body,
+      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+    });
+  }
+
+  @Get('invites')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List company invites (Super Admin only)' })
+  async listInvites(@Req() req: any) {
+    return this.proxyService.forward('auth', {
+      method: 'GET',
+      path: '/auth/invites',
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  @Delete('invites/:token')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Revoke company invite (Super Admin only)' })
+  async revokeInvite(@Param('token') token: string, @Req() req: any) {
+    return this.proxyService.forward('auth', {
+      method: 'DELETE',
+      path: `/auth/invites/${token}`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  @Get('invites/:token/check')
+  @Public()
+  @ApiOperation({ summary: 'Validate an invite token (public)' })
+  async checkInvite(@Param('token') token: string) {
+    return this.proxyService.forward('auth', {
+      method: 'GET',
+      path: `/auth/invites/${token}/check`,
+      headers: {},
+    });
+  }
 }

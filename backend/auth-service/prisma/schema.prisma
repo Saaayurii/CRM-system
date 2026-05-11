@@ -122,6 +122,21 @@ model UserSession {
 }
 
 // ===========================================
+// Company Invite Tokens
+// =====================
+model CompanyInvite {
+  id              Int       @id @default(autoincrement())
+  token           String    @unique @db.VarChar(64)
+  createdBy       Int       @map("created_by")
+  note            String?   @db.VarChar(255)
+  expiresAt       DateTime? @map("expires_at")
+  usedAt          DateTime? @map("used_at")
+  usedByAccountId Int?      @map("used_by_account_id")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  @@map("company_invites")
+}
+
 // Registration Request (Заявки на регистрацию)
 // ===========================================
 model RegistrationRequest {

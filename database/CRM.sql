@@ -2383,3 +2383,18 @@ COMMENT ON DATABASE postgres IS 'Строительная CRM система - �
 
 -- После регистрации логин:
 --   Email: admin@crm.local / Password123!
+
+-- Company Invite Tokens (Инвайты для регистрации компаний)
+-- =========================================================
+CREATE TABLE IF NOT EXISTS company_invites (
+    id SERIAL PRIMARY KEY,
+    token VARCHAR(64) UNIQUE NOT NULL,
+    created_by INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    note VARCHAR(255),
+    expires_at TIMESTAMP,
+    used_at TIMESTAMP,
+    used_by_account_id INTEGER REFERENCES accounts(id) ON DELETE SET NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_company_invites_token ON company_invites(token);

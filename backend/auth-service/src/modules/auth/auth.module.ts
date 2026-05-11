@@ -10,6 +10,7 @@ import { UserRepository } from './repositories/user.repository';
 import { RoleRepository } from './repositories/role.repository';
 import { AccountRepository } from './repositories/account.repository';
 import { RegistrationRequestRepository } from './repositories/registration-request.repository';
+import { CompanyInviteRepository } from './repositories/company-invite.repository';
 import { SessionRepository } from './repositories/session.repository';
 import { JwtStrategy } from '../../common/guards/jwt.strategy';
 import { SessionBlacklistService } from '../../common/services/session-blacklist.service';
@@ -39,6 +40,7 @@ import { SessionBlacklistService } from '../../common/services/session-blacklist
     RoleRepository,
     AccountRepository,
     RegistrationRequestRepository,
+    CompanyInviteRepository,
     SessionRepository,
     JwtStrategy,
     SessionBlacklistService,

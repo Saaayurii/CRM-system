@@ -23,6 +23,7 @@ import {
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { RegisterCompanyDto } from './dto/register-company.dto';
+import { CreateInviteDto } from './dto/create-invite.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { CreateRegistrationRequestDto } from './dto/create-registration-request.dto';
@@ -226,6 +227,45 @@ export class AuthController {
   ) {
     if (user.roleId !== 1) throw new ForbiddenException('Доступ запрещён');
     return this.authService.updateAccount(id, body);
+  }
+
+  // ── Company Invites ────────────────────────────────────────────────────────
+
+  @Post('invites')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create a company registration invite (Super Admin only)' })
+  async createInvite(
+    @Body() dto: CreateInviteDto,
+    @CurrentUser() user: UserPayload,
+  ) {
+    if (user.roleId !== 1) throw new ForbiddenException('Доступ запрещён');
+    return this.authService.createInvite(user.sub, dto);
+  }
+
+  @Get('invites')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List all company invites (Super Admin only)' })
+  async listInvites(@CurrentUser() user: UserPayload) {
+    if (user.roleId !== 1) throw new ForbiddenException('Доступ запрещён');
+    return this.authService.listInvites();
+  }
+
+  @Delete('invites/:token')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Revoke a company invite (Super Admin only)' })
+  async revokeInvite(
+    @Param('token') token: string,
+    @CurrentUser() user: UserPayload,
+  ) {
+    if (user.roleId !== 1) throw new ForbiddenException('Доступ запрещён');
+    return this.authService.revokeInvite(token);
+  }
+
+  @Get('invites/:token/check')
+  @Public()
+  @ApiOperation({ summary: 'Validate an invite token (public)' })
+  async checkInvite(@Param('token') token: string) {
+    return this.authService.checkInvite(token);
   }
 
   private checkAdminOrHR(user: UserPayload) {

@@ -1,20 +1,24 @@
 'use client';
 
-import { useState, useRef, FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useRef, FormEvent, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 
-export default function RegisterCompanyPage() {
+function RegisterCompanyForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const login = useAuthStore((s) => s.login);
 
-  // Company fields
+  const inviteToken = searchParams.get('invite') ?? '';
+
+  const [tokenState, setTokenState] = useState<'checking' | 'valid' | 'invalid'>('checking');
+  const [tokenError, setTokenError] = useState('');
+
   const [companyName, setCompanyName] = useState('');
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState('');
 
-  // Admin fields
   const [adminName, setAdminName] = useState('');
   const [adminEmail, setAdminEmail] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
@@ -26,6 +30,32 @@ export default function RegisterCompanyPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!inviteToken) {
+      setTokenState('invalid');
+      setTokenError('Регистрация доступна только по инвайт-ссылке. Обратитесь к администратору.');
+      return;
+    }
+    api.get(`/auth/invites/${inviteToken}/check`)
+      .then(({ data }) => {
+        if (data.valid) {
+          setTokenState('valid');
+        } else {
+          setTokenState('invalid');
+          const msg: Record<string, string> = {
+            used: 'Эта инвайт-ссылка уже была использована.',
+            expired: 'Срок действия инвайт-ссылки истёк.',
+            not_found: 'Инвайт-ссылка недействительна.',
+          };
+          setTokenError(msg[data.reason] ?? 'Инвайт-ссылка недействительна.');
+        }
+      })
+      .catch(() => {
+        setTokenState('invalid');
+        setTokenError('Не удалось проверить инвайт-ссылку.');
+      });
+  }, [inviteToken]);
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -51,7 +81,7 @@ export default function RegisterCompanyPage() {
         try {
           const { data } = await api.post('/documents/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
           logoUrl = data?.url || data?.fileUrl;
-        } catch { /* ignore logo upload errors */ }
+        } catch { /* logo upload is optional */ }
       }
 
       await api.post('/auth/register-company', {
@@ -61,9 +91,9 @@ export default function RegisterCompanyPage() {
         adminEmail,
         adminPassword,
         adminPhone: adminPhone || undefined,
+        inviteToken,
       });
 
-      // Auto-login
       await login({ email: adminEmail, password: adminPassword });
       router.replace('/dashboard');
     } catch (err: unknown) {
@@ -77,6 +107,35 @@ export default function RegisterCompanyPage() {
     }
   };
 
+  if (tokenState === 'checking') {
+    return (
+      <div className="w-full max-w-sm text-center py-12">
+        <svg className="animate-spin h-8 w-8 text-violet-500 mx-auto mb-3" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+        </svg>
+        <p className="text-sm text-gray-500">Проверка инвайт-ссылки...</p>
+      </div>
+    );
+  }
+
+  if (tokenState === 'invalid') {
+    return (
+      <div className="w-full max-w-sm">
+        <div className="bg-red-500/10 border border-red-200 dark:border-red-800/50 rounded-xl p-6 text-center">
+          <svg className="w-10 h-10 text-red-500 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+          </svg>
+          <h2 className="font-semibold text-gray-800 dark:text-gray-100 mb-2">Недействительная ссылка</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{tokenError}</p>
+          <a href="/auth/login" className="mt-4 inline-block text-sm text-violet-500 hover:text-violet-600">
+            Войти в существующий аккаунт
+          </a>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full max-w-sm">
       <h1 className="text-3xl text-gray-800 dark:text-gray-100 font-bold mb-1">Регистрация компании</h1>
@@ -87,10 +146,8 @@ export default function RegisterCompanyPage() {
       )}
 
       <form onSubmit={handleSubmit}>
-        {/* Company section */}
         <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3">Данные компании</p>
         <div className="space-y-4 mb-6">
-          {/* Logo upload */}
           <div className="flex items-center gap-4">
             <button
               type="button"
@@ -123,13 +180,12 @@ export default function RegisterCompanyPage() {
               type="text"
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
-              placeholder="ООО «Строй Групп»"
+              placeholder="ООО Строй Групп"
               required
             />
           </div>
         </div>
 
-        {/* Admin section */}
         <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3">Данные администратора</p>
         <div className="space-y-4">
           <div>
@@ -233,10 +289,6 @@ export default function RegisterCompanyPage() {
         <span className="text-sm text-gray-500 dark:text-gray-400">Уже есть аккаунт? </span>
         <a href="/auth/login" className="text-sm font-medium text-violet-500 hover:text-violet-600 dark:hover:text-violet-400">Войти</a>
       </div>
-      <div className="mt-2 text-center">
-        <span className="text-sm text-gray-500 dark:text-gray-400">Сотрудник компании? </span>
-        <a href="/auth/register" className="text-sm font-medium text-violet-500 hover:text-violet-600 dark:hover:text-violet-400">Отправить заявку</a>
-      </div>
       <p className="mt-4 text-center text-xs text-gray-400 dark:text-gray-500">
         Регистрируясь, вы соглашаетесь с{' '}
         <a href="/privacy" className="underline hover:text-violet-500 transition-colors">
@@ -244,5 +296,13 @@ export default function RegisterCompanyPage() {
         </a>
       </p>
     </div>
+  );
+}
+
+export default function RegisterCompanyPage() {
+  return (
+    <Suspense fallback={<div className="w-full max-w-sm text-center py-12 text-sm text-gray-400">Загрузка...</div>}>
+      <RegisterCompanyForm />
+    </Suspense>
   );
 }

@@ -23,6 +23,8 @@ import { UserRepository } from './repositories/user.repository';
 import { RoleRepository } from './repositories/role.repository';
 import { AccountRepository } from './repositories/account.repository';
 import { RegistrationRequestRepository } from './repositories/registration-request.repository';
+import { CompanyInviteRepository } from './repositories/company-invite.repository';
+import { CreateInviteDto } from './dto/create-invite.dto';
 import { SessionRepository } from './repositories/session.repository';
 import { PasswordService } from './services/password.service';
 import { TokenService } from './services/token.service';
@@ -71,6 +73,7 @@ export class AuthService {
     private readonly roleRepository: RoleRepository,
     private readonly accountRepository: AccountRepository,
     private readonly registrationRequestRepository: RegistrationRequestRepository,
+    private readonly companyInviteRepository: CompanyInviteRepository,
     private readonly sessionRepository: SessionRepository,
     private readonly passwordService: PasswordService,
     private readonly tokenService: TokenService,
@@ -483,6 +486,14 @@ export class AuthService {
     userAgent = '',
     ipAddress = '',
   ): Promise<AuthResponseDto> {
+    // Validate invite token
+    const invite = await this.companyInviteRepository.findByToken(dto.inviteToken);
+    if (!invite) throw new BadRequestException('Недействительный инвайт-токен');
+    if (invite.usedAt) throw new BadRequestException('Инвайт-токен уже использован');
+    if (invite.expiresAt && new Date(invite.expiresAt) < new Date()) {
+      throw new BadRequestException('Инвайт-токен истёк');
+    }
+
     const account = await this.accountRepository.create({
       name: dto.companyName,
       logoUrl: dto.logoUrl,
@@ -535,6 +546,9 @@ export class AuthService {
       sid: session.id,
     });
 
+    // Mark invite as used
+    await this.companyInviteRepository.markUsed(dto.inviteToken, account.id);
+
     this.logger.log(`Company registered: ${account.name}, admin: ${user.email}`);
 
     return {
@@ -543,6 +557,38 @@ export class AuthService {
       sessionId: session.id,
       user: this.mapUserToResponse(user),
     };
+  }
+
+  // ── Invite management ──────────────────────────────────────────────────────
+
+  async createInvite(createdBy: number, dto: CreateInviteDto) {
+    const token = require('crypto').randomUUID();
+    const expiresInHours = dto.expiresInHours ?? 72;
+    const expiresAt = expiresInHours > 0
+      ? new Date(Date.now() + expiresInHours * 60 * 60 * 1000)
+      : null;
+    return this.companyInviteRepository.create({ token, createdBy, note: dto.note, expiresAt });
+  }
+
+  async listInvites() {
+    return this.companyInviteRepository.findAll();
+  }
+
+  async revokeInvite(token: string) {
+    const invite = await this.companyInviteRepository.findByToken(token);
+    if (!invite) throw new NotFoundException('Инвайт не найден');
+    if (invite.usedAt) throw new BadRequestException('Нельзя удалить использованный инвайт');
+    await this.companyInviteRepository.delete(token);
+  }
+
+  async checkInvite(token: string) {
+    const invite = await this.companyInviteRepository.findByToken(token);
+    if (!invite) return { valid: false, reason: 'not_found' };
+    if (invite.usedAt) return { valid: false, reason: 'used' };
+    if (invite.expiresAt && new Date(invite.expiresAt) < new Date()) {
+      return { valid: false, reason: 'expired' };
+    }
+    return { valid: true, expiresAt: invite.expiresAt, note: invite.note };
   }
 
   async getAccounts() {
