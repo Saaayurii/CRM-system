@@ -382,44 +382,43 @@ export default function VideoPlayer({ src, qualities, className, style }: VideoP
             )}
           </div>
 
-          {/* Quality */}
-          <div className="relative">
-            <button
-              onClick={(e) => { e.stopPropagation(); setShowQualityMenu((v) => !v); setShowSpeedMenu(false); }}
-              className="text-white/80 hover:text-white text-xs px-2 py-1 rounded hover:bg-white/10 transition-colors font-medium flex items-center gap-1"
-              title="Качество"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-              {quality === 'auto' ? 'Auto' : quality}
-            </button>
-            {showQualityMenu && (
-              <div
-                className="absolute bottom-full mb-2 right-0 bg-zinc-900/95 border border-white/10 rounded-xl py-1.5 shadow-2xl min-w-[100px] z-10"
-                onClick={(e) => e.stopPropagation()}
+          {/* Quality — only shown when multiple sources are provided */}
+          {hasQualityOptions && (
+            <div className="relative">
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowQualityMenu((v) => !v); setShowSpeedMenu(false); }}
+                className="text-white/80 hover:text-white text-xs px-2 py-1 rounded hover:bg-white/10 transition-colors font-medium flex items-center gap-1"
+                title="Качество"
               >
-                <div className="px-3 py-1 text-white/40 text-[10px] uppercase tracking-wider">Качество</div>
-                {allQualities.map((q) => (
-                  <button
-                    key={q.label}
-                    onClick={() => changeQuality(q)}
-                    className={`w-full px-3 py-1.5 text-xs text-left transition-colors hover:bg-white/10 flex items-center justify-between gap-2 ${q.label === quality ? 'text-violet-400 font-medium' : 'text-white/80'}`}
-                  >
-                    <span>{q.label}</span>
-                    {q.label === quality && (
-                      <svg className="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
-                      </svg>
-                    )}
-                  </button>
-                ))}
-                {!hasQualityOptions && (
-                  <div className="px-3 py-1.5 text-white/40 text-xs">Только Auto</div>
-                )}
-              </div>
-            )}
-          </div>
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                {quality === 'auto' ? 'Auto' : quality}
+              </button>
+              {showQualityMenu && (
+                <div
+                  className="absolute bottom-full mb-2 right-0 bg-zinc-900/95 border border-white/10 rounded-xl py-1.5 shadow-2xl min-w-[100px] z-10"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="px-3 py-1 text-white/40 text-[10px] uppercase tracking-wider">Качество</div>
+                  {allQualities.map((q) => (
+                    <button
+                      key={q.label}
+                      onClick={() => changeQuality(q)}
+                      className={`w-full px-3 py-1.5 text-xs text-left transition-colors hover:bg-white/10 flex items-center justify-between gap-2 ${q.label === quality ? 'text-violet-400 font-medium' : 'text-white/80'}`}
+                    >
+                      <span>{q.label}</span>
+                      {q.label === quality && (
+                        <svg className="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
+                        </svg>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Fullscreen */}
           <button
