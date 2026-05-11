@@ -88,7 +88,7 @@ export class ChatUploadController {
       }
 
       return {
-        fileName: file.originalname,
+        fileName: Buffer.from(file.originalname, 'latin1').toString('utf8'),
         fileSize: file.size,
         mimeType: file.mimetype,
         fileUrl: `${APP_PUBLIC_URL}/uploads/chat/${file.filename}`,
