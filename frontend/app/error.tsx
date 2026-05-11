@@ -43,7 +43,7 @@ export default function Error({
           {/* Logo / company name */}
           <div className="flex items-center justify-center gap-2 mb-1">
             <CrmLogo />
-            <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">CRM Система</span>
+            <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">3.15 CRM</span>
           </div>
 
           {/* Code + title */}
@@ -95,7 +95,7 @@ export default function Error({
         </div>
 
         <p className="text-center text-xs text-gray-400 dark:text-gray-600 mt-6">
-          © {new Date().getFullYear()} CRM Система. Если ошибка повторяется — обратитесь к администратору.
+          © {new Date().getFullYear()} 3.15 CRM. Если ошибка повторяется — обратитесь к администратору.
         </p>
       </div>
     </div>

@@ -26,7 +26,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
               </svg>
             </div>
             <h1 className="text-4xl font-extrabold text-white mb-3 drop-shadow-md animate-fadeInUpSoft">
-              CRM Система
+              3.15 CRM
             </h1>
             <p className="text-violet-200 text-lg sm:text-xl animate-fadeInUpSoft animate-delaySoft">
               Управление строительными проектами

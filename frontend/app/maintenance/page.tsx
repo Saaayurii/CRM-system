@@ -45,7 +45,7 @@ export default function MaintenancePage() {
   const isAuthLoading = useAuthStore((s) => s.isLoading);
   const isSuperAdmin = user?.role?.code === 'super_admin';
   const [info, setInfo] = useState<MaintenanceInfo>({
-    companyName: 'CRM Система',
+    companyName: '3.15 CRM',
     title: 'Технические работы',
     message: 'Ведутся технические работы. Пожалуйста, зайдите позже.',
     endTime: null,
@@ -65,7 +65,7 @@ export default function MaintenancePage() {
       }
 
       setInfo({
-        companyName: data.name || 'CRM Система',
+        companyName: data.name || '3.15 CRM',
         title: settings.maintenance_title || 'Технические работы',
         message:
           settings.maintenance_message ||

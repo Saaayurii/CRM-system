@@ -13,12 +13,12 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: 'CRM Система',
-    template: '%s | CRM Система',
+    default: '3.15 CRM',
+    template: '%s | 3.15 CRM',
   },
   description: 'Система управления строительными проектами — задачи, персонал, материалы, финансы.',
   keywords: ['CRM', 'строительство', 'управление проектами', 'HR', 'задачи'],
-  authors: [{ name: 'CRM Система' }],
+  authors: [{ name: '3.15 CRM' }],
   robots: { index: false, follow: false },
   manifest: '/manifest.webmanifest',
   icons: {
@@ -36,18 +36,18 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'CRM',
+    title: '3.15 CRM',
   },
   openGraph: {
     type: 'website',
     locale: 'ru_RU',
-    title: 'CRM Система',
+    title: '3.15 CRM',
     description: 'Система управления строительными проектами',
-    siteName: 'CRM Система',
+    siteName: '3.15 CRM',
   },
   twitter: {
     card: 'summary',
-    title: 'CRM Система',
+    title: '3.15 CRM',
     description: 'Система управления строительными проектами',
   },
 };
@@ -71,7 +71,7 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="CRM" />
+        <meta name="apple-mobile-web-app-title" content="3.15 CRM" />
         <meta name="msapplication-TileColor" content="#7c3aed" />
         <meta name="msapplication-tap-highlight" content="no" />
       </head>

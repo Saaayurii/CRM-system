@@ -31,7 +31,7 @@ export default function GlobalError({
               <svg fill="#7c6bc4" xmlns="http://www.w3.org/2000/svg" width={20} height={20} viewBox="0 0 32 32">
                 <path d="M31.956 14.8C31.372 6.92 25.08.628 17.2.044V5.76a9.04 9.04 0 0 0 9.04 9.04h5.716ZM14.8 26.24v5.716C6.92 31.372.63 25.08.044 17.2H5.76a9.04 9.04 0 0 1 9.04 9.04Zm11.44-9.04h5.716c-.584 7.88-6.876 14.172-14.756 14.756V26.24a9.04 9.04 0 0 1 9.04-9.04ZM.044 14.8C.63 6.92 6.92.628 14.8.044V5.76a9.04 9.04 0 0 1-9.04 9.04H.044Z" />
               </svg>
-              <span style={{ fontSize: 14, fontWeight: 600, color: '#6b6c80' }}>CRM Система</span>
+              <span style={{ fontSize: 14, fontWeight: 600, color: '#6b6c80' }}>3.15 CRM</span>
             </div>
 
             <p style={{ fontSize: 72, fontWeight: 800, color: '#ef4444', margin: '16px 0 4px', letterSpacing: '-2px', lineHeight: 1 }}>500</p>
@@ -59,7 +59,7 @@ export default function GlobalError({
           </div>
 
           <p style={{ textAlign: 'center', fontSize: 12, color: '#9596a8', marginTop: 24 }}>
-            © {new Date().getFullYear()} CRM Система. Критическая ошибка приложения.
+            © {new Date().getFullYear()} 3.15 CRM. Критическая ошибка приложения.
           </p>
         </div>
       </body>

@@ -2,8 +2,8 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'CRM Система',
-    short_name: 'CRM',
+    name: '3.15 CRM',
+    short_name: '3.15 CRM',
     description: 'Система управления строительными проектами',
     start_url: '/dashboard',
     scope: '/',
