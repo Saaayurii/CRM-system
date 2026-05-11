@@ -2,7 +2,8 @@
 
 import { useEffect, useCallback, useState } from 'react';
 import { createPortal } from 'react-dom';
-import VideoPlayer from './VideoPlayer';
+import VideoPlayer, { VideoQuality } from './VideoPlayer';
+import api from '@/lib/api';
 
 export interface MediaItem {
   url: string;
@@ -20,6 +21,7 @@ export default function MediaViewer({ items, initialIndex, onClose }: MediaViewe
   const [index, setIndex] = useState(initialIndex);
   const [imageScale, setImageScale] = useState(1);
   const [loaded, setLoaded] = useState(false);
+  const [videoQualities, setVideoQualities] = useState<VideoQuality[] | undefined>(undefined);
 
   const current = items[index];
   const hasPrev = index > 0;
@@ -35,7 +37,17 @@ export default function MediaViewer({ items, initialIndex, onClose }: MediaViewe
 
   useEffect(() => {
     setLoaded(false);
+    setVideoQualities(undefined);
   }, [index]);
+
+  useEffect(() => {
+    if (current.type !== 'video') return;
+    const filename = current.url.split('/').pop();
+    if (!filename) return;
+    api.get<{ qualities: VideoQuality[] }>(`/chat-channels/variants/${filename}`)
+      .then((res) => setVideoQualities(res.data.qualities))
+      .catch(() => {});
+  }, [current.url, current.type]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -147,6 +159,7 @@ export default function MediaViewer({ items, initialIndex, onClose }: MediaViewe
           <VideoPlayer
             key={current.url}
             src={current.url}
+            qualities={videoQualities}
             style={{ maxWidth: '90vw', maxHeight: '90vh', width: '80vw', height: '80vh' }}
           />
         )}

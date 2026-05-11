@@ -41,7 +41,7 @@ export default function VideoPlayer({ src, qualities, className, style }: VideoP
   const [volume, setVolume] = useState(1);
   const [muted, setMuted] = useState(false);
   const [speed, setSpeed] = useState(1);
-  const [quality, setQuality] = useState<string>('auto');
+  const [quality, setQuality] = useState<string>(() => qualities?.[qualities.length - 1]?.label ?? 'auto');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -57,6 +57,13 @@ export default function VideoPlayer({ src, qualities, className, style }: VideoP
 
   const activeSource = allQualities.find((q) => q.label === quality)?.url ?? src;
   const streamUrl = buildStreamUrl(activeSource);
+
+  // When qualities arrive asynchronously, default to last entry (Исходное)
+  useEffect(() => {
+    if (qualities?.length && !qualities.find((q) => q.label === quality)) {
+      setQuality(qualities[qualities.length - 1].label);
+    }
+  }, [qualities]);
 
   // ── Controls visibility ────────────────────────────────────────
   const scheduleHide = useCallback(() => {
