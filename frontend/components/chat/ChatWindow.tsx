@@ -50,6 +50,18 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [matchIdx, setMatchIdx] = useState(0);
+  const [highlightedMsgId, setHighlightedMsgId] = useState<number | null>(null);
+
+  const scrollToMessage = useCallback((id: number) => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    const el = container.querySelector(`[data-msgid="${id}"]`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setHighlightedMsgId(id);
+      setTimeout(() => setHighlightedMsgId(null), 1700);
+    }
+  }, []);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -534,8 +546,16 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
             const isMatchedMsg = showSearch && searchQuery.trim().length >= 2 && searchMatches.some((m) => m.msg.id === msg.id);
             const isMsgPinned = pinnedMessages.some((p) => p.id === msg.id);
 
+            const isReplyHighlighted = highlightedMsgId === msg.id;
             return (
-              <div key={msg.id} data-msgid={msg.id} className={activeMatch ? 'rounded-xl ring-2 ring-violet-400 dark:ring-violet-500 ring-offset-2 dark:ring-offset-gray-900' : ''}>
+              <div
+                key={msg.id}
+                data-msgid={msg.id}
+                className={[
+                  activeMatch ? 'rounded-xl ring-2 ring-violet-400 dark:ring-violet-500 ring-offset-2 dark:ring-offset-gray-900' : '',
+                  isReplyHighlighted ? 'chat-reply-highlight' : '',
+                ].filter(Boolean).join(' ')}
+              >
                 <ChatMessage
                   message={msg}
                   isOwn={isOwn}
@@ -543,6 +563,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
                   isRead={read}
                   readers={readers}
                   onReply={() => setReplyToMessage(msg)}
+                  onScrollToReply={msg.replyToMessage?.id ? () => scrollToMessage(msg.replyToMessage!.id) : undefined}
                   onReact={reactToMessage}
                   onDelete={handleDeleteMessage}
                   onPin={canPin ? handlePin : undefined}

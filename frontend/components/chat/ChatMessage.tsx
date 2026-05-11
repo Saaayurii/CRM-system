@@ -77,6 +77,7 @@ interface ChatMessageProps {
   isRead: boolean;
   readers?: Reader[];
   onReply: () => void;
+  onScrollToReply?: () => void;
   onReact: (messageId: number, emoji: string) => void;
   onDelete: (message: ChatMessageType) => void;
   onPin?: (message: ChatMessageType) => void;
@@ -167,7 +168,7 @@ function parseTgMessage(text?: string): { sender: string; body: string } | null 
   return { sender: m[1], body: m[2] };
 }
 
-export default function ChatMessage({ message, isOwn, showAvatar, isRead, readers = [], onReply, onReact, onDelete, onPin, isPinned, canPin, highlightQuery }: ChatMessageProps) {
+export default function ChatMessage({ message, isOwn, showAvatar, isRead, readers = [], onReply, onScrollToReply, onReact, onDelete, onPin, isPinned, canPin, highlightQuery }: ChatMessageProps) {
   const addToast = useToastStore((s) => s.addToast);
   const isVoice = message.messageType === 'voice';
   const displaySenderName = resolveDisplayName(message.senderName);
@@ -302,11 +303,12 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
         {/* Reply preview */}
         {message.replyToMessage && (
           <div
+            onClick={onScrollToReply}
             className={`text-xs px-2 py-1 mb-0.5 rounded-t-lg border-l-2 max-w-full ${
               isOwn
                 ? 'bg-violet-400/20 border-violet-300 dark:bg-violet-500/20 dark:border-violet-400'
                 : 'bg-gray-100 border-gray-300 dark:bg-gray-700 dark:border-gray-500'
-            }`}
+            } ${onScrollToReply ? 'cursor-pointer hover:brightness-95 dark:hover:brightness-110 transition-all' : ''}`}
           >
             <p className="font-medium text-gray-600 dark:text-gray-300 truncate">
               {message.replyToMessage.senderName}

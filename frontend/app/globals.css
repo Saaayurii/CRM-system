@@ -283,3 +283,13 @@
 .dark [data-placeholder]:empty::before {
   color: #6b7280;
 }
+
+@keyframes chat-reply-highlight {
+  0%   { background-color: rgba(139, 92, 246, 0.25); }
+  70%  { background-color: rgba(139, 92, 246, 0.15); }
+  100% { background-color: transparent; }
+}
+.chat-reply-highlight {
+  border-radius: 12px;
+  animation: chat-reply-highlight 1.6s ease-out forwards;
+}
