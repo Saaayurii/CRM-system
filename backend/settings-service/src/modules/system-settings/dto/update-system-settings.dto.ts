@@ -14,6 +14,10 @@ import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class SystemSettingsPayloadDto {
+  @ApiPropertyOptional({ maxLength: 500 })
+  @IsOptional() @IsString() @MaxLength(500)
+  logoUrl?: string;
+
   // ── Notifications ─────────────────────────────────
   @ApiPropertyOptional() @IsOptional() @IsBoolean()
   notifications_enabled?: boolean;
