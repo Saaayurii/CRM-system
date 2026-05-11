@@ -48,7 +48,7 @@ CREATE TABLE users (
     account_id INTEGER REFERENCES accounts(id) ON DELETE CASCADE,
     role_id INTEGER REFERENCES roles(id),
     name VARCHAR(255) NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
+    email VARCHAR(255) NOT NULL,
     phone VARCHAR(50),
     avatar_url VARCHAR(500),
     
@@ -86,6 +86,7 @@ CREATE TABLE users (
 CREATE INDEX idx_users_account ON users(account_id);
 CREATE INDEX idx_users_role ON users(role_id);
 CREATE INDEX idx_users_email ON users(email);
+CREATE UNIQUE INDEX idx_users_email_account_unique ON users(email, account_id) WHERE deleted_at IS NULL;
 CREATE INDEX idx_users_active ON users(account_id, is_active);
 
 -- ==========================================
