@@ -363,9 +363,14 @@ export default function TasksPage() {
                   const assignee = t.assignedToUser || t.assigned_to_user;
                   const assigneeId = t.assignedToUserId || t.assigned_to_user_id;
                   const resolvedUser = assigneeId ? users.find((u) => u.id === assigneeId) : null;
+                  const resolveAssigneeName = (userId: number, userName: string | null) => {
+                    if (userName) return userName;
+                    const u = users.find((u) => u.id === userId);
+                    return u?.name || u?.email || `#${userId}`;
+                  };
                   const assigneeName =
                     t.assignees && t.assignees.length > 0
-                      ? t.assignees.map((a) => a.userName || `#${a.userId}`).join(', ')
+                      ? t.assignees.map((a) => resolveAssigneeName(a.userId, a.userName ?? null)).join(', ')
                       : assignee?.name || assignee?.email
                         || resolvedUser?.name || resolvedUser?.email
                         || '—';
@@ -435,9 +440,14 @@ export default function TasksPage() {
             const assignee = t.assignedToUser || t.assigned_to_user;
             const assigneeId = t.assignedToUserId || t.assigned_to_user_id;
             const resolvedUser = assigneeId ? users.find((u) => u.id === assigneeId) : null;
+            const resolveAssigneeName = (userId: number, userName: string | null) => {
+              if (userName) return userName;
+              const u = users.find((u) => u.id === userId);
+              return u?.name || u?.email || `#${userId}`;
+            };
             const assigneeName =
               t.assignees && t.assignees.length > 0
-                ? t.assignees.map((a) => a.userName || `#${a.userId}`).join(', ')
+                ? t.assignees.map((a) => resolveAssigneeName(a.userId, a.userName ?? null)).join(', ')
                 : assignee?.name || assignee?.email
                   || resolvedUser?.name || resolvedUser?.email
                   || '—';
