@@ -84,4 +84,9 @@ export class CreateTaskDto {
   @IsArray()
   @IsOptional()
   tags?: string[];
+
+  @ApiPropertyOptional({ description: 'Array of file attachment objects' })
+  @IsArray()
+  @IsOptional()
+  attachments?: { fileName: string; fileSize: number; mimeType: string; fileUrl: string }[];
 }

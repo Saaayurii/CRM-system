@@ -1,11 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import { useOfflineForm } from '@/hooks/useOfflineForm';
 import { useDraft } from '@/hooks/useDraft';
 import DraftBanner from '@/components/ui/DraftBanner';
+
+interface TaskAttachment {
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  fileUrl: string;
+}
 
 interface TaskFormModalProps {
   task?: any | null;
@@ -43,6 +50,11 @@ const PRIORITY_OPTIONS = [
 export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalProps) {
   const addToast = useToastStore((s) => s.addToast);
   const [loading, setLoading] = useState(false);
+  const [attachments, setAttachments] = useState<TaskAttachment[]>(
+    Array.isArray(task?.attachments) ? task.attachments : []
+  );
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { submit: submitCreate, isPending: isCreating } = useOfflineForm({
     method: 'POST',
@@ -94,6 +106,25 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
     setFormData((prev: typeof initialForm) => ({ ...prev, [field]: value }));
   };
 
+  const handleFileSelect = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      Array.from(files).forEach((f) => formData.append('files', f));
+      const { data } = await api.post('/chat-channels/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      const uploaded: TaskAttachment[] = Array.isArray(data) ? data : [data];
+      setAttachments((prev) => [...prev, ...uploaded]);
+    } catch {
+      addToast('error', 'Ошибка загрузки файла');
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title.trim()) {
@@ -112,6 +143,7 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
         assignedToUserId: formData.assignedToUserId ? Number(formData.assignedToUserId) : null,
         dueDate: formData.dueDate || null,
         estimatedHours: formData.estimatedHours ? Number(formData.estimatedHours) : null,
+        attachments,
       };
 
       const label = `Задача «${formData.title}»`;
@@ -288,6 +320,77 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
                 placeholder="0"
               />
             </div>
+          </div>
+
+          {/* Attachments */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Вложения
+            </label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx"
+              className="hidden"
+              onChange={(e) => handleFileSelect(e.target.files)}
+            />
+
+            {/* Uploaded files list */}
+            {attachments.length > 0 && (
+              <div className="mb-2 space-y-1.5">
+                {attachments.map((att, i) => {
+                  const isImage = att.mimeType?.startsWith('image/');
+                  const isVideo = att.mimeType?.startsWith('video/');
+                  return (
+                    <div key={i} className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
+                      {isImage ? (
+                        <img src={att.fileUrl} alt="" className="w-8 h-8 rounded object-cover shrink-0" />
+                      ) : (
+                        <div className="w-8 h-8 rounded bg-gray-200 dark:bg-gray-600 flex items-center justify-center shrink-0">
+                          {isVideo ? (
+                            <svg className="w-4 h-4 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                          ) : (
+                            <svg className="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                          )}
+                        </div>
+                      )}
+                      <span className="flex-1 text-xs text-gray-700 dark:text-gray-300 truncate">{att.fileName}</span>
+                      <span className="text-xs text-gray-400 shrink-0">
+                        {att.fileSize < 1024 * 1024
+                          ? `${(att.fileSize / 1024).toFixed(0)} КБ`
+                          : `${(att.fileSize / (1024 * 1024)).toFixed(1)} МБ`}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setAttachments((prev) => prev.filter((_, idx) => idx !== i))}
+                        className="shrink-0 p-1 text-gray-400 hover:text-red-500 transition-colors"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-violet-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors w-full justify-center disabled:opacity-50"
+            >
+              {uploading ? (
+                <span className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
+                </svg>
+              )}
+              {uploading ? 'Загрузка...' : 'Прикрепить файлы'}
+            </button>
           </div>
 
           {/* Actions */}

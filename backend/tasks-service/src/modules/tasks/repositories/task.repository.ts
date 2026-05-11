@@ -72,6 +72,7 @@ export class TaskRepository {
         estimatedHours: data.estimatedHours,
         locationDescription: data.locationDescription,
         tags: data.tags || [],
+        attachments: data.attachments || [],
       },
     });
   }
