@@ -91,4 +91,9 @@ export class CreateProjectDto {
   @IsObject()
   @IsOptional()
   coordinates?: Record<string, any>;
+
+  @ApiPropertyOptional({ description: 'Settings (notes, etc.)' })
+  @IsObject()
+  @IsOptional()
+  settings?: Record<string, any>;
 }
