@@ -6,6 +6,7 @@ import NextImage from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useSidebarStore } from '@/stores/sidebarStore';
 import { useAuthStore } from '@/stores/authStore';
+import { useTaskNotifStore } from '@/stores/taskNotifStore';
 import SidebarLinkGroup from './SidebarLinkGroup';
 
 function NavLink({ href, className, children }: { href: string; className?: string; children: React.ReactNode }) {
@@ -214,6 +215,7 @@ export default function Sidebar() {
   const isAdmin = roleCode === 'admin';
   const showTeams = isSuperAdmin || isAdmin || isPM || isHR;
   const showChat = true;
+  const taskUnread = useTaskNotifStore((s) => s.unreadCount);
 
   const trigger = useRef<HTMLButtonElement>(null);
   const sidebar = useRef<HTMLDivElement>(null);
@@ -304,7 +306,14 @@ export default function Sidebar() {
               {/* Tasks */}
               <li className="mb-1 last:mb-0">
                 <NavLink href="/dashboard/tasks" className={linkCls(pathname === '/dashboard/tasks')}>
-                  <IconTasks />
+                  <div className="relative shrink-0">
+                    <IconTasks />
+                    {taskUnread > 0 && (
+                      <span className="absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center text-[9px] font-bold text-white bg-red-500 rounded-full">
+                        {taskUnread > 9 ? '9+' : taskUnread}
+                      </span>
+                    )}
+                  </div>
                   <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Задачи</span>
                 </NavLink>
               </li>

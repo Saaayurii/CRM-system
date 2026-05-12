@@ -8,6 +8,7 @@ import { useToastStore } from '@/stores/toastStore';
 import TaskFormModal from '@/components/dashboard/TaskFormModal';
 import { useOfflineData } from '@/hooks/useOfflineData';
 import { useDownloadPdf } from '@/lib/hooks/useDownloadPdf';
+import { useTaskNotifStore } from '@/stores/taskNotifStore';
 
 interface Assignee {
   userId: number;
@@ -92,6 +93,7 @@ export default function TasksPage() {
   const addToast = useToastStore((s) => s.addToast);
   const { download: downloadPdf, loading: pdfLoading } = useDownloadPdf();
   const searchParams = useSearchParams();
+  const markTasksRead = useTaskNotifStore((s) => s.markRead);
   const [showModal, setShowModal] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -113,6 +115,8 @@ export default function TasksPage() {
   const [filterPriority, setFilterPriority] = useState<string>('');
   const [filterProject, setFilterProject] = useState<string>('');
   const [filterAssignee, setFilterAssignee] = useState<string>('');
+
+  useEffect(() => { markTasksRead(); }, []);
 
   const { data, loading, error, isFromCache, cachedAt, refetch } =
     useOfflineData<TasksPageData>(fetchTasksPageData, 'tasks-page');

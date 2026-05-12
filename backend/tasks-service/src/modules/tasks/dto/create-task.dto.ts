@@ -89,4 +89,8 @@ export class CreateTaskDto {
   @IsArray()
   @IsOptional()
   attachments?: { fileName: string; fileSize: number; mimeType: string; fileUrl: string }[];
+
+  @ApiPropertyOptional({ description: 'Custom JSONB fields (e.g. checklists)' })
+  @IsOptional()
+  customFields?: Record<string, any>;
 }
