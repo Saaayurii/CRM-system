@@ -13,7 +13,7 @@ const api = axios.create({
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   // For FormData let the browser set Content-Type with the correct boundary
   if (config.data instanceof FormData) {
-    delete (config.headers as any)['Content-Type'];
+    config.headers.delete('Content-Type');
   }
   if (typeof window !== 'undefined') {
     const token = localStorage.getItem('accessToken');
