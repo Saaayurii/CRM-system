@@ -6,6 +6,7 @@ import Link from 'next/link';
 import api from '@/lib/api';
 import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 import ProjectFormModal from '@/components/dashboard/ProjectFormModal';
+import TaskFormModal from '@/components/dashboard/TaskFormModal';
 import { useToastStore } from '@/stores/toastStore';
 import { useChatStore } from '@/stores/chatStore';
 import { useAuthStore } from '@/stores/authStore';
@@ -218,6 +219,9 @@ interface Task {
   priority?: number;
   dueDate?: string;
   due_date?: string;
+  projectId?: number;
+  assignedToUserId?: number;
+  attachments?: any[];
   assignees?: { userId: number; userName?: string }[];
 }
 
@@ -546,6 +550,7 @@ const [pdfLoading, setPdfLoading] = useState(false);
   const [tasksLoaded, setTasksLoaded] = useState(false);
   const [showCreateTask, setShowCreateTask] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [deletingTaskId, setDeletingTaskId] = useState<number | null>(null);
   const [taskSearch, setTaskSearch] = useState('');
   const [taskStatusFilter, setTaskStatusFilter] = useState<string>('');
   const [taskPriorityFilter, setTaskPriorityFilter] = useState<string>('');
@@ -719,6 +724,19 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
       if (!silent) setLoadingTasks(false);
     }
   }, [projectId]);
+
+  const handleDeleteTask = useCallback(async (taskId: number) => {
+    setDeletingTaskId(taskId);
+    try {
+      await api.delete(`/tasks/${taskId}`);
+      setTasks((prev) => prev.filter((t) => t.id !== taskId));
+      addToast('success', 'Задача удалена');
+    } catch {
+      addToast('error', 'Не удалось удалить задачу');
+    } finally {
+      setDeletingTaskId(null);
+    }
+  }, [addToast]);
 
   const reloadResources = useCallback(async () => {
     setLoadingResources(true);
@@ -1685,7 +1703,20 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                   const tp = TASK_PRIORITY[t.priority ?? 2] || TASK_PRIORITY[2];
                   return (
                     <div key={t.id} className="bg-gray-50 dark:bg-gray-900/30 rounded-xl p-4 cursor-pointer hover:ring-2 hover:ring-violet-300 dark:hover:ring-violet-600 transition-all" onClick={() => setSelectedTask(t)}>
-                      <div className="font-medium text-gray-800 dark:text-gray-100 mb-2 line-clamp-2">{t.title}</div>
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="font-medium text-gray-800 dark:text-gray-100 line-clamp-2 flex-1">{t.title}</div>
+                        <div className="flex items-center gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                          <button onClick={() => setSelectedTask(t)} className="p-1 text-gray-400 hover:text-violet-500 transition-colors rounded" title="Редактировать">
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                          </button>
+                          <button onClick={() => handleDeleteTask(t.id)} disabled={deletingTaskId === t.id} className="p-1 text-gray-400 hover:text-red-500 transition-colors rounded disabled:opacity-40" title="Удалить">
+                            {deletingTaskId === t.id
+                              ? <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                              : <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            }
+                          </button>
+                        </div>
+                      </div>
                       <div className="flex items-center gap-2 flex-wrap mb-2">
                         <span className={`text-xs px-2 py-0.5 rounded-full ${ts.color}`}>{ts.label}</span>
                         <span className={`text-xs font-medium ${tp.color}`}>{tp.label}</span>
@@ -1709,6 +1740,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                       <th className="py-3 px-4 text-left font-semibold">Приоритет</th>
                       <th className="py-3 px-4 text-left font-semibold">Срок</th>
                       <th className="py-3 px-4 text-left font-semibold">Исполнители</th>
+                      <th className="py-3 px-4 text-center font-semibold w-20"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
@@ -1723,6 +1755,19 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                           <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{fmt(t.dueDate || t.due_date)}</td>
                           <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400 text-xs">
                             {t.assignees?.map((a) => a.userName || `#${a.userId}`).join(', ') || '—'}
+                          </td>
+                          <td className="py-2.5 px-4" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center justify-end gap-0.5">
+                              <button onClick={() => setSelectedTask(t)} className="p-1.5 text-gray-400 hover:text-violet-500 transition-colors rounded" title="Редактировать">
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                              </button>
+                              <button onClick={() => handleDeleteTask(t.id)} disabled={deletingTaskId === t.id} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors rounded disabled:opacity-40" title="Удалить">
+                                {deletingTaskId === t.id
+                                  ? <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                  : <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                }
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -3208,16 +3253,10 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
 
       {/* Create Task Modal */}
       {showCreateTask && (
-        <CreateTaskModal
-          projectId={projectId}
-          projectMembers={assignments}
-          onCreated={async (newTask) => {
-            setShowCreateTask(false);
-            if (newTask?.id) setTasks((prev) => [...prev, newTask]);
-            addToast('success', 'Задача создана');
-            reloadTasks(true);
-          }}
+        <TaskFormModal
+          task={{ projectId } as any}
           onClose={() => setShowCreateTask(false)}
+          onSaved={() => { setShowCreateTask(false); reloadTasks(true); }}
         />
       )}
 
@@ -3234,13 +3273,10 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
 
       {/* Edit Task Modal */}
       {selectedTask && (
-        <EditTaskModal
+        <TaskFormModal
           task={selectedTask}
-          projectId={projectId}
-          projectMembers={assignments}
-          onSaved={async () => { setSelectedTask(null); await reloadTasks(); addToast('success', 'Задача обновлена'); }}
-          onDeleted={async () => { setSelectedTask(null); await reloadTasks(); addToast('success', 'Задача удалена'); }}
           onClose={() => setSelectedTask(null)}
+          onSaved={() => { setSelectedTask(null); reloadTasks(); }}
         />
       )}
 
@@ -3346,8 +3382,8 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
           ? Math.floor((Date.now() - new Date(project.updatedAt).getTime()) / (1000 * 60 * 60 * 24))
           : 14;
         return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md p-6 animate-in fade-in zoom-in-95 duration-200">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={handleDismissInactiveModal}>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md p-6 animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-center w-14 h-14 rounded-full bg-amber-100 dark:bg-amber-900/30 mx-auto mb-4">
                 <svg className="w-7 h-7 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -4139,303 +4175,6 @@ function ProjectChatPanel({ channelId, channelName, projectId, projectMembers = 
   );
 }
 
-/* ─── Modal: Create Task ─── */
-
-function CreateTaskModal({
-  projectId, projectMembers, onCreated, onClose,
-}: {
-  projectId: number;
-  projectMembers: Assignment[];
-  onCreated: (task?: any) => void;
-  onClose: () => void;
-}) {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [priority, setPriority] = useState(2);
-  const [status, setStatus] = useState(0);
-  const [dueDate, setDueDate] = useState('');
-  const [assignedToUserId, setAssignedToUserId] = useState<number | ''>('');
-  const [members, setMembers] = useState<Assignment[]>(projectMembers);
-  const [saving, setSaving] = useState(false);
-  const addToast = useToastStore((s) => s.addToast);
-
-  useEffect(() => {
-    if (projectMembers.length > 0 && projectMembers.some((m) => m.userName)) {
-      setMembers(projectMembers);
-      return;
-    }
-    api.get(`/projects/${projectId}/assignments`)
-      .then(async (r) => {
-        const d = r.data?.assignments || r.data?.data || r.data || [];
-        const raw: Assignment[] = Array.isArray(d) ? d : [];
-        setMembers(await enrichAssignments(raw));
-      })
-      .catch(() => setMembers(projectMembers));
-  }, [projectId, projectMembers]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title.trim()) return;
-    setSaving(true);
-    try {
-      const res = await api.post('/tasks', {
-        title: title.trim(),
-        description: description.trim() || undefined,
-        projectId,
-        priority,
-        status,
-        dueDate: dueDate || undefined,
-        assignedToUserId: assignedToUserId || undefined,
-      });
-      const newTask = res.data;
-      // Populate taskAssignee junction so assignees column shows immediately
-      if (assignedToUserId && newTask?.id) {
-        const member = members.find((m) => m.userId === Number(assignedToUserId));
-        await api.post(`/tasks/${newTask.id}/assignees`, {
-          assignees: [{ userId: Number(assignedToUserId), userName: member?.userName }],
-        }).catch(() => {});
-      }
-      onCreated(newTask);
-    } catch {
-      addToast('error', 'Не удалось создать задачу');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <ModalShell title="Создать задачу" onClose={onClose}>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Название *</label>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} required placeholder="Введите название задачи"
-            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100" />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Описание</label>
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} placeholder="Краткое описание"
-            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100 resize-none" />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Исполнитель</label>
-          <select value={assignedToUserId} onChange={(e) => setAssignedToUserId(e.target.value ? Number(e.target.value) : '')}
-            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100">
-            <option value="">— Не назначен —</option>
-            {members.map((m) => (
-              <option key={m.userId} value={m.userId}>
-                {m.userName || `Пользователь #${m.userId}`}{m.userEmail ? ` (${m.userEmail})` : ''}
-              </option>
-            ))}
-          </select>
-          {members.length === 0 && (
-            <p className="text-xs text-amber-500 mt-1">Сначала добавьте сотрудников в проект на вкладке «Команда»</p>
-          )}
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Приоритет</label>
-            <select value={priority} onChange={(e) => setPriority(Number(e.target.value))}
-              className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100">
-              <option value={1}>Низкий</option>
-              <option value={2}>Средний</option>
-              <option value={3}>Высокий</option>
-              <option value={4}>Критический</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Статус</label>
-            <select value={status} onChange={(e) => setStatus(Number(e.target.value))}
-              className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100">
-              <option value={0}>Новая</option>
-              <option value={1}>В работе</option>
-              <option value={2}>На проверке</option>
-              <option value={3}>Готово</option>
-              <option value={4}>Отменена</option>
-            </select>
-          </div>
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Срок выполнения</label>
-          <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)}
-            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100" />
-        </div>
-        <div className="flex justify-end gap-2 pt-2">
-          <button type="button" onClick={onClose}
-            className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors">
-            Отмена
-          </button>
-          <button type="submit" disabled={saving || !title.trim()}
-            className="px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
-            {saving ? 'Создание...' : 'Создать'}
-          </button>
-        </div>
-      </form>
-    </ModalShell>
-  );
-}
-
-/* ─── Modal: Edit Task ─── */
-
-function EditTaskModal({
-  task, projectId, projectMembers, onSaved, onDeleted, onClose,
-}: {
-  task: Task;
-  projectId: number;
-  projectMembers: Assignment[];
-  onSaved: () => Promise<void>;
-  onDeleted: () => Promise<void>;
-  onClose: () => void;
-}) {
-  const [title, setTitle] = useState(task.title);
-  const [description, setDescription] = useState(task.description || '');
-  const [status, setStatus] = useState(task.status ?? 0);
-  const [priority, setPriority] = useState(task.priority ?? 2);
-  const [dueDate, setDueDate] = useState(task.dueDate || task.due_date ? (task.dueDate || task.due_date || '').slice(0, 10) : '');
-  const [assignedToUserId, setAssignedToUserId] = useState<number | ''>(task.assignees?.[0]?.userId || '');
-  const [members, setMembers] = useState<Assignment[]>(projectMembers);
-  const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const addToast = useToastStore((s) => s.addToast);
-
-  useEffect(() => {
-    if (projectMembers.length > 0 && projectMembers.some((m) => m.userName)) {
-      setMembers(projectMembers);
-      return;
-    }
-    api.get(`/projects/${projectId}/assignments`)
-      .then(async (r) => {
-        const d = r.data?.assignments || r.data?.data || r.data || [];
-        const raw: Assignment[] = Array.isArray(d) ? d : [];
-        setMembers(await enrichAssignments(raw));
-      })
-      .catch(() => setMembers(projectMembers));
-  }, [projectId, projectMembers]);
-
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title.trim()) return;
-    setSaving(true);
-    try {
-      await api.put(`/tasks/${task.id}`, {
-        title: title.trim(),
-        description: description.trim() || undefined,
-        status,
-        priority,
-        dueDate: dueDate || undefined,
-        assignedToUserId: assignedToUserId || undefined,
-      });
-      // Sync taskAssignee table so the assignees column updates immediately
-      const assigneeList = assignedToUserId
-        ? [{ userId: Number(assignedToUserId), userName: members.find((m) => m.userId === Number(assignedToUserId))?.userName }]
-        : [];
-      await api.post(`/tasks/${task.id}/assignees`, { assignees: assigneeList }).catch(() => {});
-      await onSaved();
-    } catch {
-      addToast('error', 'Не удалось сохранить задачу');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    setDeleting(true);
-    try {
-      await api.delete(`/tasks/${task.id}`);
-      await onDeleted();
-    } catch {
-      addToast('error', 'Не удалось удалить задачу');
-    } finally {
-      setDeleting(false);
-    }
-  };
-
-  return (
-    <ModalShell title="Редактировать задачу" onClose={onClose}>
-      <form onSubmit={handleSave} className="space-y-4">
-        <div>
-          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Название *</label>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} required
-            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100" />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Описание</label>
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2}
-            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100 resize-none" />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Исполнитель</label>
-          <select value={assignedToUserId} onChange={(e) => setAssignedToUserId(e.target.value ? Number(e.target.value) : '')}
-            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100">
-            <option value="">— Не назначен —</option>
-            {members.map((m) => (
-              <option key={m.userId} value={m.userId}>
-                {m.userName || `Пользователь #${m.userId}`}{m.userEmail ? ` (${m.userEmail})` : ''}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Статус</label>
-            <select value={status} onChange={(e) => setStatus(Number(e.target.value))}
-              className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100">
-              <option value={0}>Новая</option>
-              <option value={1}>В работе</option>
-              <option value={2}>На проверке</option>
-              <option value={3}>Готово</option>
-              <option value={4}>Отменена</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Приоритет</label>
-            <select value={priority} onChange={(e) => setPriority(Number(e.target.value))}
-              className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100">
-              <option value={1}>Низкий</option>
-              <option value={2}>Средний</option>
-              <option value={3}>Высокий</option>
-              <option value={4}>Критический</option>
-            </select>
-          </div>
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Срок выполнения</label>
-          <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)}
-            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100" />
-        </div>
-        <div className="flex items-center justify-between gap-2 pt-2 border-t border-gray-100 dark:border-gray-700">
-          {confirmDelete ? (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-red-500">Удалить задачу?</span>
-              <button type="button" onClick={handleDelete} disabled={deleting}
-                className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded-lg disabled:opacity-50">
-                {deleting ? '...' : 'Да'}
-              </button>
-              <button type="button" onClick={() => setConfirmDelete(false)}
-                className="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
-                Нет
-              </button>
-            </div>
-          ) : (
-            <button type="button" onClick={() => setConfirmDelete(true)}
-              className="text-xs text-red-500 hover:text-red-600 transition-colors">
-              Удалить задачу
-            </button>
-          )}
-          <div className="flex items-center gap-2">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors">
-              Отмена
-            </button>
-            <button type="submit" disabled={saving || !title.trim()}
-              className="px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
-              {saving ? 'Сохранение...' : 'Сохранить'}
-            </button>
-          </div>
-        </div>
-      </form>
-    </ModalShell>
-  );
-}
 
 /* ─── Modal: Team Member Detail ─── */
 

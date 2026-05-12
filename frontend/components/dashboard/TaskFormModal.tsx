@@ -354,10 +354,11 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
                 {attachments.map((att, i) => {
                   const isImage = att.mimeType?.startsWith('image/');
                   const isVideo = att.mimeType?.startsWith('video/');
+                  const attFileUrl = att.fileUrl || (att as any).url || (att as any).file_url || '';
                   return (
                     <div key={i} className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
                       {isImage ? (
-                        <img src={att.fileUrl} alt="" className="w-8 h-8 rounded object-cover shrink-0" />
+                        <img src={attFileUrl} alt="" className="w-8 h-8 rounded object-cover shrink-0" />
                       ) : (
                         <div className="w-8 h-8 rounded bg-gray-200 dark:bg-gray-600 flex items-center justify-center shrink-0">
                           {isVideo ? (
@@ -379,7 +380,7 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
                       </span>
                       <button
                         type="button"
-                        onClick={() => setPreviewFile({ url: att.fileUrl, name: att.fileName })}
+                        onClick={() => setPreviewFile({ url: attFileUrl, name: att.fileName })}
                         className="shrink-0 p-1 text-gray-400 hover:text-violet-500 transition-colors"
                         title="Просмотр"
                       >
