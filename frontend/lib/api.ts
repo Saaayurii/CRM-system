@@ -11,6 +11,10 @@ const api = axios.create({
 
 // Request interceptor — attach Bearer token and optional account override
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+  // For FormData let the browser set Content-Type with the correct boundary
+  if (config.data instanceof FormData) {
+    delete (config.headers as any)['Content-Type'];
+  }
   if (typeof window !== 'undefined') {
     const token = localStorage.getItem('accessToken');
     if (token && config.headers) {
