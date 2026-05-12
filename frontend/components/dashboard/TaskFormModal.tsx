@@ -51,9 +51,14 @@ const PRIORITY_OPTIONS = [
 export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalProps) {
   const addToast = useToastStore((s) => s.addToast);
   const [loading, setLoading] = useState(false);
-  const [attachments, setAttachments] = useState<TaskAttachment[]>(
-    Array.isArray(task?.attachments) ? task.attachments : []
-  );
+  const [attachments, setAttachments] = useState<TaskAttachment[]>(() => {
+    const raw = task?.attachments;
+    if (Array.isArray(raw)) return raw;
+    if (typeof raw === 'string') {
+      try { const p = JSON.parse(raw); return Array.isArray(p) ? p : []; } catch { return []; }
+    }
+    return [];
+  });
   const [uploading, setUploading] = useState(false);
   const [previewFile, setPreviewFile] = useState<{ url: string; name: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -110,6 +115,7 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
 
   const handleFileSelect = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
+    const browserSizes = Array.from(files).map((f) => f.size);
     setUploading(true);
     try {
       const formData = new FormData();
@@ -117,7 +123,11 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
       const { data } = await api.post('/chat-channels/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      const uploaded: TaskAttachment[] = Array.isArray(data) ? data : [data];
+      const rawList: any[] = Array.isArray(data) ? data : [data];
+      const uploaded: TaskAttachment[] = rawList.map((att, i) => ({
+        ...att,
+        fileSize: att.fileSize || browserSizes[i] || 0,
+      }));
       setAttachments((prev) => [...prev, ...uploaded]);
     } catch {
       addToast('error', 'Ошибка загрузки файла');
@@ -361,6 +371,7 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
                       <span className="text-xs text-gray-400 shrink-0">
                         {(() => {
                           const s = Number(att.fileSize) || 0;
+                          if (!s) return '—';
                           return s < 1024 * 1024
                             ? `${(s / 1024).toFixed(0)} КБ`
                             : `${(s / (1024 * 1024)).toFixed(1)} МБ`;

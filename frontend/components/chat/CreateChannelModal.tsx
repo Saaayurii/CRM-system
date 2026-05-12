@@ -268,7 +268,7 @@ export default function CreateChannelModal({ onClose }: CreateChannelModalProps)
                     <div className="w-8 h-8 rounded-full bg-sky-500 flex items-center justify-center text-white text-xs font-semibold shrink-0 overflow-hidden">
                       {user.avatarUrl
                         ? <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" />
-                        : user.name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()}
+                        : (user.name || '').split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()}
                     </div>
                     <div className="min-w-0">
                       <p className="font-medium text-gray-800 dark:text-gray-100 truncate">{user.name}</p>

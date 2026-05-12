@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useToastStore } from '@/stores/toastStore';
-import { ChatMessage as ChatMessageType } from '@/stores/chatStore';
+import { ChatMessage as ChatMessageType, useChatStore } from '@/stores/chatStore';
 import MediaViewer, { MediaItem } from './MediaViewer';
 import FilePreviewModal from '@/components/ui/FilePreviewModal';
 
@@ -101,7 +101,7 @@ const TG_SENDER_RE = /^\*\*(.+?):\*\* ?([\s\S]*)$/;
 /* ─── Readers tooltip ─── */
 function ReaderAvatar({ reader, size = 'sm' }: { reader: Reader; size?: 'sm' | 'xs' }) {
   const sz = size === 'xs' ? 'w-4 h-4 text-[8px]' : 'w-6 h-6 text-[10px]';
-  const initials = reader.name.split(' ').map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || '?';
+  const initials = (reader.name || '').split(' ').map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || '?';
   return (
     <div className={`${sz} rounded-full bg-sky-500 flex items-center justify-center text-white font-semibold shrink-0 overflow-hidden relative ring-1 ring-white dark:ring-gray-800`}>
       {initials}
@@ -179,6 +179,7 @@ function parseTgMessage(text?: string): { sender: string; body: string } | null 
 
 export default function ChatMessage({ message, isOwn, showAvatar, isRead, readers = [], onReply, onScrollToReply, onReact, onDelete, onEdit, onPin, isPinned, canPin, highlightQuery }: ChatMessageProps) {
   const addToast = useToastStore((s) => s.addToast);
+  const setEditingMessage = useChatStore((s) => s.setEditingMessage);
   const isVoice = message.messageType === 'voice';
   const displaySenderName = resolveDisplayName(message.senderName);
   const isSenderDeleted = !message.senderName || DELETED_EMAIL_RE.test(message.senderName);
@@ -219,8 +220,6 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
   const touchMoved = useRef(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [msgSnapParticles, setMsgSnapParticles] = useState<{ id: number; tx: number; ty: number; size: number; hue: number; delay: number }[]>([]);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editText, setEditText] = useState('');
 
   const openViewer = useCallback((mediaIndex: number) => setViewerIndex(mediaIndex), []);
   const closeViewer = useCallback(() => setViewerIndex(null), []);
@@ -265,9 +264,8 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
   }, [isDeleting, onDelete, message]);
 
   const handleEditStart = useCallback(() => {
-    setEditText(message.text ?? '');
-    setIsEditing(true);
-  }, [message.text]);
+    if (onEdit) setEditingMessage(message);
+  }, [message, onEdit, setEditingMessage]);
 
   // Close emoji picker and mobile actions on outside click/tap
   useEffect(() => {
@@ -402,34 +400,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
               )}
 
               {/* Text (caption if album, otherwise regular message text) */}
-              {displayText && (
-                isEditing ? (
-                  <div>
-                    <textarea
-                      autoFocus
-                      value={editText}
-                      onChange={(e) => setEditText(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          const trimmed = editText.trim();
-                          if (trimmed) { onEdit?.(trimmed); setIsEditing(false); }
-                        }
-                        if (e.key === 'Escape') setIsEditing(false);
-                      }}
-                      rows={Math.max(1, editText.split('\n').length)}
-                      className={`w-full resize-none rounded-lg px-2 py-1 text-sm outline-none ${isOwn ? 'bg-violet-400/30 text-white placeholder:text-violet-200' : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100'}`}
-                    />
-                    <div className="flex items-center gap-2 mt-1 justify-end">
-                      <button onClick={() => setIsEditing(false)} className={`text-xs px-2 py-0.5 rounded ${isOwn ? 'text-violet-200 hover:text-white' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}>Отмена</button>
-                      <button
-                        onClick={() => { const t = editText.trim(); if (t) { onEdit?.(t); setIsEditing(false); } }}
-                        className={`text-xs px-2 py-0.5 rounded font-medium ${isOwn ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-violet-100 hover:bg-violet-200 dark:bg-violet-900/30 dark:hover:bg-violet-800/50 text-violet-700 dark:text-violet-300'}`}
-                      >Сохранить</button>
-                    </div>
-                  </div>
-                ) : renderText(displayText, isOwn, highlightQuery)
-              )}
+              {displayText && renderText(displayText, isOwn, highlightQuery)}
 
               {/* Single image */}
               {!hasAlbum && mediaAtts.length === 1 && mediaAtts[0].mimeType?.startsWith('image/') && (() => {

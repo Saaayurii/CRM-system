@@ -7,6 +7,107 @@ import api from '@/lib/api';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
 
+/* ───────── Date helpers ───────── */
+
+const RU_MONTHS = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+const RU_MONTHS_FULL = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+const RU_DOW = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+
+function toDateKey(dateStr: string): string {
+  const d = new Date(dateStr);
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
+
+function formatDateSep(dateStr: string): string {
+  const d = new Date(dateStr);
+  const now = new Date();
+  if (d.getFullYear() === now.getFullYear()) {
+    return `${d.getDate()} ${RU_MONTHS[d.getMonth()]}`;
+  }
+  return `${d.getDate()} ${RU_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+/* ───────── Calendar Picker ───────── */
+
+function CalendarPicker({
+  messageDates,
+  onSelectDate,
+  onClose,
+}: {
+  messageDates: Set<string>;
+  onSelectDate: (key: string) => void;
+  onClose: () => void;
+}) {
+  const today = new Date();
+  const [viewYear, setViewYear] = useState(today.getFullYear());
+  const [viewMonth, setViewMonth] = useState(today.getMonth());
+
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const firstDow = (new Date(viewYear, viewMonth, 1).getDay() + 6) % 7; // Mon=0
+
+  const cells: (number | null)[] = [];
+  for (let i = 0; i < firstDow; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+  const prevMonth = () => {
+    if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); }
+    else setViewMonth(m => m - 1);
+  };
+  const nextMonth = () => {
+    if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1); }
+    else setViewMonth(m => m + 1);
+  };
+
+  return (
+    <div className="absolute top-full right-0 mt-1 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl shadow-xl p-3 w-64" onClick={(e) => e.stopPropagation()}>
+      {/* Month navigation */}
+      <div className="flex items-center justify-between mb-2">
+        <button onClick={prevMonth} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+        </button>
+        <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">{RU_MONTHS_FULL[viewMonth]} {viewYear}</span>
+        <button onClick={nextMonth} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+        </button>
+      </div>
+
+      {/* Day-of-week headers */}
+      <div className="grid grid-cols-7 mb-1">
+        {RU_DOW.map((d) => (
+          <div key={d} className="text-center text-[10px] font-medium text-gray-400 dark:text-gray-500 py-0.5">{d}</div>
+        ))}
+      </div>
+
+      {/* Day cells */}
+      <div className="grid grid-cols-7 gap-y-0.5">
+        {cells.map((day, i) => {
+          if (!day) return <div key={i} />;
+          const key = `${viewYear}-${viewMonth}-${day}`;
+          const hasMsg = messageDates.has(key);
+          const isToday = viewYear === today.getFullYear() && viewMonth === today.getMonth() && day === today.getDate();
+          return (
+            <button
+              key={i}
+              onClick={() => { if (hasMsg) { onSelectDate(key); onClose(); } }}
+              disabled={!hasMsg}
+              className={`
+                relative w-full aspect-square flex items-center justify-center text-xs rounded-full transition-colors
+                ${isToday ? 'font-bold' : ''}
+                ${hasMsg
+                  ? 'text-gray-800 dark:text-gray-100 hover:bg-violet-100 dark:hover:bg-violet-900/30 hover:text-violet-600 cursor-pointer'
+                  : 'text-gray-300 dark:text-gray-600 cursor-default'}
+              `}
+            >
+              {day}
+              {hasMsg && <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-violet-500" />}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 interface ChatWindowProps {
   onBack: () => void;
 }
@@ -28,6 +129,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
   const onlineUsers = useChatStore((s) => s.onlineUsers);
   const channelReadAts = useChatStore((s) => s.channelReadAts);
   const setChatWindowOpen = useChatStore((s) => s.setChatWindowOpen);
+  const setEditingMessage = useChatStore((s) => s.setEditingMessage);
   const user = useAuthStore((s) => s.user);
 
   useEffect(() => {
@@ -55,6 +157,8 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
   const [showScrollBtn, setShowScrollBtn] = useState(false);
   const [snapParticles, setSnapParticles] = useState<{ id: number; tx: number; ty: number; size: number; hue: number; delay: number }[]>([]);
   const [isSnapping, setIsSnapping] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
+  const calendarBtnRef = useRef<HTMLDivElement>(null);
   const pendingScrollIdRef = useRef<number | null>(null);
   const scrollFetchAttemptsRef = useRef(0);
   const MAX_SCROLL_FETCHES = 20; // 20 × 50 = 1000 сообщений максимум
@@ -109,11 +213,12 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
     });
   }, [messages, isLoadingMessages, hasMoreMessages, activeChannelId, fetchMessages, doHighlightScroll]);
 
-  // При смене канала сбрасываем ожидающий скролл
+  // При смене канала сбрасываем ожидающий скролл и режим редактирования
   useEffect(() => {
     pendingScrollIdRef.current = null;
     scrollFetchAttemptsRef.current = 0;
-  }, [activeChannelId]);
+    setEditingMessage(null);
+  }, [activeChannelId, setEditingMessage]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -195,6 +300,32 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
     if (searchMatches.length === 0) return;
     setMatchIdx((i) => (i + dir + searchMatches.length) % searchMatches.length);
   };
+
+  // Date keys of all loaded messages for calendar highlighting
+  const messageDates = useMemo(() => {
+    const set = new Set<string>();
+    messages.forEach((m) => set.add(toDateKey(m.createdAt)));
+    return set;
+  }, [messages]);
+
+  const scrollToDate = useCallback((key: string) => {
+    const first = messages.find((m) => toDateKey(m.createdAt) === key);
+    if (!first) return;
+    const el = messagesContainerRef.current?.querySelector(`[data-msgid="${first.id}"]`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [messages]);
+
+  // Close calendar on outside click
+  useEffect(() => {
+    if (!showCalendar) return;
+    const handler = (e: MouseEvent) => {
+      if (calendarBtnRef.current && !calendarBtnRef.current.contains(e.target as Node)) {
+        setShowCalendar(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showCalendar]);
 
   // Mark initial load when channel changes
   useEffect(() => {
@@ -315,7 +446,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
     if (msg.attachments && msg.attachments.length > 0) {
       await Promise.allSettled(
         msg.attachments.map((att) => {
-          const filename = att.fileUrl.split('/').pop();
+          const filename = att.fileUrl?.split('/').pop();
           if (!filename) return Promise.resolve();
           return api.delete(`/chat-channels/upload/${filename}`).catch(() => {});
         })
@@ -453,9 +584,33 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
             </p>
           </div>
 
+          {/* Calendar picker */}
+          <div className="relative" ref={calendarBtnRef}>
+            <button
+              onClick={() => { setShowCalendar((v) => !v); setShowSearch(false); setShowInfo(false); }}
+              className={`p-2 rounded-lg transition-colors ${
+                showCalendar
+                  ? 'bg-violet-100 text-violet-600 dark:bg-violet-500/20 dark:text-violet-400'
+                  : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-200 dark:hover:bg-gray-700'
+              }`}
+              title="Перейти к дате"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </button>
+            {showCalendar && (
+              <CalendarPicker
+                messageDates={messageDates}
+                onSelectDate={scrollToDate}
+                onClose={() => setShowCalendar(false)}
+              />
+            )}
+          </div>
+
           {/* Search toggle */}
           <button
-            onClick={() => { setShowSearch((v) => !v); setShowInfo(false); }}
+            onClick={() => { setShowSearch((v) => !v); setShowInfo(false); setShowCalendar(false); }}
             className={`p-2 rounded-lg transition-colors ${
               showSearch
                 ? 'bg-violet-100 text-violet-600 dark:bg-violet-500/20 dark:text-violet-400'
@@ -624,33 +779,43 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
             const activeMatch = searchMatches.length > 0 && searchMatches[matchIdx]?.msg.id === msg.id;
             const isMatchedMsg = showSearch && searchQuery.trim().length >= 2 && searchMatches.some((m) => m.msg.id === msg.id);
             const isMsgPinned = pinnedMessages.some((p) => p.id === msg.id);
-
             const isReplyHighlighted = highlightedMsgId === msg.id;
+
+            const showDateSep = idx === 0 || toDateKey(messages[idx - 1].createdAt) !== toDateKey(msg.createdAt);
+
             return (
-              <div
-                key={msg.id}
-                data-msgid={msg.id}
-                className={[
-                  activeMatch ? 'rounded-xl ring-2 ring-violet-400 dark:ring-violet-500 ring-offset-2 dark:ring-offset-gray-900' : '',
-                  isReplyHighlighted ? 'chat-reply-highlight' : '',
-                ].filter(Boolean).join(' ')}
-              >
-                <ChatMessage
-                  message={msg}
-                  isOwn={isOwn}
-                  showAvatar={showAvatar}
-                  isRead={read}
-                  readers={readers}
-                  onReply={() => setReplyToMessage(msg)}
-                  onScrollToReply={msg.replyToMessage?.id ? () => scrollToMessage(msg.replyToMessage!.id) : undefined}
-                  onReact={reactToMessage}
-                  onDelete={handleDeleteMessage}
-                  onEdit={isOwn ? (newText: string) => editMessageSocket(msg.id, newText) : undefined}
-                  onPin={canPin ? handlePin : undefined}
-                  isPinned={isMsgPinned}
-                  canPin={canPin}
-                  highlightQuery={isMatchedMsg ? searchQuery.trim() : undefined}
-                />
+              <div key={msg.id}>
+                {showDateSep && (
+                  <div className="flex justify-center py-3">
+                    <span className="text-xs text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-800/80 px-3 py-1 rounded-full select-none">
+                      {formatDateSep(msg.createdAt)}
+                    </span>
+                  </div>
+                )}
+                <div
+                  data-msgid={msg.id}
+                  className={[
+                    activeMatch ? 'rounded-xl ring-2 ring-violet-400 dark:ring-violet-500 ring-offset-2 dark:ring-offset-gray-900' : '',
+                    isReplyHighlighted ? 'chat-reply-highlight' : '',
+                  ].filter(Boolean).join(' ')}
+                >
+                  <ChatMessage
+                    message={msg}
+                    isOwn={isOwn}
+                    showAvatar={showAvatar}
+                    isRead={read}
+                    readers={readers}
+                    onReply={() => setReplyToMessage(msg)}
+                    onScrollToReply={msg.replyToMessage?.id ? () => scrollToMessage(msg.replyToMessage!.id) : undefined}
+                    onReact={reactToMessage}
+                    onDelete={handleDeleteMessage}
+                    onEdit={isOwn ? (newText: string) => editMessageSocket(msg.id, newText) : undefined}
+                    onPin={canPin ? handlePin : undefined}
+                    isPinned={isMsgPinned}
+                    canPin={canPin}
+                    highlightQuery={isMatchedMsg ? searchQuery.trim() : undefined}
+                  />
+                </div>
               </div>
             );
           })}
