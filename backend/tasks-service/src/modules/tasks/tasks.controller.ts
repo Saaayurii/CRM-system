@@ -41,6 +41,7 @@ export class TasksController {
   @ApiQuery({ name: 'projectId', required: false })
   @ApiQuery({ name: 'status', required: false })
   @ApiQuery({ name: 'assignedToUserId', required: false })
+  @ApiQuery({ name: 'constructionSiteId', required: false })
   async findAll(
     @CurrentUser() user: RequestUser,
     @Query('page') page?: number,
@@ -48,11 +49,13 @@ export class TasksController {
     @Query('projectId') projectId?: number,
     @Query('status') status?: number,
     @Query('assignedToUserId') assignedToUserId?: number,
+    @Query('constructionSiteId') constructionSiteId?: number,
   ) {
     return this.tasksService.findAll(user.accountId, page || 1, limit || 20, {
       projectId,
       status,
       assignedToUserId,
+      constructionSiteId,
     });
   }
 

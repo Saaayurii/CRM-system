@@ -11,7 +11,7 @@ export class DocumentsService {
     accountId: number,
     page: number,
     limit: number,
-    filters?: { projectId?: number; documentType?: string; status?: string },
+    filters?: { projectId?: number; documentType?: string; status?: string; constructionSiteId?: number },
   ) {
     return this.documentRepository.findAll(accountId, page, limit, filters);
   }

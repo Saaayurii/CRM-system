@@ -33,6 +33,7 @@ export class DocumentsController {
   @ApiQuery({ name: 'projectId', required: false, type: Number })
   @ApiQuery({ name: 'documentType', required: false, type: String })
   @ApiQuery({ name: 'status', required: false, type: String })
+  @ApiQuery({ name: 'constructionSiteId', required: false, type: Number })
   findAll(
     @CurrentUser('accountId') accountId: number,
     @Query('page') page: number = 1,
@@ -40,11 +41,13 @@ export class DocumentsController {
     @Query('projectId') projectId?: number,
     @Query('documentType') documentType?: string,
     @Query('status') status?: string,
+    @Query('constructionSiteId') constructionSiteId?: number,
   ) {
     const filters: any = {};
     if (projectId) filters.projectId = +projectId;
     if (documentType) filters.documentType = documentType;
     if (status) filters.status = status;
+    if (constructionSiteId) filters.constructionSiteId = +constructionSiteId;
     return this.documentsService.findAll(accountId, +page, +limit, filters);
   }
 

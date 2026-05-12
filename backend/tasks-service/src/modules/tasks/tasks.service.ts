@@ -22,6 +22,7 @@ export class TasksService {
       projectId?: number;
       status?: number;
       assignedToUserId?: number;
+      constructionSiteId?: number;
     },
   ) {
     const skip = (page - 1) * limit;

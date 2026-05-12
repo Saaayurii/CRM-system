@@ -20,6 +20,7 @@ interface ObjectSite {
   areaSize?: number;
   projectId?: number;
   createdAt?: string;
+  photos?: string[];
 }
 
 interface Project {
@@ -35,6 +36,15 @@ interface Task {
   priority: number;
   dueDate?: string;
   assignees?: { id: number; userId: number; userName?: string }[];
+}
+
+interface Document {
+  id: number;
+  title: string;
+  documentType?: string;
+  status?: string;
+  fileUrl?: string;
+  createdAt?: string;
 }
 
 const STATUS_LABELS: Record<number, { label: string; color: string }> = {
@@ -59,7 +69,18 @@ const PRIORITY_LABELS: Record<number, { label: string; color: string }> = {
   3: { label: 'Критический', color: 'text-red-500' },
 };
 
-type TabKey = 'overview' | 'tasks';
+type TabKey = 'overview' | 'tasks' | 'documents' | 'media';
+
+const TABS: { key: TabKey; label: string }[] = [
+  { key: 'overview', label: 'Обзор' },
+  { key: 'tasks', label: 'Задачи' },
+  { key: 'documents', label: 'Документы' },
+  { key: 'media', label: 'Медиа' },
+];
+
+function isImage(url: string) {
+  return /\.(jpe?g|png|gif|webp|avif|svg)(\?|$)/i.test(url);
+}
 
 export default function ObjectDetailPage() {
   const params = useParams();
@@ -76,6 +97,10 @@ export default function ObjectDetailPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [tasksLoading, setTasksLoading] = useState(false);
   const [tasksLoaded, setTasksLoaded] = useState(false);
+
+  const [docs, setDocs] = useState<Document[]>([]);
+  const [docsLoading, setDocsLoading] = useState(false);
+  const [docsLoaded, setDocsLoaded] = useState(false);
 
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState('');
@@ -117,16 +142,30 @@ export default function ObjectDetailPage() {
   useEffect(() => {
     if (activeTab === 'tasks' && !tasksLoaded && !tasksLoading) {
       setTasksLoading(true);
-      api.get('/tasks', { params: { projectId, limit: 200 } })
+      api.get('/tasks', { params: { constructionSiteId: objectId, limit: 200 } })
         .then((r) => {
-          const arr = r.data?.data || r.data?.tasks || r.data || [];
+          const arr = r.data?.tasks || r.data?.data || r.data || [];
           setTasks(Array.isArray(arr) ? arr : []);
           setTasksLoaded(true);
         })
         .catch(() => setTasks([]))
         .finally(() => setTasksLoading(false));
     }
-  }, [activeTab, tasksLoaded, tasksLoading, projectId]);
+  }, [activeTab, tasksLoaded, tasksLoading, objectId]);
+
+  useEffect(() => {
+    if (activeTab === 'documents' && !docsLoaded && !docsLoading) {
+      setDocsLoading(true);
+      api.get('/documents', { params: { constructionSiteId: objectId, limit: 200 } })
+        .then((r) => {
+          const arr = r.data?.data || r.data?.documents || r.data || [];
+          setDocs(Array.isArray(arr) ? arr : []);
+          setDocsLoaded(true);
+        })
+        .catch(() => setDocs([]))
+        .finally(() => setDocsLoading(false));
+    }
+  }, [activeTab, docsLoaded, docsLoading, objectId]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -162,13 +201,13 @@ export default function ObjectDetailPage() {
   if (!obj) return null;
 
   const statusInfo = STATUS_LABELS[obj.status ?? 0] ?? STATUS_LABELS[0];
+  const photos: string[] = Array.isArray(obj.photos) ? obj.photos : [];
 
   return (
     <div className="space-y-6">
       {/* ─── Header ─── */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
-          {/* Breadcrumb */}
           <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-2 flex-wrap">
             <button onClick={() => router.push('/dashboard/projects')} className="hover:text-violet-500 transition-colors">
               Проекты
@@ -180,11 +219,8 @@ export default function ObjectDetailPage() {
             <svg className="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
             <span className="text-gray-700 dark:text-gray-200 font-medium truncate max-w-[180px]">{obj.name}</span>
           </div>
-
           <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
-              {obj.name}
-            </h1>
+            <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">{obj.name}</h1>
             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusInfo.color}`}>
               {statusInfo.label}
             </span>
@@ -215,10 +251,7 @@ export default function ObjectDetailPage() {
       {/* ─── Tabs ─── */}
       <div className="border-b border-gray-200 dark:border-gray-700">
         <div className="flex gap-1 -mb-px">
-          {([
-            { key: 'overview', label: 'Обзор' },
-            { key: 'tasks', label: 'Задачи' },
-          ] as const).map((t) => (
+          {TABS.map((t) => (
             <button
               key={t.key}
               onClick={() => setActiveTab(t.key)}
@@ -234,10 +267,9 @@ export default function ObjectDetailPage() {
         </div>
       </div>
 
-      {/* ─── Overview tab ─── */}
+      {/* ─── Overview ─── */}
       {activeTab === 'overview' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Main info */}
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-6">
             <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-4">Основная информация</h3>
             {editing ? (
@@ -297,7 +329,6 @@ export default function ObjectDetailPage() {
             )}
           </div>
 
-          {/* Dates card */}
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-6">
             <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-4">Сроки</h3>
             {editing ? (
@@ -316,18 +347,18 @@ export default function ObjectDetailPage() {
                 <Row label="Дата начала" value={obj.startDate ? new Date(obj.startDate).toLocaleDateString('ru-RU') : '—'} />
                 <Row label="Плановое окончание" value={obj.plannedEndDate ? new Date(obj.plannedEndDate).toLocaleDateString('ru-RU') : '—'} />
                 <Row label="Фактическое окончание" value={obj.actualEndDate ? new Date(obj.actualEndDate).toLocaleDateString('ru-RU') : '—'} />
-                {obj.areaSize && <Row label="Площадь (м²)" value={String(obj.areaSize)} />}
+                {obj.areaSize != null && <Row label="Площадь (м²)" value={String(obj.areaSize)} />}
               </dl>
             )}
           </div>
         </div>
       )}
 
-      {/* ─── Tasks tab ─── */}
+      {/* ─── Tasks ─── */}
       {activeTab === 'tasks' && (
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center justify-between">
-            <h2 className="font-semibold text-gray-800 dark:text-gray-100">Задачи проекта</h2>
+            <h2 className="font-semibold text-gray-800 dark:text-gray-100">Задачи объекта</h2>
           </div>
           {tasksLoading ? (
             <div className="py-12 flex justify-center"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-violet-500" /></div>
@@ -346,11 +377,7 @@ export default function ObjectDetailPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
                   {tasks.map((task) => (
-                    <tr
-                      key={task.id}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer transition-colors"
-                      onClick={() => router.push(`/dashboard/projects/${projectId}?tab=tasks`)}
-                    >
+                    <tr key={task.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 transition-colors">
                       <td className="py-3 px-4 text-gray-800 dark:text-gray-100 font-medium">{task.title}</td>
                       <td className="py-3 px-4">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${TASK_STATUS[task.status]?.color ?? 'bg-gray-100 text-gray-600'}`}>
@@ -369,6 +396,82 @@ export default function ObjectDetailPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ─── Documents ─── */}
+      {activeTab === 'documents' && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60">
+            <h2 className="font-semibold text-gray-800 dark:text-gray-100">Документы объекта</h2>
+          </div>
+          {docsLoading ? (
+            <div className="py-12 flex justify-center"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-violet-500" /></div>
+          ) : docs.length === 0 ? (
+            <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">Документов нет</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
+                    <th className="py-3 px-4 text-left font-semibold">Название</th>
+                    <th className="py-3 px-4 text-left font-semibold">Тип</th>
+                    <th className="py-3 px-4 text-left font-semibold">Статус</th>
+                    <th className="py-3 px-4 text-left font-semibold">Дата</th>
+                    <th className="py-3 px-4 text-left font-semibold"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
+                  {docs.map((doc) => (
+                    <tr key={doc.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 transition-colors">
+                      <td className="py-3 px-4 text-gray-800 dark:text-gray-100 font-medium">{doc.title}</td>
+                      <td className="py-3 px-4 text-gray-500 dark:text-gray-400">{doc.documentType ?? '—'}</td>
+                      <td className="py-3 px-4 text-gray-500 dark:text-gray-400">{doc.status ?? '—'}</td>
+                      <td className="py-3 px-4 text-gray-500 dark:text-gray-400 text-xs">
+                        {doc.createdAt ? new Date(doc.createdAt).toLocaleDateString('ru-RU') : '—'}
+                      </td>
+                      <td className="py-3 px-4">
+                        {doc.fileUrl && (
+                          <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer"
+                            className="text-violet-500 hover:text-violet-600 text-xs font-medium">
+                            Открыть
+                          </a>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ─── Media ─── */}
+      {activeTab === 'media' && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-6">
+          <h2 className="font-semibold text-gray-800 dark:text-gray-100 mb-4">Медиа объекта</h2>
+          {photos.length === 0 ? (
+            <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">Медиафайлов нет</div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+              {photos.map((url, i) => (
+                <a key={i} href={url} target="_blank" rel="noopener noreferrer"
+                  className="block aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 hover:ring-2 hover:ring-violet-400 transition-all">
+                  {isImage(url) ? (
+                    <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center gap-1 text-gray-400">
+                      <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
+                      </svg>
+                      <span className="text-xs">Видео</span>
+                    </div>
+                  )}
+                </a>
+              ))}
             </div>
           )}
         </div>

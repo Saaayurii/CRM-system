@@ -42,6 +42,7 @@ export class DocumentsGatewayController {
   @ApiQuery({ name: 'status', required: false })
   @ApiQuery({ name: 'projectId', required: false })
   @ApiQuery({ name: 'search', required: false })
+  @ApiQuery({ name: 'constructionSiteId', required: false })
   async findAllDocuments(
     @Req() req: Request,
     @Query('page') page?: number,
@@ -50,12 +51,13 @@ export class DocumentsGatewayController {
     @Query('status') status?: string,
     @Query('projectId') projectId?: number,
     @Query('search') search?: string,
+    @Query('constructionSiteId') constructionSiteId?: number,
   ) {
     return this.proxyService.forward('documents', {
       method: 'GET',
       path: '/documents',
       headers: { authorization: req.headers.authorization || '' },
-      params: { page, limit, documentType, status, projectId, search },
+      params: { page, limit, documentType, status, projectId, search, constructionSiteId },
     });
   }
 
