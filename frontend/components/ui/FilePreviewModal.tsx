@@ -22,7 +22,7 @@ type PreviewState =
   | { kind: 'error'; message: string };
 
 function getExt(url: string): string {
-  const clean = url.split('?')[0].split('#')[0];
+  const clean = (url || '').split('?')[0].split('#')[0];
   const dot = clean.lastIndexOf('.');
   return dot !== -1 ? clean.slice(dot + 1).toLowerCase() : '';
 }
@@ -122,8 +122,8 @@ export default function FilePreviewModal({ fileUrl, fileName, onClose }: FilePre
     return () => document.removeEventListener('keydown', handler);
   }, [onClose]);
 
-  const displayName = fileName || fileUrl.split('/').pop() || 'Файл';
-  const downloadUrl = normalizeFileUrl(fileUrl) || fileUrl;
+  const displayName = fileName || (fileUrl || '').split('/').pop() || 'Файл';
+  const downloadUrl = normalizeFileUrl(fileUrl || '') || fileUrl || '';
   const ext = getExt(fileUrl);
 
   return (
