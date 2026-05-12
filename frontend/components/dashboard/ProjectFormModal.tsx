@@ -158,10 +158,10 @@ export default function ProjectFormModal({ project, onClose, onSaved }: ProjectF
     };
     if (description.trim()) payload.description = description.trim();
     if (budget) payload.budget = Number(budget);
-    if (actualCost) payload.actualCost = Number(actualCost);
+    if (isEdit && actualCost) payload.actualCost = Number(actualCost);
     if (startDate) payload.startDate = startDate;
     if (plannedEndDate) payload.plannedEndDate = plannedEndDate;
-    if (actualEndDate) payload.actualEndDate = actualEndDate;
+    if (isEdit && actualEndDate) payload.actualEndDate = actualEndDate;
     if (managerId) payload.projectManagerId = managerId;
     if (address.trim()) payload.address = address.trim();
     if (clientName.trim()) payload.clientName = clientName.trim();
