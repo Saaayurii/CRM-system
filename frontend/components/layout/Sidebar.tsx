@@ -213,7 +213,7 @@ export default function Sidebar() {
   const isInspector = roleCode === 'inspector';
   const isAdmin = roleCode === 'admin';
   const showTeams = isSuperAdmin || isAdmin || isPM || isHR;
-  const showChat = !isSuperAdmin;
+  const showChat = true;
 
   const trigger = useRef<HTMLButtonElement>(null);
   const sidebar = useRef<HTMLDivElement>(null);
