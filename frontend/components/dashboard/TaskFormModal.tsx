@@ -53,11 +53,12 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
   const [loading, setLoading] = useState(false);
   const [attachments, setAttachments] = useState<TaskAttachment[]>(() => {
     const raw = task?.attachments;
-    if (Array.isArray(raw)) return raw;
-    if (typeof raw === 'string') {
-      try { const p = JSON.parse(raw); return Array.isArray(p) ? p : []; } catch { return []; }
+    let parsed: any[] = [];
+    if (Array.isArray(raw)) parsed = raw;
+    else if (typeof raw === 'string') {
+      try { const p = JSON.parse(raw); parsed = Array.isArray(p) ? p : []; } catch { parsed = []; }
     }
-    return [];
+    return parsed.filter((a: any) => a?.fileUrl && a?.fileName);
   });
   const [uploading, setUploading] = useState(false);
   const [previewFile, setPreviewFile] = useState<{ url: string; name: string } | null>(null);
@@ -153,7 +154,7 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
         assignedToUserId: formData.assignedToUserId ? Number(formData.assignedToUserId) : null,
         dueDate: formData.dueDate || null,
         estimatedHours: formData.estimatedHours ? Number(formData.estimatedHours) : null,
-        attachments,
+        attachments: attachments.filter((a) => a.fileUrl && a.fileName),
       };
 
       const label = `Задача «${formData.title}»`;
@@ -376,17 +377,19 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
                             : `${(s / (1024 * 1024)).toFixed(1)} МБ`;
                         })()}
                       </span>
-                      <button
-                        type="button"
-                        onClick={() => setPreviewFile({ url: attFileUrl, name: att.fileName })}
-                        className="shrink-0 p-1 text-gray-400 hover:text-violet-500 transition-colors"
-                        title="Просмотр"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                        </svg>
-                      </button>
+                      {attFileUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setPreviewFile({ url: attFileUrl, name: att.fileName })}
+                          className="shrink-0 p-1 text-gray-400 hover:text-violet-500 transition-colors"
+                          title="Просмотр"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                          </svg>
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => setAttachments((prev) => prev.filter((_, idx) => idx !== i))}
