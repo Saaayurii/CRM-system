@@ -554,7 +554,7 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
                   {comments.map((c) => {
                     const author = c.userId ? userMap[c.userId] : null;
                     const name = author?.name || (c.userId ? `User #${c.userId}` : 'Система');
-                    const att: Attachment[] = Array.isArray(c.attachments) ? c.attachments : [];
+                    const att: Attachment[] = parseAttachments(c.attachments);
                     return (
                       <div key={c.id} className="flex gap-3">
                         <div className="w-8 h-8 rounded-full bg-violet-500 flex items-center justify-center text-white text-xs font-semibold shrink-0 overflow-hidden">
@@ -572,9 +572,16 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
                           {att.length > 0 && (
                             <div className="flex flex-wrap gap-2 mt-1.5">
                               {att.map((a, i) => (
-                                <a key={i} href={a.fileUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-violet-500 hover:underline">
-                                  📎 {a.fileName}
-                                </a>
+                                <button
+                                  key={i}
+                                  onClick={() => setPreviewFile({ url: a.fileUrl, name: a.fileName })}
+                                  className="flex items-center gap-1 text-xs text-violet-500 hover:underline"
+                                >
+                                  <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                                  </svg>
+                                  {a.fileName}
+                                </button>
                               ))}
                             </div>
                           )}
@@ -758,14 +765,6 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
                   </svg>
                 </button>
               </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx"
-                className="hidden"
-                onChange={(e) => handleFileSelect(e.target.files)}
-              />
               {attachments.length === 0 && <p className="text-xs text-gray-400">Нет файлов</p>}
               <div className="space-y-1.5">
                 {attachments.map((a, i) => (
@@ -790,6 +789,15 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
           </div>
         </div>
       </div>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx"
+        className="hidden"
+        onChange={(e) => handleFileSelect(e.target.files)}
+      />
 
       {previewFile && (
         <FilePreviewModal

@@ -319,7 +319,7 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
         key: 'projectId',
         header: 'Проект',
         render: (v, row) => {
-          const name = (row as Record<string, unknown>).projectName as string | undefined;
+          const name = (row as any).project?.name as string | undefined;
           if (name) return <span className="text-sm text-gray-700 dark:text-gray-300">{name}</span>;
           if (!v) return <span className="text-gray-400">—</span>;
           return <span className="text-sm text-gray-500">#{String(v)}</span>;
@@ -350,11 +350,13 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
         render: (v) => {
           if (!v || !Array.isArray(v) || v.length === 0) return <span className="text-gray-400">—</span>;
           return (
-            <span className="text-sm text-gray-700 dark:text-gray-300">
-              {(v as Array<{ userId: number; userName?: string }>)
-                .map((a) => a.userName || `#${a.userId}`)
-                .join(', ')}
-            </span>
+            <div className="flex flex-wrap gap-1">
+              {(v as Array<{ userId: number; userName?: string }>).map((a) => (
+                <span key={a.userId} className="text-sm text-gray-700 dark:text-gray-300">
+                  {a.userName || <UserName userId={a.userId} />}
+                </span>
+              ))}
+            </div>
           );
         },
       },
