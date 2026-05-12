@@ -20,6 +20,11 @@ export class CreateTaskDto {
   @IsOptional()
   projectId?: number;
 
+  @ApiPropertyOptional({ example: 1 })
+  @IsNumber()
+  @IsOptional()
+  constructionSiteId?: number;
+
   @ApiProperty({ example: 'Залить фундамент' })
   @IsString()
   @IsNotEmpty()
