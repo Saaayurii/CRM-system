@@ -11,11 +11,11 @@ import FilePreviewModal from '@/components/ui/FilePreviewModal';
 const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥', '👏', '🎉'];
 
 // Desktop side action buttons — defined here so TypeScript sees it before ChatMessage uses it
-function ActionButtons({ isOwn, isPinned, canPin, emojiRef, showEmojiPicker, setShowEmojiPicker, onReply, onPin, onDelete, onEdit, onReact, canEdit }: {
+function ActionButtons({ isOwn, isPinned, canPin, emojiRef, showEmojiPicker, setShowEmojiPicker, onReply, onPin, onDelete, onEdit, onCopy, onReact, canEdit }: {
   isOwn: boolean; isPinned?: boolean; canPin?: boolean; canEdit?: boolean;
   emojiRef: React.RefObject<HTMLDivElement | null>;
   showEmojiPicker: boolean; setShowEmojiPicker: (v: boolean) => void;
-  onReply: () => void; onPin?: () => void; onDelete: () => void; onEdit?: () => void;
+  onReply: () => void; onPin?: () => void; onDelete: () => void; onEdit?: () => void; onCopy?: () => void;
   onReact: (emoji: string) => void;
 }) {
   return (
@@ -42,6 +42,14 @@ function ActionButtons({ isOwn, isPinned, canPin, emojiRef, showEmojiPicker, set
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
         </svg>
       </button>
+      {onCopy && (
+        <button onClick={onCopy}
+          className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors" title="Скопировать">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+        </button>
+      )}
       {canPin && (
         <button onClick={onPin}
           className={`p-1.5 rounded-full transition-colors ${isPinned ? 'text-violet-500 hover:bg-violet-100 dark:hover:bg-violet-900/30' : 'text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-violet-500'}`}
@@ -538,6 +546,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
               setShowEmojiPicker={setShowEmojiPicker}
               onReply={onReply} onPin={onPin ? () => onPin(message) : undefined} onDelete={() => setConfirmDelete(true)}
               onEdit={onEdit ? handleEditStart : undefined} canEdit={!!onEdit && !!message.text}
+              onCopy={message.text ? () => { navigator.clipboard?.writeText(message.text!).then(() => addToast('success', 'Сообщение скопировано')).catch(() => {}); } : undefined}
               onReact={(emoji: string) => { onReact(message.id, emoji); setShowEmojiPicker(false); }}
             />
           </div>
