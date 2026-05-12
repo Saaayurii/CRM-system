@@ -27,9 +27,9 @@ function formatDateSep(dateStr: string): string {
   return `${d.getDate()} ${RU_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
 }
 
-/* ───────── Calendar Picker ───────── */
+/* ───────── Calendar Modal ───────── */
 
-function CalendarPicker({
+function CalendarModal({
   messageDates,
   onSelectDate,
   onClose,
@@ -59,50 +59,67 @@ function CalendarPicker({
   };
 
   return (
-    <div className="absolute top-full right-0 mt-1 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl shadow-xl p-3 w-64" onClick={(e) => e.stopPropagation()}>
-      {/* Month navigation */}
-      <div className="flex items-center justify-between mb-2">
-        <button onClick={prevMonth} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-        </button>
-        <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">{RU_MONTHS_FULL[viewMonth]} {viewYear}</span>
-        <button onClick={nextMonth} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-        </button>
-      </div>
+    /* Backdrop */
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      {/* Card */}
+      <div
+        className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-5 w-72 mx-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4">
+          <button onClick={prevMonth} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+          </button>
+          <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">{RU_MONTHS_FULL[viewMonth]} {viewYear}</span>
+          <button onClick={nextMonth} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+          </button>
+        </div>
 
-      {/* Day-of-week headers */}
-      <div className="grid grid-cols-7 mb-1">
-        {RU_DOW.map((d) => (
-          <div key={d} className="text-center text-[10px] font-medium text-gray-400 dark:text-gray-500 py-0.5">{d}</div>
-        ))}
-      </div>
+        {/* Day-of-week headers */}
+        <div className="grid grid-cols-7 mb-1">
+          {RU_DOW.map((d) => (
+            <div key={d} className="text-center text-[10px] font-medium text-gray-400 dark:text-gray-500 py-0.5">{d}</div>
+          ))}
+        </div>
 
-      {/* Day cells */}
-      <div className="grid grid-cols-7 gap-y-0.5">
-        {cells.map((day, i) => {
-          if (!day) return <div key={i} />;
-          const key = `${viewYear}-${viewMonth}-${day}`;
-          const hasMsg = messageDates.has(key);
-          const isToday = viewYear === today.getFullYear() && viewMonth === today.getMonth() && day === today.getDate();
-          return (
-            <button
-              key={i}
-              onClick={() => { if (hasMsg) { onSelectDate(key); onClose(); } }}
-              disabled={!hasMsg}
-              className={`
-                relative w-full aspect-square flex items-center justify-center text-xs rounded-full transition-colors
-                ${isToday ? 'font-bold' : ''}
-                ${hasMsg
-                  ? 'text-gray-800 dark:text-gray-100 hover:bg-violet-100 dark:hover:bg-violet-900/30 hover:text-violet-600 cursor-pointer'
-                  : 'text-gray-300 dark:text-gray-600 cursor-default'}
-              `}
-            >
-              {day}
-              {hasMsg && <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-violet-500" />}
-            </button>
-          );
-        })}
+        {/* Day cells */}
+        <div className="grid grid-cols-7 gap-y-1">
+          {cells.map((day, i) => {
+            if (!day) return <div key={i} />;
+            const key = `${viewYear}-${viewMonth}-${day}`;
+            const hasMsg = messageDates.has(key);
+            const isToday = viewYear === today.getFullYear() && viewMonth === today.getMonth() && day === today.getDate();
+            return (
+              <button
+                key={i}
+                onClick={() => { if (hasMsg) { onSelectDate(key); onClose(); } }}
+                disabled={!hasMsg}
+                className={[
+                  'relative w-full aspect-square flex items-center justify-center text-xs rounded-full transition-colors',
+                  isToday ? 'font-bold ring-1 ring-violet-400' : '',
+                  hasMsg
+                    ? 'text-gray-800 dark:text-gray-100 hover:bg-violet-100 dark:hover:bg-violet-900/30 hover:text-violet-600 cursor-pointer'
+                    : 'text-gray-300 dark:text-gray-600 cursor-default',
+                ].join(' ')}
+              >
+                {day}
+                {hasMsg && (
+                  <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-violet-500" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Hint */}
+        <p className="text-center text-[10px] text-gray-400 dark:text-gray-500 mt-3">
+          Дни с сообщениями помечены точкой
+        </p>
       </div>
     </div>
   );
@@ -158,7 +175,6 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
   const [snapParticles, setSnapParticles] = useState<{ id: number; tx: number; ty: number; size: number; hue: number; delay: number }[]>([]);
   const [isSnapping, setIsSnapping] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
-  const calendarBtnRef = useRef<HTMLDivElement>(null);
   const pendingScrollIdRef = useRef<number | null>(null);
   const scrollFetchAttemptsRef = useRef(0);
   const MAX_SCROLL_FETCHES = 20; // 20 × 50 = 1000 сообщений максимум
@@ -315,17 +331,6 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [messages]);
 
-  // Close calendar on outside click
-  useEffect(() => {
-    if (!showCalendar) return;
-    const handler = (e: MouseEvent) => {
-      if (calendarBtnRef.current && !calendarBtnRef.current.contains(e.target as Node)) {
-        setShowCalendar(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [showCalendar]);
 
   // Mark initial load when channel changes
   useEffect(() => {
@@ -584,29 +589,20 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
             </p>
           </div>
 
-          {/* Calendar picker */}
-          <div className="relative" ref={calendarBtnRef}>
-            <button
-              onClick={() => { setShowCalendar((v) => !v); setShowSearch(false); setShowInfo(false); }}
-              className={`p-2 rounded-lg transition-colors ${
-                showCalendar
-                  ? 'bg-violet-100 text-violet-600 dark:bg-violet-500/20 dark:text-violet-400'
-                  : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-200 dark:hover:bg-gray-700'
-              }`}
-              title="Перейти к дате"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-            </button>
-            {showCalendar && (
-              <CalendarPicker
-                messageDates={messageDates}
-                onSelectDate={scrollToDate}
-                onClose={() => setShowCalendar(false)}
-              />
-            )}
-          </div>
+          {/* Calendar button */}
+          <button
+            onClick={() => { setShowCalendar((v) => !v); setShowSearch(false); setShowInfo(false); }}
+            className={`p-2 rounded-lg transition-colors ${
+              showCalendar
+                ? 'bg-violet-100 text-violet-600 dark:bg-violet-500/20 dark:text-violet-400'
+                : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-200 dark:hover:bg-gray-700'
+            }`}
+            title="Перейти к дате"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </button>
 
           {/* Search toggle */}
           <button
@@ -787,9 +783,12 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
               <div key={msg.id}>
                 {showDateSep && (
                   <div className="flex justify-center py-3">
-                    <span className="text-xs text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-800/80 px-3 py-1 rounded-full select-none">
+                    <button
+                      onClick={() => setShowCalendar(true)}
+                      className="text-xs text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-800/80 hover:bg-gray-200 dark:hover:bg-gray-700/80 hover:text-gray-600 dark:hover:text-gray-300 px-3 py-1 rounded-full transition-colors cursor-pointer select-none"
+                    >
                       {formatDateSep(msg.createdAt)}
-                    </span>
+                    </button>
                   </div>
                 )}
                 <div
@@ -890,6 +889,15 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
           <ChatInput channelId={activeChannelId} projectId={activeChannel.projectId ?? undefined} />
         )}
       </div>
+
+      {/* Calendar modal */}
+      {showCalendar && (
+        <CalendarModal
+          messageDates={messageDates}
+          onSelectDate={scrollToDate}
+          onClose={() => setShowCalendar(false)}
+        />
+      )}
 
       {/* Info panel — desktop: right column; mobile: overlay */}
       {showInfo && (

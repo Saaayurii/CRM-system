@@ -196,6 +196,7 @@ interface ChatState {
   hasMoreChannels: boolean;
   isLoadingChannels: boolean;
   replyToMessage: ChatMessage | null;
+  editingMessage: ChatMessage | null;
   chatWindowOpen: boolean;
 
   // Actions
@@ -215,6 +216,7 @@ interface ChatState {
   fetchMessages: (channelId: number, cursor?: number) => Promise<void>;
   createChannel: (dto: CreateChannelDto) => Promise<ChatChannel | null>;
   setReplyToMessage: (message: ChatMessage | null) => void;
+  setEditingMessage: (message: ChatMessage | null) => void;
   pinMessage: (channelId: number, messageId: number, messageText: string, senderName: string) => void;
   unpinMessage: (channelId: number, messageId: number) => void;
 }
@@ -237,6 +239,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   hasMoreChannels: true,
   isLoadingChannels: false,
   replyToMessage: null,
+  editingMessage: null,
   chatWindowOpen: false,
 
   connect: () => {
@@ -642,6 +645,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
   setChatWindowOpen: (open) => set({ chatWindowOpen: open }),
   setReplyToMessage: (message) => {
     set({ replyToMessage: message });
+  },
+  setEditingMessage: (message) => {
+    set({ editingMessage: message });
   },
 
   pinMessage: (channelId, messageId, messageText, senderName) => {

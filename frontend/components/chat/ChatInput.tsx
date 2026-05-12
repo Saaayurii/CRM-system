@@ -170,10 +170,13 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
   const cancelledRef = useRef(false);
 
   const sendMessage = useChatStore((s) => s.sendMessage);
+  const editMessage = useChatStore((s) => s.editMessage);
   const startTyping = useChatStore((s) => s.startTyping);
   const stopTyping = useChatStore((s) => s.stopTyping);
   const replyToMessage = useChatStore((s) => s.replyToMessage);
   const setReplyToMessage = useChatStore((s) => s.setReplyToMessage);
+  const editingMessage = useChatStore((s) => s.editingMessage);
+  const setEditingMessage = useChatStore((s) => s.setEditingMessage);
 
   // Restore draft when switching channels
   useEffect(() => {
@@ -208,6 +211,25 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
     }, 400);
     return () => clearTimeout(timer);
   }, [text, channelId]);
+
+  // Populate editor when edit mode is activated
+  useEffect(() => {
+    const el = editorRef.current;
+    if (!el) return;
+    if (editingMessage) {
+      renderMarkdownInEditor(el, editingMessage.text ?? '');
+      setText(editingMessage.text ?? '');
+      requestAnimationFrame(() => {
+        const range = document.createRange();
+        range.selectNodeContents(el);
+        range.collapse(false);
+        const sel = window.getSelection();
+        sel?.removeAllRanges();
+        sel?.addRange(range);
+        el.focus();
+      });
+    }
+  }, [editingMessage]);
 
   // Cleanup timers on unmount
   useEffect(() => {
@@ -557,10 +579,27 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
     atMentionNodeRef.current = null;
   }, [atMentionStart]);
 
+  const clearEditor = useCallback(() => {
+    const el = editorRef.current;
+    setText('');
+    if (el) el.innerHTML = '';
+    try { localStorage.removeItem(DRAFT_KEY(channelId)); } catch { /* ignore */ }
+  }, [channelId]);
+
   const handleSend = useCallback(async () => {
     const el = editorRef.current;
     const raw = el ? serializeEditor(el) : text;
     const trimmed = raw.trim();
+
+    // Edit mode
+    if (editingMessage) {
+      if (!trimmed) return;
+      editMessage(editingMessage.id, trimmed);
+      setEditingMessage(null);
+      clearEditor();
+      return;
+    }
+
     if (!trimmed && pendingFiles.length === 0) return;
 
     const oversized = pendingFiles.find((pf) => pf.file.size > MAX_FILE_SIZE);
@@ -588,14 +627,12 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
 
     if (uploadedAttachments.length > 0) onFilesSent?.(uploadedAttachments);
 
-    setText('');
-    if (el) el.innerHTML = '';
-    try { localStorage.removeItem(DRAFT_KEY(channelId)); } catch { /* ignore */ }
+    clearEditor();
     setPendingFiles([]);
     xhrMapRef.current.clear();
     stopTyping(channelId);
     setIsSending(false);
-  }, [text, channelId, pendingFiles, sendMessage, stopTyping, replyToMessage, uploadFileWithProgress, onFilesSent]);
+  }, [text, channelId, pendingFiles, sendMessage, editMessage, editingMessage, setEditingMessage, clearEditor, stopTyping, replyToMessage, uploadFileWithProgress, onFilesSent]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent<HTMLDivElement>) => {
     // User mention picker has priority
@@ -897,6 +934,27 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
           </svg>
           <span className="text-xs text-amber-500 dark:text-amber-400">Черновик восстановлен</span>
+        </div>
+      )}
+
+      {/* Edit banner */}
+      {editingMessage && (
+        <div className="flex items-center gap-2 mb-2 px-3 py-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg border-l-2 border-sky-500">
+          <svg className="w-4 h-4 shrink-0 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium text-sky-500">Редактирование</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{editingMessage.text}</p>
+          </div>
+          <button
+            onClick={() => { setEditingMessage(null); clearEditor(); }}
+            className="shrink-0 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
       )}
 
