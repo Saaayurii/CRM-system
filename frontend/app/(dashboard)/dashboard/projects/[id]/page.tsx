@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useEffect, useState, useRef, useCallback, Suspense } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import api from '@/lib/api';
 import { useAutoRefresh } from '@/hooks/useAutoRefresh';
@@ -93,8 +93,19 @@ interface ChatMessage {
 interface ConstructionSite {
   id: number;
   name: string;
-  status?: string;
+  code?: string;
+  siteType?: string;
+  address?: string;
+  description?: string;
+  status?: number | string;
+  foremanId?: number;
+  startDate?: string;
+  plannedEndDate?: string;
+  actualEndDate?: string;
+  areaSize?: number;
   photos?: string[];
+  projectId?: number;
+  createdAt?: string;
 }
 
 // Normalize upload URLs:
@@ -298,6 +309,7 @@ const TABS = [
   { key: 'chat', label: 'Диалог' },
   { key: 'photos', label: 'Медиа' },
   { key: 'notes', label: 'Заметки' },
+  { key: 'objects', label: 'Объекты' },
 ] as const;
 
 interface MaterialRequest {
@@ -514,9 +526,10 @@ function fmtSize(bytes?: number) {
 
 /* ─── Main Page ─── */
 
-export default function ProjectDetailPage() {
+function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const addToast = useToastStore((s) => s.addToast);
   const projectId = Number(id);
   const onlineUsers = useChatStore((s) => s.onlineUsers);
@@ -525,7 +538,10 @@ export default function ProjectDetailPage() {
 
   const [project, setProject] = useState<Project | null>(null);
   const [loadingProject, setLoadingProject] = useState(true);
-  const [activeTab, setActiveTab] = useState<TabKey>('overview');
+  const [activeTab, setActiveTab] = useState<TabKey>(() => {
+    const tab = searchParams.get('tab') as TabKey | null;
+    return tab && TABS.some((t) => t.key === tab) ? tab : 'overview';
+  });
   const [showEditModal, setShowEditModal] = useState(false);
 const [pdfLoading, setPdfLoading] = useState(false);
 
@@ -648,6 +664,14 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   /* Equipment modal */
   const [showEqModal, setShowEqModal] = useState(false);
   const [editingEq, setEditingEq] = useState<Equipment | null>(null);
+
+  /* Objects tab */
+  const [objectsList, setObjectsList] = useState<ConstructionSite[]>([]);
+  const [objectsLoading, setObjectsLoading] = useState(false);
+  const [objectsLoaded, setObjectsLoaded] = useState(false);
+  const [showObjectModal, setShowObjectModal] = useState(false);
+  const [editingObject, setEditingObject] = useState<ConstructionSite | null>(null);
+  const [objectSaving, setObjectSaving] = useState(false);
 
   /* Overview summary */
   const [overviewSummary, setOverviewSummary] = useState<{
@@ -862,7 +886,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   const reloadSites = useCallback(async () => {
     setLoadingPhotos(true);
     try {
-      const r = await api.get(`/projects/${projectId}/construction-sites`, { params: { limit: 100 } });
+      const r = await api.get(`/construction-sites`, { params: { projectId, limit: 100 } });
       const s = r.data?.sites || r.data?.data || r.data || [];
       setSites(Array.isArray(s) ? s : []);
       setSitesLoaded(true);
@@ -1030,7 +1054,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
         api.get(`/projects/${projectId}/assignments`).catch(() => ({ data: {} })),
         api.get('/tasks', { params: { projectId, limit: 100 } }).catch(() => ({ data: [] })),
         api.get('/documents', { params: { projectId, limit: 100 } }).catch(() => ({ data: [] })),
-        api.get(`/projects/${projectId}/construction-sites`, { params: { limit: 100 } }).catch(() => ({ data: [] })),
+        api.get(`/construction-sites`, { params: { projectId, limit: 100 } }).catch(() => ({ data: [] })),
       ]).then(async ([teamRes, assignRes, tasksRes, docsRes, sitesRes]) => {
         const teams = Array.isArray(teamRes.data) ? teamRes.data : teamRes.data?.teams || [];
         const aData = assignRes.data?.assignments || assignRes.data?.data || assignRes.data || [];
@@ -1053,6 +1077,17 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
     if (activeTab === 'resources' && !resourcesLoaded && !loadingResources) reloadResources();
     if (activeTab === 'chat' && !channelChecked && !loadingChat) loadProjectChannels();
     if (activeTab === 'photos' && !sitesLoaded && !loadingPhotos) reloadSites();
+    if (activeTab === 'objects' && !objectsLoaded && !objectsLoading) {
+      setObjectsLoading(true);
+      api.get(`/construction-sites`, { params: { projectId, limit: 200 } })
+        .then((r) => {
+          const data = r.data?.sites || r.data?.data || r.data || [];
+          setObjectsList(Array.isArray(data) ? data : []);
+          setObjectsLoaded(true);
+        })
+        .catch(() => setObjectsList([]))
+        .finally(() => setObjectsLoading(false));
+    }
     if (activeTab === 'finance' && !financeLoaded && !loadingFinance) {
       setLoadingFinance(true);
       Promise.all([
@@ -1142,11 +1177,12 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
         try {
           let targetSite = sites[0] ?? null;
           if (!targetSite) {
-            const r = await api.get(`/projects/${projectId}/construction-sites`, { params: { limit: 1 } });
+            const r = await api.get(`/construction-sites`, { params: { projectId, limit: 1 } });
             const s = r.data?.sites || r.data?.data || r.data || [];
             targetSite = Array.isArray(s) && s.length > 0 ? s[0] : null;
             if (!targetSite) {
-              const createRes = await api.post(`/projects/${projectId}/construction-sites`, {
+              const createRes = await api.post(`/construction-sites`, {
+                projectId,
                 name: 'Основной объект',
                 address: project?.address || 'Не указан',
               });
@@ -1266,7 +1302,8 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
       // ensure at least one construction site exists
       let targetSite = sites[0];
       if (!targetSite) {
-        const r = await api.post(`/projects/${projectId}/construction-sites`, {
+        const r = await api.post(`/construction-sites`, {
+          projectId,
           name: 'Основной объект',
           address: project?.address || 'Не указан',
         });
@@ -2489,6 +2526,106 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
         </div>
       )}
 
+      {/* ─── Objects ─── */}
+      {activeTab === 'objects' && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center justify-between">
+            <h2 className="font-semibold text-gray-800 dark:text-gray-100">
+              Объекты проекта
+              {!objectsLoading && objectsList.length > 0 && (
+                <span className="ml-2 text-sm font-normal text-gray-400">({objectsList.length})</span>
+              )}
+            </h2>
+            <button
+              onClick={() => { setEditingObject(null); setShowObjectModal(true); }}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+              Добавить объект
+            </button>
+          </div>
+
+          {objectsLoading ? (
+            <div className="py-12 flex justify-center"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-violet-500" /></div>
+          ) : objectsList.length === 0 ? (
+            <div className="py-12 text-center">
+              <svg className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
+              </svg>
+              <p className="text-sm text-gray-400 dark:text-gray-500">Объектов пока нет</p>
+              <button onClick={() => { setEditingObject(null); setShowObjectModal(true); }} className="mt-2 text-xs text-violet-500 hover:text-violet-600 transition-colors">Добавить первый объект</button>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
+                    <th className="py-3 px-4 text-left font-semibold">Название</th>
+                    <th className="py-3 px-4 text-left font-semibold">Адрес</th>
+                    <th className="py-3 px-4 text-left font-semibold">Статус</th>
+                    <th className="py-3 px-4 text-left font-semibold">Нач. — Оконч.</th>
+                    <th className="py-3 px-4 w-28"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
+                  {objectsList.map((obj) => {
+                    const statusNum = typeof obj.status === 'string' ? parseInt(obj.status) : (obj.status ?? 0);
+                    const statusLabel = statusNum === 0 ? 'Планирование' : statusNum === 1 ? 'В работе' : statusNum === 2 ? 'Приостановлен' : statusNum === 3 ? 'Завершён' : '—';
+                    const statusColor = statusNum === 0 ? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300' : statusNum === 1 ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' : statusNum === 2 ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300' : 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300';
+                    return (
+                      <tr
+                        key={obj.id}
+                        className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer transition-colors"
+                        onClick={() => router.push(`/dashboard/projects/${projectId}/objects/${obj.id}`)}
+                      >
+                        <td className="py-3 px-4">
+                          <span className="font-medium text-gray-800 dark:text-gray-100">{obj.name}</span>
+                          {obj.code && <span className="ml-2 text-xs text-gray-400">({obj.code})</span>}
+                        </td>
+                        <td className="py-3 px-4 text-gray-600 dark:text-gray-400 max-w-[200px] truncate">{obj.address || '—'}</td>
+                        <td className="py-3 px-4">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusColor}`}>{statusLabel}</span>
+                        </td>
+                        <td className="py-3 px-4 text-gray-500 dark:text-gray-400 text-xs whitespace-nowrap">
+                          {obj.startDate ? new Date(obj.startDate).toLocaleDateString('ru-RU') : '—'}
+                          {' → '}
+                          {obj.plannedEndDate ? new Date(obj.plannedEndDate).toLocaleDateString('ru-RU') : '—'}
+                        </td>
+                        <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={() => { setEditingObject(obj); setShowObjectModal(true); }}
+                              className="p-1.5 text-gray-400 hover:text-violet-500 transition-colors"
+                              title="Редактировать"
+                            >
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                            </button>
+                            <button
+                              onClick={async () => {
+                                if (!confirm(`Удалить объект «${obj.name}»?`)) return;
+                                try {
+                                  await api.delete(`/construction-sites/${obj.id}`);
+                                  setObjectsList((prev) => prev.filter((o) => o.id !== obj.id));
+                                  addToast('success', 'Объект удалён');
+                                } catch { addToast('error', 'Ошибка при удалении'); }
+                              }}
+                              className="p-1.5 text-gray-400 hover:text-red-500 transition-colors"
+                              title="Удалить"
+                            >
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ─── Finance ─── */}
       {activeTab === 'finance' && (
         <div className="space-y-6">
@@ -3222,6 +3359,33 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
           ]}
           onClose={() => { setShowEqModal(false); setEditingEq(null); }}
           onSave={(data) => handleSaveEquipment(data)}
+        />
+      )}
+
+      {/* Object Create/Edit Modal */}
+      {showObjectModal && (
+        <ObjectFormModal
+          obj={editingObject}
+          saving={objectSaving}
+          onClose={() => { setShowObjectModal(false); setEditingObject(null); }}
+          onSave={async (data) => {
+            setObjectSaving(true);
+            try {
+              if (editingObject) {
+                const res = await api.put(`/construction-sites/${editingObject.id}`, data);
+                const updated = res.data ?? { ...editingObject, ...data };
+                setObjectsList((prev) => prev.map((o) => o.id === editingObject.id ? updated : o));
+                addToast('success', 'Объект обновлён');
+              } else {
+                const res = await api.post(`/construction-sites`, { ...data, projectId });
+                setObjectsList((prev) => [...prev, res.data]);
+                addToast('success', 'Объект создан');
+              }
+              setShowObjectModal(false);
+              setEditingObject(null);
+            } catch { addToast('error', 'Ошибка при сохранении объекта'); }
+            finally { setObjectSaving(false); }
+          }}
         />
       )}
 
@@ -4615,6 +4779,100 @@ function FinanceModal({ title, fields, initialData, saving, onClose, onSave }: {
 
 /* ─── Modal Shell ─── */
 
+function ObjectFormModal({
+  obj,
+  saving,
+  onClose,
+  onSave,
+}: {
+  obj: ConstructionSite | null;
+  saving: boolean;
+  onClose: () => void;
+  onSave: (data: Partial<ConstructionSite>) => Promise<void>;
+}) {
+  const [name, setName] = useState(obj?.name ?? '');
+  const [address, setAddress] = useState(obj?.address ?? '');
+  const [code, setCode] = useState(obj?.code ?? '');
+  const [status, setStatus] = useState<number>(typeof obj?.status === 'number' ? obj.status : typeof obj?.status === 'string' ? parseInt(obj.status) || 0 : 0);
+  const [description, setDescription] = useState(obj?.description ?? '');
+  const [startDate, setStartDate] = useState(obj?.startDate?.slice(0, 10) ?? '');
+  const [plannedEndDate, setPlannedEndDate] = useState(obj?.plannedEndDate?.slice(0, 10) ?? '');
+
+  return (
+    <ModalShell title={obj ? 'Редактировать объект' : 'Новый объект'} onClose={onClose}>
+      <div className="space-y-4">
+        <div>
+          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Название *</label>
+          <input
+            autoFocus
+            className="form-input w-full"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Наименование объекта"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Адрес *</label>
+          <input
+            className="form-input w-full"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            placeholder="Адрес объекта"
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Код</label>
+            <input className="form-input w-full" value={code} onChange={(e) => setCode(e.target.value)} placeholder="OBJ-001" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Статус</label>
+            <select className="form-select w-full" value={status} onChange={(e) => setStatus(Number(e.target.value))}>
+              <option value={0}>Планирование</option>
+              <option value={1}>В работе</option>
+              <option value={2}>Приостановлен</option>
+              <option value={3}>Завершён</option>
+            </select>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Дата начала</label>
+            <input type="date" className="form-input w-full" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Плановое окончание</label>
+            <input type="date" className="form-input w-full" value={plannedEndDate} onChange={(e) => setPlannedEndDate(e.target.value)} />
+          </div>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Описание</label>
+          <textarea
+            className="form-input w-full resize-y"
+            rows={3}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Дополнительная информация..."
+          />
+        </div>
+      </div>
+      <div className="flex justify-end gap-2 pt-4 mt-4 border-t border-gray-100 dark:border-gray-700">
+        <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 transition-colors">
+          Отмена
+        </button>
+        <button
+          type="button"
+          disabled={saving || !name.trim() || !address.trim()}
+          onClick={() => onSave({ name, address, code: code || undefined, status, description: description || undefined, startDate: startDate || undefined, plannedEndDate: plannedEndDate || undefined })}
+          className="px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition-colors"
+        >
+          {saving ? 'Сохранение...' : obj ? 'Сохранить' : 'Создать'}
+        </button>
+      </div>
+    </ModalShell>
+  );
+}
+
 function ModalShell({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
@@ -4857,5 +5115,13 @@ function ProjectChannelEditModal({
         </div>
       </form>
     </ModalShell>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <ProjectDetailPage />
+    </Suspense>
   );
 }

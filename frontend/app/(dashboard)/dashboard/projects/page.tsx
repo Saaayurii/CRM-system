@@ -342,8 +342,8 @@ export default function ProjectsPage() {
       )}
 
       {confirmDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 max-w-sm w-full">
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} onClick={() => setConfirmDelete(null)}>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-2">Удалить проект?</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
               Проект <span className="font-medium text-gray-700 dark:text-gray-300">{confirmDelete.name}</span> будет удалён без возможности восстановления.

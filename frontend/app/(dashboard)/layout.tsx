@@ -8,8 +8,10 @@ import PushInit from '@/components/layout/PushInit';
 import PendingSync from '@/components/ui/PendingSync';
 import OfflineBanner from '@/components/ui/OfflineBanner';
 import QuickActionsButton from '@/components/ui/QuickActionsButton';
+import { useFormEnterNav } from '@/hooks/useFormEnterNav';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  useFormEnterNav();
   return (
     <MaintenanceGuard>
       <div className="flex h-screen overflow-hidden">

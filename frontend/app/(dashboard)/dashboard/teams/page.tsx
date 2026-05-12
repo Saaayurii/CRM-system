@@ -445,8 +445,8 @@ export default function TeamsPage() {
 
       {/* Edit team modal */}
       {editTeam && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} onClick={() => setEditTeam(null)}>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-base font-semibold text-gray-800 dark:text-gray-100">Редактировать команду</h2>
               <button onClick={() => setEditTeam(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
@@ -499,8 +499,8 @@ export default function TeamsPage() {
 
       {/* Delete team confirmation */}
       {confirmDeleteTeam && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 max-w-sm w-full">
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} onClick={() => setConfirmDeleteTeam(null)}>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-2">Удалить команду?</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
               Команда <span className="font-medium text-gray-700 dark:text-gray-300">{confirmDeleteTeam.name}</span> будет удалена без возможности восстановления.
