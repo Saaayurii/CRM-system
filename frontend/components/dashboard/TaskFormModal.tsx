@@ -54,6 +54,11 @@ interface Project {
   name: string;
 }
 
+interface ConstructionSite {
+  id: number;
+  name: string;
+}
+
 const STATUS_OPTIONS = [
   { value: 0, label: 'Новая',       cls: 'bg-gray-100 text-gray-700 dark:bg-gray-700/60 dark:text-gray-300' },
   { value: 1, label: 'Назначена',   cls: 'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-400' },
@@ -117,6 +122,7 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
   const [priority, setPriority] = useState<number>(task?.priority ?? 2);
   const [dueDate, setDueDate] = useState(task?.dueDate?.split('T')[0] || task?.due_date?.split('T')[0] || '');
   const [projectId, setProjectId] = useState(String(task?.projectId || task?.project_id || ''));
+  const [constructionSiteId, setConstructionSiteId] = useState(String(task?.constructionSiteId || task?.construction_site_id || ''));
   const [estimatedHours, setEstimatedHours] = useState(String(task?.estimatedHours || task?.estimated_hours || ''));
 
   // Assignees
@@ -149,6 +155,7 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
   // Reference data
   const [users, setUsers] = useState<User[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [sites, setSites] = useState<ConstructionSite[]>([]);
   const [saving, setSaving] = useState(false);
 
   // Load reference data + comments
@@ -160,6 +167,12 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
       setProjects(pRes.data.projects || pRes.data.data || []);
       setUsers(uRes.data.data || uRes.data.users || []);
     }).catch(() => {});
+
+    if (projectId) {
+      api.get('/construction-sites', { params: { projectId: Number(projectId), limit: 100 } })
+        .then((r) => setSites(r.data.data || r.data.constructionSites || r.data || []))
+        .catch(() => setSites([]));
+    }
 
     if (task?.id) {
       api.get('/task-comments', { params: { taskId: task.id } })
@@ -216,6 +229,7 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
         status: Number(status),
         priority: Number(priority),
         projectId: projectId ? Number(projectId) : null,
+        constructionSiteId: constructionSiteId ? Number(constructionSiteId) : null,
         dueDate: dueDate || null,
         estimatedHours: estimatedHours ? Number(estimatedHours) : null,
         attachments: attachments.filter((a) => a.fileUrl && a.fileName),
@@ -319,6 +333,14 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
         : [...prev, { userId: u.id, userName: u.name || u.email }]
     );
   };
+
+  // Reload construction sites when project changes
+  useEffect(() => {
+    if (!projectId) { setSites([]); setConstructionSiteId(''); return; }
+    api.get('/construction-sites', { params: { projectId: Number(projectId), limit: 100 } })
+      .then((r) => setSites(r.data.data || r.data.constructionSites || r.data || []))
+      .catch(() => setSites([]));
+  }, [projectId]);
 
   const statusInfo = STATUS_OPTIONS.find((s) => s.value === status) || STATUS_OPTIONS[0];
 
@@ -718,6 +740,25 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
                   <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
               </select>
+            </div>
+
+            {/* Construction site */}
+            <div>
+              <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">Объект</p>
+              <select
+                value={constructionSiteId}
+                onChange={(e) => setConstructionSiteId(e.target.value)}
+                disabled={!projectId}
+                className="w-full text-sm px-3 py-1.5 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-violet-500 focus:border-transparent disabled:opacity-50"
+              >
+                <option value="">Не выбрано</option>
+                {sites.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+              {!projectId && (
+                <p className="text-[10px] text-gray-400 mt-1">Сначала выберите проект</p>
+              )}
             </div>
 
             {/* Created by */}

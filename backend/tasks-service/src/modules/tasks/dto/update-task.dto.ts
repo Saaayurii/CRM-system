@@ -14,6 +14,11 @@ export class UpdateTaskDto {
   @IsOptional()
   projectId?: number;
 
+  @ApiPropertyOptional({ example: 1 })
+  @IsNumber()
+  @IsOptional()
+  constructionSiteId?: number;
+
   @ApiPropertyOptional()
   @IsString()
   @IsOptional()

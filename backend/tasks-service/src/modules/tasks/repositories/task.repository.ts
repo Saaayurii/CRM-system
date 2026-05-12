@@ -63,6 +63,7 @@ export class TaskRepository {
       data: {
         accountId: data.accountId,
         projectId: data.projectId,
+        constructionSiteId: data.constructionSiteId,
         parentTaskId: data.parentTaskId,
         title: data.title,
         description: data.description,
