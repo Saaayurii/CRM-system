@@ -140,11 +140,13 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
   const [selectedUserIndex, setSelectedUserIndex] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
+  const [showAttachMenu, setShowAttachMenu] = useState(false);
 
   const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const attachMenuRef = useRef<HTMLDivElement>(null);
   const taskPickerRef = useRef<HTMLDivElement>(null);
   const xhrMapRef = useRef<Map<string, XMLHttpRequest[]>>(new Map());
 
@@ -250,6 +252,18 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [showUserPicker]);
+
+  // Close attach menu on outside click
+  useEffect(() => {
+    if (!showAttachMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (attachMenuRef.current && !attachMenuRef.current.contains(e.target as Node)) {
+        setShowAttachMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showAttachMenu]);
 
   // Load tasks for project-linked channels
   useEffect(() => {
@@ -1002,89 +1016,119 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
         </div>
       ) : (
         <div className="flex items-end gap-2">
-          {/* Attach button */}
-          <button onClick={handleFileSelect} disabled={isSending}
-            className="shrink-0 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
-            title="Прикрепить файл">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-            </svg>
-          </button>
-          <input ref={fileInputRef} type="file" className="hidden" accept="*/*" multiple onChange={handleFileChange} />
-
-          {/* Camera button — opens camera directly on mobile, file picker on desktop */}
-          <button onClick={handleCameraSelect} disabled={isSending}
-            className="shrink-0 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
-            title="Снять фото или видео">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-          </button>
-          <input ref={cameraInputRef} type="file" className="hidden" accept="image/*,video/*" capture="environment" onChange={handleFileChange} />
-
-          {/* Emoji picker */}
-          <div className="relative shrink-0" ref={emojiPickerRef}>
-            <button onClick={() => setShowEmojiPicker((v) => !v)} disabled={isSending}
-              className="shrink-0 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
-              title="Смайлики">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          {/* Left: Attach dropdown */}
+          <div className="relative shrink-0" ref={attachMenuRef}>
+            <button
+              onClick={() => setShowAttachMenu((v) => !v)}
+              disabled={isSending}
+              className={`p-2 rounded-xl transition-colors disabled:opacity-50 ${showAttachMenu ? 'text-violet-500 bg-violet-50 dark:bg-violet-900/20' : 'text-gray-400 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/20'}`}
+              title="Прикрепить файл"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
               </svg>
             </button>
-            {showEmojiPicker && (
-              <div className="absolute bottom-full mb-2 left-0 z-50 w-72 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl shadow-xl overflow-hidden">
-                <div className="flex border-b border-gray-100 dark:border-gray-700">
-                  {EMOJI_CATEGORIES.map((cat, idx) => (
-                    <button key={cat.label} onClick={() => setActiveCategory(idx)}
-                      className={`flex-1 py-2 text-xs font-medium transition-colors ${activeCategory === idx
-                        ? 'text-violet-600 border-b-2 border-violet-500 bg-violet-50 dark:bg-violet-900/20'
-                        : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}>
-                      {cat.label}
-                    </button>
-                  ))}
-                </div>
-                <div className="grid grid-cols-8 gap-0.5 p-2 max-h-48 overflow-y-auto">
-                  {EMOJI_CATEGORIES[activeCategory].emojis.map((emoji) => (
-                    <button key={emoji} onClick={() => insertEmoji(emoji)}
-                      className="flex items-center justify-center w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-lg">
-                      {emoji}
-                    </button>
-                  ))}
-                </div>
+            {showAttachMenu && (
+              <div className="absolute bottom-full mb-2 left-0 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl shadow-xl overflow-hidden min-w-[170px]">
+                <button
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => { handleFileSelect(); setShowAttachMenu(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/60 transition-colors"
+                >
+                  <svg className="w-4 h-4 text-violet-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                  Файл
+                </button>
+                <button
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => { handleCameraSelect(); setShowAttachMenu(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/60 transition-colors border-t border-gray-100 dark:border-gray-700"
+                >
+                  <svg className="w-4 h-4 text-violet-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  Снять фото / видео
+                </button>
               </div>
             )}
           </div>
+          <input ref={fileInputRef} type="file" className="hidden" accept="*/*" multiple onChange={handleFileChange} />
+          <input ref={cameraInputRef} type="file" className="hidden" accept="image/*,video/*" capture="environment" onChange={handleFileChange} />
 
-          {/* Contenteditable text input */}
-          <div
-            ref={editorRef}
-            contentEditable={!isSending}
-            suppressContentEditableWarning
-            onInput={handleInput}
-            onKeyDown={handleKeyDown}
-            onPaste={handlePaste}
-            data-placeholder={projectId ? 'Написать сообщение... (# задача, @ упоминание)' : 'Написать сообщение... (@ для упоминания)'}
-            className={`flex-1 px-3 py-2 bg-gray-100 dark:bg-gray-700 border-0 rounded-xl text-sm text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-violet-500 focus:outline-none overflow-y-auto min-h-[38px] max-h-[120px] break-words leading-relaxed ${isSending ? 'opacity-50 cursor-not-allowed' : ''}`}
-          />
+          {/* Center: input with emoji button inside */}
+          <div className="relative flex-1">
+            <div
+              ref={editorRef}
+              contentEditable={!isSending}
+              suppressContentEditableWarning
+              onInput={handleInput}
+              onKeyDown={handleKeyDown}
+              onPaste={handlePaste}
+              data-placeholder={projectId ? 'Сообщение... (# задача, @ упоминание)' : 'Сообщение'}
+              className={`w-full py-2 pl-3 pr-9 bg-gray-100 dark:bg-gray-700 border-0 rounded-xl text-sm text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-violet-500 focus:outline-none overflow-y-auto min-h-[38px] max-h-[120px] break-words leading-relaxed ${isSending ? 'opacity-50 cursor-not-allowed' : ''}`}
+            />
+            {/* Emoji button inside the input */}
+            <div className="absolute right-1.5 bottom-1 z-10" ref={emojiPickerRef}>
+              <button
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => setShowEmojiPicker((v) => !v)}
+                disabled={isSending}
+                className="p-1 text-gray-400 hover:text-yellow-500 transition-colors disabled:opacity-50 rounded"
+                title="Смайлики"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </button>
+              {showEmojiPicker && (
+                <div className="absolute bottom-full mb-2 right-0 z-50 w-72 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl shadow-xl overflow-hidden">
+                  <div className="flex border-b border-gray-100 dark:border-gray-700">
+                    {EMOJI_CATEGORIES.map((cat, idx) => (
+                      <button key={cat.label} onClick={() => setActiveCategory(idx)}
+                        className={`flex-1 py-2 text-xs font-medium transition-colors ${activeCategory === idx
+                          ? 'text-violet-600 border-b-2 border-violet-500 bg-violet-50 dark:bg-violet-900/20'
+                          : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}>
+                        {cat.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-8 gap-0.5 p-2 max-h-48 overflow-y-auto">
+                    {EMOJI_CATEGORIES[activeCategory].emojis.map((emoji) => (
+                      <button key={emoji} onClick={() => insertEmoji(emoji)}
+                        className="flex items-center justify-center w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-lg">
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
 
-          {/* Mic button */}
-          <button onClick={startRecording} disabled={isSending}
-            className="shrink-0 p-2 text-gray-400 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-xl transition-colors disabled:opacity-50"
-            title="Записать голосовое сообщение">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-            </svg>
-          </button>
-
-          {/* Send button */}
-          <button onClick={handleSend} disabled={!canSend}
-            className="shrink-0 p-2 text-white bg-violet-500 hover:bg-violet-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-colors"
-            title="Отправить">
-            {isSending ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              : <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                </svg>}
+          {/* Right: Mic → Send depending on content */}
+          <button
+            onClick={canSend ? handleSend : startRecording}
+            disabled={isSending}
+            title={canSend ? 'Отправить' : 'Записать голосовое'}
+            className={`shrink-0 p-2 rounded-xl transition-all duration-150 disabled:opacity-50 ${
+              canSend
+                ? 'text-white bg-violet-500 hover:bg-violet-600'
+                : 'text-gray-400 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/20'
+            }`}
+          >
+            {isSending ? (
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : canSend ? (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+              </svg>
+            )}
           </button>
         </div>
       )}
