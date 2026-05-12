@@ -11,11 +11,11 @@ import FilePreviewModal from '@/components/ui/FilePreviewModal';
 const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥', '👏', '🎉'];
 
 // Desktop side action buttons — defined here so TypeScript sees it before ChatMessage uses it
-function ActionButtons({ isOwn, isPinned, canPin, emojiRef, showEmojiPicker, setShowEmojiPicker, onReply, onPin, onDelete, onReact }: {
-  isOwn: boolean; isPinned?: boolean; canPin?: boolean;
+function ActionButtons({ isOwn, isPinned, canPin, emojiRef, showEmojiPicker, setShowEmojiPicker, onReply, onPin, onDelete, onEdit, onReact, canEdit }: {
+  isOwn: boolean; isPinned?: boolean; canPin?: boolean; canEdit?: boolean;
   emojiRef: React.RefObject<HTMLDivElement | null>;
   showEmojiPicker: boolean; setShowEmojiPicker: (v: boolean) => void;
-  onReply: () => void; onPin?: () => void; onDelete: () => void;
+  onReply: () => void; onPin?: () => void; onDelete: () => void; onEdit?: () => void;
   onReact: (emoji: string) => void;
 }) {
   return (
@@ -52,6 +52,14 @@ function ActionButtons({ isOwn, isPinned, canPin, emojiRef, showEmojiPicker, set
           </svg>
         </button>
       )}
+      {isOwn && canEdit && (
+        <button onClick={onEdit}
+          className="p-1.5 rounded-full hover:bg-sky-100 dark:hover:bg-sky-900/30 text-gray-400 hover:text-sky-500 transition-colors" title="Редактировать">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
+        </button>
+      )}
       {isOwn && (
         <button onClick={onDelete}
           className="p-1.5 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-500 transition-colors" title="Удалить">
@@ -80,6 +88,7 @@ interface ChatMessageProps {
   onScrollToReply?: () => void;
   onReact: (messageId: number, emoji: string) => void;
   onDelete: (message: ChatMessageType) => void;
+  onEdit?: (newText: string) => void;
   onPin?: (message: ChatMessageType) => void;
   isPinned?: boolean;
   canPin?: boolean;
@@ -168,7 +177,7 @@ function parseTgMessage(text?: string): { sender: string; body: string } | null 
   return { sender: m[1], body: m[2] };
 }
 
-export default function ChatMessage({ message, isOwn, showAvatar, isRead, readers = [], onReply, onScrollToReply, onReact, onDelete, onPin, isPinned, canPin, highlightQuery }: ChatMessageProps) {
+export default function ChatMessage({ message, isOwn, showAvatar, isRead, readers = [], onReply, onScrollToReply, onReact, onDelete, onEdit, onPin, isPinned, canPin, highlightQuery }: ChatMessageProps) {
   const addToast = useToastStore((s) => s.addToast);
   const isVoice = message.messageType === 'voice';
   const displaySenderName = resolveDisplayName(message.senderName);
@@ -208,6 +217,10 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const touchMoved = useRef(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [msgSnapParticles, setMsgSnapParticles] = useState<{ id: number; tx: number; ty: number; size: number; hue: number; delay: number }[]>([]);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState('');
 
   const openViewer = useCallback((mediaIndex: number) => setViewerIndex(mediaIndex), []);
   const closeViewer = useCallback(() => setViewerIndex(null), []);
@@ -228,6 +241,33 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
     touchMoved.current = true;
     if (longPressTimer.current) clearTimeout(longPressTimer.current);
   }, []);
+
+  const handleDeleteWithSnap = useCallback(() => {
+    if (isDeleting) return;
+    const pts = Array.from({ length: 20 }, (_, i) => {
+      const angle = (i / 20) * Math.PI * 2;
+      const dist = 30 + Math.random() * 50;
+      return {
+        id: i,
+        tx: Math.cos(angle) * dist + (Math.random() - 0.5) * 30,
+        ty: Math.sin(angle) * dist + (Math.random() - 0.5) * 30 - 20,
+        size: 2 + Math.random() * 5,
+        hue: 260 + Math.random() * 80,
+        delay: Math.random() * 150,
+      };
+    });
+    setMsgSnapParticles(pts);
+    setIsDeleting(true);
+    setTimeout(() => {
+      onDelete(message);
+      setConfirmDelete(false);
+    }, 600);
+  }, [isDeleting, onDelete, message]);
+
+  const handleEditStart = useCallback(() => {
+    setEditText(message.text ?? '');
+    setIsEditing(true);
+  }, [message.text]);
 
   // Close emoji picker and mobile actions on outside click/tap
   useEffect(() => {
@@ -263,6 +303,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
     <div
       data-message-id={message.id}
       className={`flex gap-2 group select-none ${isOwn ? 'flex-row-reverse' : ''} ${showAvatar ? 'mt-3' : 'mt-0.5'} ${isPinned ? 'ring-1 ring-violet-300 dark:ring-violet-700 rounded-2xl' : ''}`}
+      style={{ transition: 'opacity 0.5s ease-out, transform 0.5s ease-out', opacity: isDeleting ? 0 : 1, transform: isDeleting ? 'scale(0.7)' : 'scale(1)' }}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       onTouchMove={handleTouchMove}
@@ -324,6 +365,20 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
               : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 shadow-xs rounded-tl-sm'
           }`}
         >
+          {/* Thanos snap particles */}
+          {msgSnapParticles.map((p) => (
+            <div key={p.id}
+              className="absolute top-1/2 left-1/2 rounded-full pointer-events-none z-10"
+              style={{
+                width: p.size, height: p.size,
+                background: `hsl(${p.hue}, 65%, 60%)`,
+                '--tx': `${p.tx}px`, '--ty': `${p.ty}px`,
+                animation: 'thanos-particle 0.5s ease-out forwards',
+                animationDelay: `${p.delay}ms`,
+              } as React.CSSProperties}
+            />
+          ))}
+
           {/* Voice message — custom player */}
           {isVoice && message.attachments && message.attachments.length > 0 ? (
             <VoicePlayer src={message.attachments[0].fileUrl} isOwn={isOwn} />
@@ -347,7 +402,34 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
               )}
 
               {/* Text (caption if album, otherwise regular message text) */}
-              {displayText && renderText(displayText, isOwn, highlightQuery)}
+              {displayText && (
+                isEditing ? (
+                  <div>
+                    <textarea
+                      autoFocus
+                      value={editText}
+                      onChange={(e) => setEditText(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          const trimmed = editText.trim();
+                          if (trimmed) { onEdit?.(trimmed); setIsEditing(false); }
+                        }
+                        if (e.key === 'Escape') setIsEditing(false);
+                      }}
+                      rows={Math.max(1, editText.split('\n').length)}
+                      className={`w-full resize-none rounded-lg px-2 py-1 text-sm outline-none ${isOwn ? 'bg-violet-400/30 text-white placeholder:text-violet-200' : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100'}`}
+                    />
+                    <div className="flex items-center gap-2 mt-1 justify-end">
+                      <button onClick={() => setIsEditing(false)} className={`text-xs px-2 py-0.5 rounded ${isOwn ? 'text-violet-200 hover:text-white' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}>Отмена</button>
+                      <button
+                        onClick={() => { const t = editText.trim(); if (t) { onEdit?.(t); setIsEditing(false); } }}
+                        className={`text-xs px-2 py-0.5 rounded font-medium ${isOwn ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-violet-100 hover:bg-violet-200 dark:bg-violet-900/30 dark:hover:bg-violet-800/50 text-violet-700 dark:text-violet-300'}`}
+                      >Сохранить</button>
+                    </div>
+                  </div>
+                ) : renderText(displayText, isOwn, highlightQuery)
+              )}
 
               {/* Single image */}
               {!hasAlbum && mediaAtts.length === 1 && mediaAtts[0].mimeType?.startsWith('image/') && (() => {
@@ -484,6 +566,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
               emojiRef={emojiRef} showEmojiPicker={showEmojiPicker}
               setShowEmojiPicker={setShowEmojiPicker}
               onReply={onReply} onPin={onPin ? () => onPin(message) : undefined} onDelete={() => setConfirmDelete(true)}
+              onEdit={onEdit ? handleEditStart : undefined} canEdit={!!onEdit && !!message.text}
               onReact={(emoji: string) => { onReact(message.id, emoji); setShowEmojiPicker(false); }}
             />
           </div>
@@ -509,7 +592,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
           <div className="mt-1 flex items-center gap-2 text-xs bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-3 py-1.5">
             <span className="text-red-600 dark:text-red-400">Удалить сообщение?</span>
             <button
-              onClick={() => { onDelete(message); setConfirmDelete(false); }}
+              onClick={handleDeleteWithSnap}
               className="px-2 py-0.5 bg-red-500 hover:bg-red-600 text-white rounded font-medium"
             >
               Да
@@ -607,6 +690,19 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
                 <span className="text-[15px]">Скопировать</span>
                 <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+              </button>
+            )}
+
+            {/* Edit (own text messages only) */}
+            {isOwn && message.text && onEdit && (
+              <button
+                onClick={() => { handleEditStart(); setShowMobileActions(false); }}
+                className="w-full flex items-center justify-between px-5 py-3.5 text-white hover:bg-white/10 active:bg-white/15 transition-colors border-b border-white/10"
+              >
+                <span className="text-[15px]">Редактировать</span>
+                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
               </button>
             )}

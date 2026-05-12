@@ -21,6 +21,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
   const fetchMessages = useChatStore((s) => s.fetchMessages);
   const setReplyToMessage = useChatStore((s) => s.setReplyToMessage);
   const deleteMessageSocket = useChatStore((s) => s.deleteMessage);
+  const editMessageSocket = useChatStore((s) => s.editMessage);
   const reactToMessage = useChatStore((s) => s.reactToMessage);
   const pinMessageSocket = useChatStore((s) => s.pinMessage);
   const unpinMessageSocket = useChatStore((s) => s.unpinMessage);
@@ -644,6 +645,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
                   onScrollToReply={msg.replyToMessage?.id ? () => scrollToMessage(msg.replyToMessage!.id) : undefined}
                   onReact={reactToMessage}
                   onDelete={handleDeleteMessage}
+                  onEdit={isOwn ? (newText: string) => editMessageSocket(msg.id, newText) : undefined}
                   onPin={canPin ? handlePin : undefined}
                   isPinned={isMsgPinned}
                   canPin={canPin}
