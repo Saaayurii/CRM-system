@@ -531,7 +531,7 @@ export default function Sidebar() {
               )}
 
               {/* Invites & Requests */}
-              {(isAdmin || isHR) && (
+              {(isAdmin || isHR || isSuperAdmin) && (
                 <li className="mb-1 last:mb-0">
                   <NavLink href="/dashboard/invites" className={linkCls(pathname === '/dashboard/invites')}>
                     <IconInvites />

@@ -63,7 +63,7 @@ function getInviteStatus(inv: MemberInvite): { label: string; color: string } {
 export default function RegistrationRequestsPanel() {
   const addToast = useToastStore((s) => s.addToast);
   const user = useAuthStore((s) => s.user);
-  const canManageInvites = user?.roleId === 2 || user?.roleId === 3;
+  const canManageInvites = user?.roleId === 1 || user?.roleId === 2 || user?.roleId === 3;
 
   const [tab, setTab] = useState<'requests' | 'invites'>('requests');
 
@@ -81,6 +81,7 @@ export default function RegistrationRequestsPanel() {
   const [inviteNote, setInviteNote] = useState('');
   const [expiresInHours, setExpiresInHours] = useState(72);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
+  const [newlyCreatedLink, setNewlyCreatedLink] = useState<string | null>(null);
 
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
 
@@ -150,12 +151,14 @@ export default function RegistrationRequestsPanel() {
   async function handleCreateInvite() {
     setCreating(true);
     try {
-      await api.post('/auth/member-invites', {
+      const { data } = await api.post('/auth/member-invites', {
         note: inviteNote || undefined,
         expiresInHours,
       });
+      const link = `${baseUrl}/auth/register?ref=${data.token}`;
+      setNewlyCreatedLink(link);
+      navigator.clipboard.writeText(link).catch(() => {});
       setInviteNote('');
-      addToast('success', 'Инвайт создан');
       loadInvites();
     } catch {
       addToast('error', 'Ошибка при создании инвайта');
@@ -349,6 +352,28 @@ export default function RegistrationRequestsPanel() {
             </button>
           </div>
 
+          {/* Newly created link banner */}
+          {newlyCreatedLink && (
+            <div className="p-3 rounded-lg bg-violet-50 dark:bg-violet-500/10 border border-violet-200 dark:border-violet-500/30">
+              <div className="flex items-center justify-between gap-2 mb-1.5">
+                <span className="text-xs font-semibold text-violet-700 dark:text-violet-300">Ссылка создана — скопируйте и отправьте сотруднику</span>
+                <button onClick={() => setNewlyCreatedLink(null)} className="text-violet-400 hover:text-violet-600 transition-colors">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </div>
+              <div className="flex items-center gap-2">
+                <input readOnly value={newlyCreatedLink}
+                  className="flex-1 text-xs bg-white dark:bg-gray-800 border border-violet-200 dark:border-violet-500/30 rounded px-2 py-1.5 text-gray-700 dark:text-gray-200 select-all"
+                  onClick={(e) => (e.target as HTMLInputElement).select()} />
+                <button
+                  onClick={() => { navigator.clipboard.writeText(newlyCreatedLink); setCopiedToken('new'); setTimeout(() => setCopiedToken(null), 2000); }}
+                  className="shrink-0 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
+                  {copiedToken === 'new' ? '✓ Скопировано' : 'Копировать'}
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Invite list */}
           {invitesLoading ? (
             <div className="flex justify-center py-4">
@@ -374,6 +399,13 @@ export default function RegistrationRequestsPanel() {
                           <span className="text-xs text-gray-600 dark:text-gray-300 font-medium">{inv.note}</span>
                         )}
                       </div>
+                      {isActive && (
+                        <div className="mt-1 flex items-center gap-1.5">
+                          <span className="text-xs text-gray-400 dark:text-gray-500 truncate max-w-[280px] sm:max-w-xs font-mono">
+                            {`${baseUrl}/auth/register?ref=${inv.token}`}
+                          </span>
+                        </div>
+                      )}
                       <div className="flex gap-3 mt-1 text-xs text-gray-400 dark:text-gray-500 flex-wrap">
                         <span>Создан: {fmt(inv.createdAt)}</span>
                         {inv.expiresAt && <span>Истекает: {fmt(inv.expiresAt)}</span>}
