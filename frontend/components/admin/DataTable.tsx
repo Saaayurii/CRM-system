@@ -160,7 +160,7 @@ export default function DataTable<T extends Record<string, unknown>>({
       {/* Table view */}
       {viewMode === 'table' ? (
         <div className="overflow-x-auto">
-          <table className="table-auto w-full text-sm">
+          <table className="table-auto w-full min-w-[680px] text-sm">
             <thead>
               <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
                 {columns.map((col) => (
@@ -175,7 +175,7 @@ export default function DataTable<T extends Record<string, unknown>>({
                     <div className="flex items-center gap-1">
                       {col.header}
                       {col.sortable && sortKey === col.key && (
-                        <svg className={`w-3 h-3 ${sortDir === 'desc' ? 'rotate-180' : ''}`} fill="currentColor" viewBox="0 0 12 12">
+                        <svg className={`w-3 h-3 shrink-0 ${sortDir === 'desc' ? 'rotate-180' : ''}`} fill="currentColor" viewBox="0 0 12 12">
                           <path d="M6 0l4 6H2z" />
                         </svg>
                       )}
@@ -183,7 +183,7 @@ export default function DataTable<T extends Record<string, unknown>>({
                   </th>
                 ))}
                 {(canEdit || canDelete || (customRowActions && customRowActions.length > 0)) && (
-                  <th className="py-3 px-4 text-right font-semibold whitespace-nowrap w-32">Действия</th>
+                  <th className="py-3 px-4 text-right font-semibold whitespace-nowrap w-px">Действия</th>
                 )}
               </tr>
             </thead>
@@ -198,13 +198,13 @@ export default function DataTable<T extends Record<string, unknown>>({
                 data.map((row, idx) => (
                   <tr key={(row.id as string | number) || idx} className={`hover:bg-gray-50 dark:hover:bg-gray-900/20 ${onEdit ? 'cursor-pointer' : ''}`} onClick={() => onEdit?.(row)}>
                     {columns.map((col) => (
-                      <td key={col.key} className="py-2.5 px-4 text-gray-800 dark:text-gray-100">
-                        {renderCellValue(col, row)}
+                      <td key={col.key} className="py-2.5 px-4 text-gray-800 dark:text-gray-100 max-w-[220px]">
+                        <div className="truncate">{renderCellValue(col, row)}</div>
                       </td>
                     ))}
                     {(canEdit || canDelete || (customRowActions && customRowActions.length > 0)) && (
-                      <td className="py-2.5 px-4 text-right" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex justify-end gap-1 flex-wrap">
+                      <td className="py-2.5 px-4 text-right whitespace-nowrap w-px" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex justify-end gap-1 items-center whitespace-nowrap">
                           {customRowActions && customRowActions.map((action) => {
                             const isThisLoading = action.key === 'pdf' && loadingRowId === (row.id as number);
                             return (
@@ -288,7 +288,7 @@ export default function DataTable<T extends Record<string, unknown>>({
 
                     {/* Actions */}
                     {(canEdit || canDelete || (customRowActions && customRowActions.length > 0)) && (
-                      <div className="flex items-center gap-1.5 pt-2 border-t border-gray-200 dark:border-gray-700 flex-wrap">
+                      <div className="flex items-center gap-1.5 pt-2 border-t border-gray-200 dark:border-gray-700">
                         {customRowActions && customRowActions.map((action) => {
                           const isThisLoading = action.key === 'pdf' && loadingRowId === (row.id as number);
                           return (
