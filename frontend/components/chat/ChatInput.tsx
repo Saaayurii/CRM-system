@@ -795,6 +795,7 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
   }, [channelId, sendMessage, replyToMessage]);
 
   const startRecording = useCallback(async () => {
+    if (isRecording || mediaRecorderRef.current?.state === 'recording') return;
     if (!navigator.mediaDevices?.getUserMedia) return;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -1168,7 +1169,7 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
           {/* Right: Mic → Send depending on content */}
           <button
             onClick={canSend ? handleSend : startRecording}
-            disabled={isSending}
+            disabled={isSending || isRecording}
             title={canSend ? 'Отправить' : 'Записать голосовое'}
             className={`shrink-0 p-2 rounded-xl transition-all duration-150 disabled:opacity-50 ${
               canSend
