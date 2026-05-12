@@ -79,7 +79,7 @@ function RegisterCompanyForm() {
         const fd = new FormData();
         fd.append('file', logoFile);
         try {
-          const { data } = await api.post('/auth/upload-logo', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+          const { data } = await api.post('/auth/upload-logo', fd);
           logoUrl = data?.url || data?.fileUrl;
         } catch { /* logo upload is optional */ }
       }

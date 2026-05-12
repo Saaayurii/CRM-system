@@ -88,7 +88,7 @@ export default function CreateChannelModal({ onClose }: CreateChannelModalProps)
       try {
         const fd = new FormData();
         fd.append('files', avatarFile);
-        const { data } = await api.post('/chat-channels/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        const { data } = await api.post('/chat-channels/upload', fd);
         avatarUrl = Array.isArray(data) ? data[0]?.fileUrl : (data.fileUrl || data.url);
       } catch { /* ignore avatar upload failure */ }
     }

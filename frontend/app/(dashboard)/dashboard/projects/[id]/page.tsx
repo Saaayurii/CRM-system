@@ -261,10 +261,11 @@ const PRIORITY_LABELS: Record<number, { label: string; color: string }> = {
 
 const TASK_STATUS: Record<number, { label: string; color: string }> = {
   0: { label: 'Новая', color: 'bg-gray-500/20 text-gray-600 dark:text-gray-300' },
-  1: { label: 'В работе', color: 'bg-blue-500/20 text-blue-700 dark:text-blue-400' },
-  2: { label: 'На проверке', color: 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-400' },
-  3: { label: 'Готово', color: 'bg-green-500/20 text-green-700 dark:text-green-400' },
-  4: { label: 'Отменена', color: 'bg-red-500/20 text-red-700 dark:text-red-400' },
+  1: { label: 'Назначена', color: 'bg-sky-500/20 text-sky-700 dark:text-sky-400' },
+  2: { label: 'В работе', color: 'bg-violet-500/20 text-violet-700 dark:text-violet-400' },
+  3: { label: 'На проверке', color: 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-400' },
+  4: { label: 'Завершена', color: 'bg-green-500/20 text-green-700 dark:text-green-400' },
+  5: { label: 'Отменена', color: 'bg-red-500/20 text-red-700 dark:text-red-400' },
 };
 
 const TASK_PRIORITY: Record<number, { label: string; color: string }> = {
@@ -714,9 +715,21 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   const reloadTasks = useCallback(async (silent = false) => {
     if (!silent) setLoadingTasks(true);
     try {
-      const r = await api.get('/tasks', { params: { projectId, limit: 100 } });
-      const t = r.data?.tasks || r.data?.data || r.data || [];
-      setTasks(Array.isArray(t) ? t : []);
+      const [tasksRes, usersRes] = await Promise.all([
+        api.get('/tasks', { params: { projectId, limit: 100 } }),
+        api.get('/users', { params: { limit: 500 } }),
+      ]);
+      const raw = tasksRes.data?.tasks || tasksRes.data?.data || tasksRes.data || [];
+      const users: any[] = usersRes.data?.data || usersRes.data?.users || usersRes.data || [];
+      const userMap = new Map<number, string>(users.map((u: any) => [u.id, u.name || u.email]));
+      const enriched = (Array.isArray(raw) ? raw : []).map((task: any) => ({
+        ...task,
+        assignees: (task.assignees || []).map((a: any) => ({
+          ...a,
+          userName: a.userName || userMap.get(a.userId) || null,
+        })),
+      }));
+      setTasks(enriched);
       setTasksLoaded(true);
     } catch {
       if (!silent) setTasks([]);
@@ -1228,9 +1241,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   const handleUploadDocument = async (file: File, title: string, docType: string, description: string) => {
     const form = new FormData();
     form.append('file', file);
-    const uploadRes = await api.post('/employee-documents/upload', form, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    const uploadRes = await api.post('/employee-documents/upload', form);
     const fileUrl: string = uploadRes.data?.fileUrl || uploadRes.data?.url || '';
     const fileSize: number = uploadRes.data?.fileSize || file.size;
     await api.post('/documents', {
@@ -1269,9 +1280,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
         const file = isVid ? rawFile : await convertImageToJpeg(rawFile);
         const form = new FormData();
         form.append('files', file);
-        const uploadRes = await api.post('/chat-channels/upload', form, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
+        const uploadRes = await api.post('/chat-channels/upload', form);
         const uploaded: any[] = Array.isArray(uploadRes.data) ? uploadRes.data : [uploadRes.data];
         const newUrls = uploaded.map((u: any) => normalizePhotoUrl(u.fileUrl || u.url)).filter(Boolean);
 
@@ -4694,7 +4703,7 @@ function ProjectChannelCreateModal({
         try {
           const fd = new FormData();
           fd.append('files', avatarFile);
-          const { data: up } = await api.post('/chat-channels/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+          const { data: up } = await api.post('/chat-channels/upload', fd);
           avatarUrl = Array.isArray(up) ? up[0]?.fileUrl : (up.fileUrl || up.url);
         } catch { /* ignore */ }
       }
@@ -4805,7 +4814,7 @@ function ProjectChannelEditModal({
         try {
           const fd = new FormData();
           fd.append('files', avatarFile);
-          const { data: up } = await api.post('/chat-channels/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+          const { data: up } = await api.post('/chat-channels/upload', fd);
           avatarUrl = Array.isArray(up) ? up[0]?.fileUrl : (up.fileUrl || up.url);
         } catch { /* ignore */ }
       }

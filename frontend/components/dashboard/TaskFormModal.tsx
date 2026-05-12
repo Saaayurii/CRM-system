@@ -120,9 +120,7 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
     try {
       const formData = new FormData();
       Array.from(files).forEach((f) => formData.append('files', f));
-      const { data } = await api.post('/chat-channels/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const { data } = await api.post('/chat-channels/upload', formData);
       const rawList: any[] = Array.isArray(data) ? data : [data];
       const uploaded: TaskAttachment[] = rawList.map((att, i) => ({
         ...att,

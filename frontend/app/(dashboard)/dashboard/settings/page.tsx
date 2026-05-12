@@ -204,9 +204,7 @@ export default function SettingsPage() {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      const { data } = await api.post('/employee-documents/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const { data } = await api.post('/employee-documents/upload', formData);
       setDocForm((f) => ({ ...f, fileUrl: data.fileUrl }));
       addToast('success', 'Файл загружен');
     } catch {
@@ -272,9 +270,7 @@ export default function SettingsPage() {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      const { data: uploadData } = await api.post('/users/avatar/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const { data: uploadData } = await api.post('/users/avatar/upload', formData);
       const fileUrl: string = uploadData.fileUrl;
 
       await api.put(`/users/${user.id}`, { avatarUrl: fileUrl });

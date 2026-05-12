@@ -57,9 +57,7 @@ export default function CompanyPage() {
     formData.append('file', files[0]);
     try {
       setUploadingLogo(true);
-      const { data } = await api.post('/users/avatar/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const { data } = await api.post('/users/avatar/upload', formData);
       setLogoUrl(data.fileUrl || data.url || '');
       addToast('success', 'Логотип загружен');
     } catch {
