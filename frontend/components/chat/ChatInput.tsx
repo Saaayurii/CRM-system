@@ -212,6 +212,11 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
     return () => clearTimeout(timer);
   }, [text, channelId]);
 
+  // Focus editor when reply is set
+  useEffect(() => {
+    if (replyToMessage) editorRef.current?.focus();
+  }, [replyToMessage]);
+
   // Populate editor when edit mode is activated
   useEffect(() => {
     const el = editorRef.current;
