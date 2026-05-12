@@ -65,6 +65,7 @@ const typeIcons: Record<string, string> = {
 };
 
 const statusColors: Record<string, string> = {
+  active: 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400',
   draft: 'bg-gray-100 text-gray-700 dark:bg-gray-600/30 dark:text-gray-400',
   pending: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-400',
   approved: 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400',
@@ -73,6 +74,7 @@ const statusColors: Record<string, string> = {
 };
 
 const statusLabels: Record<string, string> = {
+  active: 'Активен',
   draft: 'Черновик',
   pending: 'На рассмотрении',
   approved: 'Утверждён',

@@ -51,6 +51,9 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [matchIdx, setMatchIdx] = useState(0);
   const [highlightedMsgId, setHighlightedMsgId] = useState<number | null>(null);
+  const [showScrollBtn, setShowScrollBtn] = useState(false);
+  const [snapParticles, setSnapParticles] = useState<{ id: number; tx: number; ty: number; size: number; hue: number; delay: number }[]>([]);
+  const [isSnapping, setIsSnapping] = useState(false);
   const pendingScrollIdRef = useRef<number | null>(null);
   const scrollFetchAttemptsRef = useRef(0);
   const MAX_SCROLL_FETCHES = 20; // 20 × 50 = 1000 сообщений максимум
@@ -225,10 +228,37 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
     }
   }, [messages.length]);
 
+  const handleScrollToBottom = useCallback(() => {
+    if (isSnapping) return;
+    const pts = Array.from({ length: 14 }, (_, i) => {
+      const angle = (i / 14) * Math.PI * 2;
+      const dist = 24 + Math.random() * 32;
+      return {
+        id: i,
+        tx: Math.cos(angle) * dist + (Math.random() - 0.5) * 20,
+        ty: Math.sin(angle) * dist + (Math.random() - 0.5) * 20,
+        size: 2 + Math.random() * 4,
+        hue: 260 + Math.random() * 40,
+        delay: Math.random() * 80,
+      };
+    });
+    setSnapParticles(pts);
+    setIsSnapping(true);
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    setTimeout(() => {
+      setSnapParticles([]);
+      setIsSnapping(false);
+      setShowScrollBtn(false);
+    }, 520);
+  }, [isSnapping]);
+
   // Load more on scroll up
   const handleScroll = useCallback(() => {
     const container = messagesContainerRef.current;
-    if (!container || isLoadingMessages || !hasMoreMessages || !activeChannelId) return;
+    if (!container) return;
+    const distFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+    setShowScrollBtn(distFromBottom > 300);
+    if (isLoadingMessages || !hasMoreMessages || !activeChannelId) return;
     if (container.scrollTop < 200 && messages.length > 0) {
       const oldScrollHeight = container.scrollHeight;
       fetchMessages(activeChannelId, messages[0]?.id).then(() => {
@@ -352,7 +382,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
   return (
     <div className="flex flex-1 min-h-0 relative">
       {/* Main chat column */}
-      <div className="flex flex-col flex-1 min-w-0">
+      <div className="flex flex-col flex-1 min-w-0 relative">
         {/* Header */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shrink-0">
           {/* Back button (mobile) */}
@@ -625,6 +655,43 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
 
           <div ref={messagesEndRef} />
         </div>
+
+        {/* Scroll-to-bottom button with Thanos snap */}
+        {(showScrollBtn || isSnapping) && (
+          <div className="absolute bottom-20 right-4 z-20 pointer-events-none">
+            <div className="relative pointer-events-auto">
+              {snapParticles.map((p) => (
+                <div
+                  key={p.id}
+                  className="absolute top-1/2 left-1/2 rounded-full pointer-events-none"
+                  style={{
+                    width: p.size,
+                    height: p.size,
+                    background: `hsl(${p.hue}, 65%, 60%)`,
+                    '--tx': `${p.tx}px`,
+                    '--ty': `${p.ty}px`,
+                    animation: `thanos-particle 0.5s ease-out forwards`,
+                    animationDelay: `${p.delay}ms`,
+                  } as React.CSSProperties}
+                />
+              ))}
+              <button
+                onClick={handleScrollToBottom}
+                style={{
+                  transition: 'opacity 0.25s, transform 0.25s',
+                  opacity: isSnapping ? 0 : 1,
+                  transform: isSnapping ? 'scale(0.4)' : 'scale(1)',
+                }}
+                className="w-9 h-9 rounded-full bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-600 flex items-center justify-center text-violet-500 hover:text-violet-600 hover:shadow-xl transition-shadow"
+                title="Вниз"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Typing indicator */}
         {channelTyping.length > 0 && (

@@ -166,8 +166,8 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-      <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
+      <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
           <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">
             {task ? 'Редактировать задачу' : 'Новая задача'}
@@ -359,9 +359,12 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
                       )}
                       <span className="flex-1 text-xs text-gray-700 dark:text-gray-300 truncate">{att.fileName}</span>
                       <span className="text-xs text-gray-400 shrink-0">
-                        {att.fileSize < 1024 * 1024
-                          ? `${(att.fileSize / 1024).toFixed(0)} КБ`
-                          : `${(att.fileSize / (1024 * 1024)).toFixed(1)} МБ`}
+                        {(() => {
+                          const s = Number(att.fileSize) || 0;
+                          return s < 1024 * 1024
+                            ? `${(s / 1024).toFixed(0)} КБ`
+                            : `${(s / (1024 * 1024)).toFixed(1)} МБ`;
+                        })()}
                       </span>
                       <button
                         type="button"

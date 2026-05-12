@@ -1536,7 +1536,26 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
           );
         },
       },
-      { key: 'createdAt', header: 'Дата', sortable: true, width: '155px', render: (v) => fmtDate(v) },
+      {
+        key: 'createdAt',
+        header: 'Дата',
+        sortable: true,
+        width: '165px',
+        render: (v) => {
+          if (!v) return '—';
+          try {
+            const d = new Date(v as string);
+            if (isNaN(d.getTime())) return String(v);
+            const date = `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
+            const time = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
+            return (
+              <span className="text-xs tabular-nums text-gray-600 dark:text-gray-300">
+                {date} <span className="text-gray-400">{time}</span>
+              </span>
+            );
+          } catch { return String(v); }
+        },
+      },
     ],
     formFields: [],
   },

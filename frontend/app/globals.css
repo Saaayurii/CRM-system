@@ -284,6 +284,11 @@
   color: #6b7280;
 }
 
+@keyframes thanos-particle {
+  0%   { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  100% { transform: translate(calc(-50% + var(--tx, 0px)), calc(-50% + var(--ty, -30px))) scale(0); opacity: 0; }
+}
+
 @keyframes chat-reply-highlight {
   0%   { background-color: rgba(139, 92, 246, 0.25); }
   70%  { background-color: rgba(139, 92, 246, 0.15); }
