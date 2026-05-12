@@ -24,6 +24,7 @@ import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { RegisterCompanyDto } from './dto/register-company.dto';
 import { CreateInviteDto } from './dto/create-invite.dto';
+import { CreateMemberInviteDto } from './dto/create-member-invite.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { CreateRegistrationRequestDto } from './dto/create-registration-request.dto';
@@ -266,6 +267,46 @@ export class AuthController {
   @ApiOperation({ summary: 'Validate an invite token (public)' })
   async checkInvite(@Param('token') token: string) {
     return this.authService.checkInvite(token);
+  }
+
+  // ── Member Invites (Admin/HR) ────────────────────────────────────────────
+
+  @Post('member-invites')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create a member invite for current account (Admin/HR)' })
+  async createMemberInvite(
+    @Body() dto: CreateMemberInviteDto,
+    @CurrentUser() user: UserPayload,
+  ) {
+    this.checkAdminOrHR(user);
+    return this.authService.createMemberInvite(user.accountId, user.sub, dto);
+  }
+
+  @Get('member-invites')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List member invites for current account (Admin/HR)' })
+  async listMemberInvites(@CurrentUser() user: UserPayload) {
+    this.checkAdminOrHR(user);
+    return this.authService.listMemberInvites(user.accountId);
+  }
+
+  @Delete('member-invites/:token')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Revoke a member invite (Admin/HR)' })
+  async revokeMemberInvite(
+    @Param('token') token: string,
+    @CurrentUser() user: UserPayload,
+  ): Promise<MessageResponseDto> {
+    this.checkAdminOrHR(user);
+    return this.authService.revokeMemberInvite(token, user.accountId);
+  }
+
+  @Get('member-invites/:token/check')
+  @Public()
+  @ApiOperation({ summary: 'Validate a member invite token (public)' })
+  async checkMemberInvite(@Param('token') token: string) {
+    return this.authService.checkMemberInvite(token);
   }
 
   private checkAdminOrHR(user: UserPayload) {

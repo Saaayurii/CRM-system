@@ -137,6 +137,23 @@ model CompanyInvite {
   @@map("company_invites")
 }
 
+// ===========================================
+// Member Invite Tokens (Admin/HR → invite employee to company)
+// ===========================================
+model MemberInvite {
+  id               Int       @id @default(autoincrement())
+  token            String    @unique @db.VarChar(64)
+  accountId        Int       @map("account_id")
+  createdByUserId  Int       @map("created_by_user_id")
+  note             String?   @db.VarChar(255)
+  expiresAt        DateTime? @map("expires_at")
+  usedAt           DateTime? @map("used_at")
+  usedByUserId     Int?      @map("used_by_user_id")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  @@map("member_invites")
+}
+
 // Registration Request (Заявки на регистрацию)
 // ===========================================
 model RegistrationRequest {

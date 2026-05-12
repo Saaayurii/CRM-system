@@ -25,6 +25,8 @@ import { AccountRepository } from './repositories/account.repository';
 import { RegistrationRequestRepository } from './repositories/registration-request.repository';
 import { CompanyInviteRepository } from './repositories/company-invite.repository';
 import { CreateInviteDto } from './dto/create-invite.dto';
+import { CreateMemberInviteDto } from './dto/create-member-invite.dto';
+import { MemberInviteRepository } from './repositories/member-invite.repository';
 import { SessionRepository } from './repositories/session.repository';
 import { PasswordService } from './services/password.service';
 import { TokenService } from './services/token.service';
@@ -74,6 +76,7 @@ export class AuthService {
     private readonly accountRepository: AccountRepository,
     private readonly registrationRequestRepository: RegistrationRequestRepository,
     private readonly companyInviteRepository: CompanyInviteRepository,
+    private readonly memberInviteRepository: MemberInviteRepository,
     private readonly sessionRepository: SessionRepository,
     private readonly passwordService: PasswordService,
     private readonly tokenService: TokenService,
@@ -406,7 +409,17 @@ export class AuthService {
 
   async createRegistrationRequest(dto: CreateRegistrationRequestDto): Promise<MessageResponseDto> {
     const emailLower = dto.email.trim().toLowerCase();
-    const accountId = dto.accountId ?? 1;
+    let accountId = dto.accountId ?? 1;
+
+    if (dto.memberInviteToken) {
+      const invite = await this.memberInviteRepository.findByToken(dto.memberInviteToken);
+      if (!invite) throw new BadRequestException('Инвайт-ссылка недействительна');
+      if (invite.usedAt) throw new BadRequestException('Инвайт-ссылка уже была использована');
+      if (invite.expiresAt && new Date(invite.expiresAt) < new Date()) {
+        throw new BadRequestException('Срок действия инвайт-ссылки истёк');
+      }
+      accountId = invite.accountId;
+    }
 
     // Check for active user with this email within the same account
     const existingUser = await this.userRepository.findByEmailAndAccount(emailLower, accountId);
@@ -430,7 +443,7 @@ export class AuthService {
 
     const passwordDigest = await this.passwordService.hash(dto.password);
 
-    await this.registrationRequestRepository.create({
+    const request = await this.registrationRequestRepository.create({
       name: dto.name,
       email: emailLower,
       phone: dto.phone || null,
@@ -439,6 +452,10 @@ export class AuthService {
       status: 0,
       accountId,
     });
+
+    if (dto.memberInviteToken) {
+      await this.memberInviteRepository.markUsed(dto.memberInviteToken);
+    }
 
     this.logger.log(`Registration request created: ${emailLower}`);
     return { message: 'Заявка на регистрацию отправлена' };
@@ -618,6 +635,46 @@ export class AuthService {
       return { valid: false, reason: 'expired' };
     }
     return { valid: true, expiresAt: invite.expiresAt, note: invite.note };
+  }
+
+  // ── Member Invite management (Admin/HR scoped) ─────────────────────────────
+
+  async createMemberInvite(accountId: number, userId: number, dto: CreateMemberInviteDto) {
+    const expiresInHours = dto.expiresInHours ?? 72;
+    const expiresAt = expiresInHours > 0
+      ? new Date(Date.now() + expiresInHours * 60 * 60 * 1000)
+      : null;
+    return this.memberInviteRepository.create({
+      accountId,
+      createdByUserId: userId,
+      note: dto.note,
+      expiresAt,
+    });
+  }
+
+  async listMemberInvites(accountId: number) {
+    return this.memberInviteRepository.findAllByAccount(accountId);
+  }
+
+  async revokeMemberInvite(token: string, accountId: number): Promise<MessageResponseDto> {
+    await this.memberInviteRepository.deleteByTokenAndAccount(token, accountId);
+    return { message: 'Инвайт отозван' };
+  }
+
+  async checkMemberInvite(token: string) {
+    const invite = await this.memberInviteRepository.findByToken(token);
+    if (!invite) return { valid: false, reason: 'not_found' };
+    if (invite.usedAt) return { valid: false, reason: 'used' };
+    if (invite.expiresAt && new Date(invite.expiresAt) < new Date()) {
+      return { valid: false, reason: 'expired' };
+    }
+    return {
+      valid: true,
+      companyName: invite.companyName,
+      accountId: invite.accountId,
+      expiresAt: invite.expiresAt,
+      note: invite.note,
+    };
   }
 
   async getAccounts() {

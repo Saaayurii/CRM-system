@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, FormEvent, useRef, useEffect } from 'react';
+import { useState, FormEvent, useRef, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import api from '@/lib/api';
 
 const COUNTRIES = [
@@ -28,7 +29,15 @@ const COUNTRIES = [
   { name: 'ОАЭ', flag: '🇦🇪', code: '+971', iso: 'AE' },
 ];
 
-export default function RegisterPage() {
+function RegisterForm() {
+  const searchParams = useSearchParams();
+  const inviteRef = searchParams.get('ref') ?? '';
+
+  // Invite validation state
+  const [inviteState, setInviteState] = useState<'idle' | 'checking' | 'valid' | 'invalid'>('idle');
+  const [inviteCompanyName, setInviteCompanyName] = useState('');
+  const [inviteError, setInviteError] = useState('');
+
   const [companyName, setCompanyName] = useState('');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -45,6 +54,32 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Validate invite token on mount if present
+  useEffect(() => {
+    if (!inviteRef) return;
+    setInviteState('checking');
+    api.get(`/auth/member-invites/${inviteRef}/check`)
+      .then(({ data }) => {
+        if (data.valid) {
+          setInviteState('valid');
+          setInviteCompanyName(data.companyName || '');
+          setCompanyName(data.companyName || '');
+        } else {
+          setInviteState('invalid');
+          const msg: Record<string, string> = {
+            used: 'Эта инвайт-ссылка уже была использована.',
+            expired: 'Срок действия инвайт-ссылки истёк.',
+            not_found: 'Инвайт-ссылка недействительна.',
+          };
+          setInviteError(msg[data.reason] ?? 'Инвайт-ссылка недействительна.');
+        }
+      })
+      .catch(() => {
+        setInviteState('invalid');
+        setInviteError('Не удалось проверить инвайт-ссылку.');
+      });
+  }, [inviteRef]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -78,9 +113,10 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
-      const payload: any = { name, email, password, companyName };
+      const payload: any = { name, email, password };
       if (phone.trim()) payload.phone = `${selectedCountry.code}${phone.trim()}`;
       if (birthDate) payload.birthDate = birthDate;
+      if (inviteRef && inviteState === 'valid') payload.memberInviteToken = inviteRef;
 
       await api.post('/auth/registration-requests', payload);
       setSuccess(true);
@@ -89,12 +125,42 @@ export default function RegisterPage() {
         err && typeof err === 'object' && 'response' in err
           ? ((err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Ошибка регистрации')
           : 'Ошибка подключения к серверу';
-      console.error('[Register] Failed:', message);
       setError(message);
     } finally {
       setLoading(false);
     }
   };
+
+  // Loading invite check
+  if (inviteRef && inviteState === 'checking') {
+    return (
+      <div className="w-full max-w-sm text-center py-12">
+        <svg className="animate-spin h-8 w-8 text-violet-500 mx-auto mb-3" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+        </svg>
+        <p className="text-sm text-gray-500">Проверка инвайт-ссылки...</p>
+      </div>
+    );
+  }
+
+  // Invalid invite
+  if (inviteRef && inviteState === 'invalid') {
+    return (
+      <div className="w-full max-w-sm">
+        <div className="bg-red-500/10 border border-red-200 dark:border-red-800/50 rounded-xl p-6 text-center">
+          <svg className="w-10 h-10 text-red-500 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+          </svg>
+          <h2 className="font-semibold text-gray-800 dark:text-gray-100 mb-2">Недействительная ссылка</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{inviteError}</p>
+          <a href="/auth/login" className="mt-4 inline-block text-sm text-violet-500 hover:text-violet-600">
+            Войти в существующий аккаунт
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   if (success) {
     return (
@@ -120,7 +186,17 @@ export default function RegisterPage() {
 
   return (
     <div className="w-full max-w-sm">
-      <h1 className="text-3xl text-gray-800 dark:text-gray-100 font-bold mb-6">Регистрация</h1>
+      <h1 className="text-3xl text-gray-800 dark:text-gray-100 font-bold mb-2">Регистрация</h1>
+      {inviteState === 'valid' && inviteCompanyName && (
+        <div className="flex items-center gap-2 mb-5 px-3 py-2 rounded-lg bg-violet-500/10 border border-violet-200 dark:border-violet-800/40">
+          <svg className="w-4 h-4 text-violet-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 10.5V6.75a4.5 4.5 0 119 0v3.75M3.75 21.75h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H3.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+          </svg>
+          <p className="text-sm text-violet-700 dark:text-violet-300">
+            Вы присоединяетесь к компании <strong>{inviteCompanyName}</strong>
+          </p>
+        </div>
+      )}
 
       {error && (
         <div className="bg-red-500/10 text-red-500 px-4 py-3 rounded-lg mb-4 text-sm">
@@ -130,20 +206,23 @@ export default function RegisterPage() {
 
       <form onSubmit={handleSubmit}>
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300" htmlFor="companyName">
-              Название компании <span className="text-red-500">*</span>
-            </label>
-            <input
-              id="companyName"
-              className="form-input w-full"
-              type="text"
-              value={companyName}
-              onChange={(e) => setCompanyName(e.target.value)}
-              placeholder="ООО «Ромашка»"
-              required
-            />
-          </div>
+          {/* Company name field — only show when no invite */}
+          {!inviteRef && (
+            <div>
+              <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300" htmlFor="companyName">
+                Название компании <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="companyName"
+                className="form-input w-full"
+                type="text"
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
+                placeholder="ООО «Ромашка»"
+                required
+              />
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300" htmlFor="name">
@@ -347,12 +426,14 @@ export default function RegisterPage() {
         </a>
       </div>
 
-      <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 text-center">
-        <span className="text-sm text-gray-500 dark:text-gray-400">Хотите зарегистрировать свою компанию? </span>
-        <a href="/auth/register-company" className="text-sm font-medium text-violet-500 hover:text-violet-600 dark:hover:text-violet-400">
-          Создать аккаунт →
-        </a>
-      </div>
+      {!inviteRef && (
+        <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 text-center">
+          <span className="text-sm text-gray-500 dark:text-gray-400">Хотите зарегистрировать свою компанию? </span>
+          <a href="/auth/register-company" className="text-sm font-medium text-violet-500 hover:text-violet-600 dark:hover:text-violet-400">
+            Создать аккаунт →
+          </a>
+        </div>
+      )}
       <p className="mt-4 text-center text-xs text-gray-400 dark:text-gray-500">
         Регистрируясь, вы соглашаетесь с{' '}
         <a href="/privacy" className="underline hover:text-violet-500 transition-colors">
@@ -360,5 +441,13 @@ export default function RegisterPage() {
         </a>
       </p>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="w-full max-w-sm text-center py-12 text-sm text-gray-400">Загрузка...</div>}>
+      <RegisterForm />
+    </Suspense>
   );
 }

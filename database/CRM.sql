@@ -2399,3 +2399,20 @@ CREATE TABLE IF NOT EXISTS company_invites (
 );
 
 CREATE INDEX IF NOT EXISTS idx_company_invites_token ON company_invites(token);
+
+-- Member Invite Tokens (Инвайты для приглашения сотрудников в компанию)
+-- =========================================================
+CREATE TABLE IF NOT EXISTS member_invites (
+    id SERIAL PRIMARY KEY,
+    token VARCHAR(64) UNIQUE NOT NULL,
+    account_id INTEGER NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    created_by_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    note VARCHAR(255),
+    expires_at TIMESTAMP,
+    used_at TIMESTAMP,
+    used_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_member_invites_token ON member_invites(token);
+CREATE INDEX IF NOT EXISTS idx_member_invites_account ON member_invites(account_id);

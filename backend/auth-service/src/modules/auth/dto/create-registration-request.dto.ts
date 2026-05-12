@@ -43,4 +43,9 @@ export class CreateRegistrationRequestDto {
   @IsString()
   @IsOptional()
   birthDate?: string;
+
+  @ApiPropertyOptional({ description: 'Member invite token from invite link' })
+  @IsString()
+  @IsOptional()
+  memberInviteToken?: string;
 }
