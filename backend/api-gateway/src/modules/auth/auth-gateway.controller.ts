@@ -284,4 +284,52 @@ export class AuthGatewayController {
       headers: {},
     });
   }
+
+  // ── Member Invites (Admin/HR) ────────────────────────────────────────────
+
+  @Post('member-invites')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create a member invite (Admin/HR)' })
+  async createMemberInvite(@Body() body: unknown, @Req() req: any) {
+    return this.proxyService.forward('auth', {
+      method: 'POST',
+      path: '/auth/member-invites',
+      data: body,
+      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+    });
+  }
+
+  @Get('member-invites')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List member invites for current account (Admin/HR)' })
+  async listMemberInvites(@Req() req: any) {
+    return this.proxyService.forward('auth', {
+      method: 'GET',
+      path: '/auth/member-invites',
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  @Delete('member-invites/:token')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Revoke a member invite (Admin/HR)' })
+  async revokeMemberInvite(@Param('token') token: string, @Req() req: any) {
+    return this.proxyService.forward('auth', {
+      method: 'DELETE',
+      path: `/auth/member-invites/${token}`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  @Get('member-invites/:token/check')
+  @Public()
+  @ApiOperation({ summary: 'Validate a member invite token (public)' })
+  async checkMemberInvite(@Param('token') token: string) {
+    return this.proxyService.forward('auth', {
+      method: 'GET',
+      path: `/auth/member-invites/${token}/check`,
+      headers: {},
+    });
+  }
 }
