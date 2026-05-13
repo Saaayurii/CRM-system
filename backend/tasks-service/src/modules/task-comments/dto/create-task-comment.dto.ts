@@ -6,6 +6,7 @@ import {
   IsString,
   IsArray,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
 
 export class CreateTaskCommentDto {
   @ApiProperty({ example: 1 })
@@ -24,6 +25,7 @@ export class CreateTaskCommentDto {
   userId?: number;
 
   @ApiPropertyOptional({ example: [] })
+  @Transform(({ value }) => value)
   @IsArray()
   @IsOptional()
   attachments?: any[];
