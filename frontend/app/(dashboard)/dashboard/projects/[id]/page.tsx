@@ -434,6 +434,12 @@ const EQUIPMENT_TYPE_LABELS: Record<string, string> = {
   machinery: 'Спецтехника',
 };
 
+const INV_STATUS: Record<number, { label: string; color: string }> = {
+  0: { label: 'Черновик',   color: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300' },
+  1: { label: 'В процессе', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' },
+  2: { label: 'Завершена',  color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' },
+};
+
 type TabKey = typeof TABS[number]['key'];
 
 function TabsNav({ activeTab, onSelect }: { activeTab: TabKey; onSelect: (k: TabKey) => void }) {
@@ -812,6 +818,9 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   /* Inventory modal */
   const [showInvModal, setShowInvModal] = useState(false);
   const [editingInv, setEditingInv] = useState<InventorySession | null>(null);
+  const [detailInventory, setDetailInventory] = useState<InventorySession | null>(null);
+  const [showInvItemModal, setShowInvItemModal] = useState(false);
+  const [savingInvItem, setSavingInvItem] = useState(false);
 
   /* Objects tab */
   const [objectsList, setObjectsList] = useState<ConstructionSite[]>([]);
@@ -1092,7 +1101,36 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
       await api.delete(`/inventory-sessions/${id}`);
       addToast('success', 'Инвентаризация удалена');
       setInventorySessions((p) => p.filter((s) => s.id !== id));
+      if (detailInventory?.id === id) setDetailInventory(null);
     } catch { addToast('error', 'Ошибка при удалении'); }
+  }, [addToast, detailInventory]);
+
+  const handleAddInventoryItem = useCallback(async (data: Record<string, unknown>) => {
+    if (!detailInventory) return;
+    setSavingInvItem(true);
+    try {
+      const res = await api.post(`/inventory-sessions/${detailInventory.id}/items`, data);
+      const newItem: InventoryItem = res.data;
+      setDetailInventory((prev) => prev ? { ...prev, items: [...(prev.items ?? []), newItem] } : prev);
+      setInventorySessions((prev) => prev.map((s) =>
+        s.id === detailInventory.id ? { ...s, items: [...(s.items ?? []), newItem] } : s,
+      ));
+      setShowInvItemModal(false);
+      addToast('success', 'Позиция добавлена');
+    } catch { addToast('error', 'Ошибка при добавлении позиции'); }
+    finally { setSavingInvItem(false); }
+  }, [detailInventory, addToast]);
+
+  const handleDeleteInventoryItem = useCallback(async (sessionId: number, itemId: number) => {
+    if (!confirm('Удалить позицию?')) return;
+    try {
+      await api.delete(`/inventory-sessions/${sessionId}/items/${itemId}`);
+      setDetailInventory((prev) => prev ? { ...prev, items: prev.items?.filter((i) => i.id !== itemId) } : prev);
+      setInventorySessions((prev) => prev.map((s) =>
+        s.id === sessionId ? { ...s, items: s.items?.filter((i) => i.id !== itemId) } : s,
+      ));
+      addToast('success', 'Позиция удалена');
+    } catch { addToast('error', 'Ошибка при удалении позиции'); }
   }, [addToast]);
 
   const generateQr = useCallback(async (eq: Equipment) => {
@@ -4303,7 +4341,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
               )}
 
               {/* ── Inventory ── */}
-              {resourceSubTab === 'inventory' && (
+              {resourceSubTab === 'inventory' && !detailInventory && (
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
                   <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-3">
                     <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">Инвентаризации</h3>
@@ -4324,46 +4362,193 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                             <th className="py-3 px-4 text-left font-semibold">Статус</th>
                             <th className="py-3 px-4 text-left font-semibold">Дата проведения</th>
                             <th className="py-3 px-4 text-left font-semibold">Дата завершения</th>
-                            <th className="py-3 px-4 text-left font-semibold">Позиций</th>
+                            <th className="py-3 px-4 text-center font-semibold">Позиций</th>
                             <th className="py-3 px-4 text-left font-semibold">Примечания</th>
-                            <th className="py-3 px-4 w-10"></th>
+                            <th className="py-3 px-4 w-16"></th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
-                          {inventorySessions.map((inv) => {
-                            const INV_STATUS: Record<number, { label: string; color: string }> = {
-                              0: { label: 'Черновик', color: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300' },
-                              1: { label: 'В процессе', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' },
-                              2: { label: 'Завершена', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' },
-                            };
-                            return (
-                              <tr key={inv.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer transition-colors"
-                                onClick={() => { setEditingInv(inv); setShowInvModal(true); }}>
-                                <td className="py-3 px-4 font-medium text-gray-800 dark:text-gray-200">{inv.name}</td>
-                                <td className="py-3 px-4">
-                                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${INV_STATUS[inv.status]?.color ?? 'bg-gray-100 text-gray-600'}`}>
-                                    {INV_STATUS[inv.status]?.label ?? inv.status}
-                                  </span>
-                                </td>
-                                <td className="py-3 px-4 text-gray-500 dark:text-gray-400">{inv.scheduledDate ? new Date(inv.scheduledDate).toLocaleDateString('ru-RU') : '—'}</td>
-                                <td className="py-3 px-4 text-gray-500 dark:text-gray-400">{inv.completedDate ? new Date(inv.completedDate).toLocaleDateString('ru-RU') : '—'}</td>
-                                <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{inv.items?.length ?? 0}</td>
-                                <td className="py-3 px-4 text-gray-500 dark:text-gray-400 max-w-[180px] truncate">{inv.notes || '—'}</td>
-                                <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                          {inventorySessions.map((inv) => (
+                            <tr key={inv.id}
+                              className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer transition-colors"
+                              onClick={() => setDetailInventory(inv)}>
+                              <td className="py-3 px-4 font-medium text-gray-800 dark:text-gray-200">{inv.name}</td>
+                              <td className="py-3 px-4">
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${INV_STATUS[inv.status]?.color ?? 'bg-gray-100 text-gray-600'}`}>
+                                  {INV_STATUS[inv.status]?.label ?? inv.status}
+                                </span>
+                              </td>
+                              <td className="py-3 px-4 text-gray-500 dark:text-gray-400">{inv.scheduledDate ? new Date(inv.scheduledDate).toLocaleDateString('ru-RU') : '—'}</td>
+                              <td className="py-3 px-4 text-gray-500 dark:text-gray-400">{inv.completedDate ? new Date(inv.completedDate).toLocaleDateString('ru-RU') : '—'}</td>
+                              <td className="py-3 px-4 text-center">
+                                <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 text-xs font-semibold">
+                                  {inv.items?.length ?? 0}
+                                </span>
+                              </td>
+                              <td className="py-3 px-4 text-gray-500 dark:text-gray-400 max-w-[180px] truncate">{inv.notes || '—'}</td>
+                              <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                                <div className="flex items-center gap-1">
+                                  <button onClick={() => { setEditingInv(inv); setShowInvModal(true); }}
+                                    className="p-1 text-gray-300 hover:text-violet-500 dark:text-gray-600 dark:hover:text-violet-400 transition-colors" title="Редактировать">
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                  </button>
                                   <button onClick={() => handleDeleteInventory(inv.id)}
-                                    className="p-1 text-gray-300 hover:text-red-500 dark:text-gray-600 dark:hover:text-red-400 transition-colors">
+                                    className="p-1 text-gray-300 hover:text-red-500 dark:text-gray-600 dark:hover:text-red-400 transition-colors" title="Удалить">
                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                   </button>
-                                </td>
-                              </tr>
-                            );
-                          })}
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
                         </tbody>
                       </table>
                     </div>
                   )}
                 </div>
               )}
+
+              {/* ── Inventory detail card ── */}
+              {resourceSubTab === 'inventory' && detailInventory && (() => {
+                const inv = detailInventory;
+                const foundCount = inv.items?.filter(i => i.isFound).length ?? 0;
+                const notFoundCount = (inv.items?.length ?? 0) - foundCount;
+                return (
+                  <div className="space-y-4">
+                    <button onClick={() => setDetailInventory(null)}
+                      className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                      Назад к инвентаризациям
+                    </button>
+
+                    {/* Header card */}
+                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
+                      <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-3">
+                            <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-base">{inv.name}</h3>
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${INV_STATUS[inv.status]?.color ?? 'bg-gray-100 text-gray-600'}`}>
+                              {INV_STATUS[inv.status]?.label ?? inv.status}
+                            </span>
+                          </div>
+                        </div>
+                        <button onClick={() => { setEditingInv(inv); setShowInvModal(true); }}
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-violet-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors">
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                          Редактировать
+                        </button>
+                        <button onClick={() => handleDeleteInventory(inv.id)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-500 border border-red-200 dark:border-red-800/50 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                          Удалить
+                        </button>
+                      </div>
+                      <div className="px-5 py-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        <div>
+                          <dt className="text-xs text-gray-400 dark:text-gray-500">Дата проведения</dt>
+                          <dd className="text-sm font-medium text-gray-800 dark:text-gray-200 mt-0.5">{inv.scheduledDate ? new Date(inv.scheduledDate).toLocaleDateString('ru-RU') : '—'}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-xs text-gray-400 dark:text-gray-500">Дата завершения</dt>
+                          <dd className="text-sm font-medium text-gray-800 dark:text-gray-200 mt-0.5">{inv.completedDate ? new Date(inv.completedDate).toLocaleDateString('ru-RU') : '—'}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-xs text-gray-400 dark:text-gray-500">Найдено</dt>
+                          <dd className="text-sm font-semibold text-green-600 dark:text-green-400 mt-0.5">{foundCount} из {inv.items?.length ?? 0}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-xs text-gray-400 dark:text-gray-500">Не найдено / расхождения</dt>
+                          <dd className={`text-sm font-semibold mt-0.5 ${notFoundCount > 0 ? 'text-red-500 dark:text-red-400' : 'text-gray-400'}`}>{notFoundCount}</dd>
+                        </div>
+                        {inv.notes && (
+                          <div className="col-span-2 sm:col-span-4">
+                            <dt className="text-xs text-gray-400 dark:text-gray-500">Примечания</dt>
+                            <dd className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">{inv.notes}</dd>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Items table */}
+                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
+                      <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-3">
+                        <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">Позиции инвентаризации</h3>
+                        <button onClick={() => setShowInvItemModal(true)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                          Добавить позицию
+                        </button>
+                      </div>
+                      {!inv.items?.length ? (
+                        <div className="py-10 text-center text-sm text-gray-400 dark:text-gray-500">Позиции не добавлены</div>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
+                                <th className="py-3 px-4 text-left font-semibold">№</th>
+                                <th className="py-3 px-4 text-left font-semibold">Оборудование</th>
+                                <th className="py-3 px-4 text-left font-semibold">Серийный №</th>
+                                <th className="py-3 px-4 text-left font-semibold">Склад</th>
+                                <th className="py-3 px-4 text-left font-semibold">Ожид. статус</th>
+                                <th className="py-3 px-4 text-left font-semibold">Факт. статус</th>
+                                <th className="py-3 px-4 text-center font-semibold">Найден</th>
+                                <th className="py-3 px-4 text-left font-semibold">Примечания</th>
+                                <th className="py-3 px-4 w-10"></th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
+                              {inv.items.map((item, idx) => (
+                                <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 transition-colors">
+                                  <td className="py-3 px-4 text-xs font-mono text-gray-400 dark:text-gray-500">{idx + 1}</td>
+                                  <td className="py-3 px-4 font-medium text-gray-800 dark:text-gray-200">{item.equipment?.name || `#${item.equipmentId}`}</td>
+                                  <td className="py-3 px-4 font-mono text-xs text-gray-400 dark:text-gray-500">{item.equipment?.serialNumber || '—'}</td>
+                                  <td className="py-3 px-4 text-gray-500 dark:text-gray-400">
+                                    {item.warehouse ? (
+                                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300">{item.warehouse.name}</span>
+                                    ) : '—'}
+                                  </td>
+                                  <td className="py-3 px-4">
+                                    {item.expectedStatus != null ? (
+                                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${EQUIPMENT_STATUS[item.expectedStatus]?.color ?? 'bg-gray-100 text-gray-600'}`}>
+                                        {EQUIPMENT_STATUS[item.expectedStatus]?.label ?? item.expectedStatus}
+                                      </span>
+                                    ) : <span className="text-gray-400">—</span>}
+                                  </td>
+                                  <td className="py-3 px-4">
+                                    {item.actualStatus != null ? (
+                                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${EQUIPMENT_STATUS[item.actualStatus]?.color ?? 'bg-gray-100 text-gray-600'}`}>
+                                        {EQUIPMENT_STATUS[item.actualStatus]?.label ?? item.actualStatus}
+                                      </span>
+                                    ) : <span className="text-gray-400">—</span>}
+                                  </td>
+                                  <td className="py-3 px-4 text-center">
+                                    {item.isFound ? (
+                                      <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-900/30">
+                                        <svg className="w-3 h-3 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-900/30">
+                                        <svg className="w-3 h-3 text-red-500 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="py-3 px-4 text-gray-500 dark:text-gray-400 max-w-[160px] truncate">{item.notes || '—'}</td>
+                                  <td className="py-3 px-4">
+                                    <button onClick={() => handleDeleteInventoryItem(inv.id, item.id)}
+                                      className="p-1 text-gray-300 hover:text-red-500 dark:text-gray-600 dark:hover:text-red-400 transition-colors">
+                                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* ── Maintenance ── */}
               {resourceSubTab === 'maintenance' && (
@@ -4601,6 +4786,39 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
           ]}
           onClose={() => { setShowInvModal(false); setEditingInv(null); }}
           onSave={(data) => handleSaveInventory(data)}
+        />
+      )}
+
+      {/* Inventory Item Modal */}
+      {showInvItemModal && (
+        <FinanceModal
+          title="Добавить позицию"
+          saving={savingInvItem}
+          fields={[
+            {
+              key: 'equipmentId', label: 'Оборудование', type: 'select', required: true,
+              options: equipmentList.map((e) => ({ value: e.id, label: e.name + (e.serialNumber ? ` (${e.serialNumber})` : '') })),
+            },
+            {
+              key: 'warehouseId', label: 'Склад', type: 'select',
+              options: warehousesList.map((w) => ({ value: w.id, label: w.name })),
+            },
+            {
+              key: 'expectedStatus', label: 'Ожидаемый статус', type: 'select',
+              options: Object.entries(EQUIPMENT_STATUS).map(([v, s]) => ({ value: Number(v), label: s.label })),
+            },
+            {
+              key: 'actualStatus', label: 'Фактический статус', type: 'select',
+              options: Object.entries(EQUIPMENT_STATUS).map(([v, s]) => ({ value: Number(v), label: s.label })),
+            },
+            {
+              key: 'isFound', label: 'Найдено', type: 'select',
+              options: [{ value: 1, label: 'Да' }, { value: 0, label: 'Нет' }],
+            },
+            { key: 'notes', label: 'Примечания', type: 'textarea' },
+          ]}
+          onClose={() => setShowInvItemModal(false)}
+          onSave={(data) => handleAddInventoryItem({ ...data, isFound: data.isFound !== 0 })}
         />
       )}
 
