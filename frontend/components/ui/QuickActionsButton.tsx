@@ -38,8 +38,22 @@ const ACTIONS = [
 export default function QuickActionsButton() {
   const [open, setOpen] = useState(false);
   const [panel, setPanel] = useState<Panel>(null);
+  const [hasModalOpen, setHasModalOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const chatWindowOpen = useChatStore((s) => s.chatWindowOpen);
+
+  useEffect(() => {
+    const checkModals = () => {
+      const found = Array.from(document.querySelectorAll('div')).some((el) => {
+        const cls = typeof el.className === 'string' ? el.className : '';
+        return cls.includes('fixed') && cls.includes('inset-0') && cls.includes('bg-black');
+      });
+      setHasModalOpen(found);
+    };
+    const observer = new MutationObserver(checkModals);
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, []);
 
   // Close on outside click
   useEffect(() => {
@@ -78,7 +92,7 @@ export default function QuickActionsButton() {
 
   const closePanel = () => setPanel(null);
 
-  if (chatWindowOpen) return null;
+  if (chatWindowOpen || hasModalOpen) return null;
 
   return (
     <div ref={rootRef} className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
