@@ -1074,6 +1074,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
     if (activeTab === 'team' && !teamLoaded && !loadingTeam) reloadTeam();
     if (activeTab === 'documents' && !docsLoaded && !loadingDocs) reloadDocuments();
     if (activeTab === 'tasks' && !tasksLoaded && !loadingTasks) reloadTasks();
+    if ((activeTab === 'documents' || activeTab === 'photos') && !tasksLoaded && !loadingTasks) reloadTasks();
     if (activeTab === 'resources' && !resourcesLoaded && !loadingResources) reloadResources();
     if (activeTab === 'chat' && !channelChecked && !loadingChat) loadProjectChannels();
     if (activeTab === 'photos' && !sitesLoaded && !loadingPhotos) reloadSites();
@@ -1403,6 +1404,26 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   const status = STATUS_LABELS[project.status] || STATUS_LABELS[0];
   const priority = PRIORITY_LABELS[project.priority] || PRIORITY_LABELS[1];
   const allPhotos = sites.flatMap((s) => (s.photos || []).map((url) => ({ url: normalizePhotoUrl(url), siteName: s.name })));
+
+  const isMediaAtt = (fileUrl: string, mimeType?: string) =>
+    /\.(jpg|jpeg|png|gif|webp|svg|mp4|mov|avi|webm|mkv|m4v)(\?|$)/i.test(fileUrl) ||
+    !!(mimeType && (mimeType.startsWith('image/') || mimeType.startsWith('video/')));
+
+  const taskAttachmentsList = tasks.flatMap((task) => {
+    const atts = Array.isArray(task.attachments) ? task.attachments : [];
+    return atts
+      .filter((a: any) => (a?.fileUrl || a?.file_url) && (a?.fileName || a?.file_name))
+      .map((a: any) => ({
+        fileName: a.fileName || a.file_name || '',
+        fileSize: a.fileSize || a.file_size || 0,
+        mimeType: a.mimeType || a.mime_type || '',
+        fileUrl: a.fileUrl || a.file_url || '',
+        taskId: task.id,
+        taskTitle: task.title,
+      }));
+  });
+  const taskDocAttachments = taskAttachmentsList.filter((a) => !isMediaAtt(a.fileUrl, a.mimeType));
+  const taskMediaAttachments = taskAttachmentsList.filter((a) => isMediaAtt(a.fileUrl, a.mimeType));
 
   return (
     <div>
@@ -2015,6 +2036,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
 
       {/* ─── Documents ─── */}
       {activeTab === 'documents' && (
+        <div className="space-y-4">
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="font-semibold text-gray-800 dark:text-gray-100 shrink-0">Документы проекта</h2>
@@ -2182,6 +2204,42 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
               </div>
             );
           })()}
+        </div>
+
+        {/* Task document attachments */}
+        {taskDocAttachments.length > 0 && (
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
+            <div className="px-5 py-3 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+              <h3 className="font-medium text-gray-700 dark:text-gray-300 text-sm">Вложения из задач</h3>
+              <span className="text-xs text-gray-400">{taskDocAttachments.length} файлов</span>
+            </div>
+            <div className="divide-y divide-gray-100 dark:divide-gray-700/60">
+              {taskDocAttachments.map((att, idx) => {
+                const ext = att.fileUrl.split('.').pop()?.split('?')[0]?.toLowerCase() || '';
+                const icon = att.mimeType === 'application/pdf' || ext === 'pdf' ? '📄'
+                  : /doc(x)?/.test(ext) ? '📝'
+                  : /xls(x)?/.test(ext) ? '📊'
+                  : '📎';
+                return (
+                  <a key={idx} href={att.fileUrl} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-900/20 transition-colors cursor-pointer">
+                    <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center shrink-0 text-xl">{icon}</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-gray-800 dark:text-gray-100 text-sm truncate">{att.fileName}</div>
+                      <div className="flex items-center gap-2 text-xs text-gray-400 mt-0.5">
+                        <span>{att.taskTitle}</span>
+                        {att.fileSize > 0 && <><span>·</span><span>{fmtSize(att.fileSize)}</span></>}
+                      </div>
+                    </div>
+                    <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                  </a>
+                );
+              })}
+            </div>
+          </div>
+        )}
         </div>
       )}
 
@@ -2449,6 +2507,48 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                 </div>
               );
             })
+          )}
+
+          {/* Task media attachments */}
+          {taskMediaAttachments.length > 0 && (
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
+              <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                <h3 className="font-semibold text-gray-800 dark:text-gray-100">Медиа из задач</h3>
+                <span className="text-xs text-gray-400">{taskMediaAttachments.length} файлов</span>
+              </div>
+              <div className="p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                {taskMediaAttachments.map((att, idx) => {
+                  const isVidUrl = /\.(mp4|mov|avi|webm|mkv|m4v)(\?|$)/i.test(att.fileUrl);
+                  return (
+                    <div key={idx} className="relative group aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700">
+                      <button onClick={() => setLightboxPhoto(att.fileUrl)} className="w-full h-full">
+                        {isVidUrl ? (
+                          <div className="w-full h-full relative">
+                            <video src={att.fileUrl} className="w-full h-full object-cover" muted playsInline preload="metadata" />
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                              <div className="w-10 h-10 rounded-full bg-black/50 flex items-center justify-center">
+                                <svg className="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <img src={att.fileUrl} alt={att.fileName} className="w-full h-full object-cover hover:opacity-90 transition-opacity"
+                            onError={(e) => { const el = e.currentTarget as HTMLImageElement; if (el.src !== PHOTO_ERROR_PLACEHOLDER) el.src = PHOTO_ERROR_PLACEHOLDER; }} />
+                        )}
+                      </button>
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <p className="text-white text-xs truncate">{att.taskTitle}</p>
+                      </div>
+                      <a href={att.fileUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+                        className="absolute top-1.5 right-1.5 w-7 h-7 flex items-center justify-center bg-black/60 hover:bg-violet-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all"
+                        title="Открыть">
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                      </a>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           )}
         </div>
       )}
