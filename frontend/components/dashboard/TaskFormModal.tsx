@@ -332,9 +332,10 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
       api.get(`/tasks/${task.id}`)
         .then((r) => {
           const t = r.data;
+          console.log('[TaskFormModal] task from API, attachments:', t.attachments);
           setAttachments(parseAttachments(t.attachments));
         })
-        .catch(() => {});
+        .catch((err) => { console.error('[TaskFormModal] task fetch error:', err); });
 
       api.get('/task-comments', { params: { taskId: task.id, limit: 200 } })
         .then((res) => {
@@ -394,6 +395,7 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
     if (!title.trim()) { addToast('error', 'Введите название задачи'); return; }
     setSaving(true);
     try {
+      const filteredAttachments = attachments.filter((a) => a.fileUrl && a.fileName);
       const payload: any = {
         title,
         description: description || null,
@@ -403,9 +405,10 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
         constructionSiteId: constructionSiteId ? Number(constructionSiteId) : null,
         dueDate: dueDate || null,
         estimatedHours: estimatedHours ? Number(estimatedHours) : null,
-        attachments: attachments.filter((a) => a.fileUrl && a.fileName),
+        attachments: filteredAttachments,
         customFields: { checklists },
       };
+      console.log('[TaskFormModal] saving payload.attachments:', filteredAttachments);
       if (isNew) {
         const res = await api.post('/tasks', payload);
         const newId = res.data?.id;
@@ -414,13 +417,17 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
         }
         addToast('success', 'Задача создана');
       } else {
-        await api.put(`/tasks/${task.id}`, payload);
+        const res = await api.put(`/tasks/${task.id}`, payload);
+        console.log('[TaskFormModal] save response attachments:', res.data?.attachments);
         await api.post(`/tasks/${task.id}/assignees`, { assignees });
         addToast('success', 'Задача сохранена');
       }
       onSaved();
     } catch (e: any) {
-      addToast('error', e.response?.data?.message || 'Ошибка при сохранении');
+      const msg = e.response?.data?.message;
+      const errorText = Array.isArray(msg) ? msg.join(', ') : (msg || 'Ошибка при сохранении');
+      console.error('[TaskFormModal] save error:', e.response?.data);
+      addToast('error', errorText);
     } finally {
       setSaving(false);
     }
@@ -433,16 +440,19 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
     if ((!hasText && !hasAttachments) || !task?.id) return;
     setSendingComment(true);
     try {
+      console.log('[TaskFormModal] sending comment, attachments:', commentAttachments);
       const res = await api.post('/task-comments', {
         taskId: task.id,
         commentText: commentText.trim(),
         attachments: commentAttachments,
       });
       const newComment: TaskComment = res.data;
+      console.log('[TaskFormModal] comment response, attachments:', newComment.attachments);
       setComments((prev) => [...prev, newComment]);
       setCommentText('');
       setCommentAttachments([]);
-    } catch {
+    } catch (err: any) {
+      console.error('[TaskFormModal] comment send error:', err?.response?.data);
       addToast('error', 'Ошибка отправки комментария');
     } finally {
       setSendingComment(false);
