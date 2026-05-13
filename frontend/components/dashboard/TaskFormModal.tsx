@@ -428,12 +428,14 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
 
   // ---- Send comment ----
   const handleSendComment = async () => {
-    if (!commentText.trim() || !task?.id) return;
+    const hasText = commentText.trim().length > 0;
+    const hasAttachments = commentAttachments.length > 0;
+    if ((!hasText && !hasAttachments) || !task?.id) return;
     setSendingComment(true);
     try {
       const res = await api.post('/task-comments', {
         taskId: task.id,
-        commentText,
+        commentText: commentText.trim(),
         attachments: commentAttachments,
       });
       const newComment: TaskComment = res.data;
@@ -946,7 +948,7 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
                   </button>
                   <button
                     onClick={handleSendComment}
-                    disabled={sendingComment || !commentText.trim() || uploading}
+                    disabled={sendingComment || (!commentText.trim() && commentAttachments.length === 0) || uploading}
                     className="p-1.5 text-violet-500 hover:text-violet-600 disabled:opacity-30 transition-colors"
                     title="Отправить (Ctrl+Enter)"
                   >

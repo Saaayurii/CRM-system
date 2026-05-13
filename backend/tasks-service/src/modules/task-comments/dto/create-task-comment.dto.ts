@@ -13,10 +13,10 @@ export class CreateTaskCommentDto {
   @IsNotEmpty()
   taskId: number;
 
-  @ApiProperty({ example: 'This task needs review' })
+  @ApiPropertyOptional({ example: 'This task needs review' })
   @IsString()
-  @IsNotEmpty()
-  commentText: string;
+  @IsOptional()
+  commentText?: string;
 
   @ApiPropertyOptional({ example: 1 })
   @IsNumber()

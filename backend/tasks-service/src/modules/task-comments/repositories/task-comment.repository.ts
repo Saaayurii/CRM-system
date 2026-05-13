@@ -41,8 +41,8 @@ export class TaskCommentRepository {
       data: {
         taskId: data.taskId,
         userId: data.userId,
-        commentText: data.commentText,
-        attachments: data.attachments || [],
+        commentText: data.commentText ?? '',
+        attachments: data.attachments ?? [],
       },
     });
   }
