@@ -748,7 +748,9 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   const [maintenanceList, setMaintenanceList] = useState<EquipmentMaintenance[]>([]);
   const [loadingResources, setLoadingResources] = useState(false);
   const [resourcesLoaded, setResourcesLoaded] = useState(false);
-  const [resourceSubTab, setResourceSubTab] = useState<'materials' | 'orders' | 'equipment' | 'maintenance'>('materials');
+  const [resourceSubTab, setResourceSubTab] = useState<'materials' | 'orders' | 'equipment' | 'maintenance' | 'warehouses' | 'history' | 'inventory'>('materials');
+  const [detailEquipment, setDetailEquipment] = useState<Equipment | null>(null);
+  const [warehouseSubTab, setWarehouseSubTab] = useState<string>('');
   const [savingResource, setSavingResource] = useState(false);
   /* Material request modal */
   const [showMRModal, setShowMRModal] = useState(false);
@@ -3729,7 +3731,120 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
       )}
 
       {/* ─── Resources ─── */}
-      {activeTab === 'resources' && (
+      {/* ─── Equipment Detail View ─── */}
+      {activeTab === 'resources' && detailEquipment && (() => {
+        const eq = detailEquipment;
+        const eqHistory = maintenanceList.filter(m => m.equipmentId === eq.id).sort((a, b) => new Date(b.maintenanceDate).getTime() - new Date(a.maintenanceDate).getTime());
+        return (
+          <div className="space-y-4">
+            <button onClick={() => setDetailEquipment(null)}
+              className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+              Назад к инвентарю
+            </button>
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+              {/* Left card — info */}
+              <div className="lg:col-span-3 bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center justify-between">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100">{eq.name}</h3>
+                  <button onClick={() => { setEditingEq(eq); setShowEqModal(true); }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-violet-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors">
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                    Редактировать
+                  </button>
+                </div>
+                <div className="p-5 flex gap-6">
+                  {/* QR code placeholder */}
+                  <div className="flex-shrink-0 w-28 h-28 bg-gray-100 dark:bg-gray-900/40 rounded-lg flex flex-col items-center justify-center border-2 border-dashed border-gray-200 dark:border-gray-700">
+                    <svg className="w-8 h-8 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75V16.5zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM19.5 19.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75z" />
+                    </svg>
+                    <span className="text-xs text-gray-300 dark:text-gray-600 mt-1">QR код</span>
+                  </div>
+                  {/* Fields grid */}
+                  <div className="flex-1 grid grid-cols-2 gap-x-6 gap-y-3">
+                    {[
+                      { label: 'Серийный №', value: eq.serialNumber },
+                      { label: 'Тип', value: eq.equipmentType ? (EQUIPMENT_TYPE_LABELS[eq.equipmentType] ?? eq.equipmentType) : null },
+                      { label: 'Бренд / Производитель', value: eq.manufacturer },
+                      { label: 'Модель', value: eq.model },
+                      { label: 'Дата поступления', value: eq.purchaseDate ? new Date(eq.purchaseDate).toLocaleDateString('ru-RU') : null },
+                    ].map(({ label, value }) => (
+                      <div key={label}>
+                        <dt className="text-xs text-gray-400 dark:text-gray-500">{label}</dt>
+                        <dd className="text-sm font-medium text-gray-800 dark:text-gray-200 mt-0.5">{value || '—'}</dd>
+                      </div>
+                    ))}
+                    <div>
+                      <dt className="text-xs text-gray-400 dark:text-gray-500">Текущий склад</dt>
+                      <dd className="mt-0.5">
+                        {eq.currentLocation ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300">{eq.currentLocation}</span>
+                        ) : <span className="text-sm text-gray-400">—</span>}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-gray-400 dark:text-gray-500">Статус</dt>
+                      <dd className="mt-0.5">
+                        {eq.status != null ? (
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${EQUIPMENT_STATUS[eq.status]?.color ?? 'bg-gray-100 text-gray-600'}`}>
+                            {EQUIPMENT_STATUS[eq.status]?.label ?? eq.status}
+                          </span>
+                        ) : <span className="text-sm text-gray-400">—</span>}
+                      </dd>
+                    </div>
+                  </div>
+                </div>
+                {eq.notes && (
+                  <div className="px-5 pb-5">
+                    <dt className="text-xs text-gray-400 dark:text-gray-500 mb-1">Примечания</dt>
+                    <dd className="text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/30 rounded-lg p-3">{eq.notes}</dd>
+                  </div>
+                )}
+              </div>
+              {/* Right card — history */}
+              <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm">История перемещений</h3>
+                </div>
+                {eqHistory.length === 0 ? (
+                  <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">Нет записей истории</div>
+                ) : (
+                  <div className="px-5 py-4 overflow-y-auto max-h-[480px]">
+                    <div className="relative">
+                      <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-gray-200 dark:bg-gray-700" />
+                      <div className="space-y-5">
+                        {eqHistory.map((m) => (
+                          <div key={m.id} className="relative flex gap-3 pl-8">
+                            <div className="absolute left-1.5 top-1.5 w-3 h-3 rounded-full bg-violet-500 border-2 border-white dark:border-gray-800 z-10" />
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between gap-2 mb-1">
+                                {m.maintenanceType && (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300">{m.maintenanceType}</span>
+                                )}
+                                <span className="text-xs text-gray-400 dark:text-gray-500 ml-auto">{new Date(m.maintenanceDate).toLocaleDateString('ru-RU')}</span>
+                              </div>
+                              {m.description && <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">{m.description}</p>}
+                              {m.cost != null && (
+                                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                                  Стоимость: <span className="font-medium text-gray-600 dark:text-gray-300">{new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(m.cost)}</span>
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {activeTab === 'resources' && !detailEquipment && (
         <div className="space-y-6">
           {/* Sub-nav */}
           <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700">
@@ -3737,6 +3852,9 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
               { key: 'materials', label: 'Материальные заявки', count: materialRequests.length },
               { key: 'orders', label: 'Заказы поставщикам', count: supplierOrders.length },
               { key: 'equipment', label: 'Оборудование', count: equipmentList.length },
+              { key: 'warehouses', label: 'Склады', count: [...new Set(equipmentList.map(e => e.currentLocation).filter(Boolean))].length },
+              { key: 'history', label: 'История', count: maintenanceList.length },
+              { key: 'inventory', label: 'Инвентаризации', count: 0 },
               { key: 'maintenance', label: 'Обслуживание', count: maintenanceList.length },
             ] as const).map((t) => (
               <button
@@ -3908,7 +4026,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                         <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
                           {equipmentList.map((eq) => (
                             <tr key={eq.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer transition-colors"
-                              onClick={() => { setEditingEq(eq); setShowEqModal(true); }}>
+                              onClick={() => setDetailEquipment(eq)}>
                               <td className="py-3 px-4 font-medium text-gray-800 dark:text-gray-200">{eq.name}</td>
                               <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{eq.equipmentType ? (EQUIPMENT_TYPE_LABELS[eq.equipmentType] ?? eq.equipmentType) : '—'}</td>
                               <td className="py-3 px-4 font-mono text-xs text-gray-500 dark:text-gray-400">{eq.serialNumber || '—'}</td>
@@ -3922,10 +4040,16 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                                 ) : '—'}
                               </td>
                               <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
-                                <button onClick={() => handleDeleteEquipment(eq.id)}
-                                  className="p-1 text-gray-300 hover:text-red-500 dark:text-gray-600 dark:hover:text-red-400 transition-colors">
-                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                </button>
+                                <div className="flex items-center gap-1">
+                                  <button onClick={() => { setEditingEq(eq); setShowEqModal(true); }}
+                                    className="p-1 text-gray-300 hover:text-violet-500 dark:text-gray-600 dark:hover:text-violet-400 transition-colors">
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                  </button>
+                                  <button onClick={() => handleDeleteEquipment(eq.id)}
+                                    className="p-1 text-gray-300 hover:text-red-500 dark:text-gray-600 dark:hover:text-red-400 transition-colors">
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           ))}
@@ -3933,6 +4057,147 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                       </table>
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* ── Warehouses ── */}
+              {resourceSubTab === 'warehouses' && (() => {
+                const locations = [...new Set(equipmentList.map(e => e.currentLocation).filter((l): l is string => Boolean(l)))];
+                const activeWH = warehouseSubTab || locations[0] || '';
+                const warehouseEq = equipmentList.filter(e => e.currentLocation === activeWH);
+                return (
+                  <div className="space-y-4">
+                    {locations.length === 0 ? (
+                      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs py-12 text-center text-sm text-gray-400 dark:text-gray-500">
+                        Нет данных о расположении оборудования
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex gap-2 flex-wrap">
+                          {locations.map(loc => (
+                            <button key={loc}
+                              onClick={() => setWarehouseSubTab(loc)}
+                              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeWH === loc ? 'bg-violet-500 text-white' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:border-violet-400'}`}>
+                              {loc}
+                              <span className="ml-1.5 text-xs opacity-70">({equipmentList.filter(e => e.currentLocation === loc).length})</span>
+                            </button>
+                          ))}
+                        </div>
+                        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
+                          <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60">
+                            <h3 className="font-semibold text-gray-900 dark:text-gray-100">Склад: {activeWH}</h3>
+                          </div>
+                          {warehouseEq.length === 0 ? (
+                            <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">Нет оборудования на этом складе</div>
+                          ) : (
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-sm">
+                                <thead>
+                                  <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
+                                    <th className="py-3 px-4 text-left font-semibold">№</th>
+                                    <th className="py-3 px-4 text-left font-semibold">Название</th>
+                                    <th className="py-3 px-4 text-left font-semibold">Дата поступления</th>
+                                    <th className="py-3 px-4 text-left font-semibold">Склад</th>
+                                    <th className="py-3 px-4 text-left font-semibold">Статус</th>
+                                    <th className="py-3 px-4 text-left font-semibold">Тип</th>
+                                    <th className="py-3 px-4 text-left font-semibold">Производитель</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
+                                  {warehouseEq.map((eq, idx) => (
+                                    <tr key={eq.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer transition-colors"
+                                      onClick={() => setDetailEquipment(eq)}>
+                                      <td className="py-3 px-4 text-gray-400 dark:text-gray-500 text-xs font-mono">{idx + 1}</td>
+                                      <td className="py-3 px-4 font-medium text-gray-800 dark:text-gray-200">{eq.name}</td>
+                                      <td className="py-3 px-4 text-gray-500 dark:text-gray-400">{eq.purchaseDate ? new Date(eq.purchaseDate).toLocaleDateString('ru-RU') : '—'}</td>
+                                      <td className="py-3 px-4">
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300">
+                                          {eq.currentLocation}
+                                        </span>
+                                      </td>
+                                      <td className="py-3 px-4">
+                                        {eq.status != null ? (
+                                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${EQUIPMENT_STATUS[eq.status]?.color ?? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>
+                                            {EQUIPMENT_STATUS[eq.status]?.label ?? eq.status}
+                                          </span>
+                                        ) : '—'}
+                                      </td>
+                                      <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{eq.equipmentType ? (EQUIPMENT_TYPE_LABELS[eq.equipmentType] ?? eq.equipmentType) : '—'}</td>
+                                      <td className="py-3 px-4 text-gray-500 dark:text-gray-400">{eq.manufacturer || '—'}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* ── History ── */}
+              {resourceSubTab === 'history' && (
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
+                  <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60">
+                    <h3 className="font-semibold text-gray-900 dark:text-gray-100">История обслуживания и перемещений</h3>
+                  </div>
+                  {maintenanceList.length === 0 ? (
+                    <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">История пуста</div>
+                  ) : (
+                    <div className="px-5 py-4">
+                      <div className="relative">
+                        <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-gray-200 dark:bg-gray-700" />
+                        <div className="space-y-6">
+                          {[...maintenanceList].sort((a, b) => new Date(b.maintenanceDate).getTime() - new Date(a.maintenanceDate).getTime()).map((m) => {
+                            const eq = equipmentList.find(e => e.id === m.equipmentId);
+                            return (
+                              <div key={m.id} className="relative flex gap-4 pl-10">
+                                <div className="absolute left-3.5 top-1 w-3 h-3 rounded-full bg-violet-500 border-2 border-white dark:border-gray-800 z-10" />
+                                <div className="flex-1 bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
+                                  <div className="flex items-start justify-between gap-2 mb-2">
+                                    <div>
+                                      <span className="font-medium text-gray-800 dark:text-gray-200 text-sm">{eq?.name || `Оборудование #${m.equipmentId}`}</span>
+                                      {m.maintenanceType && (
+                                        <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300">{m.maintenanceType}</span>
+                                      )}
+                                    </div>
+                                    <span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">{new Date(m.maintenanceDate).toLocaleDateString('ru-RU')}</span>
+                                  </div>
+                                  {m.description && <p className="text-sm text-gray-600 dark:text-gray-400">{m.description}</p>}
+                                  <div className="mt-2 flex items-center gap-4 text-xs text-gray-400 dark:text-gray-500">
+                                    {m.cost != null && (
+                                      <span>Стоимость: <span className="font-medium text-gray-600 dark:text-gray-300">{new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(m.cost)}</span></span>
+                                    )}
+                                    {m.nextMaintenanceDate && (
+                                      <span>Следующее ТО: <span className="font-medium text-gray-600 dark:text-gray-300">{new Date(m.nextMaintenanceDate).toLocaleDateString('ru-RU')}</span></span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ── Inventory ── */}
+              {resourceSubTab === 'inventory' && (
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
+                  <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-3">
+                    <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">Инвентаризации</h3>
+                  </div>
+                  <div className="py-16 text-center">
+                    <svg className="w-12 h-12 mx-auto text-gray-200 dark:text-gray-700 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                    </svg>
+                    <p className="text-sm text-gray-400 dark:text-gray-500">Инвентаризации пока не проводились</p>
+                    <p className="text-xs text-gray-300 dark:text-gray-600 mt-1">Раздел находится в разработке</p>
+                  </div>
                 </div>
               )}
 
