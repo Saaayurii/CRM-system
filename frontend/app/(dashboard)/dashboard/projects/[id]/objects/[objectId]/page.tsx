@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
+import TasksPanel from '@/components/dashboard/TasksPanel';
 
 interface ObjectSite {
   id: number;
@@ -25,15 +26,6 @@ interface ObjectSite {
 
 interface Project { id: number; name: string; code?: string; }
 
-interface Task {
-  id: number;
-  title: string;
-  status: number;
-  priority: number;
-  dueDate?: string;
-  assignees?: { id: number; userId: number; userName?: string }[];
-}
-
 interface Doc {
   id: number;
   title: string;
@@ -48,21 +40,6 @@ const STATUS_LABELS: Record<number, { label: string; color: string }> = {
   1: { label: 'В работе', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' },
   2: { label: 'Приостановлен', color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300' },
   3: { label: 'Завершён', color: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300' },
-};
-
-const TASK_STATUS: Record<number, { label: string; color: string }> = {
-  0: { label: 'Новая', color: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300' },
-  1: { label: 'В работе', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' },
-  2: { label: 'На проверке', color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300' },
-  3: { label: 'Завершена', color: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300' },
-  4: { label: 'Отменена', color: 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-300' },
-};
-
-const PRIORITY_LABELS: Record<number, { label: string; color: string }> = {
-  0: { label: 'Низкий', color: 'text-gray-500' },
-  1: { label: 'Средний', color: 'text-yellow-500' },
-  2: { label: 'Высокий', color: 'text-orange-500' },
-  3: { label: 'Критический', color: 'text-red-500' },
 };
 
 type TabKey = 'overview' | 'tasks' | 'documents' | 'media';
@@ -90,15 +67,6 @@ export default function ObjectDetailPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
 
-  /* ── Tasks ── */
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [tasksLoading, setTasksLoading] = useState(false);
-  const [tasksLoaded, setTasksLoaded] = useState(false);
-  const [showTaskForm, setShowTaskForm] = useState(false);
-  const [taskTitle, setTaskTitle] = useState('');
-  const [taskPriority, setTaskPriority] = useState(1);
-  const [taskDueDate, setTaskDueDate] = useState('');
-  const [taskSaving, setTaskSaving] = useState(false);
 
   /* ── Documents ── */
   const [docs, setDocs] = useState<Doc[]>([]);
@@ -154,20 +122,6 @@ export default function ObjectDetailPage() {
   useEffect(() => { load(); }, [load]);
 
   useEffect(() => {
-    if (activeTab === 'tasks' && !tasksLoaded && !tasksLoading) {
-      setTasksLoading(true);
-      api.get('/tasks', { params: { constructionSiteId: objectId, limit: 200 } })
-        .then((r) => {
-          const arr = r.data?.tasks || r.data?.data || r.data || [];
-          setTasks(Array.isArray(arr) ? arr : []);
-          setTasksLoaded(true);
-        })
-        .catch(() => setTasks([]))
-        .finally(() => setTasksLoading(false));
-    }
-  }, [activeTab, tasksLoaded, tasksLoading, objectId]);
-
-  useEffect(() => {
     if (activeTab === 'documents' && !docsLoaded && !docsLoading) {
       setDocsLoading(true);
       api.get('/documents', { params: { constructionSiteId: objectId, limit: 200 } })
@@ -202,36 +156,6 @@ export default function ObjectDetailPage() {
     } finally {
       setSaving(false);
     }
-  };
-
-  /* ── Task create ── */
-  const handleCreateTask = async () => {
-    if (!taskTitle.trim()) return;
-    setTaskSaving(true);
-    try {
-      const res = await api.post('/tasks', {
-        title: taskTitle.trim(),
-        priority: taskPriority,
-        dueDate: taskDueDate || undefined,
-        projectId,
-        constructionSiteId: objectId,
-      });
-      setTasks((prev) => [res.data, ...prev]);
-      setTaskTitle(''); setTaskPriority(1); setTaskDueDate('');
-      setShowTaskForm(false);
-      addToast('success', 'Задача создана');
-    } catch { addToast('error', 'Ошибка при создании задачи'); }
-    finally { setTaskSaving(false); }
-  };
-
-  /* ── Task delete ── */
-  const handleDeleteTask = async (id: number) => {
-    if (!confirm('Удалить задачу?')) return;
-    try {
-      await api.delete(`/tasks/${id}`);
-      setTasks((prev) => prev.filter((t) => t.id !== id));
-      addToast('success', 'Задача удалена');
-    } catch { addToast('error', 'Ошибка при удалении'); }
   };
 
   /* ── Doc file upload then save ── */
@@ -472,95 +396,11 @@ export default function ObjectDetailPage() {
 
       {/* ── Tasks ── */}
       {activeTab === 'tasks' && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center justify-between">
-            <h2 className="font-semibold text-gray-800 dark:text-gray-100">Задачи объекта</h2>
-            <button onClick={() => setShowTaskForm((v) => !v)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-lg transition-colors">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-              Добавить задачу
-            </button>
-          </div>
-
-          {showTaskForm && (
-            <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 bg-gray-50 dark:bg-gray-900/20">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="sm:col-span-1">
-                  <input autoFocus className="form-input w-full" placeholder="Название задачи *"
-                    value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') handleCreateTask(); }} />
-                </div>
-                <div>
-                  <select className="form-select w-full" value={taskPriority} onChange={(e) => setTaskPriority(Number(e.target.value))}>
-                    <option value={0}>Низкий</option>
-                    <option value={1}>Средний</option>
-                    <option value={2}>Высокий</option>
-                    <option value={3}>Критический</option>
-                  </select>
-                </div>
-                <div>
-                  <input type="date" className="form-input w-full" value={taskDueDate} onChange={(e) => setTaskDueDate(e.target.value)} />
-                </div>
-              </div>
-              <div className="flex gap-2 mt-3">
-                <button onClick={handleCreateTask} disabled={taskSaving || !taskTitle.trim()}
-                  className="px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition-colors">
-                  {taskSaving ? 'Создание...' : 'Создать'}
-                </button>
-                <button onClick={() => { setShowTaskForm(false); setTaskTitle(''); }}
-                  className="px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 transition-colors">
-                  Отмена
-                </button>
-              </div>
-            </div>
-          )}
-
-          {tasksLoading ? (
-            <div className="py-12 flex justify-center"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-violet-500" /></div>
-          ) : tasks.length === 0 ? (
-            <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">Задач нет</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
-                    <th className="py-3 px-4 text-left font-semibold">Задача</th>
-                    <th className="py-3 px-4 text-left font-semibold">Статус</th>
-                    <th className="py-3 px-4 text-left font-semibold">Приоритет</th>
-                    <th className="py-3 px-4 text-left font-semibold">Срок</th>
-                    <th className="py-3 px-4"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
-                  {tasks.map((task) => (
-                    <tr key={task.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 transition-colors">
-                      <td className="py-3 px-4 text-gray-800 dark:text-gray-100 font-medium">{task.title}</td>
-                      <td className="py-3 px-4">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${TASK_STATUS[task.status]?.color ?? 'bg-gray-100 text-gray-600'}`}>
-                          {TASK_STATUS[task.status]?.label ?? task.status}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className={`text-xs font-medium ${PRIORITY_LABELS[task.priority]?.color ?? 'text-gray-500'}`}>
-                          {PRIORITY_LABELS[task.priority]?.label ?? '—'}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-gray-500 dark:text-gray-400 text-xs">
-                        {task.dueDate ? new Date(task.dueDate).toLocaleDateString('ru-RU') : '—'}
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <button onClick={() => handleDeleteTask(task.id)}
-                          className="p-1.5 text-gray-400 hover:text-red-500 transition-colors" title="Удалить">
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+        <TasksPanel
+          constructionSiteId={objectId}
+          projectId={obj?.projectId}
+          title="Задачи объекта"
+        />
       )}
 
       {/* ── Documents ── */}
