@@ -82,7 +82,7 @@ export class TaskRepository {
   }
 
   async update(id: number, data: UpdateTaskDto) {
-    const updateData: any = { ...data };
+    const updateData: any = JSON.parse(JSON.stringify(data));
     if (data.startDate) updateData.startDate = new Date(data.startDate);
     if (data.dueDate) updateData.dueDate = new Date(data.dueDate);
 

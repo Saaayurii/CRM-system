@@ -275,6 +275,8 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
 
   // Mobile sidebar sheet
   const [showMobileSettings, setShowMobileSettings] = useState(false);
+  // History collapse
+  const [showHistory, setShowHistory] = useState(true);
 
   // Assignees
   const [assignees, setAssignees] = useState<Assignee[]>(() =>
@@ -653,18 +655,25 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
       </div>
 
       {/* Created by */}
-      {createdByUser && (
+      {(createdByUser || task?.createdByUserId) && (
         <div>
           <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">Поставил задачу</p>
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-gray-400 flex items-center justify-center text-white text-xs font-semibold shrink-0 overflow-hidden">
-              {createdByUser.avatarUrl
-                ? <img src={createdByUser.avatarUrl} alt="" className="w-full h-full object-cover" />
-                : initials(userName(createdByUser))
-              }
+          {createdByUser?.roleId === 1 ? (
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full bg-gray-500 flex items-center justify-center text-white text-xs font-semibold shrink-0">С</div>
+              <span className="text-sm text-gray-600 dark:text-gray-400">Система</span>
             </div>
-            <span className="text-sm text-gray-600 dark:text-gray-400 truncate">{userName(createdByUser)}</span>
-          </div>
+          ) : createdByUser ? (
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full bg-gray-400 flex items-center justify-center text-white text-xs font-semibold shrink-0 overflow-hidden">
+                {createdByUser.avatarUrl
+                  ? <img src={createdByUser.avatarUrl} alt="" className="w-full h-full object-cover" />
+                  : initials(userName(createdByUser))
+                }
+              </div>
+              <span className="text-sm text-gray-600 dark:text-gray-400 truncate">{userName(createdByUser)}</span>
+            </div>
+          ) : null}
         </div>
       )}
 
@@ -937,7 +946,7 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
                   </button>
                   <button
                     onClick={handleSendComment}
-                    disabled={sendingComment || !commentText.trim()}
+                    disabled={sendingComment || !commentText.trim() || uploading}
                     className="p-1.5 text-violet-500 hover:text-violet-600 disabled:opacity-30 transition-colors"
                     title="Отправить (Ctrl+Enter)"
                   >
@@ -956,8 +965,16 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
             {/* Comments history */}
             {comments.length > 0 && (
               <div>
-                <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">История</p>
-                <div className="space-y-4">
+                <button
+                  onClick={() => setShowHistory((v) => !v)}
+                  className="flex items-center gap-1 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                >
+                  <svg className={`w-3.5 h-3.5 transition-transform duration-200 ${showHistory ? '' : '-rotate-90'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                  История ({comments.length})
+                </button>
+                {showHistory && <div className="space-y-4">
                   {comments.map((c) => {
                     const cUserId = c.userId || c.user_id;
                     const author = cUserId ? userMap[cUserId] : null;
@@ -999,7 +1016,7 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
                       </div>
                     );
                   })}
-                </div>
+                </div>}
               </div>
             )}
           </div>
