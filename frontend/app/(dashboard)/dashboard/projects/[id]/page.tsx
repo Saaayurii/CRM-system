@@ -740,6 +740,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   const [savingProposal, setSavingProposal] = useState(false);
   const [proposalDetailsOpen, setProposalDetailsOpen] = useState(true);
   const [proposalLineSearch, setProposalLineSearch] = useState('');
+  const [showProposalDocument, setShowProposalDocument] = useState(false);
 
   /* Resources tab */
   const [materialRequests, setMaterialRequests] = useState<MaterialRequest[]>([]);
@@ -3521,9 +3522,18 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
           {financeSubTab === 'proposals' && (
             <div className="space-y-4">
               {proposalsLoading ? <LoadingState /> : selectedProposal ? (
+                showProposalDocument ? (
+                  <ProposalActDocument
+                    proposal={selectedProposal}
+                    projectName={project?.name ?? ''}
+                    projectAddress={project?.address}
+                    managerName={selectedProposal.managerName || project?.projectManager?.name}
+                    onBack={() => setShowProposalDocument(false)}
+                  />
+                ) : (
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
-                    <button onClick={() => setSelectedProposal(null)} className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors">
+                    <button onClick={() => { setSelectedProposal(null); setShowProposalDocument(false); }} className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors">
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
                       Назад
                     </button>
@@ -3534,6 +3544,10 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
+                      <button onClick={() => setShowProposalDocument(true)} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors">
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        Документ
+                      </button>
                       <button onClick={() => setShowProposalModal(true)} className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors">
                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                         Редактировать
@@ -3671,6 +3685,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                     )}
                   </div>
                 </div>
+                )
               ) : (
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
                   <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-3">
@@ -6205,6 +6220,235 @@ function ProjectChannelEditModal({
         </div>
       </form>
     </ModalShell>
+  );
+}
+
+function ProposalActDocument({ proposal, projectName, projectAddress, managerName, onBack }: {
+  proposal: CommercialProposal;
+  projectName: string;
+  projectAddress?: string;
+  managerName?: string;
+  onBack: () => void;
+}) {
+  const sortedLines = [...proposal.lines].sort((a, b) => a.sortOrder - b.sortOrder);
+  const dateStr = new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+  const actNumber = `АКТ-${proposal.proposalNumber}`;
+
+  const handlePrint = () => {
+    const style = document.createElement('style');
+    style.id = '__act_print_style';
+    style.textContent = `
+      @media print {
+        body * { visibility: hidden !important; }
+        #kp-act-document, #kp-act-document * { visibility: visible !important; }
+        #kp-act-document { position: fixed; inset: 0; z-index: 99999; background: white; overflow: visible; padding: 12mm 18mm; }
+        @page { margin: 0; size: A4 portrait; }
+      }`;
+    document.head.appendChild(style);
+    window.print();
+    setTimeout(() => { const el = document.getElementById('__act_print_style'); el?.remove(); }, 500);
+  };
+
+  const labelCls = "text-[10px] uppercase tracking-[0.12em] text-gray-400 font-semibold mb-0.5";
+  const valCls   = "text-sm text-gray-900 font-medium";
+
+  return (
+    <div className="space-y-4">
+      {/* Toolbar */}
+      <div className="flex items-center gap-3">
+        <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+          К составу
+        </button>
+        <div className="flex-1" />
+        <p className="text-xs text-gray-400 dark:text-gray-500 hidden sm:block">Откройте «Печать» и сохраните как PDF — макет ориентирован на лист А4.</p>
+        <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 bg-gray-900 hover:bg-gray-700 dark:bg-gray-100 dark:hover:bg-white text-white dark:text-gray-900 text-sm font-semibold rounded-xl transition-colors">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+          Печать / PDF
+        </button>
+      </div>
+
+      {/* A4 Document */}
+      <div id="kp-act-document" className="bg-white rounded-2xl shadow-md max-w-3xl mx-auto overflow-hidden">
+        {/* Color top stripe */}
+        <div className="h-1.5 bg-gradient-to-r from-violet-500 to-violet-700" />
+
+        <div className="px-10 py-8">
+
+          {/* Document stamp */}
+          <p className="text-[10px] uppercase tracking-[0.18em] text-gray-400 text-center mb-5">
+            Документ для передачи заказчику и печати
+          </p>
+
+          {/* Title */}
+          <div className="text-center mb-7">
+            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Акт оказанных услуг</h1>
+            <p className="text-xs text-gray-400 mt-1.5">{actNumber} &nbsp;·&nbsp; Дата составления: {dateStr}</p>
+          </div>
+
+          <hr className="border-gray-100 mb-7" />
+
+          {/* Parties row */}
+          <div className="grid grid-cols-2 gap-8 mb-6">
+            <div>
+              <p className={labelCls}>Коммерческое предложение</p>
+              <p className="text-base font-bold text-gray-900">{proposal.proposalNumber}</p>
+              {projectName && <p className="text-xs text-gray-500 mt-0.5">Проект: {projectName}</p>}
+            </div>
+            <div>
+              <p className={labelCls}>Заказчик</p>
+              <p className="text-base font-bold text-gray-900">{proposal.clientName || '—'}</p>
+              {(proposal.clientPhone || proposal.clientEmail) && (
+                <p className="text-xs text-gray-500 mt-0.5">{[proposal.clientPhone, proposal.clientEmail].filter(Boolean).join(' · ')}</p>
+              )}
+            </div>
+          </div>
+
+          {(proposal.objectAddress || projectAddress) && (
+            <div className="mb-7 bg-gray-50 rounded-xl px-5 py-4">
+              <p className={labelCls}>Объект (адрес)</p>
+              <p className={valCls}>{proposal.objectAddress || projectAddress}</p>
+              {proposal.objectComment && <p className="text-xs text-gray-500 mt-1">{proposal.objectComment}</p>}
+            </div>
+          )}
+
+          <hr className="border-gray-100 mb-7" />
+
+          {/* Preamble */}
+          <div className="mb-7">
+            <h2 className="text-sm font-bold text-gray-800 mb-2">Преамбула</h2>
+            <p className="text-sm text-gray-600 leading-relaxed text-justify">
+              Настоящий акт составлен в подтверждение того, что Исполнитель надлежащим образом выполнил,
+              а Заказчик принял следующие работы и услуги в соответствии с Коммерческим предложением&nbsp;
+              <span className="font-semibold text-gray-800">{proposal.proposalNumber}</span>.
+              Настоящий акт фиксирует перечень, описание, объёмы и стоимость выполненных работ.
+              Подписание акта обеими сторонами свидетельствует об отсутствии взаимных претензий по объёму и качеству выполненных работ.
+            </p>
+          </div>
+
+          {/* Section 1: Services table */}
+          <div className="mb-7">
+            <h2 className="text-sm font-bold text-gray-800 mb-1">1. Состав и стоимость выполненных работ</h2>
+            <p className="text-xs text-gray-400 mb-3">Стоимость указана в соответствии с Коммерческим предложением. НДС не облагается.</p>
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr className="border-y border-gray-200 bg-gray-50">
+                  <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500 w-8">№</th>
+                  <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500">Наименование работ / услуг</th>
+                  <th className="py-2 px-3 text-center text-xs font-semibold text-gray-500 w-14">Ед.</th>
+                  <th className="py-2 px-3 text-right text-xs font-semibold text-gray-500 w-18">Кол-во</th>
+                  <th className="py-2 px-3 text-right text-xs font-semibold text-gray-500 w-28">Цена, ₽</th>
+                  <th className="py-2 px-3 text-right text-xs font-semibold text-gray-500 w-28">Стоимость, ₽</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedLines.map((line, i) => (
+                  <tr key={line.id} className={`border-b border-gray-100 ${i % 2 === 1 ? 'bg-gray-50/50' : ''}`}>
+                    <td className="py-2.5 px-3 text-gray-400 text-xs">{i + 1}</td>
+                    <td className="py-2.5 px-3">
+                      <p className="text-gray-900 font-medium leading-snug">{line.serviceName}</p>
+                      {line.serviceDesc && <p className="text-xs text-gray-400 mt-0.5">{line.serviceDesc}</p>}
+                    </td>
+                    <td className="py-2.5 px-3 text-center text-gray-500 text-xs">{line.unit || 'шт.'}</td>
+                    <td className="py-2.5 px-3 text-right text-gray-700">{Number(line.quantity)}</td>
+                    <td className="py-2.5 px-3 text-right text-gray-700">{Number(line.unitPrice).toLocaleString('ru-RU')}</td>
+                    <td className="py-2.5 px-3 text-right font-semibold text-gray-900">{Number(line.totalPrice).toLocaleString('ru-RU')}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t-2 border-gray-300">
+                  <td colSpan={4} className="py-3 px-3 text-right text-xs text-gray-500 uppercase tracking-wide font-semibold">НДС:</td>
+                  <td className="py-3 px-3 text-right text-xs text-gray-500" colSpan={2}>Не облагается</td>
+                </tr>
+                <tr className="bg-violet-50 border-b-2 border-violet-200">
+                  <td colSpan={4} className="py-3 px-3 text-right font-bold text-gray-900 text-sm uppercase tracking-wide">Итого к оплате:</td>
+                  <td className="py-3 px-3 text-right font-bold text-lg text-violet-700" colSpan={2}>{fmtMoney(Number(proposal.totalAmount))}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          {/* Section 2: Status of each work */}
+          <div className="mb-7">
+            <h2 className="text-sm font-bold text-gray-800 mb-3">2. Акт выполненных работ по позициям</h2>
+            <div className="space-y-2">
+              {sortedLines.map((line, i) => {
+                const ws = line.workStatus;
+                const isDone = ws === 'done';
+                const isInProgress = ws === 'in_progress';
+                return (
+                  <div key={line.id} className={`flex items-start gap-3 px-4 py-3 rounded-xl border ${isDone ? 'border-green-200 bg-green-50' : isInProgress ? 'border-blue-200 bg-blue-50' : 'border-gray-200 bg-gray-50'}`}>
+                    <div className={`mt-0.5 w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center ${isDone ? 'bg-green-500' : isInProgress ? 'bg-blue-500' : 'bg-gray-300'}`}>
+                      {isDone ? (
+                        <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                      ) : isInProgress ? (
+                        <div className="w-2 h-2 rounded-full bg-white" />
+                      ) : (
+                        <div className="w-2 h-2 rounded-full bg-gray-100" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 leading-snug">{i + 1}. {line.serviceName}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        {Number(line.quantity)} {line.unit || 'шт.'} × {Number(line.unitPrice).toLocaleString('ru-RU')} ₽ = <span className="font-semibold">{Number(line.totalPrice).toLocaleString('ru-RU')} ₽</span>
+                      </p>
+                    </div>
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${isDone ? 'text-green-700 bg-green-100' : isInProgress ? 'text-blue-700 bg-blue-100' : 'text-gray-500 bg-gray-200'}`}>
+                      {isDone ? 'Выполнено' : isInProgress ? 'В работе' : 'Не начато'}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Section 3: Guarantee & claims */}
+          <div className="mb-7">
+            <h2 className="text-sm font-bold text-gray-800 mb-2">3. Гарантийные обязательства и претензии</h2>
+            <p className="text-sm text-gray-600 leading-relaxed text-justify">
+              Исполнитель гарантирует надлежащее качество выполненных работ в течение <span className="font-semibold text-gray-800">12 (двенадцати) месяцев</span> с даты подписания настоящего акта. На момент подписания настоящего акта Заказчик претензий к качеству, объёму и срокам выполненных работ не имеет.
+            </p>
+            {proposal.notes && (
+              <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+                <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-1">Примечания</p>
+                <p className="text-sm text-amber-900 leading-relaxed">{proposal.notes}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Section 4: Signatures */}
+          <div className="mb-2">
+            <h2 className="text-sm font-bold text-gray-800 mb-5">4. Подписи сторон</h2>
+            <div className="grid grid-cols-2 gap-12">
+              <div>
+                <p className={labelCls}>Исполнитель</p>
+                <p className="text-sm text-gray-700 font-medium mb-1">{managerName || projectName || '________________'}</p>
+                {projectName && <p className="text-xs text-gray-500 mb-6">{projectName}</p>}
+                {!projectName && <div className="mb-6" />}
+                <div className="border-b-2 border-gray-300 mb-1.5 mt-8" />
+                <p className="text-[10px] text-gray-400 uppercase tracking-widest">Подпись / дата</p>
+              </div>
+              <div>
+                <p className={labelCls}>Заказчик</p>
+                <p className="text-sm text-gray-700 font-medium mb-1">{proposal.clientName || '________________'}</p>
+                {proposal.clientPhone && <p className="text-xs text-gray-500 mb-6">{proposal.clientPhone}</p>}
+                {!proposal.clientPhone && <div className="mb-6" />}
+                <div className="border-b-2 border-gray-300 mb-1.5 mt-8" />
+                <p className="text-[10px] text-gray-400 uppercase tracking-widest">Подпись / дата</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="mt-8 pt-4 border-t border-gray-100 flex items-center justify-between">
+            <p className="text-[10px] text-gray-300">{actNumber}</p>
+            <p className="text-[10px] text-gray-300">Сформировано {dateStr}</p>
+          </div>
+
+        </div>
+      </div>
+    </div>
   );
 }
 

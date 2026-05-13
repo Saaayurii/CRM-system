@@ -16,32 +16,49 @@ model Account {
   @@map("accounts")
 }
 
+model Warehouse {
+  id        Int       @id @default(autoincrement())
+  name      String    @db.VarChar(255)
+  address   String?   @db.VarChar(500)
+  accountId Int       @map("account_id")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @default(now()) @updatedAt @map("updated_at")
+  equipment Equipment[]
+  inventoryItems InventoryItem[]
+  @@index([accountId])
+  @@map("eq_warehouses")
+}
+
 model Equipment {
-  id                   Int       @id @default(autoincrement())
-  accountId            Int       @map("account_id")
-  name                 String    @db.VarChar(255)
-  equipmentType        String?   @map("equipment_type") @db.VarChar(100)
-  manufacturer         String?   @db.VarChar(255)
-  model                String?   @db.VarChar(255)
-  serialNumber         String?   @map("serial_number") @db.VarChar(100)
-  purchaseDate         DateTime? @map("purchase_date") @db.Date
-  purchaseCost         Decimal?  @map("purchase_cost") @db.Decimal(10, 2)
-  status               Int       @default(1)
-  currentLocation      String?   @map("current_location") @db.VarChar(255)
-  constructionSiteId   Int?      @map("construction_site_id")
-  assignedToUserId     Int?      @map("assigned_to_user_id")
-  lastMaintenanceDate  DateTime? @map("last_maintenance_date") @db.Date
-  nextMaintenanceDate  DateTime? @map("next_maintenance_date") @db.Date
-  maintenanceIntervalDays Int?   @map("maintenance_interval_days")
-  notes                String?   @db.Text
-  photos               Json      @default("[]")
-  documents            Json      @default("[]")
-  createdAt            DateTime  @default(now()) @map("created_at")
-  updatedAt            DateTime  @default(now()) @updatedAt @map("updated_at")
-  account              Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  maintenanceRecords   EquipmentMaintenance[]
+  id                      Int       @id @default(autoincrement())
+  accountId               Int       @map("account_id")
+  name                    String    @db.VarChar(255)
+  equipmentType           String?   @map("equipment_type") @db.VarChar(100)
+  manufacturer            String?   @db.VarChar(255)
+  model                   String?   @db.VarChar(255)
+  serialNumber            String?   @map("serial_number") @db.VarChar(100)
+  purchaseDate            DateTime? @map("purchase_date") @db.Date
+  purchaseCost            Decimal?  @map("purchase_cost") @db.Decimal(10, 2)
+  status                  Int       @default(1)
+  currentLocation         String?   @map("current_location") @db.VarChar(255)
+  warehouseId             Int?      @map("warehouse_id")
+  constructionSiteId      Int?      @map("construction_site_id")
+  assignedToUserId        Int?      @map("assigned_to_user_id")
+  lastMaintenanceDate     DateTime? @map("last_maintenance_date") @db.Date
+  nextMaintenanceDate     DateTime? @map("next_maintenance_date") @db.Date
+  maintenanceIntervalDays Int?      @map("maintenance_interval_days")
+  notes                   String?   @db.Text
+  photos                  Json      @default("[]")
+  documents               Json      @default("[]")
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @default(now()) @updatedAt @map("updated_at")
+  account                 Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  warehouse               Warehouse? @relation(fields: [warehouseId], references: [id])
+  maintenanceRecords      EquipmentMaintenance[]
+  inventoryItems          InventoryItem[]
   @@index([accountId])
   @@index([constructionSiteId])
+  @@index([warehouseId])
   @@index([status])
   @@map("equipment")
 }
@@ -59,4 +76,38 @@ model EquipmentMaintenance {
   createdAt           DateTime  @default(now()) @map("created_at")
   equipment           Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
   @@map("equipment_maintenance")
+}
+
+model InventorySession {
+  id              Int             @id @default(autoincrement())
+  name            String          @db.VarChar(255)
+  projectId       Int?            @map("project_id")
+  accountId       Int             @map("account_id")
+  status          Int             @default(0)
+  scheduledDate   DateTime?       @map("scheduled_date") @db.Date
+  completedDate   DateTime?       @map("completed_date") @db.Date
+  createdByUserId Int?            @map("created_by_user_id")
+  notes           String?         @db.Text
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @default(now()) @updatedAt @map("updated_at")
+  items           InventoryItem[]
+  @@index([accountId])
+  @@index([projectId])
+  @@map("inventory_sessions")
+}
+
+model InventoryItem {
+  id                 Int              @id @default(autoincrement())
+  inventorySessionId Int              @map("inventory_session_id")
+  inventorySession   InventorySession @relation(fields: [inventorySessionId], references: [id], onDelete: Cascade)
+  equipmentId        Int              @map("equipment_id")
+  equipment          Equipment        @relation(fields: [equipmentId], references: [id])
+  warehouseId        Int?             @map("warehouse_id")
+  warehouse          Warehouse?       @relation(fields: [warehouseId], references: [id])
+  expectedStatus     Int?             @map("expected_status")
+  actualStatus       Int?             @map("actual_status")
+  isFound            Boolean          @default(true) @map("is_found")
+  notes              String?          @db.Text
+  createdAt          DateTime         @default(now()) @map("created_at")
+  @@map("inventory_items")
 }
