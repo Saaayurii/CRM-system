@@ -7,7 +7,7 @@ import {
   MaxLength,
   IsArray,
 } from 'class-validator';
-import { Transform } from 'class-transformer';
+import { Type } from 'class-transformer';
 
 export class UpdateTaskDto {
   @ApiPropertyOptional({ example: 1 })
@@ -95,7 +95,7 @@ export class UpdateTaskDto {
   tags?: string[];
 
   @ApiPropertyOptional({ description: 'Array of file attachment objects' })
-  @Transform(({ value }) => value)
+  @Type(() => Object)
   @IsArray()
   @IsOptional()
   attachments?: { fileName: string; fileSize: number; mimeType: string; fileUrl: string }[];
