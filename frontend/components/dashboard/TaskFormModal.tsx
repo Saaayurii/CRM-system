@@ -452,6 +452,16 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
     }
   };
 
+  // ---- Delete comment ----
+  const handleDeleteComment = async (commentId: number) => {
+    try {
+      await api.delete(`/task-comments/${commentId}`);
+      setComments((prev) => prev.filter((c) => c.id !== commentId));
+    } catch {
+      addToast('error', 'Ошибка удаления комментария');
+    }
+  };
+
   // ---- File upload ----
   const handleFileSelect = async (files: FileList | null, forComment = false) => {
     if (!files || files.length === 0) return;
@@ -987,8 +997,13 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
                     const name = isSystemUser ? 'Система' : userName(author!);
                     const text = c.commentText || (c as any).content || '';
                     const att: Attachment[] = parseAttachments(c.attachments);
+                    const canDelete =
+                      user && task && (
+                        Number(user.id) === Number(task.createdByUserId) ||
+                        Number(user.id) === Number(cUserId)
+                      );
                     return (
-                      <div key={c.id} className="flex gap-3">
+                      <div key={c.id} className="flex gap-3 group">
                         <div className="w-8 h-8 rounded-full bg-violet-500 flex items-center justify-center text-white text-xs font-semibold shrink-0 overflow-hidden">
                           {author?.avatarUrl
                             ? <img src={author.avatarUrl} alt="" className="w-full h-full object-cover" />
@@ -999,6 +1014,17 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
                           <div className="flex items-baseline gap-2 mb-0.5">
                             <span className="text-sm font-medium text-gray-800 dark:text-gray-200">{name}</span>
                             <span className="text-xs text-gray-400">{formatAgo(c.createdAt)}</span>
+                            {canDelete && (
+                              <button
+                                onClick={() => handleDeleteComment(c.id)}
+                                className="ml-auto opacity-0 group-hover:opacity-100 p-0.5 text-gray-400 hover:text-red-500 transition-all"
+                                title="Удалить комментарий"
+                              >
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+                            )}
                           </div>
                           <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap break-words">{text}</p>
                           {att.length > 0 && (
