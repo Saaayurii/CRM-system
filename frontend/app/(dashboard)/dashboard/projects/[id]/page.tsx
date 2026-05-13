@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef, useCallback, Suspense } from 'react';
+import QRCode from 'qrcode';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import api from '@/lib/api';
@@ -335,6 +336,42 @@ interface SupplierOrder {
   items?: { id: number; quantity: number }[];
 }
 
+interface Warehouse {
+  id: number;
+  name: string;
+  address?: string;
+  accountId?: number;
+  equipment?: Equipment[];
+  createdAt?: string;
+}
+
+interface InventoryItem {
+  id: number;
+  inventorySessionId: number;
+  equipmentId: number;
+  equipment?: { id: number; name: string; serialNumber?: string; status?: number; equipmentType?: string };
+  warehouseId?: number;
+  warehouse?: { id: number; name: string };
+  expectedStatus?: number;
+  actualStatus?: number;
+  isFound: boolean;
+  notes?: string;
+}
+
+interface InventorySession {
+  id: number;
+  name: string;
+  projectId?: number;
+  accountId?: number;
+  status: number;
+  scheduledDate?: string;
+  completedDate?: string;
+  createdByUserId?: number;
+  notes?: string;
+  items?: InventoryItem[];
+  createdAt?: string;
+}
+
 interface Equipment {
   id: number;
   name: string;
@@ -344,7 +381,10 @@ interface Equipment {
   model?: string;
   manufacturer?: string;
   currentLocation?: string;
+  warehouseId?: number;
+  warehouse?: { id: number; name: string };
   purchaseDate?: string;
+  purchaseCost?: number;
   assignedToUserId?: number;
   notes?: string;
 }
@@ -747,10 +787,13 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   const [supplierOrders, setSupplierOrders] = useState<SupplierOrder[]>([]);
   const [equipmentList, setEquipmentList] = useState<Equipment[]>([]);
   const [maintenanceList, setMaintenanceList] = useState<EquipmentMaintenance[]>([]);
+  const [warehousesList, setWarehousesList] = useState<Warehouse[]>([]);
+  const [inventorySessions, setInventorySessions] = useState<InventorySession[]>([]);
   const [loadingResources, setLoadingResources] = useState(false);
   const [resourcesLoaded, setResourcesLoaded] = useState(false);
   const [resourceSubTab, setResourceSubTab] = useState<'materials' | 'orders' | 'equipment' | 'maintenance' | 'warehouses' | 'history' | 'inventory'>('materials');
   const [detailEquipment, setDetailEquipment] = useState<Equipment | null>(null);
+  const [qrDataUrl, setQrDataUrl] = useState<string>('');
   const [warehouseSubTab, setWarehouseSubTab] = useState<string>('');
   const [savingResource, setSavingResource] = useState(false);
   /* Material request modal */
@@ -766,6 +809,9 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   /* Equipment modal */
   const [showEqModal, setShowEqModal] = useState(false);
   const [editingEq, setEditingEq] = useState<Equipment | null>(null);
+  /* Inventory modal */
+  const [showInvModal, setShowInvModal] = useState(false);
+  const [editingInv, setEditingInv] = useState<InventorySession | null>(null);
 
   /* Objects tab */
   const [objectsList, setObjectsList] = useState<ConstructionSite[]>([]);
@@ -880,12 +926,14 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   const reloadResources = useCallback(async () => {
     setLoadingResources(true);
     try {
-      const [matRes, ordersRes, equipRes, suppRes, maintRes] = await Promise.allSettled([
+      const [matRes, ordersRes, equipRes, suppRes, maintRes, whRes, invRes] = await Promise.allSettled([
         api.get('/material-requests', { params: { projectId, limit: 200 } }),
         api.get('/supplier-orders', { params: { projectId, limit: 200 } }),
         api.get('/equipment', { params: { limit: 200 } }),
         api.get('/suppliers', { params: { limit: 500 } }),
         api.get('/equipment-maintenance', { params: { limit: 200 } }),
+        api.get('/warehouses'),
+        api.get('/inventory-sessions', { params: { projectId } }),
       ]);
       setMaterialRequests(matRes.status === 'fulfilled'
         ? (matRes.value.data?.materialRequests || matRes.value.data?.data || matRes.value.data || [])
@@ -898,6 +946,12 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
         : []);
       setMaintenanceList(maintRes.status === 'fulfilled'
         ? (maintRes.value.data?.maintenanceRecords || maintRes.value.data?.data || maintRes.value.data || [])
+        : []);
+      setWarehousesList(whRes.status === 'fulfilled'
+        ? (whRes.value.data?.data || whRes.value.data || [])
+        : []);
+      setInventorySessions(invRes.status === 'fulfilled'
+        ? (invRes.value.data?.data || invRes.value.data || [])
         : []);
       if (suppRes.status === 'fulfilled') {
         const s = suppRes.value.data?.suppliers || suppRes.value.data?.data || suppRes.value.data || [];
@@ -1014,6 +1068,40 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
       setMaintenanceList((p) => p.filter((m) => m.id !== id));
     } catch { addToast('error', 'Ошибка при удалении записи'); }
   }, [addToast]);
+
+  const handleSaveInventory = useCallback(async (data: Record<string, unknown>) => {
+    setSavingResource(true);
+    try {
+      if (editingInv) {
+        await api.put(`/inventory-sessions/${editingInv.id}`, data);
+        addToast('success', 'Инвентаризация обновлена');
+      } else {
+        await api.post('/inventory-sessions', { ...data, projectId });
+        addToast('success', 'Инвентаризация создана');
+      }
+      setShowInvModal(false);
+      setEditingInv(null);
+      await reloadResources();
+    } catch { addToast('error', 'Ошибка при сохранении инвентаризации'); }
+    finally { setSavingResource(false); }
+  }, [editingInv, projectId, addToast, reloadResources]);
+
+  const handleDeleteInventory = useCallback(async (id: number) => {
+    if (!confirm('Удалить инвентаризацию?')) return;
+    try {
+      await api.delete(`/inventory-sessions/${id}`);
+      addToast('success', 'Инвентаризация удалена');
+      setInventorySessions((p) => p.filter((s) => s.id !== id));
+    } catch { addToast('error', 'Ошибка при удалении'); }
+  }, [addToast]);
+
+  const generateQr = useCallback(async (eq: Equipment) => {
+    const url = `${typeof window !== 'undefined' ? window.location.origin : ''}/dashboard/equipment/${eq.id}`;
+    try {
+      const dataUrl = await QRCode.toDataURL(url, { width: 200, margin: 1 });
+      setQrDataUrl(dataUrl);
+    } catch { setQrDataUrl(''); }
+  }, []);
 
   const reloadSites = useCallback(async () => {
     setLoadingPhotos(true);
@@ -1375,6 +1463,11 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
       reloadTasks, reloadTeam, reloadDocuments, reloadFinance, reloadResources, reloadSites]);
 
   useAutoRefresh(activeTabRefresh);
+
+  useEffect(() => {
+    if (detailEquipment) generateQr(detailEquipment);
+    else setQrDataUrl('');
+  }, [detailEquipment, generateQr]);
 
   /* ─── Chat helpers ─── */
   const handleDeleteChannel = useCallback(async (ch: ChatChannel) => {
@@ -3769,13 +3862,21 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                   </button>
                 </div>
                 <div className="p-5 flex gap-6">
-                  {/* QR code placeholder */}
-                  <div className="flex-shrink-0 w-28 h-28 bg-gray-100 dark:bg-gray-900/40 rounded-lg flex flex-col items-center justify-center border-2 border-dashed border-gray-200 dark:border-gray-700">
-                    <svg className="w-8 h-8 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75V16.5zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM19.5 19.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75z" />
-                    </svg>
-                    <span className="text-xs text-gray-300 dark:text-gray-600 mt-1">QR код</span>
+                  {/* QR code */}
+                  <div className="flex-shrink-0 flex flex-col items-center gap-1.5">
+                    {qrDataUrl ? (
+                      <>
+                        <img src={qrDataUrl} alt="QR" className="w-28 h-28 rounded-lg" />
+                        <a href={qrDataUrl} download={`equipment-${eq.id}.png`}
+                          className="text-xs text-violet-500 hover:text-violet-600 dark:text-violet-400">
+                          Скачать
+                        </a>
+                      </>
+                    ) : (
+                      <div className="w-28 h-28 bg-gray-100 dark:bg-gray-900/40 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-200 dark:border-gray-700">
+                        <span className="text-xs text-gray-300 dark:text-gray-600">QR код</span>
+                      </div>
+                    )}
                   </div>
                   {/* Fields grid */}
                   <div className="flex-1 grid grid-cols-2 gap-x-6 gap-y-3">
@@ -3867,9 +3968,9 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
               { key: 'materials', label: 'Материальные заявки', count: materialRequests.length },
               { key: 'orders', label: 'Заказы поставщикам', count: supplierOrders.length },
               { key: 'equipment', label: 'Оборудование', count: equipmentList.length },
-              { key: 'warehouses', label: 'Склады', count: [...new Set(equipmentList.map(e => e.currentLocation).filter(Boolean))].length },
+              { key: 'warehouses', label: 'Склады', count: warehousesList.length },
               { key: 'history', label: 'История', count: maintenanceList.length },
-              { key: 'inventory', label: 'Инвентаризации', count: 0 },
+              { key: 'inventory', label: 'Инвентаризации', count: inventorySessions.length },
               { key: 'maintenance', label: 'Обслуживание', count: maintenanceList.length },
             ] as const).map((t) => (
               <button
@@ -4077,76 +4178,77 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
 
               {/* ── Warehouses ── */}
               {resourceSubTab === 'warehouses' && (() => {
-                const locations = [...new Set(equipmentList.map(e => e.currentLocation).filter((l): l is string => Boolean(l)))];
-                const activeWH = warehouseSubTab || locations[0] || '';
-                const warehouseEq = equipmentList.filter(e => e.currentLocation === activeWH);
+                const activeWHId = warehouseSubTab ? parseInt(warehouseSubTab, 10) : (warehousesList[0]?.id ?? 0);
+                const activeWarehouse = warehousesList.find(w => w.id === activeWHId) ?? warehousesList[0];
+                const warehouseEq = equipmentList.filter(e => e.warehouseId === activeWHId);
                 return (
                   <div className="space-y-4">
-                    {locations.length === 0 ? (
-                      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs py-12 text-center text-sm text-gray-400 dark:text-gray-500">
-                        Нет данных о расположении оборудования
+                    <div className="flex items-center justify-between">
+                      <div className="flex gap-2 flex-wrap flex-1">
+                        {warehousesList.length === 0 ? (
+                          <span className="text-sm text-gray-400 dark:text-gray-500">Нет складов. Создайте склад в разделе Администрирование → Склады.</span>
+                        ) : warehousesList.map(wh => (
+                          <button key={wh.id}
+                            onClick={() => setWarehouseSubTab(String(wh.id))}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeWHId === wh.id ? 'bg-violet-500 text-white' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:border-violet-400'}`}>
+                            {wh.name}
+                            <span className="ml-1.5 text-xs opacity-70">({equipmentList.filter(e => e.warehouseId === wh.id).length})</span>
+                          </button>
+                        ))}
                       </div>
-                    ) : (
-                      <>
-                        <div className="flex gap-2 flex-wrap">
-                          {locations.map(loc => (
-                            <button key={loc}
-                              onClick={() => setWarehouseSubTab(loc)}
-                              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeWH === loc ? 'bg-violet-500 text-white' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:border-violet-400'}`}>
-                              {loc}
-                              <span className="ml-1.5 text-xs opacity-70">({equipmentList.filter(e => e.currentLocation === loc).length})</span>
-                            </button>
-                          ))}
-                        </div>
-                        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
-                          <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60">
-                            <h3 className="font-semibold text-gray-900 dark:text-gray-100">Склад: {activeWH}</h3>
+                    </div>
+                    {activeWarehouse && (
+                      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
+                        <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-start gap-3">
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-gray-900 dark:text-gray-100">Склад: {activeWarehouse.name}</h3>
+                            {activeWarehouse.address && <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{activeWarehouse.address}</p>}
                           </div>
-                          {warehouseEq.length === 0 ? (
-                            <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">Нет оборудования на этом складе</div>
-                          ) : (
-                            <div className="overflow-x-auto">
-                              <table className="w-full text-sm">
-                                <thead>
-                                  <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
-                                    <th className="py-3 px-4 text-left font-semibold">№</th>
-                                    <th className="py-3 px-4 text-left font-semibold">Название</th>
-                                    <th className="py-3 px-4 text-left font-semibold">Дата поступления</th>
-                                    <th className="py-3 px-4 text-left font-semibold">Склад</th>
-                                    <th className="py-3 px-4 text-left font-semibold">Статус</th>
-                                    <th className="py-3 px-4 text-left font-semibold">Тип</th>
-                                    <th className="py-3 px-4 text-left font-semibold">Производитель</th>
-                                  </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
-                                  {warehouseEq.map((eq, idx) => (
-                                    <tr key={eq.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer transition-colors"
-                                      onClick={() => setDetailEquipment(eq)}>
-                                      <td className="py-3 px-4 text-gray-400 dark:text-gray-500 text-xs font-mono">{idx + 1}</td>
-                                      <td className="py-3 px-4 font-medium text-gray-800 dark:text-gray-200">{eq.name}</td>
-                                      <td className="py-3 px-4 text-gray-500 dark:text-gray-400">{eq.purchaseDate ? new Date(eq.purchaseDate).toLocaleDateString('ru-RU') : '—'}</td>
-                                      <td className="py-3 px-4">
-                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300">
-                                          {eq.currentLocation}
-                                        </span>
-                                      </td>
-                                      <td className="py-3 px-4">
-                                        {eq.status != null ? (
-                                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${EQUIPMENT_STATUS[eq.status]?.color ?? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>
-                                            {EQUIPMENT_STATUS[eq.status]?.label ?? eq.status}
-                                          </span>
-                                        ) : '—'}
-                                      </td>
-                                      <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{eq.equipmentType ? (EQUIPMENT_TYPE_LABELS[eq.equipmentType] ?? eq.equipmentType) : '—'}</td>
-                                      <td className="py-3 px-4 text-gray-500 dark:text-gray-400">{eq.manufacturer || '—'}</td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-                          )}
                         </div>
-                      </>
+                        {warehouseEq.length === 0 ? (
+                          <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">Нет оборудования на этом складе</div>
+                        ) : (
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                              <thead>
+                                <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
+                                  <th className="py-3 px-4 text-left font-semibold">№</th>
+                                  <th className="py-3 px-4 text-left font-semibold">Название</th>
+                                  <th className="py-3 px-4 text-left font-semibold">Дата поступления</th>
+                                  <th className="py-3 px-4 text-left font-semibold">Склад</th>
+                                  <th className="py-3 px-4 text-left font-semibold">Статус</th>
+                                  <th className="py-3 px-4 text-left font-semibold">Тип</th>
+                                  <th className="py-3 px-4 text-left font-semibold">Производитель</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
+                                {warehouseEq.map((eq, idx) => (
+                                  <tr key={eq.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer transition-colors"
+                                    onClick={() => setDetailEquipment(eq)}>
+                                    <td className="py-3 px-4 text-gray-400 dark:text-gray-500 text-xs font-mono">{idx + 1}</td>
+                                    <td className="py-3 px-4 font-medium text-gray-800 dark:text-gray-200">{eq.name}</td>
+                                    <td className="py-3 px-4 text-gray-500 dark:text-gray-400">{eq.purchaseDate ? new Date(eq.purchaseDate).toLocaleDateString('ru-RU') : '—'}</td>
+                                    <td className="py-3 px-4">
+                                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300">
+                                        {activeWarehouse.name}
+                                      </span>
+                                    </td>
+                                    <td className="py-3 px-4">
+                                      {eq.status != null ? (
+                                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${EQUIPMENT_STATUS[eq.status]?.color ?? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>
+                                          {EQUIPMENT_STATUS[eq.status]?.label ?? eq.status}
+                                        </span>
+                                      ) : '—'}
+                                    </td>
+                                    <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{eq.equipmentType ? (EQUIPMENT_TYPE_LABELS[eq.equipmentType] ?? eq.equipmentType) : '—'}</td>
+                                    <td className="py-3 px-4 text-gray-500 dark:text-gray-400">{eq.manufacturer || '—'}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
                 );
@@ -4205,14 +4307,61 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
                   <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-3">
                     <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">Инвентаризации</h3>
+                    <button onClick={() => { setEditingInv(null); setShowInvModal(true); }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                      Добавить
+                    </button>
                   </div>
-                  <div className="py-16 text-center">
-                    <svg className="w-12 h-12 mx-auto text-gray-200 dark:text-gray-700 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                    </svg>
-                    <p className="text-sm text-gray-400 dark:text-gray-500">Инвентаризации пока не проводились</p>
-                    <p className="text-xs text-gray-300 dark:text-gray-600 mt-1">Раздел находится в разработке</p>
-                  </div>
+                  {inventorySessions.length === 0 ? (
+                    <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">Инвентаризации не проводились</div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
+                            <th className="py-3 px-4 text-left font-semibold">Название</th>
+                            <th className="py-3 px-4 text-left font-semibold">Статус</th>
+                            <th className="py-3 px-4 text-left font-semibold">Дата проведения</th>
+                            <th className="py-3 px-4 text-left font-semibold">Дата завершения</th>
+                            <th className="py-3 px-4 text-left font-semibold">Позиций</th>
+                            <th className="py-3 px-4 text-left font-semibold">Примечания</th>
+                            <th className="py-3 px-4 w-10"></th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
+                          {inventorySessions.map((inv) => {
+                            const INV_STATUS: Record<number, { label: string; color: string }> = {
+                              0: { label: 'Черновик', color: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300' },
+                              1: { label: 'В процессе', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' },
+                              2: { label: 'Завершена', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' },
+                            };
+                            return (
+                              <tr key={inv.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer transition-colors"
+                                onClick={() => { setEditingInv(inv); setShowInvModal(true); }}>
+                                <td className="py-3 px-4 font-medium text-gray-800 dark:text-gray-200">{inv.name}</td>
+                                <td className="py-3 px-4">
+                                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${INV_STATUS[inv.status]?.color ?? 'bg-gray-100 text-gray-600'}`}>
+                                    {INV_STATUS[inv.status]?.label ?? inv.status}
+                                  </span>
+                                </td>
+                                <td className="py-3 px-4 text-gray-500 dark:text-gray-400">{inv.scheduledDate ? new Date(inv.scheduledDate).toLocaleDateString('ru-RU') : '—'}</td>
+                                <td className="py-3 px-4 text-gray-500 dark:text-gray-400">{inv.completedDate ? new Date(inv.completedDate).toLocaleDateString('ru-RU') : '—'}</td>
+                                <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{inv.items?.length ?? 0}</td>
+                                <td className="py-3 px-4 text-gray-500 dark:text-gray-400 max-w-[180px] truncate">{inv.notes || '—'}</td>
+                                <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                                  <button onClick={() => handleDeleteInventory(inv.id)}
+                                    className="p-1 text-gray-300 hover:text-red-500 dark:text-gray-600 dark:hover:text-red-400 transition-colors">
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -4421,6 +4570,37 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
           ]}
           onClose={() => { setShowMaintModal(false); setEditingMaint(null); }}
           onSave={(data) => handleSaveMaintenance(data)}
+        />
+      )}
+
+      {/* Inventory Session Modal */}
+      {showInvModal && (
+        <FinanceModal
+          title={editingInv ? 'Редактировать инвентаризацию' : 'Новая инвентаризация'}
+          saving={savingResource}
+          initialData={editingInv ? {
+            name: editingInv.name,
+            status: editingInv.status,
+            scheduledDate: editingInv.scheduledDate,
+            completedDate: editingInv.completedDate,
+            notes: editingInv.notes,
+          } : { status: 0 }}
+          fields={[
+            { key: 'name', label: 'Название', type: 'text', required: true },
+            {
+              key: 'status', label: 'Статус', type: 'select',
+              options: [
+                { value: 0, label: 'Черновик' },
+                { value: 1, label: 'В процессе' },
+                { value: 2, label: 'Завершена' },
+              ],
+            },
+            { key: 'scheduledDate', label: 'Дата проведения', type: 'date' },
+            { key: 'completedDate', label: 'Дата завершения', type: 'date' },
+            { key: 'notes', label: 'Примечания', type: 'textarea' },
+          ]}
+          onClose={() => { setShowInvModal(false); setEditingInv(null); }}
+          onSave={(data) => handleSaveInventory(data)}
         />
       )}
 

@@ -526,10 +526,13 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
           { value: 4, label: 'Сломано' },
         ],
       },
-      { key: 'currentLocation', label: 'Расположение', type: 'text' },
+      { key: 'currentLocation', label: 'Расположение (текст)', type: 'text' },
+      { key: 'warehouseId', label: 'Склад', type: 'select', fetchOptions: { endpoint: '/warehouses', valueKey: 'id', labelKey: 'name' } },
       { key: 'manufacturer', label: 'Производитель', type: 'text' },
       { key: 'model', label: 'Модель', type: 'text' },
       { key: 'serialNumber', label: 'Серийный номер', type: 'text' },
+      { key: 'purchaseDate', label: 'Дата поступления', type: 'date' },
+      { key: 'purchaseCost', label: 'Стоимость (₽)', type: 'number' },
       { key: 'notes', label: 'Заметки', type: 'textarea' },
     ],
   },
@@ -1429,6 +1432,74 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
       { key: 'description', label: 'Описание', type: 'textarea' },
     ],
   },
+  warehouses: {
+    slug: 'warehouses',
+    title: 'Склады',
+    apiEndpoint: '/warehouses',
+    searchField: 'названию',
+    columns: [
+      { key: 'id', header: 'ID', sortable: true, width: '80px' },
+      { key: 'name', header: 'Название', sortable: true },
+      { key: 'address', header: 'Адрес' },
+      {
+        key: 'equipment',
+        header: 'Кол-во единиц',
+        render: (v) => {
+          const count = Array.isArray(v) ? v.length : 0;
+          return <span className="font-medium">{count}</span>;
+        },
+      },
+    ],
+    formFields: [
+      { key: 'name', label: 'Название', type: 'text', required: true },
+      { key: 'address', label: 'Адрес', type: 'textarea' },
+    ],
+  },
+  'inventory-sessions': {
+    slug: 'inventory-sessions',
+    title: 'Инвентаризации',
+    apiEndpoint: '/inventory-sessions',
+    searchField: 'названию',
+    columns: [
+      { key: 'id', header: 'ID', sortable: true, width: '80px' },
+      { key: 'name', header: 'Название', sortable: true },
+      {
+        key: 'status',
+        header: 'Статус',
+        render: (v) => {
+          const map: Record<number, { label: string; color: string }> = {
+            0: { label: 'Черновик',   color: 'gray'  },
+            1: { label: 'В процессе', color: 'blue'  },
+            2: { label: 'Завершена',  color: 'green' },
+          };
+          const s = map[Number(v)];
+          return s ? <StatusBadge label={s.label} color={s.color} /> : <span className="text-gray-400">—</span>;
+        },
+      },
+      { key: 'scheduledDate', header: 'Дата', render: (v) => fmtDate(v) },
+      {
+        key: 'items',
+        header: 'Позиций',
+        render: (v) => <span>{Array.isArray(v) ? v.length : 0}</span>,
+      },
+    ],
+    formFields: [
+      { key: 'name', label: 'Название', type: 'text', required: true },
+      {
+        key: 'status',
+        label: 'Статус',
+        type: 'select',
+        options: [
+          { value: 0, label: 'Черновик' },
+          { value: 1, label: 'В процессе' },
+          { value: 2, label: 'Завершена' },
+        ],
+      },
+      { key: 'scheduledDate', label: 'Дата проведения', type: 'date' },
+      { key: 'completedDate', label: 'Дата завершения', type: 'date' },
+      { key: 'notes', label: 'Примечания', type: 'textarea' },
+    ],
+  },
   audit: {
     slug: 'audit',
     title: 'Аудит',
@@ -1624,7 +1695,7 @@ export const MODULE_CATEGORIES: ModuleCategory[] = [
   },
   {
     name: 'Ресурсы',
-    modules: [ADMIN_MODULES.materials, ADMIN_MODULES.equipment, ADMIN_MODULES['equipment-maintenance'], ADMIN_MODULES.suppliers, ADMIN_MODULES['material-requests'], ADMIN_MODULES['supplier-orders']],
+    modules: [ADMIN_MODULES.materials, ADMIN_MODULES.equipment, ADMIN_MODULES['equipment-maintenance'], ADMIN_MODULES.warehouses, ADMIN_MODULES['inventory-sessions'], ADMIN_MODULES.suppliers, ADMIN_MODULES['material-requests'], ADMIN_MODULES['supplier-orders']],
   },
   {
     name: 'Финансы',
