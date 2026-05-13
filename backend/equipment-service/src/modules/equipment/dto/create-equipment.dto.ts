@@ -61,6 +61,11 @@ export class CreateEquipmentDto {
   @MaxLength(255)
   currentLocation?: string;
 
+  @ApiPropertyOptional({ description: 'Warehouse ID' })
+  @IsOptional()
+  @IsNumber()
+  warehouseId?: number;
+
   @ApiPropertyOptional({ description: 'Construction site ID' })
   @IsOptional()
   @IsNumber()
