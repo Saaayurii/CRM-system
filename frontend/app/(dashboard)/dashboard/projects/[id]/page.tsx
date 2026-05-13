@@ -821,6 +821,11 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   const [detailInventory, setDetailInventory] = useState<InventorySession | null>(null);
   const [showInvItemModal, setShowInvItemModal] = useState(false);
   const [savingInvItem, setSavingInvItem] = useState(false);
+  /* Warehouse modal */
+  const [showWHModal, setShowWHModal] = useState(false);
+  const [editingWH, setEditingWH] = useState<Warehouse | null>(null);
+  const [savingWH, setSavingWH] = useState(false);
+  const [whSearch, setWhSearch] = useState('');
 
   /* Objects tab */
   const [objectsList, setObjectsList] = useState<ConstructionSite[]>([]);
@@ -1131,6 +1136,37 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
       ));
       addToast('success', 'Позиция удалена');
     } catch { addToast('error', 'Ошибка при удалении позиции'); }
+  }, [addToast]);
+
+  const handleSaveWarehouse = useCallback(async (data: Record<string, unknown>) => {
+    setSavingWH(true);
+    try {
+      if (editingWH) {
+        const res = await api.put(`/warehouses/${editingWH.id}`, data);
+        const updated: Warehouse = res.data ?? { ...editingWH, ...data };
+        setWarehousesList((p) => p.map((w) => w.id === editingWH.id ? updated : w));
+        addToast('success', 'Склад обновлён');
+      } else {
+        const res = await api.post('/warehouses', data);
+        const created: Warehouse = res.data;
+        setWarehousesList((p) => [...p, created]);
+        setWarehouseSubTab(String(created.id));
+        addToast('success', 'Склад создан');
+      }
+      setShowWHModal(false);
+      setEditingWH(null);
+    } catch { addToast('error', 'Ошибка при сохранении склада'); }
+    finally { setSavingWH(false); }
+  }, [editingWH, addToast]);
+
+  const handleDeleteWarehouse = useCallback(async (id: number) => {
+    if (!confirm('Удалить склад? Оборудование не будет удалено.')) return;
+    try {
+      await api.delete(`/warehouses/${id}`);
+      setWarehousesList((p) => p.filter((w) => w.id !== id));
+      setWarehouseSubTab('');
+      addToast('success', 'Склад удалён');
+    } catch { addToast('error', 'Ошибка при удалении склада'); }
   }, [addToast]);
 
   const generateQr = useCallback(async (eq: Equipment) => {
@@ -4218,68 +4254,154 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
               {resourceSubTab === 'warehouses' && (() => {
                 const activeWHId = warehouseSubTab ? parseInt(warehouseSubTab, 10) : (warehousesList[0]?.id ?? 0);
                 const activeWarehouse = warehousesList.find(w => w.id === activeWHId) ?? warehousesList[0];
-                const warehouseEq = equipmentList.filter(e => e.warehouseId === activeWHId);
+                const noWarehouseEq = equipmentList.filter(e => !e.warehouseId);
+                const warehouseEqRaw = activeWHId ? equipmentList.filter(e => e.warehouseId === activeWHId) : noWarehouseEq;
+                const warehouseEq = whSearch
+                  ? warehouseEqRaw.filter(e => e.name.toLowerCase().includes(whSearch.toLowerCase()) || e.serialNumber?.toLowerCase().includes(whSearch.toLowerCase()))
+                  : warehouseEqRaw;
                 return (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex gap-2 flex-wrap flex-1">
-                        {warehousesList.length === 0 ? (
-                          <span className="text-sm text-gray-400 dark:text-gray-500">Нет складов. Создайте склад в разделе Администрирование → Склады.</span>
-                        ) : warehousesList.map(wh => (
-                          <button key={wh.id}
-                            onClick={() => setWarehouseSubTab(String(wh.id))}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeWHId === wh.id ? 'bg-violet-500 text-white' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:border-violet-400'}`}>
-                            {wh.name}
-                            <span className="ml-1.5 text-xs opacity-70">({equipmentList.filter(e => e.warehouseId === wh.id).length})</span>
-                          </button>
-                        ))}
+                  <div className="space-y-5">
+                    {/* Header */}
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Склады</h2>
+                        <p className="text-sm text-gray-400 dark:text-gray-500 mt-0.5">Распределение оборудования по складам</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => { setResourceSubTab('inventory'); }}
+                          className="px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-violet-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors">
+                          Инвентаризация
+                        </button>
+                        <button onClick={() => { setEditingWH(null); setShowWHModal(true); }}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                          Добавить склад
+                        </button>
                       </div>
                     </div>
-                    {activeWarehouse && (
+
+                    {/* Warehouse pills */}
+                    <div className="flex gap-2 flex-wrap">
+                      {warehousesList.map(wh => {
+                        const count = equipmentList.filter(e => e.warehouseId === wh.id).length;
+                        const active = activeWHId === wh.id;
+                        return (
+                          <button key={wh.id} onClick={() => setWarehouseSubTab(String(wh.id))}
+                            className={`px-4 py-2 rounded-xl text-sm font-medium border transition-colors ${active ? 'bg-violet-500 text-white border-violet-500' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-violet-400 dark:hover:border-violet-500'}`}>
+                            {wh.name} <span className={`ml-1 ${active ? 'opacity-80' : 'text-gray-400 dark:text-gray-500'}`}>({count})</span>
+                          </button>
+                        );
+                      })}
+                      {noWarehouseEq.length > 0 && (
+                        <button onClick={() => setWarehouseSubTab('0')}
+                          className={`px-4 py-2 rounded-xl text-sm font-medium border transition-colors ${activeWHId === 0 ? 'bg-violet-500 text-white border-violet-500' : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:border-violet-400'}`}>
+                          без склада <span className="ml-1 opacity-70">({noWarehouseEq.length})</span>
+                        </button>
+                      )}
+                      {warehousesList.length === 0 && noWarehouseEq.length === 0 && (
+                        <span className="text-sm text-gray-400 dark:text-gray-500">Нет складов. Нажмите «+ Добавить склад».</span>
+                      )}
+                    </div>
+
+                    {/* Active warehouse table */}
+                    {(activeWarehouse || activeWHId === 0) && (
                       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
-                        <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-start gap-3">
-                          <div className="flex-1">
-                            <h3 className="font-semibold text-gray-900 dark:text-gray-100">Склад: {activeWarehouse.name}</h3>
-                            {activeWarehouse.address && <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{activeWarehouse.address}</p>}
+                        {/* Warehouse heading */}
+                        <div className="px-5 pt-5 pb-3">
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                              {activeWHId === 0 ? 'без склада' : (activeWarehouse?.name ?? '')}
+                            </h3>
+                            {activeWarehouse && (
+                              <button onClick={() => { setEditingWH(activeWarehouse); setShowWHModal(true); }}
+                                className="p-1 text-gray-300 hover:text-violet-500 dark:text-gray-600 dark:hover:text-violet-400 transition-colors">
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                              </button>
+                            )}
+                            {activeWarehouse && (
+                              <button onClick={() => handleDeleteWarehouse(activeWarehouse.id)}
+                                className="p-1 text-gray-300 hover:text-red-500 dark:text-gray-600 dark:hover:text-red-400 transition-colors">
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                              </button>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                            {warehouseEqRaw.length} {warehouseEqRaw.length === 1 ? 'единица' : warehouseEqRaw.length < 5 ? 'единицы' : 'единиц'}
+                            {activeWarehouse?.address && ` · ${activeWarehouse.address}`}
+                          </p>
+                        </div>
+
+                        {/* Search */}
+                        <div className="px-5 pb-3 flex items-center gap-3">
+                          <div className="relative flex-1 max-w-xs">
+                            <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                            <input
+                              value={whSearch}
+                              onChange={(e) => setWhSearch(e.target.value)}
+                              placeholder="Поиск по инструментам..."
+                              className="w-full pl-8 pr-3 py-1.5 text-sm bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-400 dark:focus:ring-violet-500 text-gray-700 dark:text-gray-300 placeholder-gray-400"
+                            />
                           </div>
                         </div>
+
                         {warehouseEq.length === 0 ? (
-                          <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">Нет оборудования на этом складе</div>
+                          <div className="py-10 text-center text-sm text-gray-400 dark:text-gray-500 border-t border-gray-100 dark:border-gray-700/60">
+                            {whSearch ? 'Ничего не найдено' : 'Нет оборудования на этом складе'}
+                          </div>
                         ) : (
-                          <div className="overflow-x-auto">
+                          <div className="overflow-x-auto border-t border-gray-100 dark:border-gray-700/60">
                             <table className="w-full text-sm">
                               <thead>
                                 <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
-                                  <th className="py-3 px-4 text-left font-semibold">№</th>
+                                  <th className="py-3 px-4 w-10">
+                                    <input type="checkbox" className="rounded border-gray-300 dark:border-gray-600 text-violet-500 focus:ring-violet-400" />
+                                  </th>
+                                  <th className="py-3 px-4 text-left font-semibold">Порядковый №</th>
                                   <th className="py-3 px-4 text-left font-semibold">Название</th>
-                                  <th className="py-3 px-4 text-left font-semibold">Дата поступления</th>
+                                  <th className="py-3 px-4 text-left font-semibold">Дата</th>
                                   <th className="py-3 px-4 text-left font-semibold">Склад</th>
                                   <th className="py-3 px-4 text-left font-semibold">Статус</th>
-                                  <th className="py-3 px-4 text-left font-semibold">Тип</th>
                                   <th className="py-3 px-4 text-left font-semibold">Производитель</th>
+                                  <th className="py-3 px-4 text-left font-semibold">Ответственный</th>
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
-                                {warehouseEq.map((eq, idx) => (
-                                  <tr key={eq.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer transition-colors"
+                                {warehouseEq.map((eq) => (
+                                  <tr key={eq.id}
+                                    className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer transition-colors"
                                     onClick={() => setDetailEquipment(eq)}>
-                                    <td className="py-3 px-4 text-gray-400 dark:text-gray-500 text-xs font-mono">{idx + 1}</td>
+                                    <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                                      <input type="checkbox" className="rounded border-gray-300 dark:border-gray-600 text-violet-500 focus:ring-violet-400" />
+                                    </td>
+                                    <td className="py-3 px-4 font-mono text-xs text-gray-500 dark:text-gray-400">
+                                      {String(eq.id).padStart(5, '0')}
+                                    </td>
                                     <td className="py-3 px-4 font-medium text-gray-800 dark:text-gray-200">{eq.name}</td>
-                                    <td className="py-3 px-4 text-gray-500 dark:text-gray-400">{eq.purchaseDate ? new Date(eq.purchaseDate).toLocaleDateString('ru-RU') : '—'}</td>
+                                    <td className="py-3 px-4 text-gray-500 dark:text-gray-400">
+                                      {eq.purchaseDate ? new Date(eq.purchaseDate).toLocaleDateString('ru-RU') : '—'}
+                                    </td>
                                     <td className="py-3 px-4">
-                                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300">
-                                        {activeWarehouse.name}
-                                      </span>
+                                      {activeWHId !== 0 && activeWarehouse ? (
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 uppercase tracking-wide">
+                                          {activeWarehouse.name}
+                                        </span>
+                                      ) : <span className="text-gray-400">—</span>}
                                     </td>
                                     <td className="py-3 px-4">
                                       {eq.status != null ? (
-                                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${EQUIPMENT_STATUS[eq.status]?.color ?? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>
+                                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium uppercase tracking-wide ${EQUIPMENT_STATUS[eq.status]?.color ?? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>
                                           {EQUIPMENT_STATUS[eq.status]?.label ?? eq.status}
                                         </span>
                                       ) : '—'}
                                     </td>
-                                    <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{eq.equipmentType ? (EQUIPMENT_TYPE_LABELS[eq.equipmentType] ?? eq.equipmentType) : '—'}</td>
-                                    <td className="py-3 px-4 text-gray-500 dark:text-gray-400">{eq.manufacturer || '—'}</td>
+                                    <td className="py-3 px-4">
+                                      {eq.manufacturer ? (
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300">
+                                          {eq.manufacturer}
+                                        </span>
+                                      ) : <span className="text-gray-400">—</span>}
+                                    </td>
+                                    <td className="py-3 px-4 text-gray-500 dark:text-gray-400">—</td>
                                   </tr>
                                 ))}
                               </tbody>
@@ -4819,6 +4941,21 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
           ]}
           onClose={() => setShowInvItemModal(false)}
           onSave={(data) => handleAddInventoryItem({ ...data, isFound: data.isFound !== 0 })}
+        />
+      )}
+
+      {/* Warehouse Create/Edit Modal */}
+      {showWHModal && (
+        <FinanceModal
+          title={editingWH ? 'Редактировать склад' : 'Новый склад'}
+          saving={savingWH}
+          initialData={editingWH ? { name: editingWH.name, address: editingWH.address } : undefined}
+          fields={[
+            { key: 'name', label: 'Название склада', type: 'text', required: true },
+            { key: 'address', label: 'Адрес', type: 'textarea' },
+          ]}
+          onClose={() => { setShowWHModal(false); setEditingWH(null); }}
+          onSave={(data) => handleSaveWarehouse(data)}
         />
       )}
 
