@@ -95,6 +95,24 @@ export class ProposalRepository {
     return created;
   }
 
+  async updateLine(lineId: number, accountId: number, data: { quantity?: number; unitPrice?: number; workStatus?: string; factQuantity?: number }) {
+    const line = await (this.prisma as any).proposalLine.findFirst({
+      where: { id: lineId },
+      include: { proposal: true },
+    });
+    if (!line || line.proposal.accountId !== accountId) return null;
+    const qty = data.quantity ?? Number(line.quantity);
+    const price = data.unitPrice ?? Number(line.unitPrice);
+    const updated = await (this.prisma as any).proposalLine.update({
+      where: { id: lineId },
+      data: { ...data, totalPrice: qty * price },
+    });
+    const lines = await (this.prisma as any).proposalLine.findMany({ where: { proposalId: line.proposalId } });
+    const totalAmount = lines.reduce((s: number, l: any) => s + (Number(l.totalPrice) || 0), 0);
+    await (this.prisma as any).commercialProposal.updateMany({ where: { id: line.proposalId }, data: { totalAmount } });
+    return updated;
+  }
+
   async deleteLine(lineId: number, accountId: number) {
     const line = await (this.prisma as any).proposalLine.findFirst({
       where: { id: lineId },

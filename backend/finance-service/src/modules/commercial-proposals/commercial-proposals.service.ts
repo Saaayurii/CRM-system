@@ -35,6 +35,10 @@ export class CommercialProposalsService {
     return this.repo.addLine(id, accountId, line);
   }
 
+  updateLine(lineId: number, accountId: number, data: any) {
+    return this.repo.updateLine(lineId, accountId, data);
+  }
+
   deleteLine(lineId: number, accountId: number) {
     return this.repo.deleteLine(lineId, accountId);
   }

@@ -73,6 +73,16 @@ export class CommercialProposalsController {
     return this.service.addLine(id, accountId, dto);
   }
 
+  @Put('lines/:lineId')
+  @ApiOperation({ summary: 'Update proposal line' })
+  updateLine(
+    @Param('lineId', ParseIntPipe) lineId: number,
+    @Body() dto: Record<string, unknown>,
+    @CurrentUser('accountId') accountId: number,
+  ) {
+    return this.service.updateLine(lineId, accountId, dto);
+  }
+
   @Delete('lines/:lineId')
   @ApiOperation({ summary: 'Delete proposal line' })
   deleteLine(

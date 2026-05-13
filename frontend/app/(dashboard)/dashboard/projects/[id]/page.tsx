@@ -738,6 +738,8 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   const [selectedProposal, setSelectedProposal] = useState<CommercialProposal | null>(null);
   const [showProposalModal, setShowProposalModal] = useState(false);
   const [savingProposal, setSavingProposal] = useState(false);
+  const [proposalDetailsOpen, setProposalDetailsOpen] = useState(true);
+  const [proposalLineSearch, setProposalLineSearch] = useState('');
 
   /* Resources tab */
   const [materialRequests, setMaterialRequests] = useState<MaterialRequest[]>([]);
@@ -1226,6 +1228,17 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
     }
   }, [selectedProposal, addToast, reloadProposals]);
 
+  const handleUpdateProposalLine = useCallback(async (proposalId: number, lineId: number, data: { quantity: number; unitPrice: number }) => {
+    try {
+      await api.put(`/commercial-proposals/lines/${lineId}`, data);
+      const res = await api.get(`/commercial-proposals/${proposalId}`);
+      setSelectedProposal(res.data);
+      setProposals(prev => prev.map(p => p.id === proposalId ? res.data : p));
+    } catch {
+      addToast('error', 'Ошибка при обновлении позиции');
+    }
+  }, [addToast]);
+
   const handleAddProposalLine = useCallback(async (proposalId: number, line: Partial<ProposalLine>) => {
     try {
       await api.post(`/commercial-proposals/${proposalId}/lines`, line);
@@ -1331,19 +1344,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
         .finally(() => setObjectsLoading(false));
     }
     if (activeTab === 'finance' && !financeLoaded && !loadingFinance) {
-      setLoadingFinance(true);
-      Promise.all([
-        api.get('/payments', { params: { limit: 200 } }).catch(() => ({ data: {} })),
-        api.get('/budgets', { params: { limit: 200 } }).catch(() => ({ data: {} })),
-        api.get('/acts', { params: { limit: 200 } }).catch(() => ({ data: {} })),
-      ]).then(([paymentsRes, budgetsRes, actsRes]) => {
-        const payments: Payment[] = (paymentsRes.data?.data || paymentsRes.data?.payments || []).filter((p: Payment) => p.projectId === projectId);
-        const budgets: Budget[] = (budgetsRes.data?.data || budgetsRes.data?.budgets || []).filter((b: Budget) => b.projectId === projectId);
-        const acts: Act[] = (actsRes.data?.data || actsRes.data?.acts || []).filter((a: Act) => a.projectId === projectId);
-        setFinancePayments(payments);
-        setFinanceBudgets(budgets);
-        setFinanceActs(acts);
-      }).finally(() => { setLoadingFinance(false); setFinanceLoaded(true); });
+      reloadFinance();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
@@ -1351,7 +1352,10 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   useEffect(() => {
     if (activeTab === 'finance') {
       if (financeSubTab === 'price' && !priceLoaded && !priceLoading) reloadPriceItems();
-      if (financeSubTab === 'proposals' && !proposalsLoaded && !proposalsLoading) reloadProposals();
+      if (financeSubTab === 'proposals') {
+        if (!proposalsLoaded && !proposalsLoading) reloadProposals();
+        if (!priceLoaded && !priceLoading) reloadPriceItems();
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, financeSubTab]);
@@ -3538,81 +3542,126 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                       </button>
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-5">
-                      <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-                        <svg className="w-4 h-4 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                        Клиент
-                      </h4>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Имя:</span><span className="text-gray-800 dark:text-gray-200 font-medium">{selectedProposal.clientName || '—'}</span></div>
-                        <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Телефон:</span><span className="text-gray-800 dark:text-gray-200">{selectedProposal.clientPhone || '—'}</span></div>
-                        <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Email:</span><span className="text-gray-800 dark:text-gray-200">{selectedProposal.clientEmail || '—'}</span></div>
-                        <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Менеджер:</span><span className="text-gray-800 dark:text-gray-200">{selectedProposal.managerName || '—'}</span></div>
-                      </div>
-                    </div>
-                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-5">
-                      <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-                        <svg className="w-4 h-4 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                        Объект
-                      </h4>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between gap-4"><span className="text-gray-500 dark:text-gray-400 shrink-0">Адрес:</span><span className="text-gray-800 dark:text-gray-200 text-right">{selectedProposal.objectAddress || '—'}</span></div>
-                        {selectedProposal.objectComment && <div className="flex justify-between gap-4"><span className="text-gray-500 dark:text-gray-400 shrink-0">Комментарий:</span><span className="text-gray-800 dark:text-gray-200 text-right">{selectedProposal.objectComment}</span></div>}
-                        {selectedProposal.notes && <div className="flex justify-between gap-4"><span className="text-gray-500 dark:text-gray-400 shrink-0">Примечания:</span><span className="text-gray-800 dark:text-gray-200 text-right">{selectedProposal.notes}</span></div>}
-                      </div>
-                    </div>
-                  </div>
+                  {/* Реквиты КП — collapsible */}
                   <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
-                    <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-3">
-                      <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">Состав работ</h4>
-                      <AddLineModal proposalId={selectedProposal.id} onAdd={handleAddProposalLine} />
+                    <button onClick={() => setProposalDetailsOpen(o => !o)} className="w-full px-5 py-3.5 flex items-center gap-2 text-left hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                      <span className="text-sm font-semibold text-violet-600 dark:text-violet-400">Реквиты КП</span>
+                      <span className="flex-1" />
+                      <svg className={`w-4 h-4 text-gray-400 transition-transform ${proposalDetailsOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                    </button>
+                    {proposalDetailsOpen && (
+                      <div className="px-5 pb-5 grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-3 border-t border-gray-100 dark:border-gray-700/60 pt-4">
+                        {[
+                          { label: 'КЛИЕНТ',               value: selectedProposal.clientName },
+                          { label: 'ТЕЛЕФОН',              value: selectedProposal.clientPhone },
+                          { label: 'EMAIL',                value: selectedProposal.clientEmail },
+                          { label: 'ОБЪЕКТ',               value: selectedProposal.objectAddress },
+                          { label: 'КОММЕНТАРИЙ К ОБЪЕКТУ',value: selectedProposal.objectComment },
+                          { label: 'МЕНЕДЖЕР',             value: selectedProposal.managerName },
+                        ].map(f => (
+                          <div key={f.label}>
+                            <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 tracking-wide mb-0.5">{f.label}</p>
+                            <p className="text-sm text-gray-800 dark:text-gray-200">{f.value || '—'}</p>
+                          </div>
+                        ))}
+                        {selectedProposal.notes && (
+                          <div className="col-span-2 md:col-span-3">
+                            <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 tracking-wide mb-0.5">ПРИМЕЧАНИЯ</p>
+                            <p className="text-sm text-gray-800 dark:text-gray-200">{selectedProposal.notes}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Добавить из прайса */}
+                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-4">
+                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Добавить услугу</p>
+                    {(() => {
+                      const q = proposalLineSearch.trim().toLowerCase();
+                      const matches = q.length >= 2 ? priceItems.filter(p =>
+                        p.name.toLowerCase().includes(q) || (p.category || '').toLowerCase().includes(q)
+                      ).slice(0, 8) : [];
+                      return (
+                        <div className="relative">
+                          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                          <input
+                            value={proposalLineSearch}
+                            onChange={e => setProposalLineSearch(e.target.value)}
+                            placeholder="Поиск по названию или категории (от 2 символов)..."
+                            className="w-full pl-9 pr-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-900/30 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:bg-white dark:focus:bg-gray-800"
+                          />
+                          {matches.length > 0 && (
+                            <div className="absolute z-20 top-full mt-1 left-0 right-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg overflow-hidden">
+                              {matches.map(p => (
+                                <button key={p.id} onClick={() => {
+                                  handleAddProposalLine(selectedProposal.id, {
+                                    serviceName: p.name,
+                                    unit: p.unit,
+                                    unitPrice: p.estimatedCost ? Number(p.estimatedCost) : 0,
+                                    quantity: 1,
+                                    totalPrice: p.estimatedCost ? Number(p.estimatedCost) : 0,
+                                    workStatus: 'not_started',
+                                    sortOrder: selectedProposal.lines.length,
+                                  });
+                                  setProposalLineSearch('');
+                                }} className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors border-b border-gray-100 dark:border-gray-700/60 last:border-0">
+                                  <div>
+                                    <span className="text-sm text-gray-800 dark:text-gray-200">{p.name}</span>
+                                    {p.category && <span className="ml-2 text-xs text-gray-400 dark:text-gray-500">{p.category}</span>}
+                                  </div>
+                                  <span className="text-sm font-medium text-violet-600 dark:text-violet-400 ml-4 shrink-0">{p.estimatedCost ? fmtMoney(Number(p.estimatedCost)) : '—'}</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                          {q.length >= 2 && matches.length === 0 && (
+                            <div className="absolute z-20 top-full mt-1 left-0 right-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg px-4 py-3 text-sm text-gray-400 dark:text-gray-500">
+                              Ничего не найдено в прайсе
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  {/* Состав КП */}
+                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
+                    <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center">
+                      <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">Состав КП</h4>
+                      <span className="text-xs text-gray-400 dark:text-gray-500">{selectedProposal.lines.length} позиций</span>
                     </div>
                     {selectedProposal.lines.length === 0 ? (
-                      <div className="py-10 text-center text-sm text-gray-400 dark:text-gray-500">Состав работ пуст</div>
+                      <div className="py-10 text-center text-sm text-gray-400 dark:text-gray-500">Добавьте услуги из прайса выше</div>
                     ) : (
                       <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                           <thead>
                             <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
                               <th className="py-3 px-4 text-left font-semibold">Услуга</th>
-                              <th className="py-3 px-4 text-center font-semibold">Ед.</th>
-                              <th className="py-3 px-4 text-right font-semibold">Кол-во</th>
-                              <th className="py-3 px-4 text-right font-semibold">Цена</th>
-                              <th className="py-3 px-4 text-right font-semibold">Сумма</th>
-                              <th className="py-3 px-4 text-center font-semibold">Статус</th>
+                              <th className="py-3 px-4 text-center font-semibold w-16">Ед.</th>
+                              <th className="py-3 px-4 text-right font-semibold w-24">Кол-во</th>
+                              <th className="py-3 px-4 text-right font-semibold w-32">Цена</th>
+                              <th className="py-3 px-4 text-right font-semibold w-28">Сумма</th>
                               <th className="py-3 px-4 w-12"></th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
                             {[...selectedProposal.lines].sort((a, b) => a.sortOrder - b.sortOrder).map(line => (
-                              <tr key={line.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20">
-                                <td className="py-3 px-4">
-                                  <div className="font-medium text-gray-800 dark:text-gray-200">{line.serviceName}</div>
-                                  {line.serviceDesc && <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{line.serviceDesc}</div>}
-                                </td>
-                                <td className="py-3 px-4 text-center text-gray-500 dark:text-gray-400">{line.unit || '—'}</td>
-                                <td className="py-3 px-4 text-right text-gray-600 dark:text-gray-300">{line.quantity}</td>
-                                <td className="py-3 px-4 text-right text-gray-600 dark:text-gray-300">{fmtMoney(line.unitPrice)}</td>
-                                <td className="py-3 px-4 text-right font-semibold text-gray-900 dark:text-gray-100">{fmtMoney(line.totalPrice)}</td>
-                                <td className="py-3 px-4 text-center">
-                                  <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${WORK_STATUS[line.workStatus]?.color ?? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>
-                                    {WORK_STATUS[line.workStatus]?.label ?? line.workStatus}
-                                  </span>
-                                </td>
-                                <td className="py-3 px-4">
-                                  <button onClick={() => handleDeleteProposalLine(selectedProposal.id, line.id)} className="p-1 text-gray-300 hover:text-red-500 dark:text-gray-600 dark:hover:text-red-400 transition-colors">
-                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                  </button>
-                                </td>
-                              </tr>
+                              <ProposalLineRow
+                                key={line.id}
+                                line={line}
+                                proposalId={selectedProposal.id}
+                                onUpdate={handleUpdateProposalLine}
+                                onDelete={handleDeleteProposalLine}
+                              />
                             ))}
                           </tbody>
                           <tfoot>
                             <tr className="bg-gray-50 dark:bg-gray-900/20 border-t-2 border-gray-200 dark:border-gray-700">
-                              <td colSpan={4} className="py-3 px-4 text-right font-semibold text-gray-700 dark:text-gray-300 text-sm">Итого:</td>
-                              <td className="py-3 px-4 text-right font-bold text-lg text-gray-900 dark:text-gray-100">{fmtMoney(selectedProposal.totalAmount)}</td>
-                              <td colSpan={2}></td>
+                              <td colSpan={3} className="py-3 px-4 text-right font-semibold text-gray-700 dark:text-gray-300 text-sm">Итого:</td>
+                              <td className="py-3 px-4 text-right font-bold text-base text-violet-600 dark:text-violet-400" colSpan={2}>{fmtMoney(selectedProposal.totalAmount)}</td>
+                              <td></td>
                             </tr>
                           </tfoot>
                         </table>
@@ -5891,6 +5940,55 @@ function ProjectChannelEditModal({
         </div>
       </form>
     </ModalShell>
+  );
+}
+
+function ProposalLineRow({ line, proposalId, onUpdate, onDelete }: {
+  line: ProposalLine;
+  proposalId: number;
+  onUpdate: (proposalId: number, lineId: number, data: { quantity: number; unitPrice: number }) => Promise<void>;
+  onDelete: (proposalId: number, lineId: number) => void;
+}) {
+  const [qty, setQty] = useState(String(line.quantity));
+  const [price, setPrice] = useState(String(line.unitPrice));
+  const [saving, setSaving] = useState(false);
+
+  const save = async () => {
+    const q = Number(qty);
+    const p = Number(price);
+    if (q === Number(line.quantity) && p === Number(line.unitPrice)) return;
+    setSaving(true);
+    await onUpdate(proposalId, line.id, { quantity: q, unitPrice: p }).finally(() => setSaving(false));
+  };
+
+  const numCls = `w-full text-right px-2 py-1.5 text-sm rounded border border-transparent focus:border-violet-400 focus:outline-none bg-transparent focus:bg-white dark:focus:bg-gray-700 transition-colors ${saving ? 'opacity-50' : ''}`;
+
+  return (
+    <tr className="hover:bg-gray-50 dark:hover:bg-gray-900/20 group">
+      <td className="py-2.5 px-4">
+        <div className="font-medium text-gray-800 dark:text-gray-200 leading-snug">{line.serviceName}</div>
+        {line.serviceDesc && <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{line.serviceDesc}</div>}
+      </td>
+      <td className="py-2.5 px-4 text-center text-gray-500 dark:text-gray-400 text-xs">{line.unit || '—'}</td>
+      <td className="py-2.5 px-2">
+        <input type="number" min="0" step="0.01" value={qty} disabled={saving}
+          onChange={e => setQty(e.target.value)} onBlur={save}
+          className={numCls} />
+      </td>
+      <td className="py-2.5 px-2">
+        <input type="number" min="0" step="0.01" value={price} disabled={saving}
+          onChange={e => setPrice(e.target.value)} onBlur={save}
+          className={numCls} />
+      </td>
+      <td className="py-2.5 px-4 text-right font-semibold text-gray-900 dark:text-gray-100 whitespace-nowrap">
+        {fmtMoney(Number(qty) * Number(price))}
+      </td>
+      <td className="py-2.5 px-4">
+        <button onClick={() => onDelete(proposalId, line.id)} className="p-1 text-gray-300 hover:text-red-500 dark:text-gray-600 dark:hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+        </button>
+      </td>
+    </tr>
   );
 }
 
