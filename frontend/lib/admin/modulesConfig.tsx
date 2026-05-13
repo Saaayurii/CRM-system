@@ -1624,7 +1624,7 @@ export const MODULE_CATEGORIES: ModuleCategory[] = [
   },
   {
     name: 'Ресурсы',
-    modules: [ADMIN_MODULES.materials, ADMIN_MODULES.equipment, ADMIN_MODULES.suppliers],
+    modules: [ADMIN_MODULES.materials, ADMIN_MODULES.equipment, ADMIN_MODULES['equipment-maintenance'], ADMIN_MODULES.suppliers, ADMIN_MODULES['material-requests'], ADMIN_MODULES['supplier-orders']],
   },
   {
     name: 'Финансы',

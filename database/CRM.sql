@@ -2164,6 +2164,50 @@ CREATE TABLE price_list_items (
 );
 
 -- ==========================================
+-- КОММЕРЧЕСКИЕ ПРЕДЛОЖЕНИЯ (КП)
+-- ==========================================
+
+CREATE TABLE commercial_proposals (
+    id SERIAL PRIMARY KEY,
+    account_id INTEGER REFERENCES accounts(id) ON DELETE CASCADE,
+    project_id INTEGER REFERENCES projects(id) ON DELETE SET NULL,
+    proposal_number VARCHAR(100) UNIQUE NOT NULL,
+    client_name VARCHAR(255),
+    client_phone VARCHAR(100),
+    client_email VARCHAR(255),
+    object_address VARCHAR(500),
+    object_comment TEXT,
+    manager_name VARCHAR(255),
+    status VARCHAR(50) DEFAULT 'draft',
+    total_amount DECIMAL(15,2) DEFAULT 0,
+    notes TEXT,
+    created_by_user_id INTEGER REFERENCES users(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_commercial_proposals_account ON commercial_proposals(account_id);
+CREATE INDEX idx_commercial_proposals_project ON commercial_proposals(project_id);
+
+CREATE TABLE proposal_lines (
+    id SERIAL PRIMARY KEY,
+    proposal_id INTEGER REFERENCES commercial_proposals(id) ON DELETE CASCADE,
+    work_template_id INTEGER REFERENCES work_templates(id),
+    service_name VARCHAR(500) NOT NULL,
+    service_desc TEXT,
+    unit VARCHAR(50),
+    quantity DECIMAL(10,2) DEFAULT 1,
+    unit_price DECIMAL(15,2) DEFAULT 0,
+    total_price DECIMAL(15,2) DEFAULT 0,
+    work_status VARCHAR(50) DEFAULT 'not_started',
+    fact_quantity DECIMAL(10,2),
+    sort_order INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_proposal_lines_proposal ON proposal_lines(proposal_id);
+
+-- ==========================================
 -- ДАШБОРД И ВИДЖЕТЫ
 -- ==========================================
 

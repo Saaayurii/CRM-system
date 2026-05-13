@@ -342,6 +342,24 @@ interface Equipment {
   status?: number;
   serialNumber?: string;
   model?: string;
+  manufacturer?: string;
+  currentLocation?: string;
+  purchaseDate?: string;
+  assignedToUserId?: number;
+  notes?: string;
+}
+
+interface EquipmentMaintenance {
+  id: number;
+  equipmentId: number;
+  equipment?: { id: number; name: string };
+  maintenanceType?: string;
+  maintenanceDate: string;
+  performedByUserId?: number;
+  description?: string;
+  cost?: number;
+  nextMaintenanceDate?: string;
+  createdAt?: string;
 }
 
 const MATERIAL_REQUEST_STATUS: Record<number, { label: string; color: string }> = {
@@ -449,6 +467,63 @@ interface Act {
   description?: string;
   projectId?: number;
 }
+
+interface WorkTemplate {
+  id: number;
+  name: string;
+  code?: string;
+  category?: string;
+  description?: string;
+  unit?: string;
+  estimatedCost?: number;
+  estimatedDuration?: number;
+  complexityLevel?: number;
+  isActive?: boolean;
+}
+
+interface ProposalLine {
+  id: number;
+  workTemplateId?: number;
+  serviceName: string;
+  serviceDesc?: string;
+  unit?: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  workStatus: string;
+  factQuantity?: number;
+  sortOrder: number;
+}
+
+interface CommercialProposal {
+  id: number;
+  proposalNumber: string;
+  clientName?: string;
+  clientPhone?: string;
+  clientEmail?: string;
+  objectAddress?: string;
+  objectComment?: string;
+  managerName?: string;
+  status: string;
+  totalAmount: number;
+  notes?: string;
+  projectId?: number;
+  createdAt: string;
+  lines: ProposalLine[];
+}
+
+const PROPOSAL_STATUS: Record<string, { label: string; color: string }> = {
+  draft:    { label: 'Черновик',    color: 'bg-gray-500/20 text-gray-600 dark:text-gray-300' },
+  sent:     { label: 'Отправлен',   color: 'bg-blue-500/20 text-blue-700 dark:text-blue-400' },
+  accepted: { label: 'Принят',      color: 'bg-green-500/20 text-green-700 dark:text-green-400' },
+  rejected: { label: 'Отклонён',   color: 'bg-red-500/20 text-red-700 dark:text-red-400' },
+};
+
+const WORK_STATUS: Record<string, { label: string; color: string }> = {
+  not_started: { label: 'Не начато',  color: 'bg-gray-500/20 text-gray-500 dark:text-gray-400' },
+  in_progress: { label: 'В работе',   color: 'bg-blue-500/20 text-blue-700 dark:text-blue-400' },
+  done:        { label: 'Выполнено',  color: 'bg-green-500/20 text-green-700 dark:text-green-400' },
+};
 
 const PAYMENT_DIRECTION = [
   { value: 'incoming', label: '↑ Поступление' },
@@ -645,14 +720,33 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   const [actsViewMode, setActsViewMode] = useState<'table' | 'grid'>(() =>
     typeof window !== 'undefined' ? ((localStorage.getItem('actsViewMode') as 'table' | 'grid') || 'table') : 'table'
   );
+  const [financeSubTab, setFinanceSubTab] = useState<'overview' | 'payments' | 'budgets' | 'acts' | 'price' | 'proposals'>('overview');
+  /* Price list (work templates) */
+  const [priceItems, setPriceItems] = useState<WorkTemplate[]>([]);
+  const [priceLoading, setPriceLoading] = useState(false);
+  const [priceLoaded, setPriceLoaded] = useState(false);
+  const [priceSearch, setPriceSearch] = useState('');
+  const [priceCategoryFilter, setPriceCategoryFilter] = useState('');
+  const [priceCategories, setPriceCategories] = useState<string[]>([]);
+  const [showPriceModal, setShowPriceModal] = useState(false);
+  const [editingPrice, setEditingPrice] = useState<WorkTemplate | null>(null);
+  const [savingPrice, setSavingPrice] = useState(false);
+  /* Commercial proposals */
+  const [proposals, setProposals] = useState<CommercialProposal[]>([]);
+  const [proposalsLoading, setProposalsLoading] = useState(false);
+  const [proposalsLoaded, setProposalsLoaded] = useState(false);
+  const [selectedProposal, setSelectedProposal] = useState<CommercialProposal | null>(null);
+  const [showProposalModal, setShowProposalModal] = useState(false);
+  const [savingProposal, setSavingProposal] = useState(false);
 
   /* Resources tab */
   const [materialRequests, setMaterialRequests] = useState<MaterialRequest[]>([]);
   const [supplierOrders, setSupplierOrders] = useState<SupplierOrder[]>([]);
   const [equipmentList, setEquipmentList] = useState<Equipment[]>([]);
+  const [maintenanceList, setMaintenanceList] = useState<EquipmentMaintenance[]>([]);
   const [loadingResources, setLoadingResources] = useState(false);
   const [resourcesLoaded, setResourcesLoaded] = useState(false);
-  const [resourceSubTab, setResourceSubTab] = useState<'materials' | 'orders' | 'equipment'>('materials');
+  const [resourceSubTab, setResourceSubTab] = useState<'materials' | 'orders' | 'equipment' | 'maintenance'>('materials');
   const [savingResource, setSavingResource] = useState(false);
   /* Material request modal */
   const [showMRModal, setShowMRModal] = useState(false);
@@ -661,6 +755,9 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   const [showSOModal, setShowSOModal] = useState(false);
   const [editingSO, setEditingSO] = useState<SupplierOrder | null>(null);
   const [suppliersList, setSuppliersList] = useState<{ id: number; name: string }[]>([]);
+  /* Maintenance modal */
+  const [showMaintModal, setShowMaintModal] = useState(false);
+  const [editingMaint, setEditingMaint] = useState<EquipmentMaintenance | null>(null);
   /* Equipment modal */
   const [showEqModal, setShowEqModal] = useState(false);
   const [editingEq, setEditingEq] = useState<Equipment | null>(null);
@@ -778,11 +875,12 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   const reloadResources = useCallback(async () => {
     setLoadingResources(true);
     try {
-      const [matRes, ordersRes, equipRes, suppRes] = await Promise.allSettled([
+      const [matRes, ordersRes, equipRes, suppRes, maintRes] = await Promise.allSettled([
         api.get('/material-requests', { params: { projectId, limit: 200 } }),
         api.get('/supplier-orders', { params: { projectId, limit: 200 } }),
         api.get('/equipment', { params: { limit: 200 } }),
         api.get('/suppliers', { params: { limit: 500 } }),
+        api.get('/equipment-maintenance', { params: { limit: 200 } }),
       ]);
       setMaterialRequests(matRes.status === 'fulfilled'
         ? (matRes.value.data?.materialRequests || matRes.value.data?.data || matRes.value.data || [])
@@ -792,6 +890,9 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
         : []);
       setEquipmentList(equipRes.status === 'fulfilled'
         ? (equipRes.value.data?.equipment || equipRes.value.data?.data || equipRes.value.data || [])
+        : []);
+      setMaintenanceList(maintRes.status === 'fulfilled'
+        ? (maintRes.value.data?.maintenanceRecords || maintRes.value.data?.data || maintRes.value.data || [])
         : []);
       if (suppRes.status === 'fulfilled') {
         const s = suppRes.value.data?.suppliers || suppRes.value.data?.data || suppRes.value.data || [];
@@ -881,6 +982,32 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
       addToast('success', 'Оборудование удалено');
       setEquipmentList((p) => p.filter((e) => e.id !== id));
     } catch { addToast('error', 'Ошибка при удалении'); }
+  }, [addToast]);
+
+  const handleSaveMaintenance = useCallback(async (data: Record<string, unknown>) => {
+    setSavingResource(true);
+    try {
+      if (editingMaint) {
+        await api.put(`/equipment-maintenance/${editingMaint.id}`, data);
+        addToast('success', 'Запись обновлена');
+      } else {
+        await api.post('/equipment-maintenance', { ...data, accountId: 0 });
+        addToast('success', 'Запись добавлена');
+      }
+      setShowMaintModal(false);
+      setEditingMaint(null);
+      await reloadResources();
+    } catch { addToast('error', 'Ошибка при сохранении'); }
+    finally { setSavingResource(false); }
+  }, [editingMaint, addToast, reloadResources]);
+
+  const handleDeleteMaintenance = useCallback(async (id: number) => {
+    if (!confirm('Удалить запись об обслуживании?')) return;
+    try {
+      await api.delete(`/equipment-maintenance/${id}`);
+      addToast('success', 'Запись удалена');
+      setMaintenanceList((p) => p.filter((m) => m.id !== id));
+    } catch { addToast('error', 'Ошибка при удалении записи'); }
   }, [addToast]);
 
   const reloadSites = useCallback(async () => {
@@ -1007,6 +1134,120 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
     }
   }, [addToast, reloadFinance]);
 
+  const reloadPriceItems = useCallback(async () => {
+    setPriceLoading(true);
+    try {
+      const [itemsRes, catsRes] = await Promise.all([
+        api.get('/work-templates', { params: { limit: 500 } }).catch(() => ({ data: {} })),
+        api.get('/work-templates/categories').catch(() => ({ data: [] })),
+      ]);
+      setPriceItems(itemsRes.data?.data || []);
+      setPriceCategories(Array.isArray(catsRes.data) ? catsRes.data : []);
+      setPriceLoaded(true);
+    } finally {
+      setPriceLoading(false);
+    }
+  }, []);
+
+  const handleSavePriceItem = useCallback(async (data: Omit<WorkTemplate, 'id'>) => {
+    setSavingPrice(true);
+    try {
+      if (editingPrice) {
+        await api.put(`/work-templates/${editingPrice.id}`, data);
+        addToast('success', 'Позиция обновлена');
+      } else {
+        await api.post('/work-templates', data);
+        addToast('success', 'Позиция добавлена');
+      }
+      setShowPriceModal(false);
+      setEditingPrice(null);
+      await reloadPriceItems();
+    } catch {
+      addToast('error', 'Ошибка при сохранении');
+    } finally {
+      setSavingPrice(false);
+    }
+  }, [editingPrice, addToast, reloadPriceItems]);
+
+  const handleDeletePriceItem = useCallback(async (id: number) => {
+    if (!confirm('Удалить позицию из прайса?')) return;
+    try {
+      await api.delete(`/work-templates/${id}`);
+      addToast('success', 'Позиция удалена');
+      await reloadPriceItems();
+    } catch {
+      addToast('error', 'Ошибка при удалении');
+    }
+  }, [addToast, reloadPriceItems]);
+
+  const reloadProposals = useCallback(async () => {
+    setProposalsLoading(true);
+    try {
+      const res = await api.get('/commercial-proposals', { params: { projectId, limit: 200 } }).catch(() => ({ data: {} }));
+      setProposals(res.data?.data || []);
+      setProposalsLoaded(true);
+    } finally {
+      setProposalsLoading(false);
+    }
+  }, [projectId]);
+
+  const handleSaveProposal = useCallback(async (data: Partial<CommercialProposal>) => {
+    setSavingProposal(true);
+    try {
+      let result: CommercialProposal;
+      if (selectedProposal?.id) {
+        const res = await api.put(`/commercial-proposals/${selectedProposal.id}`, data);
+        result = res.data;
+        addToast('success', 'КП обновлено');
+      } else {
+        const res = await api.post('/commercial-proposals', { ...data, projectId });
+        result = res.data;
+        addToast('success', 'КП создано');
+      }
+      setSelectedProposal(result);
+      setShowProposalModal(false);
+      await reloadProposals();
+    } catch {
+      addToast('error', 'Ошибка при сохранении КП');
+    } finally {
+      setSavingProposal(false);
+    }
+  }, [selectedProposal, projectId, addToast, reloadProposals]);
+
+  const handleDeleteProposal = useCallback(async (id: number) => {
+    if (!confirm('Удалить КП?')) return;
+    try {
+      await api.delete(`/commercial-proposals/${id}`);
+      if (selectedProposal?.id === id) setSelectedProposal(null);
+      addToast('success', 'КП удалено');
+      await reloadProposals();
+    } catch {
+      addToast('error', 'Ошибка при удалении');
+    }
+  }, [selectedProposal, addToast, reloadProposals]);
+
+  const handleAddProposalLine = useCallback(async (proposalId: number, line: Partial<ProposalLine>) => {
+    try {
+      await api.post(`/commercial-proposals/${proposalId}/lines`, line);
+      const res = await api.get(`/commercial-proposals/${proposalId}`);
+      setSelectedProposal(res.data);
+      setProposals(prev => prev.map(p => p.id === proposalId ? res.data : p));
+    } catch {
+      addToast('error', 'Ошибка при добавлении позиции');
+    }
+  }, [addToast]);
+
+  const handleDeleteProposalLine = useCallback(async (proposalId: number, lineId: number) => {
+    try {
+      await api.delete(`/commercial-proposals/lines/${lineId}`);
+      const res = await api.get(`/commercial-proposals/${proposalId}`);
+      setSelectedProposal(res.data);
+      setProposals(prev => prev.map(p => p.id === proposalId ? res.data : p));
+    } catch {
+      addToast('error', 'Ошибка при удалении позиции');
+    }
+  }, [addToast]);
+
   const handleCloseProjectInactive = useCallback(async () => {
     if (!project) return;
     setClosingProject(true);
@@ -1106,6 +1347,14 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab === 'finance') {
+      if (financeSubTab === 'price' && !priceLoaded && !priceLoading) reloadPriceItems();
+      if (financeSubTab === 'proposals' && !proposalsLoaded && !proposalsLoading) reloadProposals();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, financeSubTab]);
 
   /* ─── Auto-refresh active tab every 30s + on window focus ─── */
   const activeTabRefresh = useCallback(() => {
@@ -2728,17 +2977,44 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
 
       {/* ─── Finance ─── */}
       {activeTab === 'finance' && (
-        <div className="space-y-6">
-          {loadingFinance ? (
-            <LoadingState />
-          ) : (
+        <div className="space-y-4">
+          {/* Sub-tab nav */}
+          <div className="flex gap-0.5 bg-white dark:bg-gray-800 rounded-xl shadow-xs px-3 py-1.5 overflow-x-auto">
+            {([
+              { key: 'overview',  label: 'Обзор' },
+              { key: 'payments',  label: 'Платежи',      count: financePayments.length },
+              { key: 'budgets',   label: 'Бюджеты',      count: financeBudgets.length },
+              { key: 'acts',      label: 'Акты',         count: financeActs.length },
+              { key: 'price',     label: 'Прайс',        count: priceLoaded ? priceItems.length : undefined },
+              { key: 'proposals', label: 'Коммерческие', count: proposalsLoaded ? proposals.length : undefined },
+            ] as const).map((t) => (
+              <button
+                key={t.key}
+                onClick={() => setFinanceSubTab(t.key)}
+                className={`flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium rounded-lg whitespace-nowrap transition-colors ${
+                  financeSubTab === t.key
+                    ? 'bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/40'
+                }`}
+              >
+                {t.label}
+                {'count' in t && t.count != null && t.count > 0 && (
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full ${financeSubTab === t.key ? 'bg-violet-100 dark:bg-violet-800/50 text-violet-600 dark:text-violet-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'}`}>
+                    {t.count}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+
+          {/* ── Overview ── */}
+          {financeSubTab === 'overview' && (loadingFinance ? <LoadingState /> : (
             <>
-              {/* ── Summary cards ── */}
               {(() => {
                 const isIncome = paymentIsIncome;
                 const isExpense = paymentIsExpense;
-                const totalIncome = financePayments.filter(isIncome).reduce((s, p) => s + (p.amount ?? 0), 0);
-                const totalExpense = financePayments.filter(isExpense).reduce((s, p) => s + (p.amount ?? 0), 0);
+                const totalIncome = financePayments.filter(isIncome).reduce((s, p) => s + (Number(p.amount) || 0), 0);
+                const totalExpense = financePayments.filter(isExpense).reduce((s, p) => s + (Number(p.amount) || 0), 0);
                 const balance = totalIncome - totalExpense;
                 const expensePct = project?.budget ? Math.round((totalExpense / project.budget) * 100) : null;
                 const chartData = [{
@@ -2802,10 +3078,13 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                   </>
                 );
               })()}
+            </>
+          ))}
 
-              {/* ── Payments ── */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
-                <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-3">
+          {/* ── Payments ── */}
+          {financeSubTab === 'payments' && (loadingFinance ? <LoadingState /> : (
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
+              <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-3">
                   <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">Платежи</h3>
                   <FinanceViewToggle mode={financeViewMode} onChange={(m) => { setFinanceViewMode(m); localStorage.setItem('financeViewMode', m); }} />
                   <button onClick={() => { setEditingPayment(null); setShowPaymentModal(true); }}
@@ -2921,11 +3200,13 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                     })}
                   </div>
                 )}
-              </div>
+            </div>
+          ))}
 
-              {/* ── Budgets ── */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
-                <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-3">
+          {/* ── Budgets ── */}
+          {financeSubTab === 'budgets' && (loadingFinance ? <LoadingState /> : (
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
+              <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-3">
                   <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">Бюджеты</h3>
                   <FinanceViewToggle mode={budgetsViewMode} onChange={(m) => { setBudgetsViewMode(m); localStorage.setItem('budgetsViewMode', m); }} />
                   <button onClick={() => { setEditingBudget(null); setShowBudgetModal(true); }}
@@ -3046,11 +3327,13 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                     })}
                   </div>
                 )}
-              </div>
+            </div>
+          ))}
 
-              {/* ── Acts ── */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
-                <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-3">
+          {/* ── Acts ── */}
+          {financeSubTab === 'acts' && (loadingFinance ? <LoadingState /> : (
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
+              <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-3">
                   <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">Акты</h3>
                   <FinanceViewToggle mode={actsViewMode} onChange={(m) => { setActsViewMode(m); localStorage.setItem('actsViewMode', m); }} />
                   <button onClick={() => { setEditingAct(null); setShowActModal(true); }}
@@ -3135,7 +3418,263 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                   </div>
                 )}
               </div>
-            </>
+          ))}
+
+          {/* ── Price List ── */}
+          {financeSubTab === 'price' && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="relative flex-1 max-w-xs">
+                  <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                  <input value={priceSearch} onChange={e => setPriceSearch(e.target.value)} placeholder="Поиск по названию..." className="w-full pl-9 pr-4 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                </div>
+                {priceCategories.length > 0 && (
+                  <select value={priceCategoryFilter} onChange={e => setPriceCategoryFilter(e.target.value)} className="text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500 text-gray-700 dark:text-gray-300">
+                    <option value="">Все категории</option>
+                    {priceCategories.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                )}
+                <button onClick={() => { setEditingPrice(null); setShowPriceModal(true); }} className="flex items-center gap-1.5 px-3 py-2 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                  Добавить услугу
+                </button>
+              </div>
+              {priceLoading ? <LoadingState /> : (() => {
+                const filtered = priceItems.filter(p =>
+                  (!priceSearch || p.name.toLowerCase().includes(priceSearch.toLowerCase())) &&
+                  (!priceCategoryFilter || p.category === priceCategoryFilter)
+                );
+                if (filtered.length === 0) return (
+                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs py-16 text-center">
+                    <svg className="w-12 h-12 mx-auto text-gray-300 dark:text-gray-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                    <p className="text-sm text-gray-400 dark:text-gray-500">{priceItems.length === 0 ? 'Прайс-лист пуст. Добавьте первую услугу.' : 'Ничего не найдено'}</p>
+                  </div>
+                );
+                const byCategory = filtered.reduce<Record<string, WorkTemplate[]>>((acc, p) => { const cat = p.category || 'Без категории'; if (!acc[cat]) acc[cat] = []; acc[cat].push(p); return acc; }, {});
+                return (
+                  <div className="space-y-4">
+                    {Object.entries(byCategory).map(([cat, items]) => (
+                      <div key={cat} className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
+                        <div className="px-5 py-3 bg-gray-50 dark:bg-gray-900/30 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-2">
+                          <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300">{cat}</h4>
+                          <span className="text-xs text-gray-400 dark:text-gray-500">({items.length})</span>
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50/50 dark:bg-gray-900/10">
+                                <th className="py-2.5 px-4 text-left font-semibold">Услуга</th>
+                                <th className="py-2.5 px-4 text-left font-semibold">Код</th>
+                                <th className="py-2.5 px-4 text-left font-semibold">Ед.</th>
+                                <th className="py-2.5 px-4 text-right font-semibold">Стоимость</th>
+                                <th className="py-2.5 px-4 text-center font-semibold">Сложность</th>
+                                <th className="py-2.5 px-4 w-20"></th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
+                              {items.map(p => (
+                                <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 group">
+                                  <td className="py-3 px-4">
+                                    <div className="font-medium text-gray-800 dark:text-gray-200">{p.name}</div>
+                                    {p.description && <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 line-clamp-1">{p.description}</div>}
+                                  </td>
+                                  <td className="py-3 px-4 text-gray-500 dark:text-gray-400 font-mono text-xs">{p.code || '—'}</td>
+                                  <td className="py-3 px-4 text-gray-600 dark:text-gray-300">{p.unit || '—'}</td>
+                                  <td className="py-3 px-4 text-right font-semibold text-gray-900 dark:text-gray-100">{p.estimatedCost != null ? fmtMoney(p.estimatedCost) : '—'}</td>
+                                  <td className="py-3 px-4 text-center">
+                                    {p.complexityLevel != null ? (
+                                      <span className="inline-flex items-center gap-1">
+                                        {[1,2,3].map(n => <div key={n} className={`w-2 h-2 rounded-full ${n <= (p.complexityLevel ?? 0) ? 'bg-violet-500' : 'bg-gray-200 dark:bg-gray-700'}`} />)}
+                                      </span>
+                                    ) : '—'}
+                                  </td>
+                                  <td className="py-3 px-4">
+                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity justify-end">
+                                      <button onClick={() => { setEditingPrice(p); setShowPriceModal(true); }} className="p-1.5 text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors">
+                                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                                      </button>
+                                      <button onClick={() => handleDeletePriceItem(p.id)} className="p-1.5 text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors">
+                                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+
+          {/* ── Commercial Proposals ── */}
+          {financeSubTab === 'proposals' && (
+            <div className="space-y-4">
+              {proposalsLoading ? <LoadingState /> : selectedProposal ? (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <button onClick={() => setSelectedProposal(null)} className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+                      Назад
+                    </button>
+                    <div className="flex-1 flex items-center gap-2.5">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">КП № {selectedProposal.proposalNumber}</h3>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${PROPOSAL_STATUS[selectedProposal.status]?.color ?? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>
+                        {PROPOSAL_STATUS[selectedProposal.status]?.label ?? selectedProposal.status}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => setShowProposalModal(true)} className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                        Редактировать
+                      </button>
+                      <button onClick={() => handleDeleteProposal(selectedProposal.id)} className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-red-500 border border-red-200 dark:border-red-800/40 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        Удалить
+                      </button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-5">
+                      <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                        <svg className="w-4 h-4 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                        Клиент
+                      </h4>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Имя:</span><span className="text-gray-800 dark:text-gray-200 font-medium">{selectedProposal.clientName || '—'}</span></div>
+                        <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Телефон:</span><span className="text-gray-800 dark:text-gray-200">{selectedProposal.clientPhone || '—'}</span></div>
+                        <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Email:</span><span className="text-gray-800 dark:text-gray-200">{selectedProposal.clientEmail || '—'}</span></div>
+                        <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Менеджер:</span><span className="text-gray-800 dark:text-gray-200">{selectedProposal.managerName || '—'}</span></div>
+                      </div>
+                    </div>
+                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-5">
+                      <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                        <svg className="w-4 h-4 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                        Объект
+                      </h4>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between gap-4"><span className="text-gray-500 dark:text-gray-400 shrink-0">Адрес:</span><span className="text-gray-800 dark:text-gray-200 text-right">{selectedProposal.objectAddress || '—'}</span></div>
+                        {selectedProposal.objectComment && <div className="flex justify-between gap-4"><span className="text-gray-500 dark:text-gray-400 shrink-0">Комментарий:</span><span className="text-gray-800 dark:text-gray-200 text-right">{selectedProposal.objectComment}</span></div>}
+                        {selectedProposal.notes && <div className="flex justify-between gap-4"><span className="text-gray-500 dark:text-gray-400 shrink-0">Примечания:</span><span className="text-gray-800 dark:text-gray-200 text-right">{selectedProposal.notes}</span></div>}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
+                    <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-3">
+                      <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">Состав работ</h4>
+                      <AddLineModal proposalId={selectedProposal.id} onAdd={handleAddProposalLine} />
+                    </div>
+                    {selectedProposal.lines.length === 0 ? (
+                      <div className="py-10 text-center text-sm text-gray-400 dark:text-gray-500">Состав работ пуст</div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
+                              <th className="py-3 px-4 text-left font-semibold">Услуга</th>
+                              <th className="py-3 px-4 text-center font-semibold">Ед.</th>
+                              <th className="py-3 px-4 text-right font-semibold">Кол-во</th>
+                              <th className="py-3 px-4 text-right font-semibold">Цена</th>
+                              <th className="py-3 px-4 text-right font-semibold">Сумма</th>
+                              <th className="py-3 px-4 text-center font-semibold">Статус</th>
+                              <th className="py-3 px-4 w-12"></th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
+                            {[...selectedProposal.lines].sort((a, b) => a.sortOrder - b.sortOrder).map(line => (
+                              <tr key={line.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20">
+                                <td className="py-3 px-4">
+                                  <div className="font-medium text-gray-800 dark:text-gray-200">{line.serviceName}</div>
+                                  {line.serviceDesc && <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{line.serviceDesc}</div>}
+                                </td>
+                                <td className="py-3 px-4 text-center text-gray-500 dark:text-gray-400">{line.unit || '—'}</td>
+                                <td className="py-3 px-4 text-right text-gray-600 dark:text-gray-300">{line.quantity}</td>
+                                <td className="py-3 px-4 text-right text-gray-600 dark:text-gray-300">{fmtMoney(line.unitPrice)}</td>
+                                <td className="py-3 px-4 text-right font-semibold text-gray-900 dark:text-gray-100">{fmtMoney(line.totalPrice)}</td>
+                                <td className="py-3 px-4 text-center">
+                                  <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${WORK_STATUS[line.workStatus]?.color ?? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>
+                                    {WORK_STATUS[line.workStatus]?.label ?? line.workStatus}
+                                  </span>
+                                </td>
+                                <td className="py-3 px-4">
+                                  <button onClick={() => handleDeleteProposalLine(selectedProposal.id, line.id)} className="p-1 text-gray-300 hover:text-red-500 dark:text-gray-600 dark:hover:text-red-400 transition-colors">
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                          <tfoot>
+                            <tr className="bg-gray-50 dark:bg-gray-900/20 border-t-2 border-gray-200 dark:border-gray-700">
+                              <td colSpan={4} className="py-3 px-4 text-right font-semibold text-gray-700 dark:text-gray-300 text-sm">Итого:</td>
+                              <td className="py-3 px-4 text-right font-bold text-lg text-gray-900 dark:text-gray-100">{fmtMoney(selectedProposal.totalAmount)}</td>
+                              <td colSpan={2}></td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
+                  <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-3">
+                    <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">Коммерческие предложения</h3>
+                    <button onClick={() => setShowProposalModal(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                      Создать КП
+                    </button>
+                  </div>
+                  {proposals.length === 0 ? (
+                    <div className="py-16 text-center">
+                      <svg className="w-12 h-12 mx-auto text-gray-300 dark:text-gray-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                      <p className="text-sm text-gray-400 dark:text-gray-500">Коммерческих предложений нет</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
+                            <th className="py-3 px-4 text-left font-semibold">№ КП</th>
+                            <th className="py-3 px-4 text-left font-semibold">Клиент</th>
+                            <th className="py-3 px-4 text-left font-semibold">Объект</th>
+                            <th className="py-3 px-4 text-right font-semibold">Сумма</th>
+                            <th className="py-3 px-4 text-center font-semibold">Статус</th>
+                            <th className="py-3 px-4 text-right font-semibold">Дата</th>
+                            <th className="py-3 px-4 w-12"></th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
+                          {proposals.map(p => (
+                            <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer" onClick={() => setSelectedProposal(p)}>
+                              <td className="py-3 px-4 font-medium text-gray-700 dark:text-gray-300">{p.proposalNumber}</td>
+                              <td className="py-3 px-4 text-gray-600 dark:text-gray-300">{p.clientName || '—'}</td>
+                              <td className="py-3 px-4 text-gray-500 dark:text-gray-400 max-w-xs truncate">{p.objectAddress || '—'}</td>
+                              <td className="py-3 px-4 text-right font-semibold text-gray-900 dark:text-gray-100">{fmtMoney(p.totalAmount)}</td>
+                              <td className="py-3 px-4 text-center">
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${PROPOSAL_STATUS[p.status]?.color ?? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>
+                                  {PROPOSAL_STATUS[p.status]?.label ?? p.status}
+                                </span>
+                              </td>
+                              <td className="py-3 px-4 text-right text-gray-500 dark:text-gray-400">{fmt(p.createdAt)}</td>
+                              <td className="py-3 px-4" onClick={e => e.stopPropagation()}>
+                                <button onClick={() => handleDeleteProposal(p.id)} className="p-1 text-gray-300 hover:text-red-500 dark:text-gray-600 dark:hover:text-red-400 transition-colors">
+                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           )}
         </div>
       )}
@@ -3149,6 +3688,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
               { key: 'materials', label: 'Материальные заявки', count: materialRequests.length },
               { key: 'orders', label: 'Заказы поставщикам', count: supplierOrders.length },
               { key: 'equipment', label: 'Оборудование', count: equipmentList.length },
+              { key: 'maintenance', label: 'Обслуживание', count: maintenanceList.length },
             ] as const).map((t) => (
               <button
                 key={t.key}
@@ -3309,8 +3849,9 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                           <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
                             <th className="py-3 px-4 text-left font-semibold">Название</th>
                             <th className="py-3 px-4 text-left font-semibold">Тип</th>
-                            <th className="py-3 px-4 text-left font-semibold">Модель</th>
                             <th className="py-3 px-4 text-left font-semibold">Серийный №</th>
+                            <th className="py-3 px-4 text-left font-semibold">Расположение</th>
+                            <th className="py-3 px-4 text-left font-semibold">Дата поступления</th>
                             <th className="py-3 px-4 text-left font-semibold">Статус</th>
                             <th className="py-3 px-4 w-10"></th>
                           </tr>
@@ -3321,8 +3862,9 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                               onClick={() => { setEditingEq(eq); setShowEqModal(true); }}>
                               <td className="py-3 px-4 font-medium text-gray-800 dark:text-gray-200">{eq.name}</td>
                               <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{eq.equipmentType ? (EQUIPMENT_TYPE_LABELS[eq.equipmentType] ?? eq.equipmentType) : '—'}</td>
-                              <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{eq.model || '—'}</td>
                               <td className="py-3 px-4 font-mono text-xs text-gray-500 dark:text-gray-400">{eq.serialNumber || '—'}</td>
+                              <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{eq.currentLocation || '—'}</td>
+                              <td className="py-3 px-4 text-gray-500 dark:text-gray-400">{eq.purchaseDate ? new Date(eq.purchaseDate).toLocaleDateString('ru-RU') : '—'}</td>
                               <td className="py-3 px-4">
                                 {eq.status != null ? (
                                   <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${EQUIPMENT_STATUS[eq.status]?.color ?? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>
@@ -3332,6 +3874,60 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                               </td>
                               <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
                                 <button onClick={() => handleDeleteEquipment(eq.id)}
+                                  className="p-1 text-gray-300 hover:text-red-500 dark:text-gray-600 dark:hover:text-red-400 transition-colors">
+                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ── Maintenance ── */}
+              {resourceSubTab === 'maintenance' && (
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
+                  <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-3">
+                    <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">Обслуживание оборудования</h3>
+                    <button onClick={() => { setEditingMaint(null); setShowMaintModal(true); }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                      Добавить
+                    </button>
+                  </div>
+                  {maintenanceList.length === 0 ? (
+                    <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">Записей об обслуживании нет</div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
+                            <th className="py-3 px-4 text-left font-semibold">Оборудование</th>
+                            <th className="py-3 px-4 text-left font-semibold">Тип ТО</th>
+                            <th className="py-3 px-4 text-left font-semibold">Дата</th>
+                            <th className="py-3 px-4 text-left font-semibold">Следующее ТО</th>
+                            <th className="py-3 px-4 text-right font-semibold">Стоимость</th>
+                            <th className="py-3 px-4 text-left font-semibold">Описание</th>
+                            <th className="py-3 px-4 w-10"></th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
+                          {maintenanceList.map((m) => (
+                            <tr key={m.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer transition-colors"
+                              onClick={() => { setEditingMaint(m); setShowMaintModal(true); }}>
+                              <td className="py-3 px-4 font-medium text-gray-800 dark:text-gray-200">{m.equipment?.name || `#${m.equipmentId}`}</td>
+                              <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{m.maintenanceType || '—'}</td>
+                              <td className="py-3 px-4 text-gray-500 dark:text-gray-400">{new Date(m.maintenanceDate).toLocaleDateString('ru-RU')}</td>
+                              <td className="py-3 px-4 text-gray-500 dark:text-gray-400">{m.nextMaintenanceDate ? new Date(m.nextMaintenanceDate).toLocaleDateString('ru-RU') : '—'}</td>
+                              <td className="py-3 px-4 text-right font-semibold text-gray-800 dark:text-gray-200">
+                                {m.cost != null ? new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(m.cost) : '—'}
+                              </td>
+                              <td className="py-3 px-4 text-gray-600 dark:text-gray-400 max-w-[200px] truncate">{m.description || '—'}</td>
+                              <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                                <button onClick={() => handleDeleteMaintenance(m.id)}
                                   className="p-1 text-gray-300 hover:text-red-500 dark:text-gray-600 dark:hover:text-red-400 transition-colors">
                                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                 </button>
@@ -3436,9 +4032,13 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
           initialData={editingEq ? {
             name: editingEq.name,
             equipmentType: editingEq.equipmentType,
+            manufacturer: editingEq.manufacturer,
             model: editingEq.model,
             serialNumber: editingEq.serialNumber,
+            currentLocation: editingEq.currentLocation,
+            purchaseDate: editingEq.purchaseDate,
             status: editingEq.status,
+            notes: editingEq.notes,
           } : undefined}
           fields={[
             { key: 'name', label: 'Название', type: 'text', required: true },
@@ -3450,15 +4050,48 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                 { value: 'tool', label: 'Инструмент' },
               ],
             },
+            { key: 'manufacturer', label: 'Производитель', type: 'text' },
             { key: 'model', label: 'Модель', type: 'text' },
             { key: 'serialNumber', label: 'Серийный номер', type: 'text' },
+            { key: 'currentLocation', label: 'Расположение', type: 'text' },
+            { key: 'purchaseDate', label: 'Дата поступления', type: 'date' },
             {
               key: 'status', label: 'Статус', type: 'select',
               options: Object.entries(EQUIPMENT_STATUS).map(([v, s]) => ({ value: Number(v), label: s.label })),
             },
+            { key: 'notes', label: 'Заметки', type: 'textarea' },
           ]}
           onClose={() => { setShowEqModal(false); setEditingEq(null); }}
           onSave={(data) => handleSaveEquipment(data)}
+        />
+      )}
+
+      {/* Maintenance Modal */}
+      {showMaintModal && (
+        <FinanceModal
+          title={editingMaint ? 'Запись об обслуживании' : 'Добавить обслуживание'}
+          saving={savingResource}
+          initialData={editingMaint ? {
+            equipmentId: editingMaint.equipmentId,
+            maintenanceType: editingMaint.maintenanceType,
+            maintenanceDate: editingMaint.maintenanceDate,
+            nextMaintenanceDate: editingMaint.nextMaintenanceDate,
+            cost: editingMaint.cost,
+            description: editingMaint.description,
+          } : undefined}
+          fields={[
+            {
+              key: 'equipmentId', label: 'Оборудование', type: 'select', required: true,
+              options: equipmentList.map((e) => ({ value: e.id, label: e.name })),
+            },
+            { key: 'maintenanceType', label: 'Тип обслуживания', type: 'text' },
+            { key: 'maintenanceDate', label: 'Дата ТО', type: 'date', required: true },
+            { key: 'nextMaintenanceDate', label: 'Следующее ТО', type: 'date' },
+            { key: 'cost', label: 'Стоимость (₽)', type: 'number' },
+            { key: 'description', label: 'Описание', type: 'textarea' },
+          ]}
+          onClose={() => { setShowMaintModal(false); setEditingMaint(null); }}
+          onSave={(data) => handleSaveMaintenance(data)}
         />
       )}
 
@@ -3646,6 +4279,49 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
             { key: 'description', label: 'Описание', type: 'textarea' },
           ]}
           initialData={editingAct ? editingAct as unknown as Record<string, unknown> : undefined}
+        />
+      )}
+
+      {/* Price Item Modal */}
+      {showPriceModal && (
+        <FinanceModal
+          title={editingPrice ? 'Редактировать услугу' : 'Новая услуга'}
+          saving={savingPrice}
+          onClose={() => { setShowPriceModal(false); setEditingPrice(null); }}
+          onSave={(data) => handleSavePriceItem(data as unknown as Omit<WorkTemplate, 'id'>)}
+          fields={[
+            { key: 'name', label: 'Название услуги', type: 'text', required: true },
+            { key: 'code', label: 'Код', type: 'text' },
+            { key: 'category', label: 'Категория', type: 'text' },
+            { key: 'unit', label: 'Единица измерения', type: 'text' },
+            { key: 'estimatedCost', label: 'Стоимость', type: 'number' },
+            { key: 'estimatedDuration', label: 'Длительность (дней)', type: 'number' },
+            { key: 'complexityLevel', label: 'Сложность (1–3)', type: 'number' },
+            { key: 'description', label: 'Описание', type: 'textarea' },
+          ]}
+          initialData={editingPrice ? editingPrice as unknown as Record<string, unknown> : undefined}
+        />
+      )}
+
+      {/* Commercial Proposal Modal */}
+      {showProposalModal && (
+        <FinanceModal
+          title={selectedProposal ? 'Редактировать КП' : 'Новое коммерческое предложение'}
+          saving={savingProposal}
+          onClose={() => setShowProposalModal(false)}
+          onSave={(data) => handleSaveProposal(data)}
+          fields={[
+            { key: 'proposalNumber', label: 'Номер КП', type: 'text', required: true },
+            { key: 'clientName', label: 'Имя клиента', type: 'text' },
+            { key: 'clientPhone', label: 'Телефон клиента', type: 'text' },
+            { key: 'clientEmail', label: 'Email клиента', type: 'text' },
+            { key: 'objectAddress', label: 'Адрес объекта', type: 'text' },
+            { key: 'objectComment', label: 'Комментарий к объекту', type: 'textarea' },
+            { key: 'managerName', label: 'Менеджер', type: 'text' },
+            { key: 'status', label: 'Статус', type: 'select', options: Object.entries(PROPOSAL_STATUS).map(([v, s]) => ({ value: v, label: s.label })) },
+            { key: 'notes', label: 'Примечания', type: 'textarea' },
+          ]}
+          initialData={selectedProposal ? selectedProposal as unknown as Record<string, unknown> : undefined}
         />
       )}
 
@@ -5211,6 +5887,72 @@ function ProjectChannelEditModal({
           <button type="submit" disabled={saving || !name.trim()}
             className="px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition-colors">
             {saving ? 'Сохранение...' : 'Сохранить'}
+          </button>
+        </div>
+      </form>
+    </ModalShell>
+  );
+}
+
+function AddLineModal({ proposalId, onAdd }: {
+  proposalId: number;
+  onAdd: (id: number, line: { serviceName: string; unit?: string; quantity: number; unitPrice: number; totalPrice: number; workStatus: string; sortOrder: number }) => Promise<void>;
+}) {
+  const [show, setShow] = useState(false);
+  const [form, setForm] = useState({ serviceName: '', unit: '', quantity: '1', unitPrice: '0' });
+  const [saving, setSaving] = useState(false);
+
+  const inputCls = "w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-violet-500/50";
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.serviceName.trim()) return;
+    setSaving(true);
+    try {
+      const qty = Number(form.quantity) || 1;
+      const price = Number(form.unitPrice) || 0;
+      await onAdd(proposalId, { serviceName: form.serviceName.trim(), unit: form.unit || undefined, quantity: qty, unitPrice: price, totalPrice: qty * price, workStatus: 'not_started', sortOrder: 0 });
+      setForm({ serviceName: '', unit: '', quantity: '1', unitPrice: '0' });
+      setShow(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!show) return (
+    <button onClick={() => setShow(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
+      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+      Добавить позицию
+    </button>
+  );
+
+  return (
+    <ModalShell title="Добавить позицию" onClose={() => setShow(false)}>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Услуга <span className="text-red-500">*</span></label>
+            <input required value={form.serviceName} onChange={e => setForm(p => ({ ...p, serviceName: e.target.value }))} className={inputCls} />
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Ед.</label>
+              <input value={form.unit} onChange={e => setForm(p => ({ ...p, unit: e.target.value }))} className={inputCls} />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Кол-во</label>
+              <input type="number" min="0" step="0.01" value={form.quantity} onChange={e => setForm(p => ({ ...p, quantity: e.target.value }))} className={inputCls} />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Цена</label>
+              <input type="number" min="0" step="0.01" value={form.unitPrice} onChange={e => setForm(p => ({ ...p, unitPrice: e.target.value }))} className={inputCls} />
+            </div>
+          </div>
+        </div>
+        <div className="flex justify-end gap-3 pt-2 border-t border-gray-100 dark:border-gray-700">
+          <button type="button" onClick={() => setShow(false)} className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors">Отмена</button>
+          <button type="submit" disabled={saving} className="px-5 py-2 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
+            {saving ? 'Добавление...' : 'Добавить'}
           </button>
         </div>
       </form>
