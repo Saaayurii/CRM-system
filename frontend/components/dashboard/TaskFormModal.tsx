@@ -109,40 +109,68 @@ function fmtDate(d?: string) {
   return new Date(d).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
+function fmtDateTime(d?: string) {
+  if (!d) return '—';
+  return new Date(d).toLocaleString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+const ROLE_LABELS: Record<number, string> = {
+  1: 'Супер-администратор', 2: 'Администратор', 3: 'HR-менеджер',
+  4: 'Менеджер проекта', 5: 'Прораб', 6: 'Снабженец',
+  7: 'Кладовщик', 8: 'Бухгалтер', 9: 'Инспектор', 10: 'Рабочий',
+};
+
 function parseAttachments(raw: any): Attachment[] {
   let parsed: any[] = [];
   if (Array.isArray(raw)) parsed = raw;
   else if (typeof raw === 'string') {
     try { parsed = JSON.parse(raw); } catch { parsed = []; }
   }
-  return parsed.filter((a: any) => a?.fileUrl && a?.fileName);
+  return parsed
+    .filter((a: any) => (a?.fileUrl || a?.file_url) && (a?.fileName || a?.file_name))
+    .map((a: any) => ({
+      fileName: a.fileName || a.file_name || '',
+      fileSize: a.fileSize || a.file_size || 0,
+      mimeType: a.mimeType || a.mime_type || '',
+      fileUrl: a.fileUrl || a.file_url || '',
+    }));
 }
 
-// Employee card popup shown when clicking on assignee avatar
-function EmployeeCard({ user, onClose }: { user: User; onClose: () => void }) {
+function EmployeeCard({ user, assignedAt, onClose, onRemove }: {
+  user: User;
+  assignedAt?: string;
+  onClose: () => void;
+  onRemove?: () => void;
+}) {
   const [tasks, setTasks] = useState<any[]>([]);
+  const [loadingTasks, setLoadingTasks] = useState(true);
+  const [confirmRemove, setConfirmRemove] = useState(false);
 
   useEffect(() => {
     api.get('/tasks', { params: { assignedToUserId: user.id, limit: 10 } })
       .then((r) => setTasks(r.data?.tasks || r.data?.data || []))
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setLoadingTasks(false));
   }, [user.id]);
 
   const name = userName(user);
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm p-5" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-start justify-between mb-4">
-          <h3 className="font-semibold text-gray-800 dark:text-gray-100 text-base">Сотрудник</h3>
-          <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 pt-5 pb-3">
+          <h3 className="font-semibold text-gray-800 dark:text-gray-100">Сотрудник</h3>
+          <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded transition-colors">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
-        <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-900/30 rounded-xl mb-4">
-          <div className="w-10 h-10 rounded-full bg-violet-500 flex items-center justify-center text-white text-sm font-semibold shrink-0 overflow-hidden">
+
+        {/* Avatar + name */}
+        <div className="mx-5 mb-4 flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-900/30 rounded-xl">
+          <div className="w-10 h-10 rounded-full bg-violet-500 flex items-center justify-center text-white text-base font-semibold shrink-0 overflow-hidden relative">
             {user.avatarUrl
               ? <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" />
               : initials(name)
@@ -150,24 +178,73 @@ function EmployeeCard({ user, onClose }: { user: User; onClose: () => void }) {
           </div>
           <div className="min-w-0">
             <div className="font-semibold text-gray-800 dark:text-gray-100 truncate">{name}</div>
-            <div className="text-xs text-gray-400 truncate">{user.email}</div>
+            {user.email && <div className="text-xs text-gray-400 truncate">{user.email}</div>}
           </div>
         </div>
-        {tasks.length > 0 && (
-          <div>
-            <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">Задачи сотрудника</p>
-            <div className="space-y-1 max-h-36 overflow-y-auto">
-              {tasks.map((t) => (
-                <div key={t.id} className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/20 rounded-lg px-3 py-1.5">
-                  <span className="flex-1 truncate">{t.title}</span>
-                </div>
-              ))}
-            </div>
+
+        {/* Info rows */}
+        <div className="px-5 space-y-3 mb-4">
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-500 dark:text-gray-400">Роль</span>
+            <span className="text-gray-800 dark:text-gray-100 text-right">{user.roleId ? (ROLE_LABELS[user.roleId] || `#${user.roleId}`) : '—'}</span>
           </div>
-        )}
-        <button onClick={onClose} className="mt-4 w-full text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
-          Закрыть
-        </button>
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-500 dark:text-gray-400">Статус</span>
+            <span className="text-green-600 dark:text-green-400 font-medium">Активен</span>
+          </div>
+          {assignedAt && (
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500 dark:text-gray-400">Назначен</span>
+              <span className="text-gray-800 dark:text-gray-100">{new Date(assignedAt).toLocaleDateString('ru-RU')}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Tasks */}
+        <div className="px-5 pb-3 border-t border-gray-100 dark:border-gray-700 pt-3">
+          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Задачи сотрудника</p>
+          {loadingTasks ? (
+            <p className="text-xs text-gray-400 py-2">Загрузка...</p>
+          ) : tasks.length === 0 ? (
+            <p className="text-xs text-gray-400 py-2">Нет задач</p>
+          ) : (
+            <ul className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+              {tasks.map((t) => {
+                const ts = STATUS_OPTIONS.find((s) => s.value === (t.status ?? 0)) || STATUS_OPTIONS[0];
+                const tp = PRIORITY_OPTIONS.find((p) => p.value === (t.priority ?? 2)) || PRIORITY_OPTIONS[1];
+                return (
+                  <li key={t.id} className="flex items-center justify-between gap-2 text-xs bg-gray-50 dark:bg-gray-900/30 rounded-lg px-3 py-2">
+                    <span className="text-gray-800 dark:text-gray-100 font-medium truncate">{t.title}</span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className={`px-1.5 py-0.5 rounded-full ${ts.cls}`}>{ts.label}</span>
+                      <span className={`font-medium ${tp.activeCls}`}>{tp.label}</span>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between px-5 py-4 border-t border-gray-100 dark:border-gray-700">
+          {onRemove ? (
+            confirmRemove ? (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-red-500">Убрать из задачи?</span>
+                <button onClick={onRemove} className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded-lg">Да</button>
+                <button onClick={() => setConfirmRemove(false)} className="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">Нет</button>
+              </div>
+            ) : (
+              <button onClick={() => setConfirmRemove(true)} className="text-sm text-red-500 hover:text-red-600 transition-colors">
+                Убрать из задачи
+              </button>
+            )
+          ) : <span />}
+          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors">
+            Закрыть
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -204,7 +281,7 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
     (task?.assignees || []).map((a: any) => ({ userId: a.userId || a.user_id, userName: a.userName || a.user_name }))
   );
   const [showAssigneePicker, setShowAssigneePicker] = useState(false);
-  const [employeeCard, setEmployeeCard] = useState<User | null>(null);
+  const [employeeCard, setEmployeeCard] = useState<{ user: User; assignedAt?: string; onRemove: () => void } | null>(null);
 
   // Checklists
   const [checklists, setChecklists] = useState<ChecklistGroup[]>(() => {
@@ -250,6 +327,13 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
     }
 
     if (task?.id) {
+      api.get(`/tasks/${task.id}`)
+        .then((r) => {
+          const t = r.data;
+          setAttachments(parseAttachments(t.attachments));
+        })
+        .catch(() => {});
+
       api.get('/task-comments', { params: { taskId: task.id, limit: 200 } })
         .then((res) => {
           const data = res.data;
@@ -479,7 +563,14 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
               <button
                 key={a.userId}
                 title={name}
-                onClick={() => u && setEmployeeCard(u)}
+                onClick={() => {
+                  if (!u) return;
+                  setEmployeeCard({
+                    user: u,
+                    assignedAt: task?.createdAt,
+                    onRemove: () => { toggleAssignee(u); setEmployeeCard(null); },
+                  });
+                }}
                 className="w-7 h-7 rounded-full bg-violet-500 flex items-center justify-center text-white text-xs font-semibold overflow-hidden ring-2 ring-white dark:ring-gray-900 hover:ring-violet-300 transition-all"
               >
                 {u?.avatarUrl
@@ -581,7 +672,7 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
       {task?.createdAt && (
         <div>
           <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">Создана</p>
-          <p className="text-sm text-gray-600 dark:text-gray-400">{fmtDate(task.createdAt)}</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">{fmtDateTime(task.createdAt)}</p>
         </div>
       )}
 
@@ -870,7 +961,8 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
                   {comments.map((c) => {
                     const cUserId = c.userId || c.user_id;
                     const author = cUserId ? userMap[cUserId] : null;
-                    const name = author ? userName(author) : (cUserId ? `User #${cUserId}` : 'Система');
+                    const isSystemUser = !author || author.roleId === 1;
+                    const name = isSystemUser ? 'Система' : userName(author!);
                     const text = c.commentText || (c as any).content || '';
                     const att: Attachment[] = parseAttachments(c.attachments);
                     return (
@@ -941,7 +1033,12 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
 
       {/* Employee card */}
       {employeeCard && (
-        <EmployeeCard user={employeeCard} onClose={() => setEmployeeCard(null)} />
+        <EmployeeCard
+          user={employeeCard.user}
+          assignedAt={employeeCard.assignedAt}
+          onRemove={employeeCard.onRemove}
+          onClose={() => setEmployeeCard(null)}
+        />
       )}
 
       {previewFile && (
