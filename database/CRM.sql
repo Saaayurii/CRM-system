@@ -204,6 +204,74 @@ CREATE INDEX idx_sites_foreman ON construction_sites(foreman_id);
 CREATE INDEX idx_sites_status ON construction_sites(status);
 
 -- ==========================================
+-- СТРОИТЕЛЬНЫЕ ОБЪЕКТЫ (ИЕРАРХИЯ)
+-- ==========================================
+
+CREATE TABLE building_objects (
+    id SERIAL PRIMARY KEY,
+    account_id INTEGER NOT NULL,
+    project_id INTEGER REFERENCES projects(id) ON DELETE SET NULL,
+    construction_site_id INTEGER REFERENCES construction_sites(id) ON DELETE SET NULL,
+    parent_id INTEGER REFERENCES building_objects(id) ON DELETE SET NULL,
+    name VARCHAR(255) NOT NULL,
+    object_type VARCHAR(50) NOT NULL DEFAULT 'custom',
+    classification VARCHAR(100),
+    description TEXT,
+    address VARCHAR(500),
+    floor_number INTEGER,
+    status VARCHAR(20) NOT NULL DEFAULT 'planned',
+    parameters JSONB NOT NULL DEFAULT '{}',
+    created_by INTEGER,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_building_objects_account ON building_objects(account_id);
+CREATE INDEX idx_building_objects_project ON building_objects(project_id);
+CREATE INDEX idx_building_objects_site ON building_objects(construction_site_id);
+CREATE INDEX idx_building_objects_parent ON building_objects(parent_id);
+
+-- ==========================================
+-- УНИКАЛЬНЫЕ СООРУЖЕНИЯ
+-- ==========================================
+
+CREATE TABLE unique_facilities (
+    id SERIAL PRIMARY KEY,
+    object_id INTEGER NOT NULL REFERENCES building_objects(id) ON DELETE CASCADE,
+    facility_type VARCHAR(50) NOT NULL DEFAULT 'custom',
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    location VARCHAR(255),
+    status VARCHAR(20) NOT NULL DEFAULT 'planned',
+    configuration JSONB NOT NULL DEFAULT '{}',
+    created_by INTEGER,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_facilities_object ON unique_facilities(object_id);
+
+-- ==========================================
+-- КОМПОНЕНТЫ СООРУЖЕНИЙ
+-- ==========================================
+
+CREATE TABLE facility_components (
+    id SERIAL PRIMARY KEY,
+    facility_id INTEGER NOT NULL REFERENCES unique_facilities(id) ON DELETE CASCADE,
+    component_type VARCHAR(50) NOT NULL DEFAULT 'custom',
+    position INTEGER NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    configuration JSONB NOT NULL DEFAULT '{}',
+    status VARCHAR(20) NOT NULL DEFAULT 'planned',
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    UNIQUE(facility_id, position)
+);
+
+CREATE INDEX idx_components_facility ON facility_components(facility_id);
+
+-- ==========================================
 -- ПРИВЯЗКА КОМАНД К ПРОЕКТАМ
 -- ==========================================
 

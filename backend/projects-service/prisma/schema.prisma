@@ -133,11 +133,81 @@ model ConstructionSite {
 
   project           Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   projectTeams      ProjectTeam[]
+  buildingObjects   BuildingObject[]
 
   @@index([projectId])
   @@index([foremanId])
   @@index([status])
   @@map("construction_sites")
+}
+
+model BuildingObject {
+  id                 Int              @id @default(autoincrement())
+  accountId          Int              @map("account_id")
+  projectId          Int?             @map("project_id")
+  constructionSiteId Int?             @map("construction_site_id")
+  parentId           Int?             @map("parent_id")
+  name               String           @db.VarChar(255)
+  objectType         String           @default("custom") @map("object_type") @db.VarChar(50)
+  classification     String?          @db.VarChar(100)
+  description        String?          @db.Text
+  address            String?          @db.VarChar(500)
+  floorNumber        Int?             @map("floor_number")
+  status             String           @default("planned") @db.VarChar(20)
+  parameters         Json             @default("{}")
+  createdBy          Int?             @map("created_by")
+  createdAt          DateTime         @default(now()) @map("created_at")
+  updatedAt          DateTime         @default(now()) @updatedAt @map("updated_at")
+
+  parent             BuildingObject?  @relation("ObjectHierarchy", fields: [parentId], references: [id])
+  children           BuildingObject[] @relation("ObjectHierarchy")
+  facilities         UniqueFacility[]
+  constructionSite   ConstructionSite? @relation(fields: [constructionSiteId], references: [id])
+
+  @@index([accountId])
+  @@index([projectId])
+  @@index([constructionSiteId])
+  @@index([parentId])
+  @@map("building_objects")
+}
+
+model UniqueFacility {
+  id            Int                 @id @default(autoincrement())
+  objectId      Int                 @map("object_id")
+  facilityType  String              @default("custom") @map("facility_type") @db.VarChar(50)
+  name          String              @db.VarChar(255)
+  description   String?             @db.Text
+  location      String?             @db.VarChar(255)
+  status        String              @default("planned") @db.VarChar(20)
+  configuration Json                @default("{}")
+  createdBy     Int?                @map("created_by")
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @default(now()) @updatedAt @map("updated_at")
+
+  object        BuildingObject      @relation(fields: [objectId], references: [id], onDelete: Cascade)
+  components    FacilityComponent[]
+
+  @@index([objectId])
+  @@map("unique_facilities")
+}
+
+model FacilityComponent {
+  id            Int            @id @default(autoincrement())
+  facilityId    Int            @map("facility_id")
+  componentType String         @default("custom") @map("component_type") @db.VarChar(50)
+  position      Int
+  name          String         @db.VarChar(255)
+  description   String?        @db.Text
+  configuration Json           @default("{}")
+  status        String         @default("planned") @db.VarChar(20)
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @default(now()) @updatedAt @map("updated_at")
+
+  facility      UniqueFacility @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+
+  @@unique([facilityId, position])
+  @@index([facilityId])
+  @@map("facility_components")
 }
 
 model UserProjectAssignment {

@@ -8,6 +8,8 @@ import { ProjectsModule } from './modules/projects/projects.module';
 import { ConstructionSitesModule } from './modules/construction-sites/construction-sites.module';
 import { UserAssignmentsModule } from './modules/user-assignments/user-assignments.module';
 import { HealthModule } from './modules/health/health.module';
+import { BuildingObjectsModule } from './modules/building-objects/building-objects.module';
+import { FacilitiesModule } from './modules/facilities/facilities.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { JwtStrategy } from './common/guards/jwt.strategy';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -24,6 +26,8 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     ConstructionSitesModule,
     UserAssignmentsModule,
     HealthModule,
+    BuildingObjectsModule,
+    FacilitiesModule,
   ],
   providers: [
     JwtStrategy,
