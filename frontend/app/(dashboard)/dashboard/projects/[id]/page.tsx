@@ -781,7 +781,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   const [maintViewMode, setMaintViewMode] = useState<'table' | 'grid'>(() =>
     typeof window !== 'undefined' ? ((localStorage.getItem('maintViewMode') as 'table' | 'grid') || 'table') : 'table'
   );
-  const [financeSubTab, setFinanceSubTab] = useState<'overview' | 'payments' | 'budgets' | 'acts' | 'price' | 'proposals'>('overview');
+  const [financeSubTab, setFinanceSubTab] = useState<'overview' | 'payments' | 'budgets' | 'acts' | 'price' | 'proposals' | 'payroll' | 'bonuses'>('overview');
   /* Price list (work templates) */
   const [priceItems, setPriceItems] = useState<WorkTemplate[]>([]);
   const [priceLoading, setPriceLoading] = useState(false);
@@ -808,6 +808,13 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   const [closedTasksLoading, setClosedTasksLoading] = useState(false);
   const [taskPrices, setTaskPrices] = useState<Record<number, string>>({});
   const [manualLine, setManualLine] = useState({ serviceName: '', unit: '', quantity: '1', unitPrice: '' });
+  /* Payroll & Bonuses */
+  const [payrollList, setPayrollList] = useState<any[]>([]);
+  const [payrollLoaded, setPayrollLoaded] = useState(false);
+  const [payrollLoading, setPayrollLoading] = useState(false);
+  const [bonusList, setBonusList] = useState<any[]>([]);
+  const [bonusLoaded, setBonusLoaded] = useState(false);
+  const [bonusLoading, setBonusLoading] = useState(false);
 
   /* Resources tab */
   const [materialRequests, setMaterialRequests] = useState<MaterialRequest[]>([]);
@@ -1552,6 +1559,8 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
     if (activeTab === 'finance') {
       if (!priceLoaded && !priceLoading) reloadPriceItems();
       if (!proposalsLoaded && !proposalsLoading) reloadProposals();
+      if (!payrollLoaded && !payrollLoading) { setPayrollLoading(true); api.get('/payroll', { params: { limit: 500 } }).then(r => { setPayrollList(r.data?.data || r.data?.payrolls || []); setPayrollLoaded(true); }).catch(() => {}).finally(() => setPayrollLoading(false)); }
+      if (!bonusLoaded && !bonusLoading) { setBonusLoading(true); api.get('/bonuses', { params: { limit: 500 } }).then(r => { setBonusList(r.data?.data || r.data?.bonuses || []); setBonusLoaded(true); }).catch(() => {}).finally(() => setBonusLoading(false)); }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
@@ -3200,6 +3209,8 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
               { key: 'acts',      label: 'Акты',         count: financeActs.length },
               { key: 'price',     label: 'Прайс',        count: priceLoaded ? priceItems.length : undefined },
               { key: 'proposals', label: 'Коммерческие', count: proposalsLoaded ? proposals.length : undefined },
+              { key: 'payroll',   label: 'Зарплата',     count: payrollLoaded ? payrollList.length : undefined },
+              { key: 'bonuses',   label: 'Бонусы',       count: bonusLoaded ? bonusList.length : undefined },
             ] as const).map((t) => (
               <button
                 key={t.key}
@@ -4119,6 +4130,101 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                   )}
                 </div>
               )}
+
+          {/* ─── Payroll ─── */}
+          {financeSubTab === 'payroll' && (
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
+              <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-3">
+                <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">Расчётные ведомости</h3>
+              </div>
+              {payrollLoading ? <LoadingState /> : payrollList.length === 0 ? (
+                <div className="py-16 text-center">
+                  <svg className="w-12 h-12 mx-auto text-gray-300 dark:text-gray-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                  <p className="text-sm text-gray-400 dark:text-gray-500">Расчётных ведомостей нет</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
+                        <th className="py-3 px-4 text-left font-semibold">ID</th>
+                        <th className="py-3 px-4 text-left font-semibold">Сотрудник</th>
+                        <th className="py-3 px-4 text-left font-semibold">Период</th>
+                        <th className="py-3 px-4 text-right font-semibold">Оклад</th>
+                        <th className="py-3 px-4 text-right font-semibold">Итого</th>
+                        <th className="py-3 px-4 text-center font-semibold">Статус</th>
+                        <th className="py-3 px-4 text-right font-semibold">Дата выплаты</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
+                      {payrollList.map((p: any) => {
+                        const statusMap: Record<number, { label: string; cls: string }> = {
+                          0: { label: 'Черновик', cls: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300' },
+                          1: { label: 'Одобрен',  cls: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' },
+                          2: { label: 'Выплачен', cls: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300' },
+                        };
+                        const st = statusMap[Number(p.status)] ?? statusMap[0];
+                        return (
+                          <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20">
+                            <td className="py-3 px-4 text-gray-400 text-xs">#{p.id}</td>
+                            <td className="py-3 px-4 text-gray-700 dark:text-gray-300">{p.employeeName || `#${p.userId}`}</td>
+                            <td className="py-3 px-4 text-gray-600 dark:text-gray-300">{p.payrollPeriod || '—'}</td>
+                            <td className="py-3 px-4 text-right text-gray-700 dark:text-gray-300">{p.baseSalary != null ? `${Number(p.baseSalary).toLocaleString('ru-RU')} ₽` : '—'}</td>
+                            <td className="py-3 px-4 text-right font-semibold text-gray-900 dark:text-gray-100">{p.totalAmount != null ? `${Number(p.totalAmount).toLocaleString('ru-RU')} ₽` : '—'}</td>
+                            <td className="py-3 px-4 text-center"><span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${st.cls}`}>{st.label}</span></td>
+                            <td className="py-3 px-4 text-right text-gray-500 dark:text-gray-400">{p.paymentDate ? fmt(p.paymentDate) : '—'}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ─── Bonuses ─── */}
+          {financeSubTab === 'bonuses' && (
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
+              <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-3">
+                <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">Бонусы</h3>
+              </div>
+              {bonusLoading ? <LoadingState /> : bonusList.length === 0 ? (
+                <div className="py-16 text-center">
+                  <svg className="w-12 h-12 mx-auto text-gray-300 dark:text-gray-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  <p className="text-sm text-gray-400 dark:text-gray-500">Бонусов нет</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
+                        <th className="py-3 px-4 text-left font-semibold">ID</th>
+                        <th className="py-3 px-4 text-left font-semibold">Сотрудник</th>
+                        <th className="py-3 px-4 text-left font-semibold">Тип</th>
+                        <th className="py-3 px-4 text-right font-semibold">Сумма</th>
+                        <th className="py-3 px-4 text-left font-semibold">Описание</th>
+                        <th className="py-3 px-4 text-right font-semibold">Дата</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
+                      {bonusList.map((b: any) => (
+                        <tr key={b.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20">
+                          <td className="py-3 px-4 text-gray-400 text-xs">#{b.id}</td>
+                          <td className="py-3 px-4 text-gray-700 dark:text-gray-300">{b.employeeName || `#${b.userId}`}</td>
+                          <td className="py-3 px-4 text-gray-600 dark:text-gray-300">{b.bonusType || '—'}</td>
+                          <td className="py-3 px-4 text-right font-semibold text-green-600 dark:text-green-400">{b.amount != null ? `${Number(b.amount).toLocaleString('ru-RU')} ₽` : '—'}</td>
+                          <td className="py-3 px-4 text-gray-500 dark:text-gray-400 max-w-xs truncate">{b.description || '—'}</td>
+                          <td className="py-3 px-4 text-right text-gray-500 dark:text-gray-400">{b.paymentDate ? fmt(b.paymentDate) : '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
             </div>
           )}
         </div>

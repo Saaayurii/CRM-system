@@ -697,6 +697,75 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
       },
     ],
   },
+  'work-templates': {
+    slug: 'work-templates',
+    title: 'Прайс-лист',
+    apiEndpoint: '/work-templates',
+    searchField: 'названию',
+    columns: [
+      { key: 'id', header: 'ID', sortable: true, width: '70px' },
+      { key: 'name', header: 'Название', sortable: true },
+      { key: 'code', header: 'Код' },
+      { key: 'category', header: 'Категория' },
+      { key: 'unit', header: 'Ед. изм.' },
+      { key: 'estimatedCost', header: 'Стоимость', sortable: true, render: renderMoney },
+    ],
+    formFields: [
+      { key: 'name', label: 'Название', type: 'text', required: true },
+      { key: 'code', label: 'Код', type: 'text' },
+      { key: 'category', label: 'Категория', type: 'text' },
+      { key: 'unit', label: 'Единица измерения', type: 'text' },
+      { key: 'estimatedCost', label: 'Стоимость (₽)', type: 'number' },
+      { key: 'description', label: 'Описание', type: 'textarea' },
+    ],
+  },
+  'commercial-proposals': {
+    slug: 'commercial-proposals',
+    title: 'Коммерческие предложения',
+    apiEndpoint: '/commercial-proposals',
+    searchField: 'номеру',
+    columns: [
+      { key: 'id', header: 'ID', sortable: true, width: '70px' },
+      { key: 'proposalNumber', header: 'Номер', sortable: true },
+      { key: 'clientName', header: 'Клиент' },
+      { key: 'objectAddress', header: 'Объект' },
+      { key: 'totalAmount', header: 'Сумма', sortable: true, render: renderMoney },
+      {
+        key: 'status',
+        header: 'Статус',
+        render: (v) => {
+          const map: Record<string, { label: string; color: string }> = {
+            draft:    { label: 'Черновик',   color: 'gray'   },
+            sent:     { label: 'Отправлено', color: 'blue'   },
+            accepted: { label: 'Принято',    color: 'green'  },
+            rejected: { label: 'Отклонено',  color: 'red'    },
+          };
+          const s = map[String(v ?? '')];
+          return s ? <StatusBadge label={s.label} color={s.color} /> : <span className="text-gray-400">—</span>;
+        },
+      },
+      { key: 'createdAt', header: 'Дата', sortable: true, render: (v) => fmtDate(v) },
+    ],
+    formFields: [
+      { key: 'proposalNumber', label: 'Номер КП', type: 'text', required: true },
+      { key: 'clientName', label: 'Клиент', type: 'text', required: true },
+      { key: 'objectAddress', label: 'Адрес объекта', type: 'text' },
+      { key: 'totalAmount', label: 'Сумма (₽)', type: 'number' },
+      {
+        key: 'status',
+        label: 'Статус',
+        type: 'select',
+        options: [
+          { value: 'draft',    label: 'Черновик' },
+          { value: 'sent',     label: 'Отправлено' },
+          { value: 'accepted', label: 'Принято' },
+          { value: 'rejected', label: 'Отклонено' },
+        ],
+      },
+      { key: 'validUntil', label: 'Действителен до', type: 'date' },
+      { key: 'notes', label: 'Примечания', type: 'textarea' },
+    ],
+  },
   acts: {
     slug: 'acts',
     title: 'Акты',
@@ -1699,7 +1768,7 @@ export const MODULE_CATEGORIES: ModuleCategory[] = [
   },
   {
     name: 'Финансы',
-    modules: [ADMIN_MODULES.payments, ADMIN_MODULES.budgets, ADMIN_MODULES.acts, ADMIN_MODULES.salaries, ADMIN_MODULES.bonuses],
+    modules: [ADMIN_MODULES.payments, ADMIN_MODULES.budgets, ADMIN_MODULES.acts, ADMIN_MODULES['work-templates'], ADMIN_MODULES['commercial-proposals'], ADMIN_MODULES.salaries, ADMIN_MODULES.bonuses],
   },
   {
     name: 'HR',
