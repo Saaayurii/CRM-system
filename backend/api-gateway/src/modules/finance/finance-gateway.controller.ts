@@ -103,17 +103,19 @@ export class FinanceGatewayController {
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
   @ApiQuery({ name: 'status', required: false })
+  @ApiQuery({ name: 'projectId', required: false })
   async findAllPayments(
     @Req() req: Request,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
     @Query('status') status?: number,
+    @Query('projectId') projectId?: number,
   ) {
     return this.proxyService.forward('finance', {
       method: 'GET',
       path: '/payments',
       headers: { authorization: req.headers.authorization || '' },
-      params: { page, limit, status },
+      params: { page, limit, status, projectId },
     });
   }
 
@@ -174,16 +176,18 @@ export class FinanceGatewayController {
   @ApiOperation({ summary: 'Get all budgets' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
+  @ApiQuery({ name: 'projectId', required: false })
   async findAllBudgets(
     @Req() req: Request,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
+    @Query('projectId') projectId?: number,
   ) {
     return this.proxyService.forward('finance', {
       method: 'GET',
       path: '/budgets',
       headers: { authorization: req.headers.authorization || '' },
-      params: { page, limit },
+      params: { page, limit, projectId },
     });
   }
 
@@ -262,16 +266,18 @@ export class FinanceGatewayController {
   @ApiOperation({ summary: 'Get all acts' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
+  @ApiQuery({ name: 'projectId', required: false })
   async findAllActs(
     @Req() req: Request,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
+    @Query('projectId') projectId?: number,
   ) {
     return this.proxyService.forward('finance', {
       method: 'GET',
       path: '/acts',
       headers: { authorization: req.headers.authorization || '' },
-      params: { page, limit },
+      params: { page, limit, projectId },
     });
   }
 
@@ -481,6 +487,203 @@ export class FinanceGatewayController {
     return this.proxyService.forward('finance', {
       method: 'DELETE',
       path: `/payroll/${id}`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  // Work Templates (price list)
+  @Get('work-templates')
+  @ApiOperation({ summary: 'Get work templates' })
+  @ApiQuery({ name: 'page', required: false })
+  @ApiQuery({ name: 'limit', required: false })
+  @ApiQuery({ name: 'search', required: false })
+  @ApiQuery({ name: 'category', required: false })
+  async findAllWorkTemplates(
+    @Req() req: Request,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('search') search?: string,
+    @Query('category') category?: string,
+  ) {
+    return this.proxyService.forward('finance', {
+      method: 'GET',
+      path: '/work-templates',
+      headers: { authorization: req.headers.authorization || '' },
+      params: { page, limit, search, category },
+    });
+  }
+
+  @Get('work-templates/categories')
+  @ApiOperation({ summary: 'Get work template categories' })
+  async getWorkTemplateCategories(@Req() req: Request) {
+    return this.proxyService.forward('finance', {
+      method: 'GET',
+      path: '/work-templates/categories',
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  @Get('work-templates/:id')
+  @ApiOperation({ summary: 'Get work template by ID' })
+  async findOneWorkTemplate(@Req() req: Request, @Param('id') id: string) {
+    return this.proxyService.forward('finance', {
+      method: 'GET',
+      path: `/work-templates/${id}`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  @Post('work-templates')
+  @ApiOperation({ summary: 'Create work template' })
+  async createWorkTemplate(@Req() req: Request, @Body() body: any) {
+    return this.proxyService.forward('finance', {
+      method: 'POST',
+      path: '/work-templates',
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Put('work-templates/:id')
+  @ApiOperation({ summary: 'Update work template' })
+  async updateWorkTemplate(@Req() req: Request, @Param('id') id: string, @Body() body: any) {
+    return this.proxyService.forward('finance', {
+      method: 'PUT',
+      path: `/work-templates/${id}`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Delete('work-templates/:id')
+  @ApiOperation({ summary: 'Delete work template' })
+  async deleteWorkTemplate(@Req() req: Request, @Param('id') id: string) {
+    return this.proxyService.forward('finance', {
+      method: 'DELETE',
+      path: `/work-templates/${id}`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  // Commercial Proposals
+  @Get('commercial-proposals')
+  @ApiOperation({ summary: 'Get commercial proposals' })
+  @ApiQuery({ name: 'page', required: false })
+  @ApiQuery({ name: 'limit', required: false })
+  @ApiQuery({ name: 'projectId', required: false })
+  @ApiQuery({ name: 'status', required: false })
+  async findAllProposals(
+    @Req() req: Request,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('projectId') projectId?: number,
+    @Query('status') status?: string,
+  ) {
+    return this.proxyService.forward('finance', {
+      method: 'GET',
+      path: '/commercial-proposals',
+      headers: { authorization: req.headers.authorization || '' },
+      params: { page, limit, projectId, status },
+    });
+  }
+
+  @Get('commercial-proposals/:id')
+  @ApiOperation({ summary: 'Get commercial proposal by ID' })
+  async findOneProposal(@Req() req: Request, @Param('id') id: string) {
+    return this.proxyService.forward('finance', {
+      method: 'GET',
+      path: `/commercial-proposals/${id}`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  @Post('commercial-proposals')
+  @ApiOperation({ summary: 'Create commercial proposal' })
+  async createProposal(@Req() req: Request, @Body() body: any) {
+    return this.proxyService.forward('finance', {
+      method: 'POST',
+      path: '/commercial-proposals',
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Put('commercial-proposals/:id')
+  @ApiOperation({ summary: 'Update commercial proposal' })
+  async updateProposal(@Req() req: Request, @Param('id') id: string, @Body() body: any) {
+    return this.proxyService.forward('finance', {
+      method: 'PUT',
+      path: `/commercial-proposals/${id}`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Delete('commercial-proposals/:id')
+  @ApiOperation({ summary: 'Delete commercial proposal' })
+  async deleteProposal(@Req() req: Request, @Param('id') id: string) {
+    return this.proxyService.forward('finance', {
+      method: 'DELETE',
+      path: `/commercial-proposals/${id}`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  @Post('commercial-proposals/:id/lines')
+  @ApiOperation({ summary: 'Add line to commercial proposal' })
+  async addProposalLine(@Req() req: Request, @Param('id') id: string, @Body() body: any) {
+    return this.proxyService.forward('finance', {
+      method: 'POST',
+      path: `/commercial-proposals/${id}/lines`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Put('commercial-proposals/:id/lines/:lineId')
+  @ApiOperation({ summary: 'Update proposal line' })
+  async updateProposalLine(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Param('lineId') lineId: string,
+    @Body() body: any,
+  ) {
+    return this.proxyService.forward('finance', {
+      method: 'PUT',
+      path: `/commercial-proposals/${id}/lines/${lineId}`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Delete('commercial-proposals/:id/lines/:lineId')
+  @ApiOperation({ summary: 'Delete proposal line' })
+  async deleteProposalLine(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Param('lineId') lineId: string,
+  ) {
+    return this.proxyService.forward('finance', {
+      method: 'DELETE',
+      path: `/commercial-proposals/${id}/lines/${lineId}`,
       headers: { authorization: req.headers.authorization || '' },
     });
   }
