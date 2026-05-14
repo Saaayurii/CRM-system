@@ -3323,6 +3323,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                 const isExpense = paymentIsExpense;
                 const totalIncome = financePayments.filter(isIncome).reduce((s, p) => s + (Number(p.amount) || 0), 0);
                 const totalExpense = financePayments.filter(isExpense).reduce((s, p) => s + (Number(p.amount) || 0), 0);
+                const totalActual = financeActs.reduce((s, a) => s + (Number(a.totalAmount) || 0), 0);
                 const balance = totalIncome - totalExpense;
                 const expensePct = project?.budget ? Math.round((totalExpense / project.budget) * 100) : null;
                 const chartData = [{
@@ -3330,11 +3331,11 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                   'Бюджет': project?.budget ?? 0,
                   'Поступления': totalIncome,
                   'Расходы': totalExpense,
-                  'Факт. затраты': project?.actualCost ?? 0,
+                  'Факт. затраты': totalActual,
                 }];
                 return (
                   <>
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
                       {/* Budget */}
                       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-4">
                         <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Бюджет</p>
@@ -3361,6 +3362,16 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                         <p className={`text-xl font-bold ${balance >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500'}`}>
                           {balance >= 0 ? '+' : ''}{fmtMoney(balance)}
                         </p>
+                      </div>
+                      {/* Actual costs */}
+                      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-4">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Факт. затраты</p>
+                        <p className="text-xl font-bold text-orange-500">{fmtMoney(totalActual)}</p>
+                        {project?.budget ? (
+                          <p className={`text-xs mt-0.5 ${totalActual > project.budget ? 'text-red-500 font-semibold' : 'text-gray-400'}`}>
+                            {Math.round((totalActual / project.budget) * 100)}% от бюджета
+                          </p>
+                        ) : null}
                       </div>
                     </div>
 
