@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/authStore';
 import api from '@/lib/api';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
+import ForwardMessageModal from './ForwardMessageModal';
 
 /* ───────── Date helpers ───────── */
 
@@ -166,6 +167,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
     return () => vv.removeEventListener('resize', onResize);
   }, []);
 
+  const [forwardingMessage, setForwardingMessage] = useState<ChatMessageType | null>(null);
   const [showInfo, setShowInfo] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -810,6 +812,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
                     onDelete={handleDeleteMessage}
                     onEdit={isOwn ? (newText: string) => editMessageSocket(msg.id, newText) : undefined}
                     onPin={canPin ? handlePin : undefined}
+                    onForward={setForwardingMessage}
                     isPinned={isMsgPinned}
                     canPin={canPin}
                     highlightQuery={isMatchedMsg ? searchQuery.trim() : undefined}
@@ -889,6 +892,14 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
           <ChatInput channelId={activeChannelId} projectId={activeChannel.projectId ?? undefined} />
         )}
       </div>
+
+      {/* Forward message modal */}
+      {forwardingMessage && (
+        <ForwardMessageModal
+          message={forwardingMessage}
+          onClose={() => setForwardingMessage(null)}
+        />
+      )}
 
       {/* Calendar modal */}
       {showCalendar && (

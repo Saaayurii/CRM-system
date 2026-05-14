@@ -13,6 +13,7 @@ import { useChatStore } from '@/stores/chatStore';
 import { useAuthStore } from '@/stores/authStore';
 import ChatInput from '@/components/chat/ChatInput';
 import ChatMessageComponent from '@/components/chat/ChatMessage';
+import ForwardMessageModal from '@/components/chat/ForwardMessageModal';
 import FilePreviewModal from '@/components/ui/FilePreviewModal';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
@@ -6141,6 +6142,7 @@ function ProjectChatPanel({ channelId, channelName, projectId, projectMembers = 
   const bottomRef = useRef<HTMLDivElement>(null);
   const initialRef = useRef(true);
   const prevLenRef = useRef(0);
+  const [forwardingMessage, setForwardingMessage] = useState<any | null>(null);
   const [showParticipants, setShowParticipants] = useState(false);
   const [participants, setParticipants] = useState<{ id: number; name: string; email: string; avatarUrl?: string; role?: string; isMuted?: boolean }[]>([]);
   const [loadingParticipants, setLoadingParticipants] = useState(false);
@@ -6594,6 +6596,7 @@ function ProjectChatPanel({ channelId, channelName, projectId, projectMembers = 
               onReact={reactToMessage}
               onDelete={handleDeleteMessage}
               onPin={canPin ? handlePin : undefined}
+              onForward={setForwardingMessage}
               isPinned={isMsgPinned}
               canPin={canPin}
             />
@@ -6604,6 +6607,14 @@ function ProjectChatPanel({ channelId, channelName, projectId, projectMembers = 
 
       {/* Input */}
       <ChatInput channelId={channelId} projectId={projectId} onFilesSent={onFilesSent} />
+
+      {/* Forward message modal */}
+      {forwardingMessage && (
+        <ForwardMessageModal
+          message={forwardingMessage}
+          onClose={() => setForwardingMessage(null)}
+        />
+      )}
     </div>
   );
 }

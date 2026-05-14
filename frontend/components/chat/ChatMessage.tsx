@@ -11,11 +11,12 @@ import FilePreviewModal from '@/components/ui/FilePreviewModal';
 const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥', '👏', '🎉'];
 
 // Desktop side action buttons — defined here so TypeScript sees it before ChatMessage uses it
-function ActionButtons({ isOwn, isPinned, canPin, emojiRef, showEmojiPicker, setShowEmojiPicker, onReply, onPin, onDelete, onEdit, onCopy, onReact, canEdit }: {
+function ActionButtons({ isOwn, isPinned, canPin, emojiRef, showEmojiPicker, setShowEmojiPicker, onReply, onPin, onDelete, onEdit, onCopy, onReact, onForward, canEdit }: {
   isOwn: boolean; isPinned?: boolean; canPin?: boolean; canEdit?: boolean;
   emojiRef: React.RefObject<HTMLDivElement | null>;
   showEmojiPicker: boolean; setShowEmojiPicker: (v: boolean) => void;
   onReply: () => void; onPin?: () => void; onDelete: () => void; onEdit?: () => void; onCopy?: () => void;
+  onForward?: () => void;
   onReact: (emoji: string) => void;
 }) {
   return (
@@ -42,6 +43,14 @@ function ActionButtons({ isOwn, isPinned, canPin, emojiRef, showEmojiPicker, set
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
         </svg>
       </button>
+      {onForward && (
+        <button onClick={onForward}
+          className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-green-500 transition-colors" title="Переслать">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 9l3 3m0 0l-3 3m3-3H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </button>
+      )}
       {onCopy && (
         <button onClick={onCopy}
           className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors" title="Скопировать">
@@ -98,6 +107,7 @@ interface ChatMessageProps {
   onDelete: (message: ChatMessageType) => void;
   onEdit?: (newText: string) => void;
   onPin?: (message: ChatMessageType) => void;
+  onForward?: (message: ChatMessageType) => void;
   isPinned?: boolean;
   canPin?: boolean;
   highlightQuery?: string;
@@ -185,7 +195,7 @@ function parseTgMessage(text?: string): { sender: string; body: string } | null 
   return { sender: m[1], body: m[2] };
 }
 
-export default function ChatMessage({ message, isOwn, showAvatar, isRead, readers = [], onReply, onScrollToReply, onReact, onDelete, onEdit, onPin, isPinned, canPin, highlightQuery }: ChatMessageProps) {
+export default function ChatMessage({ message, isOwn, showAvatar, isRead, readers = [], onReply, onScrollToReply, onReact, onDelete, onEdit, onPin, onForward, isPinned, canPin, highlightQuery }: ChatMessageProps) {
   const addToast = useToastStore((s) => s.addToast);
   const setEditingMessage = useChatStore((s) => s.setEditingMessage);
   const isVoice = message.messageType === 'voice';
@@ -547,6 +557,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
               onReply={onReply} onPin={onPin ? () => onPin(message) : undefined} onDelete={() => setConfirmDelete(true)}
               onEdit={onEdit ? handleEditStart : undefined} canEdit={!!onEdit && !!message.text}
               onCopy={message.text ? () => { navigator.clipboard?.writeText(message.text!).then(() => addToast('success', 'Сообщение скопировано')).catch(() => {}); } : undefined}
+              onForward={onForward ? () => onForward(message) : undefined}
               onReact={(emoji: string) => { onReact(message.id, emoji); setShowEmojiPicker(false); }}
             />
           </div>
@@ -655,6 +666,19 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
               </svg>
             </button>
+
+            {/* Forward */}
+            {onForward && (
+              <button
+                onClick={() => { onForward(message); setShowMobileActions(false); }}
+                className="w-full flex items-center justify-between px-5 py-3.5 text-white hover:bg-white/10 active:bg-white/15 transition-colors border-b border-white/10"
+              >
+                <span className="text-[15px]">Переслать</span>
+                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 9l3 3m0 0l-3 3m3-3H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </button>
+            )}
 
             {/* Copy */}
             {message.text && (
