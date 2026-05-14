@@ -812,9 +812,16 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   const [payrollList, setPayrollList] = useState<any[]>([]);
   const [payrollLoaded, setPayrollLoaded] = useState(false);
   const [payrollLoading, setPayrollLoading] = useState(false);
+  const [editingPayroll, setEditingPayroll] = useState<any | null>(null);
+  const [showPayrollModal, setShowPayrollModal] = useState(false);
+  const [savingPayroll, setSavingPayroll] = useState(false);
   const [bonusList, setBonusList] = useState<any[]>([]);
   const [bonusLoaded, setBonusLoaded] = useState(false);
   const [bonusLoading, setBonusLoading] = useState(false);
+  const [editingBonus, setEditingBonus] = useState<any | null>(null);
+  const [showBonusModal, setShowBonusModal] = useState(false);
+  const [savingBonus, setSavingBonus] = useState(false);
+  const [financeUserMap, setFinanceUserMap] = useState<Map<number, string>>(new Map());
 
   /* Resources tab */
   const [materialRequests, setMaterialRequests] = useState<MaterialRequest[]>([]);
@@ -1333,6 +1340,83 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
     }
   }, [addToast, reloadFinance]);
 
+  const reloadPayroll = useCallback(async () => {
+    setPayrollLoading(true);
+    try {
+      const [pr, ur] = await Promise.all([
+        api.get('/payroll', { params: { limit: 500 } }),
+        api.get('/users', { params: { limit: 500 } }).catch(() => ({ data: { users: [] } })),
+      ]);
+      setPayrollList(pr.data?.data || pr.data?.payrolls || []);
+      const ulist = ur.data?.users || ur.data?.data || [];
+      setFinanceUserMap(new Map(ulist.map((u: any) => [u.id, u.name || `${u.firstName || ''} ${u.lastName || ''}`.trim() || `#${u.id}`])));
+      setPayrollLoaded(true);
+    } finally { setPayrollLoading(false); }
+  }, []);
+
+  const handleSavePayroll = useCallback(async (data: Record<string, unknown>) => {
+    setSavingPayroll(true);
+    try {
+      if (editingPayroll?.id) {
+        await api.put(`/payroll/${editingPayroll.id}`, data);
+        addToast('success', 'Ведомость обновлена');
+      } else {
+        await api.post('/payroll', data);
+        addToast('success', 'Ведомость создана');
+      }
+      setShowPayrollModal(false);
+      setEditingPayroll(null);
+      await reloadPayroll();
+    } catch (e: any) {
+      addToast('error', e?.response?.data?.message || 'Ошибка при сохранении');
+    } finally { setSavingPayroll(false); }
+  }, [editingPayroll, addToast, reloadPayroll]);
+
+  const handleDeletePayroll = useCallback(async (id: number) => {
+    if (!confirm('Удалить ведомость?')) return;
+    try {
+      await api.delete(`/payroll/${id}`);
+      addToast('success', 'Ведомость удалена');
+      await reloadPayroll();
+    } catch { addToast('error', 'Ошибка при удалении'); }
+  }, [addToast, reloadPayroll]);
+
+  const reloadBonuses = useCallback(async () => {
+    setBonusLoading(true);
+    try {
+      const r = await api.get('/bonuses', { params: { projectId, limit: 500 } });
+      setBonusList(r.data?.data || r.data?.bonuses || []);
+      setBonusLoaded(true);
+    } finally { setBonusLoading(false); }
+  }, [projectId]);
+
+  const handleSaveBonus = useCallback(async (data: Record<string, unknown>) => {
+    setSavingBonus(true);
+    try {
+      if (editingBonus?.id) {
+        await api.put(`/bonuses/${editingBonus.id}`, data);
+        addToast('success', 'Бонус обновлён');
+      } else {
+        await api.post('/bonuses', { ...data, projectId });
+        addToast('success', 'Бонус создан');
+      }
+      setShowBonusModal(false);
+      setEditingBonus(null);
+      await reloadBonuses();
+    } catch (e: any) {
+      addToast('error', e?.response?.data?.message || 'Ошибка при сохранении');
+    } finally { setSavingBonus(false); }
+  }, [editingBonus, projectId, addToast, reloadBonuses]);
+
+  const handleDeleteBonus = useCallback(async (id: number) => {
+    if (!confirm('Удалить бонус?')) return;
+    try {
+      await api.delete(`/bonuses/${id}`);
+      addToast('success', 'Бонус удалён');
+      await reloadBonuses();
+    } catch { addToast('error', 'Ошибка при удалении'); }
+  }, [addToast, reloadBonuses]);
+
   const reloadPriceItems = useCallback(async () => {
     setPriceLoading(true);
     try {
@@ -1559,8 +1643,8 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
     if (activeTab === 'finance') {
       if (!priceLoaded && !priceLoading) reloadPriceItems();
       if (!proposalsLoaded && !proposalsLoading) reloadProposals();
-      if (!payrollLoaded && !payrollLoading) { setPayrollLoading(true); api.get('/payroll', { params: { limit: 500 } }).then(r => { setPayrollList(r.data?.data || r.data?.payrolls || []); setPayrollLoaded(true); }).catch(() => {}).finally(() => setPayrollLoading(false)); }
-      if (!bonusLoaded && !bonusLoading) { setBonusLoading(true); api.get('/bonuses', { params: { limit: 500 } }).then(r => { setBonusList(r.data?.data || r.data?.bonuses || []); setBonusLoaded(true); }).catch(() => {}).finally(() => setBonusLoading(false)); }
+      if (!payrollLoaded && !payrollLoading) { setPayrollLoading(true); Promise.all([api.get('/payroll', { params: { limit: 500 } }), api.get('/users', { params: { limit: 500 } }).catch(() => ({ data: { users: [] } }))]).then(([pr, ur]) => { setPayrollList(pr.data?.data || pr.data?.payrolls || []); const ulist = ur.data?.users || ur.data?.data || []; setFinanceUserMap(new Map(ulist.map((u: any) => [u.id, u.name || `${u.firstName || ''} ${u.lastName || ''}`.trim() || `#${u.id}`]))); setPayrollLoaded(true); }).catch(() => {}).finally(() => setPayrollLoading(false)); }
+      if (!bonusLoaded && !bonusLoading) { setBonusLoading(true); api.get('/bonuses', { params: { projectId, limit: 500 } }).then(r => { setBonusList(r.data?.data || r.data?.bonuses || []); setBonusLoaded(true); }).catch(() => {}).finally(() => setBonusLoading(false)); }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
@@ -4138,6 +4222,10 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
               <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-3">
                 <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">Расчётные ведомости</h3>
+                <button onClick={() => { setEditingPayroll(null); setShowPayrollModal(true); }} className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                  Создать
+                </button>
               </div>
               {payrollLoading ? <LoadingState /> : payrollList.length === 0 ? (
                 <div className="py-16 text-center">
@@ -4149,13 +4237,13 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
-                        <th className="py-3 px-4 text-left font-semibold">ID</th>
                         <th className="py-3 px-4 text-left font-semibold">Сотрудник</th>
                         <th className="py-3 px-4 text-left font-semibold">Период</th>
                         <th className="py-3 px-4 text-right font-semibold">Оклад</th>
                         <th className="py-3 px-4 text-right font-semibold">Итого</th>
                         <th className="py-3 px-4 text-center font-semibold">Статус</th>
                         <th className="py-3 px-4 text-right font-semibold">Дата выплаты</th>
+                        <th className="py-3 px-4 w-20"></th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
@@ -4166,15 +4254,25 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                           2: { label: 'Выплачен', cls: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300' },
                         };
                         const st = statusMap[Number(p.status)] ?? statusMap[0];
+                        const name = financeUserMap.get(Number(p.userId)) || p.employeeName || p.user?.name || `#${p.userId}`;
                         return (
-                          <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20">
-                            <td className="py-3 px-4 text-gray-400 text-xs">#{p.id}</td>
-                            <td className="py-3 px-4 text-gray-700 dark:text-gray-300">{p.employeeName || `#${p.userId}`}</td>
+                          <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer" onClick={() => { setEditingPayroll(p); setShowPayrollModal(true); }}>
+                            <td className="py-3 px-4 font-medium text-gray-800 dark:text-gray-200">{name}</td>
                             <td className="py-3 px-4 text-gray-600 dark:text-gray-300">{p.payrollPeriod || '—'}</td>
                             <td className="py-3 px-4 text-right text-gray-700 dark:text-gray-300">{p.baseSalary != null ? `${Number(p.baseSalary).toLocaleString('ru-RU')} ₽` : '—'}</td>
                             <td className="py-3 px-4 text-right font-semibold text-gray-900 dark:text-gray-100">{p.totalAmount != null ? `${Number(p.totalAmount).toLocaleString('ru-RU')} ₽` : '—'}</td>
                             <td className="py-3 px-4 text-center"><span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${st.cls}`}>{st.label}</span></td>
                             <td className="py-3 px-4 text-right text-gray-500 dark:text-gray-400">{p.paymentDate ? fmt(p.paymentDate) : '—'}</td>
+                            <td className="py-3 px-4" onClick={e => e.stopPropagation()}>
+                              <div className="flex items-center justify-end gap-1">
+                                <button onClick={() => { setEditingPayroll(p); setShowPayrollModal(true); }} className="p-1.5 text-gray-400 hover:text-violet-500 dark:text-gray-500 dark:hover:text-violet-400 transition-colors rounded">
+                                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                </button>
+                                <button onClick={() => handleDeletePayroll(p.id)} className="p-1.5 text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 transition-colors rounded">
+                                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                </button>
+                              </div>
+                            </td>
                           </tr>
                         );
                       })}
@@ -4190,6 +4288,10 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
               <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-3">
                 <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">Бонусы</h3>
+                <button onClick={() => { setEditingBonus(null); setShowBonusModal(true); }} className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                  Начислить
+                </button>
               </div>
               {bonusLoading ? <LoadingState /> : bonusList.length === 0 ? (
                 <div className="py-16 text-center">
@@ -4201,25 +4303,37 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
-                        <th className="py-3 px-4 text-left font-semibold">ID</th>
                         <th className="py-3 px-4 text-left font-semibold">Сотрудник</th>
                         <th className="py-3 px-4 text-left font-semibold">Тип</th>
                         <th className="py-3 px-4 text-right font-semibold">Сумма</th>
                         <th className="py-3 px-4 text-left font-semibold">Описание</th>
                         <th className="py-3 px-4 text-right font-semibold">Дата</th>
+                        <th className="py-3 px-4 w-20"></th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
-                      {bonusList.map((b: any) => (
-                        <tr key={b.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20">
-                          <td className="py-3 px-4 text-gray-400 text-xs">#{b.id}</td>
-                          <td className="py-3 px-4 text-gray-700 dark:text-gray-300">{b.employeeName || `#${b.userId}`}</td>
-                          <td className="py-3 px-4 text-gray-600 dark:text-gray-300">{b.bonusType || '—'}</td>
-                          <td className="py-3 px-4 text-right font-semibold text-green-600 dark:text-green-400">{b.amount != null ? `${Number(b.amount).toLocaleString('ru-RU')} ₽` : '—'}</td>
-                          <td className="py-3 px-4 text-gray-500 dark:text-gray-400 max-w-xs truncate">{b.description || '—'}</td>
-                          <td className="py-3 px-4 text-right text-gray-500 dark:text-gray-400">{b.paymentDate ? fmt(b.paymentDate) : '—'}</td>
-                        </tr>
-                      ))}
+                      {bonusList.map((b: any) => {
+                        const name = financeUserMap.get(Number(b.userId)) || b.employeeName || b.user?.name || `#${b.userId}`;
+                        return (
+                          <tr key={b.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer" onClick={() => { setEditingBonus(b); setShowBonusModal(true); }}>
+                            <td className="py-3 px-4 font-medium text-gray-800 dark:text-gray-200">{name}</td>
+                            <td className="py-3 px-4 text-gray-600 dark:text-gray-300">{b.bonusType || '—'}</td>
+                            <td className="py-3 px-4 text-right font-semibold text-green-600 dark:text-green-400">{b.amount != null ? `${Number(b.amount).toLocaleString('ru-RU')} ₽` : '—'}</td>
+                            <td className="py-3 px-4 text-gray-500 dark:text-gray-400 max-w-xs truncate">{b.description || '—'}</td>
+                            <td className="py-3 px-4 text-right text-gray-500 dark:text-gray-400">{b.paymentDate ? fmt(b.paymentDate) : '—'}</td>
+                            <td className="py-3 px-4" onClick={e => e.stopPropagation()}>
+                              <div className="flex items-center justify-end gap-1">
+                                <button onClick={() => { setEditingBonus(b); setShowBonusModal(true); }} className="p-1.5 text-gray-400 hover:text-violet-500 dark:text-gray-500 dark:hover:text-violet-400 transition-colors rounded">
+                                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                </button>
+                                <button onClick={() => handleDeleteBonus(b.id)} className="p-1.5 text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 transition-colors rounded">
+                                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -5597,6 +5711,47 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
             { key: 'description', label: 'Описание', type: 'textarea' },
           ]}
           initialData={editingAct ? editingAct as unknown as Record<string, unknown> : undefined}
+        />
+      )}
+
+      {/* Payroll Modal */}
+      {showPayrollModal && (
+        <FinanceModal
+          title={editingPayroll ? 'Редактировать ведомость' : 'Новая ведомость'}
+          saving={savingPayroll}
+          onClose={() => { setShowPayrollModal(false); setEditingPayroll(null); }}
+          onSave={handleSavePayroll}
+          fields={[
+            { key: 'userId', label: 'Сотрудник', type: 'number', required: true },
+            { key: 'payrollPeriod', label: 'Период (напр. Январь 2026)', type: 'text', required: true },
+            { key: 'baseSalary', label: 'Оклад (₽)', type: 'number', required: true },
+            { key: 'totalAmount', label: 'Итого (₽)', type: 'number' },
+            { key: 'paymentDate', label: 'Дата выплаты', type: 'date' },
+            { key: 'status', label: 'Статус', type: 'select', options: [
+              { value: 0, label: 'Черновик' },
+              { value: 1, label: 'Одобрен' },
+              { value: 2, label: 'Выплачен' },
+            ]},
+          ]}
+          initialData={editingPayroll ?? undefined}
+        />
+      )}
+
+      {/* Bonus Modal */}
+      {showBonusModal && (
+        <FinanceModal
+          title={editingBonus ? 'Редактировать бонус' : 'Начислить бонус'}
+          saving={savingBonus}
+          onClose={() => { setShowBonusModal(false); setEditingBonus(null); }}
+          onSave={handleSaveBonus}
+          fields={[
+            { key: 'userId', label: 'Сотрудник (ID)', type: 'number', required: true },
+            { key: 'amount', label: 'Сумма (₽)', type: 'number', required: true },
+            { key: 'bonusType', label: 'Тип бонуса', type: 'text' },
+            { key: 'paymentDate', label: 'Дата выплаты', type: 'date' },
+            { key: 'description', label: 'Описание', type: 'textarea' },
+          ]}
+          initialData={editingBonus ?? undefined}
         />
       )}
 
