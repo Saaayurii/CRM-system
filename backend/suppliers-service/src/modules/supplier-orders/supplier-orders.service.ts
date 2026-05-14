@@ -59,12 +59,7 @@ export class SupplierOrdersService {
     createSupplierOrderDto: CreateSupplierOrderDto,
     requestingUserAccountId: number,
   ) {
-    if (createSupplierOrderDto.accountId !== requestingUserAccountId) {
-      throw new ForbiddenException(
-        'Cannot create supplier orders in another account',
-      );
-    }
-
+    createSupplierOrderDto.accountId = requestingUserAccountId;
     return this.supplierOrderRepository.create(createSupplierOrderDto);
   }
 

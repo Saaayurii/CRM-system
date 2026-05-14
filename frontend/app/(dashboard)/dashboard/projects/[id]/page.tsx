@@ -942,8 +942,8 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
     }
   }, [addToast]);
 
-  const reloadResources = useCallback(async () => {
-    setLoadingResources(true);
+  const reloadResources = useCallback(async (silent = false) => {
+    if (!silent) setLoadingResources(true);
     try {
       const [matRes, ordersRes, equipRes, suppRes, maintRes, whRes, invRes] = await Promise.allSettled([
         api.get('/material-requests', { params: { projectId, limit: 200 } }),
@@ -1551,7 +1551,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
     else if (activeTab === 'team' && teamLoaded) reloadTeam();
     else if (activeTab === 'documents' && docsLoaded) reloadDocuments();
     else if (activeTab === 'finance' && financeLoaded) reloadFinance();
-    else if (activeTab === 'resources' && resourcesLoaded) reloadResources();
+    else if (activeTab === 'resources' && resourcesLoaded) reloadResources(true);
     else if (activeTab === 'photos' && sitesLoaded) reloadSites();
   }, [activeTab, tasksLoaded, teamLoaded, docsLoaded, financeLoaded, resourcesLoaded, sitesLoaded,
       reloadTasks, reloadTeam, reloadDocuments, reloadFinance, reloadResources, reloadSites]);

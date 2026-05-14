@@ -65,11 +65,7 @@ export class MaterialRequestsService {
     createDto: CreateMaterialRequestDto,
     requestingUserAccountId: number,
   ) {
-    if (createDto.accountId !== requestingUserAccountId) {
-      throw new ForbiddenException(
-        'Cannot create material requests in another account',
-      );
-    }
+    createDto.accountId = requestingUserAccountId;
 
     const existing = await this.materialRequestRepository.findByRequestNumber(
       createDto.requestNumber,
