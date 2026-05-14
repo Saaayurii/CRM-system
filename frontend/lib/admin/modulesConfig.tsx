@@ -2003,7 +2003,7 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
 export const MODULE_CATEGORIES: ModuleCategory[] = [
   {
     name: 'Основные',
-    modules: [ADMIN_MODULES.users, ADMIN_MODULES.projects, ADMIN_MODULES['construction-sites'], ADMIN_MODULES.tasks, ADMIN_MODULES.clients],
+    modules: [ADMIN_MODULES.users, ADMIN_MODULES.projects, ADMIN_MODULES['construction-sites'], ADMIN_MODULES['building-objects'], ADMIN_MODULES.tasks, ADMIN_MODULES.clients],
   },
   {
     name: 'Объекты',

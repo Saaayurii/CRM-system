@@ -5727,45 +5727,57 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
       )}
 
       {/* Payroll Modal */}
-      {showPayrollModal && (
-        <FinanceModal
-          title={editingPayroll ? 'Редактировать ведомость' : 'Новая ведомость'}
-          saving={savingPayroll}
-          onClose={() => { setShowPayrollModal(false); setEditingPayroll(null); }}
-          onSave={handleSavePayroll}
-          fields={[
-            { key: 'userId', label: 'Сотрудник', type: 'number', required: true },
-            { key: 'payrollPeriod', label: 'Период (напр. Январь 2026)', type: 'text', required: true },
-            { key: 'baseSalary', label: 'Оклад (₽)', type: 'number', required: true },
-            { key: 'totalAmount', label: 'Итого (₽)', type: 'number' },
-            { key: 'paymentDate', label: 'Дата выплаты', type: 'date' },
-            { key: 'status', label: 'Статус', type: 'select', options: [
-              { value: 0, label: 'Черновик' },
-              { value: 1, label: 'Одобрен' },
-              { value: 2, label: 'Выплачен' },
-            ]},
-          ]}
-          initialData={editingPayroll ?? undefined}
-        />
-      )}
+      {showPayrollModal && (() => {
+        const empOpts = [
+          { value: '', label: '— Выберите сотрудника —' },
+          ...Array.from(financeUserMap.entries()).map(([id, name]) => ({ value: id, label: name })),
+        ];
+        return (
+          <FinanceModal
+            title={editingPayroll ? 'Редактировать ведомость' : 'Новая ведомость'}
+            saving={savingPayroll}
+            onClose={() => { setShowPayrollModal(false); setEditingPayroll(null); }}
+            onSave={handleSavePayroll}
+            fields={[
+              { key: 'userId', label: 'Сотрудник', type: 'select', required: true, options: empOpts },
+              { key: 'payrollPeriod', label: 'Период (напр. Январь 2026)', type: 'text', required: true },
+              { key: 'baseSalary', label: 'Оклад (₽)', type: 'number', required: true },
+              { key: 'totalAmount', label: 'Итого (₽)', type: 'number' },
+              { key: 'paymentDate', label: 'Дата выплаты', type: 'date' },
+              { key: 'status', label: 'Статус', type: 'select', options: [
+                { value: 0, label: 'Черновик' },
+                { value: 1, label: 'Одобрен' },
+                { value: 2, label: 'Выплачен' },
+              ]},
+            ]}
+            initialData={editingPayroll ?? undefined}
+          />
+        );
+      })()}
 
       {/* Bonus Modal */}
-      {showBonusModal && (
-        <FinanceModal
-          title={editingBonus ? 'Редактировать бонус' : 'Начислить бонус'}
-          saving={savingBonus}
-          onClose={() => { setShowBonusModal(false); setEditingBonus(null); }}
-          onSave={handleSaveBonus}
-          fields={[
-            { key: 'userId', label: 'Сотрудник (ID)', type: 'number', required: true },
-            { key: 'amount', label: 'Сумма (₽)', type: 'number', required: true },
-            { key: 'bonusType', label: 'Тип бонуса', type: 'text' },
-            { key: 'paymentDate', label: 'Дата выплаты', type: 'date' },
-            { key: 'description', label: 'Описание', type: 'textarea' },
-          ]}
-          initialData={editingBonus ?? undefined}
-        />
-      )}
+      {showBonusModal && (() => {
+        const empOpts = [
+          { value: '', label: '— Выберите сотрудника —' },
+          ...Array.from(financeUserMap.entries()).map(([id, name]) => ({ value: id, label: name })),
+        ];
+        return (
+          <FinanceModal
+            title={editingBonus ? 'Редактировать бонус' : 'Начислить бонус'}
+            saving={savingBonus}
+            onClose={() => { setShowBonusModal(false); setEditingBonus(null); }}
+            onSave={handleSaveBonus}
+            fields={[
+              { key: 'userId', label: 'Сотрудник', type: 'select', required: true, options: empOpts },
+              { key: 'amount', label: 'Сумма (₽)', type: 'number', required: true },
+              { key: 'bonusType', label: 'Тип бонуса', type: 'text' },
+              { key: 'paymentDate', label: 'Дата выплаты', type: 'date' },
+              { key: 'description', label: 'Описание', type: 'textarea' },
+            ]}
+            initialData={editingBonus ?? undefined}
+          />
+        );
+      })()}
 
       {/* Price Item Modal */}
       {showPriceModal && (
