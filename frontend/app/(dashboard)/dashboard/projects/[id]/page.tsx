@@ -766,6 +766,21 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   const [actsViewMode, setActsViewMode] = useState<'table' | 'grid'>(() =>
     typeof window !== 'undefined' ? ((localStorage.getItem('actsViewMode') as 'table' | 'grid') || 'table') : 'table'
   );
+  const [matReqViewMode, setMatReqViewMode] = useState<'table' | 'grid'>(() =>
+    typeof window !== 'undefined' ? ((localStorage.getItem('matReqViewMode') as 'table' | 'grid') || 'table') : 'table'
+  );
+  const [supplierOrderViewMode, setSupplierOrderViewMode] = useState<'table' | 'grid'>(() =>
+    typeof window !== 'undefined' ? ((localStorage.getItem('supplierOrderViewMode') as 'table' | 'grid') || 'table') : 'table'
+  );
+  const [equipViewMode, setEquipViewMode] = useState<'table' | 'grid'>(() =>
+    typeof window !== 'undefined' ? ((localStorage.getItem('equipViewMode') as 'table' | 'grid') || 'table') : 'table'
+  );
+  const [invSessionViewMode, setInvSessionViewMode] = useState<'table' | 'grid'>(() =>
+    typeof window !== 'undefined' ? ((localStorage.getItem('invSessionViewMode') as 'table' | 'grid') || 'table') : 'table'
+  );
+  const [maintViewMode, setMaintViewMode] = useState<'table' | 'grid'>(() =>
+    typeof window !== 'undefined' ? ((localStorage.getItem('maintViewMode') as 'table' | 'grid') || 'table') : 'table'
+  );
   const [financeSubTab, setFinanceSubTab] = useState<'overview' | 'payments' | 'budgets' | 'acts' | 'price' | 'proposals'>('overview');
   /* Price list (work templates) */
   const [priceItems, setPriceItems] = useState<WorkTemplate[]>([]);
@@ -4252,6 +4267,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
                   <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-3">
                     <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">Материальные заявки</h3>
+                    <FinanceViewToggle mode={matReqViewMode} onChange={(m) => { setMatReqViewMode(m); localStorage.setItem('matReqViewMode', m); }} />
                     <button onClick={() => { setEditingMR(null); setShowMRModal(true); }}
                       className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
                       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
@@ -4260,6 +4276,32 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                   </div>
                   {materialRequests.length === 0 ? (
                     <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">Нет материальных заявок для этого проекта</div>
+                  ) : matReqViewMode === 'grid' ? (
+                    <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {materialRequests.map((mr) => (
+                        <div key={mr.id} className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:shadow-md transition-shadow cursor-pointer flex flex-col gap-2"
+                          onClick={() => { setEditingMR(mr); setShowMRModal(true); }}>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-mono text-xs text-violet-600 dark:text-violet-400 font-semibold">{mr.requestNumber}</span>
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${MATERIAL_REQUEST_STATUS[mr.status]?.color ?? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>
+                              {MATERIAL_REQUEST_STATUS[mr.status]?.label ?? mr.status}
+                            </span>
+                          </div>
+                          {mr.purpose && <p className="text-sm text-gray-700 dark:text-gray-300 truncate">{mr.purpose}</p>}
+                          <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs mt-1">
+                            <div><dt className="text-gray-400">Позиций</dt><dd className="text-gray-700 dark:text-gray-300">{mr.items?.length ?? 0}</dd></div>
+                            <div><dt className="text-gray-400">Запросил</dt><dd className="text-gray-700 dark:text-gray-300 truncate">{mr.requestedBy?.name || '—'}</dd></div>
+                            <div><dt className="text-gray-400">Дата заявки</dt><dd className="text-gray-700 dark:text-gray-300">{mr.requestDate ? new Date(mr.requestDate).toLocaleDateString('ru-RU') : '—'}</dd></div>
+                            <div><dt className="text-gray-400">Нужно до</dt><dd className="text-gray-700 dark:text-gray-300">{mr.neededByDate ? new Date(mr.neededByDate).toLocaleDateString('ru-RU') : '—'}</dd></div>
+                          </dl>
+                          <div className="flex justify-end pt-1" onClick={(e) => e.stopPropagation()}>
+                            <button onClick={() => handleDeleteMaterialRequest(mr.id)} className="p-1 text-gray-300 hover:text-red-500 dark:text-gray-600 dark:hover:text-red-400 transition-colors">
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   ) : (
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
@@ -4310,6 +4352,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
                   <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-3">
                     <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">Заказы поставщикам</h3>
+                    <FinanceViewToggle mode={supplierOrderViewMode} onChange={(m) => { setSupplierOrderViewMode(m); localStorage.setItem('supplierOrderViewMode', m); }} />
                     <button onClick={() => { setEditingSO(null); setShowSOModal(true); }}
                       className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
                       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
@@ -4318,6 +4361,33 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                   </div>
                   {supplierOrders.length === 0 ? (
                     <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">Нет заказов поставщикам для этого проекта</div>
+                  ) : supplierOrderViewMode === 'grid' ? (
+                    <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {supplierOrders.map((so) => (
+                        <div key={so.id} className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:shadow-md transition-shadow cursor-pointer flex flex-col gap-2"
+                          onClick={() => { setEditingSO(so); setShowSOModal(true); }}>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-mono text-xs text-violet-600 dark:text-violet-400 font-semibold">{so.orderNumber}</span>
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${SUPPLIER_ORDER_STATUS[so.status]?.color ?? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>
+                              {SUPPLIER_ORDER_STATUS[so.status]?.label ?? so.status}
+                            </span>
+                          </div>
+                          <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{so.supplier?.name || '—'}</p>
+                          <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs mt-1">
+                            <div><dt className="text-gray-400">Позиций</dt><dd className="text-gray-700 dark:text-gray-300">{so.items?.length ?? 0}</dd></div>
+                            <div><dt className="text-gray-400">Сумма</dt><dd className="font-semibold text-gray-800 dark:text-gray-200">
+                              {so.totalAmount != null ? new Intl.NumberFormat('ru-RU', { style: 'currency', currency: so.currency || 'RUB', maximumFractionDigits: 0 }).format(so.totalAmount) : '—'}
+                            </dd></div>
+                            <div><dt className="text-gray-400">Дата заказа</dt><dd className="text-gray-700 dark:text-gray-300">{so.orderDate ? new Date(so.orderDate).toLocaleDateString('ru-RU') : '—'}</dd></div>
+                          </dl>
+                          <div className="flex justify-end pt-1" onClick={(e) => e.stopPropagation()}>
+                            <button onClick={() => handleDeleteSupplierOrder(so.id)} className="p-1 text-gray-300 hover:text-red-500 dark:text-gray-600 dark:hover:text-red-400 transition-colors">
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   ) : (
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
@@ -4370,6 +4440,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
                   <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-3">
                     <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">Оборудование</h3>
+                    <FinanceViewToggle mode={equipViewMode} onChange={(m) => { setEquipViewMode(m); localStorage.setItem('equipViewMode', m); }} />
                     <button onClick={() => { setEditingEq(null); setShowEqModal(true); }}
                       className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
                       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
@@ -4378,6 +4449,36 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                   </div>
                   {equipmentList.length === 0 ? (
                     <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">Оборудование не найдено</div>
+                  ) : equipViewMode === 'grid' ? (
+                    <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {equipmentList.map((eq) => (
+                        <div key={eq.id} className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:shadow-md transition-shadow cursor-pointer flex flex-col gap-2"
+                          onClick={() => setDetailEquipment(eq)}>
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="font-semibold text-gray-800 dark:text-gray-200 truncate">{eq.name}</p>
+                            {eq.status != null && (
+                              <span className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${EQUIPMENT_STATUS[eq.status]?.color ?? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>
+                                {EQUIPMENT_STATUS[eq.status]?.label ?? eq.status}
+                              </span>
+                            )}
+                          </div>
+                          <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs mt-1">
+                            <div><dt className="text-gray-400">Тип</dt><dd className="text-gray-700 dark:text-gray-300">{eq.equipmentType ? (EQUIPMENT_TYPE_LABELS[eq.equipmentType] ?? eq.equipmentType) : '—'}</dd></div>
+                            <div><dt className="text-gray-400">Серийный №</dt><dd className="font-mono text-gray-500 dark:text-gray-400 truncate">{eq.serialNumber || '—'}</dd></div>
+                            <div><dt className="text-gray-400">Расположение</dt><dd className="text-gray-700 dark:text-gray-300 truncate">{eq.currentLocation || '—'}</dd></div>
+                            <div><dt className="text-gray-400">Поступление</dt><dd className="text-gray-700 dark:text-gray-300">{eq.purchaseDate ? new Date(eq.purchaseDate).toLocaleDateString('ru-RU') : '—'}</dd></div>
+                          </dl>
+                          <div className="flex justify-end gap-1 pt-1" onClick={(e) => e.stopPropagation()}>
+                            <button onClick={() => { setEditingEq(eq); setShowEqModal(true); }} className="p-1 text-gray-300 hover:text-violet-500 dark:text-gray-600 dark:hover:text-violet-400 transition-colors">
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                            </button>
+                            <button onClick={() => handleDeleteEquipment(eq.id)} className="p-1 text-gray-300 hover:text-red-500 dark:text-gray-600 dark:hover:text-red-400 transition-colors">
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   ) : (
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
@@ -4646,6 +4747,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
                   <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-3">
                     <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">Инвентаризации</h3>
+                    <FinanceViewToggle mode={invSessionViewMode} onChange={(m) => { setInvSessionViewMode(m); localStorage.setItem('invSessionViewMode', m); }} />
                     <button onClick={() => { setEditingInv(null); setShowInvModal(true); }}
                       className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
                       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
@@ -4654,6 +4756,34 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                   </div>
                   {inventorySessions.length === 0 ? (
                     <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">Инвентаризации не проводились</div>
+                  ) : invSessionViewMode === 'grid' ? (
+                    <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {inventorySessions.map((inv) => (
+                        <div key={inv.id} className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:shadow-md transition-shadow cursor-pointer flex flex-col gap-2"
+                          onClick={() => setDetailInventory(inv)}>
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="font-semibold text-gray-800 dark:text-gray-200 truncate">{inv.name}</p>
+                            <span className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${INV_STATUS[inv.status]?.color ?? 'bg-gray-100 text-gray-600'}`}>
+                              {INV_STATUS[inv.status]?.label ?? inv.status}
+                            </span>
+                          </div>
+                          <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs mt-1">
+                            <div><dt className="text-gray-400">Дата проведения</dt><dd className="text-gray-700 dark:text-gray-300">{inv.scheduledDate ? new Date(inv.scheduledDate).toLocaleDateString('ru-RU') : '—'}</dd></div>
+                            <div><dt className="text-gray-400">Завершена</dt><dd className="text-gray-700 dark:text-gray-300">{inv.completedDate ? new Date(inv.completedDate).toLocaleDateString('ru-RU') : '—'}</dd></div>
+                            <div><dt className="text-gray-400">Позиций</dt><dd><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 text-xs font-semibold">{inv.items?.length ?? 0}</span></dd></div>
+                          </dl>
+                          {inv.notes && <p className="text-xs text-gray-400 truncate">{inv.notes}</p>}
+                          <div className="flex justify-end gap-1 pt-1" onClick={(e) => e.stopPropagation()}>
+                            <button onClick={() => { setEditingInv(inv); setShowInvModal(true); }} className="p-1 text-gray-300 hover:text-violet-500 dark:text-gray-600 dark:hover:text-violet-400 transition-colors">
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                            </button>
+                            <button onClick={() => handleDeleteInventory(inv.id)} className="p-1 text-gray-300 hover:text-red-500 dark:text-gray-600 dark:hover:text-red-400 transition-colors">
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   ) : (
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
@@ -4856,6 +4986,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
                   <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-3">
                     <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">Обслуживание оборудования</h3>
+                    <FinanceViewToggle mode={maintViewMode} onChange={(m) => { setMaintViewMode(m); localStorage.setItem('maintViewMode', m); }} />
                     <button onClick={() => { setEditingMaint(null); setShowMaintModal(true); }}
                       className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
                       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
@@ -4864,6 +4995,27 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                   </div>
                   {maintenanceList.length === 0 ? (
                     <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">Записей об обслуживании нет</div>
+                  ) : maintViewMode === 'grid' ? (
+                    <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {maintenanceList.map((m) => (
+                        <div key={m.id} className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:shadow-md transition-shadow cursor-pointer flex flex-col gap-2"
+                          onClick={() => { setEditingMaint(m); setShowMaintModal(true); }}>
+                          <p className="font-semibold text-gray-800 dark:text-gray-200 truncate">{m.equipment?.name || `#${m.equipmentId}`}</p>
+                          {m.maintenanceType && <p className="text-xs text-gray-500 dark:text-gray-400">{m.maintenanceType}</p>}
+                          <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs mt-1">
+                            <div><dt className="text-gray-400">Дата ТО</dt><dd className="text-gray-700 dark:text-gray-300">{new Date(m.maintenanceDate).toLocaleDateString('ru-RU')}</dd></div>
+                            <div><dt className="text-gray-400">Следующее ТО</dt><dd className="text-gray-700 dark:text-gray-300">{m.nextMaintenanceDate ? new Date(m.nextMaintenanceDate).toLocaleDateString('ru-RU') : '—'}</dd></div>
+                            <div className="col-span-2"><dt className="text-gray-400">Стоимость</dt><dd className="font-semibold text-gray-800 dark:text-gray-200">{m.cost != null ? new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(m.cost) : '—'}</dd></div>
+                          </dl>
+                          {m.description && <p className="text-xs text-gray-400 truncate">{m.description}</p>}
+                          <div className="flex justify-end pt-1" onClick={(e) => e.stopPropagation()}>
+                            <button onClick={() => handleDeleteMaintenance(m.id)} className="p-1 text-gray-300 hover:text-red-500 dark:text-gray-600 dark:hover:text-red-400 transition-colors">
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   ) : (
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
