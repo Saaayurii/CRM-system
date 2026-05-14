@@ -3823,45 +3823,62 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
 
                     {kpAddSource === 'price' ? (() => {
                       const q = proposalLineSearch.trim().toLowerCase();
-                      const matches = q.length >= 2 ? priceItems.filter(p =>
-                        p.name.toLowerCase().includes(q) || (p.category || '').toLowerCase().includes(q)
-                      ).slice(0, 8) : [];
+                      const visible = priceItems.filter(p =>
+                        !q || p.name.toLowerCase().includes(q) || (p.category || '').toLowerCase().includes(q)
+                      ).slice(0, 20);
                       return (
-                        <div className="relative">
-                          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                          <input
-                            value={proposalLineSearch}
-                            onChange={e => setProposalLineSearch(e.target.value)}
-                            placeholder="Поиск по названию или категории (от 2 символов)..."
-                            className="w-full pl-9 pr-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-900/30 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:bg-white dark:focus:bg-gray-800"
-                          />
-                          {matches.length > 0 && (
-                            <div className="absolute z-20 top-full mt-1 left-0 right-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg overflow-hidden">
-                              {matches.map(p => (
-                                <button key={p.id} onClick={() => {
-                                  handleAddProposalLine(selectedProposal.id, {
-                                    serviceName: p.name,
-                                    unit: p.unit,
-                                    unitPrice: p.estimatedCost ? Number(p.estimatedCost) : 0,
-                                    quantity: 1,
-                                    totalPrice: p.estimatedCost ? Number(p.estimatedCost) : 0,
-                                    workStatus: 'not_started',
-                                    sortOrder: selectedProposal.lines.length,
-                                  });
-                                  setProposalLineSearch('');
-                                }} className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors border-b border-gray-100 dark:border-gray-700/60 last:border-0">
-                                  <div>
-                                    <span className="text-sm text-gray-800 dark:text-gray-200">{p.name}</span>
-                                    {p.category && <span className="ml-2 text-xs text-gray-400 dark:text-gray-500">{p.category}</span>}
-                                  </div>
-                                  <span className="text-sm font-medium text-violet-600 dark:text-violet-400 ml-4 shrink-0">{p.estimatedCost ? fmtMoney(Number(p.estimatedCost)) : '—'}</span>
-                                </button>
-                              ))}
+                        <div className="space-y-2">
+                          <div className="relative">
+                            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                            <input
+                              value={proposalLineSearch}
+                              onChange={e => setProposalLineSearch(e.target.value)}
+                              placeholder="Фильтр по названию или категории..."
+                              className="w-full pl-9 pr-4 py-2 text-sm bg-gray-50 dark:bg-gray-900/30 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:bg-white dark:focus:bg-gray-800"
+                            />
+                          </div>
+                          {priceItems.length === 0 ? (
+                            <div className="py-5 text-center text-sm text-gray-400 dark:text-gray-500">
+                              <svg className="w-8 h-8 mx-auto mb-2 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                              Прайс-лист пуст. Добавьте услуги во вкладке «Прайс».
                             </div>
-                          )}
-                          {q.length >= 2 && matches.length === 0 && (
-                            <div className="absolute z-20 top-full mt-1 left-0 right-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg px-4 py-3 text-sm text-gray-400 dark:text-gray-500">
-                              Ничего не найдено в прайсе
+                          ) : visible.length === 0 ? (
+                            <p className="py-3 text-center text-sm text-gray-400 dark:text-gray-500">Ничего не найдено</p>
+                          ) : (
+                            <div className="space-y-1 max-h-64 overflow-y-auto">
+                              {visible.map(p => {
+                                const alreadyAdded = selectedProposal.lines.some(l => l.serviceName === p.name);
+                                return (
+                                  <div key={p.id} className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${alreadyAdded ? 'opacity-50' : 'hover:bg-gray-50 dark:hover:bg-gray-700/30 cursor-pointer'}`}
+                                    onClick={() => {
+                                      if (alreadyAdded) return;
+                                      handleAddProposalLine(selectedProposal.id, {
+                                        serviceName: p.name,
+                                        unit: p.unit,
+                                        unitPrice: p.estimatedCost ? Number(p.estimatedCost) : 0,
+                                        quantity: 1,
+                                        totalPrice: p.estimatedCost ? Number(p.estimatedCost) : 0,
+                                        workStatus: 'not_started',
+                                        sortOrder: selectedProposal.lines.length,
+                                      });
+                                    }}>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm text-gray-800 dark:text-gray-200 truncate font-medium">{p.name}</p>
+                                      {p.category && <p className="text-xs text-gray-400 dark:text-gray-500">{p.category}</p>}
+                                    </div>
+                                    {alreadyAdded ? (
+                                      <span className="text-xs text-green-500 font-medium shrink-0 flex items-center gap-1">
+                                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                                        В составе
+                                      </span>
+                                    ) : (
+                                      <span className="text-sm font-medium text-violet-600 dark:text-violet-400 shrink-0">
+                                        {p.estimatedCost ? fmtMoney(Number(p.estimatedCost)) : '—'}
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              })}
                             </div>
                           )}
                         </div>
