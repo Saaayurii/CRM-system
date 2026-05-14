@@ -1549,16 +1549,17 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
     if (activeTab === 'finance' && !financeLoaded && !loadingFinance) {
       reloadFinance();
     }
+    if (activeTab === 'finance') {
+      if (!priceLoaded && !priceLoading) reloadPriceItems();
+      if (!proposalsLoaded && !proposalsLoading) reloadProposals();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
   useEffect(() => {
-    if (activeTab === 'finance') {
-      if (financeSubTab === 'price' && !priceLoaded && !priceLoading) reloadPriceItems();
-      if (financeSubTab === 'proposals') {
-        if (!proposalsLoaded && !proposalsLoading) reloadProposals();
-        if (!priceLoaded && !priceLoading) reloadPriceItems();
-      }
+    // sub-tab specific triggers (already loaded by activeTab effect above, kept for safety)
+    if (activeTab === 'finance' && financeSubTab === 'proposals') {
+      if (!priceLoaded && !priceLoading) reloadPriceItems();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, financeSubTab]);
