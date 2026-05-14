@@ -26,6 +26,12 @@ export const ROLE_MAP: Record<number, { code: string; name: string }> = {
   14: { code: 'analyst', name: 'Аналитик' },
 };
 
+interface AccountChoice {
+  id: number;
+  name: string;
+  logoUrl?: string;
+}
+
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
@@ -33,6 +39,7 @@ interface AuthState {
   selectedAccountId: number | null;
   selectedAccountName: string | null;
   selectedAccountLogo: string | null;
+  availableAccounts: AccountChoice[];
   login: (credentials: LoginRequest) => Promise<void>;
   logout: () => void;
   initialize: () => void;
@@ -40,6 +47,8 @@ interface AuthState {
   updateUser: (patch: Partial<User>) => void;
   switchAccount: (accountId: number, accountName: string, accountLogoUrl?: string) => void;
   resetAccountSwitch: () => void;
+  fetchAvailableAccounts: () => Promise<AccountChoice[]>;
+  switchCompany: (accountId: number) => Promise<void>;
 }
 
 function decodeJwt(token: string): JwtPayload | null {
@@ -99,6 +108,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   selectedAccountId: null,
   selectedAccountName: null,
   selectedAccountLogo: null,
+  availableAccounts: [],
 
   login: async (credentials: LoginRequest) => {
     try {
@@ -181,6 +191,43 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       clearSwApiCache();
       clearAllCached().finally(() => navigateToDashboard());
     }
+  },
+
+  fetchAvailableAccounts: async () => {
+    try {
+      const { data } = await api.get<AccountChoice[]>('/auth/my-accounts');
+      set({ availableAccounts: data });
+      return data;
+    } catch {
+      return [];
+    }
+  },
+
+  switchCompany: async (accountId: number) => {
+    const { data } = await api.post<LoginResponse>('/auth/switch-account', { accountId });
+
+    localStorage.setItem('accessToken', data.accessToken);
+    localStorage.setItem('refreshToken', data.refreshToken);
+    if (data.sessionId) localStorage.setItem('sessionId', String(data.sessionId));
+    document.cookie = `crm-session=true; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then((reg) => {
+        const sw = reg.active;
+        if (sw) {
+          sw.postMessage({ type: 'SET_TOKEN', token: data.accessToken });
+          sw.postMessage({ type: 'SYNC_NOW' });
+        }
+      }).catch(() => {});
+    }
+
+    const user = data.user;
+    user.role = roleFromId(user.roleId ?? null);
+    if (user.avatarUrl) user.avatarUrl = normalizeFileUrl(user.avatarUrl) ?? undefined;
+    set({ user, isAuthenticated: true });
+
+    clearSwApiCache();
+    clearAllCached().finally(() => navigateToDashboard());
   },
 
   // Fetch fresh role from DB and update tokens if role changed.

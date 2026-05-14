@@ -208,6 +208,37 @@ export class AuthController {
     return this.authService.registerCompany(dto, userAgent, normalizeIp(ipAddress.split(',')[0].trim()));
   }
 
+  // ── My Accounts (multi-company) ───────────────────────────────────
+
+  @Get('my-accounts')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get all accounts available for the current user email' })
+  @ApiResponse({ status: 200, description: 'List of accessible accounts' })
+  async getMyAccounts(@CurrentUser() user: UserPayload) {
+    return this.authService.getMyAccounts(user.email);
+  }
+
+  @Post('switch-account')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Switch to a different account (same email)' })
+  @ApiResponse({ status: 200, description: 'Tokens for the target account', type: AuthResponseDto })
+  @ApiResponse({ status: 401, description: 'Account not found or inactive' })
+  async switchAccount(
+    @Body() body: { accountId: number },
+    @CurrentUser() user: UserPayload,
+    @Req() req: any,
+  ): Promise<AuthResponseDto> {
+    const userAgent = (req.headers['x-user-agent'] || req.headers['user-agent'] || '') as string;
+    const ipAddress = (req.headers['x-real-ip'] || req.headers['x-forwarded-for'] || req.ip || '') as string;
+    return this.authService.switchAccount(
+      user.email,
+      body.accountId,
+      userAgent,
+      normalizeIp(ipAddress.split(',')[0].trim()),
+    );
+  }
+
   // ── Accounts (Global Super Admin) ─────────────────────────────────
 
   @Get('accounts')

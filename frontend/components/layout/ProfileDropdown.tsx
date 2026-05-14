@@ -7,9 +7,15 @@ import { useAuthStore } from '@/stores/authStore';
 
 export default function ProfileDropdown() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const { user, logout } = useAuthStore();
+  const [switching, setSwitching] = useState<number | null>(null);
+  const { user, logout, availableAccounts, fetchAvailableAccounts, switchCompany } = useAuthStore();
   const trigger = useRef<HTMLButtonElement>(null);
   const dropdown = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    fetchAvailableAccounts();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const clickHandler = ({ target }: MouseEvent) => {
@@ -29,6 +35,17 @@ export default function ProfileDropdown() {
     document.addEventListener('keydown', keyHandler);
     return () => document.removeEventListener('keydown', keyHandler);
   });
+
+  const otherAccounts = availableAccounts.filter((a) => a.id !== user?.accountId);
+
+  const handleSwitch = async (accountId: number) => {
+    setSwitching(accountId);
+    try {
+      await switchCompany(accountId);
+    } catch {
+      setSwitching(null);
+    }
+  };
 
   return (
     <div className="relative inline-flex">
@@ -52,7 +69,7 @@ export default function ProfileDropdown() {
       </button>
 
       <Transition
-        className={`origin-top-right z-10 absolute top-full min-w-44 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700/60 py-1.5 rounded-lg shadow-lg overflow-hidden mt-1 right-0`}
+        className={`origin-top-right z-10 absolute top-full min-w-52 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700/60 py-1.5 rounded-lg shadow-lg overflow-hidden mt-1 right-0`}
         show={dropdownOpen}
         enter="transition ease-out duration-200 transform"
         enterStart="opacity-0 -translate-y-2"
@@ -66,6 +83,40 @@ export default function ProfileDropdown() {
             <div className="font-medium text-gray-800 dark:text-gray-100">{user?.email || 'User'}</div>
             <div className="text-xs text-gray-500 dark:text-gray-400 italic">{user?.role?.name || 'Role'}</div>
           </div>
+
+          {otherAccounts.length > 0 && (
+            <div className="pb-2 mb-1 border-b border-gray-200 dark:border-gray-700/60">
+              <div className="px-3 py-1 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                Сменить компанию
+              </div>
+              {otherAccounts.map((acc) => (
+                <button
+                  key={acc.id}
+                  onClick={() => handleSwitch(acc.id)}
+                  disabled={switching !== null}
+                  className="w-full flex items-center gap-2.5 px-3 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 disabled:opacity-50 transition-colors text-left"
+                >
+                  <div className="w-6 h-6 rounded bg-gray-100 dark:bg-gray-700 flex items-center justify-center shrink-0 overflow-hidden">
+                    {acc.logoUrl ? (
+                      <img src={acc.logoUrl} alt="" className="w-full h-full object-contain" />
+                    ) : (
+                      <span className="text-xs font-bold text-gray-500 dark:text-gray-300">
+                        {acc.name[0]?.toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-sm text-gray-700 dark:text-gray-300 truncate flex-1">{acc.name}</span>
+                  {switching === acc.id && (
+                    <svg className="w-3.5 h-3.5 text-violet-500 animate-spin shrink-0" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                    </svg>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+
           <ul>
             {user?.role?.code !== 'super_admin' && (
               <li>

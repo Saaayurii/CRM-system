@@ -677,6 +677,73 @@ export class AuthService {
     };
   }
 
+  async getMyAccounts(email: string) {
+    const allUsers = await this.userRepository.findAllByEmail(email);
+    return allUsers
+      .filter((u) => u.isActive)
+      .map((u) => ({
+        id: u.account.id,
+        name: u.account.name,
+        logoUrl: (u.account.settings as any)?.logoUrl ?? undefined,
+      }));
+  }
+
+  async switchAccount(
+    email: string,
+    targetAccountId: number,
+    userAgent = '',
+    ipAddress = '',
+  ): Promise<AuthResponseDto> {
+    const allUsers = await this.userRepository.findAllByEmail(email);
+    const targetUser = allUsers.find((u) => u.accountId === targetAccountId && u.isActive);
+    if (!targetUser) throw new UnauthorizedException('Account not found or inactive');
+
+    const account = await this.accountRepository.findById(targetAccountId);
+    const isGlobalAdmin = (targetUser.settings as any)?.isGlobalAdmin === true;
+
+    const jwtPayload: JwtPayload = {
+      sub: targetUser.id,
+      email: targetUser.email,
+      roleId: targetUser.roleId,
+      accountId: targetUser.accountId,
+      accountName: account?.name,
+      accountLogoUrl: account?.settings?.logoUrl ?? undefined,
+      isGlobalAdmin: isGlobalAdmin || undefined,
+    };
+
+    const tokenPair = this.tokenService.generateTokenPair(jwtPayload);
+    await this.sessionRepository.enforceLimit(targetUser.id, 5);
+    const session = await this.sessionRepository.create({
+      userId: targetUser.id,
+      refreshToken: tokenPair.refreshToken,
+      expiresAt: tokenPair.refreshTokenExpiresAt,
+      userAgent: userAgent || undefined,
+      ipAddress: ipAddress || undefined,
+    });
+
+    await this.userRepository.updateRefreshToken(
+      targetUser.id,
+      tokenPair.refreshToken,
+      tokenPair.refreshTokenExpiresAt,
+    );
+
+    const accessToken = this.tokenService.generateAccessToken({
+      ...jwtPayload,
+      sid: session.id,
+    });
+
+    await this.userRepository.updateSignInInfo(targetUser.id);
+
+    this.logger.log(`User switched to account ${targetAccountId}: ${email}`);
+
+    return {
+      accessToken,
+      refreshToken: tokenPair.refreshToken,
+      sessionId: session.id,
+      user: this.mapUserToResponse(targetUser),
+    };
+  }
+
   async getAccounts() {
     const accounts = await this.accountRepository.findAll();
     return accounts.map((a: any) => ({

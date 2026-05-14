@@ -6,6 +6,41 @@ import { useToastStore } from '@/stores/toastStore';
 import api from '@/lib/api';
 import { normalizeFileUrl } from '@/lib/utils';
 
+async function compressImage(file: File, maxSizeMB = 1, maxDimension = 1024): Promise<File> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let { width, height } = img;
+      if (width > maxDimension || height > maxDimension) {
+        if (width > height) {
+          height = Math.round((height * maxDimension) / width);
+          width = maxDimension;
+        } else {
+          width = Math.round((width * maxDimension) / height);
+          height = maxDimension;
+        }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(img, 0, 0, width, height);
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) { resolve(file); return; }
+          resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }));
+        },
+        'image/jpeg',
+        0.85,
+      );
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+    img.src = url;
+  });
+}
+
 // Roles that can NOT manage own personal documents
 const ROLES_NO_DOCS = new Set([13, 14]); // observer, analyst
 
@@ -97,6 +132,20 @@ export default function SettingsPage() {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
+
+  // PWA install
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
+  const [pwaInstalled, setPwaInstalled] = useState(false);
+
+  useEffect(() => {
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setPwaInstalled(true);
+    }
+    const handler = (e: Event) => { e.preventDefault(); setInstallPrompt(e); };
+    window.addEventListener('beforeinstallprompt', handler);
+    window.addEventListener('appinstalled', () => { setInstallPrompt(null); setPwaInstalled(true); });
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
 
@@ -257,6 +306,13 @@ export default function SettingsPage() {
     return new Date(iso).toLocaleDateString('ru-RU');
   };
 
+  const handleInstallPWA = async () => {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    const { outcome } = await installPrompt.userChoice;
+    if (outcome === 'accepted') { setInstallPrompt(null); setPwaInstalled(true); }
+  };
+
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user?.id) return;
@@ -268,8 +324,9 @@ export default function SettingsPage() {
 
     setAvatarUploading(true);
     try {
+      const compressed = await compressImage(file);
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('file', compressed);
       const { data: uploadData } = await api.post('/users/avatar/upload', formData);
       const fileUrl: string = uploadData.fileUrl;
 
@@ -344,6 +401,41 @@ export default function SettingsPage() {
         Личные настройки
       </h1>
 
+      {/* PWA install */}
+      {(installPrompt || pwaInstalled) && (
+        <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-6 mb-6 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center shrink-0">
+              <svg className="w-6 h-6 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 0 0 6 3.75v16.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 20.25V3.75a2.25 2.25 0 0 0-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">Установить приложение</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                {pwaInstalled ? 'Приложение уже установлено на вашем устройстве' : 'Откройте CRM как отдельное приложение без браузера'}
+              </p>
+            </div>
+          </div>
+          {!pwaInstalled && (
+            <button
+              onClick={handleInstallPWA}
+              className="shrink-0 px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-lg transition-colors"
+            >
+              Установить
+            </button>
+          )}
+          {pwaInstalled && (
+            <span className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 text-xs font-medium rounded-lg">
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+              </svg>
+              Установлено
+            </span>
+          )}
+        </div>
+      )}
+
       {/* Avatar section */}
       <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-6 mb-6">
         <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">Аватар</h2>
@@ -374,7 +466,7 @@ export default function SettingsPage() {
                 onChange={handleAvatarChange}
               />
             </label>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">JPG, PNG. Макс. 2MB</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">JPG, PNG. Большие фото сжимаются автоматически.</p>
           </div>
         </div>
       </div>

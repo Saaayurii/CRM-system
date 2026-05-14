@@ -238,6 +238,44 @@ export class AuthGatewayController {
     });
   }
 
+  // ── Multi-company account switching ────────────────────────────────
+
+  @Get('my-accounts')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get all accounts available for the current user email' })
+  @ApiResponse({ status: 200, description: 'List of accessible accounts' })
+  async getMyAccounts(@Headers('authorization') authorization: string) {
+    return this.proxyService.forward('auth', {
+      method: 'GET',
+      path: '/auth/my-accounts',
+      headers: { Authorization: authorization },
+    });
+  }
+
+  @Post('switch-account')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Switch to a different account (same email)' })
+  @ApiResponse({ status: 200, description: 'Tokens for the target account' })
+  @ApiResponse({ status: 401, description: 'Account not found or inactive' })
+  async switchAccount(
+    @Body() body: unknown,
+    @Headers('authorization') authorization: string,
+    @Headers('user-agent') userAgent: string,
+    @Req() req: any,
+  ) {
+    return this.proxyService.forward('auth', {
+      method: 'POST',
+      path: '/auth/switch-account',
+      data: body,
+      headers: {
+        Authorization: authorization,
+        'X-User-Agent': userAgent || '',
+        'X-Real-IP': req.ip || '',
+      },
+    });
+  }
+
   // ── Company Invites ──────────────────────────────────────────────────────
 
   @Post('invites')
