@@ -787,11 +787,12 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   const [proposalDetailsOpen, setProposalDetailsOpen] = useState(true);
   const [proposalLineSearch, setProposalLineSearch] = useState('');
   const [showProposalDocument, setShowProposalDocument] = useState(false);
-  const [kpAddSource, setKpAddSource] = useState<'price' | 'tasks'>('price');
+  const [kpAddSource, setKpAddSource] = useState<'price' | 'tasks' | 'manual'>('price');
   const [closedTasks, setClosedTasks] = useState<Task[]>([]);
   const [closedTasksLoaded, setClosedTasksLoaded] = useState(false);
   const [closedTasksLoading, setClosedTasksLoading] = useState(false);
   const [taskPrices, setTaskPrices] = useState<Record<number, string>>({});
+  const [manualLine, setManualLine] = useState({ serviceName: '', unit: '', quantity: '1', unitPrice: '' });
 
   /* Resources tab */
   const [materialRequests, setMaterialRequests] = useState<MaterialRequest[]>([]);
@@ -3794,6 +3795,12 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                         >
                           Из задач
                         </button>
+                        <button
+                          onClick={() => setKpAddSource('manual')}
+                          className={`px-3 py-1.5 transition-colors border-l border-gray-200 dark:border-gray-700 ${kpAddSource === 'manual' ? 'bg-violet-500 text-white' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'}`}
+                        >
+                          Вручную
+                        </button>
                       </div>
                     </div>
 
@@ -3842,7 +3849,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                           )}
                         </div>
                       );
-                    })() : (
+                    })() : kpAddSource === 'tasks' ? (
                       <div className="space-y-1 max-h-72 overflow-y-auto">
                         {closedTasksLoading ? (
                           <div className="py-6 text-center text-sm text-gray-400 dark:text-gray-500">Загрузка задач...</div>
@@ -3898,6 +3905,83 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                           );
                         })}
                       </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-1 gap-2">
+                          <div>
+                            <label className="block text-xs text-gray-400 dark:text-gray-500 mb-1">Наименование *</label>
+                            <input
+                              type="text"
+                              placeholder="Название работы или услуги"
+                              value={manualLine.serviceName}
+                              onChange={e => setManualLine(prev => ({ ...prev, serviceName: e.target.value }))}
+                              className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-900/30 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:bg-white dark:focus:bg-gray-800"
+                            />
+                          </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            <div>
+                              <label className="block text-xs text-gray-400 dark:text-gray-500 mb-1">Ед. изм.</label>
+                              <input
+                                type="text"
+                                placeholder="шт, м², км..."
+                                value={manualLine.unit}
+                                onChange={e => setManualLine(prev => ({ ...prev, unit: e.target.value }))}
+                                className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-900/30 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:bg-white dark:focus:bg-gray-800"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs text-gray-400 dark:text-gray-500 mb-1">Количество</label>
+                              <input
+                                type="number"
+                                min="0"
+                                placeholder="1"
+                                value={manualLine.quantity}
+                                onChange={e => setManualLine(prev => ({ ...prev, quantity: e.target.value }))}
+                                className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-900/30 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:bg-white dark:focus:bg-gray-800"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs text-gray-400 dark:text-gray-500 mb-1">Цена ₽</label>
+                              <input
+                                type="number"
+                                min="0"
+                                placeholder="0"
+                                value={manualLine.unitPrice}
+                                onChange={e => setManualLine(prev => ({ ...prev, unitPrice: e.target.value }))}
+                                className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-900/30 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:bg-white dark:focus:bg-gray-800"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          {manualLine.serviceName && manualLine.quantity && (
+                            <span className="text-xs text-gray-400 dark:text-gray-500">
+                              Итого: <span className="font-medium text-violet-600 dark:text-violet-400">{fmtMoney(Number(manualLine.quantity) * Number(manualLine.unitPrice || 0))}</span>
+                            </span>
+                          )}
+                          <button
+                            disabled={!manualLine.serviceName.trim()}
+                            onClick={() => {
+                              const qty = Number(manualLine.quantity) || 1;
+                              const price = Number(manualLine.unitPrice) || 0;
+                              handleAddProposalLine(selectedProposal.id, {
+                                serviceName: manualLine.serviceName.trim(),
+                                unit: manualLine.unit.trim() || undefined,
+                                quantity: qty,
+                                unitPrice: price,
+                                totalPrice: qty * price,
+                                workStatus: 'not_started',
+                                sortOrder: selectedProposal.lines.length,
+                              });
+                              setManualLine({ serviceName: '', unit: '', quantity: '1', unitPrice: '' });
+                            }}
+                            className="ml-auto px-4 py-2 text-sm font-medium bg-violet-500 hover:bg-violet-600 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center gap-1.5"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                            Добавить строку
+                          </button>
+                        </div>
+                      </div>
                     )}
                   </div>
 
@@ -3908,7 +3992,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                       <span className="text-xs text-gray-400 dark:text-gray-500">{selectedProposal.lines.length} позиций</span>
                     </div>
                     {selectedProposal.lines.length === 0 ? (
-                      <div className="py-10 text-center text-sm text-gray-400 dark:text-gray-500">Добавьте услуги из прайса выше</div>
+                      <div className="py-10 text-center text-sm text-gray-400 dark:text-gray-500">Добавьте позиции: из прайса, задач проекта или вручную</div>
                     ) : (
                       <div className="overflow-x-auto">
                         <table className="w-full text-sm">
