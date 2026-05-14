@@ -11,10 +11,22 @@ import {
   ProjectResponseDto,
   AddTeamMemberDto,
 } from './dto';
+import { NotificationsClientService } from './notifications-client.service';
+
+const PROJECT_STATUS_LABELS: Record<number, string> = {
+  0: 'Черновик',
+  1: 'Активный',
+  2: 'Приостановлен',
+  3: 'Завершён',
+  4: 'Отменён',
+};
 
 @Injectable()
 export class ProjectsService {
-  constructor(private readonly projectRepository: ProjectRepository) {}
+  constructor(
+    private readonly projectRepository: ProjectRepository,
+    private readonly notificationsClient: NotificationsClientService,
+  ) {}
 
   async findAll(
     accountId: number,
@@ -81,6 +93,7 @@ export class ProjectsService {
     id: number,
     updateProjectDto: UpdateProjectDto,
     requestingUserAccountId: number,
+    requestingUserId?: number,
   ): Promise<ProjectResponseDto> {
     const project = await this.projectRepository.findById(id);
     if (!project) {
@@ -104,6 +117,58 @@ export class ProjectsService {
       id,
       updateProjectDto,
     );
+
+    // Notify PM and creator when project status changes
+    if (
+      updateProjectDto.status !== undefined &&
+      updateProjectDto.status !== project.status
+    ) {
+      const newStatusLabel = PROJECT_STATUS_LABELS[updateProjectDto.status] ?? `Статус ${updateProjectDto.status}`;
+      const recipients = new Set<number>();
+      if (project.projectManagerId) recipients.add(project.projectManagerId);
+      if (requestingUserId) recipients.delete(requestingUserId); // don't notify the person who changed it
+
+      for (const userId of recipients) {
+        void this.notificationsClient.sendNotification({
+          userId,
+          accountId: requestingUserAccountId,
+          title: `Статус проекта изменён: ${project.name}`,
+          message: `Проект переведён в статус «${newStatusLabel}»`,
+          notificationType: 'project_status_changed',
+          priority: updateProjectDto.status === 4 ? 3 : 2,
+          channels: ['in_app', 'push'],
+          actionUrl: `/dashboard/projects/${id}`,
+          entityType: 'project',
+          entityId: id,
+        });
+      }
+    }
+
+    // Notify PM if deadline is set/changed
+    if (
+      updateProjectDto.plannedEndDate !== undefined &&
+      project.projectManagerId &&
+      project.projectManagerId !== requestingUserId
+    ) {
+      const deadline = new Date(updateProjectDto.plannedEndDate);
+      const now = new Date();
+      const daysLeft = Math.ceil((deadline.getTime() - now.getTime()) / 86400000);
+      if (daysLeft <= 7 && daysLeft > 0) {
+        void this.notificationsClient.sendNotification({
+          userId: project.projectManagerId,
+          accountId: requestingUserAccountId,
+          title: `Дедлайн проекта через ${daysLeft} дн.: ${project.name}`,
+          message: `Срок завершения проекта приближается`,
+          notificationType: 'project_deadline',
+          priority: daysLeft <= 2 ? 3 : 2,
+          channels: ['in_app', 'push'],
+          actionUrl: `/dashboard/projects/${id}`,
+          entityType: 'project',
+          entityId: id,
+        });
+      }
+    }
+
     return this.toResponseDto(updatedProject);
   }
 
@@ -117,6 +182,21 @@ export class ProjectsService {
       throw new ForbiddenException('Access denied');
     }
 
+    // Notify PM about deletion
+    if (project.projectManagerId) {
+      void this.notificationsClient.sendNotification({
+        userId: project.projectManagerId,
+        accountId: requestingUserAccountId,
+        title: `Проект удалён: ${project.name}`,
+        message: 'Проект был удалён из системы',
+        notificationType: 'project_deleted',
+        priority: 2,
+        channels: ['in_app'],
+        entityType: 'project',
+        entityId: id,
+      });
+    }
+
     await this.projectRepository.softDelete(id);
   }
 
@@ -124,6 +204,7 @@ export class ProjectsService {
     projectId: number,
     addTeamMemberDto: AddTeamMemberDto,
     requestingUserAccountId: number,
+    requestingUserId?: number,
   ) {
     const project = await this.projectRepository.findById(projectId);
     if (!project) {
@@ -135,11 +216,35 @@ export class ProjectsService {
     }
 
     try {
-      return await this.projectRepository.addTeamMember(
+      const result = await this.projectRepository.addTeamMember(
         projectId,
         addTeamMemberDto.teamId,
         addTeamMemberDto.isPrimary,
       );
+
+      // Try to get team members and notify them
+      try {
+        const teamMembers = await this.projectRepository.getTeamMembersByTeamId?.(addTeamMemberDto.teamId);
+        if (Array.isArray(teamMembers) && teamMembers.length > 0) {
+          const payloads = teamMembers
+            .filter((m: any) => m.userId !== requestingUserId)
+            .map((m: any) => ({
+              userId: m.userId,
+              accountId: requestingUserAccountId,
+              title: `Вас добавили на проект: ${project.name}`,
+              message: `Ваша команда назначена на проект`,
+              notificationType: 'project_member_added',
+              priority: 2,
+              channels: ['in_app', 'push'],
+              actionUrl: `/dashboard/projects/${projectId}`,
+              entityType: 'project',
+              entityId: projectId,
+            }));
+          this.notificationsClient.sendToMany(payloads);
+        }
+      } catch { /* team members fetch failed, skip notification */ }
+
+      return result;
     } catch (error: any) {
       if (error.code === 'P2002') {
         throw new ConflictException('Team is already assigned to project');
@@ -152,6 +257,7 @@ export class ProjectsService {
     projectId: number,
     teamId: number,
     requestingUserAccountId: number,
+    requestingUserId?: number,
   ): Promise<void> {
     const project = await this.projectRepository.findById(projectId);
     if (!project) {
@@ -161,6 +267,27 @@ export class ProjectsService {
     if (project.accountId !== requestingUserAccountId) {
       throw new ForbiddenException('Access denied');
     }
+
+    // Notify team members before removal
+    try {
+      const teamMembers = await this.projectRepository.getTeamMembersByTeamId?.(teamId);
+      if (Array.isArray(teamMembers) && teamMembers.length > 0) {
+        const payloads = teamMembers
+          .filter((m: any) => m.userId !== requestingUserId)
+          .map((m: any) => ({
+            userId: m.userId,
+            accountId: requestingUserAccountId,
+            title: `Вас убрали с проекта: ${project.name}`,
+            message: `Ваша команда снята с проекта`,
+            notificationType: 'project_member_removed',
+            priority: 2,
+            channels: ['in_app'],
+            entityType: 'project',
+            entityId: projectId,
+          }));
+        this.notificationsClient.sendToMany(payloads);
+      }
+    } catch { /* skip notification on error */ }
 
     await this.projectRepository.removeTeamMember(projectId, teamId);
   }

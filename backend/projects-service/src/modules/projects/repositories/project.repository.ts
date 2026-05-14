@@ -129,4 +129,11 @@ export class ProjectRepository {
       },
     });
   }
+
+  async getTeamMembersByTeamId(teamId: number): Promise<{ userId: number }[]> {
+    return (this.prisma as any).teamMember.findMany({
+      where: { teamId },
+      select: { userId: true },
+    });
+  }
 }

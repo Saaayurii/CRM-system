@@ -101,7 +101,7 @@ export class TeamsController {
     @Body() body: { userId: number; roleInTeam?: string },
     @CurrentUser() user: RequestUser,
   ) {
-    return this.service.addMember(id, user.accountId, body);
+    return this.service.addMember(id, user.accountId, body, user.id);
   }
 
   @Delete(':id/members/:userId')
@@ -111,6 +111,6 @@ export class TeamsController {
     @Param('userId', ParseIntPipe) userId: number,
     @CurrentUser() user: RequestUser,
   ) {
-    return this.service.removeMember(id, user.accountId, userId);
+    return this.service.removeMember(id, user.accountId, userId, user.id);
   }
 }

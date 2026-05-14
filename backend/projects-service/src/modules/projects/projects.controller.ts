@@ -99,7 +99,7 @@ export class ProjectsController {
     @Param('id', ParseIntPipe) id: number,
     @Body() updateProjectDto: UpdateProjectDto,
   ): Promise<ProjectResponseDto> {
-    return this.projectsService.update(id, updateProjectDto, user.accountId);
+    return this.projectsService.update(id, updateProjectDto, user.accountId, user.id);
   }
 
   @Delete(':id')
@@ -141,6 +141,7 @@ export class ProjectsController {
       id,
       addTeamMemberDto,
       user.accountId,
+      user.id,
     );
   }
 
@@ -153,6 +154,6 @@ export class ProjectsController {
     @Param('id', ParseIntPipe) id: number,
     @Param('teamId', ParseIntPipe) teamId: number,
   ): Promise<void> {
-    return this.projectsService.removeTeamMember(id, teamId, user.accountId);
+    return this.projectsService.removeTeamMember(id, teamId, user.accountId, user.id);
   }
 }

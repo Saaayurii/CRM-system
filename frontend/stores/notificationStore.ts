@@ -62,6 +62,53 @@ function updateBadge(count: number): void {
 
 export { updateBadge };
 
+// ─── Notification Sound ───────────────────────────────────────────────────────
+
+function playNotificationSound(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const AudioCtx = (window.AudioContext || (window as any).webkitAudioContext) as typeof AudioContext | undefined;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    osc.frequency.setValueAtTime(660, ctx.currentTime + 0.12);
+    gain.gain.setValueAtTime(0.12, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.45);
+    osc.onended = () => void ctx.close();
+  } catch { /* ignore — AudioContext blocked or unsupported */ }
+}
+
+// ─── Browser Notification API ─────────────────────────────────────────────────
+
+function showBrowserNotification(notification: Notification): void {
+  if (typeof window === 'undefined') return;
+  if (!('Notification' in window)) return;
+  if (window.Notification.permission !== 'granted') return;
+  if (!document.hidden) return; // only when tab is not visible
+
+  try {
+    const n = new window.Notification(notification.title, {
+      body: notification.message,
+      icon: '/icon-192.png',
+      tag: `crm-notif-${notification.id}`,
+    });
+    n.onclick = () => {
+      window.focus();
+      if (notification.actionUrl) {
+        window.location.href = notification.actionUrl;
+      }
+      n.close();
+    };
+  } catch { /* ignore */ }
+}
+
 export const useNotificationStore = create<NotificationState>()(
   persist(
     (set, get) => ({
@@ -142,6 +189,8 @@ export const useNotificationStore = create<NotificationState>()(
         es.addEventListener('notification', (event) => {
           try {
             const notification: Notification = JSON.parse(event.data);
+            playNotificationSound();
+            showBrowserNotification(notification);
             set((state) => {
               const unreadCount = state.unreadCount + 1;
               updateBadge(unreadCount);

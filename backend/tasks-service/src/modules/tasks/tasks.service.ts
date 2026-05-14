@@ -83,6 +83,7 @@ export class TasksService {
     id: number,
     updateTaskDto: UpdateTaskDto,
     requestingUserAccountId: number,
+    requestingUserId?: number,
   ) {
     const task = await this.taskRepository.findById(id);
     if (!task) throw new NotFoundException('Task not found');
@@ -123,6 +124,48 @@ export class TasksService {
           entityType: 'task',
           entityId: id,
         }]);
+      }
+    }
+
+    // Notify assignee when priority or dueDate changes (task_updated)
+    const priorityChanged = updateTaskDto.priority !== undefined && updateTaskDto.priority !== task.priority;
+    const dueDateChanged = updateTaskDto.dueDate !== undefined;
+    if ((priorityChanged || dueDateChanged) && updateTaskDto.status !== 3 && updateTaskDto.status !== 4) {
+      const assigneeId = updated.assignedToUserId ?? task.assignedToUserId;
+      if (assigneeId && assigneeId !== requestingUserId) {
+        const changeNote = priorityChanged ? 'Изменён приоритет задачи' : 'Изменён срок выполнения задачи';
+        this.notificationsClient.sendToMany([{
+          userId: assigneeId,
+          accountId: requestingUserAccountId,
+          title: `Задача обновлена: ${task.title}`,
+          message: changeNote,
+          notificationType: 'task_updated',
+          priority: 2,
+          channels: ['in_app'],
+          actionUrl: `/dashboard/tasks/${id}`,
+          entityType: 'task',
+          entityId: id,
+        }]);
+      }
+
+      // Warn if deadline is within 24 hours
+      if (dueDateChanged && updateTaskDto.dueDate) {
+        const deadline = new Date(updateTaskDto.dueDate);
+        const hoursLeft = (deadline.getTime() - Date.now()) / 3600000;
+        if (hoursLeft > 0 && hoursLeft <= 24 && assigneeId) {
+          this.notificationsClient.sendToMany([{
+            userId: assigneeId,
+            accountId: requestingUserAccountId,
+            title: `Дедлайн задачи через ${Math.ceil(hoursLeft)} ч.: ${task.title}`,
+            message: 'Срок выполнения задачи скоро истекает',
+            notificationType: 'task_deadline',
+            priority: 3,
+            channels: ['in_app', 'push'],
+            actionUrl: `/dashboard/tasks/${id}`,
+            entityType: 'task',
+            entityId: id,
+          }]);
+        }
       }
     }
 

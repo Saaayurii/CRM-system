@@ -63,7 +63,7 @@ export class TaskCommentsController {
     @CurrentUser() user: RequestUser,
     @Body() createDto: CreateTaskCommentDto,
   ) {
-    return this.taskCommentsService.create({ ...createDto, userId: user.id });
+    return this.taskCommentsService.create({ ...createDto, userId: user.id }, user.accountId);
   }
 
   @Put(':id')
