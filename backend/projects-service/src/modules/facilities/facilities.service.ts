@@ -6,6 +6,14 @@ import { CreateFacilityDto, UpdateFacilityDto, CreateComponentDto, UpdateCompone
 export class FacilitiesService {
   constructor(private readonly repo: FacilityRepository) {}
 
+  findAll(page = 1, limit = 50) {
+    return this.repo.findAll(page, limit);
+  }
+
+  findAllComponents(page = 1, limit = 50) {
+    return this.repo.findAllComponents(page, limit);
+  }
+
   findByObject(objectId: number) {
     return this.repo.findByObject(objectId);
   }

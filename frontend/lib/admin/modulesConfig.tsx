@@ -1701,6 +1701,249 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
     ],
     formFields: [],
   },
+  'building-objects': {
+    slug: 'building-objects',
+    title: 'Объекты (структура)',
+    apiEndpoint: '/objects',
+    searchField: 'названию',
+    columns: [
+      { key: 'id', header: 'ID', sortable: true, width: '70px' },
+      { key: 'name', header: 'Название', sortable: true, render: (v) => v ? <span className="font-medium">{String(v)}</span> : <span className="text-gray-400">—</span> },
+      {
+        key: 'objectType',
+        header: 'Тип',
+        render: (v) => {
+          const map: Record<string, string> = { building: 'Здание', apartment: 'Квартира', room: 'Помещение', floor: 'Этаж', section: 'Секция', facility: 'Сооружение', custom: 'Другое' };
+          return <span className="text-sm text-gray-600 dark:text-gray-400">{map[String(v ?? 'custom')] ?? String(v ?? '—')}</span>;
+        },
+      },
+      { key: 'classification', header: 'Классификация', render: (v) => v ? <span className="text-sm text-gray-500 italic">{String(v)}</span> : <span className="text-gray-400">—</span> },
+      {
+        key: 'status',
+        header: 'Статус',
+        render: (v) => {
+          const map: Record<string, { label: string; color: string }> = {
+            planned:         { label: 'Запланировано', color: 'gray'   },
+            in_construction: { label: 'В работе',      color: 'blue'   },
+            completed:       { label: 'Завершено',     color: 'green'  },
+            archived:        { label: 'Архив',         color: 'gray'   },
+          };
+          const s = map[String(v ?? 'planned')];
+          return s ? <StatusBadge label={s.label} color={s.color} /> : <span className="text-gray-400">—</span>;
+        },
+      },
+      {
+        key: 'constructionSiteId',
+        header: 'Стройплощадка',
+        render: (v, row) => {
+          const name = (row as any).constructionSite?.name;
+          if (name) return <span className="text-sm text-gray-600 dark:text-gray-400">{name}</span>;
+          if (!v) return <span className="text-gray-400">—</span>;
+          return <span className="text-sm text-gray-500">#{String(v)}</span>;
+        },
+      },
+      { key: 'createdAt', header: 'Создан', render: (v) => fmtDate(v) },
+    ],
+    formFields: [
+      { key: 'name', label: 'Название', type: 'text', required: true },
+      {
+        key: 'objectType',
+        label: 'Тип',
+        type: 'select',
+        options: [
+          { value: 'building', label: 'Здание' },
+          { value: 'apartment', label: 'Квартира' },
+          { value: 'room', label: 'Помещение' },
+          { value: 'floor', label: 'Этаж' },
+          { value: 'section', label: 'Секция' },
+          { value: 'facility', label: 'Сооружение' },
+          { value: 'custom', label: 'Другое' },
+        ],
+      },
+      { key: 'classification', label: 'Классификация', type: 'text' },
+      {
+        key: 'status',
+        label: 'Статус',
+        type: 'select',
+        options: [
+          { value: 'planned', label: 'Запланировано' },
+          { value: 'in_construction', label: 'В работе' },
+          { value: 'completed', label: 'Завершено' },
+          { value: 'archived', label: 'Архив' },
+        ],
+      },
+      { key: 'constructionSiteId', label: 'Стройплощадка', type: 'select', fetchOptions: { endpoint: '/construction-sites', valueKey: 'id', labelKey: 'name' } },
+      { key: 'floorNumber', label: 'Номер этажа', type: 'number' },
+      { key: 'address', label: 'Адрес', type: 'text' },
+      { key: 'description', label: 'Описание', type: 'textarea' },
+    ],
+  },
+  'unique-facilities': {
+    slug: 'unique-facilities',
+    title: 'Уникальные сооружения',
+    apiEndpoint: '/facilities',
+    searchField: 'названию',
+    columns: [
+      { key: 'id', header: 'ID', sortable: true, width: '70px' },
+      { key: 'name', header: 'Название', sortable: true, render: (v) => v ? <span className="font-medium">{String(v)}</span> : <span className="text-gray-400">—</span> },
+      {
+        key: 'facilityType',
+        header: 'Тип',
+        render: (v) => {
+          const map: Record<string, { label: string; color: string }> = {
+            electrical_panel: { label: 'Электрощит',         color: 'yellow'  },
+            collector_unit:   { label: 'Коллектор',          color: 'blue'    },
+            ventilation:      { label: 'Вентиляция',         color: 'green'   },
+            plumbing_unit:    { label: 'Сантехнический узел', color: 'blue'    },
+            heating_unit:     { label: 'Отопительный узел',  color: 'orange'  },
+            custom:           { label: 'Другое',             color: 'gray'    },
+          };
+          const s = map[String(v ?? 'custom')];
+          return s ? <StatusBadge label={s.label} color={s.color} /> : <span className="text-gray-400">—</span>;
+        },
+      },
+      {
+        key: 'status',
+        header: 'Статус',
+        render: (v) => {
+          const map: Record<string, { label: string; color: string }> = {
+            planned:        { label: 'Запланировано',  color: 'gray'   },
+            installed:      { label: 'Установлено',    color: 'blue'   },
+            configured:     { label: 'Настроено',      color: 'yellow' },
+            operational:    { label: 'Работает',       color: 'green'  },
+            maintenance:    { label: 'Обслуживание',   color: 'orange' },
+            decommissioned: { label: 'Выведено',       color: 'red'    },
+          };
+          const s = map[String(v ?? 'planned')];
+          return s ? <StatusBadge label={s.label} color={s.color} /> : <span className="text-gray-400">—</span>;
+        },
+      },
+      {
+        key: 'objectId',
+        header: 'Объект',
+        render: (v, row) => {
+          const name = (row as any).object?.name;
+          if (name) return <span className="text-sm text-gray-600 dark:text-gray-400">{name}</span>;
+          if (!v) return <span className="text-gray-400">—</span>;
+          return <span className="text-sm text-gray-500">#{String(v)}</span>;
+        },
+      },
+      { key: 'location', header: 'Расположение', render: (v) => v ? <span className="text-sm text-gray-500">{String(v)}</span> : <span className="text-gray-400">—</span> },
+      { key: 'createdAt', header: 'Создан', render: (v) => fmtDate(v) },
+    ],
+    formFields: [
+      { key: 'name', label: 'Название', type: 'text', required: true },
+      {
+        key: 'facilityType',
+        label: 'Тип',
+        type: 'select',
+        options: [
+          { value: 'electrical_panel', label: 'Электрощит' },
+          { value: 'collector_unit', label: 'Коллектор' },
+          { value: 'ventilation', label: 'Вентиляция' },
+          { value: 'plumbing_unit', label: 'Сантехнический узел' },
+          { value: 'heating_unit', label: 'Отопительный узел' },
+          { value: 'custom', label: 'Другое' },
+        ],
+      },
+      {
+        key: 'status',
+        label: 'Статус',
+        type: 'select',
+        options: [
+          { value: 'planned', label: 'Запланировано' },
+          { value: 'installed', label: 'Установлено' },
+          { value: 'configured', label: 'Настроено' },
+          { value: 'operational', label: 'Работает' },
+          { value: 'maintenance', label: 'Обслуживание' },
+          { value: 'decommissioned', label: 'Выведено' },
+        ],
+      },
+      { key: 'objectId', label: 'Объект (здание/помещение)', type: 'select', fetchOptions: { endpoint: '/objects', valueKey: 'id', labelKey: 'name' } },
+      { key: 'location', label: 'Расположение', type: 'text' },
+      { key: 'description', label: 'Описание', type: 'textarea' },
+    ],
+  },
+  'facility-components': {
+    slug: 'facility-components',
+    title: 'Компоненты сооружений',
+    apiEndpoint: '/facilities/components',
+    searchField: 'названию',
+    columns: [
+      { key: 'id', header: 'ID', sortable: true, width: '70px' },
+      { key: 'name', header: 'Название', sortable: true, render: (v) => v ? <span className="font-medium">{String(v)}</span> : <span className="text-gray-400">—</span> },
+      {
+        key: 'componentType',
+        header: 'Тип',
+        render: (v) => {
+          const map: Record<string, string> = { module: 'Модуль', loop: 'Петля', duct: 'Воздуховод', filter: 'Фильтр', fan: 'Вентилятор', valve: 'Клапан', custom: 'Другое' };
+          return <span className="text-sm text-gray-600 dark:text-gray-400">{map[String(v ?? 'custom')] ?? String(v ?? '—')}</span>;
+        },
+      },
+      { key: 'position', header: '№ позиции', sortable: true, render: (v) => <span className="font-mono text-sm">{v != null ? String(v) : '—'}</span> },
+      {
+        key: 'status',
+        header: 'Статус',
+        render: (v) => {
+          const map: Record<string, { label: string; color: string }> = {
+            planned:        { label: 'Запланировано',  color: 'gray'   },
+            installed:      { label: 'Установлено',    color: 'blue'   },
+            configured:     { label: 'Настроено',      color: 'yellow' },
+            operational:    { label: 'Работает',       color: 'green'  },
+            maintenance:    { label: 'Обслуживание',   color: 'orange' },
+            removed:        { label: 'Удалено',        color: 'red'    },
+          };
+          const s = map[String(v ?? 'planned')];
+          return s ? <StatusBadge label={s.label} color={s.color} /> : <span className="text-gray-400">—</span>;
+        },
+      },
+      {
+        key: 'facilityId',
+        header: 'Сооружение',
+        render: (v, row) => {
+          const name = (row as any).facility?.name;
+          if (name) return <span className="text-sm text-gray-600 dark:text-gray-400">{name}</span>;
+          if (!v) return <span className="text-gray-400">—</span>;
+          return <span className="text-sm text-gray-500">#{String(v)}</span>;
+        },
+      },
+      { key: 'description', header: 'Описание', render: (v) => v ? <span className="text-sm text-gray-500 truncate max-w-xs block">{String(v)}</span> : <span className="text-gray-400">—</span> },
+    ],
+    formFields: [
+      { key: 'name', label: 'Название', type: 'text', required: true },
+      {
+        key: 'componentType',
+        label: 'Тип',
+        type: 'select',
+        options: [
+          { value: 'module', label: 'Модуль' },
+          { value: 'loop', label: 'Петля' },
+          { value: 'duct', label: 'Воздуховод' },
+          { value: 'filter', label: 'Фильтр' },
+          { value: 'fan', label: 'Вентилятор' },
+          { value: 'valve', label: 'Клапан' },
+          { value: 'custom', label: 'Другое' },
+        ],
+      },
+      { key: 'position', label: 'Позиция (№)', type: 'number', required: true },
+      {
+        key: 'status',
+        label: 'Статус',
+        type: 'select',
+        options: [
+          { value: 'planned', label: 'Запланировано' },
+          { value: 'installed', label: 'Установлено' },
+          { value: 'configured', label: 'Настроено' },
+          { value: 'operational', label: 'Работает' },
+          { value: 'maintenance', label: 'Обслуживание' },
+          { value: 'removed', label: 'Удалено' },
+        ],
+      },
+      { key: 'facilityId', label: 'Сооружение', type: 'select', fetchOptions: { endpoint: '/facilities', valueKey: 'id', labelKey: 'name' }, required: true },
+      { key: 'description', label: 'Описание', type: 'textarea' },
+    ],
+    prepareCreate: (data) => ({ ...data, facilityId: Number(data.facilityId), position: Number(data.position) }),
+  },
   reports: {
     slug: 'reports',
     title: 'Отчёты',
@@ -1761,6 +2004,10 @@ export const MODULE_CATEGORIES: ModuleCategory[] = [
   {
     name: 'Основные',
     modules: [ADMIN_MODULES.users, ADMIN_MODULES.projects, ADMIN_MODULES['construction-sites'], ADMIN_MODULES.tasks, ADMIN_MODULES.clients],
+  },
+  {
+    name: 'Объекты',
+    modules: [ADMIN_MODULES['building-objects'], ADMIN_MODULES['unique-facilities'], ADMIN_MODULES['facility-components']],
   },
   {
     name: 'Ресурсы',

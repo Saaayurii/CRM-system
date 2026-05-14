@@ -1,5 +1,5 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Req, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, Req, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { Request } from 'express';
 import { ProxyService } from '../../common/services/proxy.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -12,6 +12,20 @@ export class FacilitiesGatewayController {
   constructor(private readonly proxy: ProxyService) {}
 
   private auth(req: Request) { return req.headers.authorization || ''; }
+
+  @Get()
+  @ApiQuery({ name: 'page', required: false })
+  @ApiQuery({ name: 'limit', required: false })
+  findAll(@Req() req: Request, @Query() query: any) {
+    return this.proxy.forward('projects', { method: 'GET', path: '/facilities', headers: { authorization: this.auth(req) }, params: query });
+  }
+
+  @Get('components')
+  @ApiQuery({ name: 'page', required: false })
+  @ApiQuery({ name: 'limit', required: false })
+  findAllComponents(@Req() req: Request, @Query() query: any) {
+    return this.proxy.forward('projects', { method: 'GET', path: '/facilities/components', headers: { authorization: this.auth(req) }, params: query });
+  }
 
   @Get('by-object/:objectId')
   findByObject(@Req() req: Request, @Param('objectId') objectId: string) {
@@ -36,6 +50,11 @@ export class FacilitiesGatewayController {
   @Delete(':id')
   remove(@Req() req: Request, @Param('id') id: string) {
     return this.proxy.forward('projects', { method: 'DELETE', path: `/facilities/${id}`, headers: { authorization: this.auth(req) } });
+  }
+
+  @Post('components')
+  createComponentDirect(@Req() req: Request, @Body() body: any) {
+    return this.proxy.forward('projects', { method: 'POST', path: '/facilities/components', headers: { authorization: this.auth(req), 'content-type': 'application/json' }, data: body });
   }
 
   @Post(':id/components')

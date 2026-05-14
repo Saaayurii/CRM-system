@@ -12,6 +12,7 @@ export class CreateFacilityDto {
 }
 
 export class CreateComponentDto {
+  @ApiPropertyOptional() @IsOptional() @IsNumber() facilityId?: number;
   @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(50) componentType?: string;
   @ApiProperty() @IsNumber() position: number;
   @ApiProperty() @IsString() @MaxLength(255) name: string;

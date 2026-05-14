@@ -1,5 +1,5 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, ParseIntPipe } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, ParseIntPipe } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { FacilitiesService } from './facilities.service';
 import { CreateFacilityDto, UpdateFacilityDto, CreateComponentDto, UpdateComponentDto } from './dto/create-facility.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -9,6 +9,21 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 @Controller('facilities')
 export class FacilitiesController {
   constructor(private readonly service: FacilitiesService) {}
+
+  @Get()
+  @ApiQuery({ name: 'page', required: false })
+  @ApiQuery({ name: 'limit', required: false })
+  findAll(@Query('page') page?: string, @Query('limit') limit?: string) {
+    return this.service.findAll(page ? Number(page) : 1, limit ? Number(limit) : 50);
+  }
+
+  @Get('components')
+  @ApiOperation({ summary: 'List all facility components' })
+  @ApiQuery({ name: 'page', required: false })
+  @ApiQuery({ name: 'limit', required: false })
+  findAllComponents(@Query('page') page?: string, @Query('limit') limit?: string) {
+    return this.service.findAllComponents(page ? Number(page) : 1, limit ? Number(limit) : 50);
+  }
 
   @Get('by-object/:objectId')
   @ApiOperation({ summary: 'Get facilities for a building object' })
@@ -34,6 +49,13 @@ export class FacilitiesController {
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number, @CurrentUser('accountId') accountId: number) {
     return this.service.delete(id, accountId);
+  }
+
+  @Post('components')
+  @ApiOperation({ summary: 'Create component directly (admin use, facilityId in body)' })
+  createComponentDirect(@Body() dto: CreateComponentDto & { facilityId: number }, @CurrentUser('accountId') accountId: number) {
+    const { facilityId, ...rest } = dto;
+    return this.service.addComponent(facilityId, accountId, rest);
   }
 
   @Post(':id/components')
