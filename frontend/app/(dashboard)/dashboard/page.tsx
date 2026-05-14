@@ -137,7 +137,7 @@ function SuperAdminDashboard({ user }: { user: any }) {
       const [projRes, taskRes, usersRes, teamsRes] = await Promise.allSettled([
         api.get('/projects', { params: { limit: 200 } }),
         api.get('/tasks', { params: { limit: 200 } }),
-        api.get('/users', { params: { limit: 1 } }),
+        api.get('/users', { params: { limit: 200 } }),
         api.get('/teams', { params: { limit: 1 } }),
       ]);
 
@@ -145,7 +145,10 @@ function SuperAdminDashboard({ user }: { user: any }) {
       const allTasks = taskRes.status === 'fulfilled' ? extractArray(taskRes.value.data) : [];
       setProjects(allProjects);
       setTasks(allTasks);
-      setUserCount(usersRes.status === 'fulfilled' ? (usersRes.value.data.total ?? extractArray(usersRes.value.data).length) : null);
+      if (usersRes.status === 'fulfilled') {
+        const allUsers = usersRes.value.data.users || extractArray(usersRes.value.data);
+        setUserCount(allUsers.filter((u: any) => (u.roleId ?? u.role_id) !== 1).length);
+      }
       setTeamCount(teamsRes.status === 'fulfilled' ? (teamsRes.value.data.total ?? extractArray(teamsRes.value.data).length) : null);
 
       // Projects by status
@@ -372,7 +375,7 @@ function AdminDashboard({ user }: { user: any }) {
       const [projRes, taskRes, usersRes, teamsRes] = await Promise.allSettled([
         api.get('/projects', { params: { limit: 200 } }),
         api.get('/tasks', { params: { limit: 200 } }),
-        api.get('/users', { params: { limit: 1 } }),
+        api.get('/users', { params: { limit: 200 } }),
         api.get('/teams', { params: { limit: 1 } }),
       ]);
 
@@ -380,7 +383,10 @@ function AdminDashboard({ user }: { user: any }) {
       const allTasks = taskRes.status === 'fulfilled' ? extractArray(taskRes.value.data) : [];
       setProjects(allProjects);
       setTasks(allTasks);
-      setUserCount(usersRes.status === 'fulfilled' ? (usersRes.value.data.total ?? extractArray(usersRes.value.data).length) : null);
+      if (usersRes.status === 'fulfilled') {
+        const allUsers = usersRes.value.data.users || extractArray(usersRes.value.data);
+        setUserCount(allUsers.filter((u: any) => (u.roleId ?? u.role_id) !== 1).length);
+      }
       setTeamCount(teamsRes.status === 'fulfilled' ? (teamsRes.value.data.total ?? extractArray(teamsRes.value.data).length) : null);
 
       // Tasks by status
