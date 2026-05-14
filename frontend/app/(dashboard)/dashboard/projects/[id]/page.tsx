@@ -4130,6 +4130,8 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                   )}
                 </div>
               )}
+            </div>
+          )}
 
           {/* ─── Payroll ─── */}
           {financeSubTab === 'payroll' && (
@@ -4222,9 +4224,6 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                   </table>
                 </div>
               )}
-            </div>
-          )}
-
             </div>
           )}
         </div>
