@@ -527,7 +527,7 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
         ],
       },
       { key: 'currentLocation', label: 'Расположение (текст)', type: 'text' },
-      { key: 'warehouseId', label: 'Склад', type: 'select', fetchOptions: { endpoint: '/warehouses', valueKey: 'id', labelKey: 'name' } },
+      { key: 'warehouseId', label: 'Склад', type: 'select', fetchOptions: { endpoint: '/eq-warehouses', valueKey: 'id', labelKey: 'name' } },
       { key: 'manufacturer', label: 'Производитель', type: 'text' },
       { key: 'model', label: 'Модель', type: 'text' },
       { key: 'serialNumber', label: 'Серийный номер', type: 'text' },
@@ -1434,8 +1434,8 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
   },
   warehouses: {
     slug: 'warehouses',
-    title: 'Склады',
-    apiEndpoint: '/warehouses',
+    title: 'Склады (оборудование)',
+    apiEndpoint: '/eq-warehouses',
     searchField: 'названию',
     columns: [
       { key: 'id', header: 'ID', sortable: true, width: '80px' },

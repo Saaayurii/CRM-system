@@ -946,7 +946,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
         api.get('/equipment', { params: { limit: 200 } }),
         api.get('/suppliers', { params: { limit: 500 } }),
         api.get('/equipment-maintenance', { params: { limit: 200 } }),
-        api.get('/warehouses'),
+        api.get('/eq-warehouses'),
         api.get('/inventory-sessions', { params: { projectId } }),
       ]);
       setMaterialRequests(matRes.status === 'fulfilled'
@@ -961,12 +961,14 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
       setMaintenanceList(maintRes.status === 'fulfilled'
         ? (maintRes.value.data?.maintenanceRecords || maintRes.value.data?.data || maintRes.value.data || [])
         : []);
-      setWarehousesList(whRes.status === 'fulfilled'
+      const whRaw = whRes.status === 'fulfilled'
         ? (whRes.value.data?.data || whRes.value.data || [])
-        : []);
-      setInventorySessions(invRes.status === 'fulfilled'
+        : [];
+      setWarehousesList(Array.isArray(whRaw) ? whRaw : []);
+      const invRaw = invRes.status === 'fulfilled'
         ? (invRes.value.data?.data || invRes.value.data || [])
-        : []);
+        : [];
+      setInventorySessions(Array.isArray(invRaw) ? invRaw : []);
       if (suppRes.status === 'fulfilled') {
         const s = suppRes.value.data?.suppliers || suppRes.value.data?.data || suppRes.value.data || [];
         setSuppliersList(Array.isArray(s) ? s.map((x: any) => ({ id: x.id, name: x.name })) : []);
@@ -1142,12 +1144,12 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
     setSavingWH(true);
     try {
       if (editingWH) {
-        const res = await api.put(`/warehouses/${editingWH.id}`, data);
+        const res = await api.put(`/eq-warehouses/${editingWH.id}`, data);
         const updated: Warehouse = res.data ?? { ...editingWH, ...data };
         setWarehousesList((p) => p.map((w) => w.id === editingWH.id ? updated : w));
         addToast('success', 'Склад обновлён');
       } else {
-        const res = await api.post('/warehouses', data);
+        const res = await api.post('/eq-warehouses', data);
         const created: Warehouse = res.data;
         setWarehousesList((p) => [...p, created]);
         setWarehouseSubTab(String(created.id));
@@ -1162,7 +1164,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   const handleDeleteWarehouse = useCallback(async (id: number) => {
     if (!confirm('Удалить склад? Оборудование не будет удалено.')) return;
     try {
-      await api.delete(`/warehouses/${id}`);
+      await api.delete(`/eq-warehouses/${id}`);
       setWarehousesList((p) => p.filter((w) => w.id !== id));
       setWarehouseSubTab('');
       addToast('success', 'Склад удалён');

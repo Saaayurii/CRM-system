@@ -27,6 +27,169 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 export class EquipmentGatewayController {
   constructor(private readonly proxyService: ProxyService) {}
 
+  // Equipment Warehouses (eq-warehouses → equipment-service /warehouses)
+  @Get('eq-warehouses')
+  @ApiOperation({ summary: 'Get all equipment warehouses' })
+  async findAllEqWarehouses(@Req() req: Request) {
+    return this.proxyService.forward('equipment', {
+      method: 'GET',
+      path: '/warehouses',
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  @Get('eq-warehouses/:id')
+  @ApiOperation({ summary: 'Get equipment warehouse by ID' })
+  async findOneEqWarehouse(@Req() req: Request, @Param('id') id: string) {
+    return this.proxyService.forward('equipment', {
+      method: 'GET',
+      path: `/warehouses/${id}`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  @Post('eq-warehouses')
+  @ApiOperation({ summary: 'Create equipment warehouse' })
+  async createEqWarehouse(@Req() req: Request, @Body() body: any) {
+    return this.proxyService.forward('equipment', {
+      method: 'POST',
+      path: '/warehouses',
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Put('eq-warehouses/:id')
+  @ApiOperation({ summary: 'Update equipment warehouse' })
+  async updateEqWarehouse(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
+    return this.proxyService.forward('equipment', {
+      method: 'PUT',
+      path: `/warehouses/${id}`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Delete('eq-warehouses/:id')
+  @ApiOperation({ summary: 'Delete equipment warehouse' })
+  async deleteEqWarehouse(@Req() req: Request, @Param('id') id: string) {
+    return this.proxyService.forward('equipment', {
+      method: 'DELETE',
+      path: `/warehouses/${id}`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  // Inventory Sessions
+  @Get('inventory-sessions')
+  @ApiOperation({ summary: 'Get all inventory sessions' })
+  @ApiQuery({ name: 'projectId', required: false })
+  async findAllInventorySessions(
+    @Req() req: Request,
+    @Query('projectId') projectId?: string,
+  ) {
+    return this.proxyService.forward('equipment', {
+      method: 'GET',
+      path: '/inventory-sessions',
+      headers: { authorization: req.headers.authorization || '' },
+      params: projectId ? { projectId } : undefined,
+    });
+  }
+
+  @Get('inventory-sessions/:id')
+  @ApiOperation({ summary: 'Get inventory session by ID' })
+  async findOneInventorySession(@Req() req: Request, @Param('id') id: string) {
+    return this.proxyService.forward('equipment', {
+      method: 'GET',
+      path: `/inventory-sessions/${id}`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  @Post('inventory-sessions')
+  @ApiOperation({ summary: 'Create inventory session' })
+  async createInventorySession(@Req() req: Request, @Body() body: any) {
+    return this.proxyService.forward('equipment', {
+      method: 'POST',
+      path: '/inventory-sessions',
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Put('inventory-sessions/:id')
+  @ApiOperation({ summary: 'Update inventory session' })
+  async updateInventorySession(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
+    return this.proxyService.forward('equipment', {
+      method: 'PUT',
+      path: `/inventory-sessions/${id}`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Delete('inventory-sessions/:id')
+  @ApiOperation({ summary: 'Delete inventory session' })
+  async deleteInventorySession(@Req() req: Request, @Param('id') id: string) {
+    return this.proxyService.forward('equipment', {
+      method: 'DELETE',
+      path: `/inventory-sessions/${id}`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  @Post('inventory-sessions/:id/items')
+  @ApiOperation({ summary: 'Add item to inventory session' })
+  async addInventoryItem(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
+    return this.proxyService.forward('equipment', {
+      method: 'POST',
+      path: `/inventory-sessions/${id}/items`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Delete('inventory-sessions/:id/items/:itemId')
+  @ApiOperation({ summary: 'Remove item from inventory session' })
+  async deleteInventoryItem(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Param('itemId') itemId: string,
+  ) {
+    return this.proxyService.forward('equipment', {
+      method: 'DELETE',
+      path: `/inventory-sessions/${id}/items/${itemId}`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
   // Equipment
   @Get('equipment')
   @ApiOperation({ summary: 'Get all equipment' })
