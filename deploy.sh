@@ -84,6 +84,10 @@ fi
 
 info "Pre-flight checks passed."
 
+# ── Cleanup stale Docker networks ────────────────────────────
+info "Pruning unused Docker networks..."
+docker network prune -f 2>/dev/null || true
+
 # ── Build ────────────────────────────────────────────────────
 if [ "$PULL" = true ]; then
   info "Pulling latest base images..."
