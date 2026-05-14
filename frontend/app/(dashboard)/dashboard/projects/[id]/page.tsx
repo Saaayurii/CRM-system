@@ -1046,7 +1046,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
         await api.put(`/equipment/${editingEq.id}`, data);
         addToast('success', 'Оборудование обновлено');
       } else {
-        await api.post('/equipment', { ...data, accountId: 0 });
+        await api.post('/equipment', data);
         addToast('success', 'Оборудование добавлено');
       }
       setShowEqModal(false);
@@ -1072,7 +1072,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
         await api.put(`/equipment-maintenance/${editingMaint.id}`, data);
         addToast('success', 'Запись обновлена');
       } else {
-        await api.post('/equipment-maintenance', { ...data, accountId: 0 });
+        await api.post('/equipment-maintenance', data);
         addToast('success', 'Запись добавлена');
       }
       setShowMaintModal(false);
