@@ -1,8 +1,12 @@
 'use client';
 
 import { useState, useRef, useCallback, KeyboardEvent, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useChatStore, UploadedAttachment } from '@/stores/chatStore';
 import api from '@/lib/api';
+
+const MAX_FILE_SIZE = 1 * 1024 * 1024 * 1024;
+const CHUNK_SIZE = 4 * 1024 * 1024;
 
 const EMOJI_CATEGORIES = [
   {
@@ -141,6 +145,8 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const dragCounterRef = useRef(0);
 
   const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -292,6 +298,58 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
     return () => document.removeEventListener('mousedown', handler);
   }, [showAttachMenu]);
 
+  const addFilesToPending = useCallback((fileList: File[]) => {
+    if (fileList.length === 0) return;
+    const oversized = fileList.find((f) => f.size > MAX_FILE_SIZE);
+    if (oversized) {
+      setUploadError(`Файл "${oversized.name}" превышает максимальный размер 1 ГБ.`);
+      return;
+    }
+    setUploadError(null);
+    const newPending: PendingFile[] = fileList.map((file) => ({
+      file, id: `${file.name}-${Date.now()}-${Math.random()}`, progress: 0,
+      compressed: file.type.startsWith('image/'),
+    }));
+    setPendingFiles((prev) => [...prev, ...newPending]);
+  }, [MAX_FILE_SIZE]);
+
+  // Document-level drag-and-drop support
+  useEffect(() => {
+    const onDragEnter = (e: DragEvent) => {
+      if (!e.dataTransfer?.types.includes('Files')) return;
+      dragCounterRef.current++;
+      if (dragCounterRef.current === 1) setIsDragOver(true);
+    };
+    const onDragLeave = () => {
+      dragCounterRef.current = Math.max(0, dragCounterRef.current - 1);
+      if (dragCounterRef.current === 0) setIsDragOver(false);
+    };
+    const onDragOver = (e: DragEvent) => {
+      if (e.dataTransfer?.types.includes('Files')) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+      }
+    };
+    const onDrop = (e: DragEvent) => {
+      e.preventDefault();
+      dragCounterRef.current = 0;
+      setIsDragOver(false);
+      const files = Array.from(e.dataTransfer?.files || []);
+      if (files.length > 0) addFilesToPending(files);
+    };
+    document.addEventListener('dragenter', onDragEnter);
+    document.addEventListener('dragleave', onDragLeave);
+    document.addEventListener('dragover', onDragOver);
+    document.addEventListener('drop', onDrop);
+    return () => {
+      document.removeEventListener('dragenter', onDragEnter);
+      document.removeEventListener('dragleave', onDragLeave);
+      document.removeEventListener('dragover', onDragOver);
+      document.removeEventListener('drop', onDrop);
+      dragCounterRef.current = 0;
+    };
+  }, [addFilesToPending]);
+
   // Load tasks for project-linked channels
   useEffect(() => {
     if (!projectId) return;
@@ -350,8 +408,7 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
     setShowEmojiPicker(false);
   }, [channelId, startTyping]);
 
-  const MAX_FILE_SIZE = 1 * 1024 * 1024 * 1024;
-  const CHUNK_SIZE   = 4 * 1024 * 1024;
+  // MAX_FILE_SIZE and CHUNK_SIZE are defined at module level
 
   const uploadFileWithProgress = useCallback(
     (pf: PendingFile): Promise<UploadedAttachment> => {
@@ -719,6 +776,25 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
   }, [isDraft, channelId, startTyping, detectMention]);
 
   const handlePaste = useCallback((e: React.ClipboardEvent<HTMLDivElement>) => {
+    // Files pasted from OS (Finder drag-copy, etc.)
+    const pastedFiles = Array.from(e.clipboardData.files);
+    if (pastedFiles.length > 0) {
+      e.preventDefault();
+      addFilesToPending(pastedFiles);
+      return;
+    }
+    // Clipboard items — catches screenshots and browser-copied images
+    const items = Array.from(e.clipboardData.items);
+    const fileItems = items
+      .filter((item) => item.kind === 'file')
+      .map((item) => item.getAsFile())
+      .filter(Boolean) as File[];
+    if (fileItems.length > 0) {
+      e.preventDefault();
+      addFilesToPending(fileItems);
+      return;
+    }
+    // Plain text paste
     e.preventDefault();
     const plain = e.clipboardData.getData('text/plain');
     if (!plain) return;
@@ -738,27 +814,15 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
       const md = serializeEditor(el);
       setText(md);
     }
-  }, []);
+  }, [addFilesToPending]);
 
   const handleFileSelect = () => fileInputRef.current?.click();
   const handleCameraSelect = () => cameraInputRef.current?.click();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-    const oversized = Array.from(files).find((f) => f.size > MAX_FILE_SIZE);
-    if (oversized) {
-      setUploadError(`Файл "${oversized.name}" превышает максимальный размер 1 ГБ.`);
-      e.target.value = '';
-      return;
-    }
-    setUploadError(null);
-    const newPending: PendingFile[] = Array.from(files).map((file) => ({
-      file, id: `${file.name}-${Date.now()}-${Math.random()}`, progress: 0,
-      compressed: file.type.startsWith('image/'),
-    }));
-    setPendingFiles((prev) => [...prev, ...newPending]);
+    const files = Array.from(e.target.files || []);
     e.target.value = '';
+    addFilesToPending(files);
   };
 
   const toggleCompression = (id: string) =>
@@ -846,6 +910,23 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
 
   return (
     <div className="relative border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3">
+      {/* Drag-and-drop overlay (portal) */}
+      {isDragOver && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9997] pointer-events-none">
+          <div className="absolute inset-3 sm:inset-6 rounded-2xl border-2 border-dashed border-violet-400 dark:border-violet-500 bg-violet-500/10 dark:bg-violet-500/15 backdrop-blur-[2px] flex flex-col items-center justify-center gap-4">
+            <div className="w-20 h-20 rounded-full bg-violet-500/20 dark:bg-violet-500/30 flex items-center justify-center animate-pulse">
+              <svg className="w-10 h-10 text-violet-500 dark:text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+            </div>
+            <div className="text-center">
+              <p className="text-violet-600 dark:text-violet-400 font-semibold text-xl">Перетащите файлы сюда</p>
+              <p className="text-violet-500/80 dark:text-violet-400/70 text-sm mt-1">Отпустите для прикрепления к сообщению</p>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
       {/* User mention picker */}
       {showUserPicker && filteredUserMentions.length > 0 && (
         <div
