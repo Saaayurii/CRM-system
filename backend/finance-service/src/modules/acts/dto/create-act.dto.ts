@@ -2,7 +2,6 @@ import {
   IsString,
   IsOptional,
   IsNumber,
-  IsDateString,
   IsArray,
   MaxLength,
 } from 'class-validator';
@@ -38,7 +37,7 @@ export class CreateActDto {
 
   @ApiPropertyOptional({ description: 'Act date' })
   @IsOptional()
-  @IsDateString()
+  @IsString()
   actDate?: string;
 
   @ApiPropertyOptional({ description: 'Subtotal' })

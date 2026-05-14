@@ -1291,8 +1291,10 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
       setShowActModal(false);
       setEditingAct(null);
       await reloadFinance();
-    } catch {
-      addToast('error', 'Ошибка при сохранении акта');
+    } catch (e: any) {
+      const msg = e?.response?.data?.message;
+      addToast('error', Array.isArray(msg) ? msg.join('; ') : (msg || 'Ошибка при сохранении акта'));
+      console.error('act save error', e?.response?.data);
     } finally {
       setSavingFinance(false);
     }
