@@ -34,9 +34,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
       }
     } else if (exception instanceof PrismaClientKnownRequestError) {
       status = HttpStatus.BAD_REQUEST;
-      message = 'Database error';
+      message = `Database error [${exception.code}]: ${exception.message.split('\n').pop()?.trim() ?? exception.message}`;
       error = 'Database Error';
-      this.logger.error(`Prisma Error: ${exception.message}`, exception.stack);
+      this.logger.error(`Prisma Error ${exception.code}: ${exception.message}`, exception.stack);
     } else if (exception instanceof Error) {
       message = exception.message;
       this.logger.error(`Error: ${exception.message}`, exception.stack);

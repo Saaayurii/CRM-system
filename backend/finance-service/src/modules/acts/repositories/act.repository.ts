@@ -36,20 +36,16 @@ export class ActRepository {
     const data: any = { ...dto, accountId, preparedByUserId };
     if (!data.actNumber) {
       const now = new Date();
-      data.actNumber = `АКТ-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${Math.floor(Math.random() * 900) + 100}`;
+      data.actNumber = `АКТ-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${Date.now() % 10000}`;
     }
-    if (!data.actDate) {
-      data.actDate = new Date().toISOString();
-    } else if (!data.actDate.includes('T')) {
-      data.actDate = new Date(data.actDate).toISOString();
-    }
+    data.actDate = data.actDate ? new Date(data.actDate) : new Date();
     return (this.prisma as any).act.create({ data });
   }
 
   async update(id: number, accountId: number, dto: UpdateActDto) {
     const data: any = { ...dto };
-    if (data.actDate && !data.actDate.includes('T')) {
-      data.actDate = new Date(data.actDate).toISOString();
+    if (data.actDate) {
+      data.actDate = new Date(data.actDate);
     }
     return (this.prisma as any).act
       .updateMany({
