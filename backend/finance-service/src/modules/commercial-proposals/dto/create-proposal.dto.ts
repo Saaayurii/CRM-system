@@ -37,6 +37,16 @@ export class CreateProposalLineDto {
   @IsNumber()
   totalPrice?: number;
 
+  @ApiPropertyOptional({ default: 'not_started' })
+  @IsOptional()
+  @IsString()
+  workStatus?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  factQuantity?: number;
+
   @ApiPropertyOptional({ default: 0 })
   @IsOptional()
   @IsNumber()

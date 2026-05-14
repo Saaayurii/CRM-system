@@ -6530,7 +6530,7 @@ function FinanceModal({ title, fields, initialData, saving, onClose, onSave }: {
       } else if (f.type === 'select' && f.options?.length) {
         defaults[f.key] = f.options[0].value;
       } else {
-        defaults[f.key] = f.type === 'number' ? '' : '';
+        defaults[f.key] = f.type === 'date' ? new Date().toISOString().slice(0, 10) : '';
       }
     }
     return defaults;

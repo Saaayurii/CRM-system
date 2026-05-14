@@ -24,10 +24,11 @@ export class CreateActDto {
   @IsNumber()
   contractorId?: number;
 
-  @ApiProperty({ description: 'Act number', maxLength: 100 })
+  @ApiPropertyOptional({ description: 'Act number', maxLength: 100 })
+  @IsOptional()
   @IsString()
   @MaxLength(100)
-  actNumber: string;
+  actNumber?: string;
 
   @ApiPropertyOptional({ description: 'Act type', maxLength: 100 })
   @IsOptional()
@@ -35,9 +36,10 @@ export class CreateActDto {
   @MaxLength(100)
   actType?: string;
 
-  @ApiProperty({ description: 'Act date' })
+  @ApiPropertyOptional({ description: 'Act date' })
+  @IsOptional()
   @IsDateString()
-  actDate: string;
+  actDate?: string;
 
   @ApiPropertyOptional({ description: 'Subtotal' })
   @IsOptional()
