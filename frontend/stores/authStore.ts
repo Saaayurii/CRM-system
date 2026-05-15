@@ -132,7 +132,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const user = data.user;
       user.role = roleFromId(user.roleId ?? null);
       if (user.avatarUrl) user.avatarUrl = normalizeFileUrl(user.avatarUrl) ?? undefined;
-      set({ user, isAuthenticated: true });
+
+      // Enrich from JWT — mapUserToResponse omits accountName/accountLogoUrl/isGlobalAdmin
+      const jwtPayload = decodeJwt(data.accessToken);
+      if (jwtPayload?.accountName) user.accountName = jwtPayload.accountName;
+      if (jwtPayload?.accountLogoUrl) user.accountLogoUrl = normalizeFileUrl(jwtPayload.accountLogoUrl) ?? undefined;
+      if (jwtPayload?.isGlobalAdmin) user.isGlobalAdmin = jwtPayload.isGlobalAdmin;
+
+      const storedAccountId = localStorage.getItem('selectedAccountId');
+      set({
+        user,
+        isAuthenticated: true,
+        selectedAccountId: storedAccountId ? Number(storedAccountId) : null,
+        selectedAccountName: localStorage.getItem('selectedAccountName'),
+        selectedAccountLogo: localStorage.getItem('selectedAccountLogo'),
+      });
 
       console.log('[Auth] Login successful for user:', user.email);
     } catch (err: unknown) {
