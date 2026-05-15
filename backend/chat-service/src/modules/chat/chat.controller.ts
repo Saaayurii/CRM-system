@@ -40,6 +40,7 @@ export class ChatController {
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'projectId', required: false, type: Number })
+  @ApiQuery({ name: 'archived', required: false, type: Boolean })
   @ApiResponse({ status: 200, description: 'Channels retrieved' })
   findAllChannels(
     @CurrentUser('accountId') accountId: number,
@@ -47,6 +48,7 @@ export class ChatController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('projectId') projectId?: string,
+    @Query('archived') archived?: string,
   ) {
     return this.chatService.findAllChannels(
       accountId,
@@ -54,7 +56,15 @@ export class ChatController {
       page ? parseInt(page, 10) : 1,
       limit ? parseInt(limit, 10) : 20,
       projectId ? parseInt(projectId, 10) : undefined,
+      archived === 'true',
     );
+  }
+
+  @Get('archived-count')
+  @ApiOperation({ summary: 'Get count of archived channels for current user' })
+  @ApiResponse({ status: 200, description: 'Archived count' })
+  getArchivedCount(@CurrentUser('id') userId: number) {
+    return this.chatService.getArchivedCount(userId);
   }
 
   @Get('unread-summary')
@@ -118,6 +128,17 @@ export class ChatController {
     @CurrentUser('accountId') accountId: number,
   ) {
     return this.chatService.deleteChannel(id, accountId);
+  }
+
+  @Patch(':id/archive')
+  @ApiOperation({ summary: 'Archive or unarchive a channel for the current user' })
+  @ApiResponse({ status: 200, description: 'Channel archive status updated' })
+  archiveChannel(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser('id') userId: number,
+    @Body('isArchived') isArchived: boolean,
+  ) {
+    return this.chatService.archiveChannel(id, userId, isArchived);
   }
 
   // --- Members ---

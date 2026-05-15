@@ -29,8 +29,19 @@ export class ChatService {
     page: number = 1,
     limit: number = 20,
     projectId?: number,
+    archived: boolean = false,
   ) {
-    return this.chatRepository.findAllChannels(accountId, userId, page, limit, projectId);
+    return this.chatRepository.findAllChannels(accountId, userId, page, limit, projectId, archived);
+  }
+
+  async archiveChannel(channelId: number, userId: number, isArchived: boolean) {
+    await this.chatRepository.archiveChannel(channelId, userId, isArchived);
+    return { success: true };
+  }
+
+  async getArchivedCount(userId: number) {
+    const count = await this.chatRepository.getArchivedCount(userId);
+    return { count };
   }
 
   async findChannelById(id: number, accountId: number) {

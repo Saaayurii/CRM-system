@@ -63,6 +63,7 @@ model ChatChannelMember {
   joinedAt   DateTime  @default(now()) @map("joined_at")
   lastReadAt DateTime? @map("last_read_at")
   isMuted    Boolean   @default(false) @map("is_muted")
+  isArchived Boolean   @default(false) @map("is_archived")
 
   channel ChatChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
   user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)

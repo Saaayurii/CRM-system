@@ -1,0 +1,2 @@
+ALTER TABLE chat_channel_members
+  ADD COLUMN IF NOT EXISTS is_archived BOOLEAN NOT NULL DEFAULT FALSE;

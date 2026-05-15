@@ -15,11 +15,12 @@ export class ChatRepository {
     page: number = 1,
     limit: number = 20,
     projectId?: number,
+    archived: boolean = false,
   ) {
     const skip = (page - 1) * limit;
     const where: any = {
       accountId,
-      members: { some: { userId } },
+      members: { some: { userId, isArchived: archived } },
     };
     if (projectId) where.projectId = projectId;
 
@@ -154,10 +155,23 @@ export class ChatRepository {
     });
   }
 
-  async updateChannelMember(channelId: number, userId: number, data: { isMuted?: boolean; role?: string }) {
+  async updateChannelMember(channelId: number, userId: number, data: { isMuted?: boolean; isArchived?: boolean; role?: string }) {
     return (this.prisma as any).chatChannelMember.updateMany({
       where: { channelId, userId },
       data,
+    });
+  }
+
+  async archiveChannel(channelId: number, userId: number, isArchived: boolean) {
+    return (this.prisma as any).chatChannelMember.updateMany({
+      where: { channelId, userId },
+      data: { isArchived },
+    });
+  }
+
+  async getArchivedCount(userId: number) {
+    return (this.prisma as any).chatChannelMember.count({
+      where: { userId, isArchived: true },
     });
   }
 

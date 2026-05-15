@@ -13,6 +13,12 @@ interface ChatSidebarProps {
 
 export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
   const channels = useChatStore((s) => s.channels);
+  const archivedChannels = useChatStore((s) => s.archivedChannels);
+  const archivedCount = useChatStore((s) => s.archivedCount);
+  const showArchive = useChatStore((s) => s.showArchive);
+  const setShowArchive = useChatStore((s) => s.setShowArchive);
+  const fetchArchivedChannels = useChatStore((s) => s.fetchArchivedChannels);
+  const archiveChannel = useChatStore((s) => s.archiveChannel);
   const activeChannelId = useChatStore((s) => s.activeChannelId);
   const setActiveChannel = useChatStore((s) => s.setActiveChannel);
   const unreadCounts = useChatStore((s) => s.unreadCounts);
@@ -27,6 +33,7 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [activeFolder, setActiveFolder] = useState<'all' | number>('all');
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [archivingId, setArchivingId] = useState<number | null>(null);
   const addToast = useToastStore((s) => s.addToast);
   const [projectNames, setProjectNames] = useState<Map<number, string>>(new Map());
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -74,6 +81,25 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
     el.addEventListener('scroll', handleScroll);
     return () => el.removeEventListener('scroll', handleScroll);
   }, [handleScroll]);
+
+  const handleOpenArchive = useCallback(() => {
+    setShowArchive(true);
+    fetchArchivedChannels();
+  }, [setShowArchive, fetchArchivedChannels]);
+
+  const handleArchiveChannel = useCallback(async (ch: ChatChannel, isArchived: boolean, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setArchivingId(ch.id);
+    try {
+      await archiveChannel(ch.id, isArchived);
+      if (isArchived && activeChannelId === ch.id) setActiveChannel(null);
+      addToast('success', isArchived ? 'Чат добавлен в архив' : 'Чат извлечён из архива');
+    } catch {
+      addToast('error', 'Не удалось изменить статус архива');
+    } finally {
+      setArchivingId(null);
+    }
+  }, [archiveChannel, activeChannelId, setActiveChannel, addToast]);
 
   const handleDeleteChannel = useCallback(async (ch: ChatChannel, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -132,6 +158,121 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
   const otherChats = allFiltered.filter((ch) => !isSelfChat(ch, user?.id));
   const filtered = selfChat ? [selfChat, ...otherChats] : otherChats;
 
+  // ── Archive view ─────────────────────────────────────────────────────────
+  if (showArchive) {
+    const archiveFiltered = search.trim()
+      ? archivedChannels.filter((ch) => {
+          const name = isSelfChat(ch, user?.id) ? 'Избранное' : getChannelDisplayName(ch, user?.id);
+          return name.toLowerCase().includes(search.toLowerCase());
+        })
+      : archivedChannels;
+
+    return (
+      <>
+        {/* Archive header */}
+        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-2 mb-3">
+            <button
+              onClick={() => { setShowArchive(false); setSearch(''); }}
+              className="p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">Архив</h2>
+          </div>
+          <div className="relative">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Поиск..."
+              className="w-full pl-10 pr-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 border-0 rounded-lg text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-violet-500 focus:outline-none"
+            />
+          </div>
+        </div>
+
+        {/* Archived channel list */}
+        <div className="flex-1 overflow-y-auto scrollbar-none">
+          {archiveFiltered.length === 0 && (
+            <div className="p-4 text-center text-sm text-gray-400 dark:text-gray-500">
+              {search ? 'Ничего не найдено' : 'Архив пуст'}
+            </div>
+          )}
+          {archiveFiltered.map((channel) => {
+            const isSelf = isSelfChat(channel, user?.id);
+            const displayName = isSelf ? 'Избранное' : getChannelDisplayName(channel, user?.id);
+            const avatarUrl = channel.avatarUrl ?? getDirectChannelAvatarUrl(channel, user?.id);
+            const unread = unreadCounts[channel.id] || 0;
+            const isActive = channel.id === activeChannelId;
+
+            return (
+              <div
+                key={channel.id}
+                className={`group relative flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors ${
+                  isActive ? 'bg-violet-50 dark:bg-violet-500/10' : 'hover:bg-gray-50 dark:hover:bg-gray-800'
+                }`}
+                onClick={() => handleSelect(channel.id)}
+              >
+                <div className="relative shrink-0">
+                  <div className={`w-11 h-11 rounded-full flex items-center justify-center text-white font-semibold text-sm overflow-hidden relative ${isSelf ? 'bg-amber-400' : channel.channelType === 'group' ? 'bg-violet-500' : 'bg-sky-500'}`}>
+                    {avatarUrl
+                      ? null
+                      : isSelf
+                      ? <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
+                      : getInitials(displayName)
+                    }
+                    {avatarUrl && <img src={avatarUrl} alt="" className="absolute inset-0 w-full h-full rounded-full object-cover z-10" onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
+                  </div>
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <span className={`text-sm font-medium truncate ${isActive ? 'text-violet-600 dark:text-violet-400' : isSelf ? 'text-amber-600 dark:text-amber-400' : 'text-gray-800 dark:text-gray-100'}`}>
+                      {displayName}
+                    </span>
+                    {channel.lastMessage && (
+                      <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0 ml-2">{formatTime(channel.lastMessage.createdAt)}</span>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between mt-0.5">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                      {channel.lastMessage ? channel.lastMessage.text : 'Нет сообщений'}
+                    </p>
+                    {unread > 0 && (
+                      <span className="ml-2 shrink-0 min-w-[20px] h-5 px-1.5 flex items-center justify-center text-xs font-bold text-white bg-violet-500 rounded-full">
+                        {unread > 99 ? '99+' : unread}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Unarchive button */}
+                <button
+                  onClick={(e) => handleArchiveChannel(channel, false, e)}
+                  disabled={archivingId === channel.id}
+                  className="opacity-0 group-hover:opacity-100 shrink-0 p-1.5 text-gray-400 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-all disabled:opacity-30"
+                  title="Извлечь из архива"
+                >
+                  {archivingId === channel.id ? (
+                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                  ) : (
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>
+                  )}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </>
+    );
+  }
+
+  // ── Normal view ───────────────────────────────────────────────────────────
   return (
     <>
       {/* Header */}
@@ -207,6 +348,27 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
 
       {/* Channel list */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-none">
+        {/* Archive entry — shown when there are archived chats */}
+        {archivedCount > 0 && !search && activeFolder === 'all' && (
+          <div
+            className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 border-b border-gray-100 dark:border-gray-700/60 transition-colors"
+            onClick={handleOpenArchive}
+          >
+            <div className="w-11 h-11 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center shrink-0">
+              <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Архив</span>
+            </div>
+            <span className="text-xs text-gray-400 dark:text-gray-500">{archivedCount}</span>
+            <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </div>
+        )}
+
         {filtered.length === 0 && !isLoadingChannels && (
           <div className="p-4 text-center text-sm text-gray-400 dark:text-gray-500">
             {search ? 'Ничего не найдено' : 'Нет чатов'}
@@ -223,6 +385,7 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
           const isDeletedUser = !isSelf && channel.channelType === 'direct' && displayName === 'Удалённый пользователь';
 
           const canDelete = !isSelf && channel.channelType === 'group';
+          const canArchive = !isSelf;
 
           return (
             <div
@@ -287,25 +450,39 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
                 </div>
               </div>
 
-              {/* Delete button for group chats */}
-              {canDelete && (
-                <button
-                  onClick={(e) => handleDeleteChannel(channel, e)}
-                  disabled={deletingId === channel.id}
-                  className="opacity-0 group-hover:opacity-100 shrink-0 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all disabled:opacity-30"
-                  title="Удалить группу"
-                >
-                  {deletingId === channel.id ? (
-                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                  ) : (
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  )}
-                </button>
-              )}
+              {/* Action buttons shown on hover */}
+              <div className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 transition-all shrink-0">
+                {/* Archive button */}
+                {canArchive && (
+                  <button
+                    onClick={(e) => handleArchiveChannel(channel, true, e)}
+                    disabled={archivingId === channel.id}
+                    className="p-1.5 text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-colors disabled:opacity-30"
+                    title="В архив"
+                  >
+                    {archivingId === channel.id ? (
+                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>
+                    )}
+                  </button>
+                )}
+                {/* Delete button for group chats */}
+                {canDelete && (
+                  <button
+                    onClick={(e) => handleDeleteChannel(channel, e)}
+                    disabled={deletingId === channel.id}
+                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-30"
+                    title="Удалить группу"
+                  >
+                    {deletingId === channel.id ? (
+                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    )}
+                  </button>
+                )}
+              </div>
             </div>
           );
         })}

@@ -1498,7 +1498,8 @@ CREATE TABLE chat_channel_members (
     last_read_at TIMESTAMP,
     
     is_muted BOOLEAN DEFAULT FALSE,
-    
+    is_archived BOOLEAN DEFAULT FALSE,
+
     UNIQUE(channel_id, user_id)
 );
 

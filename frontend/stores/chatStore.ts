@@ -182,6 +182,9 @@ function mapRawChannel(raw: any): ChatChannel {
 
 interface ChatState {
   channels: ChatChannel[];
+  archivedChannels: ChatChannel[];
+  archivedCount: number;
+  showArchive: boolean;
   activeChannelId: number | null;
   messages: ChatMessage[];
   typingUsers: Record<number, string[]>;
@@ -201,6 +204,7 @@ interface ChatState {
 
   // Actions
   setChatWindowOpen: (open: boolean) => void;
+  setShowArchive: (show: boolean) => void;
   connect: () => void;
   disconnect: () => void;
   sendMessage: (channelId: number, text: string, attachments?: UploadedAttachment[], replyToMessageId?: number, messageType?: string) => void;
@@ -212,6 +216,9 @@ interface ChatState {
   stopTyping: (channelId: number) => void;
   setActiveChannel: (channelId: number | null) => Promise<void>;
   fetchChannels: (page?: number) => Promise<void>;
+  fetchArchivedChannels: () => Promise<void>;
+  fetchArchivedCount: () => Promise<void>;
+  archiveChannel: (channelId: number, isArchived: boolean) => Promise<void>;
   fetchProjectChannels: (projectId: number) => Promise<ChatChannel[]>;
   fetchMessages: (channelId: number, cursor?: number) => Promise<void>;
   createChannel: (dto: CreateChannelDto) => Promise<ChatChannel | null>;
@@ -226,6 +233,9 @@ let typingTimeout: ReturnType<typeof setTimeout> | null = null;
 
 export const useChatStore = create<ChatState>((set, get) => ({
   channels: [],
+  archivedChannels: [],
+  archivedCount: 0,
+  showArchive: false,
   activeChannelId: null,
   messages: [],
   typingUsers: {},
@@ -581,6 +591,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
       } catch {
         // ignore
       }
+
+      // Archived count
+      if (page === 1) {
+        get().fetchArchivedCount();
+      }
     } catch {
       set({ isLoadingChannels: false });
     }
@@ -643,6 +658,50 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   setChatWindowOpen: (open) => set({ chatWindowOpen: open }),
+  setShowArchive: (show) => set({ showArchive: show }),
+
+  fetchArchivedCount: async () => {
+    try {
+      const { data } = await api.get('/chat-channels/archived-count');
+      set({ archivedCount: data.count ?? 0 });
+    } catch {
+      // ignore
+    }
+  },
+
+  fetchArchivedChannels: async () => {
+    try {
+      const { data } = await api.get('/chat-channels', { params: { archived: true, limit: 100 } });
+      const raw = data.data || data;
+      const list: ChatChannel[] = Array.isArray(raw) ? raw.map((ch: any) => mapRawChannel(ch)) : [];
+      set({ archivedChannels: list });
+    } catch {
+      // ignore
+    }
+  },
+
+  archiveChannel: async (channelId, isArchived) => {
+    await api.patch(`/chat-channels/${channelId}/archive`, { isArchived });
+    // Move channel between lists
+    set((state) => {
+      if (isArchived) {
+        const ch = state.channels.find((c) => c.id === channelId);
+        return {
+          channels: state.channels.filter((c) => c.id !== channelId),
+          archivedChannels: ch ? [ch, ...state.archivedChannels] : state.archivedChannels,
+          archivedCount: state.archivedCount + 1,
+        };
+      } else {
+        const ch = state.archivedChannels.find((c) => c.id === channelId);
+        return {
+          archivedChannels: state.archivedChannels.filter((c) => c.id !== channelId),
+          channels: ch ? [ch, ...state.channels] : state.channels,
+          archivedCount: Math.max(0, state.archivedCount - 1),
+        };
+      }
+    });
+  },
+
   setReplyToMessage: (message) => {
     set({ replyToMessage: message });
   },
