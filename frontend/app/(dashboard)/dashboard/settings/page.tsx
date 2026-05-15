@@ -133,18 +133,27 @@ export default function SettingsPage() {
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
 
-  // PWA install
+  // PWA install — event is captured early by inline <head> script into window.__pwaInstallPrompt
   const [installPrompt, setInstallPrompt] = useState<any>(null);
   const [pwaInstalled, setPwaInstalled] = useState(false);
 
   useEffect(() => {
-    if (window.matchMedia('(display-mode: standalone)').matches) {
+    if (window.matchMedia('(display-mode: standalone)').matches || (window as any).__pwaInstalled) {
       setPwaInstalled(true);
+      return;
     }
-    const handler = (e: Event) => { e.preventDefault(); setInstallPrompt(e); };
-    window.addEventListener('beforeinstallprompt', handler);
-    window.addEventListener('appinstalled', () => { setInstallPrompt(null); setPwaInstalled(true); });
-    return () => window.removeEventListener('beforeinstallprompt', handler);
+    // Pick up prompt already captured before React mounted
+    if ((window as any).__pwaInstallPrompt) {
+      setInstallPrompt((window as any).__pwaInstallPrompt);
+    }
+    const onReady = () => setInstallPrompt((window as any).__pwaInstallPrompt);
+    const onInstalled = () => { setInstallPrompt(null); setPwaInstalled(true); };
+    window.addEventListener('pwainstallready', onReady);
+    window.addEventListener('pwainstalled', onInstalled);
+    return () => {
+      window.removeEventListener('pwainstallready', onReady);
+      window.removeEventListener('pwainstalled', onInstalled);
+    };
   }, []);
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [fetching, setFetching] = useState(true);

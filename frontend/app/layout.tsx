@@ -74,6 +74,19 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="3.15 CRM" />
         <meta name="msapplication-TileColor" content="#7c3aed" />
         <meta name="msapplication-tap-highlight" content="no" />
+        {/* Capture beforeinstallprompt before React mounts */}
+        <script dangerouslySetInnerHTML={{ __html: `
+          window.addEventListener('beforeinstallprompt', function(e) {
+            e.preventDefault();
+            window.__pwaInstallPrompt = e;
+            window.dispatchEvent(new Event('pwainstallready'));
+          });
+          window.addEventListener('appinstalled', function() {
+            window.__pwaInstallPrompt = null;
+            window.__pwaInstalled = true;
+            window.dispatchEvent(new Event('pwainstalled'));
+          });
+        `}} />
       </head>
       <body className={`${inter.variable} font-inter antialiased bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100`}>
         <ThemeProvider>
