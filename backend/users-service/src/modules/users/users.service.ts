@@ -17,6 +17,7 @@ export class UsersService {
     accountId: number,
     page: number = 1,
     limit: number = 20,
+    search?: string,
   ): Promise<{
     users: UserResponseDto[];
     total: number;
@@ -25,7 +26,7 @@ export class UsersService {
   }> {
     const skip = (page - 1) * limit;
     const [users, total] = await Promise.all([
-      this.userRepository.findAll(accountId, { skip, take: limit }),
+      this.userRepository.findAll(accountId, { skip, take: limit, search }),
       this.userRepository.count(accountId),
     ]);
 

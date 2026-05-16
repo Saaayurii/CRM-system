@@ -44,8 +44,9 @@ export class UsersController {
     @CurrentUser() user: RequestUser,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
+    @Query('search') search?: string,
   ) {
-    return this.usersService.findAll(user.accountId, page || 1, limit || 20);
+    return this.usersService.findAll(user.accountId, page || 1, limit || 20, search);
   }
 
   @Get('by-role/:roleId')

@@ -6,12 +6,16 @@ import { CreateUserDto, UpdateUserDto } from '../dto';
 export class UserRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(accountId: number, options?: { skip?: number; take?: number }) {
+  async findAll(accountId: number, options?: { skip?: number; take?: number; search?: string }) {
+    const where: any = { accountId, deletedAt: null, roleId: { not: 1 } };
+    if (options?.search) {
+      where.OR = [
+        { name: { contains: options.search, mode: 'insensitive' } },
+        { email: { contains: options.search, mode: 'insensitive' } },
+      ];
+    }
     return (this.prisma as any).user.findMany({
-      where: {
-        accountId,
-        deletedAt: null,
-      },
+      where,
       include: {
         role: {
           select: {
@@ -130,10 +134,7 @@ export class UserRepository {
 
   async count(accountId: number) {
     return (this.prisma as any).user.count({
-      where: {
-        accountId,
-        deletedAt: null,
-      },
+      where: { accountId, deletedAt: null, roleId: { not: 1 } },
     });
   }
 }
