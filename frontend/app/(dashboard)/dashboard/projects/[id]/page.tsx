@@ -960,6 +960,9 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
           ...a,
           userName: a.userName || userMap.get(a.userId) || null,
         })),
+        createdByUser: task.createdByUser || (task.createdByUserId
+          ? { name: userMap.get(task.createdByUserId) || '' }
+          : null),
       }));
       setTasks(enriched);
       setTasksLoaded(true);
@@ -2382,11 +2385,9 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                       const ts = TASK_STATUS[t.status ?? 0] || TASK_STATUS[0];
                       const tp = TASK_PRIORITY[t.priority ?? 2] || TASK_PRIORITY[2];
                       const creatorId = t.createdByUserId || t.created_by_user_id;
-                      const creatorMember = creatorId ? assignments.find((a) => a.userId === creatorId) : null;
                       const creatorName = !creatorId
                         ? 'Система'
-                        : creatorMember?.userName || creatorMember?.user?.name
-                          || t.createdByUser?.name || (creatorId ? 'Система' : '—');
+                        : t.createdByUser?.name || t.createdByUser?.email || '—';
                       const taskCreatedAt = t.createdAt || t.created_at;
                       return (
                         <tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer" onClick={() => setSelectedTask(t)}>

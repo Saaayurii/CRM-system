@@ -387,10 +387,10 @@ export default function TasksPage() {
                         || '—';
                   const creatorId = t.createdByUserId || t.created_by_user_id;
                   const creatorUser = creatorId ? users.find((u) => u.id === creatorId) : null;
-                  const creatorName = !creatorId
+                  const isCreatorAdmin = !creatorUser || creatorUser.roleId === 1 || creatorUser.roleId === 2;
+                  const creatorName = !creatorId || isCreatorAdmin
                     ? 'Система'
-                    : creatorUser?.name || creatorUser?.email
-                      || (creatorId ? 'Система' : '—');
+                    : creatorUser?.name || creatorUser?.email || 'Система';
                   const createdAt = t.createdAt || t.created_at;
                   return (
                     <tr
@@ -479,10 +479,10 @@ export default function TasksPage() {
                   || '—';
             const creatorId = t.createdByUserId || t.created_by_user_id;
             const creatorUser = creatorId ? users.find((u) => u.id === creatorId) : null;
-            const creatorName = !creatorId
+            const isCreatorAdmin = !creatorUser || creatorUser.roleId === 1 || creatorUser.roleId === 2;
+            const creatorName = !creatorId || isCreatorAdmin
               ? 'Система'
-              : creatorUser?.name || creatorUser?.email
-                || (creatorId ? 'Система' : '—');
+              : creatorUser?.name || creatorUser?.email || 'Система';
             const createdAt = t.createdAt || t.created_at;
             return (
               <div key={t.id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex flex-col gap-3 hover:shadow-md transition-shadow">
