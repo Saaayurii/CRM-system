@@ -870,6 +870,9 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   const [showObjectModal, setShowObjectModal] = useState(false);
   const [editingObject, setEditingObject] = useState<ConstructionSite | null>(null);
   const [objectSaving, setObjectSaving] = useState(false);
+  const [objectViewMode, setObjectViewMode] = useState<'table' | 'grid'>(() =>
+    typeof window !== 'undefined' ? (localStorage.getItem('projObjectView') as 'table' | 'grid') || 'table' : 'table'
+  );
 
   /* Overview summary */
   const [overviewSummary, setOverviewSummary] = useState<{
@@ -3185,20 +3188,39 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
       {/* ─── Objects ─── */}
       {activeTab === 'objects' && (
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center justify-between">
+          <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center justify-between gap-3">
             <h2 className="font-semibold text-gray-800 dark:text-gray-100">
               Объекты проекта
               {!objectsLoading && objectsList.length > 0 && (
                 <span className="ml-2 text-sm font-normal text-gray-400">({objectsList.length})</span>
               )}
             </h2>
-            <button
-              onClick={() => { setEditingObject(null); setShowObjectModal(true); }}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-              Добавить объект
-            </button>
+            <div className="flex items-center gap-2">
+              {/* View toggle */}
+              <div className="flex items-center gap-0.5 p-1 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                <button
+                  onClick={() => { setObjectViewMode('table'); localStorage.setItem('projObjectView', 'table'); }}
+                  className={`p-1.5 rounded transition-colors ${objectViewMode === 'table' ? 'bg-white dark:bg-gray-600 shadow-sm text-violet-600' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`}
+                  title="Таблица"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 12h16.5M3.75 6.75h16.5M3.75 17.25h16.5" /></svg>
+                </button>
+                <button
+                  onClick={() => { setObjectViewMode('grid'); localStorage.setItem('projObjectView', 'grid'); }}
+                  className={`p-1.5 rounded transition-colors ${objectViewMode === 'grid' ? 'bg-white dark:bg-gray-600 shadow-sm text-violet-600' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`}
+                  title="Карточки"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" /></svg>
+                </button>
+              </div>
+              <button
+                onClick={() => { setEditingObject(null); setShowObjectModal(true); }}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                Добавить объект
+              </button>
+            </div>
           </div>
 
           {objectsLoading ? (
@@ -3210,6 +3232,54 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
               </svg>
               <p className="text-sm text-gray-400 dark:text-gray-500">Объектов пока нет</p>
               <button onClick={() => { setEditingObject(null); setShowObjectModal(true); }} className="mt-2 text-xs text-violet-500 hover:text-violet-600 transition-colors">Добавить первый объект</button>
+            </div>
+          ) : objectViewMode === 'grid' ? (
+            <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {objectsList.map((obj) => {
+                const statusNum = typeof obj.status === 'string' ? parseInt(obj.status) : (obj.status ?? 0);
+                const statusLabel = statusNum === 0 ? 'Планирование' : statusNum === 1 ? 'В работе' : statusNum === 2 ? 'Приостановлен' : statusNum === 3 ? 'Завершён' : '—';
+                const statusColor = statusNum === 0 ? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300' : statusNum === 1 ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' : statusNum === 2 ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300' : 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300';
+                return (
+                  <div
+                    key={obj.id}
+                    onClick={() => router.push(`/dashboard/projects/${projectId}/objects/${obj.id}`)}
+                    className="p-4 border border-gray-100 dark:border-gray-700 rounded-xl hover:border-violet-200 dark:hover:border-violet-700 hover:shadow-md transition-all cursor-pointer bg-gray-50/50 dark:bg-gray-900/20"
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="min-w-0">
+                        <p className="font-medium text-gray-800 dark:text-gray-100 truncate">{obj.name}</p>
+                        {obj.code && <p className="text-xs text-gray-400 mt-0.5">{obj.code}</p>}
+                      </div>
+                      <span className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusColor}`}>{statusLabel}</span>
+                    </div>
+                    {obj.address && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate mb-2">
+                        <svg className="w-3 h-3 inline mr-1 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" /></svg>
+                        {obj.address}
+                      </p>
+                    )}
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="text-xs text-gray-400">
+                        {obj.startDate ? new Date(obj.startDate).toLocaleDateString('ru-RU') : '—'}
+                        {' → '}
+                        {obj.plannedEndDate ? new Date(obj.plannedEndDate).toLocaleDateString('ru-RU') : '—'}
+                      </span>
+                      <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
+                        <button onClick={() => { setEditingObject(obj); setShowObjectModal(true); }} className="p-1.5 text-gray-400 hover:text-violet-500 transition-colors" title="Редактировать">
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                        </button>
+                        <button onClick={async () => {
+                          if (!confirm(`Удалить объект «${obj.name}»?`)) return;
+                          try { await api.delete(`/construction-sites/${obj.id}`); setObjectsList((prev) => prev.filter((o) => o.id !== obj.id)); addToast('success', 'Объект удалён'); }
+                          catch { addToast('error', 'Ошибка при удалении'); }
+                        }} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors" title="Удалить">
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <div className="overflow-x-auto">
