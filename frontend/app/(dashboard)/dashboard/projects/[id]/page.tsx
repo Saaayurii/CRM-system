@@ -954,6 +954,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
       const raw = tasksRes.data?.tasks || tasksRes.data?.data || tasksRes.data || [];
       const users: any[] = usersRes.data?.data || usersRes.data?.users || usersRes.data || [];
       const userMap = new Map<number, string>(users.map((u: any) => [u.id, u.name || u.email]));
+      const userRoleMap = new Map<number, number>(users.map((u: any) => [u.id, u.roleId]));
       const enriched = (Array.isArray(raw) ? raw : []).map((task: any) => ({
         ...task,
         assignees: (task.assignees || []).map((a: any) => ({
@@ -961,7 +962,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
           userName: a.userName || userMap.get(a.userId) || null,
         })),
         createdByUser: task.createdByUser || (task.createdByUserId
-          ? { name: userMap.get(task.createdByUserId) || '' }
+          ? { name: userMap.get(task.createdByUserId) || '', roleId: userRoleMap.get(task.createdByUserId) }
           : null),
       }));
       setTasks(enriched);
@@ -2385,7 +2386,8 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                       const ts = TASK_STATUS[t.status ?? 0] || TASK_STATUS[0];
                       const tp = TASK_PRIORITY[t.priority ?? 2] || TASK_PRIORITY[2];
                       const creatorId = t.createdByUserId || t.created_by_user_id;
-                      const creatorName = !creatorId
+                      const isCreatorSuperAdmin = !creatorId || (t.createdByUser as any)?.roleId === 1;
+                      const creatorName = isCreatorSuperAdmin
                         ? 'Система'
                         : t.createdByUser?.name || t.createdByUser?.email || '—';
                       const taskCreatedAt = t.createdAt || t.created_at;
