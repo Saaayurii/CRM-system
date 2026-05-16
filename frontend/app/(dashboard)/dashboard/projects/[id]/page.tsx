@@ -735,6 +735,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   const [showCreateChannelModal, setShowCreateChannelModal] = useState(false);
   const [editingChannel, setEditingChannel] = useState<ChatChannel | null>(null);
   const [mobileChatOpen, setMobileChatOpen] = useState(false);
+  const projectChatContainerRef = useRef<HTMLDivElement>(null);
 
   /* Photos tab */
   const [sites, setSites] = useState<ConstructionSite[]>([]);
@@ -1663,6 +1664,31 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
+
+  // iOS: when keyboard opens on mobile chat, resize container to visible viewport
+  useEffect(() => {
+    if (!mobileChatOpen) return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => {
+      const el = projectChatContainerRef.current;
+      if (!el || window.innerWidth >= 640) return;
+      el.style.height = `${vv.height}px`;
+      el.style.top = `${vv.offsetTop}px`;
+      el.style.bottom = 'auto';
+    };
+    const reset = () => {
+      const el = projectChatContainerRef.current;
+      if (el) { el.style.height = ''; el.style.top = ''; el.style.bottom = ''; }
+    };
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    return () => {
+      vv.removeEventListener('resize', update);
+      vv.removeEventListener('scroll', update);
+      reset();
+    };
+  }, [mobileChatOpen]);
 
   useEffect(() => {
     // sub-tab specific triggers (already loaded by activeTab effect above, kept for safety)
@@ -2830,7 +2856,10 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
 
       {/* ─── Chat ─── */}
       {activeTab === 'chat' && (
-        <div className="flex gap-4" style={{ height: '640px' }}>
+        <div
+          ref={projectChatContainerRef}
+          className={`flex gap-4 sm:h-[640px] ${mobileChatOpen && activeProjectChannelId ? 'max-sm:fixed max-sm:inset-0 max-sm:z-[100] max-sm:bg-gray-50 max-sm:dark:bg-gray-900 max-sm:flex-col' : 'h-[640px]'}`}
+        >
           {/* Sidebar: channel list — hidden on mobile when chat is open */}
           <div className={`${mobileChatOpen ? 'hidden sm:flex' : 'flex'} w-full sm:w-64 shrink-0 bg-white dark:bg-gray-800 rounded-xl shadow-xs flex-col overflow-hidden`}>
             <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
@@ -2898,7 +2927,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
           </div>
 
           {/* Chat window — hidden on mobile when no channel selected */}
-          <div className={`${mobileChatOpen ? 'flex' : 'hidden sm:flex'} flex-1 bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden flex-col`}>
+          <div className={`${mobileChatOpen ? 'flex' : 'hidden sm:flex'} flex-1 bg-white dark:bg-gray-800 sm:rounded-xl shadow-xs overflow-hidden flex-col`}>
             {!activeProjectChannelId ? (
               <div className="flex-1 flex flex-col items-center justify-center gap-3 p-8 text-center">
                 <svg className="w-10 h-10 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
