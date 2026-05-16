@@ -3428,7 +3428,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                 const isExpense = paymentIsExpense;
                 const totalIncome = financePayments.filter(isIncome).reduce((s, p) => s + (Number(p.amount) || 0), 0);
                 const totalExpense = financePayments.filter(isExpense).reduce((s, p) => s + (Number(p.amount) || 0), 0);
-                const totalActual = financeActs.reduce((s, a) => s + (Number(a.totalAmount) || 0), 0);
+                const totalActual = project?.actualCost ?? 0;
                 const balance = totalIncome - totalExpense;
                 const expensePct = project?.budget ? Math.round((totalExpense / project.budget) * 100) : null;
                 const chartData = [{
