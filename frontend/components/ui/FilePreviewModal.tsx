@@ -6,6 +6,7 @@ import { normalizeFileUrl } from '@/lib/utils';
 interface FilePreviewModalProps {
   fileUrl: string;
   fileName?: string;
+  mimeType?: string;
   onClose: () => void;
 }
 
@@ -34,7 +35,7 @@ const TEXT_EXTS  = ['txt', 'log', 'md', 'json', 'xml', 'yaml', 'yml', 'ini', 'en
 // Formats handled via Google Docs Viewer (needs public URL)
 const OFFICE_VIEWER_EXTS = ['ppt', 'pptx', 'odp', 'odt', 'ods', 'rtf'];
 
-export default function FilePreviewModal({ fileUrl, fileName, onClose }: FilePreviewModalProps) {
+export default function FilePreviewModal({ fileUrl, fileName, mimeType, onClose }: FilePreviewModalProps) {
   const [state, setState] = useState<PreviewState>({ kind: 'loading' });
 
   const load = useCallback(async () => {
@@ -43,10 +44,12 @@ export default function FilePreviewModal({ fileUrl, fileName, onClose }: FilePre
 
     const ext = getExt(url);
 
-    if (ext === 'pdf') { setState({ kind: 'pdf', url }); return; }
-    if (IMAGE_EXTS.includes(ext)) { setState({ kind: 'image', url }); return; }
-    if (VIDEO_EXTS.includes(ext)) { setState({ kind: 'video', url }); return; }
-    if (AUDIO_EXTS.includes(ext)) { setState({ kind: 'audio', url }); return; }
+    // Detect by mimeType first when ext is ambiguous/missing
+    const mime = mimeType ?? '';
+    if (ext === 'pdf' || mime === 'application/pdf') { setState({ kind: 'pdf', url }); return; }
+    if (IMAGE_EXTS.includes(ext) || mime.startsWith('image/')) { setState({ kind: 'image', url }); return; }
+    if (VIDEO_EXTS.includes(ext) || mime.startsWith('video/')) { setState({ kind: 'video', url }); return; }
+    if (AUDIO_EXTS.includes(ext) || mime.startsWith('audio/')) { setState({ kind: 'audio', url }); return; }
 
     if (TEXT_EXTS.includes(ext)) {
       try {
@@ -124,7 +127,9 @@ export default function FilePreviewModal({ fileUrl, fileName, onClose }: FilePre
 
   const displayName = fileName || (fileUrl || '').split('/').pop() || 'Файл';
   const downloadUrl = normalizeFileUrl(fileUrl || '') || fileUrl || '';
-  const ext = getExt(fileUrl);
+  const extFromUrl = getExt(fileUrl);
+  const extFromMime = mimeType === 'application/pdf' ? 'pdf' : (mimeType?.split('/')[1] ?? '');
+  const ext = extFromUrl || extFromMime;
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col">

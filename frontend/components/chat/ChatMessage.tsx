@@ -228,7 +228,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
   const albumCornerClass = isOwn ? 'rounded-tl-2xl rounded-tr-sm' : 'rounded-tl-sm rounded-tr-2xl';
 
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
-  const [previewFile, setPreviewFile] = useState<{ url: string; name?: string } | null>(null);
+  const [previewFile, setPreviewFile] = useState<{ url: string; name?: string; mimeType?: string } | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [showMobileActions, setShowMobileActions] = useState(false);
@@ -490,7 +490,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
                     }
                     return (
                       <div key={att.id ?? index}
-                        onClick={() => setPreviewFile({ url: att.fileUrl, name: att.fileName })}
+                        onClick={() => setPreviewFile({ url: att.fileUrl, name: att.fileName, mimeType: att.mimeType })}
                         className={`flex items-center gap-2 p-2 rounded-lg text-sm cursor-pointer transition-colors ${
                           isOwn ? 'bg-violet-400/30 hover:bg-violet-400/40' : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600'
                         }`}>
@@ -756,6 +756,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
         <FilePreviewModal
           fileUrl={previewFile.url}
           fileName={previewFile.name}
+          mimeType={previewFile.mimeType}
           onClose={() => setPreviewFile(null)}
         />
       )}
