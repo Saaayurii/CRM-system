@@ -241,9 +241,11 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const messagesInnerRef = useRef<HTMLDivElement>(null);
   const prevMessagesLenRef = useRef(0);
   const initialLoadRef = useRef(false);
   const isInitialLoadingRef = useRef(false);
+  const wasAtBottomRef = useRef(true);
 
   const activeChannel = channels.find((ch) => ch.id === activeChannelId);
   const channelTyping = activeChannelId ? typingUsers[activeChannelId] || [] : [];
@@ -353,6 +355,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
       isInitialLoadingRef.current = false;
       prevMessagesLenRef.current = messages.length;
       messagesEndRef.current?.scrollIntoView();
+      wasAtBottomRef.current = true;
       return;
     }
 
@@ -363,9 +366,23 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
         container.scrollHeight - container.scrollTop - container.clientHeight < 150;
       if (isNearBottom) {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        wasAtBottomRef.current = true;
       }
     }
   }, [messages.length]);
+
+  // ResizeObserver: re-scroll when media loads and expands the content
+  useEffect(() => {
+    const inner = messagesInnerRef.current;
+    if (!inner) return;
+    const ro = new ResizeObserver(() => {
+      if (wasAtBottomRef.current) {
+        messagesEndRef.current?.scrollIntoView();
+      }
+    });
+    ro.observe(inner);
+    return () => ro.disconnect();
+  }, []);
 
   const handleScrollToBottom = useCallback(() => {
     if (isSnapping) return;
@@ -396,6 +413,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
     const container = messagesContainerRef.current;
     if (!container) return;
     const distFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+    wasAtBottomRef.current = distFromBottom < 80;
     setShowScrollBtn(distFromBottom > 300);
     if (isLoadingMessages || !hasMoreMessages || !activeChannelId) return;
     if (container.scrollTop < 200 && messages.length > 0) {
@@ -769,6 +787,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
             </div>
           )}
 
+          <div ref={messagesInnerRef}>
           {messages.map((msg, idx) => {
             const isOwn = msg.senderId === user?.id;
             const showAvatar = idx === 0 || messages[idx - 1]?.senderId !== msg.senderId;
@@ -821,6 +840,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
               </div>
             );
           })}
+          </div>
 
           <div ref={messagesEndRef} />
         </div>
