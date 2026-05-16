@@ -363,6 +363,7 @@ export default function ObjectDetailPage() {
     try {
       await api.delete(`/facilities/${id}`);
       setFacilities((prev) => prev.filter((f) => f.id !== id));
+      if (editingFac?.id === id) { setShowFacForm(false); setEditingFac(null); resetFacForm(); }
       addToast('success', 'Сооружение удалено');
     } catch { addToast('error', 'Ошибка при удалении'); }
   };
