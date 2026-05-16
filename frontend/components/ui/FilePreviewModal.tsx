@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { normalizeFileUrl } from '@/lib/utils';
 
 interface FilePreviewModalProps {
@@ -131,8 +132,8 @@ export default function FilePreviewModal({ fileUrl, fileName, mimeType, onClose 
   const extFromMime = mimeType === 'application/pdf' ? 'pdf' : (mimeType?.split('/')[1] ?? '');
   const ext = extFromUrl || extFromMime;
 
-  return (
-    <div className="fixed inset-0 z-50 flex flex-col">
+  const modal = (
+    <div className="fixed inset-0 z-[9999] flex flex-col">
       <div className="absolute inset-0 bg-black/70" onClick={onClose} />
       <div className="relative z-10 flex flex-col h-full max-w-5xl w-full mx-auto my-4 bg-white dark:bg-gray-900 rounded-xl shadow-2xl overflow-hidden">
         {/* Header */}
@@ -266,6 +267,9 @@ export default function FilePreviewModal({ fileUrl, fileName, mimeType, onClose 
       </div>
     </div>
   );
+
+  if (typeof document === 'undefined') return null;
+  return createPortal(modal, document.body);
 }
 
 function tryOfficeViewer(
