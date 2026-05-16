@@ -29,10 +29,15 @@ interface Task {
   assigned_to_user_id?: number;
   estimatedHours?: number;
   estimated_hours?: number;
+  createdByUserId?: number;
+  created_by_user_id?: number;
+  createdAt?: string;
+  created_at?: string;
   project?: { id: number; name: string };
   assignees?: Assignee[];
   assignedToUser?: { name: string; email: string };
   assigned_to_user?: { name: string; email: string };
+  createdByUser?: { name: string; email: string };
 }
 
 interface Project {
@@ -357,6 +362,7 @@ export default function TasksPage() {
                   <th className="py-3 px-4 text-left font-semibold">Статус</th>
                   <th className="py-3 px-4 text-left font-semibold">Приоритет</th>
                   <th className="py-3 px-4 text-left font-semibold">Исполнитель</th>
+                  <th className="py-3 px-4 text-left font-semibold">Поставил</th>
                   <th className="py-3 px-4 text-left font-semibold">Срок</th>
                   <th className="py-3 px-4 text-center font-semibold">Действия</th>
                 </tr>
@@ -379,6 +385,11 @@ export default function TasksPage() {
                       : assignee?.name || assignee?.email
                         || resolvedUser?.name || resolvedUser?.email
                         || '—';
+                  const creatorId = t.createdByUserId || t.created_by_user_id;
+                  const creatorUser = creatorId ? users.find((u) => u.id === creatorId) : null;
+                  const creatorName = t.createdByUser?.name || t.createdByUser?.email
+                    || creatorUser?.name || creatorUser?.email || '—';
+                  const createdAt = t.createdAt || t.created_at;
                   return (
                     <tr
                       key={t.id}
@@ -397,6 +408,14 @@ export default function TasksPage() {
                       </td>
                       <td className="py-2.5 px-4 text-gray-600 dark:text-gray-400">
                         {assigneeName}
+                      </td>
+                      <td className="py-2.5 px-4">
+                        <span className="text-gray-700 dark:text-gray-300 text-sm">{creatorName}</span>
+                        {createdAt && (
+                          <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                            {formatDate(createdAt)}
+                          </div>
+                        )}
                       </td>
                       <td className="py-2.5 px-4 text-gray-600 dark:text-gray-400">
                         {formatDate(t.dueDate || t.due_date)}
@@ -456,6 +475,11 @@ export default function TasksPage() {
                 : assignee?.name || assignee?.email
                   || resolvedUser?.name || resolvedUser?.email
                   || '—';
+            const creatorId = t.createdByUserId || t.created_by_user_id;
+            const creatorUser = creatorId ? users.find((u) => u.id === creatorId) : null;
+            const creatorName = t.createdByUser?.name || t.createdByUser?.email
+              || creatorUser?.name || creatorUser?.email || '—';
+            const createdAt = t.createdAt || t.created_at;
             return (
               <div key={t.id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex flex-col gap-3 hover:shadow-md transition-shadow">
                 <div
@@ -482,6 +506,13 @@ export default function TasksPage() {
                   <div className="col-span-2">
                     <dt className="text-xs text-gray-400 dark:text-gray-500">Исполнитель</dt>
                     <dd className="text-xs text-gray-700 dark:text-gray-300 truncate">{assigneeName}</dd>
+                  </div>
+                  <div className="col-span-2">
+                    <dt className="text-xs text-gray-400 dark:text-gray-500">Поставил</dt>
+                    <dd className="text-xs text-gray-700 dark:text-gray-300 truncate">
+                      {creatorName}
+                      {createdAt && <span className="ml-1 text-gray-400 dark:text-gray-500">{formatDate(createdAt)}</span>}
+                    </dd>
                   </div>
                 </dl>
                 <div className="flex items-center gap-1.5 pt-2 border-t border-gray-100 dark:border-gray-700">
