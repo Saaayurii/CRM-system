@@ -387,7 +387,7 @@ export default function TasksPage() {
                         || '—';
                   const creatorId = t.createdByUserId || t.created_by_user_id;
                   const creatorUser = creatorId ? users.find((u) => u.id === creatorId) : null;
-                  const isCreatorAdmin = !creatorUser || creatorUser.roleId === 1 || creatorUser.roleId === 2;
+                  const isCreatorAdmin = !creatorUser || creatorUser.roleId === 1;
                   const creatorName = !creatorId || isCreatorAdmin
                     ? 'Система'
                     : creatorUser?.name || creatorUser?.email || 'Система';
@@ -479,7 +479,7 @@ export default function TasksPage() {
                   || '—';
             const creatorId = t.createdByUserId || t.created_by_user_id;
             const creatorUser = creatorId ? users.find((u) => u.id === creatorId) : null;
-            const isCreatorAdmin = !creatorUser || creatorUser.roleId === 1 || creatorUser.roleId === 2;
+            const isCreatorAdmin = !creatorUser || creatorUser.roleId === 1;
             const creatorName = !creatorId || isCreatorAdmin
               ? 'Система'
               : creatorUser?.name || creatorUser?.email || 'Система';
