@@ -2,6 +2,9 @@ import { IsString, IsOptional, IsNumber, IsObject, MaxLength } from 'class-valid
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UpdateBuildingObjectDto {
+  @ApiPropertyOptional() @IsOptional() @IsNumber() projectId?: number;
+  @ApiPropertyOptional() @IsOptional() @IsNumber() constructionSiteId?: number;
+  @ApiPropertyOptional() @IsOptional() @IsNumber() parentId?: number;
   @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(255) name?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(50) objectType?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(100) classification?: string;
@@ -10,5 +13,4 @@ export class UpdateBuildingObjectDto {
   @ApiPropertyOptional() @IsOptional() @IsNumber() floorNumber?: number;
   @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(20) status?: string;
   @ApiPropertyOptional() @IsOptional() @IsObject() parameters?: Record<string, any>;
-  @ApiPropertyOptional() @IsOptional() @IsNumber() parentId?: number;
 }
