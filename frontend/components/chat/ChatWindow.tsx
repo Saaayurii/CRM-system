@@ -246,6 +246,8 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
   const initialLoadRef = useRef(false);
   const isInitialLoadingRef = useRef(false);
   const wasAtBottomRef = useRef(true);
+  const isProgrammaticScrollRef = useRef(false);
+  const programmaticScrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const activeChannel = channels.find((ch) => ch.id === activeChannelId);
   const channelTyping = activeChannelId ? typingUsers[activeChannelId] || [] : [];
@@ -371,18 +373,30 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
     }
   }, [messages.length]);
 
-  // ResizeObserver: re-scroll when media loads and expands the content
+  // Programmatic scroll helper — prevents handleScroll from falsely resetting wasAtBottomRef
+  const scrollToBottomInstant = useCallback(() => {
+    isProgrammaticScrollRef.current = true;
+    messagesEndRef.current?.scrollIntoView();
+    if (programmaticScrollTimerRef.current) clearTimeout(programmaticScrollTimerRef.current);
+    programmaticScrollTimerRef.current = setTimeout(() => {
+      isProgrammaticScrollRef.current = false;
+      wasAtBottomRef.current = true;
+    }, 150);
+  }, []);
+
+  // ResizeObserver: re-scroll when media loads and expands the content (debounced)
   useEffect(() => {
     const inner = messagesInnerRef.current;
     if (!inner) return;
+    let rafId: number;
     const ro = new ResizeObserver(() => {
-      if (wasAtBottomRef.current) {
-        messagesEndRef.current?.scrollIntoView();
-      }
+      if (!wasAtBottomRef.current) return;
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => scrollToBottomInstant());
     });
     ro.observe(inner);
-    return () => ro.disconnect();
-  }, []);
+    return () => { ro.disconnect(); cancelAnimationFrame(rafId); };
+  }, [scrollToBottomInstant]);
 
   const handleScrollToBottom = useCallback(() => {
     if (isSnapping) return;
@@ -413,7 +427,9 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
     const container = messagesContainerRef.current;
     if (!container) return;
     const distFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
-    wasAtBottomRef.current = distFromBottom < 80;
+    if (!isProgrammaticScrollRef.current) {
+      wasAtBottomRef.current = distFromBottom < 80;
+    }
     setShowScrollBtn(distFromBottom > 300);
     if (isLoadingMessages || !hasMoreMessages || !activeChannelId) return;
     if (container.scrollTop < 200 && messages.length > 0) {
