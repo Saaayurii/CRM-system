@@ -4584,7 +4584,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
       {activeTab === 'resources' && !detailEquipment && (
         <div className="space-y-6">
           {/* Sub-nav */}
-          <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700 overflow-x-auto scrollbar-none">
             {([
               { key: 'materials', label: 'Материальные заявки', count: materialRequests.length },
               { key: 'orders', label: 'Заказы поставщикам', count: supplierOrders.length },
@@ -4597,7 +4597,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
               <button
                 key={t.key}
                 onClick={() => setResourceSubTab(t.key)}
-                className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+                className={`shrink-0 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                   resourceSubTab === t.key
                     ? 'border-violet-500 text-violet-600 dark:text-violet-400'
                     : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
