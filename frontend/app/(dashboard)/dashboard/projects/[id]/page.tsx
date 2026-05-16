@@ -79,6 +79,8 @@ interface ChatChannel {
   name?: string;
   channelName?: string;
   projectId?: number;
+  constructionSiteId?: number;
+  constructionSiteName?: string;
   membersCount?: number;
   avatarUrl?: string;
 }
@@ -2838,7 +2840,14 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                       <p className={`text-sm font-medium truncate ${activeProjectChannelId === ch.id ? 'text-violet-600 dark:text-violet-400' : 'text-gray-800 dark:text-gray-100'}`}>
                         {ch.channelName || ch.name || `Канал #${ch.id}`}
                       </p>
-                      <p className="text-xs text-gray-400 truncate">{ch.membersCount} участников</p>
+                      {ch.constructionSiteName ? (
+                        <p className="text-xs text-gray-400 truncate flex items-center gap-1">
+                          <svg className="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                          {ch.constructionSiteName}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-gray-400 truncate">{ch.membersCount} участников</p>
+                      )}
                     </div>
                     <div className="flex items-center gap-0.5 shrink-0">
                       <button
@@ -2894,6 +2903,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
           projectId={projectId}
           projectName={project?.name || ''}
           projectMembers={assignments}
+          sites={sites}
           onCreated={(ch) => {
             setProjectChannels((prev) => [...prev, ch]);
             setActiveProjectChannelId(ch.id);
@@ -6549,18 +6559,23 @@ function ProjectChatPanel({ channelId, channelName, projectId, projectMembers = 
                   const isAdmin = currentUserRole === 'admin' || currentUserRole === 'owner';
                   return participants.map((p) => {
                     const isDeleted = DELETED_RE.test(p.email ?? '');
-                    const displayName = isDeleted ? 'Удалённый пользователь' : p.name;
+                    const isSystem = !isDeleted && (p.role === 'admin' || p.role === 'owner');
+                    const displayName = isDeleted ? 'Удалённый пользователь' : isSystem ? 'Система' : p.name;
                     return (
                     <div key={p.id} className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 dark:border-gray-700">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium shrink-0 relative overflow-hidden ${isDeleted ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500' : 'bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300'}`}>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium shrink-0 relative overflow-hidden ${isDeleted ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500' : isSystem ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300' : 'bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300'}`}>
                         {isDeleted ? (
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                           </svg>
+                        ) : isSystem ? (
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18" />
+                          </svg>
                         ) : (
                           p.name.charAt(0).toUpperCase()
                         )}
-                        {!isDeleted && p.avatarUrl && (
+                        {!isDeleted && !isSystem && p.avatarUrl && (
                           <img src={p.avatarUrl} alt="" className="absolute inset-0 w-full h-full object-cover z-10" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                         )}
                       </div>
@@ -7267,11 +7282,12 @@ function AvatarPicker({ preview, onFile, onClear }: { preview: string | null; on
 }
 
 function ProjectChannelCreateModal({
-  projectId, projectName, projectMembers, onCreated, onClose,
+  projectId, projectName, projectMembers, sites, onCreated, onClose,
 }: {
   projectId: number;
   projectName: string;
   projectMembers: Assignment[];
+  sites: ConstructionSite[];
   onCreated: (channel: ChatChannel) => void;
   onClose: () => void;
 }) {
@@ -7281,6 +7297,7 @@ function ProjectChannelCreateModal({
   const [members, setMembers] = useState<Assignment[]>(projectMembers);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [selectedSiteId, setSelectedSiteId] = useState<number | null>(null);
   const addToast = useToastStore((s) => s.addToast);
 
   useEffect(() => {
@@ -7319,13 +7336,15 @@ function ProjectChannelCreateModal({
         } catch { /* ignore */ }
       }
 
+      const selectedSite = selectedSiteId ? sites.find((s) => s.id === selectedSiteId) : undefined;
       const r = await api.post('/chat-channels', {
         name: name.trim(),
         channelType: 'group',
         projectId,
         memberIds: selectedMemberIds,
-        settings: { projectName },
+        settings: { projectName, constructionSiteName: selectedSite?.name },
         avatarUrl,
+        ...(selectedSiteId ? { constructionSiteId: selectedSiteId } : {}),
       });
       const raw = r.data;
       onCreated({
@@ -7333,6 +7352,8 @@ function ProjectChannelCreateModal({
         name: raw.name,
         channelName: raw.channelName ?? raw.name ?? '',
         projectId: raw.projectId,
+        constructionSiteId: selectedSiteId ?? undefined,
+        constructionSiteName: selectedSite?.name,
         membersCount: raw.members?.length ?? raw._count?.members ?? 0,
         avatarUrl,
       });
@@ -7361,6 +7382,23 @@ function ProjectChannelCreateModal({
             />
           </div>
         </div>
+        {sites.length > 0 && (
+          <div>
+            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+              Объект <span className="text-gray-400 font-normal">(необязательно)</span>
+            </label>
+            <select
+              value={selectedSiteId ?? ''}
+              onChange={(e) => setSelectedSiteId(e.target.value ? Number(e.target.value) : null)}
+              className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100"
+            >
+              <option value="">— Не привязывать к объекту</option>
+              {sites.map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
         <div>
           <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
             Участники{' '}
