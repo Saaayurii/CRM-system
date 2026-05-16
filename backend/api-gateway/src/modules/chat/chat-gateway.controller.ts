@@ -35,17 +35,19 @@ export class ChatGatewayController {
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
   @ApiQuery({ name: 'projectId', required: false })
+  @ApiQuery({ name: 'archived', required: false })
   async findAllChannels(
     @Req() req: Request,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
     @Query('projectId') projectId?: number,
+    @Query('archived') archived?: string,
   ) {
     return this.proxyService.forward('chat', {
       method: 'GET',
       path: '/chat-channels',
       headers: { authorization: req.headers.authorization || '' },
-      params: { page, limit, projectId },
+      params: { page, limit, projectId, archived },
     });
   }
 
@@ -56,6 +58,34 @@ export class ChatGatewayController {
       method: 'GET',
       path: '/chat-channels/unread-summary',
       headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  @Get('chat-channels/archived-count')
+  @ApiOperation({ summary: 'Get count of archived channels for current user' })
+  async getArchivedCount(@Req() req: Request) {
+    return this.proxyService.forward('chat', {
+      method: 'GET',
+      path: '/chat-channels/archived-count',
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  @Patch('chat-channels/:id/archive')
+  @ApiOperation({ summary: 'Archive or unarchive a channel for the current user' })
+  async archiveChannel(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
+    return this.proxyService.forward('chat', {
+      method: 'PATCH',
+      path: `/chat-channels/${id}/archive`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
     });
   }
 
