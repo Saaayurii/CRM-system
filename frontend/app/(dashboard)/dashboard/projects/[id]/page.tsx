@@ -238,6 +238,11 @@ interface Task {
   assignedToUserId?: number;
   attachments?: any[];
   assignees?: { userId: number; userName?: string }[];
+  createdByUserId?: number;
+  created_by_user_id?: number;
+  createdByUser?: { name: string; email: string };
+  createdAt?: string;
+  created_at?: string;
 }
 
 interface TeamOption {
@@ -2368,6 +2373,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                       <th className="py-3 px-4 text-left font-semibold">Приоритет</th>
                       <th className="py-3 px-4 text-left font-semibold">Срок</th>
                       <th className="py-3 px-4 text-left font-semibold">Исполнители</th>
+                      <th className="py-3 px-4 text-left font-semibold">Поставил</th>
                       <th className="py-3 px-4 text-center font-semibold w-20"></th>
                     </tr>
                   </thead>
@@ -2375,6 +2381,13 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                     {filtered.map((t) => {
                       const ts = TASK_STATUS[t.status ?? 0] || TASK_STATUS[0];
                       const tp = TASK_PRIORITY[t.priority ?? 2] || TASK_PRIORITY[2];
+                      const creatorId = t.createdByUserId || t.created_by_user_id;
+                      const creatorMember = creatorId ? assignments.find((a) => a.userId === creatorId) : null;
+                      const creatorName = !creatorId
+                        ? 'Система'
+                        : creatorMember?.userName || creatorMember?.user?.name
+                          || t.createdByUser?.name || (creatorId ? 'Система' : '—');
+                      const taskCreatedAt = t.createdAt || t.created_at;
                       return (
                         <tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer" onClick={() => setSelectedTask(t)}>
                           <td className="py-2.5 px-4 font-medium text-gray-800 dark:text-gray-100">{t.title}</td>
@@ -2383,6 +2396,14 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                           <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{fmt(t.dueDate || t.due_date)}</td>
                           <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400 text-xs">
                             {t.assignees?.map((a) => a.userName || `#${a.userId}`).join(', ') || '—'}
+                          </td>
+                          <td className="py-2.5 px-4">
+                            <span className="text-sm text-gray-700 dark:text-gray-300">{creatorName}</span>
+                            {taskCreatedAt && (
+                              <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                                {fmt(taskCreatedAt)}
+                              </div>
+                            )}
                           </td>
                           <td className="py-2.5 px-4" onClick={(e) => e.stopPropagation()}>
                             <div className="flex items-center justify-end gap-0.5">
