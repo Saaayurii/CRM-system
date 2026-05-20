@@ -295,6 +295,13 @@ const TASK_PRIORITY: Record<number, { label: string; color: string }> = {
   4: { label: 'Критический', color: 'text-red-500' },
 };
 
+function isTaskOverdue(t: { status?: number; dueDate?: string; due_date?: string }): boolean {
+  const due = t.dueDate || t.due_date;
+  if (!due) return false;
+  if (t.status === 4 || t.status === 5) return false;
+  return new Date(due).getTime() < Date.now();
+}
+
 const DOC_TYPE_OPTIONS = [
   { value: 'contract', label: 'Договор' },
   { value: 'invoice', label: 'Счёт' },
@@ -2357,6 +2364,13 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
               const matchStatus = !taskStatusFilter || String(t.status ?? 0) === taskStatusFilter;
               const matchPriority = !taskPriorityFilter || String(t.priority ?? 2) === taskPriorityFilter;
               return matchSearch && matchStatus && matchPriority;
+            }).sort((a, b) => {
+              const ao = isTaskOverdue(a);
+              const bo = isTaskOverdue(b);
+              if (ao !== bo) return ao ? -1 : 1;
+              const ad = a.createdAt || a.created_at || '';
+              const bd = b.createdAt || b.created_at || '';
+              return new Date(bd).getTime() - new Date(ad).getTime();
             });
             if (filtered.length === 0) return <EmptyState text="Ничего не найдено" />;
             if (taskViewMode === 'grid') return (
@@ -2365,7 +2379,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                   const ts = TASK_STATUS[t.status ?? 0] || TASK_STATUS[0];
                   const tp = TASK_PRIORITY[t.priority ?? 2] || TASK_PRIORITY[2];
                   return (
-                    <div key={t.id} className="bg-gray-50 dark:bg-gray-900/30 rounded-xl p-4 cursor-pointer hover:ring-2 hover:ring-violet-300 dark:hover:ring-violet-600 transition-all" onClick={() => setSelectedTask(t)}>
+                    <div key={t.id} className={`rounded-xl p-4 cursor-pointer hover:ring-2 hover:ring-violet-300 dark:hover:ring-violet-600 transition-all ${isTaskOverdue(t) ? 'bg-red-50 dark:bg-red-900/15 ring-1 ring-red-300 dark:ring-red-700/50' : 'bg-gray-50 dark:bg-gray-900/30'}`} onClick={() => setSelectedTask(t)}>
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <div className="font-medium text-gray-800 dark:text-gray-100 line-clamp-2 flex-1">{t.title}</div>
                         <div className="flex items-center gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
@@ -2384,7 +2398,10 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                         <span className={`text-xs px-2 py-0.5 rounded-full ${ts.color}`}>{ts.label}</span>
                         <span className={`text-xs font-medium ${tp.color}`}>{tp.label}</span>
                       </div>
-                      <div className="text-xs text-gray-400">{fmt(t.dueDate || t.due_date) || '—'}</div>
+                      <div className={`text-xs ${isTaskOverdue(t) ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-gray-400'}`}>
+                        {fmt(t.dueDate || t.due_date) || '—'}
+                        {isTaskOverdue(t) && <span className="ml-1 text-[10px] uppercase">просрочена</span>}
+                      </div>
                       {(t.assignees?.length ?? 0) > 0 && (
                         <div className="mt-1 text-xs text-gray-400 truncate">{t.assignees?.map((a) => a.userName || `#${a.userId}`).join(', ')}</div>
                       )}
@@ -2418,11 +2435,16 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                         : t.createdByUser?.name || t.createdByUser?.email || '—';
                       const taskCreatedAt = t.createdAt || t.created_at;
                       return (
-                        <tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer" onClick={() => setSelectedTask(t)}>
+                        <tr key={t.id} className={`hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer ${isTaskOverdue(t) ? 'bg-red-50/70 dark:bg-red-900/10 hover:bg-red-50 dark:hover:bg-red-900/20' : ''}`} onClick={() => setSelectedTask(t)}>
                           <td className="py-2.5 px-4 font-medium text-gray-800 dark:text-gray-100">{t.title}</td>
                           <td className="py-2.5 px-4"><span className={`text-xs px-2 py-0.5 rounded-full ${ts.color}`}>{ts.label}</span></td>
                           <td className="py-2.5 px-4"><span className={`text-xs font-medium ${tp.color}`}>{tp.label}</span></td>
-                          <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{fmt(t.dueDate || t.due_date)}</td>
+                          <td className="py-2.5 px-4">
+                            <span className={isTaskOverdue(t) ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-gray-500 dark:text-gray-400'}>
+                              {fmt(t.dueDate || t.due_date)}
+                              {isTaskOverdue(t) && <span className="ml-1 text-[10px] uppercase tracking-wide">просрочена</span>}
+                            </span>
+                          </td>
                           <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400 text-xs">
                             {t.assignees?.map((a) => a.userName || `#${a.userId}`).join(', ') || '—'}
                           </td>
