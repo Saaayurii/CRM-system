@@ -11,6 +11,11 @@ export interface NavHotkey {
   modifier?: 'alt' | 'altShift' | 'ctrlAlt';
 }
 
+export function isMac(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  return /Mac|Macintosh/.test(navigator.userAgent);
+}
+
 function isTypingTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   if (target.isContentEditable) return true;
@@ -48,9 +53,13 @@ export function useNavHotkeys(items: NavHotkey[]) {
   }, [items, router]);
 }
 
-/** Human-readable label for a hotkey, e.g. "Alt+1". */
+/** Human-readable label for a hotkey — shows ⌥ symbols on macOS, Alt+ on other platforms. */
 export function hotkeyLabel(item: NavHotkey): string {
   const mod = item.modifier || 'alt';
+  if (isMac()) {
+    const sym = mod === 'alt' ? '⌥' : mod === 'altShift' ? '⌥⇧' : '⌃⌥';
+    return `${sym}${item.key.toUpperCase()}`;
+  }
   const prefix = mod === 'alt' ? 'Alt' : mod === 'altShift' ? 'Alt+Shift' : 'Ctrl+Alt';
   return `${prefix}+${item.key.toUpperCase()}`;
 }

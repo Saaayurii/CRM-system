@@ -5,9 +5,12 @@ import Link from 'next/link';
 import Transition from '@/components/ui/Transition';
 import { useAuthStore } from '@/stores/authStore';
 import HotkeyBadge from '@/components/ui/HotkeyBadge';
+import KeyboardShortcutsModal from '@/components/ui/KeyboardShortcutsModal';
+import { isMac } from '@/hooks/useNavHotkeys';
 
 export default function ProfileDropdown() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [switching, setSwitching] = useState<number | null>(null);
   const { user, logout, availableAccounts, fetchAvailableAccounts, switchCompany } = useAuthStore();
   const trigger = useRef<HTMLButtonElement>(null);
@@ -146,22 +149,35 @@ export default function ProfileDropdown() {
                   onClick={() => setDropdownOpen(false)}
                 >
                   Настройки
-                  <HotkeyBadge label="Alt+0" className="ml-auto hidden lg:inline-flex" />
+                  <HotkeyBadge label={isMac() ? '⌥0' : 'Alt+0'} className="ml-auto hidden lg:inline-flex" />
                 </Link>
               </li>
             )}
+            <li>
+              <button
+                className="font-medium text-sm text-gray-700 dark:text-gray-300 hover:text-violet-500 dark:hover:text-violet-400 flex items-center gap-2 py-1 px-3 w-full text-left"
+                onClick={() => { setDropdownOpen(false); setShortcutsOpen(true); }}
+              >
+                <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                  <rect x="2" y="6" width="20" height="13" rx="2" strokeLinecap="round" strokeLinejoin="round" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 10.5h.01M10 10.5h.01M14 10.5h.01M18 10.5h.01M8 14.5h8" />
+                </svg>
+                Горячие клавиши
+              </button>
+            </li>
             <li>
               <button
                 className="font-medium text-sm text-violet-500 hover:text-violet-600 dark:hover:text-violet-400 flex items-center py-1 px-3 w-full text-left"
                 onClick={handleLogout}
               >
                 Выйти
-                <HotkeyBadge label="Alt+Q" className="ml-auto hidden lg:inline-flex" />
+                <HotkeyBadge label={isMac() ? '⌥Q' : 'Alt+Q'} className="ml-auto hidden lg:inline-flex" />
               </button>
             </li>
           </ul>
         </div>
       </Transition>
+      <KeyboardShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
     </div>
   );
 }

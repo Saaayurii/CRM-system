@@ -6,6 +6,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import TaskFormModal from '@/components/dashboard/TaskFormModal';
+import FilterPanel from '@/components/ui/FilterPanel';
 import { useOfflineData } from '@/hooks/useOfflineData';
 import { useDownloadPdf } from '@/lib/hooks/useDownloadPdf';
 import { useTaskNotifStore } from '@/stores/taskNotifStore';
@@ -303,70 +304,21 @@ export default function TasksPage() {
       )}
 
       {/* Filters */}
-      <div className="sticky top-16 z-20 bg-white dark:bg-gray-800 shadow-sm rounded-xl p-4 mb-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Поиск по названию..."
-            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-          />
-
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-          >
-            <option value="">Все статусы</option>
-            {Object.entries(STATUS_LABELS).map(([value, { label }]) => (
-              <option key={value} value={value}>{label}</option>
-            ))}
-          </select>
-
-          <select
-            value={filterPriority}
-            onChange={(e) => setFilterPriority(e.target.value)}
-            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-          >
-            <option value="">Все приоритеты</option>
-            {Object.entries(PRIORITY_LABELS).map(([value, { label }]) => (
-              <option key={value} value={value}>{label}</option>
-            ))}
-          </select>
-
-          <select
-            value={filterProject}
-            onChange={(e) => setFilterProject(e.target.value)}
-            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-          >
-            <option value="">Все проекты</option>
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
-
-          <select
-            value={filterAssignee}
-            onChange={(e) => setFilterAssignee(e.target.value)}
-            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-          >
-            <option value="">Все исполнители</option>
-            {users.filter((u) => u.roleId !== 1).map((u) => (
-              <option key={u.id} value={u.id}>{u.name || u.email}</option>
-            ))}
-          </select>
-        </div>
-
-        {hasActiveFilters && (
-          <button
-            onClick={resetFilters}
-            className="mt-3 text-sm text-violet-500 hover:text-violet-600 font-medium"
-          >
-            Сбросить фильтры
-          </button>
-        )}
-      </div>
+      <FilterPanel
+        hasActiveFilters={!!hasActiveFilters}
+        onReset={resetFilters}
+        fields={[
+          { type: 'search', key: 'search', placeholder: 'Поиск по названию...', value: searchQuery, onChange: setSearchQuery },
+          { type: 'select', key: 'status', placeholder: 'Все статусы', value: filterStatus, onChange: setFilterStatus,
+            options: Object.entries(STATUS_LABELS).map(([v, { label }]) => ({ value: v, label })) },
+          { type: 'select', key: 'priority', placeholder: 'Все приоритеты', value: filterPriority, onChange: setFilterPriority,
+            options: Object.entries(PRIORITY_LABELS).map(([v, { label }]) => ({ value: v, label })) },
+          { type: 'select', key: 'project', placeholder: 'Все проекты', value: filterProject, onChange: setFilterProject,
+            options: projects.map((p) => ({ value: String(p.id), label: p.name })) },
+          { type: 'select', key: 'assignee', placeholder: 'Все исполнители', value: filterAssignee, onChange: setFilterAssignee,
+            options: users.filter((u) => u.roleId !== 1).map((u) => ({ value: String(u.id), label: u.name || u.email })) },
+        ]}
+      />
 
       {/* Content */}
       {loading ? (

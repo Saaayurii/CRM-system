@@ -105,7 +105,7 @@ export default function DataTable<T extends Record<string, unknown>>({
   return (
     <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl overflow-hidden">
       {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-100 dark:border-gray-700/60">
+      <div className="sticky top-16 z-10 bg-white dark:bg-gray-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-100 dark:border-gray-700/60">
         <div className="relative">
           <input
             type="search"

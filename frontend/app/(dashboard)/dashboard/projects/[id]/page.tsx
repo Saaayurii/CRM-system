@@ -726,6 +726,10 @@ const [pdfLoading, setPdfLoading] = useState(false);
   const [photoTypeFilter, setPhotoTypeFilter] = useState<'all'|'image'|'video'>('all');
   const [photoSort, setPhotoSort] = useState('default');
 
+  /* Team search */
+  const [teamGroupSearch, setTeamGroupSearch] = useState('');
+  const [employeeSearch, setEmployeeSearch] = useState('');
+
   /* Team modals */
   const [selectedTeamMember, setSelectedTeamMember] = useState<TeamMember | null>(null);
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
@@ -2308,7 +2312,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
       {activeTab === 'tasks' && (
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
           {/* Header */}
-          <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="sticky top-16 z-10 bg-white dark:bg-gray-800 px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="font-semibold text-gray-800 dark:text-gray-100 shrink-0">Задачи проекта</h2>
             <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
               {/* Search */}
@@ -2487,9 +2491,16 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
             <>
               {/* Teams section */}
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
-                <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between gap-2">
-                  <h2 className="font-semibold text-gray-800 dark:text-gray-100">Команды</h2>
-                  <div className="flex items-center gap-2">
+                <div className="sticky top-16 z-10 bg-white dark:bg-gray-800 px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex flex-wrap items-center gap-2">
+                  <h2 className="font-semibold text-gray-800 dark:text-gray-100 shrink-0">Команды</h2>
+                  <div className="relative flex-1 min-w-[140px] max-w-xs">
+                    <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <input type="text" value={teamGroupSearch} onChange={(e) => setTeamGroupSearch(e.target.value)} placeholder="Поиск..."
+                      className="w-full pl-8 pr-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-700 border-0 rounded-lg text-gray-800 dark:text-gray-200 placeholder-gray-400 focus:ring-2 focus:ring-violet-500 focus:outline-none" />
+                  </div>
+                  <div className="flex items-center gap-2 ml-auto">
                     <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
                       <button onClick={() => { setTeamViewMode('table'); localStorage.setItem('projTeamView','table'); }}
                         className={`p-1.5 rounded transition-colors ${teamViewMode==='table' ? 'bg-white dark:bg-gray-600 shadow-sm text-violet-600' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`} title="Таблица">
@@ -2510,9 +2521,13 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                     </button>
                   </div>
                 </div>
-                {teamMembers.length === 0 ? <EmptyState text="Команды не назначены" /> : teamViewMode === 'grid' ? (
+                {(() => {
+                  const filteredTeamMembers = teamGroupSearch
+                    ? teamMembers.filter((m) => (m.team?.name || m.teamName || '').toLowerCase().includes(teamGroupSearch.toLowerCase()))
+                    : teamMembers;
+                  return filteredTeamMembers.length === 0 ? <EmptyState text="Команды не найдены" /> : teamViewMode === 'grid' ? (
                   <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {teamMembers.map((m) => (
+                    {filteredTeamMembers.map((m) => (
                       <div key={m.id} className="bg-gray-50 dark:bg-gray-900/30 rounded-xl p-4 cursor-pointer hover:ring-2 hover:ring-violet-300 dark:hover:ring-violet-600 transition-all flex items-start justify-between" onClick={() => setSelectedTeamMember(m)}>
                         <div>
                           <div className="font-medium text-gray-800 dark:text-gray-100">{m.team?.name || m.teamName || `Команда #${m.teamId}`}</div>
@@ -2541,7 +2556,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
-                        {teamMembers.map((m) => (
+                        {filteredTeamMembers.map((m) => (
                           <tr key={m.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer" onClick={() => setSelectedTeamMember(m)}>
                             <td className="py-2.5 px-4 text-gray-800 dark:text-gray-100">{m.team?.name || m.teamName || `Команда #${m.teamId}`}</td>
                             <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{fmt(m.assignedAt)}</td>
@@ -2562,14 +2577,22 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                       </tbody>
                     </table>
                   </div>
-                )}
+                  );
+                })()}
               </div>
 
               {/* Employees section */}
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
-                <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between gap-2">
-                  <h2 className="font-semibold text-gray-800 dark:text-gray-100">Сотрудники</h2>
-                  <div className="flex items-center gap-2">
+                <div className="sticky top-16 z-10 bg-white dark:bg-gray-800 px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex flex-wrap items-center gap-2">
+                  <h2 className="font-semibold text-gray-800 dark:text-gray-100 shrink-0">Сотрудники</h2>
+                  <div className="relative flex-1 min-w-[140px] max-w-xs">
+                    <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <input type="text" value={employeeSearch} onChange={(e) => setEmployeeSearch(e.target.value)} placeholder="Поиск..."
+                      className="w-full pl-8 pr-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-700 border-0 rounded-lg text-gray-800 dark:text-gray-200 placeholder-gray-400 focus:ring-2 focus:ring-violet-500 focus:outline-none" />
+                  </div>
+                  <div className="flex items-center gap-2 ml-auto">
                     <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
                       <button onClick={() => { setTeamViewMode('table'); localStorage.setItem('projTeamView','table'); }}
                         className={`p-1.5 rounded transition-colors ${teamViewMode==='table' ? 'bg-white dark:bg-gray-600 shadow-sm text-violet-600' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`} title="Таблица">
@@ -2590,9 +2613,13 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                     </button>
                   </div>
                 </div>
-                {assignments.length === 0 ? <EmptyState text="Сотрудники не назначены" /> : teamViewMode === 'grid' ? (
+                {(() => {
+                  const filteredAssignments = employeeSearch
+                    ? assignments.filter((a) => (a.userName || a.userEmail || '').toLowerCase().includes(employeeSearch.toLowerCase()))
+                    : assignments;
+                  return filteredAssignments.length === 0 ? <EmptyState text="Сотрудники не найдены" /> : teamViewMode === 'grid' ? (
                   <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {assignments.map((a) => {
+                    {filteredAssignments.map((a) => {
                       const isOnline = onlineUsers.has(a.userId);
                       return (
                         <div key={a.id} className="bg-gray-50 dark:bg-gray-900/30 rounded-xl p-4 cursor-pointer hover:ring-2 hover:ring-violet-300 dark:hover:ring-violet-600 transition-all flex items-start justify-between" onClick={() => setSelectedAssignment(a)}>
@@ -2629,7 +2656,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
-                        {assignments.map((a) => {
+                        {filteredAssignments.map((a) => {
                           const isOnline = onlineUsers.has(a.userId);
                           return (
                           <tr key={a.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer" onClick={() => setSelectedAssignment(a)}>
@@ -2660,7 +2687,8 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                       </tbody>
                     </table>
                   </div>
-                )}
+                  );
+                })()}
               </div>
             </>
           )}
@@ -2671,7 +2699,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
       {activeTab === 'documents' && (
         <div className="space-y-4">
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="sticky top-16 z-10 bg-white dark:bg-gray-800 px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="font-semibold text-gray-800 dark:text-gray-100 shrink-0">Документы проекта</h2>
             <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
               {/* Search */}

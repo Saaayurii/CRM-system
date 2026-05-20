@@ -7,6 +7,7 @@ import DocumentFormModal from '@/components/dashboard/DocumentFormModal';
 import FilePreviewModal from '@/components/ui/FilePreviewModal';
 import { normalizeFileUrl } from '@/lib/utils';
 import { useDownloadPdf } from '@/lib/hooks/useDownloadPdf';
+import FilterPanel from '@/components/ui/FilterPanel';
 
 interface Document {
   id: number;
@@ -227,49 +228,23 @@ export default function DocumentsPage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-4 mb-6">
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="flex-1">
-            <input
-              type="text"
-              placeholder="Поиск по названию..."
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-            />
-          </div>
-          <select
-            value={typeFilter}
-            onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
-            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-          >
-            <option value="">Все типы</option>
-            {Object.entries(typeLabels).map(([key, label]) => (
-              <option key={key} value={key}>{label}</option>
-            ))}
-          </select>
-          <select
-            value={statusFilter}
-            onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-          >
-            <option value="">Все статусы</option>
-            {Object.entries(statusLabels).map(([key, label]) => (
-              <option key={key} value={key}>{label}</option>
-            ))}
-          </select>
-          <select
-            value={projectFilter}
-            onChange={(e) => { setProjectFilter(e.target.value); setPage(1); }}
-            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-          >
-            <option value="">Все проекты</option>
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
-        </div>
-      </div>
+      <FilterPanel
+        hasActiveFilters={!!(search || typeFilter || statusFilter || projectFilter)}
+        onReset={() => { setSearch(''); setTypeFilter(''); setStatusFilter(''); setProjectFilter(''); setPage(1); }}
+        fields={[
+          { type: 'search', key: 'search', placeholder: 'Поиск по названию...', value: search,
+            onChange: (v) => { setSearch(v); setPage(1); } },
+          { type: 'select', key: 'type', placeholder: 'Все типы', value: typeFilter,
+            onChange: (v) => { setTypeFilter(v); setPage(1); },
+            options: Object.entries(typeLabels).map(([k, label]) => ({ value: k, label })) },
+          { type: 'select', key: 'status', placeholder: 'Все статусы', value: statusFilter,
+            onChange: (v) => { setStatusFilter(v); setPage(1); },
+            options: Object.entries(statusLabels).map(([k, label]) => ({ value: k, label })) },
+          { type: 'select', key: 'project', placeholder: 'Все проекты', value: projectFilter,
+            onChange: (v) => { setProjectFilter(v); setPage(1); },
+            options: projects.map((p) => ({ value: String(p.id), label: p.name })) },
+        ]}
+      />
 
       {/* Content */}
       <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl overflow-hidden">

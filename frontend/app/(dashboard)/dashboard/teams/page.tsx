@@ -6,6 +6,7 @@ import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import CreateTeamModal from '@/components/dashboard/CreateTeamModal';
 import { useDownloadPdf } from '@/lib/hooks/useDownloadPdf';
+import FilterPanel from '@/components/ui/FilterPanel';
 
 interface TeamMember {
   id: number;        // teamMember record ID
@@ -141,6 +142,11 @@ export default function TeamsPage() {
   const [confirmDeleteTeam, setConfirmDeleteTeam] = useState<Team | null>(null);
   const [deleting, setDeleting] = useState(false);
   const addToast = useToastStore((s) => s.addToast);
+  const [teamSearch, setTeamSearch] = useState('');
+
+  const filteredTeams = teams.filter((t) =>
+    !teamSearch || t.name.toLowerCase().includes(teamSearch.toLowerCase()) || (t.description || '').toLowerCase().includes(teamSearch.toLowerCase())
+  );
 
   const fetchTeams = useCallback(async () => {
     try {
@@ -279,15 +285,25 @@ export default function TeamsPage() {
         </div>
       </div>
 
+      <FilterPanel
+        hasActiveFilters={!!teamSearch}
+        onReset={() => setTeamSearch('')}
+        fields={[
+          { type: 'search', key: 'search', placeholder: 'Поиск по названию команды...', value: teamSearch, onChange: setTeamSearch },
+        ]}
+      />
+
       {loading ? (
         <div className="p-8 text-center text-gray-500 dark:text-gray-400">Загрузка...</div>
       ) : error ? (
         <div className="p-8 text-center text-red-500">{error}</div>
-      ) : teams.length === 0 ? (
-        <div className="p-8 text-center text-gray-500 dark:text-gray-400">Команды не найдены</div>
+      ) : filteredTeams.length === 0 ? (
+        <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+          {teamSearch ? 'Команды не найдены по запросу' : 'Команды не найдены'}
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {teams.map((team) => (
+          {filteredTeams.map((team) => (
             <div key={team.id} className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-5">
               {/* Header */}
               <div className="flex items-start justify-between mb-3">

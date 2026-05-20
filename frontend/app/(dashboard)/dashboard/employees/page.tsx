@@ -6,6 +6,7 @@ import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { useToastStore } from '@/stores/toastStore';
 import EmployeeFormModal from '@/components/dashboard/EmployeeFormModal';
+import FilterPanel from '@/components/ui/FilterPanel';
 import { useDownloadPdf } from '@/lib/hooks/useDownloadPdf';
 
 interface Employee {
@@ -250,6 +251,18 @@ export default function EmployeesPage() {
 
   const canEdit = [1, 2].includes(currentUser?.roleId ?? 0);
 
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterRole, setFilterRole] = useState('');
+
+  const filteredEmployees = employees.filter((e) => {
+    const roleId = e.roleId ?? e.role_id ?? 0;
+    if (searchQuery && !((e.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || e.email.toLowerCase().includes(searchQuery.toLowerCase()))) return false;
+    if (filterRole && String(roleId) !== filterRole) return false;
+    return true;
+  });
+
+  const hasActiveFilters = searchQuery || filterRole;
+
   const handleViewMode = (mode: ViewMode) => {
     setViewMode(mode);
     localStorage.setItem('dashViewMode', mode);
@@ -335,12 +348,24 @@ export default function EmployeesPage() {
         </div>
       </div>
 
+      <FilterPanel
+        hasActiveFilters={!!hasActiveFilters}
+        onReset={() => { setSearchQuery(''); setFilterRole(''); }}
+        fields={[
+          { type: 'search', key: 'search', placeholder: 'Поиск по имени или email...', value: searchQuery, onChange: setSearchQuery },
+          { type: 'select', key: 'role', placeholder: 'Все роли', value: filterRole, onChange: setFilterRole,
+            options: Object.entries(ROLE_NAMES).filter(([k]) => k !== '1').map(([v, label]) => ({ value: v, label })) },
+        ]}
+      />
+
       {loading ? (
         <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-8 text-center text-gray-500 dark:text-gray-400">Загрузка...</div>
       ) : error ? (
         <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-8 text-center text-red-500">{error}</div>
-      ) : employees.length === 0 ? (
-        <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-8 text-center text-gray-500 dark:text-gray-400">Сотрудники не найдены</div>
+      ) : filteredEmployees.length === 0 ? (
+        <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-8 text-center text-gray-500 dark:text-gray-400">
+          {hasActiveFilters ? 'Сотрудники не найдены по заданным фильтрам' : 'Сотрудники не найдены'}
+        </div>
       ) : viewMode === 'table' ? (
         <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
@@ -355,7 +380,7 @@ export default function EmployeesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
-                {employees.map((e) => {
+                {filteredEmployees.map((e) => {
                   const active = e.isActive ?? e.is_active ?? true;
                   const roleName = e.role?.name || ROLE_NAMES[e.roleId || e.role_id || 0] || '—';
                   return (
@@ -415,7 +440,7 @@ export default function EmployeesPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {employees.map((e) => {
+          {filteredEmployees.map((e) => {
             const active = e.isActive ?? e.is_active ?? true;
             const roleName = e.role?.name || ROLE_NAMES[e.roleId || e.role_id || 0] || '—';
             return (

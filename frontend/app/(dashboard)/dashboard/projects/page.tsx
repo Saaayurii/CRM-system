@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import ProjectFormModal from '@/components/dashboard/ProjectFormModal';
+import FilterPanel from '@/components/ui/FilterPanel';
 import { useOfflineData } from '@/hooks/useOfflineData';
 import { useDownloadPdf } from '@/lib/hooks/useDownloadPdf';
 
@@ -74,8 +75,19 @@ export default function ProjectsPage() {
     localStorage.setItem('dashViewMode', mode);
   };
 
-  const { data: projects, loading, error, isFromCache, cachedAt, refetch } =
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+
+  const { data: rawProjects, loading, error, isFromCache, cachedAt, refetch } =
     useOfflineData<Project[]>(fetchProjects, 'projects-page');
+
+  const projects = (rawProjects ?? []).filter((p) => {
+    if (searchQuery && !p.name.toLowerCase().includes(searchQuery.toLowerCase()) && !(p.code || '').toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    if (filterStatus && String(p.status) !== filterStatus) return false;
+    return true;
+  });
+
+  const hasActiveFilters = searchQuery || filterStatus;
 
   const handleRowClick = (project: Project) => {
     router.push(`/dashboard/projects/${project.id}`);
@@ -198,12 +210,24 @@ export default function ProjectsPage() {
         </div>
       )}
 
+      <FilterPanel
+        hasActiveFilters={!!hasActiveFilters}
+        onReset={() => { setSearchQuery(''); setFilterStatus(''); }}
+        fields={[
+          { type: 'search', key: 'search', placeholder: 'Поиск по названию или коду...', value: searchQuery, onChange: setSearchQuery },
+          { type: 'select', key: 'status', placeholder: 'Все статусы', value: filterStatus, onChange: setFilterStatus,
+            options: Object.entries(STATUS_LABELS).map(([v, { label }]) => ({ value: v, label })) },
+        ]}
+      />
+
       {loading ? (
         <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-8 text-center text-gray-500 dark:text-gray-400">Загрузка...</div>
       ) : error ? (
         <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-8 text-center text-red-500">{error}</div>
-      ) : !projects || projects.length === 0 ? (
-        <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-8 text-center text-gray-500 dark:text-gray-400">Проекты не найдены</div>
+      ) : projects.length === 0 ? (
+        <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-8 text-center text-gray-500 dark:text-gray-400">
+          {hasActiveFilters ? 'Проекты не найдены по заданным фильтрам' : 'Проекты не найдены'}
+        </div>
       ) : viewMode === 'table' ? (
         <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl overflow-hidden">
           <div className="overflow-x-auto">

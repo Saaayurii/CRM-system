@@ -13,6 +13,7 @@ export default function HotkeyBadge({
 }) {
   return (
     <kbd
+      suppressHydrationWarning
       className={`items-center justify-center px-1.5 py-0.5 text-[10px] font-mono font-medium leading-none rounded border border-gray-200 dark:border-gray-700/60 bg-gray-50 dark:bg-gray-900/40 text-gray-500 dark:text-gray-400 select-none ${className}`}
       title={`Горячая клавиша: ${label}`}
     >
