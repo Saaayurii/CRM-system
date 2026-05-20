@@ -9,9 +9,14 @@ import FilePreviewModal from '@/components/ui/FilePreviewModal';
 import { normalizeFileUrl } from '@/lib/utils';
 
 const IMAGE_EXTS = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'avif']);
+const VIDEO_EXTS = new Set(['mp4', 'webm', 'mov', 'avi', 'mkv', 'ogv', 'm4v']);
 function isImageFile(a: Attachment): boolean {
   const ext = (a.fileUrl || '').split('?')[0].split('.').pop()?.toLowerCase() || '';
   return IMAGE_EXTS.has(ext) || (a.mimeType || '').startsWith('image/');
+}
+function isVideoFile(a: Attachment): boolean {
+  const ext = (a.fileUrl || '').split('?')[0].split('.').pop()?.toLowerCase() || '';
+  return VIDEO_EXTS.has(ext) || (a.mimeType || '').startsWith('video/');
 }
 
 interface Attachment {
@@ -1549,19 +1554,55 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
                             <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap break-words">{text}</p>
                           )}
                           {att.length > 0 && !isEditing && (
-                            <div className="flex flex-wrap gap-2 mt-1.5">
-                              {att.map((a, i) => (
-                                <button
-                                  key={i}
-                                  onClick={() => setPreviewFile({ url: a.fileUrl, name: a.fileName })}
-                                  className="flex items-center gap-1 text-xs text-violet-500 hover:underline"
-                                >
-                                  <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                                  </svg>
-                                  {a.fileName}
-                                </button>
-                              ))}
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {att.map((a, i) => {
+                                const isImg = isImageFile(a);
+                                const isVid = isVideoFile(a);
+                                const thumbUrl = (isImg || isVid) ? normalizeFileUrl(a.fileUrl) : null;
+                                if (isImg && thumbUrl) {
+                                  return (
+                                    <button
+                                      key={i}
+                                      onClick={() => setPreviewFile({ url: a.fileUrl, name: a.fileName })}
+                                      title={a.fileName}
+                                      className="group/img relative block rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 hover:ring-2 hover:ring-violet-400 transition-all"
+                                      style={{ maxWidth: 200, maxHeight: 160 }}
+                                    >
+                                      <img src={thumbUrl} alt={a.fileName} className="max-w-[200px] max-h-[160px] object-cover" />
+                                    </button>
+                                  );
+                                }
+                                if (isVid && thumbUrl) {
+                                  return (
+                                    <button
+                                      key={i}
+                                      onClick={() => setPreviewFile({ url: a.fileUrl, name: a.fileName })}
+                                      title={a.fileName}
+                                      className="group/vid relative block rounded-lg overflow-hidden bg-black hover:ring-2 hover:ring-violet-400 transition-all"
+                                      style={{ maxWidth: 200 }}
+                                    >
+                                      <video src={thumbUrl} className="max-w-[200px] max-h-[160px] object-cover" preload="metadata" />
+                                      <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover/vid:bg-black/10 transition-colors">
+                                        <svg className="w-10 h-10 text-white/90" fill="currentColor" viewBox="0 0 24 24">
+                                          <path d="M8 5v14l11-7z" />
+                                        </svg>
+                                      </div>
+                                    </button>
+                                  );
+                                }
+                                return (
+                                  <button
+                                    key={i}
+                                    onClick={() => setPreviewFile({ url: a.fileUrl, name: a.fileName })}
+                                    className="flex items-center gap-1.5 px-2 py-1 text-xs text-violet-500 hover:underline bg-gray-50 dark:bg-gray-800/60 rounded-md"
+                                  >
+                                    <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                                    </svg>
+                                    <span className="truncate max-w-[200px]">{a.fileName}</span>
+                                  </button>
+                                );
+                              })}
                             </div>
                           )}
                         </div>
