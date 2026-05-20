@@ -804,7 +804,12 @@ function TaskCard({ id, title, status, priority, dueDate, isOwn }: {
   return (
     <Link
       href={`/dashboard/tasks?edit=${id}`}
-      onClick={(e) => e.stopPropagation()}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (typeof window !== 'undefined' && window.location.pathname.startsWith('/dashboard/chat')) {
+          try { sessionStorage.setItem('taskBackTo', window.location.pathname + window.location.search); } catch {}
+        }
+      }}
       className={`mt-1.5 flex flex-col gap-1.5 rounded-xl p-2.5 border transition-colors no-underline ${
         isOwn
           ? 'bg-white/10 hover:bg-white/20 border-white/20'
@@ -934,7 +939,12 @@ function renderText(text: string, isOwn: boolean, highlightQuery?: string) {
           <Link
             key={match.index}
             href={`/dashboard/tasks?edit=${id}`}
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (typeof window !== 'undefined' && window.location.pathname.startsWith('/dashboard/chat')) {
+                try { sessionStorage.setItem('taskBackTo', window.location.pathname + window.location.search); } catch {}
+              }
+            }}
             className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium transition-colors ${
               isOwn
                 ? 'bg-white/20 hover:bg-white/30 text-white'

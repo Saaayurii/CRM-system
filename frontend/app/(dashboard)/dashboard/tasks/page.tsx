@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import TaskFormModal from '@/components/dashboard/TaskFormModal';
@@ -79,6 +79,14 @@ function formatDate(d?: string): string {
   return new Date(d).toLocaleDateString('ru-RU');
 }
 
+function isTaskOverdue(t: Task): boolean {
+  const due = t.dueDate || t.due_date;
+  if (!due) return false;
+  // Done(4) и Cancelled(5) не считаются просроченными
+  if (t.status === 4 || t.status === 5) return false;
+  return new Date(due).getTime() < Date.now();
+}
+
 async function fetchTasksPageData(): Promise<TasksPageData> {
   const [tasksRes, projectsRes, usersRes] = await Promise.all([
     api.get('/tasks'),
@@ -98,9 +106,11 @@ export default function TasksPage() {
   const addToast = useToastStore((s) => s.addToast);
   const { download: downloadPdf, loading: pdfLoading } = useDownloadPdf();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const markTasksRead = useTaskNotifStore((s) => s.markRead);
   const [showModal, setShowModal] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [openedFromChat, setOpenedFromChat] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     if (typeof window !== 'undefined') {
@@ -137,18 +147,34 @@ export default function TasksPage() {
     if (task) {
       setEditingTask(task);
       setShowModal(true);
+      try {
+        if (typeof window !== 'undefined' && sessionStorage.getItem('taskBackTo')) {
+          setOpenedFromChat(true);
+        }
+      } catch {}
     }
   }, [tasks, searchParams]);
 
   const filteredTasks = useMemo(() => {
-    return tasks.filter((t) => {
+    const filtered = tasks.filter((t) => {
       if (searchQuery && !t.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
       if (filterStatus && String(t.status) !== filterStatus) return false;
       if (filterPriority && String(t.priority) !== filterPriority) return false;
       if (filterProject && String(t.projectId || t.project_id) !== filterProject) return false;
-      const assignedId = t.assignedToUserId || t.assigned_to_user_id;
-      if (filterAssignee && String(assignedId) !== filterAssignee) return false;
+      if (filterAssignee) {
+        const single = t.assignedToUserId || t.assigned_to_user_id;
+        const inAssignees = (t.assignees || []).some((a) => String(a.userId) === filterAssignee);
+        if (String(single) !== filterAssignee && !inAssignees) return false;
+      }
       return true;
+    });
+    return [...filtered].sort((a, b) => {
+      const aOverdue = isTaskOverdue(a);
+      const bOverdue = isTaskOverdue(b);
+      if (aOverdue !== bOverdue) return aOverdue ? -1 : 1;
+      const aDate = a.createdAt || a.created_at || '';
+      const bDate = b.createdAt || b.created_at || '';
+      return new Date(bDate).getTime() - new Date(aDate).getTime();
     });
   }, [tasks, searchQuery, filterStatus, filterPriority, filterProject, filterAssignee]);
 
@@ -277,7 +303,7 @@ export default function TasksPage() {
       )}
 
       {/* Filters */}
-      <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-4 mb-4">
+      <div className="sticky top-16 z-20 bg-white dark:bg-gray-800 shadow-sm rounded-xl p-4 mb-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           <input
             type="text"
@@ -395,7 +421,7 @@ export default function TasksPage() {
                   return (
                     <tr
                       key={t.id}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer"
+                      className={`hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer ${isTaskOverdue(t) ? 'bg-red-50/70 dark:bg-red-900/10 hover:bg-red-50 dark:hover:bg-red-900/20' : ''}`}
                       onClick={() => handleEdit(t)}
                     >
                       <td className="py-2.5 px-4 font-medium text-gray-800 dark:text-gray-100">{t.title}</td>
@@ -419,8 +445,11 @@ export default function TasksPage() {
                           </div>
                         )}
                       </td>
-                      <td className="py-2.5 px-4 text-gray-600 dark:text-gray-400">
-                        {formatDate(t.dueDate || t.due_date)}
+                      <td className="py-2.5 px-4">
+                        <span className={isTaskOverdue(t) ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-gray-600 dark:text-gray-400'}>
+                          {formatDate(t.dueDate || t.due_date)}
+                          {isTaskOverdue(t) && <span className="ml-1 text-[10px] uppercase tracking-wide">просрочена</span>}
+                        </span>
                       </td>
                       <td className="py-2.5 px-4 text-center" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-center gap-1">
@@ -485,7 +514,7 @@ export default function TasksPage() {
               : creatorUser?.name || creatorUser?.email || 'Система';
             const createdAt = t.createdAt || t.created_at;
             return (
-              <div key={t.id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex flex-col gap-3 hover:shadow-md transition-shadow">
+              <div key={t.id} className={`border rounded-xl p-4 flex flex-col gap-3 hover:shadow-md transition-shadow ${isTaskOverdue(t) ? 'bg-red-50/70 dark:bg-red-900/10 border-red-300 dark:border-red-700/60' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'}`}>
                 <div
                   className="font-semibold text-gray-800 dark:text-gray-100 cursor-pointer hover:text-violet-600 dark:hover:text-violet-400"
                   onClick={() => handleEdit(t)}
@@ -505,7 +534,10 @@ export default function TasksPage() {
                   </div>
                   <div>
                     <dt className="text-xs text-gray-400 dark:text-gray-500">Срок</dt>
-                    <dd className="text-xs text-gray-700 dark:text-gray-300">{formatDate(t.dueDate || t.due_date)}</dd>
+                    <dd className={`text-xs ${isTaskOverdue(t) ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-gray-700 dark:text-gray-300'}`}>
+                      {formatDate(t.dueDate || t.due_date)}
+                      {isTaskOverdue(t) && <span className="ml-1 text-[10px] uppercase">просрочена</span>}
+                    </dd>
                   </div>
                   <div className="col-span-2">
                     <dt className="text-xs text-gray-400 dark:text-gray-500">Исполнитель</dt>
@@ -546,6 +578,17 @@ export default function TasksPage() {
           onClose={() => {
             setShowModal(false);
             setEditingTask(null);
+            if (openedFromChat) {
+              try {
+                const backTo = sessionStorage.getItem('taskBackTo');
+                sessionStorage.removeItem('taskBackTo');
+                setOpenedFromChat(false);
+                if (backTo) {
+                  router.push(backTo);
+                  return;
+                }
+              } catch {}
+            }
           }}
           onSaved={handleSaved}
         />

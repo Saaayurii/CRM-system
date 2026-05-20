@@ -12,7 +12,7 @@ const nextConfig: NextConfig = {
   experimental: {
     serverActions: {
       bodySizeLimit: '50mb',
-    },
+    }, 
   },
   // Silence Turbopack warning — no webpack plugins needed
   turbopack: {},

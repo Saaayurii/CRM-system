@@ -1,11 +1,18 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, useLayoutEffect } from 'react';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useTaskNotifStore } from '@/stores/taskNotifStore';
 import FilePreviewModal from '@/components/ui/FilePreviewModal';
+import { normalizeFileUrl } from '@/lib/utils';
+
+const IMAGE_EXTS = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'avif']);
+function isImageFile(a: Attachment): boolean {
+  const ext = (a.fileUrl || '').split('?')[0].split('.').pop()?.toLowerCase() || '';
+  return IMAGE_EXTS.has(ext) || (a.mimeType || '').startsWith('image/');
+}
 
 interface Attachment {
   fileName: string;
@@ -18,6 +25,13 @@ interface ChecklistItem {
   id: string;
   text: string;
   checked: boolean;
+  // Workflow: 0=new, 1=in_progress, 2=pending_approval, 3=done, 4=rejected
+  status?: number;
+  completedBy?: number;
+  completedByName?: string;
+  completedAt?: string;
+  approvedBy?: number;
+  approvedAt?: string;
 }
 
 interface ChecklistGroup {
@@ -78,6 +92,29 @@ const PRIORITY_OPTIONS = [
   { value: 3, label: 'Высокий',     activeCls: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300' },
   { value: 4, label: 'Критический', activeCls: 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300' },
 ];
+
+// Subtask workflow statuses
+// 0=new, 1=in_progress, 2=pending_approval, 3=done, 4=rejected
+const SUBTASK_STATUS = {
+  NEW: 0,
+  IN_PROGRESS: 1,
+  PENDING_APPROVAL: 2,
+  DONE: 3,
+  REJECTED: 4,
+} as const;
+
+const SUBTASK_STATUS_LABELS: Record<number, { label: string; bg: string; text: string }> = {
+  0: { label: 'Новая',          bg: 'bg-gray-300 dark:bg-gray-600',  text: 'text-gray-600 dark:text-gray-300' },
+  1: { label: 'В работе',       bg: 'bg-violet-400 dark:bg-violet-500', text: 'text-violet-700 dark:text-violet-300' },
+  2: { label: 'На утверждении', bg: 'bg-yellow-400 dark:bg-yellow-500', text: 'text-yellow-700 dark:text-yellow-300' },
+  3: { label: 'Выполнена',      bg: 'bg-green-500 dark:bg-green-500',   text: 'text-green-700 dark:text-green-300' },
+  4: { label: 'Отклонена',      bg: 'bg-red-400 dark:bg-red-500',       text: 'text-red-700 dark:text-red-300' },
+};
+
+function getItemStatus(item: ChecklistItem): number {
+  if (typeof item.status === 'number') return item.status;
+  return item.checked ? SUBTASK_STATUS.DONE : SUBTASK_STATUS.NEW;
+}
 
 function uid() {
   return Math.random().toString(36).slice(2, 10);
@@ -256,6 +293,31 @@ interface TaskFormModalProps {
   onSaved: () => void;
 }
 
+function AutoResizeTextarea({ value, onChange, className, placeholder }: {
+  value: string;
+  onChange: (v: string) => void;
+  className?: string;
+  placeholder?: string;
+}) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  useLayoutEffect(() => {
+    if (ref.current) {
+      ref.current.style.height = 'auto';
+      ref.current.style.height = ref.current.scrollHeight + 'px';
+    }
+  }, [value]);
+  return (
+    <textarea
+      ref={ref}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      rows={1}
+      className={className}
+      placeholder={placeholder}
+    />
+  );
+}
+
 export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalProps) {
   const { user } = useAuthStore();
   const addToast = useToastStore((s) => s.addToast);
@@ -267,7 +329,7 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
   const [title, setTitle] = useState(task?.title || '');
   const [description, setDescription] = useState(task?.description || '');
   const [status, setStatus] = useState<number>(task?.status ?? 0);
-  const [priority, setPriority] = useState<number>(task?.priority ?? 2);
+  const [priority, setPriority] = useState<number>(task?.priority ?? 1);
   const [dueDate, setDueDate] = useState(task?.dueDate?.split('T')[0] || task?.due_date?.split('T')[0] || '');
   const [projectId, setProjectId] = useState(String(task?.projectId || task?.project_id || ''));
   const [constructionSiteId, setConstructionSiteId] = useState(String(task?.constructionSiteId || task?.construction_site_id || ''));
@@ -294,9 +356,13 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
 
   // Comments
   const [comments, setComments] = useState<TaskComment[]>([]);
+  const [hideSystemMessages, setHideSystemMessages] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [commentAttachments, setCommentAttachments] = useState<Attachment[]>([]);
   const [sendingComment, setSendingComment] = useState(false);
+  const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
+  const [editingCommentText, setEditingCommentText] = useState('');
+  const [savingEditComment, setSavingEditComment] = useState(false);
 
   // Attachments
   const [attachments, setAttachments] = useState<Attachment[]>(() => parseAttachments(task?.attachments));
@@ -389,9 +455,13 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
     });
   };
 
+  const canSave = title.trim().length > 0 && projectId !== '' && assignees.length > 0;
+
   // ---- Save task ----
   const handleSave = async () => {
     if (!title.trim()) { addToast('error', 'Введите название задачи'); return; }
+    if (!projectId) { addToast('error', 'Выберите проект'); return; }
+    if (assignees.length === 0) { addToast('error', 'Назначьте хотя бы одного ответственного'); return; }
     setSaving(true);
     try {
       const filteredAttachments = attachments.filter((a) => a.fileUrl && a.fileName);
@@ -408,10 +478,23 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
         customFields: { checklists },
       };
       if (isNew) {
-        const res = await api.post('/tasks', payload);
+        // Step 1: create the task WITHOUT checklists/attachments to avoid backend rejection
+        const basePayload: Record<string, unknown> = { ...payload };
+        delete basePayload.customFields;
+        delete basePayload.attachments;
+        const res = await api.post('/tasks', basePayload);
         const newId = res.data?.id;
-        if (newId && assignees.length > 0) {
+        if (!newId) throw new Error('Не удалось получить id новой задачи');
+        // Step 2: assignees
+        if (assignees.length > 0) {
           await api.post(`/tasks/${newId}/assignees`, { assignees });
+        }
+        // Step 3: separate PUT for checklists + attachments (only if any)
+        if (checklists.length > 0 || filteredAttachments.length > 0) {
+          await api.put(`/tasks/${newId}`, {
+            customFields: { checklists },
+            attachments: filteredAttachments,
+          });
         }
         addToast('success', 'Задача создана');
       } else {
@@ -443,6 +526,9 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
       });
       const newComment: TaskComment = res.data;
       setComments((prev) => [...prev, newComment]);
+      if (commentAttachments.length > 0) {
+        setAttachments((prev) => [...prev, ...commentAttachments]);
+      }
       setCommentText('');
       setCommentAttachments([]);
     } catch (err: any) {
@@ -459,6 +545,34 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
       setComments((prev) => prev.filter((c) => c.id !== commentId));
     } catch {
       addToast('error', 'Ошибка удаления комментария');
+    }
+  };
+
+  // ---- Edit comment ----
+  const startEditComment = (c: TaskComment) => {
+    setEditingCommentId(c.id);
+    setEditingCommentText(c.commentText || (c as any).content || '');
+  };
+
+  const cancelEditComment = () => {
+    setEditingCommentId(null);
+    setEditingCommentText('');
+  };
+
+  const saveEditComment = async (commentId: number) => {
+    if (!editingCommentText.trim()) return;
+    setSavingEditComment(true);
+    try {
+      await api.put(`/task-comments/${commentId}`, { commentText: editingCommentText.trim() });
+      setComments((prev) => prev.map((c) =>
+        c.id === commentId ? { ...c, commentText: editingCommentText.trim() } : c
+      ));
+      setEditingCommentId(null);
+      setEditingCommentText('');
+    } catch {
+      addToast('error', 'Ошибка редактирования комментария');
+    } finally {
+      setSavingEditComment(false);
     }
   };
 
@@ -502,8 +616,148 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
     updateChecklists((prev) => prev.map((g) => g.id === gid ? { ...g, items: g.items.filter((i) => i.id !== iid) } : g));
   const updateItemText = (gid: string, iid: string, text: string) =>
     updateChecklists((prev) => prev.map((g) => g.id === gid ? { ...g, items: g.items.map((i) => i.id === iid ? { ...i, text } : i) } : g));
-  const toggleItem = (gid: string, iid: string) =>
-    updateChecklists((prev) => prev.map((g) => g.id === gid ? { ...g, items: g.items.map((i) => i.id === iid ? { ...i, checked: !i.checked } : i) } : g));
+  // Workflow: click sends to pending_approval; from done/rejected back to new
+  const toggleItem = (gid: string, iid: string) => {
+    const g = checklists.find((g) => g.id === gid);
+    const item = g?.items.find((i) => i.id === iid);
+    if (!item) return;
+    const cur = getItemStatus(item);
+    let nextStatus: number;
+    if (cur === SUBTASK_STATUS.DONE || cur === SUBTASK_STATUS.REJECTED) {
+      nextStatus = SUBTASK_STATUS.NEW;
+    } else {
+      nextStatus = SUBTASK_STATUS.PENDING_APPROVAL;
+    }
+    setSubtaskStatus(gid, iid, nextStatus);
+  };
+
+  const setSubtaskStatus = (gid: string, iid: string, newStatus: number) => {
+    const g = checklists.find((g) => g.id === gid);
+    const item = g?.items.find((i) => i.id === iid);
+    if (!item) return;
+    const oldStatus = getItemStatus(item);
+    if (oldStatus === newStatus) return;
+    const nowIso = new Date().toISOString();
+    const actorName = user ? userName({ id: Number(user.id), email: user.email || '', firstName: (user as any).firstName, lastName: (user as any).lastName, name: (user as any).name } as User) : 'Пользователь';
+    let allItemsAfter: ChecklistItem[] = [];
+    updateChecklists((prev) => {
+      const next = prev.map((g) => g.id === gid ? {
+        ...g,
+        items: g.items.map((i) => {
+          if (i.id !== iid) return i;
+          const updated: ChecklistItem = { ...i, status: newStatus, checked: newStatus === SUBTASK_STATUS.DONE };
+          if (newStatus === SUBTASK_STATUS.PENDING_APPROVAL) {
+            updated.completedBy = user ? Number(user.id) : undefined;
+            updated.completedByName = actorName;
+            updated.completedAt = nowIso;
+          }
+          if (newStatus === SUBTASK_STATUS.DONE) {
+            updated.approvedBy = user ? Number(user.id) : undefined;
+            updated.approvedAt = nowIso;
+          }
+          if (newStatus === SUBTASK_STATUS.NEW) {
+            updated.completedBy = undefined;
+            updated.completedByName = undefined;
+            updated.completedAt = undefined;
+            updated.approvedBy = undefined;
+            updated.approvedAt = undefined;
+          }
+          return updated;
+        }),
+      } : g);
+      allItemsAfter = next.flatMap((g) => g.items);
+      return next;
+    });
+    // Sync main task status (deferred until next tick to ensure state propagation)
+    setTimeout(() => syncMainStatusFromSubtasks(allItemsAfter), 0);
+    // System message in task chat (only for existing tasks)
+    if (task?.id && item.text && !suppressSystemRef.current) {
+      const labelMap: Record<number, string> = {
+        [SUBTASK_STATUS.PENDING_APPROVAL]: 'отправлена на утверждение',
+        [SUBTASK_STATUS.DONE]: 'выполнена',
+        [SUBTASK_STATUS.REJECTED]: 'отклонена',
+        [SUBTASK_STATUS.NEW]: 'возвращена в работу',
+      };
+      const verb = labelMap[newStatus];
+      if (verb) {
+        postSystemComment(`Подзадача «${item.text}» ${verb} — ${actorName}`);
+      }
+    }
+  };
+
+  const suppressSystemRef = useRef(false);
+
+  const postSystemComment = async (text: string) => {
+    if (!task?.id) return;
+    try {
+      const res = await api.post('/task-comments', {
+        taskId: task.id,
+        commentText: `__system__:${text}`,
+        attachments: [],
+      });
+      const newComment: TaskComment = res.data;
+      setComments((prev) => [...prev, newComment]);
+    } catch {/* ignore */}
+  };
+
+  // Permission: can approve/reject subtasks
+  // Sync main task status from subtasks aggregate
+  // All DONE → status 4; all PENDING_APPROVAL → status 3
+  const syncMainStatusFromSubtasks = (items: ChecklistItem[]) => {
+    if (items.length === 0) return;
+    const allItems = items;
+    if (allItems.length === 0) return;
+    const allDone = allItems.every((i) => getItemStatus(i) === SUBTASK_STATUS.DONE);
+    const allPending = allItems.every((i) => {
+      const s = getItemStatus(i);
+      return s === SUBTASK_STATUS.PENDING_APPROVAL || s === SUBTASK_STATUS.DONE;
+    }) && allItems.some((i) => getItemStatus(i) === SUBTASK_STATUS.PENDING_APPROVAL);
+    if (allDone && status !== 4) {
+      setStatus(4);
+    } else if (allPending && status !== 3 && status !== 4) {
+      setStatus(3);
+    }
+  };
+
+  const handleMainStatusChange = (newStatus: number) => {
+    // If user manually sets task to DONE — mark all subtasks DONE
+    if (newStatus === 4 && checklists.length > 0) {
+      suppressSystemRef.current = true;
+      const nowIso = new Date().toISOString();
+      updateChecklists((prev) => prev.map((g) => ({
+        ...g,
+        items: g.items.map((i) => {
+          const cur = getItemStatus(i);
+          if (cur === SUBTASK_STATUS.DONE) return i;
+          return {
+            ...i,
+            status: SUBTASK_STATUS.DONE,
+            checked: true,
+            approvedBy: user ? Number(user.id) : i.approvedBy,
+            approvedAt: nowIso,
+          };
+        }),
+      })));
+      setTimeout(() => { suppressSystemRef.current = false; }, 0);
+    }
+    setStatus(newStatus);
+  };
+
+  const canApproveSubtasks = useMemo(() => {
+    if (!user) return false;
+    const rid = Number((user as any).roleId);
+    if (rid === 1 || rid === 2 || rid === 3 || rid === 4) return true;
+    if (task && Number(user.id) === Number(task.createdByUserId)) return true;
+    return false;
+  }, [user, task]);
+
+  // Project / Object lock: для существующих задач только admin/super_admin/PM может менять
+  const canEditProjectObject = useMemo(() => {
+    if (isNew) return true;
+    if (!user) return false;
+    const rid = Number((user as any).roleId);
+    return rid === 1 || rid === 2 || rid === 4;
+  }, [isNew, user]);
 
   // ---- Assignee helpers ----
   const toggleAssignee = (u: User) => {
@@ -516,16 +770,30 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
 
   const statusInfo = STATUS_OPTIONS.find((s) => s.value === status) || STATUS_OPTIONS[0];
 
+  // Files attached via comments — show alongside main task documents
+  const commentAttachmentsFlat = useMemo(() => {
+    const out: { att: Attachment; commentId: number }[] = [];
+    for (const c of comments) {
+      const list = parseAttachments(c.attachments);
+      for (const a of list) {
+        out.push({ att: a, commentId: c.id });
+      }
+    }
+    return out;
+  }, [comments]);
+
   // Sidebar content — reused for both desktop sidebar and mobile sheet
   const SidebarContent = () => (
     <div className="space-y-5">
       {/* Status */}
       <div>
-        <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">Статус</p>
+        <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">
+          Статус <span className="text-red-400">*</span>
+        </p>
         <div className="relative">
           <select
             value={status}
-            onChange={(e) => setStatus(Number(e.target.value))}
+            onChange={(e) => handleMainStatusChange(Number(e.target.value))}
             className={`w-full text-sm font-medium px-3 py-1.5 pr-7 rounded-lg border-none outline-none cursor-pointer appearance-none ${statusInfo.cls}`}
           >
             {STATUS_OPTIONS.map((o) => (
@@ -540,7 +808,9 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
 
       {/* Priority */}
       <div>
-        <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">Приоритет</p>
+        <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">
+          Приоритет <span className="text-red-400">*</span>
+        </p>
         <div className="grid grid-cols-2 gap-1">
           {PRIORITY_OPTIONS.map((o) => (
             <button
@@ -561,7 +831,9 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
       {/* Assignees */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Ответственные</p>
+          <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">
+            Ответственные <span className="text-red-400">*</span>
+          </p>
           <button
             onClick={() => setShowAssigneePicker((v) => !v)}
             className="text-gray-400 hover:text-violet-500 transition-colors"
@@ -571,7 +843,14 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
             </svg>
           </button>
         </div>
-        {assignees.length === 0 && <p className="text-xs text-gray-400">Не назначено</p>}
+        {assignees.length === 0 && (
+          <p className="text-xs text-amber-500 dark:text-amber-400 flex items-center gap-1 mb-1">
+            <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+            </svg>
+            Назначьте хотя бы одного
+          </p>
+        )}
         <div className="flex flex-wrap gap-1.5 mb-2">
           {assignees.map((a) => {
             const u = userMap[a.userId];
@@ -637,17 +916,25 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
 
       {/* Project */}
       <div>
-        <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">Проект</p>
+        <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">
+          Проект <span className="text-red-400">*</span>
+        </p>
         <select
           value={projectId}
           onChange={(e) => setProjectId(e.target.value)}
-          className="w-full text-sm px-3 py-1.5 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+          disabled={!canEditProjectObject}
+          className={`w-full text-sm px-3 py-1.5 border rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-violet-500 focus:border-transparent disabled:opacity-60 disabled:cursor-not-allowed ${
+            !projectId ? 'border-amber-300 dark:border-amber-600' : 'border-gray-200 dark:border-gray-700'
+          }`}
         >
-          <option value="">Не выбрано</option>
+          <option value="">— выберите проект —</option>
           {projects.map((p) => (
             <option key={p.id} value={p.id}>{p.name}</option>
           ))}
         </select>
+        {!canEditProjectObject && !isNew && (
+          <p className="text-[10px] text-gray-400 mt-1">Менять проект может только администратор или PM</p>
+        )}
       </div>
 
       {/* Construction site */}
@@ -656,8 +943,8 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
         <select
           value={constructionSiteId}
           onChange={(e) => setConstructionSiteId(e.target.value)}
-          disabled={!projectId}
-          className="w-full text-sm px-3 py-1.5 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-violet-500 focus:border-transparent disabled:opacity-50"
+          disabled={!projectId || !canEditProjectObject}
+          className="w-full text-sm px-3 py-1.5 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-violet-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <option value="">Не выбрано</option>
           {sites.map((s) => (
@@ -693,10 +980,26 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
       )}
 
       {/* Created at */}
-      {task?.createdAt && (
+      <div>
+        <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">Создана</p>
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          {task?.createdAt ? fmtDateTime(task.createdAt) : fmtDateTime(new Date().toISOString())}
+        </p>
+      </div>
+
+      {/* Closed / completed at */}
+      {(task?.actualEndDate || task?.actual_end_date) && (
         <div>
-          <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">Создана</p>
-          <p className="text-sm text-gray-600 dark:text-gray-400">{fmtDateTime(task.createdAt)}</p>
+          <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">Закрыта</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">{fmtDateTime(task.actualEndDate || task.actual_end_date)}</p>
+        </div>
+      )}
+
+      {/* Status changed at — show updatedAt when task exists and status is not new */}
+      {!isNew && task?.updatedAt && status !== 0 && (
+        <div>
+          <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">Статус изменён</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">{fmtDateTime(task.updatedAt)}</p>
         </div>
       )}
 
@@ -721,33 +1024,86 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
-            className="text-gray-400 hover:text-violet-500 disabled:opacity-50 transition-colors"
+            className="flex items-center gap-1 text-gray-400 hover:text-violet-500 disabled:opacity-50 transition-colors"
             title="Прикрепить файл"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
+            {uploading ? (
+              <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="9" strokeWidth={2.5} opacity="0.25" />
+                <path d="M21 12a9 9 0 00-9-9" strokeWidth={2.5} strokeLinecap="round" />
+              </svg>
+            ) : (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+            )}
           </button>
         </div>
-        {attachments.length === 0 && <p className="text-xs text-gray-400">Нет файлов</p>}
+        {uploading && <p className="text-xs text-violet-500">Загрузка...</p>}
+        {!uploading && attachments.length === 0 && commentAttachmentsFlat.length === 0 && <p className="text-xs text-gray-400">Нет файлов</p>}
         <div className="space-y-1.5">
-          {attachments.map((a, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <svg className="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-              </svg>
-              <button
-                onClick={() => setPreviewFile({ url: a.fileUrl, name: a.fileName })}
-                className="flex-1 text-left text-xs text-violet-500 hover:underline truncate"
-              >
-                {a.fileName}
-              </button>
-              <button
-                onClick={() => setAttachments((p) => p.filter((_, idx) => idx !== i))}
-                className="text-gray-300 hover:text-red-400 text-sm shrink-0"
-              >×</button>
-            </div>
-          ))}
+          {attachments.map((a, i) => {
+            const isImg = isImageFile(a);
+            const thumbUrl = isImg ? normalizeFileUrl(a.fileUrl) : null;
+            return (
+              <div key={i} className="flex items-center gap-2">
+                {isImg && thumbUrl ? (
+                  <button
+                    onClick={() => setPreviewFile({ url: a.fileUrl, name: a.fileName })}
+                    className="w-8 h-8 rounded overflow-hidden shrink-0 bg-gray-100 dark:bg-gray-700 hover:ring-2 hover:ring-violet-400 transition-all"
+                  >
+                    <img src={thumbUrl} alt={a.fileName} className="w-full h-full object-cover" />
+                  </button>
+                ) : (
+                  <svg className="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                  </svg>
+                )}
+                <button
+                  onClick={() => setPreviewFile({ url: a.fileUrl, name: a.fileName })}
+                  className="flex-1 text-left text-xs text-violet-500 hover:underline truncate"
+                >
+                  {a.fileName}
+                </button>
+                <button
+                  onClick={() => setAttachments((p) => p.filter((_, idx) => idx !== i))}
+                  className="text-gray-300 hover:text-red-400 text-sm shrink-0"
+                >×</button>
+              </div>
+            );
+          })}
+          {commentAttachmentsFlat.length > 0 && (
+            <>
+              <div className="mt-2 mb-1 text-[9px] uppercase tracking-wider text-gray-400">Из комментариев</div>
+              {commentAttachmentsFlat.map(({ att: a, commentId }, i) => {
+                const isImg = isImageFile(a);
+                const thumbUrl = isImg ? normalizeFileUrl(a.fileUrl) : null;
+                return (
+                  <div key={`c-${commentId}-${i}`} className="flex items-center gap-2 opacity-90">
+                    {isImg && thumbUrl ? (
+                      <button
+                        onClick={() => setPreviewFile({ url: a.fileUrl, name: a.fileName })}
+                        className="w-8 h-8 rounded overflow-hidden shrink-0 bg-gray-100 dark:bg-gray-700 hover:ring-2 hover:ring-violet-400 transition-all"
+                      >
+                        <img src={thumbUrl} alt={a.fileName} className="w-full h-full object-cover" />
+                      </button>
+                    ) : (
+                      <svg className="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                      </svg>
+                    )}
+                    <button
+                      onClick={() => setPreviewFile({ url: a.fileUrl, name: a.fileName })}
+                      className="flex-1 text-left text-xs text-gray-500 dark:text-gray-400 hover:text-violet-500 hover:underline truncate"
+                      title="Файл из комментария"
+                    >
+                      {a.fileName}
+                    </button>
+                  </div>
+                );
+              })}
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -788,8 +1144,9 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full text-lg sm:text-xl font-semibold bg-transparent text-gray-900 dark:text-gray-100 placeholder-gray-400 border-none outline-none focus:ring-0"
-              placeholder="Название задачи"
+              className={`w-full text-lg sm:text-xl font-semibold bg-transparent text-gray-900 dark:text-gray-100 placeholder-gray-400 border-none outline-none focus:ring-0 ${!title.trim() ? 'placeholder-red-400 dark:placeholder-red-500/60' : ''}`}
+              placeholder="Название задачи *"
+              required
             />
           </div>
           <div className="flex items-center gap-2 shrink-0 ml-2">
@@ -805,8 +1162,9 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
             </button>
             <button
               onClick={handleSave}
-              disabled={saving}
-              className="px-4 py-1.5 text-sm font-medium text-white bg-violet-500 hover:bg-violet-600 disabled:opacity-50 rounded-lg transition-colors whitespace-nowrap"
+              disabled={saving || !canSave}
+              title={!canSave ? 'Заполните название, проект и хотя бы одного ответственного' : undefined}
+              className="px-4 py-1.5 text-sm font-medium text-white bg-violet-500 hover:bg-violet-600 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition-colors whitespace-nowrap"
             >
               {saving ? '...' : isNew ? 'Создать' : 'Сохранить'}
             </button>
@@ -841,9 +1199,13 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
 
             {/* Checklists */}
             {checklists.map((group) => {
-              const done = group.items.filter((i) => i.checked).length;
               const total = group.items.length;
-              const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+              const statusCounts = group.items.reduce<Record<number, number>>((acc, i) => {
+                const st = getItemStatus(i);
+                acc[st] = (acc[st] || 0) + 1;
+                return acc;
+              }, {});
+              const done = statusCounts[SUBTASK_STATUS.DONE] || 0;
               return (
                 <div key={group.id} className="border border-gray-200 dark:border-gray-700/60 rounded-xl overflow-hidden">
                   <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 dark:bg-gray-800/60">
@@ -865,40 +1227,118 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
                     </button>
                   </div>
                   {total > 0 && (
-                    <div className="h-1 bg-gray-100 dark:bg-gray-800">
-                      <div className="h-full bg-violet-400 transition-all duration-300" style={{ width: `${pct}%` }} />
-                    </div>
+                    <>
+                      <div className="h-1.5 bg-gray-100 dark:bg-gray-800/60 flex overflow-hidden">
+                        {group.items.map((item) => {
+                          const st = getItemStatus(item);
+                          return (
+                            <div
+                              key={item.id}
+                              className={`flex-1 transition-colors ${SUBTASK_STATUS_LABELS[st]?.bg || ''}`}
+                              title={SUBTASK_STATUS_LABELS[st]?.label}
+                            />
+                          );
+                        })}
+                      </div>
+                      {/* Status counts legend */}
+                      <div className="flex items-center gap-2 px-4 py-1.5 bg-gray-50/60 dark:bg-gray-800/30 flex-wrap">
+                        {Object.entries(statusCounts).map(([st, cnt]) => {
+                          const info = SUBTASK_STATUS_LABELS[Number(st)];
+                          if (!info) return null;
+                          return (
+                            <span key={st} className="inline-flex items-center gap-1 text-[10px]">
+                              <span className={`w-2 h-2 rounded-sm ${info.bg}`} />
+                              <span className={info.text}>{info.label}: {cnt}</span>
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </>
                   )}
                   {!group.collapsed && (
                     <>
                       <div className="divide-y divide-gray-100 dark:divide-gray-700/30">
-                        {group.items.map((item) => (
-                          <div key={item.id} className="flex items-center gap-3 px-4 py-2.5 group/item">
+                        {group.items.map((item) => {
+                          const itemStatus = getItemStatus(item);
+                          const statusInfo = SUBTASK_STATUS_LABELS[itemStatus];
+                          const isPending = itemStatus === SUBTASK_STATUS.PENDING_APPROVAL;
+                          const isDone = itemStatus === SUBTASK_STATUS.DONE;
+                          const isRejected = itemStatus === SUBTASK_STATUS.REJECTED;
+                          return (
+                          <div key={item.id} className="flex items-start gap-3 px-4 py-2.5 group/item">
                             <button
                               onClick={() => toggleItem(group.id, item.id)}
-                              className={`w-5 h-5 shrink-0 rounded border-2 flex items-center justify-center transition-colors ${
-                                item.checked ? 'bg-violet-500 border-violet-500' : 'border-gray-300 dark:border-gray-600 hover:border-violet-400'
+                              title={statusInfo?.label}
+                              className={`w-5 h-5 shrink-0 mt-0.5 rounded border-2 flex items-center justify-center transition-colors ${
+                                isDone ? 'bg-green-500 border-green-500'
+                                : isPending ? 'bg-yellow-400 border-yellow-400'
+                                : isRejected ? 'bg-red-400 border-red-400'
+                                : 'border-gray-300 dark:border-gray-600 hover:border-violet-400'
                               }`}
                             >
-                              {item.checked && (
+                              {isDone && (
                                 <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                                 </svg>
                               )}
+                              {isPending && (
+                                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4l3 3" />
+                                  <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth={2.5} fill="none" />
+                                </svg>
+                              )}
+                              {isRejected && (
+                                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              )}
                             </button>
-                            <input
-                              value={item.text}
-                              onChange={(e) => updateItemText(group.id, item.id, e.target.value)}
-                              className={`flex-1 text-sm bg-transparent outline-none border-none focus:ring-0 ${item.checked ? 'line-through text-gray-400' : 'text-gray-700 dark:text-gray-300'}`}
-                              placeholder="Введите пункт..."
-                            />
+                            <div className="flex-1 min-w-0">
+                              <AutoResizeTextarea
+                                value={item.text}
+                                onChange={(v) => updateItemText(group.id, item.id, v)}
+                                className={`w-full text-sm bg-transparent outline-none border-none focus:ring-0 resize-none overflow-hidden leading-normal ${isDone ? 'line-through text-gray-400' : isRejected ? 'text-red-500 dark:text-red-400' : 'text-gray-700 dark:text-gray-300'}`}
+                                placeholder="Введите пункт..."
+                              />
+                              {(isPending || isDone || isRejected) && item.completedByName && (
+                                <p className="text-[10px] text-gray-400 mt-0.5">
+                                  {statusInfo?.label}
+                                  {item.completedByName ? ` · ${item.completedByName}` : ''}
+                                  {item.completedAt ? ` · ${new Date(item.completedAt).toLocaleString('ru-RU', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}` : ''}
+                                </p>
+                              )}
+                            </div>
+                            {/* Approve/Reject for pending items (only for authorized) */}
+                            {isPending && canApproveSubtasks && (
+                              <div className="flex items-center gap-1 shrink-0">
+                                <button
+                                  onClick={() => setSubtaskStatus(group.id, item.id, SUBTASK_STATUS.DONE)}
+                                  title="Утвердить"
+                                  className="p-1 text-green-500 hover:bg-green-50 dark:hover:bg-green-900/30 rounded"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                </button>
+                                <button
+                                  onClick={() => setSubtaskStatus(group.id, item.id, SUBTASK_STATUS.REJECTED)}
+                                  title="Отклонить"
+                                  className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </button>
+                              </div>
+                            )}
                             <button onClick={() => removeItem(group.id, item.id)} className="opacity-0 group-hover/item:opacity-100 text-gray-300 hover:text-red-400 transition-all shrink-0">
                               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                               </svg>
                             </button>
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
                       <div className="px-4 py-2.5 border-t border-gray-100 dark:border-gray-700/30">
                         <button onClick={() => addItem(group.id)} className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-violet-500 transition-colors">
@@ -968,7 +1408,7 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
                     {sendingComment ? (
                       <span className="w-4 h-4 border-2 border-violet-400 border-t-transparent rounded-full animate-spin block" />
                     ) : (
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                       </svg>
                     )}
@@ -980,28 +1420,62 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
             {/* Comments history */}
             {comments.length > 0 && (
               <div>
-                <button
-                  onClick={() => setShowHistory((v) => !v)}
-                  className="flex items-center gap-1 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                >
-                  <svg className={`w-3.5 h-3.5 transition-transform duration-200 ${showHistory ? '' : '-rotate-90'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                  История ({comments.length})
-                </button>
+                <div className="flex items-center justify-between mb-3">
+                  <button
+                    onClick={() => setShowHistory((v) => !v)}
+                    className="flex items-center gap-1 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                  >
+                    <svg className={`w-3.5 h-3.5 transition-transform duration-200 ${showHistory ? '' : '-rotate-90'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                    История ({comments.length})
+                  </button>
+                  {comments.some((c) => (c.commentText || (c as any).content || '').startsWith('__system__:')) && (
+                    <button
+                      onClick={() => setHideSystemMessages((v) => !v)}
+                      className={`text-[10px] px-2 py-0.5 rounded-md border transition-colors ${
+                        hideSystemMessages
+                          ? 'border-violet-300 text-violet-600 dark:text-violet-400 dark:border-violet-700 bg-violet-50 dark:bg-violet-900/20'
+                          : 'border-gray-200 text-gray-500 dark:text-gray-400 dark:border-gray-700 hover:border-gray-300'
+                      }`}
+                      title="Скрыть/показать системные уведомления"
+                    >
+                      {hideSystemMessages ? 'Показать тех. уведомления' : 'Скрыть тех. уведомления'}
+                    </button>
+                  )}
+                </div>
                 {showHistory && <div className="space-y-4">
-                  {comments.map((c) => {
+                  {comments.filter((c) => {
+                    const t = c.commentText || (c as any).content || '';
+                    if (hideSystemMessages && t.startsWith('__system__:')) return false;
+                    return true;
+                  }).map((c) => {
                     const cUserId = c.userId || c.user_id;
                     const author = cUserId ? userMap[cUserId] : null;
                     const isSystemUser = !author || author.roleId === 1;
                     const name = isSystemUser ? 'Система' : userName(author!);
-                    const text = c.commentText || (c as any).content || '';
+                    const rawText = c.commentText || (c as any).content || '';
+                    const isSystemMessage = rawText.startsWith('__system__:');
+                    const text = isSystemMessage ? rawText.slice('__system__:'.length) : rawText;
+                    if (isSystemMessage) {
+                      return (
+                        <div key={c.id} className="flex items-center gap-2 py-1 px-3 bg-gray-50 dark:bg-gray-800/40 rounded-lg text-xs text-gray-500 dark:text-gray-400">
+                          <svg className="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <span className="flex-1">{text}</span>
+                          <span className="text-[10px] text-gray-400 shrink-0">{formatAgo(c.createdAt)}</span>
+                        </div>
+                      );
+                    }
                     const att: Attachment[] = parseAttachments(c.attachments);
+                    const isOwnComment = user && Number(user.id) === Number(cUserId);
                     const canDelete =
                       user && task && (
                         Number(user.id) === Number(task.createdByUserId) ||
-                        Number(user.id) === Number(cUserId)
+                        isOwnComment
                       );
+                    const isEditing = editingCommentId === c.id;
                     return (
                       <div key={c.id} className="flex gap-3 group">
                         <div className="w-8 h-8 rounded-full bg-violet-500 flex items-center justify-center text-white text-xs font-semibold shrink-0 overflow-hidden">
@@ -1014,20 +1488,64 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
                           <div className="flex items-baseline gap-2 mb-0.5">
                             <span className="text-sm font-medium text-gray-800 dark:text-gray-200">{name}</span>
                             <span className="text-xs text-gray-400">{formatAgo(c.createdAt)}</span>
-                            {canDelete && (
-                              <button
-                                onClick={() => handleDeleteComment(c.id)}
-                                className="ml-auto opacity-0 group-hover:opacity-100 p-0.5 text-gray-400 hover:text-red-500 transition-all"
-                                title="Удалить комментарий"
-                              >
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                              </button>
-                            )}
+                            <div className="ml-auto flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
+                              {isOwnComment && !isEditing && (
+                                <button
+                                  onClick={() => startEditComment(c)}
+                                  className="p-0.5 text-gray-400 hover:text-violet-500 transition-colors"
+                                  title="Редактировать комментарий"
+                                >
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  </svg>
+                                </button>
+                              )}
+                              {canDelete && !isEditing && (
+                                <button
+                                  onClick={() => handleDeleteComment(c.id)}
+                                  className="p-0.5 text-gray-400 hover:text-red-500 transition-colors"
+                                  title="Удалить комментарий"
+                                >
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                </button>
+                              )}
+                            </div>
                           </div>
-                          <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap break-words">{text}</p>
-                          {att.length > 0 && (
+                          {isEditing ? (
+                            <div className="mt-1">
+                              <textarea
+                                value={editingCommentText}
+                                onChange={(e) => setEditingCommentText(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) saveEditComment(c.id);
+                                  if (e.key === 'Escape') cancelEditComment();
+                                }}
+                                rows={2}
+                                autoFocus
+                                className="w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 border border-violet-300 dark:border-violet-700 rounded-lg outline-none resize-none focus:ring-1 focus:ring-violet-500"
+                              />
+                              <div className="flex items-center gap-2 mt-1.5">
+                                <button
+                                  onClick={() => saveEditComment(c.id)}
+                                  disabled={savingEditComment || !editingCommentText.trim()}
+                                  className="px-3 py-1 text-xs font-medium text-white bg-violet-500 hover:bg-violet-600 disabled:opacity-50 rounded-lg transition-colors"
+                                >
+                                  {savingEditComment ? '...' : 'Сохранить'}
+                                </button>
+                                <button
+                                  onClick={cancelEditComment}
+                                  className="px-3 py-1 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                                >
+                                  Отмена
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap break-words">{text}</p>
+                          )}
+                          {att.length > 0 && !isEditing && (
                             <div className="flex flex-wrap gap-2 mt-1.5">
                               {att.map((a, i) => (
                                 <button
