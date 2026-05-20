@@ -50,6 +50,7 @@ interface TaskComment {
   content?: string;
   attachments: any;
   createdAt: string;
+  type?: 'user' | 'system';
 }
 
 interface Assignee {
@@ -692,8 +693,9 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
     try {
       const res = await api.post('/task-comments', {
         taskId: task.id,
-        commentText: `__system__:${text}`,
+        commentText: text,
         attachments: [],
+        type: 'system',
       });
       const newComment: TaskComment = res.data;
       setComments((prev) => [...prev, newComment]);
@@ -1430,7 +1432,7 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
                     </svg>
                     История ({comments.length})
                   </button>
-                  {comments.some((c) => (c.commentText || (c as any).content || '').startsWith('__system__:')) && (
+                  {comments.some((c) => c.type === 'system' || (c.commentText || (c as any).content || '').startsWith('__system__:')) && (
                     <button
                       onClick={() => setHideSystemMessages((v) => !v)}
                       className={`text-[10px] px-2 py-0.5 rounded-md border transition-colors ${
@@ -1447,7 +1449,8 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
                 {showHistory && <div className="space-y-4">
                   {comments.filter((c) => {
                     const t = c.commentText || (c as any).content || '';
-                    if (hideSystemMessages && t.startsWith('__system__:')) return false;
+                    const isSys = c.type === 'system' || t.startsWith('__system__:');
+                    if (hideSystemMessages && isSys) return false;
                     return true;
                   }).map((c) => {
                     const cUserId = c.userId || c.user_id;
@@ -1455,8 +1458,8 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
                     const isSystemUser = !author || author.roleId === 1;
                     const name = isSystemUser ? 'Система' : userName(author!);
                     const rawText = c.commentText || (c as any).content || '';
-                    const isSystemMessage = rawText.startsWith('__system__:');
-                    const text = isSystemMessage ? rawText.slice('__system__:'.length) : rawText;
+                    const isSystemMessage = c.type === 'system' || rawText.startsWith('__system__:');
+                    const text = rawText.startsWith('__system__:') ? rawText.slice('__system__:'.length) : rawText;
                     if (isSystemMessage) {
                       return (
                         <div key={c.id} className="flex items-center gap-2 py-1 px-3 bg-gray-50 dark:bg-gray-800/40 rounded-lg text-xs text-gray-500 dark:text-gray-400">

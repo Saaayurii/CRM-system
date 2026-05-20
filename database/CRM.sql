@@ -443,6 +443,7 @@ CREATE TABLE task_comments (
     user_id INTEGER REFERENCES users(id),
     comment_text TEXT NOT NULL,
     attachments JSONB DEFAULT '[]',
+    type VARCHAR(16) NOT NULL DEFAULT 'user',  -- 'user' | 'system'
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

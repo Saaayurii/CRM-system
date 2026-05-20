@@ -81,6 +81,7 @@ export class TaskRepository {
         locationDescription: data.locationDescription,
         tags: data.tags || [],
         attachments: data.attachments || [],
+        customFields: data.customFields || {},
       },
     });
   }

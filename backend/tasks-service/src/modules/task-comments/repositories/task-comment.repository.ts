@@ -43,6 +43,7 @@ export class TaskCommentRepository {
         userId: data.userId,
         commentText: data.commentText ?? '',
         attachments: data.attachments ?? [],
+        type: data.type ?? 'user',
       },
     });
   }

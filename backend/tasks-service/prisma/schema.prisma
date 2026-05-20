@@ -88,6 +88,7 @@ model TaskComment {
   userId      Int?     @map("user_id")
   commentText String   @map("comment_text") @db.Text
   attachments Json     @default("[]")
+  type        String   @default("user") @db.VarChar(16)
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
 

@@ -29,4 +29,9 @@ export class CreateTaskCommentDto {
   @IsArray()
   @IsOptional()
   attachments?: any[];
+
+  @ApiPropertyOptional({ example: 'user', enum: ['user', 'system'] })
+  @IsString()
+  @IsOptional()
+  type?: 'user' | 'system';
 }
