@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Transition from '@/components/ui/Transition';
 import { useAuthStore } from '@/stores/authStore';
+import HotkeyBadge from '@/components/ui/HotkeyBadge';
 
 export default function ProfileDropdown() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -46,6 +47,25 @@ export default function ProfileDropdown() {
       setSwitching(null);
     }
   };
+
+  // Global Alt+Q -> logout
+  const handleLogout = useCallback(() => {
+    setDropdownOpen(false);
+    logout();
+  }, [logout]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.key.toLowerCase() === 'q') {
+        e.preventDefault();
+        handleLogout();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [handleLogout]);
 
   return (
     <div className="relative inline-flex">
@@ -126,18 +146,17 @@ export default function ProfileDropdown() {
                   onClick={() => setDropdownOpen(false)}
                 >
                   Настройки
+                  <HotkeyBadge label="Alt+0" className="ml-auto hidden lg:inline-flex" />
                 </Link>
               </li>
             )}
             <li>
               <button
                 className="font-medium text-sm text-violet-500 hover:text-violet-600 dark:hover:text-violet-400 flex items-center py-1 px-3 w-full text-left"
-                onClick={() => {
-                  setDropdownOpen(false);
-                  logout();
-                }}
+                onClick={handleLogout}
               >
                 Выйти
+                <HotkeyBadge label="Alt+Q" className="ml-auto hidden lg:inline-flex" />
               </button>
             </li>
           </ul>

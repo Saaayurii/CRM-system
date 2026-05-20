@@ -1,19 +1,26 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import NextImage from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useSidebarStore } from '@/stores/sidebarStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useTaskNotifStore } from '@/stores/taskNotifStore';
+import { useNavHotkeys, hotkeyLabel, type NavHotkey } from '@/hooks/useNavHotkeys';
+import HotkeyBadge from '@/components/ui/HotkeyBadge';
 import SidebarLinkGroup from './SidebarLinkGroup';
 
-function NavLink({ href, className, children }: { href: string; className?: string; children: React.ReactNode }) {
+function NavLink({ href, className, hotkey, children }: { href: string; className?: string; hotkey?: NavHotkey; children: React.ReactNode }) {
   const { setSidebarOpen } = useSidebarStore();
   return (
     <Link href={href} className={className} onClick={() => setSidebarOpen(false)}>
       {children}
+      {hotkey && (
+        <span className="ml-auto hidden lg:sidebar-expanded:inline-flex">
+          <HotkeyBadge label={hotkeyLabel(hotkey)} />
+        </span>
+      )}
     </Link>
   );
 }
@@ -224,6 +231,28 @@ export default function Sidebar() {
   const showTeams = isSuperAdmin || isAdmin || isPM || isHR;
   const showChat = true;
   const taskUnread = useTaskNotifStore((s) => s.unreadCount);
+  const settingsHref = isSuperAdmin ? '/admin/settings' : '/dashboard/settings';
+
+  // Hotkeys: stable Alt+digit/letter combos for main routes; full list also drives badges.
+  const hotkeys = useMemo<NavHotkey[]>(() => {
+    const list: NavHotkey[] = [
+      { key: '1', href: '/dashboard' },
+      { key: '2', href: '/dashboard/projects' },
+      { key: '3', href: '/dashboard/tasks' },
+      { key: '4', href: '/dashboard/employees' },
+      { key: '5', href: '/dashboard/documents' },
+    ];
+    if (showTeams) list.push({ key: '6', href: '/dashboard/teams' });
+    if (isAdmin || isHR || isSuperAdmin) list.push({ key: '7', href: '/dashboard/invites' });
+    if (showChat) list.push({ key: '8', href: '/dashboard/chat' });
+    if (isAdmin) list.push({ key: '9', href: '/dashboard/company' });
+    list.push({ key: '0', href: settingsHref });
+    if (isSuperAdmin) list.push({ key: 'a', href: '/admin' });
+    return list;
+  }, [showTeams, isAdmin, isHR, isSuperAdmin, showChat, settingsHref]);
+
+  useNavHotkeys(hotkeys);
+  const hkByHref = useMemo(() => Object.fromEntries(hotkeys.map((h) => [h.href, h])), [hotkeys]);
 
   const trigger = useRef<HTMLButtonElement>(null);
   const sidebar = useRef<HTMLDivElement>(null);
@@ -297,7 +326,7 @@ export default function Sidebar() {
 
               {/* Overview */}
               <li className="mb-1 last:mb-0">
-                <NavLink href="/dashboard" className={linkCls(pathname === '/dashboard')}>
+                <NavLink href="/dashboard" hotkey={hkByHref['/dashboard']} className={linkCls(pathname === '/dashboard')}>
                   <IconDashboard />
                   <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Обзор</span>
                 </NavLink>
@@ -305,7 +334,7 @@ export default function Sidebar() {
 
               {/* Projects */}
               <li className="mb-1 last:mb-0">
-                <NavLink href="/dashboard/projects" className={linkCls(pathname.startsWith('/dashboard/projects'))}>
+                <NavLink href="/dashboard/projects" hotkey={hkByHref['/dashboard/projects']} className={linkCls(pathname.startsWith('/dashboard/projects'))}>
                   <IconProjects />
                   <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Проекты</span>
                 </NavLink>
@@ -313,7 +342,7 @@ export default function Sidebar() {
 
               {/* Tasks */}
               <li className="mb-1 last:mb-0">
-                <NavLink href="/dashboard/tasks" className={linkCls(pathname === '/dashboard/tasks')}>
+                <NavLink href="/dashboard/tasks" hotkey={hkByHref['/dashboard/tasks']} className={linkCls(pathname === '/dashboard/tasks')}>
                   <div className="relative shrink-0">
                     <IconTasks />
                     {taskUnread > 0 && (
@@ -328,7 +357,7 @@ export default function Sidebar() {
 
               {/* Employees */}
               <li className="mb-1 last:mb-0">
-                <NavLink href="/dashboard/employees" className={linkCls(pathname === '/dashboard/employees')}>
+                <NavLink href="/dashboard/employees" hotkey={hkByHref['/dashboard/employees']} className={linkCls(pathname === '/dashboard/employees')}>
                   <IconEmployees />
                   <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Сотрудники</span>
                 </NavLink>
@@ -514,7 +543,7 @@ export default function Sidebar() {
 
               {/* Documents */}
               <li className="mb-1 last:mb-0">
-                <NavLink href="/dashboard/documents" className={linkCls(pathname === '/dashboard/documents')}>
+                <NavLink href="/dashboard/documents" hotkey={hkByHref['/dashboard/documents']} className={linkCls(pathname === '/dashboard/documents')}>
                   <IconDocuments />
                   <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Документы</span>
                 </NavLink>
@@ -523,7 +552,7 @@ export default function Sidebar() {
               {/* Teams */}
               {showTeams && (
                 <li className="mb-1 last:mb-0">
-                  <NavLink href="/dashboard/teams" className={linkCls(pathname === '/dashboard/teams')}>
+                  <NavLink href="/dashboard/teams" hotkey={hkByHref['/dashboard/teams']} className={linkCls(pathname === '/dashboard/teams')}>
                     <IconTeams />
                     <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Команды</span>
                   </NavLink>
@@ -533,7 +562,7 @@ export default function Sidebar() {
               {/* Invites & Requests */}
               {(isAdmin || isHR || isSuperAdmin) && (
                 <li className="mb-1 last:mb-0">
-                  <NavLink href="/dashboard/invites" className={linkCls(pathname === '/dashboard/invites')}>
+                  <NavLink href="/dashboard/invites" hotkey={hkByHref['/dashboard/invites']} className={linkCls(pathname === '/dashboard/invites')}>
                     <IconInvites />
                     <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Заявки и инвайты</span>
                   </NavLink>
@@ -543,7 +572,7 @@ export default function Sidebar() {
               {/* Chat */}
               {showChat && (
                 <li className="mb-1 last:mb-0">
-                  <NavLink href="/dashboard/chat" className={linkCls(pathname === '/dashboard/chat')}>
+                  <NavLink href="/dashboard/chat" hotkey={hkByHref['/dashboard/chat']} className={linkCls(pathname === '/dashboard/chat')}>
                     <IconChat />
                     <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Чат</span>
                   </NavLink>
@@ -553,7 +582,7 @@ export default function Sidebar() {
               {/* Company (admin only) */}
               {isAdmin && (
                 <li className="mb-1 last:mb-0">
-                  <NavLink href="/dashboard/company" className={linkCls(pathname === '/dashboard/company')}>
+                  <NavLink href="/dashboard/company" hotkey={hkByHref['/dashboard/company']} className={linkCls(pathname === '/dashboard/company')}>
                     <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
                     </svg>
@@ -565,7 +594,8 @@ export default function Sidebar() {
               {/* Settings */}
               <li className="mb-1 last:mb-0">
                 <NavLink
-                  href={isSuperAdmin ? '/admin/settings' : '/dashboard/settings'}
+                  href={settingsHref}
+                  hotkey={hkByHref[settingsHref]}
                   className={linkCls(pathname === '/admin/settings' || pathname === '/dashboard/settings')}
                 >
                   <IconSettings />
@@ -576,7 +606,7 @@ export default function Sidebar() {
               {/* Admin (super_admin only) */}
               {isSuperAdmin && (
                 <li className="mb-1 last:mb-0">
-                  <NavLink href="/admin" className={linkCls(pathname.startsWith('/admin') && pathname !== '/admin/settings')}>
+                  <NavLink href="/admin" hotkey={hkByHref['/admin']} className={linkCls(pathname.startsWith('/admin') && pathname !== '/admin/settings')}>
                     <svg
                       className="w-5 h-5 shrink-0 fill-current"
                       xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"
