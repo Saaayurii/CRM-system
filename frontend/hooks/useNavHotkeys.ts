@@ -26,6 +26,8 @@ function isTypingTarget(target: EventTarget | null): boolean {
 
 /**
  * Register Alt+key global shortcuts that navigate via Next router.
+ * Uses e.code (physical key) so Option+digit works on macOS even though
+ * Option remaps the character (e.g. Option+1 → '¡' on some layouts).
  * No-ops while the user is typing inside an input/textarea/contenteditable.
  */
 export function useNavHotkeys(items: NavHotkey[]) {
@@ -34,14 +36,22 @@ export function useNavHotkeys(items: NavHotkey[]) {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (isTypingTarget(e.target)) return;
-      const pressed = e.key.toLowerCase();
+      // Derive a normalised key from e.code so digit/letter hotkeys work on Mac
+      // e.code: 'Digit1' → '1', 'KeyA' → 'a', 'Digit0' → '0', etc.
+      let codeKey = '';
+      if (e.code.startsWith('Digit')) codeKey = e.code.slice(5);
+      else if (e.code.startsWith('Key')) codeKey = e.code.slice(3).toLowerCase();
+      else codeKey = e.key.toLowerCase();
+
       for (const it of items) {
         const mod = it.modifier || 'alt';
-        const altOk = mod === 'alt' ? (e.altKey && !e.shiftKey && !e.ctrlKey && !e.metaKey)
-          : mod === 'altShift' ? (e.altKey && e.shiftKey && !e.ctrlKey && !e.metaKey)
+        const altOk = mod === 'alt'
+          ? (e.altKey && !e.shiftKey && !e.ctrlKey && !e.metaKey)
+          : mod === 'altShift'
+          ? (e.altKey && e.shiftKey && !e.ctrlKey && !e.metaKey)
           : (e.altKey && e.ctrlKey && !e.shiftKey && !e.metaKey);
         if (!altOk) continue;
-        if (pressed === it.key.toLowerCase()) {
+        if (codeKey === it.key.toLowerCase()) {
           e.preventDefault();
           router.push(it.href);
           return;

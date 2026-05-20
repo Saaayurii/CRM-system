@@ -7,20 +7,14 @@ import { usePathname } from 'next/navigation';
 import { useSidebarStore } from '@/stores/sidebarStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useTaskNotifStore } from '@/stores/taskNotifStore';
-import { useNavHotkeys, hotkeyLabel, type NavHotkey } from '@/hooks/useNavHotkeys';
-import HotkeyBadge from '@/components/ui/HotkeyBadge';
+import { useNavHotkeys, type NavHotkey } from '@/hooks/useNavHotkeys';
 import SidebarLinkGroup from './SidebarLinkGroup';
 
-function NavLink({ href, className, hotkey, children }: { href: string; className?: string; hotkey?: NavHotkey; children: React.ReactNode }) {
+function NavLink({ href, className, children }: { href: string; className?: string; hotkey?: NavHotkey; children: React.ReactNode }) {
   const { setSidebarOpen } = useSidebarStore();
   return (
     <Link href={href} className={className} onClick={() => setSidebarOpen(false)}>
       {children}
-      {hotkey && (
-        <span className="ml-auto hidden lg:sidebar-expanded:inline-flex">
-          <HotkeyBadge label={hotkeyLabel(hotkey)} />
-        </span>
-      )}
     </Link>
   );
 }

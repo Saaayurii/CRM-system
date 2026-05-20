@@ -4,9 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Transition from '@/components/ui/Transition';
 import { useAuthStore } from '@/stores/authStore';
-import HotkeyBadge from '@/components/ui/HotkeyBadge';
 import KeyboardShortcutsModal from '@/components/ui/KeyboardShortcutsModal';
-import { isMac } from '@/hooks/useNavHotkeys';
 
 export default function ProfileDropdown() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -149,7 +147,6 @@ export default function ProfileDropdown() {
                   onClick={() => setDropdownOpen(false)}
                 >
                   Настройки
-                  <HotkeyBadge label={isMac() ? '⌥0' : 'Alt+0'} className="ml-auto hidden lg:inline-flex" />
                 </Link>
               </li>
             )}
@@ -171,7 +168,6 @@ export default function ProfileDropdown() {
                 onClick={handleLogout}
               >
                 Выйти
-                <HotkeyBadge label={isMac() ? '⌥Q' : 'Alt+Q'} className="ml-auto hidden lg:inline-flex" />
               </button>
             </li>
           </ul>
