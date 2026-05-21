@@ -1,14 +1,18 @@
 'use client';
 
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import NextImage from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useSidebarStore } from '@/stores/sidebarStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useTaskNotifStore } from '@/stores/taskNotifStore';
 import { useNavHotkeys, type NavHotkey } from '@/hooks/useNavHotkeys';
 import SidebarLinkGroup from './SidebarLinkGroup';
+import ChatButton from './ChatButton';
+import NotificationDropdown from './NotificationDropdown';
+import ThemeToggle from './ThemeToggle';
+import ProfileDropdown from './ProfileDropdown';
+import api from '@/lib/api';
 
 function NavLink({ href, className, children }: { href: string; className?: string; hotkey?: NavHotkey; children: React.ReactNode }) {
   const { setSidebarOpen } = useSidebarStore();
@@ -198,6 +202,130 @@ function IconInvites() {
   );
 }
 
+/* ─── Company switcher (was in Header) ─── */
+interface AccountOption { id: number; name: string; logoUrl?: string; status: number; }
+
+function CompanySwitcher() {
+  const user = useAuthStore((s) => s.user);
+  const selectedAccountId = useAuthStore((s) => s.selectedAccountId);
+  const selectedAccountName = useAuthStore((s) => s.selectedAccountName);
+  const selectedAccountLogo = useAuthStore((s) => s.selectedAccountLogo);
+  const switchAccount = useAuthStore((s) => s.switchAccount);
+  const resetAccountSwitch = useAuthStore((s) => s.resetAccountSwitch);
+
+  const [accounts, setAccounts] = useState<AccountOption[]>([]);
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const isGlobal = user?.isGlobalAdmin || user?.roleId === 1;
+  const activeId = selectedAccountId ?? user?.accountId;
+  const activeAccount = accounts.find((a) => a.id === activeId);
+  const resolvedName = selectedAccountId
+    ? (activeAccount?.name ?? selectedAccountName ?? 'Компания')
+    : 'Все компании';
+  const resolvedLogo = activeAccount?.logoUrl ?? selectedAccountLogo ?? null;
+  const displayName = isGlobal ? resolvedName : (user?.accountName || null);
+
+  useEffect(() => {
+    if (!isGlobal || !open) return;
+    setLoading(true);
+    api.get('/accounts').then(({ data }) => {
+      const list: any[] = data?.data || data?.accounts || data || [];
+      setAccounts(list.map((a) => ({ id: a.id, name: a.name, logoUrl: a.logoUrl || a.logo_url, status: a.status ?? 1 })));
+    }).catch(() => {}).finally(() => setLoading(false));
+  }, [isGlobal, open]);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  if (!displayName && !isGlobal) return null;
+
+  if (!isGlobal) {
+    return (
+      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700/50 w-full">
+        {user?.accountLogoUrl && (
+          <img src={user.accountLogoUrl} alt="" className="w-6 h-6 rounded object-cover shrink-0" />
+        )}
+        <span className="text-sm font-medium text-gray-700 dark:text-gray-200 truncate lg:hidden lg:sidebar-expanded:block">{displayName}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative w-full" ref={ref}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700/50 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors w-full"
+      >
+        {resolvedLogo
+          ? <img src={resolvedLogo} alt="" className="w-6 h-6 rounded object-cover shrink-0" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+          : (
+            <div className="w-6 h-6 rounded bg-gradient-to-br from-violet-400 to-violet-600 flex items-center justify-center shrink-0">
+              <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+              </svg>
+            </div>
+          )
+        }
+        <span className="text-sm font-medium text-gray-700 dark:text-gray-200 truncate flex-1 text-left lg:hidden lg:sidebar-expanded:block">
+          {resolvedName}
+        </span>
+        <svg className={`w-3.5 h-3.5 text-gray-400 transition-transform shrink-0 lg:hidden lg:sidebar-expanded:block ${open ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute left-0 top-full mt-1.5 w-56 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden">
+          <div className="py-1">
+            <button
+              onClick={() => { resetAccountSwitch(); setOpen(false); }}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors ${
+                !selectedAccountId
+                  ? 'bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400 font-medium'
+                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+              }`}
+            >
+              <div className="w-6 h-6 rounded bg-gradient-to-br from-violet-400 to-violet-600 flex items-center justify-center shrink-0">
+                <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+                </svg>
+              </div>
+              Все компании
+            </button>
+            {loading && <p className="px-3 py-2 text-xs text-gray-400">Загрузка...</p>}
+            {accounts.map((acc) => (
+              <button
+                key={acc.id}
+                onClick={() => { switchAccount(acc.id, acc.name, acc.logoUrl); setOpen(false); }}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors ${
+                  selectedAccountId === acc.id
+                    ? 'bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400 font-medium'
+                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                }`}
+              >
+                <div className="w-6 h-6 rounded bg-gray-200 dark:bg-gray-600 flex items-center justify-center shrink-0 overflow-hidden">
+                  {acc.logoUrl
+                    ? <img src={acc.logoUrl} alt="" className="w-full h-full object-cover" />
+                    : <span className="text-xs font-bold text-gray-500 dark:text-gray-300">{acc.name[0]?.toUpperCase()}</span>}
+                </div>
+                <span className="truncate">{acc.name}</span>
+                {acc.status !== 1 && <span className="ml-auto text-xs text-orange-400">неакт.</span>}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ─── link class helper ─── */
 function linkCls(active: boolean) {
   return `flex items-center gap-3 py-2 px-3 rounded-lg transition duration-150 truncate ${
@@ -284,35 +412,40 @@ export default function Sidebar() {
       <div
         id="sidebar"
         ref={sidebar}
-        className={`flex lg:flex! flex-col absolute z-40 left-0 top-0 lg:static lg:left-auto lg:top-auto lg:translate-x-0 h-[100dvh] overflow-y-scroll lg:overflow-y-auto no-scrollbar w-64 lg:w-20 lg:sidebar-expanded:!w-64 shrink-0 bg-white dark:bg-gray-800 p-4 transition-all duration-200 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-64'} rounded-r-2xl shadow-xs`}
+        className={`flex lg:flex! flex-col absolute z-40 left-0 top-0 lg:static lg:left-auto lg:top-auto lg:translate-x-0 h-[100dvh] w-64 lg:w-20 lg:sidebar-expanded:!w-64 shrink-0 bg-white dark:bg-gray-800 transition-all duration-200 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-64'} rounded-r-2xl shadow-xs`}
       >
-        {/* Header */}
-        <div className="flex justify-between mb-10 pr-3 sm:px-2">
-          <button
-            ref={trigger}
-            className="lg:hidden text-gray-500 hover:text-gray-400"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            aria-controls="sidebar"
-            aria-expanded={sidebarOpen}
-          >
-            <span className="sr-only">Close sidebar</span>
-            <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M10.7 18.7l1.4-1.4L7.8 13H20v-2H7.8l4.3-4.3-1.4-1.4L4 12z" /></svg>
-          </button>
-          <NavLink href="/" className="block">
-            <NextImage
-              src="/logo-icon.png"
-              alt="3|15 Строительство и Ремонт"
-              width={40}
-              height={40}
-              className="rounded-lg shrink-0"
-            />
-          </NavLink>
+        {/* Top: company switcher + utility buttons */}
+        <div className="shrink-0 px-4 pt-4 pb-3">
+          {/* Mobile close + company */}
+          <div className="flex items-center gap-2 mb-3">
+            <button
+              ref={trigger}
+              className="lg:hidden text-gray-500 hover:text-gray-400 shrink-0"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              aria-controls="sidebar"
+              aria-expanded={sidebarOpen}
+            >
+              <span className="sr-only">Close sidebar</span>
+              <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M10.7 18.7l1.4-1.4L7.8 13H20v-2H7.8l4.3-4.3-1.4-1.4L4 12z" /></svg>
+            </button>
+            <CompanySwitcher />
+          </div>
+          {/* Utility: chat, notifications, theme, profile */}
+          <div className="flex items-center gap-1 lg:justify-center lg:sidebar-expanded:justify-start flex-wrap">
+            <ChatButton />
+            <NotificationDropdown />
+            <ThemeToggle />
+            <ProfileDropdown />
+          </div>
         </div>
 
-        {/* Nav links */}
+        <div className="border-t border-gray-100 dark:border-gray-700 mx-4 mb-2" />
+
+        {/* Scrollable nav */}
+        <div className="flex-1 overflow-y-auto no-scrollbar px-4 pb-4">
         <div className="space-y-8">
           <div>
-            <h3 className="text-xs uppercase text-gray-400 dark:text-gray-500 font-semibold pl-3">
+            <h3 className="text-xs uppercase text-gray-400 dark:text-gray-500 font-semibold pl-3 pt-2">
               <span className="hidden lg:block lg:sidebar-expanded:hidden text-center w-6" aria-hidden="true">&bull;&bull;&bull;</span>
               <span className="lg:hidden lg:sidebar-expanded:block">Меню</span>
             </h3>
@@ -614,10 +747,11 @@ export default function Sidebar() {
             </ul>
           </div>
         </div>
+        </div>{/* end scrollable nav */}
 
         {/* Expand / collapse button */}
-        <div className="pt-3 hidden lg:inline-flex justify-end mt-auto">
-          <div className="w-12 pl-4 pr-3 py-2">
+        <div className="shrink-0 hidden lg:flex justify-end border-t border-gray-100 dark:border-gray-700 px-4 py-2">
+          <div className="pl-4 pr-3 py-1">
             <button
               className="cursor-pointer text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-400"
               onClick={() => setSidebarExpanded(!sidebarExpanded)}
