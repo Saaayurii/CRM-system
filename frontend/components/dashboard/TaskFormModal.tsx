@@ -7,6 +7,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useTaskNotifStore } from '@/stores/taskNotifStore';
 import FilePreviewModal from '@/components/ui/FilePreviewModal';
 import { normalizeFileUrl } from '@/lib/utils';
+import { uploadFileChunked } from '@/lib/chunkedUpload';
 
 const IMAGE_EXTS = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'avif']);
 const VIDEO_EXTS = new Set(['mp4', 'webm', 'mov', 'avi', 'mkv', 'ogv', 'm4v']);
@@ -607,18 +608,21 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
   };
 
   // ---- File upload ----
+  // Uses chunked upload (5MB chunks via /api/chat/upload) — see lib/chunkedUpload.ts.
+  // Large files (videos, etc.) would otherwise hit nginx body-buffering limits on a
+  // single multipart POST.
   const handleFileSelect = async (files: FileList | null, forComment = false) => {
     if (!files || files.length === 0) return;
     setUploading(true);
     try {
-      const fd = new FormData();
-      Array.from(files).forEach((f) => fd.append('files', f));
-      const { data } = await api.post('/chat-channels/upload', fd);
-      const list: Attachment[] = (Array.isArray(data) ? data : [data]).map((a: any) => ({
-        fileName: a.fileName || a.file_name || '',
-        fileSize: a.fileSize || a.file_size || 0,
-        mimeType: a.mimeType || a.mime_type || '',
-        fileUrl: a.fileUrl || a.file_url || a.url || '',
+      const uploads = await Promise.all(
+        Array.from(files).map((f) => uploadFileChunked(f)),
+      );
+      const list: Attachment[] = uploads.map((a) => ({
+        fileName: a.fileName,
+        fileSize: a.fileSize,
+        mimeType: a.mimeType,
+        fileUrl: a.fileUrl,
       }));
       if (forComment) {
         setCommentAttachments((prev) => [...prev, ...list]);
@@ -629,7 +633,8 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
           return next;
         });
       }
-    } catch {
+    } catch (e) {
+      console.error('[TaskFormModal] upload error:', e);
       addToast('error', 'Ошибка загрузки файла');
     } finally {
       setUploading(false);
