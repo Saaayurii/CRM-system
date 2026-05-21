@@ -88,7 +88,7 @@ export default function ProfileDropdown({ navItem }: { navItem?: boolean }) {
         </div>
         {navItem ? (
           <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200 truncate">
-            {user?.name || user?.email || 'Профиль'}
+            Система
           </span>
         ) : (
           <svg className="w-3 h-3 shrink-0 ml-1 fill-current text-gray-400 dark:text-gray-500" viewBox="0 0 12 12">
