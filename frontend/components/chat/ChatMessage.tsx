@@ -318,12 +318,12 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
   return (
     <div
       data-message-id={message.id}
-      className={`flex gap-2 group select-none ${isOwn ? 'flex-row-reverse' : ''} ${showAvatar ? 'mt-3' : 'mt-0.5'} ${isPinned ? 'ring-1 ring-violet-300 dark:ring-violet-700 rounded-2xl' : ''}`}
+      className={`flex gap-2 group ${isOwn ? 'flex-row-reverse' : ''} ${showAvatar ? 'mt-3' : 'mt-0.5'} ${isPinned ? 'ring-1 ring-violet-300 dark:ring-violet-700 rounded-2xl' : ''}`}
       style={{ transition: 'opacity 0.5s ease-out, transform 0.5s ease-out', opacity: isDeleting ? 0 : 1, transform: isDeleting ? 'scale(0.7)' : 'scale(1)' }}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       onTouchMove={handleTouchMove}
-      onContextMenu={(e) => e.preventDefault()}
+      onContextMenu={(e) => { if ('ontouchstart' in window) e.preventDefault(); }}
     >
       {/* Avatar placeholder / real avatar */}
       <div className="w-8 shrink-0">
@@ -549,7 +549,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
 
           {/* Action buttons — desktop: hover side panel; mobile: long-press inline toolbar */}
           {/* Desktop hover */}
-          <div className={`absolute ${isOwn ? '-left-28' : '-right-28'} top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:flex items-center gap-0.5`}>
+          <div className={`absolute ${isOwn ? '-left-28' : '-right-28'} top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:flex items-center gap-0.5 select-none`}>
             <ActionButtons
               isOwn={isOwn} isPinned={isPinned} canPin={canPin}
               emojiRef={emojiRef} showEmojiPicker={showEmojiPicker}
@@ -565,7 +565,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
 
         {/* Reactions */}
         {message.reactions && message.reactions.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-1">
+          <div className="flex flex-wrap gap-1 mt-1 select-none">
             {message.reactions.map((r) => (
               <button
                 key={r.emoji}
