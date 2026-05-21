@@ -1334,7 +1334,7 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
                               {(isPending || isDone || isRejected) && item.completedByName && (
                                 <p className="text-[10px] text-gray-400 mt-0.5">
                                   {statusInfo?.label}
-                                  {item.completedByName ? ` · ${item.completedByName}` : ''}
+                                  {isPending ? ' · Система' : (item.completedByName ? ` · ${item.completedByName}` : '')}
                                   {item.completedAt ? ` · ${new Date(item.completedAt).toLocaleString('ru-RU', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}` : ''}
                                 </p>
                               )}
