@@ -23,6 +23,8 @@ interface Employee {
   birthDate?: string;
   birth_date?: string;
   address?: string;
+  avatarUrl?: string;
+  avatar_url?: string;
   role?: { name: string; code: string };
   roleId?: number;
   role_id?: number;
@@ -58,9 +60,19 @@ function fmtDate(v: string | null | undefined) {
   } catch { return null; }
 }
 
-function Initials({ name }: { name: string }) {
+function Avatar({ name, avatarUrl }: { name: string; avatarUrl?: string }) {
   const parts = name.trim().split(/\s+/);
   const text = parts.length >= 2 ? parts[0][0] + parts[1][0] : (parts[0][0] || '?');
+  if (avatarUrl) {
+    return (
+      <img
+        src={avatarUrl}
+        alt={name}
+        className="w-16 h-16 rounded-full object-cover shrink-0"
+        onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.removeAttribute('hidden'); }}
+      />
+    );
+  }
   return (
     <div className="w-16 h-16 rounded-full bg-violet-500/20 text-violet-600 dark:text-violet-400 flex items-center justify-center text-xl font-bold uppercase shrink-0">
       {text}
@@ -101,7 +113,7 @@ function EmployeeViewModal({
 
         {/* Header */}
         <div className="flex items-center gap-4 mb-5">
-          <Initials name={employee.name || '?'} />
+          <Avatar name={employee.name || '?'} avatarUrl={employee.avatarUrl || employee.avatar_url} />
           <div className="min-w-0">
             <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 leading-tight">
               {employee.name || '—'}
