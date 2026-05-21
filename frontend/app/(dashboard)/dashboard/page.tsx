@@ -42,14 +42,16 @@ function fmtDate(v: string | null | undefined): string {
 
 function StatusBadge({ label, color }: { label: string; color: string }) {
   const colors: Record<string, string> = {
-    gray: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300',
-    blue: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
-    yellow: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300',
-    green: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
-    red: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
+    gray:   'bg-gray-500/20 text-gray-600 dark:text-gray-300',
+    blue:   'bg-sky-500/20 text-sky-700 dark:text-sky-400',
+    yellow: 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-400',
+    violet: 'bg-violet-500/20 text-violet-700 dark:text-violet-400',
+    green:  'bg-green-500/20 text-green-700 dark:text-green-400',
+    red:    'bg-red-500/20 text-red-700 dark:text-red-400',
+    orange: 'bg-orange-500/20 text-orange-700 dark:text-orange-400',
   };
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${colors[color] ?? colors.gray}`}>
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colors[color] ?? colors.gray}`}>
       {label}
     </span>
   );
@@ -64,12 +66,12 @@ const PROJECT_STATUS_MAP: Record<number, { label: string; color: string }> = {
 };
 
 const TASK_STATUS_MAP: Record<number, { label: string; color: string }> = {
-  0: { label: 'Новая', color: 'gray' },
-  1: { label: 'Назначена', color: 'blue' },
-  2: { label: 'В работе', color: 'yellow' },
-  3: { label: 'На проверке', color: 'purple' },
-  4: { label: 'Завершена', color: 'green' },
-  5: { label: 'Отменена', color: 'red' },
+  0: { label: 'Новая',       color: 'gray' },
+  1: { label: 'Назначена',   color: 'blue' },
+  2: { label: 'В работе',    color: 'violet' },
+  3: { label: 'На проверке', color: 'yellow' },
+  4: { label: 'Завершена',   color: 'green' },
+  5: { label: 'Отменена',    color: 'red' },
 };
 
 const TASK_PRIORITY_MAP: Record<number, { label: string; color: string }> = {
