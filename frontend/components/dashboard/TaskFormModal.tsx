@@ -640,8 +640,10 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
     updateChecklists((prev) => prev.map((g) => g.id === gid ? { ...g, items: [...g.items, { id: uid(), text: '', checked: false }] } : g));
   const removeItem = (gid: string, iid: string) =>
     updateChecklists((prev) => prev.map((g) => g.id === gid ? { ...g, items: g.items.filter((i) => i.id !== iid) } : g));
-  const updateItemText = (gid: string, iid: string, text: string) =>
-    updateChecklists((prev) => prev.map((g) => g.id === gid ? { ...g, items: g.items.map((i) => i.id === iid ? { ...i, text } : i) } : g));
+  const updateItemText = (gid: string, iid: string, text: string) => {
+    const normalized = text.length > 0 ? text[0].toUpperCase() + text.slice(1) : text;
+    updateChecklists((prev) => prev.map((g) => g.id === gid ? { ...g, items: g.items.map((i) => i.id === iid ? { ...i, text: normalized } : i) } : g));
+  };
   // Workflow: click sends to pending_approval; from done/rejected back to new
   const toggleItem = (gid: string, iid: string) => {
     const g = checklists.find((g) => g.id === gid);
