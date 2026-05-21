@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import ReactDOM from 'react-dom';
 import Transition from '@/components/ui/Transition';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { getPermissionState } from '@/lib/pushNotifications';
@@ -105,6 +106,7 @@ function NotifIcon({ type }: { type?: string }) {
 export default function NotificationDropdown({ navItem }: { navItem?: boolean }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [fixedStyle, setFixedStyle] = useState<React.CSSProperties>({});
+  const [mounted, setMounted] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
   const dropdown = useRef<HTMLDivElement>(null);
 
@@ -131,6 +133,8 @@ export default function NotificationDropdown({ navItem }: { navItem?: boolean })
     checkPushStatus();
     return () => disconnectSSE();
   }, [fetchNotifications, connectSSE, disconnectSSE, checkPushStatus]);
+
+  useEffect(() => { setMounted(true); }, []);
 
   // Close on click outside
   useEffect(() => {
@@ -168,14 +172,14 @@ export default function NotificationDropdown({ navItem }: { navItem?: boolean })
           left: sidebarW + 4,
           width: 320,
           maxHeight: window.innerHeight - 16,
-          zIndex: 500,
+          zIndex: 9999,
         } : {
           position: 'fixed',
           bottom: window.innerHeight - rect.top + 4,
           left: rect.left,
           width: Math.max(rect.width, 320),
           maxHeight: rect.top - 16,
-          zIndex: 500,
+          zIndex: 9999,
         });
       }
     }
@@ -376,14 +380,17 @@ export default function NotificationDropdown({ navItem }: { navItem?: boolean })
       </button>
 
       {navItem ? (
-        <div style={fixedStyle}>
-          <Transition
-            className="origin-bottom-left min-w-80 max-w-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700/60 rounded-xl shadow-xl overflow-hidden"
-            {...transitionProps}
-          >
-            {dropdownBody}
-          </Transition>
-        </div>
+        mounted ? ReactDOM.createPortal(
+          <div style={fixedStyle}>
+            <Transition
+              className="origin-bottom-left min-w-80 max-w-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700/60 rounded-xl shadow-xl overflow-hidden"
+              {...transitionProps}
+            >
+              {dropdownBody}
+            </Transition>
+          </div>,
+          document.body
+        ) : null
       ) : (
         <Transition
           className="origin-top-right z-[200] fixed top-16 left-2 right-2 sm:absolute sm:top-full sm:left-auto sm:right-0 sm:min-w-80 sm:max-w-sm sm:mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700/60 rounded-xl shadow-xl overflow-hidden"

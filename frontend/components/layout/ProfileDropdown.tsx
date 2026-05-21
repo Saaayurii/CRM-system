@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import ReactDOM from 'react-dom';
 import Link from 'next/link';
 import Transition from '@/components/ui/Transition';
 import { useAuthStore } from '@/stores/authStore';
@@ -10,6 +11,7 @@ export default function ProfileDropdown({ navItem }: { navItem?: boolean }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [fixedStyle, setFixedStyle] = useState<React.CSSProperties>({});
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [switching, setSwitching] = useState<number | null>(null);
   const { user, logout, availableAccounts, fetchAvailableAccounts, switchCompany } = useAuthStore();
   const trigger = useRef<HTMLButtonElement>(null);
@@ -19,6 +21,8 @@ export default function ProfileDropdown({ navItem }: { navItem?: boolean }) {
     fetchAvailableAccounts();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     const clickHandler = ({ target }: MouseEvent) => {
@@ -83,7 +87,7 @@ export default function ProfileDropdown({ navItem }: { navItem?: boolean }) {
           left: sidebarW + 4,
           minWidth: 208,
           maxHeight: window.innerHeight - 16,
-          zIndex: 500,
+          zIndex: 9999,
         });
       } else {
         setFixedStyle({
@@ -92,7 +96,7 @@ export default function ProfileDropdown({ navItem }: { navItem?: boolean }) {
           left: rect.left,
           minWidth: Math.max(rect.width, 208),
           maxHeight: rect.top - 16,
-          zIndex: 500,
+          zIndex: 9999,
         });
       }
     }
@@ -215,14 +219,17 @@ export default function ProfileDropdown({ navItem }: { navItem?: boolean }) {
       </button>
 
       {navItem ? (
-        <div style={fixedStyle}>
-          <Transition
-            className="origin-bottom-left min-w-52 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700/60 py-1.5 rounded-lg shadow-lg overflow-hidden"
-            {...transitionProps}
-          >
-            {dropdownBody}
-          </Transition>
-        </div>
+        mounted ? ReactDOM.createPortal(
+          <div style={fixedStyle}>
+            <Transition
+              className="origin-bottom-left min-w-52 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700/60 py-1.5 rounded-lg shadow-lg overflow-hidden"
+              {...transitionProps}
+            >
+              {dropdownBody}
+            </Transition>
+          </div>,
+          document.body
+        ) : null
       ) : (
         <Transition
           className="origin-top-right z-10 absolute top-full min-w-52 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700/60 py-1.5 rounded-lg shadow-lg overflow-hidden mt-1 right-0"
