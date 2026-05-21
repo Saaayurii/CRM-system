@@ -73,14 +73,28 @@ export default function ProfileDropdown({ navItem }: { navItem?: boolean }) {
     if (!dropdownOpen && navItem && trigger.current) {
       const rect = trigger.current.getBoundingClientRect();
       const bottomFromViewport = window.innerHeight - rect.top + 4;
-      setFixedStyle({
-        position: 'fixed',
-        bottom: bottomFromViewport,
-        left: rect.left,
-        minWidth: Math.max(rect.width, 208),
-        maxHeight: rect.top - 16,
-        zIndex: 500,
-      });
+      const sidebar = document.getElementById('sidebar');
+      const sidebarW = sidebar?.getBoundingClientRect().width ?? 256;
+      const collapsed = sidebarW < 200;
+      if (collapsed) {
+        setFixedStyle({
+          position: 'fixed',
+          top: Math.max(8, rect.bottom - 240),
+          left: sidebarW + 4,
+          minWidth: 208,
+          maxHeight: window.innerHeight - 16,
+          zIndex: 500,
+        });
+      } else {
+        setFixedStyle({
+          position: 'fixed',
+          bottom: bottomFromViewport,
+          left: rect.left,
+          minWidth: Math.max(rect.width, 208),
+          maxHeight: rect.top - 16,
+          zIndex: 500,
+        });
+      }
     }
     setDropdownOpen((prev) => !prev);
   };

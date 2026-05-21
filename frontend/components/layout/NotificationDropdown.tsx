@@ -159,10 +159,19 @@ export default function NotificationDropdown({ navItem }: { navItem?: boolean })
       fetchNotifications();
       if (navItem && trigger.current) {
         const rect = trigger.current.getBoundingClientRect();
-        const bottomFromViewport = window.innerHeight - rect.top + 4;
-        setFixedStyle({
+        const sidebar = document.getElementById('sidebar');
+        const sidebarW = sidebar?.getBoundingClientRect().width ?? 256;
+        const collapsed = sidebarW < 200;
+        setFixedStyle(collapsed ? {
           position: 'fixed',
-          bottom: bottomFromViewport,
+          top: Math.max(8, rect.bottom - 360),
+          left: sidebarW + 4,
+          width: 320,
+          maxHeight: window.innerHeight - 16,
+          zIndex: 500,
+        } : {
+          position: 'fixed',
+          bottom: window.innerHeight - rect.top + 4,
           left: rect.left,
           width: Math.max(rect.width, 320),
           maxHeight: rect.top - 16,
