@@ -220,7 +220,9 @@ export default function NotificationDropdown({ navItem }: { navItem?: boolean })
       </button>
 
       <Transition
-        className="origin-top-right z-[200] fixed top-16 left-2 right-2 sm:absolute sm:top-full sm:left-auto sm:right-0 sm:min-w-80 sm:max-w-sm sm:mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700/60 rounded-xl shadow-xl overflow-hidden"
+        className={navItem
+          ? 'origin-bottom-left z-[200] absolute bottom-full left-0 min-w-80 max-w-sm mb-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700/60 rounded-xl shadow-xl overflow-hidden'
+          : 'origin-top-right z-[200] fixed top-16 left-2 right-2 sm:absolute sm:top-full sm:left-auto sm:right-0 sm:min-w-80 sm:max-w-sm sm:mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700/60 rounded-xl shadow-xl overflow-hidden'}
         show={dropdownOpen}
         enter="transition ease-out duration-200 transform"
         enterStart="opacity-0 -translate-y-2"
