@@ -306,12 +306,23 @@ function AutoResizeTextarea({ value, onChange, className, placeholder }: {
   placeholder?: string;
 }) {
   const ref = useRef<HTMLTextAreaElement>(null);
-  useLayoutEffect(() => {
+
+  const resize = useCallback(() => {
     if (ref.current) {
       ref.current.style.height = 'auto';
       ref.current.style.height = ref.current.scrollHeight + 'px';
     }
-  }, [value]);
+  }, []);
+
+  useLayoutEffect(() => { resize(); }, [value, resize]);
+
+  useEffect(() => {
+    if (!ref.current) return;
+    const ro = new ResizeObserver(resize);
+    ro.observe(ref.current);
+    return () => ro.disconnect();
+  }, [resize]);
+
   return (
     <textarea
       ref={ref}
