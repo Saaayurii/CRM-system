@@ -76,9 +76,10 @@ export default function ProfileDropdown({ navItem }: { navItem?: boolean }) {
       setFixedStyle({
         position: 'fixed',
         bottom: bottomFromViewport,
-        left: rect.right + 16,
+        left: rect.left,
+        minWidth: Math.max(rect.width, 208),
         maxHeight: rect.top - 16,
-        zIndex: 200,
+        zIndex: 500,
       });
     }
     setDropdownOpen((prev) => !prev);

@@ -163,9 +163,10 @@ export default function NotificationDropdown({ navItem }: { navItem?: boolean })
         setFixedStyle({
           position: 'fixed',
           bottom: bottomFromViewport,
-          left: rect.right + 16,
+          left: rect.left,
+          width: Math.max(rect.width, 320),
           maxHeight: rect.top - 16,
-          zIndex: 200,
+          zIndex: 500,
         });
       }
     }
