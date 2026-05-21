@@ -159,9 +159,14 @@ export default function NotificationDropdown({ navItem }: { navItem?: boolean })
       fetchNotifications();
       if (navItem && trigger.current) {
         const rect = trigger.current.getBoundingClientRect();
-        const dropdownMaxH = 480;
-        const top = Math.max(8, rect.bottom - dropdownMaxH);
-        setFixedStyle({ position: 'fixed', top, left: rect.right + 16, zIndex: 200 });
+        const bottomFromViewport = window.innerHeight - rect.top + 4;
+        setFixedStyle({
+          position: 'fixed',
+          bottom: bottomFromViewport,
+          left: rect.right + 16,
+          maxHeight: rect.top - 16,
+          zIndex: 200,
+        });
       }
     }
     setDropdownOpen((prev) => !prev);
