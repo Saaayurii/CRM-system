@@ -318,7 +318,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
   return (
     <div
       data-message-id={message.id}
-      className={`flex gap-2 group ${isOwn ? 'flex-row-reverse' : ''} ${showAvatar ? 'mt-3' : 'mt-0.5'} ${isPinned ? 'ring-1 ring-violet-300 dark:ring-violet-700 rounded-2xl' : ''}`}
+      className={`flex gap-2 group [@media(pointer:coarse)]:select-none ${isOwn ? 'flex-row-reverse' : ''} ${showAvatar ? 'mt-3' : 'mt-0.5'} ${isPinned ? 'ring-1 ring-violet-300 dark:ring-violet-700 rounded-2xl' : ''}`}
       style={{ transition: 'opacity 0.5s ease-out, transform 0.5s ease-out', opacity: isDeleting ? 0 : 1, transform: isDeleting ? 'scale(0.7)' : 'scale(1)' }}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
