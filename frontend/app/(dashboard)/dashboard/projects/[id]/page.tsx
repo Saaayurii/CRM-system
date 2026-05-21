@@ -2418,7 +2418,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
               <div className="overflow-x-auto">
                 <table className="table-auto w-full text-sm min-w-[480px]">
                   <thead>
-                    <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
+                    <tr className="text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
                       <th className="py-3 px-4 text-left font-semibold">Название</th>
                       <th className="py-3 px-4 text-left font-semibold">Статус</th>
                       <th className="py-3 px-4 text-left font-semibold">Приоритет</th>
@@ -2548,7 +2548,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                   <div className="overflow-x-auto">
                     <table className="table-auto w-full text-sm min-w-[400px]">
                       <thead>
-                        <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
+                        <tr className="text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
                           <th className="py-3 px-4 text-left font-semibold">Команда</th>
                           <th className="py-3 px-4 text-left font-semibold">Дата назначения</th>
                           <th className="py-3 px-4 text-left font-semibold">Основная</th>
@@ -2647,7 +2647,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                   <div className="overflow-x-auto">
                     <table className="table-auto w-full text-sm min-w-[480px]">
                       <thead>
-                        <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
+                        <tr className="text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
                           <th className="py-3 px-4 text-left font-semibold">Сотрудник</th>
                           <th className="py-3 px-4 text-left font-semibold">Роль</th>
                           <th className="py-3 px-4 text-left font-semibold">В сети</th>
@@ -3602,7 +3602,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
+                        <tr className="text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
                           <th className="py-3 px-4 text-left font-semibold">№</th>
                           <th className="py-3 px-4 text-left font-semibold">Направление</th>
                           <th className="py-3 px-4 text-right font-semibold">Сумма</th>
@@ -3724,7 +3724,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
+                        <tr className="text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
                           <th className="py-3 px-4 text-left font-semibold">Название</th>
                           <th className="py-3 px-4 text-right font-semibold">Общий</th>
                           <th className="py-3 px-4 text-right font-semibold">Потрачено</th>
@@ -3851,7 +3851,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
+                        <tr className="text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
                           <th className="py-3 px-4 text-left font-semibold">№ акта</th>
                           <th className="py-3 px-4 text-left font-semibold">Тип</th>
                           <th className="py-3 px-4 text-left font-semibold">Дата</th>
@@ -4322,7 +4322,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                       <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                           <thead>
-                            <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
+                            <tr className="text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
                               <th className="py-3 px-4 text-left font-semibold">Услуга</th>
                               <th className="py-3 px-4 text-center font-semibold w-16">Ед.</th>
                               <th className="py-3 px-4 text-right font-semibold w-24">Кол-во</th>
@@ -4373,7 +4373,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
                         <thead>
-                          <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
+                          <tr className="text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
                             <th className="py-3 px-4 text-left font-semibold">№ КП</th>
                             <th className="py-3 px-4 text-left font-semibold">Клиент</th>
                             <th className="py-3 px-4 text-left font-semibold">Объект</th>
@@ -4431,7 +4431,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
+                      <tr className="text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
                         <th className="py-3 px-4 text-left font-semibold">Сотрудник</th>
                         <th className="py-3 px-4 text-left font-semibold">Период</th>
                         <th className="py-3 px-4 text-right font-semibold">Оклад</th>
@@ -4497,7 +4497,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
+                      <tr className="text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
                         <th className="py-3 px-4 text-left font-semibold">Сотрудник</th>
                         <th className="py-3 px-4 text-left font-semibold">Тип</th>
                         <th className="py-3 px-4 text-right font-semibold">Сумма</th>
@@ -4738,7 +4738,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
                         <thead>
-                          <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
+                          <tr className="text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
                             <th className="py-3 px-4 text-left font-semibold">№ заявки</th>
                             <th className="py-3 px-4 text-left font-semibold">Статус</th>
                             <th className="py-3 px-4 text-left font-semibold">Цель</th>
@@ -4824,7 +4824,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
                         <thead>
-                          <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
+                          <tr className="text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
                             <th className="py-3 px-4 text-left font-semibold">№ заказа</th>
                             <th className="py-3 px-4 text-left font-semibold">Статус</th>
                             <th className="py-3 px-4 text-left font-semibold">Поставщик</th>
@@ -4915,7 +4915,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
                         <thead>
-                          <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
+                          <tr className="text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
                             <th className="py-3 px-4 text-left font-semibold">Название</th>
                             <th className="py-3 px-4 text-left font-semibold">Тип</th>
                             <th className="py-3 px-4 text-left font-semibold">Серийный №</th>
@@ -5064,7 +5064,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                           <div className="overflow-x-auto border-t border-gray-100 dark:border-gray-700/60">
                             <table className="w-full text-sm">
                               <thead>
-                                <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
+                                <tr className="text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
                                   <th className="py-3 px-4 w-10">
                                     <input type="checkbox" className="rounded border-gray-300 dark:border-gray-600 text-violet-500 focus:ring-violet-400" />
                                   </th>
@@ -5220,7 +5220,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
                         <thead>
-                          <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
+                          <tr className="text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
                             <th className="py-3 px-4 text-left font-semibold">Название</th>
                             <th className="py-3 px-4 text-left font-semibold">Статус</th>
                             <th className="py-3 px-4 text-left font-semibold">Дата проведения</th>
@@ -5347,7 +5347,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                         <div className="overflow-x-auto">
                           <table className="w-full text-sm">
                             <thead>
-                              <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
+                              <tr className="text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
                                 <th className="py-3 px-4 text-left font-semibold">№</th>
                                 <th className="py-3 px-4 text-left font-semibold">Оборудование</th>
                                 <th className="py-3 px-4 text-left font-semibold">Серийный №</th>
@@ -5452,7 +5452,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
                         <thead>
-                          <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
+                          <tr className="text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
                             <th className="py-3 px-4 text-left font-semibold">Оборудование</th>
                             <th className="py-3 px-4 text-left font-semibold">Тип ТО</th>
                             <th className="py-3 px-4 text-left font-semibold">Дата</th>

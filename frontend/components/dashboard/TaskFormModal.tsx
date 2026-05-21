@@ -374,6 +374,7 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
   const [attachments, setAttachments] = useState<Attachment[]>(() => parseAttachments(task?.attachments));
   const [uploading, setUploading] = useState(false);
   const [previewFile, setPreviewFile] = useState<{ url: string; name: string } | null>(null);
+  const attSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const commentFileInputRef = useRef<HTMLInputElement>(null);
@@ -452,6 +453,18 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
       } catch {}
     }, 600);
   }, [task?.id]);
+
+  // Auto-save attachments for existing tasks (immediate, no debounce —
+  // file upload is the user's commit action; we must persist before they close the modal)
+  const persistAttachments = useCallback(async (next: Attachment[]) => {
+    if (!task?.id) return;
+    if (attSaveTimer.current) clearTimeout(attSaveTimer.current);
+    try {
+      await api.put(`/tasks/${task.id}`, { attachments: next });
+    } catch {
+      addToast('error', 'Не удалось сохранить вложение');
+    }
+  }, [task?.id, addToast]);
 
   const updateChecklists = (fn: (prev: ChecklistGroup[]) => ChecklistGroup[]) => {
     setChecklists((prev) => {
@@ -596,8 +609,15 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
         mimeType: a.mimeType || a.mime_type || '',
         fileUrl: a.fileUrl || a.file_url || a.url || '',
       }));
-      if (forComment) setCommentAttachments((prev) => [...prev, ...list]);
-      else setAttachments((prev) => [...prev, ...list]);
+      if (forComment) {
+        setCommentAttachments((prev) => [...prev, ...list]);
+      } else {
+        setAttachments((prev) => {
+          const next = [...prev, ...list];
+          persistAttachments(next);
+          return next;
+        });
+      }
     } catch {
       addToast('error', 'Ошибка загрузки файла');
     } finally {
@@ -1073,7 +1093,11 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
                   {a.fileName}
                 </button>
                 <button
-                  onClick={() => setAttachments((p) => p.filter((_, idx) => idx !== i))}
+                  onClick={() => setAttachments((p) => {
+                    const next = p.filter((_, idx) => idx !== i);
+                    persistAttachments(next);
+                    return next;
+                  })}
                   className="text-gray-300 hover:text-red-400 text-sm shrink-0"
                 >×</button>
               </div>
