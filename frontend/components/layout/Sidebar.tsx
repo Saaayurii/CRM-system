@@ -752,8 +752,8 @@ export default function Sidebar() {
         </div>
 
         {/* Expand / collapse button */}
-        <div className="shrink-0 hidden lg:flex justify-end border-t border-gray-100 dark:border-gray-700 px-4 py-2">
-          <div className="pl-4 pr-3 py-1">
+        <div className="shrink-0 hidden lg:flex justify-center lg:sidebar-expanded:justify-end border-t border-gray-100 dark:border-gray-700 px-4 py-2">
+          <div className="py-1">
             <button
               className="cursor-pointer text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-400"
               onClick={() => setSidebarExpanded(!sidebarExpanded)}
