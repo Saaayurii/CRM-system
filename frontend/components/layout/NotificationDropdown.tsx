@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Transition from '@/components/ui/Transition';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { getPermissionState } from '@/lib/pushNotifications';
@@ -104,6 +104,7 @@ function NotifIcon({ type }: { type?: string }) {
 
 export default function NotificationDropdown({ navItem }: { navItem?: boolean }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [fixedStyle, setFixedStyle] = useState<React.CSSProperties>({});
   const trigger = useRef<HTMLButtonElement>(null);
   const dropdown = useRef<HTMLDivElement>(null);
 
@@ -154,9 +155,17 @@ export default function NotificationDropdown({ navItem }: { navItem?: boolean })
   });
 
   const handleToggle = useCallback(() => {
-    if (!dropdownOpen) fetchNotifications();
+    if (!dropdownOpen) {
+      fetchNotifications();
+      if (navItem && trigger.current) {
+        const rect = trigger.current.getBoundingClientRect();
+        const dropdownMaxH = 480;
+        const top = Math.max(8, rect.bottom - dropdownMaxH);
+        setFixedStyle({ position: 'fixed', top, left: rect.right + 16, zIndex: 200 });
+      }
+    }
     setDropdownOpen((prev) => !prev);
-  }, [dropdownOpen, fetchNotifications]);
+  }, [dropdownOpen, fetchNotifications, navItem]);
 
   const handleNotificationClick = useCallback(
     (notification: { id: number; actionUrl?: string; isRead: boolean }) => {
@@ -184,6 +193,138 @@ export default function NotificationDropdown({ navItem }: { navItem?: boolean })
     : pushEnabled
       ? 'Отключить push-уведомления'
       : 'Включить push-уведомления';
+
+  const dropdownBody = (
+    <div ref={dropdown}>
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700/60">
+        <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Уведомления</h3>
+        <div className="flex items-center gap-3">
+          {unreadCount > 0 && (
+            <button
+              onClick={markAllAsRead}
+              className="text-xs text-violet-500 hover:text-violet-600 dark:hover:text-violet-400 transition-colors"
+            >
+              Прочитать все
+            </button>
+          )}
+          {/* Push toggle */}
+          {pushSupported && (
+            <button
+              onClick={() => togglePush()}
+              disabled={pushDenied || pushLoading}
+              title={pushTitle}
+              className={`flex items-center gap-1 text-xs px-2 py-1 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                pushEnabled
+                  ? 'bg-violet-100 text-violet-600 dark:bg-violet-500/20 dark:text-violet-400'
+                  : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+              }`}
+            >
+              {pushLoading ? (
+                <svg className="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              ) : pushEnabled ? (
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+              ) : (
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.143 17.082a24.248 24.248 0 003.844.148m-3.844-.148a23.856 23.856 0 01-5.455-1.31 8.964 8.964 0 002.3-5.542m3.155 6.852a3 3 0 005.667 1.329m1.010-10.562a6 6 0 00-9.928 5.573" />
+                </svg>
+              )}
+              <span>{pushEnabled ? 'Push вкл.' : 'Push'}</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Notification list */}
+      <div className="max-h-80 overflow-y-auto">
+        {isLoading && notifications.length === 0 ? (
+          <div className="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
+            Загрузка...
+          </div>
+        ) : notifications.length === 0 ? (
+          <div className="px-4 py-8 text-center">
+            <svg className="w-10 h-10 mx-auto mb-2 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+            </svg>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Нет уведомлений</p>
+          </div>
+        ) : (
+          <ul>
+            {notifications.map((n) => (
+              <li key={n.id}>
+                <button
+                  className={`w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors border-b border-gray-100 dark:border-gray-700/40 last:border-0 ${
+                    !n.isRead ? 'bg-violet-50/50 dark:bg-violet-500/5' : ''
+                  }`}
+                  onClick={() => handleNotificationClick(n)}
+                >
+                  <div className="flex items-start gap-2.5">
+                    <NotifIcon type={n.notificationType} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-100 leading-tight">
+                          {n.title}
+                        </p>
+                        {!n.isRead && (
+                          <span className="mt-1 w-2 h-2 bg-violet-500 rounded-full shrink-0" />
+                        )}
+                      </div>
+                      {n.message && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">
+                          {n.message}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-2 mt-1">
+                        <p className="text-xs text-gray-400 dark:text-gray-500">
+                          {formatTime(n.createdAt)}
+                        </p>
+                        {n.priority === 3 && (
+                          <span className="text-[10px] px-1.5 py-0.5 bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-400 rounded font-medium">
+                            Срочно
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {/* Footer */}
+      {pushSupported && !pushEnabled && pushPermission !== 'denied' && (
+        <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700/60 bg-violet-50/50 dark:bg-violet-500/5">
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+            Включите push-уведомления, чтобы получать сообщения даже когда приложение закрыто.
+          </p>
+          <button
+            onClick={() => togglePush()}
+            disabled={pushLoading}
+            className="w-full text-sm py-1.5 rounded-lg bg-violet-500 hover:bg-violet-600 text-white font-medium transition-colors disabled:opacity-50"
+          >
+            Включить уведомления
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
+  const transitionProps = {
+    show: dropdownOpen,
+    enter: 'transition ease-out duration-200 transform',
+    enterStart: 'opacity-0 -translate-y-2',
+    enterEnd: 'opacity-100 translate-y-0',
+    leave: 'transition ease-out duration-200',
+    leaveStart: 'opacity-100',
+    leaveEnd: 'opacity-0',
+  };
 
   return (
     <div className={navItem ? 'relative w-full' : 'relative inline-flex'}>
@@ -219,138 +360,23 @@ export default function NotificationDropdown({ navItem }: { navItem?: boolean })
         )}
       </button>
 
-      <Transition
-        className={navItem
-          ? 'origin-bottom-left z-[200] absolute bottom-0 left-full ml-4 min-w-80 max-w-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700/60 rounded-xl shadow-xl overflow-hidden'
-          : 'origin-top-right z-[200] fixed top-16 left-2 right-2 sm:absolute sm:top-full sm:left-auto sm:right-0 sm:min-w-80 sm:max-w-sm sm:mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700/60 rounded-xl shadow-xl overflow-hidden'}
-        show={dropdownOpen}
-        enter="transition ease-out duration-200 transform"
-        enterStart="opacity-0 -translate-y-2"
-        enterEnd="opacity-100 translate-y-0"
-        leave="transition ease-out duration-200"
-        leaveStart="opacity-100"
-        leaveEnd="opacity-0"
-      >
-        <div ref={dropdown}>
-          {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700/60">
-            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Уведомления</h3>
-            <div className="flex items-center gap-3">
-              {unreadCount > 0 && (
-                <button
-                  onClick={markAllAsRead}
-                  className="text-xs text-violet-500 hover:text-violet-600 dark:hover:text-violet-400 transition-colors"
-                >
-                  Прочитать все
-                </button>
-              )}
-              {/* Push toggle */}
-              {pushSupported && (
-                <button
-                  onClick={() => togglePush()}
-                  disabled={pushDenied || pushLoading}
-                  title={pushTitle}
-                  className={`flex items-center gap-1 text-xs px-2 py-1 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
-                    pushEnabled
-                      ? 'bg-violet-100 text-violet-600 dark:bg-violet-500/20 dark:text-violet-400'
-                      : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  {pushLoading ? (
-                    <svg className="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                  ) : pushEnabled ? (
-                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                    </svg>
-                  ) : (
-                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9.143 17.082a24.248 24.248 0 003.844.148m-3.844-.148a23.856 23.856 0 01-5.455-1.31 8.964 8.964 0 002.3-5.542m3.155 6.852a3 3 0 005.667 1.329m1.010-10.562a6 6 0 00-9.928 5.573" />
-                    </svg>
-                  )}
-                  <span>{pushEnabled ? 'Push вкл.' : 'Push'}</span>
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Notification list */}
-          <div className="max-h-80 overflow-y-auto">
-            {isLoading && notifications.length === 0 ? (
-              <div className="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
-                Загрузка...
-              </div>
-            ) : notifications.length === 0 ? (
-              <div className="px-4 py-8 text-center">
-                <svg className="w-10 h-10 mx-auto mb-2 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
-                </svg>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Нет уведомлений</p>
-              </div>
-            ) : (
-              <ul>
-                {notifications.map((n) => (
-                  <li key={n.id}>
-                    <button
-                      className={`w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors border-b border-gray-100 dark:border-gray-700/40 last:border-0 ${
-                        !n.isRead ? 'bg-violet-50/50 dark:bg-violet-500/5' : ''
-                      }`}
-                      onClick={() => handleNotificationClick(n)}
-                    >
-                      <div className="flex items-start gap-2.5">
-                        <NotifIcon type={n.notificationType} />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2">
-                            <p className="text-sm font-medium text-gray-800 dark:text-gray-100 leading-tight">
-                              {n.title}
-                            </p>
-                            {!n.isRead && (
-                              <span className="mt-1 w-2 h-2 bg-violet-500 rounded-full shrink-0" />
-                            )}
-                          </div>
-                          {n.message && (
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">
-                              {n.message}
-                            </p>
-                          )}
-                          <div className="flex items-center gap-2 mt-1">
-                            <p className="text-xs text-gray-400 dark:text-gray-500">
-                              {formatTime(n.createdAt)}
-                            </p>
-                            {n.priority === 3 && (
-                              <span className="text-[10px] px-1.5 py-0.5 bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-400 rounded font-medium">
-                                Срочно
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-
-          {/* Footer */}
-          {pushSupported && !pushEnabled && pushPermission !== 'denied' && (
-            <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700/60 bg-violet-50/50 dark:bg-violet-500/5">
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                Включите push-уведомления, чтобы получать сообщения даже когда приложение закрыто.
-              </p>
-              <button
-                onClick={() => togglePush()}
-                disabled={pushLoading}
-                className="w-full text-sm py-1.5 rounded-lg bg-violet-500 hover:bg-violet-600 text-white font-medium transition-colors disabled:opacity-50"
-              >
-                Включить уведомления
-              </button>
-            </div>
-          )}
+      {navItem ? (
+        <div style={fixedStyle}>
+          <Transition
+            className="origin-bottom-left min-w-80 max-w-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700/60 rounded-xl shadow-xl overflow-hidden"
+            {...transitionProps}
+          >
+            {dropdownBody}
+          </Transition>
         </div>
-      </Transition>
+      ) : (
+        <Transition
+          className="origin-top-right z-[200] fixed top-16 left-2 right-2 sm:absolute sm:top-full sm:left-auto sm:right-0 sm:min-w-80 sm:max-w-sm sm:mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700/60 rounded-xl shadow-xl overflow-hidden"
+          {...transitionProps}
+        >
+          {dropdownBody}
+        </Transition>
+      )}
     </div>
   );
 }
