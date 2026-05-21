@@ -99,7 +99,7 @@ export default function ProfileDropdown({ navItem }: { navItem?: boolean }) {
 
       <Transition
         className={navItem
-          ? 'origin-bottom-left z-10 absolute bottom-full min-w-52 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700/60 py-1.5 rounded-lg shadow-lg overflow-hidden mb-1 left-0'
+          ? 'origin-bottom-left z-10 absolute bottom-0 left-full ml-4 min-w-52 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700/60 py-1.5 rounded-lg shadow-lg overflow-hidden'
           : 'origin-top-right z-10 absolute top-full min-w-52 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700/60 py-1.5 rounded-lg shadow-lg overflow-hidden mt-1 right-0'}
         show={dropdownOpen}
         enter="transition ease-out duration-200 transform"
