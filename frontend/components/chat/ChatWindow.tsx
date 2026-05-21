@@ -347,7 +347,10 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
     }
   }, [activeChannelId]);
 
-  // Auto-scroll: instant on initial load, smooth on new messages
+  // Auto-scroll: instant on initial load, smooth on new messages.
+  // Initial load schedules several re-scrolls because images/videos in messages
+  // load asynchronously and shift layout — without retries, mobile opens
+  // chat with the scroll stuck mid-way after media loads.
   useEffect(() => {
     const container = messagesContainerRef.current;
     if (!container || messages.length === 0) return;
@@ -356,9 +359,27 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
       initialLoadRef.current = false;
       isInitialLoadingRef.current = false;
       prevMessagesLenRef.current = messages.length;
-      messagesEndRef.current?.scrollIntoView();
-      wasAtBottomRef.current = true;
-      return;
+
+      const snap = () => {
+        isProgrammaticScrollRef.current = true;
+        messagesEndRef.current?.scrollIntoView();
+        wasAtBottomRef.current = true;
+      };
+      snap();
+      // Catch layout shifts from media (img/video) loading after first paint.
+      const timers = [50, 200, 500, 1000, 2000].map((ms) => setTimeout(snap, ms));
+      // Wire onload on every <img> currently inside the messages container.
+      const imgs = container.querySelectorAll('img');
+      imgs.forEach((img) => {
+        if (!img.complete) img.addEventListener('load', snap, { once: true });
+      });
+      // Release programmatic flag once shifts settle.
+      const releaseTimer = setTimeout(() => { isProgrammaticScrollRef.current = false; }, 2500);
+      return () => {
+        timers.forEach(clearTimeout);
+        clearTimeout(releaseTimer);
+        imgs.forEach((img) => img.removeEventListener('load', snap));
+      };
     }
 
     const isNewMessage = messages.length > prevMessagesLenRef.current;
