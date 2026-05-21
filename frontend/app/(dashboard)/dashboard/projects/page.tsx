@@ -182,33 +182,6 @@ export default function ProjectsPage() {
         </div>
       </div>
 
-      {/* Offline / stale-data banner */}
-      {isFromCache && (
-        <div className="flex items-center gap-3 px-4 py-3 mb-6 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400">
-          <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
-            />
-          </svg>
-          <div className="flex-1 text-sm">
-            <span className="font-semibold">Режим офлайн</span> — данные могут быть устаревшими
-            {cachedAt && (
-              <span className="ml-1 text-xs opacity-70">
-                (кеш от {new Date(cachedAt).toLocaleString('ru-RU')})
-              </span>
-            )}
-          </div>
-          <button
-            onClick={refetch}
-            className="shrink-0 text-xs font-medium underline underline-offset-2 hover:no-underline"
-          >
-            Обновить
-          </button>
-        </div>
-      )}
 
       <FilterPanel
         hasActiveFilters={!!hasActiveFilters}

@@ -92,7 +92,7 @@ export function useOfflineData<T>(
 
     const intervalId = setInterval(() => {
       if (document.visibilityState === 'visible') fetch(false);
-    }, 30_000);
+    }, 60_000);
 
     return () => {
       window.removeEventListener('online', handleOnline);

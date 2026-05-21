@@ -6,7 +6,7 @@ import { useEffect, useRef } from 'react';
  * Periodically calls `refetch` and also on window focus / tab becoming visible.
  * Skips the poll tick if the document is hidden (user switched to another tab).
  */
-export function useAutoRefresh(refetch: () => void, intervalMs = 30_000) {
+export function useAutoRefresh(refetch: () => void, intervalMs = 60_000) {
   const fn = useRef(refetch);
   fn.current = refetch;
 
