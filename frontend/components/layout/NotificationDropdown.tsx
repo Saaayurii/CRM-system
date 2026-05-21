@@ -102,7 +102,7 @@ function NotifIcon({ type }: { type?: string }) {
   }
 }
 
-export default function NotificationDropdown() {
+export default function NotificationDropdown({ navItem }: { navItem?: boolean }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
   const dropdown = useRef<HTMLDivElement>(null);
@@ -186,22 +186,36 @@ export default function NotificationDropdown() {
       : 'Включить push-уведомления';
 
   return (
-    <div className="relative inline-flex">
+    <div className={navItem ? 'relative w-full' : 'relative inline-flex'}>
       <button
         ref={trigger}
-        className="relative w-8 h-8 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700/50 rounded-full transition-colors cursor-pointer"
+        className={navItem
+          ? 'flex items-center gap-3 py-2 px-3 rounded-lg w-full text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition duration-150 truncate cursor-pointer'
+          : 'relative w-8 h-8 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700/50 rounded-full transition-colors cursor-pointer'}
         aria-haspopup="true"
         onClick={handleToggle}
         aria-expanded={dropdownOpen}
       >
         <span className="sr-only">Уведомления</span>
-        <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
-        </svg>
-        {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-            {unreadCount > 9 ? '9+' : unreadCount}
-          </span>
+        <div className="relative shrink-0">
+          <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+          </svg>
+          {!navItem && unreadCount > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
+        </div>
+        {navItem && (
+          <>
+            <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Уведомления</span>
+            {unreadCount > 0 && (
+              <span className="ml-auto shrink-0 lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200 min-w-5 h-5 px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </>
         )}
       </button>
 

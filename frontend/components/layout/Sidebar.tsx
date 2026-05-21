@@ -8,7 +8,6 @@ import { useAuthStore } from '@/stores/authStore';
 import { useTaskNotifStore } from '@/stores/taskNotifStore';
 import { useNavHotkeys, type NavHotkey } from '@/hooks/useNavHotkeys';
 import SidebarLinkGroup from './SidebarLinkGroup';
-import ChatButton from './ChatButton';
 import NotificationDropdown from './NotificationDropdown';
 import ThemeToggle from './ThemeToggle';
 import ProfileDropdown from './ProfileDropdown';
@@ -430,13 +429,6 @@ export default function Sidebar() {
             </button>
             <CompanySwitcher />
           </div>
-          {/* Utility: chat, notifications, theme, profile */}
-          <div className="flex items-center gap-1 lg:justify-center lg:sidebar-expanded:justify-start flex-wrap">
-            <ChatButton />
-            <NotificationDropdown />
-            <ThemeToggle />
-            <ProfileDropdown />
-          </div>
         </div>
 
         <div className="border-t border-gray-100 dark:border-gray-700 mx-4 mb-2" />
@@ -748,6 +740,16 @@ export default function Sidebar() {
           </div>
         </div>
         </div>{/* end scrollable nav */}
+
+        {/* Bottom nav items: notifications, theme, profile */}
+        <div className="shrink-0 px-4 pb-2">
+          <div className="border-t border-gray-100 dark:border-gray-700 mb-2" />
+          <ul className="space-y-0.5">
+            <li><NotificationDropdown navItem /></li>
+            <li><ThemeToggle navItem /></li>
+            <li><ProfileDropdown navItem /></li>
+          </ul>
+        </div>
 
         {/* Expand / collapse button */}
         <div className="shrink-0 hidden lg:flex justify-end border-t border-gray-100 dark:border-gray-700 px-4 py-2">
