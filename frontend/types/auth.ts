@@ -25,6 +25,7 @@ export interface User {
   position?: string;
   isActive: boolean;
   createdAt: string;
+  mustChangePassword?: boolean;
   // Populated after /auth/me or from role lookup
   role?: UserRole;
 }

@@ -43,6 +43,9 @@ export class UserResponseDto {
   @ApiPropertyOptional({ description: 'Hashed password (read-only)' })
   passwordDigest?: string;
 
+  @ApiPropertyOptional({ example: false, description: 'User must change password on next login' })
+  mustChangePassword?: boolean;
+
   @ApiProperty({ example: true })
   isActive: boolean;
 

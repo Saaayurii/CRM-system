@@ -33,6 +33,9 @@ export class UserResponseDto {
 
   @ApiPropertyOptional({ example: true })
   isGlobalAdmin?: boolean;
+
+  @ApiPropertyOptional({ example: false, description: 'User must change password on next login' })
+  mustChangePassword?: boolean;
 }
 
 export class TokenResponseDto {

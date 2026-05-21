@@ -265,6 +265,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               accountName: (me as any).accountName ?? state.user.accountName,
               accountLogoUrl: (me as any).accountLogoUrl ?? state.user.accountLogoUrl,
               isGlobalAdmin: (me as any).isGlobalAdmin ?? state.user.isGlobalAdmin,
+              mustChangePassword: (me as any).mustChangePassword ?? false,
             }
           : state.user,
       }));

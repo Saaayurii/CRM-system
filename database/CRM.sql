@@ -58,6 +58,7 @@ CREATE TABLE users (
          
     -- Авторизация
     password_digest VARCHAR(255),
+    must_change_password BOOLEAN NOT NULL DEFAULT FALSE,
     confirmed_at TIMESTAMP,
     last_sign_in_at TIMESTAMP,
     current_sign_in_at TIMESTAMP,

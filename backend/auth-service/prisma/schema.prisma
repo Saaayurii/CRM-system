@@ -63,7 +63,8 @@ model User {
   isActive     Boolean @default(true) @map("is_active")
 
   // Authorization
-  passwordDigest String?   @map("password_digest") @db.VarChar(255)
+  passwordDigest      String?   @map("password_digest") @db.VarChar(255)
+  mustChangePassword  Boolean   @default(false) @map("must_change_password")
   confirmedAt    DateTime? @map("confirmed_at")
   lastSignInAt   DateTime? @map("last_sign_in_at")
   currentSignInAt DateTime? @map("current_sign_in_at")

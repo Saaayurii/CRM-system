@@ -20,9 +20,12 @@ interface Employee {
   birthDate?: string;
   birth_date?: string;
   address?: string;
+  mustChangePassword?: boolean;
+  must_change_password?: boolean;
 }
 
 interface EmployeeFormModalProps {
+  /** null → create mode, Employee → edit mode */
   employee: Employee | null;
   onClose: () => void;
   onSaved: () => void;
@@ -38,6 +41,10 @@ const ROLE_OPTIONS = [
   { value: 8,  label: 'Бухгалтер' },
   { value: 9,  label: 'Инспектор' },
   { value: 10, label: 'Рабочий' },
+  { value: 11, label: 'Поставщик' },
+  { value: 12, label: 'Подрядчик' },
+  { value: 13, label: 'Наблюдатель' },
+  { value: 14, label: 'Аналитик' },
 ];
 
 const AVAILABILITY_OPTIONS = [
@@ -52,6 +59,7 @@ const inputCls = 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 r
 
 export default function EmployeeFormModal({ employee, onClose, onSaved }: EmployeeFormModalProps) {
   const addToast = useToastStore((s) => s.addToast);
+  const isCreate = !employee;
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     name: '',
@@ -65,6 +73,7 @@ export default function EmployeeFormModal({ employee, onClose, onSaved }: Employ
     birthDate: '',
     address: '',
     password: '',
+    mustChangePassword: true, // default true for create mode
   });
 
   useEffect(() => {
@@ -81,6 +90,7 @@ export default function EmployeeFormModal({ employee, onClose, onSaved }: Employ
         birthDate: employee.birthDate || employee.birth_date || '',
         address: employee.address || '',
         password: '',
+        mustChangePassword: employee.mustChangePassword ?? employee.must_change_password ?? false,
       });
     }
   }, [employee]);
@@ -91,22 +101,46 @@ export default function EmployeeFormModal({ employee, onClose, onSaved }: Employ
     e.preventDefault();
     setLoading(true);
     try {
-      const payload: Record<string, unknown> = {
-        name: form.name,
-        email: form.email,
-        phone: form.phone || undefined,
-        roleId: form.roleId ? Number(form.roleId) : undefined,
-        position: form.position || undefined,
-        isActive: form.isActive,
-        availability: Number(form.availability),
-        hireDate: form.hireDate || undefined,
-        birthDate: form.birthDate || undefined,
-        address: form.address || undefined,
-      };
-      if (form.password) payload.newPassword = form.password;
-
-      await api.put(`/users/${employee!.id}`, payload);
-      addToast('success', 'Сотрудник обновлён');
+      if (isCreate) {
+        if (!form.roleId) {
+          addToast('error', 'Выберите роль');
+          setLoading(false);
+          return;
+        }
+        if (!form.password || form.password.length < 6) {
+          addToast('error', 'Пароль обязателен (минимум 6 символов)');
+          setLoading(false);
+          return;
+        }
+        const payload: Record<string, unknown> = {
+          name: form.name,
+          email: form.email,
+          roleId: Number(form.roleId),
+          phone: form.phone || undefined,
+          position: form.position || undefined,
+          password: form.password,
+          mustChangePassword: form.mustChangePassword,
+        };
+        await api.post('/users', payload);
+        addToast('success', 'Сотрудник создан');
+      } else {
+        const payload: Record<string, unknown> = {
+          name: form.name,
+          email: form.email,
+          phone: form.phone || undefined,
+          roleId: form.roleId ? Number(form.roleId) : undefined,
+          position: form.position || undefined,
+          isActive: form.isActive,
+          availability: Number(form.availability),
+          hireDate: form.hireDate || undefined,
+          birthDate: form.birthDate || undefined,
+          address: form.address || undefined,
+          mustChangePassword: form.mustChangePassword,
+        };
+        if (form.password) payload.newPassword = form.password;
+        await api.put(`/users/${employee!.id}`, payload);
+        addToast('success', 'Сотрудник обновлён');
+      }
       onSaved();
     } catch (err: any) {
       addToast('error', err.response?.data?.message || 'Ошибка при сохранении');
@@ -129,18 +163,18 @@ export default function EmployeeFormModal({ employee, onClose, onSaved }: Employ
         </button>
 
         <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-5">
-          Редактировать сотрудника
+          {isCreate ? 'Создать сотрудника' : 'Редактировать сотрудника'}
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Основное */}
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Имя</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Имя <span className="text-red-500">*</span></label>
               <input type="text" required value={form.name} onChange={(e) => set('name', e.target.value)} className={inputCls} />
             </div>
             <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email <span className="text-red-500">*</span></label>
               <input type="email" required value={form.email} onChange={(e) => set('email', e.target.value)} className={inputCls} />
             </div>
             <div>
@@ -156,63 +190,101 @@ export default function EmployeeFormModal({ employee, onClose, onSaved }: Employ
           {/* Роль и статусы */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Роль</label>
-              <select value={form.roleId} onChange={(e) => set('roleId', e.target.value)} className={inputCls}>
-                <option value="">— не изменять —</option>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Роль {isCreate && <span className="text-red-500">*</span>}
+              </label>
+              <select value={form.roleId} onChange={(e) => set('roleId', e.target.value)} className={inputCls} required={isCreate}>
+                <option value="">{isCreate ? '— выберите роль —' : '— не изменять —'}</option>
                 {ROLE_OPTIONS.map((r) => (
                   <option key={r.value} value={r.value}>{r.label}</option>
                 ))}
               </select>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Доступность</label>
-              <select value={form.availability} onChange={(e) => set('availability', e.target.value)} className={inputCls}>
-                {AVAILABILITY_OPTIONS.map((a) => (
-                  <option key={a.value} value={a.value}>{a.label}</option>
-                ))}
-              </select>
-            </div>
+            {!isCreate && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Доступность</label>
+                <select value={form.availability} onChange={(e) => set('availability', e.target.value)} className={inputCls}>
+                  {AVAILABILITY_OPTIONS.map((a) => (
+                    <option key={a.value} value={a.value}>{a.label}</option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
 
-          {/* Даты */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Дата найма</label>
-              <input type="date" value={form.hireDate} onChange={(e) => set('hireDate', e.target.value)} className={inputCls} />
+          {/* Даты — только в edit */}
+          {!isCreate && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Дата найма</label>
+                <input type="date" value={form.hireDate} onChange={(e) => set('hireDate', e.target.value)} className={inputCls} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Дата рождения</label>
+                <input type="date" value={form.birthDate} onChange={(e) => set('birthDate', e.target.value)} className={inputCls} />
+              </div>
             </div>
+          )}
+
+          {/* Адрес — только в edit */}
+          {!isCreate && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Дата рождения</label>
-              <input type="date" value={form.birthDate} onChange={(e) => set('birthDate', e.target.value)} className={inputCls} />
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Адрес</label>
+              <input type="text" value={form.address} onChange={(e) => set('address', e.target.value)} className={inputCls} placeholder="г. Москва, ул. Примерная, 1" />
             </div>
-          </div>
+          )}
 
-          {/* Адрес */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Адрес</label>
-            <input type="text" value={form.address} onChange={(e) => set('address', e.target.value)} className={inputCls} placeholder="г. Москва, ул. Примерная, 1" />
-          </div>
-
-          {/* Активность */}
-          <div className="flex items-center gap-3 py-1">
-            <button
-              type="button"
-              onClick={() => set('isActive', !form.isActive)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${form.isActive ? 'bg-violet-500' : 'bg-gray-300 dark:bg-gray-600'}`}
-            >
-              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${form.isActive ? 'translate-x-6' : 'translate-x-1'}`} />
-            </button>
-            <span className="text-sm text-gray-700 dark:text-gray-300">
-              {form.isActive ? 'Активен' : 'Деактивирован'}
-            </span>
-          </div>
+          {/* Активность — только в edit */}
+          {!isCreate && (
+            <div className="flex items-center gap-3 py-1">
+              <button
+                type="button"
+                onClick={() => set('isActive', !form.isActive)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${form.isActive ? 'bg-violet-500' : 'bg-gray-300 dark:bg-gray-600'}`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${form.isActive ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
+              <span className="text-sm text-gray-700 dark:text-gray-300">
+                {form.isActive ? 'Активен' : 'Деактивирован'}
+              </span>
+            </div>
+          )}
 
           {/* Пароль */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Новый пароль <span className="text-gray-400 font-normal">(оставьте пустым, чтобы не менять)</span>
+              {isCreate ? (
+                <>Пароль <span className="text-red-500">*</span> <span className="text-gray-400 font-normal">(мин. 6 символов)</span></>
+              ) : (
+                <>Новый пароль <span className="text-gray-400 font-normal">(оставьте пустым, чтобы не менять)</span></>
+              )}
             </label>
-            <input type="password" value={form.password} onChange={(e) => set('password', e.target.value)} className={inputCls} />
+            <input
+              type="password"
+              required={isCreate}
+              minLength={isCreate ? 6 : undefined}
+              value={form.password}
+              onChange={(e) => set('password', e.target.value)}
+              className={inputCls}
+              autoComplete="new-password"
+            />
           </div>
+
+          {/* Force password change */}
+          <label className="flex items-start gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={form.mustChangePassword}
+              onChange={(e) => set('mustChangePassword', e.target.checked)}
+              className="mt-0.5 w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-violet-500 focus:ring-violet-500 cursor-pointer"
+            />
+            <span className="text-sm text-gray-700 dark:text-gray-300">
+              Требовать смену пароля при первом входе
+              <span className="block text-xs text-gray-400 dark:text-gray-500">
+                Пользователь должен будет задать новый пароль сразу после входа
+              </span>
+            </span>
+          </label>
 
           <div className="flex gap-3 pt-1">
             <button type="button" onClick={onClose}
@@ -221,7 +293,7 @@ export default function EmployeeFormModal({ employee, onClose, onSaved }: Employ
             </button>
             <button type="submit" disabled={loading}
               className="flex-1 py-2 bg-violet-500 hover:bg-violet-600 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
-              {loading ? 'Сохранение...' : 'Сохранить'}
+              {loading ? 'Сохранение...' : isCreate ? 'Создать' : 'Сохранить'}
             </button>
           </div>
         </form>

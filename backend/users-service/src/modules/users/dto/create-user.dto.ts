@@ -62,4 +62,12 @@ export class CreateUserDto {
   @IsOptional()
   @MaxLength(255)
   position?: string;
+
+  @ApiPropertyOptional({
+    description: 'Require user to change password on next login',
+    example: true,
+  })
+  @IsBoolean()
+  @IsOptional()
+  mustChangePassword?: boolean;
 }

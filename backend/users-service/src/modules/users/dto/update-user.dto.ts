@@ -90,4 +90,9 @@ export class UpdateUserDto {
   @IsOptional()
   @MinLength(6)
   newPassword?: string;
+
+  @ApiPropertyOptional({ description: 'Require user to change password on next login' })
+  @IsBoolean()
+  @IsOptional()
+  mustChangePassword?: boolean;
 }

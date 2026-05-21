@@ -241,6 +241,7 @@ export default function EmployeesPage() {
   const [error, setError] = useState('');
   const [viewingEmployee, setViewingEmployee] = useState<Employee | null>(null);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [creating, setCreating] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     if (typeof window !== 'undefined') {
@@ -345,6 +346,17 @@ export default function EmployeesPage() {
           <Link href="/dashboard" className="text-sm text-violet-500 hover:text-violet-600">
             &larr; Назад
           </Link>
+          {canEdit && (
+            <button
+              onClick={() => setCreating(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg bg-violet-500 hover:bg-violet-600 text-white font-medium transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              Создать
+            </button>
+          )}
         </div>
       </div>
 
@@ -519,6 +531,17 @@ export default function EmployeesPage() {
           onClose={() => setEditingEmployee(null)}
           onSaved={async () => {
             setEditingEmployee(null);
+            await fetchEmployees();
+          }}
+        />
+      )}
+
+      {creating && (
+        <EmployeeFormModal
+          employee={null}
+          onClose={() => setCreating(false)}
+          onSaved={async () => {
+            setCreating(false);
             await fetchEmployees();
           }}
         />

@@ -8,6 +8,7 @@ import PushInit from '@/components/layout/PushInit';
 import PendingSync from '@/components/ui/PendingSync';
 import OfflineBanner from '@/components/ui/OfflineBanner';
 import QuickActionsButton from '@/components/ui/QuickActionsButton';
+import ForcePasswordChangeModal from '@/components/layout/ForcePasswordChangeModal';
 import { useFormEnterNav } from '@/hooks/useFormEnterNav';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -29,6 +30,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <PushInit />
         <PendingSync />
         <OfflineBanner />
+        <ForcePasswordChangeModal />
       </div>
     </MaintenanceGuard>
   );

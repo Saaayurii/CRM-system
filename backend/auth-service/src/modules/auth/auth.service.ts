@@ -775,6 +775,7 @@ export class AuthService {
       isActive: user.isActive,
       createdAt: user.createdAt,
       isGlobalAdmin: isGlobalAdmin || undefined,
+      mustChangePassword: user.mustChangePassword || undefined,
     };
   }
 }

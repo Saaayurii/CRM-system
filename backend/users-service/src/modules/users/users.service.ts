@@ -90,12 +90,14 @@ export class UsersService {
       passwordDigest = await bcrypt.hash(createUserDto.password, 10);
     }
 
+    const { password, mustChangePassword, ...rest } = createUserDto;
     const user = await this.userRepository.create({
-      ...createUserDto,
+      ...rest,
       email: emailLower,
       accountId: requestingUserAccountId,
       passwordDigest,
-    });
+      mustChangePassword: mustChangePassword ?? false,
+    } as any);
     return this.toResponseDto(user);
   }
 
@@ -114,11 +116,14 @@ export class UsersService {
       throw new ForbiddenException('Access denied');
     }
 
-    const { newPassword, hireDate, birthDate, ...rest } = updateUserDto;
+    const { newPassword, hireDate, birthDate, mustChangePassword, ...rest } = updateUserDto;
     const updateData: Record<string, unknown> = { ...rest };
     if (newPassword) {
       updateData.passwordDigest = await bcrypt.hash(newPassword, 10);
+      // If admin resets password without explicit flag, require change on next login
+      if (mustChangePassword === undefined) updateData.mustChangePassword = true;
     }
+    if (mustChangePassword !== undefined) updateData.mustChangePassword = mustChangePassword;
     if (hireDate) updateData.hireDate = new Date(hireDate);
     if (birthDate) updateData.birthDate = new Date(birthDate);
 
@@ -163,7 +168,10 @@ export class UsersService {
     }
 
     const newHash = await bcrypt.hash(dto.newPassword, 10);
-    await this.userRepository.update(userId, { passwordDigest: newHash } as any);
+    await this.userRepository.update(userId, {
+      passwordDigest: newHash,
+      mustChangePassword: false,
+    } as any);
 
     return { message: 'Password changed successfully' };
   }
@@ -180,6 +188,7 @@ export class UsersService {
       roleId: user.roleId,
       role: user.role,
       passwordDigest: user.passwordDigest ?? undefined,
+      mustChangePassword: user.mustChangePassword ?? false,
       isActive: user.isActive,
       availability: user.availability,
       hireDate: user.hireDate ? user.hireDate.toISOString().slice(0, 10) : undefined,

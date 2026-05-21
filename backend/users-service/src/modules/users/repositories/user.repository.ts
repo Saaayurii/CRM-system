@@ -77,7 +77,7 @@ export class UserRepository {
     });
   }
 
-  async create(data: CreateUserDto & { passwordDigest?: string }) {
+  async create(data: CreateUserDto & { passwordDigest?: string; mustChangePassword?: boolean }) {
     return (this.prisma as any).user.create({
       data: {
         accountId: data.accountId,
@@ -87,6 +87,7 @@ export class UserRepository {
         phone: data.phone,
         position: data.position,
         ...(data.passwordDigest ? { passwordDigest: data.passwordDigest } : {}),
+        ...(data.mustChangePassword !== undefined ? { mustChangePassword: data.mustChangePassword } : {}),
       },
       include: {
         role: {
