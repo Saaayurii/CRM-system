@@ -5,6 +5,7 @@ import { useChatStore, ChatChannel } from '@/stores/chatStore';
 import { useAuthStore } from '@/stores/authStore';
 import CreateChannelModal from './CreateChannelModal';
 import ChatContextMenu from './ChatContextMenu';
+import ChatPreviewModal from './ChatPreviewModal';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import { previewMessageText } from '@/lib/chat/messagePreview';
@@ -39,7 +40,6 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
   const [search, setSearch] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [activeFolder, setActiveFolder] = useState<'all' | number>('all');
-  const [deletingId, setDeletingId] = useState<number | null>(null);
   const [archivingId, setArchivingId] = useState<number | null>(null);
   const addToast = useToastStore((s) => s.addToast);
   const [projectNames, setProjectNames] = useState<Map<number, string>>(new Map());
@@ -55,6 +55,9 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressTriggered = useRef(false);
   const touchStartPos = useRef<{ x: number; y: number } | null>(null);
+
+  // Preview modal state
+  const [previewChannel, setPreviewChannel] = useState<ChatChannel | null>(null);
 
   const openCtxMenu = useCallback((channel: ChatChannel, x: number, y: number, variant: 'popover' | 'sheet') => {
     setCtxMenu({ channel, position: { x, y }, variant });
@@ -257,8 +260,7 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
           }
         },
         onPreview: () => {
-          if (showArchive) setShowArchive(false);
-          handleSelect(ctxMenu.channel.id);
+          setPreviewChannel(ctxMenu.channel);
         },
         onArchive: async (isArchived) => {
           setArchivingId(ctxMenu.channel.id);
@@ -284,7 +286,6 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
         onDelete: async () => {
           const ch = ctxMenu.channel;
           if (!confirm(`Удалить чат «${ch.channelName || 'без названия'}»? Это действие нельзя отменить.`)) return;
-          setDeletingId(ch.id);
           try {
             await api.delete(`/chat-channels/${ch.id}`);
             fetchChannels(1);
@@ -292,10 +293,22 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
             addToast('success', 'Чат удалён');
           } catch {
             addToast('error', 'Не удалось удалить чат');
-          } finally {
-            setDeletingId(null);
           }
         },
+      }}
+    />
+  ) : null;
+
+  // Shared preview modal — used in both archive and normal views
+  const previewEl = previewChannel ? (
+    <ChatPreviewModal
+      channel={previewChannel}
+      onClose={() => setPreviewChannel(null)}
+      onOpenFull={() => {
+        const id = previewChannel.id;
+        setPreviewChannel(null);
+        if (showArchive) setShowArchive(false);
+        handleSelect(id);
       }}
     />
   ) : null;
@@ -422,6 +435,7 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
           })}
         </div>
       {ctxMenuEl}
+      {previewEl}
       </>
     );
   }
@@ -644,6 +658,7 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
       )}
 
       {ctxMenuEl}
+      {previewEl}
     </>
   );
 }

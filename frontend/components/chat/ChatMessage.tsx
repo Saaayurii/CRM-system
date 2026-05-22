@@ -8,86 +8,7 @@ import { ChatMessage as ChatMessageType, useChatStore } from '@/stores/chatStore
 import MediaViewer, { MediaItem } from './MediaViewer';
 import FilePreviewModal from '@/components/ui/FilePreviewModal';
 
-const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥', '👏', '🎉'];
-
-// Desktop side action buttons — defined here so TypeScript sees it before ChatMessage uses it
-function ActionButtons({ isOwn, isPinned, canPin, emojiRef, showEmojiPicker, setShowEmojiPicker, onReply, onPin, onDelete, onEdit, onCopy, onReact, onForward, canEdit }: {
-  isOwn: boolean; isPinned?: boolean; canPin?: boolean; canEdit?: boolean;
-  emojiRef: React.RefObject<HTMLDivElement | null>;
-  showEmojiPicker: boolean; setShowEmojiPicker: (v: boolean) => void;
-  onReply: () => void; onPin?: () => void; onDelete: () => void; onEdit?: () => void; onCopy?: () => void;
-  onForward?: () => void;
-  onReact: (emoji: string) => void;
-}) {
-  return (
-    <>
-      <div className="relative" ref={emojiRef}>
-        <button onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-          className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors" title="Реакция">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </button>
-        {showEmojiPicker && (
-          <div className={`absolute ${isOwn ? 'right-0' : 'left-0'} bottom-8 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg p-2 flex gap-1`}>
-            {QUICK_EMOJIS.map((emoji) => (
-              <button key={emoji} onClick={() => onReact(emoji)}
-                className="text-xl hover:scale-125 transition-transform p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">{emoji}</button>
-            ))}
-          </div>
-        )}
-      </div>
-      <button onClick={onReply}
-        className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors" title="Ответить">
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-        </svg>
-      </button>
-      {onForward && (
-        <button onClick={onForward}
-          className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-green-500 transition-colors" title="Переслать">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 9l3 3m0 0l-3 3m3-3H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </button>
-      )}
-      {onCopy && (
-        <button onClick={onCopy}
-          className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors" title="Скопировать">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-          </svg>
-        </button>
-      )}
-      {canPin && (
-        <button onClick={onPin}
-          className={`p-1.5 rounded-full transition-colors ${isPinned ? 'text-violet-500 hover:bg-violet-100 dark:hover:bg-violet-900/30' : 'text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-violet-500'}`}
-          title={isPinned ? 'Открепить' : 'Закрепить'}>
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill={isPinned ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="17" x2="12" y2="22" />
-            <path d="M5 17h14v-1.76a2 2 0 00-1.11-1.79l-1.78-.9A2 2 0 0115 10.76V6h1a2 2 0 000-4H8a2 2 0 000 4h1v4.76a2 2 0 01-1.11 1.79l-1.78.9A2 2 0 005 15.24V17z" />
-          </svg>
-        </button>
-      )}
-      {isOwn && canEdit && (
-        <button onClick={onEdit}
-          className="p-1.5 rounded-full hover:bg-sky-100 dark:hover:bg-sky-900/30 text-gray-400 hover:text-sky-500 transition-colors" title="Редактировать">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-          </svg>
-        </button>
-      )}
-      {isOwn && (
-        <button onClick={onDelete}
-          className="p-1.5 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-500 transition-colors" title="Удалить">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-          </svg>
-        </button>
-      )}
-    </>
-  );
-}
+const QUICK_EMOJIS = ['❤️', '🤗', '👍', '😄', '👎', '🔥', '👏'];
 
 interface Reader {
   id: number;
@@ -111,6 +32,7 @@ interface ChatMessageProps {
   isPinned?: boolean;
   canPin?: boolean;
   highlightQuery?: string;
+  readOnly?: boolean;
 }
 
 const DELETED_EMAIL_RE = /^deleted_\d+_\d+@crm\.deleted$/;
@@ -195,7 +117,7 @@ function parseTgMessage(text?: string): { sender: string; body: string } | null 
   return { sender: m[1], body: m[2] };
 }
 
-export default function ChatMessage({ message, isOwn, showAvatar, isRead, readers = [], onReply, onScrollToReply, onReact, onDelete, onEdit, onPin, onForward, isPinned, canPin, highlightQuery }: ChatMessageProps) {
+export default function ChatMessage({ message, isOwn, showAvatar, isRead, readers = [], onReply, onScrollToReply, onReact, onDelete, onEdit, onPin, onForward, isPinned, canPin, highlightQuery, readOnly = false }: ChatMessageProps) {
   const addToast = useToastStore((s) => s.addToast);
   const setEditingMessage = useChatStore((s) => s.setEditingMessage);
   const isVoice = message.messageType === 'voice';
@@ -230,10 +152,8 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
 
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const [previewFile, setPreviewFile] = useState<{ url: string; name?: string; mimeType?: string } | null>(null);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [showMobileActions, setShowMobileActions] = useState(false);
-  const emojiRef = useRef<HTMLDivElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const touchMoved = useRef(false);
@@ -245,11 +165,12 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
 
   // Long press to show actions on touch devices
   const handleTouchStart = useCallback(() => {
+    if (readOnly) return;
     touchMoved.current = false;
     longPressTimer.current = setTimeout(() => {
       if (!touchMoved.current) setShowMobileActions(true);
     }, 500);
-  }, []);
+  }, [readOnly]);
 
   const handleTouchEnd = useCallback(() => {
     if (longPressTimer.current) clearTimeout(longPressTimer.current);
@@ -286,15 +207,11 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
     if (onEdit) setEditingMessage(message);
   }, [message, onEdit, setEditingMessage]);
 
-  // Close emoji picker and mobile actions on outside click/tap
+  // Close context menu on outside click/tap
   useEffect(() => {
-    if (!showEmojiPicker && !showMobileActions) return;
+    if (!showMobileActions) return;
     const handler = (e: MouseEvent | TouchEvent) => {
-      // Don't close if the touch/click is inside the mobile overlay menu
       if (mobileMenuRef.current?.contains(e.target as Node)) return;
-      if (emojiRef.current && !emojiRef.current.contains(e.target as Node)) {
-        setShowEmojiPicker(false);
-      }
       setShowMobileActions(false);
     };
     document.addEventListener('mousedown', handler);
@@ -303,7 +220,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
       document.removeEventListener('mousedown', handler);
       document.removeEventListener('touchstart', handler);
     };
-  }, [showEmojiPicker, showMobileActions]);
+  }, [showMobileActions]);
 
   // Системное сообщение (закрепление, открепление и т.п.)
   if (message.messageType === 'system') {
@@ -324,7 +241,11 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       onTouchMove={handleTouchMove}
-      onContextMenu={(e) => { if ('ontouchstart' in window) e.preventDefault(); }}
+      onContextMenu={(e) => {
+        if (readOnly) return;
+        e.preventDefault();
+        setShowMobileActions(true);
+      }}
     >
       {/* Avatar placeholder / real avatar */}
       <div className="w-8 shrink-0">
@@ -550,20 +471,6 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
             )}
           </div>
 
-          {/* Action buttons — desktop: hover side panel; mobile: long-press inline toolbar */}
-          {/* Desktop hover */}
-          <div className={`absolute ${isOwn ? '-left-28' : '-right-28'} top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:flex items-center gap-0.5 select-none`}>
-            <ActionButtons
-              isOwn={isOwn} isPinned={isPinned} canPin={canPin}
-              emojiRef={emojiRef} showEmojiPicker={showEmojiPicker}
-              setShowEmojiPicker={setShowEmojiPicker}
-              onReply={onReply} onPin={onPin ? () => onPin(message) : undefined} onDelete={() => setConfirmDelete(true)}
-              onEdit={onEdit ? handleEditStart : undefined} canEdit={!!onEdit && !!message.text}
-              onCopy={message.text ? () => { navigator.clipboard?.writeText(message.text!).then(() => addToast('success', 'Сообщение скопировано')).catch(() => {}); } : undefined}
-              onForward={onForward ? () => onForward(message) : undefined}
-              onReact={(emoji: string) => { onReact(message.id, emoji); setShowEmojiPicker(false); }}
-            />
-          </div>
         </div>
 
         {/* Reactions */}
