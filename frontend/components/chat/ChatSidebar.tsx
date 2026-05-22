@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/authStore';
 import CreateChannelModal from './CreateChannelModal';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
+import { previewMessageText } from '@/lib/chat/messagePreview';
 
 interface ChatSidebarProps {
   onSelectChannel: () => void;
@@ -241,7 +242,7 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
                   </div>
                   <div className="flex items-center justify-between mt-0.5">
                     <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                      {channel.lastMessage ? channel.lastMessage.text : 'Нет сообщений'}
+                      {channel.lastMessage ? previewMessageText(channel.lastMessage.text) : 'Нет сообщений'}
                     </p>
                     {unread > 0 && (
                       <span className="ml-2 shrink-0 min-w-[20px] h-5 px-1.5 flex items-center justify-center text-xs font-bold text-white bg-violet-500 rounded-full">
@@ -438,8 +439,8 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
                   <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                     {channel.lastMessage
                       ? channel.channelType === 'group'
-                        ? `${isDeletedEmail(channel.lastMessage.senderName) ? 'Удалённый пользователь' : (channel.lastMessage.senderName || 'Удалённый пользователь')}: ${channel.lastMessage.text}`
-                        : channel.lastMessage.text
+                        ? `${isDeletedEmail(channel.lastMessage.senderName) ? 'Удалённый пользователь' : (channel.lastMessage.senderName || 'Удалённый пользователь')}: ${previewMessageText(channel.lastMessage.text)}`
+                        : previewMessageText(channel.lastMessage.text)
                       : 'Нет сообщений'}
                   </p>
                   {unread > 0 && (

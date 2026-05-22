@@ -216,6 +216,7 @@ interface ChatState {
   stopTyping: (channelId: number) => void;
   setActiveChannel: (channelId: number | null) => Promise<void>;
   fetchChannels: (page?: number) => Promise<void>;
+  fetchUnreadSummary: () => Promise<void>;
   fetchArchivedChannels: () => Promise<void>;
   fetchArchivedCount: () => Promise<void>;
   archiveChannel: (channelId: number, isArchived: boolean) => Promise<void>;
@@ -503,6 +504,21 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     get().markAsRead(channelId);
     await get().fetchMessages(channelId);
+  },
+
+  fetchUnreadSummary: async () => {
+    try {
+      const { data: unread } = await api.get('/chat-channels/unread-summary');
+      const counts: Record<number, number> = {};
+      if (Array.isArray(unread)) {
+        unread.forEach((item: { channelId: number; unreadCount?: number; count?: number }) => {
+          counts[item.channelId] = item.unreadCount ?? item.count ?? 0;
+        });
+      }
+      set({ unreadCounts: counts });
+    } catch {
+      // ignore — keep previous counts
+    }
   },
 
   fetchChannels: async (page = 1) => {

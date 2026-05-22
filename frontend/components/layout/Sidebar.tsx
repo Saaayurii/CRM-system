@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useSidebarStore } from '@/stores/sidebarStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useTaskNotifStore } from '@/stores/taskNotifStore';
+import { useChatStore } from '@/stores/chatStore';
 import { useNavHotkeys, type NavHotkey } from '@/hooks/useNavHotkeys';
 import SidebarLinkGroup from './SidebarLinkGroup';
 import NotificationDropdown from './NotificationDropdown';
@@ -352,6 +353,16 @@ export default function Sidebar() {
   const showTeams = isSuperAdmin || isAdmin || isPM || isHR;
   const showChat = true;
   const taskUnread = useTaskNotifStore((s) => s.unreadCount);
+  const chatUnread = useChatStore((s) => Object.values(s.unreadCounts).reduce((a, b) => a + b, 0));
+  const fetchChatUnreadSummary = useChatStore((s) => s.fetchUnreadSummary);
+
+  // Keep chat badge live across the app — refresh on mount and every 60s
+  useEffect(() => {
+    if (!user) return;
+    fetchChatUnreadSummary();
+    const id = setInterval(fetchChatUnreadSummary, 60_000);
+    return () => clearInterval(id);
+  }, [user, fetchChatUnreadSummary]);
   const settingsHref = isSuperAdmin ? '/admin/settings' : '/dashboard/settings';
 
   // Hotkeys: stable Alt+digit/letter combos for main routes; full list also drives badges.
@@ -692,7 +703,14 @@ export default function Sidebar() {
               {showChat && (
                 <li className="mb-1 last:mb-0">
                   <NavLink href="/dashboard/chat" hotkey={hkByHref['/dashboard/chat']} className={linkCls(pathname === '/dashboard/chat')}>
-                    <IconChat />
+                    <div className="relative shrink-0">
+                      <IconChat />
+                      {chatUnread > 0 && (
+                        <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 flex items-center justify-center text-[9px] font-bold text-white bg-red-500 rounded-full">
+                          {chatUnread > 99 ? '99+' : chatUnread}
+                        </span>
+                      )}
+                    </div>
                     <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Чат</span>
                   </NavLink>
                 </li>
