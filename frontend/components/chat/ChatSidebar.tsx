@@ -165,22 +165,6 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
     }
   }, [archiveChannel, activeChannelId, setActiveChannel, addToast]);
 
-  const handleDeleteChannel = useCallback(async (ch: ChatChannel, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!confirm(`Удалить чат «${ch.channelName || ch.channelType === 'direct' ? '' : ch.channelName}»? Это действие нельзя отменить.`)) return;
-    setDeletingId(ch.id);
-    try {
-      await api.delete(`/chat-channels/${ch.id}`);
-      fetchChannels(1);
-      if (activeChannelId === ch.id) setActiveChannel(null);
-      addToast('success', 'Чат удалён');
-    } catch {
-      addToast('error', 'Не удалось удалить чат');
-    } finally {
-      setDeletingId(null);
-    }
-  }, [activeChannelId, fetchChannels, setActiveChannel, addToast]);
-
   // Scroll active folder tab into center when it changes
   useEffect(() => {
     const container = tabsScrollRef.current;
@@ -462,9 +446,6 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
           const isOnline = !isSelf && isDirectChannelOnline(channel, user?.id, onlineUsers);
           const isDeletedUser = !isSelf && channel.channelType === 'direct' && displayName === 'Удалённый пользователь';
 
-          const canDelete = !isSelf && channel.channelType === 'group';
-          const canArchive = !isSelf;
-
           return (
             <div
               key={channel.id}
@@ -517,7 +498,7 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
                   <span className={`text-sm font-medium truncate ${isActive ? 'text-violet-600 dark:text-violet-400' : isSelf ? 'text-amber-600 dark:text-amber-400' : 'text-gray-800 dark:text-gray-100'}`}>
                     {displayName}
                   </span>
-                  {channel.lastMessage && !canDelete && (
+                  {channel.lastMessage && (
                     <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0 ml-2">
                       {formatTime(channel.lastMessage.createdAt)}
                     </span>
@@ -555,39 +536,6 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
                 </div>
               </div>
 
-              {/* Action buttons shown on hover */}
-              <div className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 transition-all shrink-0">
-                {/* Archive button */}
-                {canArchive && (
-                  <button
-                    onClick={(e) => handleArchiveChannel(channel, true, e)}
-                    disabled={archivingId === channel.id}
-                    className="p-1.5 text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-colors disabled:opacity-30"
-                    title="В архив"
-                  >
-                    {archivingId === channel.id ? (
-                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                    ) : (
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>
-                    )}
-                  </button>
-                )}
-                {/* Delete button for group chats */}
-                {canDelete && (
-                  <button
-                    onClick={(e) => handleDeleteChannel(channel, e)}
-                    disabled={deletingId === channel.id}
-                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-30"
-                    title="Удалить группу"
-                  >
-                    {deletingId === channel.id ? (
-                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                    ) : (
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                    )}
-                  </button>
-                )}
-              </div>
             </div>
           );
         })}
