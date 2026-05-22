@@ -929,8 +929,8 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
                 <span className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
               </span>
               {channelTyping.length === 1
-                ? `${channelTyping[0]} печатает...`
-                : `${channelTyping.join(', ')} печатают...`}
+                ? `${channelTyping[0].name} печатает...`
+                : `${channelTyping.map((u) => u.name).join(', ')} печатают...`}
             </span>
           </div>
         )}

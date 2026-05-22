@@ -32,6 +32,11 @@ export class ChatGateway
 
   private readonly logger = new Logger(ChatGateway.name);
 
+  // key: `${userId}:${channelId}`
+  private readonly typingTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
+  // track which channels a socket is typing in for disconnect cleanup
+  private readonly socketTypingChannels = new Map<string, { userId: number; channelId: number; name: string }[]>();
+
   constructor(
     private readonly configService: ConfigService,
     private readonly chatService: ChatService,
@@ -110,6 +115,16 @@ export class ChatGateway
         userId: client.user.id,
       });
     }
+
+    // Clear any pending typing indicators for this socket
+    const typingEntries = this.socketTypingChannels.get(client.id) || [];
+    for (const { userId, channelId, name } of typingEntries) {
+      const key = `${userId}:${channelId}`;
+      const t = this.typingTimeouts.get(key);
+      if (t) { clearTimeout(t); this.typingTimeouts.delete(key); }
+      this.server.to(`channel:${channelId}`).emit('typing:stop', { userId, channelId, name });
+    }
+    this.socketTypingChannels.delete(client.id);
 
     this.logger.log(
       `User ${client.user.id} disconnected — socket: ${client.id}`,
@@ -280,11 +295,29 @@ export class ChatGateway
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() data: { channelId: number },
   ) {
-    client.to(`channel:${data.channelId}`).emit('typing:start', {
-      userId: client.user.id,
-      name: client.user.name,
-      channelId: data.channelId,
-    });
+    const { id: userId, name, accountId } = client.user;
+    const { channelId } = data;
+    const key = `${userId}:${channelId}`;
+
+    // Track for disconnect cleanup
+    const existing = this.socketTypingChannels.get(client.id) || [];
+    if (!existing.some((e) => e.channelId === channelId)) {
+      this.socketTypingChannels.set(client.id, [...existing, { userId, channelId, name }]);
+    }
+
+    // Reset server-side auto-stop timeout (5 s)
+    const prev = this.typingTimeouts.get(key);
+    if (prev) clearTimeout(prev);
+    const t = setTimeout(() => {
+      this.typingTimeouts.delete(key);
+      this.server.to(`channel:${channelId}`).emit('typing:stop', { userId, channelId, name });
+      // Remove from disconnect tracking
+      const entries = this.socketTypingChannels.get(client.id) || [];
+      this.socketTypingChannels.set(client.id, entries.filter((e) => e.channelId !== channelId));
+    }, 5000);
+    this.typingTimeouts.set(key, t);
+
+    client.to(`channel:${channelId}`).emit('typing:start', { userId, name, channelId });
   }
 
   @UseGuards(WsJwtGuard)
@@ -293,10 +326,18 @@ export class ChatGateway
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() data: { channelId: number },
   ) {
-    client.to(`channel:${data.channelId}`).emit('typing:stop', {
-      userId: client.user.id,
-      channelId: data.channelId,
-    });
+    const { id: userId, name } = client.user;
+    const { channelId } = data;
+    const key = `${userId}:${channelId}`;
+
+    const t = this.typingTimeouts.get(key);
+    if (t) { clearTimeout(t); this.typingTimeouts.delete(key); }
+
+    // Remove from disconnect tracking
+    const entries = this.socketTypingChannels.get(client.id) || [];
+    this.socketTypingChannels.set(client.id, entries.filter((e) => e.channelId !== channelId));
+
+    client.to(`channel:${channelId}`).emit('typing:stop', { userId, channelId, name });
   }
 
   // --- Channel rooms ---

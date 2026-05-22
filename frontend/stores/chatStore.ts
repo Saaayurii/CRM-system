@@ -217,7 +217,7 @@ interface ChatState {
   showArchive: boolean;
   activeChannelId: number | null;
   messages: ChatMessage[];
-  typingUsers: Record<number, string[]>;
+  typingUsers: Record<number, { userId: number; name: string }[]>;
   onlineUsers: Set<number>;
   unreadCounts: Record<number, number>;
   // channelId → userId → lastReadAt ISO string
@@ -372,29 +372,26 @@ export const useChatStore = create<ChatState>((set, get) => ({
     });
 
     // Typing
-    socket.on('typing:start', (data: { channelId: number; name: string }) => {
+    socket.on('typing:start', (data: { channelId: number; userId: number; name: string }) => {
       set((state) => {
         const current = state.typingUsers[data.channelId] || [];
-        if (current.includes(data.name)) return state;
+        if (current.some((u) => u.userId === data.userId)) return state;
         return {
           typingUsers: {
             ...state.typingUsers,
-            [data.channelId]: [...current, data.name],
+            [data.channelId]: [...current, { userId: data.userId, name: data.name }],
           },
         };
       });
     });
 
-    socket.on('typing:stop', (data: { channelId: number; userId: number; name?: string }) => {
+    socket.on('typing:stop', (data: { channelId: number; userId: number }) => {
       set((state) => {
         const current = state.typingUsers[data.channelId] || [];
-        const updated = data.name
-          ? current.filter((n) => n !== data.name)
-          : current.filter((n) => !n.startsWith(`uid:${data.userId}`));
         return {
           typingUsers: {
             ...state.typingUsers,
-            [data.channelId]: updated,
+            [data.channelId]: current.filter((u) => u.userId !== data.userId),
           },
         };
       });
