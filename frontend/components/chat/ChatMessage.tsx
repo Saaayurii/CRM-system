@@ -810,7 +810,7 @@ function TaskCard({ id, title, status, priority, dueDate, isOwn }: {
           try { sessionStorage.setItem('taskBackTo', window.location.pathname + window.location.search); } catch {}
         }
       }}
-      className={`mt-1.5 flex flex-col gap-1.5 rounded-xl p-2.5 border transition-colors no-underline ${
+      className={`flex flex-col gap-1.5 rounded-xl p-2.5 border transition-colors no-underline ${
         isOwn
           ? 'bg-white/10 hover:bg-white/20 border-white/20'
           : 'bg-gray-50 hover:bg-gray-100 dark:bg-gray-700/50 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-600'
@@ -881,17 +881,49 @@ function highlightSegment(raw: string, query: string | undefined, isOwn: boolean
   return <>{parts}</>;
 }
 
+const URL_RE = /https?:\/\/[^\s<>"']+/g;
+
+function renderUrlsInSegment(text: string, isOwn: boolean, highlightQuery: string | undefined, baseKey: number): React.ReactNode[] {
+  const parts: React.ReactNode[] = [];
+  URL_RE.lastIndex = 0;
+  let last = 0;
+  let m: RegExpExecArray | null;
+  while ((m = URL_RE.exec(text)) !== null) {
+    if (m.index > last) {
+      parts.push(<span key={`${baseKey}-t-${last}`}>{highlightSegment(text.slice(last, m.index), highlightQuery, isOwn)}</span>);
+    }
+    const url = m[0].replace(/[.,;:!?)\]]+$/, '');
+    parts.push(
+      <a
+        key={`${baseKey}-u-${m.index}`}
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={`underline break-all ${isOwn ? 'text-white/90 hover:text-white' : 'text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300'}`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {url}
+      </a>
+    );
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) {
+    parts.push(<span key={`${baseKey}-t-${last}`}>{highlightSegment(text.slice(last), highlightQuery, isOwn)}</span>);
+  }
+  return parts;
+}
+
 function renderInlineBold(text: string, isOwn: boolean, highlightQuery?: string): React.ReactNode[] {
   const parts: React.ReactNode[] = [];
   const boldRe = /\*\*(.+?)\*\*/g;
   let last = 0;
   let m: RegExpExecArray | null;
   while ((m = boldRe.exec(text)) !== null) {
-    if (m.index > last) parts.push(<span key={last}>{highlightSegment(text.slice(last, m.index), highlightQuery, isOwn)}</span>);
+    if (m.index > last) parts.push(...renderUrlsInSegment(text.slice(last, m.index), isOwn, highlightQuery, last));
     parts.push(<strong key={m.index} className="font-semibold">{m[1]}</strong>);
     last = boldRe.lastIndex;
   }
-  if (last < text.length) parts.push(<span key={last}>{highlightSegment(text.slice(last), highlightQuery, isOwn)}</span>);
+  if (last < text.length) parts.push(...renderUrlsInSegment(text.slice(last), isOwn, highlightQuery, last));
   return parts;
 }
 
@@ -972,7 +1004,11 @@ function renderText(text: string, isOwn: boolean, highlightQuery?: string) {
       {textSegments.length > 0 && (
         <p className="text-sm whitespace-pre-wrap break-words">{textSegments}</p>
       )}
-      {cards}
+      {cards.length > 0 && (
+        <div className={textSegments.length > 0 ? 'mt-2 space-y-1.5' : 'space-y-1.5'}>
+          {cards}
+        </div>
+      )}
     </div>
   );
 }
