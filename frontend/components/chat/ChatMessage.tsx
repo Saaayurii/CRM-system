@@ -160,6 +160,14 @@ function parseTgMessage(text?: string): { sender: string; body: string } | null 
 // Parse old-style "↩️ Переслано от X:\n\ntext" format for backwards compat
 const OLD_FORWARD_RE = /^↩️ Переслано от (.+?):\n\n([\s\S]*)$/;
 
+// Image/video detection with filename fallback when mimeType is absent
+const isImageAtt = (a: any): boolean =>
+  !!a.mimeType?.startsWith('image/') ||
+  (!a.mimeType && /\.(jpe?g|png|gif|webp|bmp|svg|heic|avif)$/i.test(a.fileName || ''));
+const isVideoAtt = (a: any): boolean =>
+  !!a.mimeType?.startsWith('video/') ||
+  (!a.mimeType && /\.(mp4|mov|avi|webm|mkv|m4v|3gp)$/i.test(a.fileName || ''));
+
 export default function ChatMessage({ message, isOwn, showAvatar, isRead, readers = [], onReply, onScrollToReply, onReact, onDelete, onEdit, onPin, onForward, onGoToOriginalChannel, isPinned, canPin, highlightQuery, readOnly = false }: ChatMessageProps) {
   const addToast = useToastStore((s) => s.addToast);
   const setEditingMessage = useChatStore((s) => s.setEditingMessage);
@@ -196,18 +204,18 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
   }, [canOpenProfile]);
 
   const mediaItems: MediaItem[] = (message.attachments ?? [])
-    .filter((a) => a.mimeType?.startsWith('image/') || a.mimeType?.startsWith('video/'))
+    .filter((a) => isImageAtt(a) || isVideoAtt(a))
     .map((a) => ({
       url: a.fileUrl,
-      type: a.mimeType?.startsWith('video/') ? 'video' : 'image',
+      type: isVideoAtt(a) ? 'video' : 'image',
       name: a.fileName,
     }));
 
   const mediaAtts = (message.attachments ?? []).filter(
-    (a) => a.mimeType?.startsWith('image/') || a.mimeType?.startsWith('video/')
+    (a: any) => isImageAtt(a) || isVideoAtt(a)
   );
   const nonMediaAtts = (message.attachments ?? []).filter(
-    (a: any) => !a.mimeType?.startsWith('image/') && !a.mimeType?.startsWith('video/') && a.type !== 'tg_meta' && a.type !== 'forward_meta'
+    (a: any) => !isImageAtt(a) && !isVideoAtt(a) && a.type !== 'tg_meta' && a.type !== 'forward_meta'
   );
   const hasAlbum = mediaAtts.length >= 2;
   const albumCornerClass = isOwn ? 'rounded-tl-2xl rounded-tr-sm' : 'rounded-tl-sm rounded-tr-2xl';
@@ -482,7 +490,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
               {resolvedDisplayText && renderText(resolvedDisplayText, isOwn, highlightQuery)}
 
               {/* Single image */}
-              {!hasAlbum && mediaAtts.length === 1 && mediaAtts[0].mimeType?.startsWith('image/') && (() => {
+              {!hasAlbum && mediaAtts.length === 1 && isImageAtt(mediaAtts[0]) && (() => {
                 const att = mediaAtts[0];
                 const mediaIndex = mediaItems.findIndex((m) => m.url === att.fileUrl);
                 return (
@@ -505,13 +513,13 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
               })()}
 
               {/* Single video */}
-              {!hasAlbum && mediaAtts.length === 1 && mediaAtts[0].mimeType?.startsWith('video/') && (() => {
+              {!hasAlbum && mediaAtts.length === 1 && isVideoAtt(mediaAtts[0]) && (() => {
                 const att = mediaAtts[0];
                 const mediaIndex = mediaItems.findIndex((m) => m.url === att.fileUrl);
                 return (
                   <div key={att.id} className="relative group/vid mt-1 w-fit max-w-full">
-                    <div className="relative cursor-pointer rounded-lg overflow-hidden" onClick={() => openViewer(mediaIndex)}>
-                      <VideoThumbnail src={att.fileUrl} className="max-h-52 rounded-lg block" />
+                    <div className="relative cursor-pointer rounded-lg overflow-hidden min-w-[180px]" onClick={() => openViewer(mediaIndex)}>
+                      <VideoThumbnail src={att.fileUrl} className="max-h-52 w-full rounded-lg block" />
                       <div className="absolute inset-0 flex items-center justify-center bg-black/25 group-hover/vid:bg-black/40 transition-colors rounded-lg">
                         <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
                           <svg className="w-5 h-5 text-gray-800 ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
@@ -1177,7 +1185,7 @@ function MediaAlbum({
     className: string,
     overflowCount?: number,
   ) => {
-    const isVid = item.mimeType?.startsWith('video/');
+    const isVid = isVideoAtt(item);
     const idx = getIdx(item);
     const showOverflow = overflowCount != null && overflowCount > 0;
     return (
