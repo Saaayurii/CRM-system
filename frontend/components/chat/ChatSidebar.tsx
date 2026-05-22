@@ -65,13 +65,16 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
   const closeCtxMenu = useCallback(() => setCtxMenu(null), []);
 
   const handleContextMenu = useCallback((e: React.MouseEvent, channel: ChatChannel) => {
+    // "Избранное" (self-chat) has no meaningful context-menu actions.
+    if (isSelfChat(channel, user?.id)) return;
     e.preventDefault();
     e.stopPropagation();
     openCtxMenu(channel, e.clientX, e.clientY, 'popover');
-  }, [openCtxMenu]);
+  }, [openCtxMenu, user?.id]);
 
   const handleTouchStart = useCallback((e: React.TouchEvent, channel: ChatChannel) => {
     if (e.touches.length !== 1) return;
+    if (isSelfChat(channel, user?.id)) return;
     const t = e.touches[0];
     touchStartPos.current = { x: t.clientX, y: t.clientY };
     longPressTriggered.current = false;
@@ -83,7 +86,7 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
       } catch {}
       openCtxMenu(channel, t.clientX, t.clientY, 'sheet');
     }, 500);
-  }, [openCtxMenu]);
+  }, [openCtxMenu, user?.id]);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     if (!touchStartPos.current || e.touches.length !== 1) return;
