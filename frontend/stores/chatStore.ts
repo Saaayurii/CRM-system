@@ -28,6 +28,14 @@ export interface ChatReaction {
   users: { id: number; name: string }[];
 }
 
+export interface ForwardMeta {
+  fromChannelId: number;
+  fromChannelName: string;
+  originalSenderName: string;
+  originalSenderId: number;
+  originalSenderAvatarUrl?: string;
+}
+
 export interface ChatMessage {
   id: number;
   channelId: number;
@@ -37,6 +45,7 @@ export interface ChatMessage {
   text: string;
   messageType: string;
   isEdited: boolean;
+  forwardMeta?: ForwardMeta | null;
   replyToMessage?: {
     id: number;
     text: string;
@@ -131,6 +140,17 @@ export function mapRawMessage(raw: any): ChatMessage {
     reactions: mapReactions(raw.reactions ?? {}),
     createdAt: raw.createdAt,
     updatedAt: raw.updatedAt,
+    forwardMeta: (() => {
+      const meta = (raw.attachments ?? []).find((a: any) => a.type === 'forward_meta');
+      if (!meta) return null;
+      return {
+        fromChannelId: meta.fromChannelId,
+        fromChannelName: meta.fromChannelName || '',
+        originalSenderName: meta.originalSenderName || '',
+        originalSenderId: meta.originalSenderId,
+        originalSenderAvatarUrl: meta.originalSenderAvatarUrl,
+      } as ForwardMeta;
+    })(),
   };
 }
 

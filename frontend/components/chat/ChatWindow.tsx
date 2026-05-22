@@ -149,7 +149,14 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
   const channelReadAts = useChatStore((s) => s.channelReadAts);
   const setChatWindowOpen = useChatStore((s) => s.setChatWindowOpen);
   const setEditingMessage = useChatStore((s) => s.setEditingMessage);
+  const setActiveChannel = useChatStore((s) => s.setActiveChannel);
+  const setShowArchive = useChatStore((s) => s.setShowArchive);
   const user = useAuthStore((s) => s.user);
+
+  const handleGoToOriginalChannel = useCallback((channelId: number) => {
+    setShowArchive(false);
+    setActiveChannel(channelId);
+  }, [setActiveChannel, setShowArchive]);
 
   useEffect(() => {
     setChatWindowOpen(true);
@@ -828,8 +835,20 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
 
           <div ref={messagesInnerRef}>
           {messages.map((msg, idx) => {
-            const isOwn = msg.senderId === user?.id;
-            const showAvatar = idx === 0 || messages[idx - 1]?.senderId !== msg.senderId;
+            // In self-chat, forwarded messages from another person appear on the left
+            const isOwn = isSelf && msg.forwardMeta
+              ? msg.forwardMeta.originalSenderId === user?.id
+              : msg.senderId === user?.id;
+            // For self-chat forwarded messages, group by original sender
+            const prevMsg = messages[idx - 1];
+            const prevIsOwn = isSelf && prevMsg?.forwardMeta
+              ? prevMsg.forwardMeta.originalSenderId === user?.id
+              : prevMsg?.senderId === user?.id;
+            const showAvatar = idx === 0 || prevIsOwn !== isOwn || (
+              isSelf && msg.forwardMeta
+                ? prevMsg?.forwardMeta?.originalSenderId !== msg.forwardMeta.originalSenderId
+                : prevMsg?.senderId !== msg.senderId
+            );
             const read = isOwn ? isMessageRead(msg) : false;
             const readers = isOwn ? getMessageReaders(msg) : [];
             const activeMatch = searchMatches.length > 0 && searchMatches[matchIdx]?.msg.id === msg.id;
@@ -871,6 +890,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
                     onEdit={isOwn ? (newText: string) => editMessageSocket(msg.id, newText) : undefined}
                     onPin={canPin ? handlePin : undefined}
                     onForward={setForwardingMessage}
+                    onGoToOriginalChannel={msg.forwardMeta ? handleGoToOriginalChannel : undefined}
                     isPinned={isMsgPinned}
                     canPin={canPin}
                     highlightQuery={isMatchedMsg ? searchQuery.trim() : undefined}

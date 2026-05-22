@@ -67,6 +67,7 @@ interface ChatMessageProps {
   onEdit?: (newText: string) => void;
   onPin?: (message: ChatMessageType) => void;
   onForward?: (message: ChatMessageType) => void;
+  onGoToOriginalChannel?: (channelId: number) => void;
   isPinned?: boolean;
   canPin?: boolean;
   highlightQuery?: string;
@@ -155,11 +156,24 @@ function parseTgMessage(text?: string): { sender: string; body: string } | null 
   return { sender: m[1], body: m[2] };
 }
 
-export default function ChatMessage({ message, isOwn, showAvatar, isRead, readers = [], onReply, onScrollToReply, onReact, onDelete, onEdit, onPin, onForward, isPinned, canPin, highlightQuery, readOnly = false }: ChatMessageProps) {
+// Parse old-style "↩️ Переслано от X:\n\ntext" format for backwards compat
+const OLD_FORWARD_RE = /^↩️ Переслано от (.+?):\n\n([\s\S]*)$/;
+
+export default function ChatMessage({ message, isOwn, showAvatar, isRead, readers = [], onReply, onScrollToReply, onReact, onDelete, onEdit, onPin, onForward, onGoToOriginalChannel, isPinned, canPin, highlightQuery, readOnly = false }: ChatMessageProps) {
   const addToast = useToastStore((s) => s.addToast);
   const setEditingMessage = useChatStore((s) => s.setEditingMessage);
   const isVoice = message.messageType === 'voice';
   const isVideoNote = message.messageType === 'video_note';
+
+  // Forwarded message detection
+  const forwardMeta = message.forwardMeta ?? null;
+  const oldForwardMatch = !forwardMeta ? OLD_FORWARD_RE.exec(message.text || '') : null;
+  const isForwarded = !!forwardMeta || !!oldForwardMatch;
+  const forwardSenderName = forwardMeta?.originalSenderName ?? oldForwardMatch?.[1] ?? '';
+  const forwardChannelId = forwardMeta?.fromChannelId ?? null;
+  // The text to actually display (strip prefix for old format)
+  const displayText = forwardMeta ? (message.text || '') : (oldForwardMatch ? oldForwardMatch[2] : message.text);
+
   const displaySenderName = resolveDisplayName(message.senderName);
   const isSenderDeleted = !message.senderName || DELETED_EMAIL_RE.test(message.senderName);
 
@@ -169,7 +183,8 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
   const isTgMessage = !!tgMeta || !!tgParsed;
   const tgSender: string = tgMeta?.from || tgParsed?.sender || '';
   const tgBody: string | undefined = tgParsed?.body ?? (tgMeta ? message.text : undefined);
-  const displayText = isTgMessage ? tgBody : message.text;
+  // displayText: tg overrides forward which overrides raw
+  const resolvedDisplayText = isTgMessage ? tgBody : displayText;
 
   const mediaItems: MediaItem[] = (message.attachments ?? [])
     .filter((a) => a.mimeType?.startsWith('image/') || a.mimeType?.startsWith('video/'))
@@ -183,7 +198,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
     (a) => a.mimeType?.startsWith('image/') || a.mimeType?.startsWith('video/')
   );
   const nonMediaAtts = (message.attachments ?? []).filter(
-    (a: any) => !a.mimeType?.startsWith('image/') && !a.mimeType?.startsWith('video/') && a.type !== 'tg_meta'
+    (a: any) => !a.mimeType?.startsWith('image/') && !a.mimeType?.startsWith('video/') && a.type !== 'tg_meta' && a.type !== 'forward_meta'
   );
   const hasAlbum = mediaAtts.length >= 2;
   const albumCornerClass = isOwn ? 'rounded-tl-2xl rounded-tr-sm' : 'rounded-tl-sm rounded-tr-2xl';
@@ -327,25 +342,30 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
     >
       {/* Avatar placeholder / real avatar */}
       <div className="w-8 shrink-0">
-        {showAvatar && !isOwn && (
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold relative overflow-hidden ${isSenderDeleted ? 'bg-gray-400 dark:bg-gray-600' : 'bg-sky-500'}`}>
-            {isSenderDeleted ? (
-              <svg className="w-4 h-4 text-white/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-            ) : (
-              getInitials(displaySenderName)
-            )}
-            {!isSenderDeleted && message.senderAvatarUrl && (
-              <img
-                src={message.senderAvatarUrl}
-                alt=""
-                className="absolute inset-0 w-full h-full rounded-full object-cover z-10"
-                onError={(e) => { e.currentTarget.style.display = 'none'; }}
-              />
-            )}
-          </div>
-        )}
+        {showAvatar && !isOwn && (() => {
+          // For left-side forwarded messages use original sender's avatar/initials
+          const avatarName = forwardMeta ? forwardSenderName : displaySenderName;
+          const avatarUrl = forwardMeta ? (forwardMeta.originalSenderAvatarUrl || message.senderAvatarUrl) : message.senderAvatarUrl;
+          return (
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold relative overflow-hidden ${isSenderDeleted ? 'bg-gray-400 dark:bg-gray-600' : 'bg-sky-500'}`}>
+              {isSenderDeleted ? (
+                <svg className="w-4 h-4 text-white/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              ) : (
+                getInitials(avatarName)
+              )}
+              {!isSenderDeleted && avatarUrl && (
+                <img
+                  src={avatarUrl}
+                  alt=""
+                  className="absolute inset-0 w-full h-full rounded-full object-cover z-10"
+                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                />
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Bubble */}
@@ -353,7 +373,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
         {/* Sender name */}
         {showAvatar && !isOwn && (
           <p className={`text-xs font-medium mb-0.5 ml-1 ${isSenderDeleted ? 'text-gray-400 dark:text-gray-600 italic' : 'text-gray-500 dark:text-gray-400'}`}>
-            {displaySenderName}
+            {forwardMeta ? forwardSenderName : displaySenderName}
           </p>
         )}
 
@@ -419,8 +439,31 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
                 </div>
               )}
 
+              {/* Forwarded message header */}
+              {isForwarded && (
+                <div className={`flex items-center gap-1.5 mb-1.5 border-l-2 pl-2 ${isOwn ? 'border-white/40' : 'border-violet-400'}`}>
+                  <svg className={`w-3 h-3 shrink-0 ${isOwn ? 'text-white/60' : 'text-violet-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 9l3 3-3 3m-6 0a9 9 0 110-18 9 9 0 010 18" />
+                  </svg>
+                  <span className={`text-xs font-medium truncate ${isOwn ? 'text-white/70' : 'text-violet-500 dark:text-violet-400'}`}>
+                    {forwardSenderName}
+                  </span>
+                  {forwardChannelId && onGoToOriginalChannel && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onGoToOriginalChannel(forwardChannelId); }}
+                      className={`ml-auto shrink-0 p-0.5 rounded transition-colors ${isOwn ? 'text-white/50 hover:text-white/90' : 'text-violet-400 hover:text-violet-600'}`}
+                      title="Перейти к оригиналу"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              )}
+
               {/* Text (caption if album, otherwise regular message text) */}
-              {displayText && renderText(displayText, isOwn, highlightQuery)}
+              {resolvedDisplayText && renderText(resolvedDisplayText, isOwn, highlightQuery)}
 
               {/* Single image */}
               {!hasAlbum && mediaAtts.length === 1 && mediaAtts[0].mimeType?.startsWith('image/') && (() => {

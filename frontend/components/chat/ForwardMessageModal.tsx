@@ -61,6 +61,8 @@ function ChannelAvatar({ ch, currentUserId }: { ch: ChatChannel; currentUserId?:
 
 export default function ForwardMessageModal({ message, onClose }: ForwardMessageModalProps) {
   const storeChannels = useChatStore((s) => s.channels);
+  const archivedChannels = useChatStore((s) => s.archivedChannels);
+  const activeChannelId = useChatStore((s) => s.activeChannelId);
   const sendMessage = useChatStore((s) => s.sendMessage);
   const authUser = useAuthStore((s) => s.user);
   const currentUserId = authUser?.id;
@@ -119,15 +121,37 @@ export default function ForwardMessageModal({ message, onClose }: ForwardMessage
     if (selected.size === 0 || isSending) return;
     setIsSending(true);
 
-    const senderName = message.senderName || 'Пользователь';
-    const forwardText = `↩️ Переслано от ${senderName}:\n\n${message.text || ''}`.trim();
-    const forwardAttachments = message.attachments?.length > 0 ? message.attachments : undefined;
+    // Resolve source channel info
+    const allChannels = [...storeChannels, ...archivedChannels];
+    const sourceChannel = allChannels.find((ch) => ch.id === (activeChannelId ?? message.channelId));
+    const fromChannelId = activeChannelId ?? message.channelId;
+    const fromChannelName = sourceChannel?.channelName || '';
+
+    // Original sender — if the message itself is a forward, unwrap one level
+    const originalSenderId = message.forwardMeta?.originalSenderId ?? message.senderId;
+    const originalSenderName = message.forwardMeta?.originalSenderName ?? message.senderName;
+    const originalSenderAvatarUrl = message.forwardMeta?.originalSenderAvatarUrl ?? message.senderAvatarUrl;
+
+    const forwardMetaAttachment = {
+      type: 'forward_meta',
+      fromChannelId,
+      fromChannelName,
+      originalSenderName,
+      originalSenderId,
+      originalSenderAvatarUrl: originalSenderAvatarUrl || '',
+    };
+
+    // Real file attachments (exclude existing forward_meta from re-forward)
+    const fileAtts = (message.attachments ?? []).filter((a: any) => a.type !== 'forward_meta');
+    const allAtts = [forwardMetaAttachment, ...fileAtts] as any[];
+
+    const forwardText = message.text || '';
 
     const ids = Array.from(selected);
     await Promise.allSettled(
       ids.map((channelId) =>
         new Promise<void>((resolve) => {
-          sendMessage(channelId, forwardText, forwardAttachments as any, undefined);
+          sendMessage(channelId, forwardText, allAtts, undefined, 'forwarded');
           setTimeout(resolve, 50);
         })
       )
