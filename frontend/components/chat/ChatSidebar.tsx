@@ -209,6 +209,97 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
   const unpinned = otherChats.filter((ch) => !ch.isPinned);
   const filtered = selfChat ? [selfChat, ...pinned, ...unpinned] : [...pinned, ...unpinned];
 
+  // Shared context menu element — used in both archive and normal views
+  const ctxMenuEl = ctxMenu ? (
+    <ChatContextMenu
+      channel={ctxMenu.channel}
+      position={ctxMenu.position}
+      variant={ctxMenu.variant}
+      isArchived={showArchive}
+      hasUnread={(unreadCounts[ctxMenu.channel.id] || 0) > 0}
+      canClearHistory={ctxMenu.channel.myRole === 'admin' && !isSelfChat(ctxMenu.channel, user?.id)}
+      canDelete={!isSelfChat(ctxMenu.channel, user?.id) && ctxMenu.channel.channelType === 'group'}
+      onClose={closeCtxMenu}
+      actions={{
+        onOpenInNewWindow: () => {
+          const url = `/dashboard/chat?channelId=${ctxMenu.channel.id}`;
+          window.open(url, '_blank', 'noopener,noreferrer,width=900,height=720');
+        },
+        onTogglePin: async () => {
+          const next = !ctxMenu.channel.isPinned;
+          try {
+            await pinChannel(ctxMenu.channel.id, next);
+            addToast('success', next ? 'Чат закреплён' : 'Чат откреплён');
+          } catch {
+            addToast('error', 'Не удалось изменить закрепление');
+          }
+        },
+        onMute: async (mutedUntil) => {
+          try {
+            await muteChannel(ctxMenu.channel.id, mutedUntil);
+            addToast('success', mutedUntil ? 'Уведомления выключены' : 'Уведомления включены');
+          } catch {
+            addToast('error', 'Не удалось изменить настройки уведомлений');
+          }
+        },
+        onToggleMarkUnread: async () => {
+          const hasUnreadNow = (unreadCounts[ctxMenu.channel.id] || 0) > 0;
+          try {
+            if (hasUnreadNow) {
+              markAsRead(ctxMenu.channel.id);
+              addToast('success', 'Помечено как прочитанное');
+            } else {
+              await markChannelUnread(ctxMenu.channel.id);
+              addToast('success', 'Помечено как непрочитанное');
+            }
+          } catch {
+            addToast('error', 'Не удалось изменить статус');
+          }
+        },
+        onPreview: () => {
+          if (showArchive) setShowArchive(false);
+          handleSelect(ctxMenu.channel.id);
+        },
+        onArchive: async (isArchived) => {
+          setArchivingId(ctxMenu.channel.id);
+          try {
+            await archiveChannel(ctxMenu.channel.id, isArchived);
+            if (isArchived && activeChannelId === ctxMenu.channel.id) setActiveChannel(null);
+            addToast('success', isArchived ? 'Чат добавлен в архив' : 'Чат извлечён из архива');
+          } catch {
+            addToast('error', 'Не удалось изменить статус архива');
+          } finally {
+            setArchivingId(null);
+          }
+        },
+        onClearHistory: async () => {
+          if (!confirm('Очистить всю историю сообщений этого чата? Это действие необратимо.')) return;
+          try {
+            await clearChannelHistory(ctxMenu.channel.id);
+            addToast('success', 'История очищена');
+          } catch {
+            addToast('error', 'Не удалось очистить историю');
+          }
+        },
+        onDelete: async () => {
+          const ch = ctxMenu.channel;
+          if (!confirm(`Удалить чат «${ch.channelName || 'без названия'}»? Это действие нельзя отменить.`)) return;
+          setDeletingId(ch.id);
+          try {
+            await api.delete(`/chat-channels/${ch.id}`);
+            fetchChannels(1);
+            if (activeChannelId === ch.id) setActiveChannel(null);
+            addToast('success', 'Чат удалён');
+          } catch {
+            addToast('error', 'Не удалось удалить чат');
+          } finally {
+            setDeletingId(null);
+          }
+        },
+      }}
+    />
+  ) : null;
+
   // ── Archive view ─────────────────────────────────────────────────────────
   if (showArchive) {
     const archiveFiltered = search.trim()
@@ -330,6 +421,7 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
             );
           })}
         </div>
+      {ctxMenuEl}
       </>
     );
   }
@@ -551,94 +643,7 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
         <CreateChannelModal onClose={() => setShowCreateModal(false)} />
       )}
 
-      {ctxMenu && (
-        <ChatContextMenu
-          channel={ctxMenu.channel}
-          position={ctxMenu.position}
-          variant={ctxMenu.variant}
-          isArchived={showArchive}
-          hasUnread={(unreadCounts[ctxMenu.channel.id] || 0) > 0}
-          canClearHistory={ctxMenu.channel.myRole === 'admin' && !isSelfChat(ctxMenu.channel, user?.id)}
-          canDelete={!isSelfChat(ctxMenu.channel, user?.id) && ctxMenu.channel.channelType === 'group'}
-          onClose={closeCtxMenu}
-          actions={{
-            onOpenInNewWindow: () => {
-              const url = `/dashboard/chat?channelId=${ctxMenu.channel.id}`;
-              window.open(url, '_blank', 'noopener,noreferrer,width=900,height=720');
-            },
-            onTogglePin: async () => {
-              const next = !ctxMenu.channel.isPinned;
-              try {
-                await pinChannel(ctxMenu.channel.id, next);
-                addToast('success', next ? 'Чат закреплён' : 'Чат откреплён');
-              } catch {
-                addToast('error', 'Не удалось изменить закрепление');
-              }
-            },
-            onMute: async (mutedUntil) => {
-              try {
-                await muteChannel(ctxMenu.channel.id, mutedUntil);
-                addToast('success', mutedUntil ? 'Уведомления выключены' : 'Уведомления включены');
-              } catch {
-                addToast('error', 'Не удалось изменить настройки уведомлений');
-              }
-            },
-            onToggleMarkUnread: async () => {
-              const hasUnread = (unreadCounts[ctxMenu.channel.id] || 0) > 0;
-              try {
-                if (hasUnread) {
-                  markAsRead(ctxMenu.channel.id);
-                  addToast('success', 'Помечено как прочитанное');
-                } else {
-                  await markChannelUnread(ctxMenu.channel.id);
-                  addToast('success', 'Помечено как непрочитанное');
-                }
-              } catch {
-                addToast('error', 'Не удалось изменить статус');
-              }
-            },
-            onPreview: () => {
-              handleSelect(ctxMenu.channel.id);
-            },
-            onArchive: async (isArchived) => {
-              setArchivingId(ctxMenu.channel.id);
-              try {
-                await archiveChannel(ctxMenu.channel.id, isArchived);
-                if (isArchived && activeChannelId === ctxMenu.channel.id) setActiveChannel(null);
-                addToast('success', isArchived ? 'Чат добавлен в архив' : 'Чат извлечён из архива');
-              } catch {
-                addToast('error', 'Не удалось изменить статус архива');
-              } finally {
-                setArchivingId(null);
-              }
-            },
-            onClearHistory: async () => {
-              if (!confirm('Очистить всю историю сообщений этого чата? Это действие необратимо.')) return;
-              try {
-                await clearChannelHistory(ctxMenu.channel.id);
-                addToast('success', 'История очищена');
-              } catch {
-                addToast('error', 'Не удалось очистить историю');
-              }
-            },
-            onDelete: async () => {
-              const ch = ctxMenu.channel;
-              if (!confirm(`Удалить чат «${ch.channelName || 'без названия'}»? Это действие нельзя отменить.`)) return;
-              setDeletingId(ch.id);
-              try {
-                await api.delete(`/chat-channels/${ch.id}`);
-                fetchChannels(1);
-                if (activeChannelId === ch.id) setActiveChannel(null);
-                addToast('success', 'Чат удалён');
-              } catch {
-                addToast('error', 'Не удалось удалить чат');
-              } finally {
-                setDeletingId(null);
-              }
-            },
-          }}
-        />
-      )}
+      {ctxMenuEl}
     </>
   );
 }
