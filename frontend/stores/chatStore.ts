@@ -187,7 +187,7 @@ function mapRawChannel(raw: any, currentUserId?: number): ChatChannel {
     id: raw.id,
     channelType: raw.channelType,
     channelName: raw.channelName ?? raw.name ?? '',
-    avatarUrl: raw.avatarUrl ?? undefined,
+    avatarUrl: raw.avatarUrl ?? raw.settings?.avatarUrl ?? undefined,
     membersCount: raw.membersCount ?? members.length,
     projectId: raw.projectId ?? undefined,
     projectName: raw.project?.name ?? raw.projectName ?? raw.settings?.projectName ?? null,

@@ -127,6 +127,10 @@ export class ChatService {
       }
     }
 
+    // `avatarUrl` has no dedicated column — store it inside settings JSONB.
+    const settings: Record<string, unknown> = { ...(dto.settings || {}) };
+    if (dto.avatarUrl) settings.avatarUrl = dto.avatarUrl;
+
     return this.chatRepository.createChannel({
       accountId,
       channelType: dto.channelType,
@@ -137,7 +141,7 @@ export class ChatService {
       teamId: dto.teamId,
       createdByUserId: userId,
       isPrivate: dto.isPrivate || false,
-      settings: dto.settings || {},
+      settings,
       members: {
         create: memberCreates,
       },
@@ -183,8 +187,20 @@ export class ChatService {
   }
 
   async updateChannel(id: number, accountId: number, dto: UpdateChannelDto) {
-    await this.findChannelById(id, accountId);
-    await this.chatRepository.updateChannel(id, accountId, dto);
+    const existing = await this.findChannelById(id, accountId);
+
+    // `avatarUrl` has no dedicated column — it lives in the settings JSONB.
+    const { avatarUrl, settings, ...rest } = dto;
+    const data: any = { ...rest };
+    if (avatarUrl !== undefined || settings !== undefined) {
+      data.settings = {
+        ...((existing.settings as Record<string, unknown>) || {}),
+        ...((settings as Record<string, unknown>) || {}),
+        ...(avatarUrl !== undefined ? { avatarUrl } : {}),
+      };
+    }
+
+    await this.chatRepository.updateChannel(id, accountId, data);
     return this.findChannelById(id, accountId);
   }
 
