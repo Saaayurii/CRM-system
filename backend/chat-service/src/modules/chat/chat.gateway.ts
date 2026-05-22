@@ -160,8 +160,16 @@ export class ChatGateway
           : '📎 Вложение';
         const actionUrl = `/dashboard/chat?channelId=${data.channelId}`;
 
+        const now = Date.now();
         const payloads = channel.members
-          .filter((m: { userId: number }) => m.userId !== client.user.id)
+          .filter((m: { userId: number; isMuted?: boolean; mutedUntil?: Date | null }) => {
+            if (m.userId === client.user.id) return false;
+            if (m.isMuted) {
+              const until = m.mutedUntil ? new Date(m.mutedUntil).getTime() : Infinity;
+              if (until > now) return false; // still muted
+            }
+            return true;
+          })
           .map((m: { userId: number }) => ({
             userId: m.userId,
             accountId: client.user.accountId,

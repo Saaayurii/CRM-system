@@ -141,6 +141,50 @@ export class ChatController {
     return this.chatService.archiveChannel(id, userId, isArchived);
   }
 
+  @Patch(':id/pin')
+  @ApiOperation({ summary: 'Pin or unpin a channel for the current user' })
+  @ApiResponse({ status: 200, description: 'Channel pin status updated' })
+  pinChannel(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser('id') userId: number,
+    @Body('isPinned') isPinned: boolean,
+  ) {
+    return this.chatService.pinChannel(id, userId, !!isPinned);
+  }
+
+  @Patch(':id/mute')
+  @ApiOperation({ summary: 'Mute notifications for the current user (mutedUntil = ISO string or null to unmute)' })
+  @ApiResponse({ status: 200, description: 'Channel mute status updated' })
+  muteChannelSelf(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser('id') userId: number,
+    @Body('mutedUntil') mutedUntil: string | null,
+  ) {
+    const date = mutedUntil ? new Date(mutedUntil) : null;
+    return this.chatService.muteChannelForUser(id, userId, date);
+  }
+
+  @Patch(':id/mark-unread')
+  @ApiOperation({ summary: 'Mark channel as unread for the current user' })
+  @ApiResponse({ status: 200, description: 'Channel marked as unread' })
+  markChannelUnread(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser('id') userId: number,
+  ) {
+    return this.chatService.markChannelUnread(id, userId);
+  }
+
+  @Delete(':id/messages')
+  @ApiOperation({ summary: 'Clear channel message history (admin only)' })
+  @ApiResponse({ status: 200, description: 'Channel history cleared' })
+  clearChannelHistory(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser('accountId') accountId: number,
+    @CurrentUser('id') userId: number,
+  ) {
+    return this.chatService.clearChannelHistory(id, accountId, userId);
+  }
+
   // --- Members ---
 
   @Get(':id/members')

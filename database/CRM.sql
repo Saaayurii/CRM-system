@@ -1501,6 +1501,9 @@ CREATE TABLE chat_channel_members (
     
     is_muted BOOLEAN DEFAULT FALSE,
     is_archived BOOLEAN DEFAULT FALSE,
+    is_pinned BOOLEAN DEFAULT FALSE,
+    pinned_at TIMESTAMP,
+    muted_until TIMESTAMP,
 
     UNIQUE(channel_id, user_id)
 );

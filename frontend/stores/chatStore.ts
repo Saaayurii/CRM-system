@@ -3,6 +3,7 @@ import { Socket } from 'socket.io-client';
 import { getSocket, disconnectSocket } from '@/lib/socket';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
+import { useAuthStore } from '@/stores/authStore';
 
 /* ───────── Types ───────── */
 
@@ -62,6 +63,12 @@ export interface ChatChannel {
   } | null;
   members?: { id: number; name: string; avatarUrl?: string; email?: string; isMuted?: boolean; role?: string }[];
   pinnedMessages?: { id: number; text: string; senderName: string; pinnedAt: string }[];
+  // Per-current-user state
+  isPinned?: boolean;
+  pinnedAt?: string | null;
+  mutedUntil?: string | null;
+  isMutedForMe?: boolean;
+  myRole?: string;
 }
 
 export interface CreateChannelDto {
@@ -127,8 +134,9 @@ export function mapRawMessage(raw: any): ChatMessage {
   };
 }
 
-function mapRawChannel(raw: any): ChatChannel {
-  const members = ((raw.members || []) as any[]).map((m: any) => {
+function mapRawChannel(raw: any, currentUserId?: number): ChatChannel {
+  const rawMembers = (raw.members || []) as any[];
+  const members = rawMembers.map((m: any) => {
     const u = m.user || {};
     return {
       id: m.userId ?? u.id,
@@ -139,6 +147,23 @@ function mapRawChannel(raw: any): ChatChannel {
       role: m.role ?? 'member',
     };
   });
+
+  // Per-current-user metadata: pinned, muted-for-me, role
+  let isPinned: boolean | undefined;
+  let pinnedAt: string | null | undefined;
+  let mutedUntil: string | null | undefined;
+  let isMutedForMe: boolean | undefined;
+  let myRole: string | undefined;
+  if (currentUserId != null) {
+    const me = rawMembers.find((m: any) => (m.userId ?? m.user?.id) === currentUserId);
+    if (me) {
+      isPinned = !!me.isPinned;
+      pinnedAt = me.pinnedAt ?? null;
+      mutedUntil = me.mutedUntil ?? null;
+      isMutedForMe = !!me.isMuted;
+      myRole = me.role ?? 'member';
+    }
+  }
 
   // Backend includes messages[0] as last message
   const rawLastMsg = raw.messages?.[0] ?? null;
@@ -175,6 +200,11 @@ function mapRawChannel(raw: any): ChatChannel {
       : raw.lastMessage ?? null,
     members,
     pinnedMessages,
+    isPinned,
+    pinnedAt,
+    mutedUntil,
+    isMutedForMe,
+    myRole,
   };
 }
 
@@ -220,6 +250,10 @@ interface ChatState {
   fetchArchivedChannels: () => Promise<void>;
   fetchArchivedCount: () => Promise<void>;
   archiveChannel: (channelId: number, isArchived: boolean) => Promise<void>;
+  pinChannel: (channelId: number, isPinned: boolean) => Promise<void>;
+  muteChannel: (channelId: number, mutedUntil: Date | null) => Promise<void>;
+  markChannelUnread: (channelId: number) => Promise<void>;
+  clearChannelHistory: (channelId: number) => Promise<void>;
   fetchProjectChannels: (projectId: number) => Promise<ChatChannel[]>;
   fetchMessages: (channelId: number, cursor?: number) => Promise<void>;
   createChannel: (dto: CreateChannelDto) => Promise<ChatChannel | null>;
@@ -532,9 +566,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
         params: { page, limit: 30 },
       });
 
+      const currentUserId = useAuthStore.getState().user?.id;
       const raw = data.data || data;
       let channelsList: ChatChannel[] = Array.isArray(raw)
-        ? raw.map((ch: any) => mapRawChannel(ch))
+        ? raw.map((ch: any) => mapRawChannel(ch, currentUserId))
         : [];
       const total = data.total || 0;
 
@@ -551,7 +586,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
               channelType: 'direct',
               memberIds: [],
             });
-            const selfChannel = mapRawChannel(selfData);
+            const selfChannel = mapRawChannel(selfData, currentUserId);
             channelsList = [selfChannel, ...channelsList];
           } catch {
             // ignore — self-chat creation failed
@@ -619,9 +654,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   fetchProjectChannels: async (projectId: number): Promise<ChatChannel[]> => {
     try {
+      const currentUserId = useAuthStore.getState().user?.id;
       const { data } = await api.get('/chat-channels', { params: { projectId, limit: 100 } });
       const raw = data.data || data;
-      return Array.isArray(raw) ? raw.map((ch: any) => mapRawChannel(ch)) : [];
+      return Array.isArray(raw) ? raw.map((ch: any) => mapRawChannel(ch, currentUserId)) : [];
     } catch {
       return [];
     }
@@ -656,8 +692,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   createChannel: async (dto) => {
     try {
+      const currentUserId = useAuthStore.getState().user?.id;
       const { data } = await api.post('/chat-channels', dto);
-      const channel: ChatChannel = mapRawChannel(data);
+      const channel: ChatChannel = mapRawChannel(data, currentUserId);
 
       set((state) => {
         // Avoid duplicates — backend may return existing channel for direct chats
@@ -687,13 +724,61 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   fetchArchivedChannels: async () => {
     try {
+      const currentUserId = useAuthStore.getState().user?.id;
       const { data } = await api.get('/chat-channels', { params: { archived: true, limit: 100 } });
       const raw = data.data || data;
-      const list: ChatChannel[] = Array.isArray(raw) ? raw.map((ch: any) => mapRawChannel(ch)) : [];
+      const list: ChatChannel[] = Array.isArray(raw) ? raw.map((ch: any) => mapRawChannel(ch, currentUserId)) : [];
       set({ archivedChannels: list });
     } catch {
       // ignore
     }
+  },
+
+  pinChannel: async (channelId, isPinned) => {
+    await api.patch(`/chat-channels/${channelId}/pin`, { isPinned });
+    set((state) => ({
+      channels: state.channels.map((c) =>
+        c.id === channelId
+          ? { ...c, isPinned, pinnedAt: isPinned ? new Date().toISOString() : null }
+          : c
+      ),
+    }));
+  },
+
+  muteChannel: async (channelId, mutedUntil) => {
+    await api.patch(`/chat-channels/${channelId}/mute`, {
+      mutedUntil: mutedUntil ? mutedUntil.toISOString() : null,
+    });
+    set((state) => ({
+      channels: state.channels.map((c) =>
+        c.id === channelId
+          ? {
+              ...c,
+              isMutedForMe: mutedUntil !== null,
+              mutedUntil: mutedUntil ? mutedUntil.toISOString() : null,
+            }
+          : c
+      ),
+    }));
+  },
+
+  markChannelUnread: async (channelId) => {
+    await api.patch(`/chat-channels/${channelId}/mark-unread`);
+    set((state) => ({
+      unreadCounts: { ...state.unreadCounts, [channelId]: Math.max(1, state.unreadCounts[channelId] || 0) },
+    }));
+    // Refresh authoritative counts from server
+    get().fetchUnreadSummary();
+  },
+
+  clearChannelHistory: async (channelId) => {
+    await api.delete(`/chat-channels/${channelId}/messages`);
+    set((state) => ({
+      messages: state.activeChannelId === channelId ? [] : state.messages,
+      channels: state.channels.map((c) =>
+        c.id === channelId ? { ...c, lastMessage: null } : c
+      ),
+    }));
   },
 
   archiveChannel: async (channelId, isArchived) => {

@@ -89,6 +89,68 @@ export class ChatGatewayController {
     });
   }
 
+  @Patch('chat-channels/:id/pin')
+  @ApiOperation({ summary: 'Pin or unpin a channel for the current user' })
+  async pinChannel(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
+    return this.proxyService.forward('chat', {
+      method: 'PATCH',
+      path: `/chat-channels/${id}/pin`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Patch('chat-channels/:id/mute')
+  @ApiOperation({ summary: 'Mute notifications for current user' })
+  async muteChannel(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
+    return this.proxyService.forward('chat', {
+      method: 'PATCH',
+      path: `/chat-channels/${id}/mute`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Patch('chat-channels/:id/mark-unread')
+  @ApiOperation({ summary: 'Mark channel as unread for current user' })
+  async markChannelUnread(
+    @Req() req: Request,
+    @Param('id') id: string,
+  ) {
+    return this.proxyService.forward('chat', {
+      method: 'PATCH',
+      path: `/chat-channels/${id}/mark-unread`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+    });
+  }
+
+  @Delete('chat-channels/:id/messages')
+  @ApiOperation({ summary: 'Clear channel message history (admin only)' })
+  async clearChannelHistory(@Req() req: Request, @Param('id') id: string) {
+    return this.proxyService.forward('chat', {
+      method: 'DELETE',
+      path: `/chat-channels/${id}/messages`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
   @Get('chat-channels/:id')
   @ApiOperation({ summary: 'Get chat channel by ID' })
   async findOneChannel(@Req() req: Request, @Param('id') id: string) {

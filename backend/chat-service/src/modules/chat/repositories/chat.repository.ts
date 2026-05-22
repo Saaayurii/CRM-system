@@ -155,7 +155,7 @@ export class ChatRepository {
     });
   }
 
-  async updateChannelMember(channelId: number, userId: number, data: { isMuted?: boolean; isArchived?: boolean; role?: string }) {
+  async updateChannelMember(channelId: number, userId: number, data: { isMuted?: boolean; isArchived?: boolean; isPinned?: boolean; pinnedAt?: Date | null; mutedUntil?: Date | null; role?: string }) {
     return (this.prisma as any).chatChannelMember.updateMany({
       where: { channelId, userId },
       data,
@@ -166,6 +166,54 @@ export class ChatRepository {
     return (this.prisma as any).chatChannelMember.updateMany({
       where: { channelId, userId },
       data: { isArchived },
+    });
+  }
+
+  async pinChannel(channelId: number, userId: number, isPinned: boolean) {
+    return (this.prisma as any).chatChannelMember.updateMany({
+      where: { channelId, userId },
+      data: { isPinned, pinnedAt: isPinned ? new Date() : null },
+    });
+  }
+
+  async muteChannelForUser(channelId: number, userId: number, mutedUntil: Date | null) {
+    // mutedUntil = null  → unmute
+    // mutedUntil = far future date → mute "forever"
+    // mutedUntil = a date → temporary mute
+    return (this.prisma as any).chatChannelMember.updateMany({
+      where: { channelId, userId },
+      data: {
+        isMuted: mutedUntil !== null,
+        mutedUntil,
+      },
+    });
+  }
+
+  async markChannelUnread(channelId: number, userId: number) {
+    // Set lastReadAt to a moment BEFORE the latest message so getUnreadSummary sees >=1 unread.
+    const lastMsg = await (this.prisma as any).chatMessage.findFirst({
+      where: { channelId, isDeleted: false, userId: { not: userId } },
+      orderBy: { createdAt: 'desc' },
+      select: { createdAt: true },
+    });
+    if (!lastMsg) {
+      // No foreign messages — just clear lastReadAt to a long-ago timestamp
+      return (this.prisma as any).chatChannelMember.updateMany({
+        where: { channelId, userId },
+        data: { lastReadAt: new Date(0) },
+      });
+    }
+    const before = new Date(lastMsg.createdAt.getTime() - 1000);
+    return (this.prisma as any).chatChannelMember.updateMany({
+      where: { channelId, userId },
+      data: { lastReadAt: before },
+    });
+  }
+
+  async clearChannelHistory(channelId: number) {
+    return (this.prisma as any).chatMessage.updateMany({
+      where: { channelId, isDeleted: false },
+      data: { isDeleted: true, deletedAt: new Date() },
     });
   }
 
@@ -183,7 +231,7 @@ export class ChatRepository {
         name: true,
         channelType: true,
         accountId: true,
-        members: { select: { userId: true } },
+        members: { select: { userId: true, isMuted: true, mutedUntil: true } },
       },
     });
   }

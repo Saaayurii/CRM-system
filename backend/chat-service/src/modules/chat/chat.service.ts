@@ -39,6 +39,46 @@ export class ChatService {
     return { success: true };
   }
 
+  async pinChannel(channelId: number, userId: number, isPinned: boolean) {
+    const member = await this.chatRepository.findChannelMember(channelId, userId);
+    if (!member) {
+      throw new ForbiddenException('You are not a member of this channel');
+    }
+    await this.chatRepository.pinChannel(channelId, userId, isPinned);
+    return { success: true, isPinned };
+  }
+
+  async muteChannelForUser(channelId: number, userId: number, mutedUntil: Date | null) {
+    const member = await this.chatRepository.findChannelMember(channelId, userId);
+    if (!member) {
+      throw new ForbiddenException('You are not a member of this channel');
+    }
+    await this.chatRepository.muteChannelForUser(channelId, userId, mutedUntil);
+    return { success: true, mutedUntil };
+  }
+
+  async markChannelUnread(channelId: number, userId: number) {
+    const member = await this.chatRepository.findChannelMember(channelId, userId);
+    if (!member) {
+      throw new ForbiddenException('You are not a member of this channel');
+    }
+    await this.chatRepository.markChannelUnread(channelId, userId);
+    return { success: true };
+  }
+
+  async clearChannelHistory(channelId: number, accountId: number, userId: number) {
+    await this.findChannelById(channelId, accountId);
+    const member = await this.chatRepository.findChannelMember(channelId, userId);
+    if (!member) {
+      throw new ForbiddenException('You are not a member of this channel');
+    }
+    if (member.role !== 'admin') {
+      throw new ForbiddenException('Only channel admins can clear history');
+    }
+    await this.chatRepository.clearChannelHistory(channelId);
+    return { success: true };
+  }
+
   async getArchivedCount(userId: number) {
     const count = await this.chatRepository.getArchivedCount(userId);
     return { count };

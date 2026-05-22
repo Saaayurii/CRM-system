@@ -4,6 +4,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useChatStore, ChatChannel } from '@/stores/chatStore';
 import { useAuthStore } from '@/stores/authStore';
 import CreateChannelModal from './CreateChannelModal';
+import ChatContextMenu from './ChatContextMenu';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import { previewMessageText } from '@/lib/chat/messagePreview';
@@ -20,6 +21,11 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
   const setShowArchive = useChatStore((s) => s.setShowArchive);
   const fetchArchivedChannels = useChatStore((s) => s.fetchArchivedChannels);
   const archiveChannel = useChatStore((s) => s.archiveChannel);
+  const pinChannel = useChatStore((s) => s.pinChannel);
+  const muteChannel = useChatStore((s) => s.muteChannel);
+  const markChannelUnread = useChatStore((s) => s.markChannelUnread);
+  const markAsRead = useChatStore((s) => s.markAsRead);
+  const clearChannelHistory = useChatStore((s) => s.clearChannelHistory);
   const activeChannelId = useChatStore((s) => s.activeChannelId);
   const setActiveChannel = useChatStore((s) => s.setActiveChannel);
   const unreadCounts = useChatStore((s) => s.unreadCounts);
@@ -39,6 +45,63 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
   const [projectNames, setProjectNames] = useState<Map<number, string>>(new Map());
   const scrollRef = useRef<HTMLDivElement>(null);
   const tabsScrollRef = useRef<HTMLDivElement>(null);
+
+  // Context menu state
+  const [ctxMenu, setCtxMenu] = useState<{
+    channel: ChatChannel;
+    position: { x: number; y: number };
+    variant: 'popover' | 'sheet';
+  } | null>(null);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressTriggered = useRef(false);
+  const touchStartPos = useRef<{ x: number; y: number } | null>(null);
+
+  const openCtxMenu = useCallback((channel: ChatChannel, x: number, y: number, variant: 'popover' | 'sheet') => {
+    setCtxMenu({ channel, position: { x, y }, variant });
+  }, []);
+  const closeCtxMenu = useCallback(() => setCtxMenu(null), []);
+
+  const handleContextMenu = useCallback((e: React.MouseEvent, channel: ChatChannel) => {
+    e.preventDefault();
+    e.stopPropagation();
+    openCtxMenu(channel, e.clientX, e.clientY, 'popover');
+  }, [openCtxMenu]);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent, channel: ChatChannel) => {
+    if (e.touches.length !== 1) return;
+    const t = e.touches[0];
+    touchStartPos.current = { x: t.clientX, y: t.clientY };
+    longPressTriggered.current = false;
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+    longPressTimer.current = setTimeout(() => {
+      longPressTriggered.current = true;
+      try {
+        if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(15);
+      } catch {}
+      openCtxMenu(channel, t.clientX, t.clientY, 'sheet');
+    }, 500);
+  }, [openCtxMenu]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!touchStartPos.current || e.touches.length !== 1) return;
+    const t = e.touches[0];
+    const dx = Math.abs(t.clientX - touchStartPos.current.x);
+    const dy = Math.abs(t.clientY - touchStartPos.current.y);
+    if (dx > 8 || dy > 8) {
+      if (longPressTimer.current) {
+        clearTimeout(longPressTimer.current);
+        longPressTimer.current = null;
+      }
+    }
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    touchStartPos.current = null;
+  }, []);
 
   // Fetch real project names for any projectId that has no name in channel settings
   useEffect(() => {
@@ -157,7 +220,10 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
 
   const selfChat = activeFolder === 'all' ? allFiltered.find((ch) => isSelfChat(ch, user?.id)) : undefined;
   const otherChats = allFiltered.filter((ch) => !isSelfChat(ch, user?.id));
-  const filtered = selfChat ? [selfChat, ...otherChats] : otherChats;
+  // Pinned first, then others — preserves existing order within each group (which is already newest-first).
+  const pinned = otherChats.filter((ch) => ch.isPinned);
+  const unpinned = otherChats.filter((ch) => !ch.isPinned);
+  const filtered = selfChat ? [selfChat, ...pinned, ...unpinned] : [...pinned, ...unpinned];
 
   // ── Archive view ─────────────────────────────────────────────────────────
   if (showArchive) {
@@ -214,10 +280,21 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
             return (
               <div
                 key={channel.id}
-                className={`group relative flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors ${
+                className={`group relative flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors select-none ${
                   isActive ? 'bg-violet-50 dark:bg-violet-500/10' : 'hover:bg-gray-50 dark:hover:bg-gray-800'
                 }`}
-                onClick={() => handleSelect(channel.id)}
+                onClick={() => {
+                  if (longPressTriggered.current) {
+                    longPressTriggered.current = false;
+                    return;
+                  }
+                  handleSelect(channel.id);
+                }}
+                onContextMenu={(e) => handleContextMenu(e, channel)}
+                onTouchStart={(e) => handleTouchStart(e, channel)}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                onTouchCancel={handleTouchEnd}
               >
                 <div className="relative shrink-0">
                   <div className={`w-11 h-11 rounded-full flex items-center justify-center text-white font-semibold text-sm overflow-hidden relative ${isSelf ? 'bg-amber-400' : channel.channelType === 'group' ? 'bg-violet-500' : 'bg-sky-500'}`}>
@@ -391,10 +468,21 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
           return (
             <div
               key={channel.id}
-              className={`group relative flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors ${
+              className={`group relative flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors select-none ${
                 isActive ? 'bg-violet-50 dark:bg-violet-500/10' : 'hover:bg-gray-50 dark:hover:bg-gray-800'
               }`}
-              onClick={() => handleSelect(channel.id)}
+              onClick={() => {
+                if (longPressTriggered.current) {
+                  longPressTriggered.current = false;
+                  return;
+                }
+                handleSelect(channel.id);
+              }}
+              onContextMenu={(e) => handleContextMenu(e, channel)}
+              onTouchStart={(e) => handleTouchStart(e, channel)}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              onTouchCancel={handleTouchEnd}
             >
               {/* Avatar */}
               <div className="relative shrink-0">
@@ -443,11 +531,27 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
                         : previewMessageText(channel.lastMessage.text)
                       : 'Нет сообщений'}
                   </p>
-                  {unread > 0 && (
-                    <span className="ml-2 shrink-0 min-w-[20px] h-5 px-1.5 flex items-center justify-center text-xs font-bold text-white bg-violet-500 rounded-full">
-                      {unread > 99 ? '99+' : unread}
-                    </span>
-                  )}
+                  <span className="ml-2 flex items-center gap-1 shrink-0">
+                    {channel.isMutedForMe && (
+                      <span title="Уведомления выключены" className="flex">
+                        <svg className="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 3l18 18M13.73 21a2 2 0 01-3.46 0M18.63 13A17.9 17.9 0 0118 8a6 6 0 00-9.33-5M6.26 6.26A6 6 0 006 8c0 7-3 9-3 9h14" />
+                        </svg>
+                      </span>
+                    )}
+                    {channel.isPinned && (
+                      <span title="Закреплён" className="flex">
+                        <svg className="w-3.5 h-3.5 text-violet-500" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M14 3l7 7-4.5 4.5L19 17l-2 2-2.5-2.5L10 21l-1-6-6-1 4.5-4.5L5 7l2-2 2.5 2.5L14 3z"/>
+                        </svg>
+                      </span>
+                    )}
+                    {unread > 0 && (
+                      <span className={`min-w-[20px] h-5 px-1.5 flex items-center justify-center text-xs font-bold text-white rounded-full ${channel.isMutedForMe ? 'bg-gray-400' : 'bg-violet-500'}`}>
+                        {unread > 99 ? '99+' : unread}
+                      </span>
+                    )}
+                  </span>
                 </div>
               </div>
 
@@ -497,6 +601,95 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
 
       {showCreateModal && (
         <CreateChannelModal onClose={() => setShowCreateModal(false)} />
+      )}
+
+      {ctxMenu && (
+        <ChatContextMenu
+          channel={ctxMenu.channel}
+          position={ctxMenu.position}
+          variant={ctxMenu.variant}
+          isArchived={showArchive}
+          hasUnread={(unreadCounts[ctxMenu.channel.id] || 0) > 0}
+          canClearHistory={ctxMenu.channel.myRole === 'admin' && !isSelfChat(ctxMenu.channel, user?.id)}
+          canDelete={!isSelfChat(ctxMenu.channel, user?.id) && ctxMenu.channel.channelType === 'group'}
+          onClose={closeCtxMenu}
+          actions={{
+            onOpenInNewWindow: () => {
+              const url = `/dashboard/chat?channelId=${ctxMenu.channel.id}`;
+              window.open(url, '_blank', 'noopener,noreferrer,width=900,height=720');
+            },
+            onTogglePin: async () => {
+              const next = !ctxMenu.channel.isPinned;
+              try {
+                await pinChannel(ctxMenu.channel.id, next);
+                addToast('success', next ? 'Чат закреплён' : 'Чат откреплён');
+              } catch {
+                addToast('error', 'Не удалось изменить закрепление');
+              }
+            },
+            onMute: async (mutedUntil) => {
+              try {
+                await muteChannel(ctxMenu.channel.id, mutedUntil);
+                addToast('success', mutedUntil ? 'Уведомления выключены' : 'Уведомления включены');
+              } catch {
+                addToast('error', 'Не удалось изменить настройки уведомлений');
+              }
+            },
+            onToggleMarkUnread: async () => {
+              const hasUnread = (unreadCounts[ctxMenu.channel.id] || 0) > 0;
+              try {
+                if (hasUnread) {
+                  markAsRead(ctxMenu.channel.id);
+                  addToast('success', 'Помечено как прочитанное');
+                } else {
+                  await markChannelUnread(ctxMenu.channel.id);
+                  addToast('success', 'Помечено как непрочитанное');
+                }
+              } catch {
+                addToast('error', 'Не удалось изменить статус');
+              }
+            },
+            onPreview: () => {
+              handleSelect(ctxMenu.channel.id);
+            },
+            onArchive: async (isArchived) => {
+              setArchivingId(ctxMenu.channel.id);
+              try {
+                await archiveChannel(ctxMenu.channel.id, isArchived);
+                if (isArchived && activeChannelId === ctxMenu.channel.id) setActiveChannel(null);
+                addToast('success', isArchived ? 'Чат добавлен в архив' : 'Чат извлечён из архива');
+              } catch {
+                addToast('error', 'Не удалось изменить статус архива');
+              } finally {
+                setArchivingId(null);
+              }
+            },
+            onClearHistory: async () => {
+              if (!confirm('Очистить всю историю сообщений этого чата? Это действие необратимо.')) return;
+              try {
+                await clearChannelHistory(ctxMenu.channel.id);
+                addToast('success', 'История очищена');
+              } catch {
+                addToast('error', 'Не удалось очистить историю');
+              }
+            },
+            onDelete: async () => {
+              const ch = ctxMenu.channel;
+              if (!confirm(`Удалить чат «${ch.channelName || 'без названия'}»? Это действие нельзя отменить.`)) return;
+              setDeletingId(ch.id);
+              try {
+                await api.delete(`/chat-channels/${ch.id}`);
+                fetchChannels(1);
+                if (activeChannelId === ch.id) setActiveChannel(null);
+                addToast('success', 'Чат удалён');
+              } catch {
+                addToast('error', 'Не удалось удалить чат');
+              } finally {
+                setDeletingId(null);
+              }
+            },
+          }}
+        />
       )}
     </>
   );
