@@ -508,7 +508,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
         )}
       </div>
 
-      {/* Mobile long-press context menu — Telegram style (portal) */}
+      {/* Context menu — right-click on desktop, long-press on mobile (portal) */}
       {showMobileActions && typeof document !== 'undefined' && createPortal(
         <div
           ref={mobileMenuRef}
@@ -521,16 +521,16 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
           {/* Blurred backdrop */}
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
 
-          {/* Emoji reaction pill */}
+          {/* Emoji reaction row */}
           <div
-            className="relative z-10 bg-gray-900/90 rounded-full px-2 py-1.5 flex items-center gap-0.5 shadow-2xl"
+            className="relative z-10 bg-[#1c1c1e]/95 rounded-full px-3 py-2 flex items-center gap-1 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             {QUICK_EMOJIS.map((emoji) => (
               <button
                 key={emoji}
                 onClick={() => { onReact(message.id, emoji); setShowMobileActions(false); }}
-                className="text-2xl p-1.5 rounded-full hover:bg-white/10 active:scale-90 transition-all"
+                className="text-[26px] w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10 active:scale-90 transition-all"
               >
                 {emoji}
               </button>
@@ -563,13 +563,13 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
 
           {/* Actions card */}
           <div
-            className="relative z-10 w-full max-w-sm bg-gray-900/95 rounded-2xl overflow-hidden shadow-2xl"
+            className="relative z-10 w-full max-w-sm bg-[#1c1c1e]/95 rounded-2xl overflow-hidden shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Reply */}
             <button
               onClick={() => { onReply(); setShowMobileActions(false); }}
-              className="w-full flex items-center justify-between px-5 py-3.5 text-white hover:bg-white/10 active:bg-white/15 transition-colors border-b border-white/10"
+              className="w-full flex items-center justify-between px-5 py-3.5 text-white hover:bg-white/10 active:bg-white/15 transition-colors border-b border-white/8"
             >
               <span className="text-[15px]">Ответить</span>
               <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -577,31 +577,18 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
               </svg>
             </button>
 
-            {/* Forward */}
-            {onForward && (
-              <button
-                onClick={() => { onForward(message); setShowMobileActions(false); }}
-                className="w-full flex items-center justify-between px-5 py-3.5 text-white hover:bg-white/10 active:bg-white/15 transition-colors border-b border-white/10"
-              >
-                <span className="text-[15px]">Переслать</span>
-                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 9l3 3m0 0l-3 3m3-3H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </button>
-            )}
-
-            {/* Copy */}
+            {/* Copy text */}
             {message.text && (
               <button
                 onClick={() => {
                   navigator.clipboard?.writeText(message.text!).then(() => {
-                    addToast('success', 'Сообщение скопировано');
+                    addToast('success', 'Текст скопирован');
                   }).catch(() => {});
                   setShowMobileActions(false);
                 }}
-                className="w-full flex items-center justify-between px-5 py-3.5 text-white hover:bg-white/10 active:bg-white/15 transition-colors border-b border-white/10"
+                className="w-full flex items-center justify-between px-5 py-3.5 text-white hover:bg-white/10 active:bg-white/15 transition-colors border-b border-white/8"
               >
-                <span className="text-[15px]">Скопировать</span>
+                <span className="text-[15px]">Копировать текст</span>
                 <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
@@ -612,7 +599,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
             {isOwn && message.text && onEdit && (
               <button
                 onClick={() => { handleEditStart(); setShowMobileActions(false); }}
-                className="w-full flex items-center justify-between px-5 py-3.5 text-white hover:bg-white/10 active:bg-white/15 transition-colors border-b border-white/10"
+                className="w-full flex items-center justify-between px-5 py-3.5 text-white hover:bg-white/10 active:bg-white/15 transition-colors border-b border-white/8"
               >
                 <span className="text-[15px]">Редактировать</span>
                 <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -625,12 +612,25 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
             {canPin && (
               <button
                 onClick={() => { onPin?.(message); setShowMobileActions(false); }}
-                className="w-full flex items-center justify-between px-5 py-3.5 text-white hover:bg-white/10 active:bg-white/15 transition-colors border-b border-white/10"
+                className="w-full flex items-center justify-between px-5 py-3.5 text-white hover:bg-white/10 active:bg-white/15 transition-colors border-b border-white/8"
               >
                 <span className="text-[15px]">{isPinned ? 'Открепить' : 'Закрепить'}</span>
                 <svg className="w-5 h-5 text-gray-400" viewBox="0 0 24 24" fill={isPinned ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                   <line x1="12" y1="17" x2="12" y2="22" />
                   <path d="M5 17h14v-1.76a2 2 0 00-1.11-1.79l-1.78-.9A2 2 0 0115 10.76V6h1a2 2 0 000-4H8a2 2 0 000 4h1v4.76a2 2 0 01-1.11 1.79l-1.78.9A2 2 0 005 15.24V17z" />
+                </svg>
+              </button>
+            )}
+
+            {/* Forward */}
+            {onForward && (
+              <button
+                onClick={() => { onForward(message); setShowMobileActions(false); }}
+                className={`w-full flex items-center justify-between px-5 py-3.5 text-white hover:bg-white/10 active:bg-white/15 transition-colors ${isOwn ? 'border-b border-white/8' : ''}`}
+              >
+                <span className="text-[15px]">Переслать</span>
+                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 9l3 3m0 0l-3 3m3-3H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </button>
             )}
