@@ -192,7 +192,7 @@ export class ChatRepository {
   async markChannelUnread(channelId: number, userId: number) {
     // Set lastReadAt to a moment BEFORE the latest message so getUnreadSummary sees >=1 unread.
     const lastMsg = await (this.prisma as any).chatMessage.findFirst({
-      where: { channelId, isDeleted: false, userId: { not: userId } },
+      where: { channelId, isDeleted: false },
       orderBy: { createdAt: 'desc' },
       select: { createdAt: true },
     });
@@ -360,7 +360,6 @@ export class ChatRepository {
       const where: any = {
         channelId: membership.channelId,
         isDeleted: false,
-        userId: { not: userId },
       };
       if (membership.lastReadAt) {
         where.createdAt = { gt: membership.lastReadAt };
