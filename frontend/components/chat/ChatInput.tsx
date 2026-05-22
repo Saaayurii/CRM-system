@@ -144,6 +144,11 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
   const [selectedUserIndex, setSelectedUserIndex] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
+  const [isRecordingVideo, setIsRecordingVideo] = useState(false);
+  const [videoRecordingTime, setVideoRecordingTime] = useState(0);
+  const [showCancelVideoConfirm, setShowCancelVideoConfirm] = useState(false);
+  const [recordMode, setRecordMode] = useState<'voice' | 'video'>('voice');
+  const [showRecordTooltip, setShowRecordTooltip] = useState(false);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const dragCounterRef = useRef(0);
@@ -174,6 +179,21 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
   const streamRef = useRef<MediaStream | null>(null);
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const cancelledRef = useRef(false);
+
+  const videoRecorderRef = useRef<MediaRecorder | null>(null);
+  const videoStreamRef = useRef<MediaStream | null>(null);
+  const videoPreviewRef = useRef<HTMLVideoElement>(null);
+  const videoRecordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const videoChunksRef = useRef<Blob[]>([]);
+  const videoCancelledRef = useRef(false);
+  const videoRecordingTimeRef = useRef(0);
+
+  // Hold-to-record detection
+  const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isHoldingRef = useRef(false);
+  const isLockedRef = useRef(false);
+  const holdStartYRef = useRef(0);
+  const holdRecordModeRef = useRef<'voice' | 'video'>('voice');
 
   const sendMessage = useChatStore((s) => s.sendMessage);
   const editMessage = useChatStore((s) => s.editMessage);
@@ -247,8 +267,20 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
     return () => {
       if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
       streamRef.current?.getTracks().forEach((t) => t.stop());
+      if (videoRecordingTimerRef.current) clearInterval(videoRecordingTimerRef.current);
+      videoStreamRef.current?.getTracks().forEach((t) => t.stop());
     };
   }, []);
+
+  // Attach camera stream to preview element once recording starts
+  useEffect(() => {
+    if (!isRecordingVideo) return;
+    const video = videoPreviewRef.current;
+    const stream = videoStreamRef.current;
+    if (video && stream) {
+      video.srcObject = stream;
+    }
+  }, [isRecordingVideo]);
 
   // Close emoji picker on outside click
   useEffect(() => {
@@ -906,10 +938,255 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
     setRecordingTime(0);
   }, []);
 
+  // ── Video note recording ──────────────────────────────────
+
+  const sendVideoNote = useCallback(async (videoFile: File) => {
+    setIsSending(true);
+    try {
+      const uploadId = crypto.randomUUID();
+      let token = '';
+      try { token = localStorage.getItem('accessToken') ?? ''; } catch { /* ignore */ }
+      const res = await fetch('/api/chat/upload', {
+        method: 'POST',
+        headers: {
+          'x-upload-id': uploadId, 'x-chunk-index': '0', 'x-chunk-total': '1',
+          'x-file-name': encodeURIComponent(videoFile.name),
+          'x-file-size': String(videoFile.size),
+          'x-file-type': videoFile.type || 'video/webm',
+          'Content-Type': 'application/octet-stream',
+          ...(token ? { authorization: `Bearer ${token}` } : {}),
+        },
+        body: videoFile,
+      });
+      if (res.ok) {
+        const attachment: UploadedAttachment = await res.json();
+        if (attachment.fileUrl) sendMessage(channelId, '', [attachment], replyToMessage?.id, 'video_note');
+      }
+    } catch { /* discard */ } finally { setIsSending(false); }
+  }, [channelId, sendMessage, replyToMessage]);
+
+  const startVideoRecording = useCallback(async () => {
+    if (isRecordingVideo) return;
+    if (!navigator.mediaDevices?.getUserMedia) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: { ideal: 480 }, height: { ideal: 480 }, facingMode: 'user' },
+        audio: true,
+      });
+      videoStreamRef.current = stream;
+      videoCancelledRef.current = false;
+      videoChunksRef.current = [];
+      videoRecordingTimeRef.current = 0;
+
+      const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
+        ? 'video/webm;codecs=vp9,opus'
+        : MediaRecorder.isTypeSupported('video/webm')
+        ? 'video/webm'
+        : '';
+
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      videoRecorderRef.current = recorder;
+      recorder.ondataavailable = (e) => { if (e.data.size > 0) videoChunksRef.current.push(e.data); };
+      recorder.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        videoStreamRef.current = null;
+        if (videoCancelledRef.current) return;
+        const mType = recorder.mimeType || 'video/webm';
+        const ext = mType.includes('mp4') ? 'mp4' : 'webm';
+        const blob = new Blob(videoChunksRef.current, { type: mType });
+        await sendVideoNote(new File([blob], `video_note-${Date.now()}.${ext}`, { type: mType }));
+      };
+      recorder.start(100);
+      setIsRecordingVideo(true);
+      setVideoRecordingTime(0);
+
+      videoRecordingTimerRef.current = setInterval(() => {
+        videoRecordingTimeRef.current += 1;
+        setVideoRecordingTime(videoRecordingTimeRef.current);
+        if (videoRecordingTimeRef.current >= 60) {
+          if (videoRecordingTimerRef.current) { clearInterval(videoRecordingTimerRef.current); videoRecordingTimerRef.current = null; }
+          videoCancelledRef.current = false;
+          recorder.stop();
+          setIsRecordingVideo(false);
+          videoRecordingTimeRef.current = 0;
+          setVideoRecordingTime(0);
+        }
+      }, 1000);
+    } catch { /* permission denied */ }
+  }, [isRecordingVideo, sendVideoNote]);
+
+  const stopVideoRecording = useCallback(() => {
+    if (videoRecordingTimerRef.current) { clearInterval(videoRecordingTimerRef.current); videoRecordingTimerRef.current = null; }
+    videoCancelledRef.current = false;
+    videoRecorderRef.current?.stop();
+    setIsRecordingVideo(false);
+    setVideoRecordingTime(0);
+    videoRecordingTimeRef.current = 0;
+  }, []);
+
+  const cancelVideoRecording = useCallback(() => {
+    if (videoRecordingTimerRef.current) { clearInterval(videoRecordingTimerRef.current); videoRecordingTimerRef.current = null; }
+    videoCancelledRef.current = true;
+    videoRecorderRef.current?.stop();
+    videoStreamRef.current?.getTracks().forEach((t) => t.stop());
+    videoStreamRef.current = null;
+    setIsRecordingVideo(false);
+    setVideoRecordingTime(0);
+    videoRecordingTimeRef.current = 0;
+    setShowCancelVideoConfirm(false);
+  }, []);
+
+  // ── Hold-to-record button handler ───────────────────────────
+  const handleRecordBtnMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isHoldingRef.current = false;
+    isLockedRef.current = false;
+    holdStartYRef.current = e.clientY;
+    holdRecordModeRef.current = recordMode;
+
+    holdTimerRef.current = setTimeout(() => {
+      isHoldingRef.current = true;
+      if (holdRecordModeRef.current === 'voice') {
+        startRecording();
+      } else {
+        startVideoRecording();
+      }
+    }, 250);
+
+    const cleanup = () => {
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('mousemove', handleMouseMove);
+    };
+
+    const handleMouseUp = () => {
+      if (holdTimerRef.current) { clearTimeout(holdTimerRef.current); holdTimerRef.current = null; }
+      if (!isHoldingRef.current) {
+        // Quick press = toggle mode
+        setRecordMode((m) => m === 'voice' ? 'video' : 'voice');
+      } else if (!isLockedRef.current) {
+        // Hold release without locking = stop + send
+        if (holdRecordModeRef.current === 'voice') stopRecording();
+        else stopVideoRecording();
+      }
+      isHoldingRef.current = false;
+      cleanup();
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isHoldingRef.current || isLockedRef.current) return;
+      if (e.clientY - holdStartYRef.current < -40) {
+        isLockedRef.current = true; // dragged up → lock recording
+      }
+    };
+
+    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('mousemove', handleMouseMove);
+  }, [recordMode, startRecording, startVideoRecording, stopRecording, stopVideoRecording]);
+
   const canSend = (text.trim().length > 0 || pendingFiles.length > 0) && !isSending;
 
   return (
     <div className="relative border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3">
+      {/* Video note recording overlay — Telegram style */}
+      {isRecordingVideo && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 z-[9998]"
+          style={{ background: 'rgba(0,0,0,0.6)' }}
+          onClick={() => !showCancelVideoConfirm && setShowCancelVideoConfirm(true)}
+        >
+          {/* Large circle — centered, responsive */}
+          <div
+            className="absolute"
+            style={{
+              width: 'min(68vw, 68vh)',
+              height: 'min(68vw, 68vh)',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -55%)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Thin progress arc (cyan, from 12 o'clock clockwise) */}
+            <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 200 200">
+              <circle
+                cx="100" cy="100" r="97"
+                fill="none"
+                stroke="rgba(255,255,255,0.1)"
+                strokeWidth="2"
+              />
+              <circle
+                cx="100" cy="100" r="97"
+                fill="none"
+                stroke="#29B6F6"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeDasharray={`${2 * Math.PI * 97}`}
+                strokeDashoffset={`${2 * Math.PI * 97 * (1 - videoRecordingTime / 60)}`}
+                transform="rotate(-90 100 100)"
+                style={{ transition: 'stroke-dashoffset 1s linear' }}
+              />
+            </svg>
+            {/* Circular video */}
+            <div className="absolute bg-black" style={{ inset: '3%', borderRadius: '50%', overflow: 'hidden' }}>
+              <video
+                ref={videoPreviewRef}
+                muted
+                playsInline
+                autoPlay
+                className="w-full h-full object-cover"
+                style={{ transform: 'scaleX(-1)' }}
+              />
+            </div>
+          </div>
+
+          {/* Timer — bottom left */}
+          <div className="absolute bottom-5 left-6 text-white text-sm font-mono tabular-nums select-none pointer-events-none">
+            {formatDuration(videoRecordingTime)}
+          </div>
+
+          {/* Cancel hint — bottom center */}
+          <p className="absolute bottom-5 left-1/2 -translate-x-1/2 text-white/60 text-sm select-none pointer-events-none whitespace-nowrap">
+            Для отмены нажмите вне поля
+          </p>
+
+          {/* Stop & send button — bottom right */}
+          <button
+            onClick={(e) => { e.stopPropagation(); stopVideoRecording(); }}
+            className="absolute bottom-3 right-4 w-14 h-14 rounded-full flex items-center justify-center shadow-xl transition-opacity hover:opacity-90"
+            style={{ background: 'linear-gradient(135deg, #f43f5e, #e11d48)' }}
+          >
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 19V5m0 0l-6 6m6-6l6 6" />
+            </svg>
+          </button>
+
+          {/* Cancel confirm dialog */}
+          {showCancelVideoConfirm && (
+            <div className="absolute inset-0 flex items-center justify-center z-10" onClick={(e) => e.stopPropagation()}>
+              <div className="bg-gray-900 rounded-2xl p-6 max-w-xs w-full mx-5 text-center shadow-2xl">
+                <p className="text-white font-semibold text-base mb-1">Прекратить запись?</p>
+                <p className="text-gray-300 text-sm mb-5">Вы точно хотите прекратить запись и сбросить записанное сообщение?</p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowCancelVideoConfirm(false)}
+                    className="flex-1 py-2.5 rounded-xl bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium transition-colors"
+                  >
+                    Нет
+                  </button>
+                  <button
+                    onClick={cancelVideoRecording}
+                    className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-sm font-medium transition-colors"
+                  >
+                    Сброс
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>,
+        document.body
+      )}
+
       {/* Drag-and-drop overlay (portal) */}
       {isDragOver && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 z-[9997] pointer-events-none">
@@ -1252,29 +1529,48 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
             </div>
           </div>
 
-          {/* Right: Mic → Send depending on content */}
-          <button
-            onClick={canSend ? handleSend : startRecording}
-            disabled={isSending || isRecording}
-            title={canSend ? 'Отправить' : 'Записать голосовое'}
-            className={`shrink-0 p-2 rounded-xl transition-all duration-150 disabled:opacity-50 ${
-              canSend
-                ? 'text-white bg-violet-500 hover:bg-violet-600'
-                : 'text-gray-400 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/20'
-            }`}
-          >
-            {isSending ? (
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            ) : canSend ? (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-              </svg>
-            ) : (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-              </svg>
+          {/* Send / Record button (single, Telegram-style) */}
+          <div className="relative shrink-0">
+            {/* Tooltip on hover */}
+            {showRecordTooltip && !canSend && !isRecording && !isRecordingVideo && (
+              <div className="absolute bottom-full right-0 mb-2 w-64 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded-xl px-3 py-2 text-center pointer-events-none shadow-xl z-50 leading-relaxed">
+                {recordMode === 'video'
+                  ? 'Удерживайте для записи видео. Нажмите для переключения на голос.'
+                  : 'Удерживайте для записи голоса. Нажмите для переключения на видео.'
+                }
+                <div className="absolute -bottom-1 right-4 w-2 h-2 bg-gray-900 dark:bg-gray-700 rotate-45" />
+              </div>
             )}
-          </button>
+            <button
+              onClick={canSend ? handleSend : undefined}
+              onMouseDown={!canSend ? handleRecordBtnMouseDown : undefined}
+              onMouseEnter={() => setShowRecordTooltip(true)}
+              onMouseLeave={() => setShowRecordTooltip(false)}
+              disabled={isSending}
+              className={`p-2 rounded-xl transition-all duration-150 disabled:opacity-50 ${
+                canSend
+                  ? 'text-white bg-violet-500 hover:bg-violet-600'
+                  : 'text-gray-400 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/20'
+              }`}
+            >
+              {isSending ? (
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : canSend ? (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                </svg>
+              ) : recordMode === 'video' ? (
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75}>
+                  <circle cx="12" cy="12" r="10" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 9a1 1 0 011-1h3a1 1 0 011 1v1.6l2.4-1.2A.5.5 0 0117 9.9v4.2a.5.5 0 01-.72.45L14 13.4V15a1 1 0 01-1 1h-3a1 1 0 01-1-1V9z" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                </svg>
+              )}
+            </button>
+          </div>
         </div>
       )}
     </div>

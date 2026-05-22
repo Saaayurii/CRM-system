@@ -199,6 +199,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
   const addToast = useToastStore((s) => s.addToast);
   const setEditingMessage = useChatStore((s) => s.setEditingMessage);
   const isVoice = message.messageType === 'voice';
+  const isVideoNote = message.messageType === 'video_note';
   const displaySenderName = resolveDisplayName(message.senderName);
   const isSenderDeleted = !message.senderName || DELETED_EMAIL_RE.test(message.senderName);
 
@@ -395,8 +396,10 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
             />
           ))}
 
-          {/* Voice message — custom player */}
-          {isVoice && message.attachments && message.attachments.length > 0 ? (
+          {/* Video note / Voice message / Regular content */}
+          {isVideoNote && message.attachments && message.attachments.length > 0 ? (
+            <VideoNotePlayer src={message.attachments[0].fileUrl} isOwn={isOwn} />
+          ) : isVoice && message.attachments && message.attachments.length > 0 ? (
             <VoicePlayer src={message.attachments[0].fileUrl} isOwn={isOwn} />
           ) : (
             <>
@@ -1246,6 +1249,81 @@ function VoicePlayer({ src, isOwn }: VoicePlayerProps) {
         {/* Duration */}
         <span className={`text-[10px] tabular-nums ${isOwn ? 'text-violet-200' : 'text-gray-400 dark:text-gray-500'}`}>
           {formatAudioDuration(displayTime)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ── Video Note Player ───────────────────────────────────────
+
+interface VideoNotePlayerProps {
+  src: string;
+  isOwn: boolean;
+}
+
+function VideoNotePlayer({ src, isOwn }: VideoNotePlayerProps) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [duration, setDuration] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const SIZE = 200;
+  const RADIUS = SIZE / 2 - 4;
+  const circumference = 2 * Math.PI * RADIUS;
+  const progress = duration > 0 ? currentTime / duration : 0;
+
+  const togglePlay = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (isPlaying) { v.pause(); } else { v.play().catch(() => {}); }
+  };
+
+  return (
+    <div
+      className="relative cursor-pointer select-none"
+      style={{ width: SIZE, height: SIZE }}
+      onClick={togglePlay}
+    >
+      {/* Progress ring */}
+      <svg className="absolute inset-0 -rotate-90 pointer-events-none" width={SIZE} height={SIZE}>
+        <circle cx={SIZE / 2} cy={SIZE / 2} r={RADIUS} fill="none" stroke="rgba(128,128,128,0.25)" strokeWidth={3} />
+        <circle
+          cx={SIZE / 2} cy={SIZE / 2} r={RADIUS} fill="none"
+          stroke={isOwn ? '#c4b5fd' : '#7c3aed'} strokeWidth={3} strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={circumference * (1 - progress)}
+          style={{ transition: 'stroke-dashoffset 0.1s linear' }}
+        />
+      </svg>
+      {/* Circular video */}
+      <div className="absolute bg-black" style={{ inset: 4, borderRadius: '50%', overflow: 'hidden' }}>
+        <video
+          ref={videoRef}
+          src={src}
+          playsInline
+          preload="metadata"
+          className="w-full h-full object-cover"
+          onLoadedMetadata={(e) => { if (isFinite(e.currentTarget.duration)) setDuration(e.currentTarget.duration); }}
+          onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
+          onPlay={() => setIsPlaying(true)}
+          onPause={() => setIsPlaying(false)}
+          onEnded={() => { setIsPlaying(false); setCurrentTime(0); if (videoRef.current) videoRef.current.currentTime = 0; }}
+        />
+      </div>
+      {/* Play overlay */}
+      {!isPlaying && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="w-12 h-12 rounded-full bg-black/50 flex items-center justify-center">
+            <svg className="w-6 h-6 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </div>
+        </div>
+      )}
+      {/* Duration badge */}
+      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/60 rounded-full px-2 py-0.5 pointer-events-none">
+        <span className="text-white text-[10px] font-mono tabular-nums">
+          {formatAudioDuration(isPlaying ? currentTime : duration)}
         </span>
       </div>
     </div>
