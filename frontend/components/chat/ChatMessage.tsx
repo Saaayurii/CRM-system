@@ -233,7 +233,12 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const touchMoved = useRef(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [msgSnapParticles, setMsgSnapParticles] = useState<{ id: number; tx: number; ty: number; size: number; hue: number; delay: number }[]>([]);
+  const [snapParticles, setSnapParticles] = useState<{
+    id: number; left: number; top: number;
+    tx: number; ty: number;
+    size: number; alpha: number; delay: number; duration: number;
+  }[]>([]);
+  const bubbleRef = useRef<HTMLDivElement>(null);
 
   const openViewer = useCallback((mediaIndex: number) => setViewerIndex(mediaIndex), []);
   const closeViewer = useCallback(() => setViewerIndex(null), []);
@@ -258,25 +263,36 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
 
   const handleDeleteWithSnap = useCallback(() => {
     if (isDeleting) return;
-    const pts = Array.from({ length: 20 }, (_, i) => {
-      const angle = (i / 20) * Math.PI * 2;
-      const dist = 30 + Math.random() * 50;
-      return {
-        id: i,
-        tx: Math.cos(angle) * dist + (Math.random() - 0.5) * 30,
-        ty: Math.sin(angle) * dist + (Math.random() - 0.5) * 30 - 20,
-        size: 2 + Math.random() * 5,
-        hue: 260 + Math.random() * 80,
-        delay: Math.random() * 150,
-      };
-    });
-    setMsgSnapParticles(pts);
+    const rect = bubbleRef.current?.getBoundingClientRect();
+    if (rect) {
+      const pts = Array.from({ length: 130 }, (_, i) => {
+        const startX = rect.left + Math.random() * rect.width;
+        const startY = rect.top + Math.random() * rect.height;
+        // Fan pattern: scattered left/right/up, slight downward drift
+        const angle = (Math.random() - 0.5) * Math.PI * 1.4;
+        const dist = 35 + Math.random() * 110;
+        const bias = isOwn ? 35 : -35; // own msgs scatter right, others left
+        return {
+          id: i,
+          left: startX,
+          top: startY,
+          tx: Math.cos(angle) * dist + bias,
+          ty: Math.sin(angle) * dist + 15,
+          size: 1 + Math.random() * 2.5,
+          alpha: 0.5 + Math.random() * 0.5,
+          delay: Math.random() * 380,
+          duration: 420 + Math.random() * 320,
+        };
+      });
+      setSnapParticles(pts);
+    }
     setIsDeleting(true);
     setTimeout(() => {
       onDelete(message);
       setConfirmDelete(false);
-    }, 600);
-  }, [isDeleting, onDelete, message]);
+      setSnapParticles([]);
+    }, 820);
+  }, [isDeleting, isOwn, onDelete, message]);
 
   const handleEditStart = useCallback(() => {
     if (onEdit) setEditingMessage(message);
@@ -341,7 +357,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
     <div
       data-message-id={message.id}
       className={`flex gap-2 group [@media(pointer:coarse)]:select-none ${isOwn ? 'flex-row-reverse' : ''} ${showAvatar ? 'mt-3' : 'mt-0.5'} ${isPinned ? 'ring-1 ring-violet-300 dark:ring-violet-700 rounded-2xl' : ''}`}
-      style={{ transition: 'opacity 0.5s ease-out, transform 0.5s ease-out', opacity: isDeleting ? 0 : 1, transform: isDeleting ? 'scale(0.7)' : 'scale(1)' }}
+      style={{ transition: 'opacity 0.7s ease-out, transform 0.7s ease-out, filter 0.7s ease-out', opacity: isDeleting ? 0 : 1, transform: isDeleting ? 'scale(0.95)' : 'scale(1)', filter: isDeleting ? 'blur(6px)' : 'none' }}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       onTouchMove={handleTouchMove}
@@ -419,25 +435,13 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
         )}
 
         <div
+          ref={bubbleRef}
           className={`relative rounded-2xl px-3 py-2 w-full ${
             isOwn
               ? 'bg-violet-500 text-white rounded-tr-sm'
               : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 shadow-xs rounded-tl-sm'
           }`}
         >
-          {/* Thanos snap particles */}
-          {msgSnapParticles.map((p) => (
-            <div key={p.id}
-              className="absolute top-1/2 left-1/2 rounded-full pointer-events-none z-10"
-              style={{
-                width: p.size, height: p.size,
-                background: `hsl(${p.hue}, 65%, 60%)`,
-                '--tx': `${p.tx}px`, '--ty': `${p.ty}px`,
-                animation: 'thanos-particle 0.5s ease-out forwards',
-                animationDelay: `${p.delay}ms`,
-              } as React.CSSProperties}
-            />
-          ))}
 
           {/* Video note / Voice message / Regular content */}
           {isVideoNote && message.attachments && message.attachments.length > 0 ? (
@@ -893,6 +897,34 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
       {/* User profile modal — opened by clicking sender avatar/name */}
       {showProfile && (
         <UserProfileModal userId={message.senderId} onClose={() => setShowProfile(false)} />
+      )}
+
+      {/* Disintegration particles portal */}
+      {snapParticles.length > 0 && typeof document !== 'undefined' && createPortal(
+        <>
+          {snapParticles.map((p) => (
+            <div
+              key={p.id}
+              className="fixed rounded-full pointer-events-none"
+              style={{
+                zIndex: 9997,
+                left: p.left,
+                top: p.top,
+                width: p.size,
+                height: p.size,
+                background: isOwn
+                  ? `rgba(196, 181, 253, ${p.alpha})`
+                  : `rgba(156, 163, 175, ${p.alpha})`,
+                '--tx': `${p.tx}px`,
+                '--ty': `${p.ty}px`,
+                opacity: 0,
+                animation: `disintegrate-particle ${p.duration}ms ease-out forwards`,
+                animationDelay: `${p.delay}ms`,
+              } as React.CSSProperties}
+            />
+          ))}
+        </>,
+        document.body
       )}
 
       {/* Media viewer portal */}
