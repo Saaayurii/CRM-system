@@ -134,6 +134,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
   const activeChannelId = useChatStore((s) => s.activeChannelId);
   const messages = useChatStore((s) => s.messages);
   const channels = useChatStore((s) => s.channels);
+  const archivedChannels = useChatStore((s) => s.archivedChannels);
   const typingUsers = useChatStore((s) => s.typingUsers);
   const hasMoreMessages = useChatStore((s) => s.hasMoreMessages);
   const isLoadingMessages = useChatStore((s) => s.isLoadingMessages);
@@ -249,7 +250,8 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
   const isProgrammaticScrollRef = useRef(false);
   const programmaticScrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const activeChannel = channels.find((ch) => ch.id === activeChannelId);
+  const activeChannel = channels.find((ch) => ch.id === activeChannelId)
+    ?? archivedChannels.find((ch) => ch.id === activeChannelId);
   const channelTyping = activeChannelId ? typingUsers[activeChannelId] || [] : [];
 
   const currentMember = useMemo(

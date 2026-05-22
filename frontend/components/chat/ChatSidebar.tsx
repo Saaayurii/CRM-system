@@ -131,9 +131,10 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
   const handleSelect = useCallback(
     async (channelId: number) => {
       await setActiveChannel(channelId);
+      if (showArchive) setShowArchive(false);
       onSelectChannel();
     },
-    [setActiveChannel, onSelectChannel]
+    [setActiveChannel, showArchive, setShowArchive, onSelectChannel]
   );
 
   // Infinite scroll
