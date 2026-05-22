@@ -10,6 +10,44 @@ import FilePreviewModal from '@/components/ui/FilePreviewModal';
 
 const QUICK_EMOJIS = ['❤️', '🤗', '👍', '😄', '👎', '🔥', '👏'];
 
+// Desktop context-menu (right-click) styling — matches ChatContextMenu
+const CTX_ITEM =
+  'w-full flex items-center gap-3 px-4 py-2 text-left text-sm text-gray-800 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors';
+const CTX_ITEM_DANGER =
+  'w-full flex items-center gap-3 px-4 py-2 text-left text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors';
+const CTX_ICON = 'shrink-0 w-5 h-5 flex items-center justify-center text-gray-500 dark:text-gray-400';
+
+const ICON_REPLY = (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+  </svg>
+);
+const ICON_COPY = (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+  </svg>
+);
+const ICON_EDIT = (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+  </svg>
+);
+const ICON_PIN = (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M5 5l14 14M16.5 6.5l-9 9-3 7 7-3 9-9-4-4z" />
+  </svg>
+);
+const ICON_FORWARD = (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M13 9l3 3m0 0l-3 3m3-3H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+const ICON_TRASH = (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+  </svg>
+);
+
 interface Reader {
   id: number;
   name: string;
@@ -155,6 +193,10 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [showMobileActions, setShowMobileActions] = useState(false);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
+  // Desktop right-click context menu (compact popover at cursor)
+  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null);
+  const ctxMenuRef = useRef<HTMLDivElement>(null);
+  const [ctxAdjusted, setCtxAdjusted] = useState<{ left: number; top: number } | null>(null);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const touchMoved = useRef(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -222,6 +264,35 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
     };
   }, [showMobileActions]);
 
+  // Keep the desktop context menu within the viewport
+  useEffect(() => {
+    if (!ctxMenu) {
+      setCtxAdjusted(null);
+      return;
+    }
+    const el = ctxMenuRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const PAD = 8;
+    let left = ctxMenu.x;
+    let top = ctxMenu.y;
+    if (left + rect.width + PAD > vw) left = Math.max(PAD, vw - rect.width - PAD);
+    if (top + rect.height + PAD > vh) top = Math.max(PAD, vh - rect.height - PAD);
+    setCtxAdjusted({ left, top });
+  }, [ctxMenu]);
+
+  // Close desktop context menu on Escape
+  useEffect(() => {
+    if (!ctxMenu) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setCtxMenu(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [ctxMenu]);
+
   // Системное сообщение (закрепление, открепление и т.п.)
   if (message.messageType === 'system') {
     return (
@@ -244,7 +315,14 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
       onContextMenu={(e) => {
         if (readOnly) return;
         e.preventDefault();
-        setShowMobileActions(true);
+        const isCoarse =
+          typeof window !== 'undefined' &&
+          window.matchMedia('(pointer: coarse)').matches;
+        if (isCoarse) {
+          setShowMobileActions(true);
+        } else {
+          setCtxMenu({ x: e.clientX, y: e.clientY });
+        }
       }}
     >
       {/* Avatar placeholder / real avatar */}
@@ -647,6 +725,98 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
                 </svg>
               </button>
             )}
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Desktop right-click context menu — compact popover at cursor */}
+      {ctxMenu && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 z-[9999]"
+          onClick={() => setCtxMenu(null)}
+          onContextMenu={(e) => { e.preventDefault(); setCtxMenu(null); }}
+        >
+          <div
+            ref={ctxMenuRef}
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: 'fixed',
+              left: ctxAdjusted?.left ?? ctxMenu.x,
+              top: ctxAdjusted?.top ?? ctxMenu.y,
+              visibility: ctxAdjusted ? 'visible' : 'hidden',
+            }}
+            className="flex flex-col gap-1.5"
+          >
+            {/* Emoji reaction row */}
+            <div className="self-start flex items-center gap-0.5 px-1.5 py-1 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-xl">
+              {QUICK_EMOJIS.map((emoji) => (
+                <button
+                  key={emoji}
+                  onClick={() => { onReact(message.id, emoji); setCtxMenu(null); }}
+                  className="w-8 h-8 flex items-center justify-center text-lg rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-90 transition-all"
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+
+            {/* Menu card */}
+            <div className="min-w-[210px] py-1 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-xl overflow-hidden">
+              <button onClick={() => { onReply(); setCtxMenu(null); }} className={CTX_ITEM}>
+                <span className={CTX_ICON}>{ICON_REPLY}</span>
+                <span className="flex-1">Ответить</span>
+              </button>
+
+              {message.text && (
+                <button
+                  onClick={() => {
+                    navigator.clipboard?.writeText(message.text!)
+                      .then(() => addToast('success', 'Текст скопирован'))
+                      .catch(() => {});
+                    setCtxMenu(null);
+                  }}
+                  className={CTX_ITEM}
+                >
+                  <span className={CTX_ICON}>{ICON_COPY}</span>
+                  <span className="flex-1">Копировать текст</span>
+                </button>
+              )}
+
+              {isOwn && message.text && onEdit && (
+                <button onClick={() => { handleEditStart(); setCtxMenu(null); }} className={CTX_ITEM}>
+                  <span className={CTX_ICON}>{ICON_EDIT}</span>
+                  <span className="flex-1">Редактировать</span>
+                </button>
+              )}
+
+              {canPin && onPin && (
+                <button onClick={() => { onPin(message); setCtxMenu(null); }} className={CTX_ITEM}>
+                  <span className={CTX_ICON}>{ICON_PIN}</span>
+                  <span className="flex-1">{isPinned ? 'Открепить' : 'Закрепить'}</span>
+                </button>
+              )}
+
+              {onForward && (
+                <button onClick={() => { onForward(message); setCtxMenu(null); }} className={CTX_ITEM}>
+                  <span className={CTX_ICON}>{ICON_FORWARD}</span>
+                  <span className="flex-1">Переслать</span>
+                </button>
+              )}
+
+              {isOwn && (
+                <>
+                  <div className="my-1 mx-3 h-px bg-gray-200 dark:bg-gray-700" />
+                  <button
+                    onClick={() => { setConfirmDelete(true); setCtxMenu(null); }}
+                    className={CTX_ITEM_DANGER}
+                  >
+                    <span className="shrink-0 w-5 h-5 flex items-center justify-center text-red-500">{ICON_TRASH}</span>
+                    <span className="flex-1">Удалить</span>
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>,
         document.body
