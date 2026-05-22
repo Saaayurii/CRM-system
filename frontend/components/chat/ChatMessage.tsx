@@ -661,7 +661,8 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
           onTouchStart={(e) => e.stopPropagation()}
           onTouchEnd={(e) => e.stopPropagation()}
           onTouchMove={(e) => e.stopPropagation()}
-          onClick={() => setShowMobileActions(false)}
+          onClick={(e) => { e.stopPropagation(); setShowMobileActions(false); }}
+          onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setShowMobileActions(false); }}
         >
           {/* Blurred backdrop */}
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
@@ -801,8 +802,8 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
       {ctxMenu && typeof document !== 'undefined' && createPortal(
         <div
           className="fixed inset-0 z-[9999]"
-          onClick={() => setCtxMenu(null)}
-          onContextMenu={(e) => { e.preventDefault(); setCtxMenu(null); }}
+          onClick={(e) => { e.stopPropagation(); setCtxMenu(null); }}
+          onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setCtxMenu(null); }}
         >
           <div
             ref={ctxMenuRef}
