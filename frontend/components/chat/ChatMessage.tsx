@@ -7,6 +7,7 @@ import { useToastStore } from '@/stores/toastStore';
 import { ChatMessage as ChatMessageType, useChatStore } from '@/stores/chatStore';
 import MediaViewer, { MediaItem } from './MediaViewer';
 import FilePreviewModal from '@/components/ui/FilePreviewModal';
+import UserProfileModal from './UserProfileModal';
 
 const QUICK_EMOJIS = ['❤️', '🤗', '👍', '😄', '👎', '🔥', '👏'];
 
@@ -186,6 +187,14 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
   // displayText: tg overrides forward which overrides raw
   const resolvedDisplayText = isTgMessage ? tgBody : displayText;
 
+  // Sender avatar/name open the employee profile — only for real CRM users
+  const canOpenProfile = !isSenderDeleted && !forwardMeta && !isTgMessage && !!message.senderId;
+  const openProfile = useCallback((e: React.MouseEvent) => {
+    if (!canOpenProfile) return;
+    e.stopPropagation();
+    setShowProfile(true);
+  }, [canOpenProfile]);
+
   const mediaItems: MediaItem[] = (message.attachments ?? [])
     .filter((a) => a.mimeType?.startsWith('image/') || a.mimeType?.startsWith('video/'))
     .map((a) => ({
@@ -212,6 +221,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null);
   const ctxMenuRef = useRef<HTMLDivElement>(null);
   const [ctxAdjusted, setCtxAdjusted] = useState<{ left: number; top: number } | null>(null);
+  const [showProfile, setShowProfile] = useState(false);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const touchMoved = useRef(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -347,7 +357,10 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
           const avatarName = forwardMeta ? forwardSenderName : displaySenderName;
           const avatarUrl = forwardMeta ? (forwardMeta.originalSenderAvatarUrl || message.senderAvatarUrl) : message.senderAvatarUrl;
           return (
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold relative overflow-hidden ${isSenderDeleted ? 'bg-gray-400 dark:bg-gray-600' : 'bg-sky-500'}`}>
+            <div
+              onClick={openProfile}
+              className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold relative overflow-hidden ${isSenderDeleted ? 'bg-gray-400 dark:bg-gray-600' : 'bg-sky-500'} ${canOpenProfile ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
+            >
               {isSenderDeleted ? (
                 <svg className="w-4 h-4 text-white/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -372,7 +385,10 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
       <div className={`max-w-[70%] min-w-[80px] flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}>
         {/* Sender name */}
         {showAvatar && !isOwn && (
-          <p className={`text-xs font-medium mb-0.5 ml-1 ${isSenderDeleted ? 'text-gray-400 dark:text-gray-600 italic' : 'text-gray-500 dark:text-gray-400'}`}>
+          <p
+            onClick={openProfile}
+            className={`text-xs font-medium mb-0.5 ml-1 ${isSenderDeleted ? 'text-gray-400 dark:text-gray-600 italic' : 'text-gray-500 dark:text-gray-400'} ${canOpenProfile ? 'cursor-pointer hover:text-violet-500 dark:hover:text-violet-400 transition-colors' : ''}`}
+          >
             {forwardMeta ? forwardSenderName : displaySenderName}
           </p>
         )}
@@ -863,6 +879,11 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
           </div>
         </div>,
         document.body
+      )}
+
+      {/* User profile modal — opened by clicking sender avatar/name */}
+      {showProfile && (
+        <UserProfileModal userId={message.senderId} onClose={() => setShowProfile(false)} />
       )}
 
       {/* Media viewer portal */}
