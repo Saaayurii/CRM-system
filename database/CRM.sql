@@ -21,6 +21,10 @@ CREATE TABLE accounts (
     email VARCHAR(255),
     director_user_id INTEGER,       -- FK на users(id), SET NULL при удалении (выставляется ниже после создания users)
     accountant_user_id INTEGER,
+    director_name_text VARCHAR(255),     -- ФИО директора из ЕГРЮЛ, если нет матча с сотрудником
+    director_position VARCHAR(255),
+    accountant_name_text VARCHAR(255),
+    accountant_position VARCHAR(255),
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

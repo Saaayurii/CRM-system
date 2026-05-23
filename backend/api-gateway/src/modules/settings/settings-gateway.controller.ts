@@ -212,4 +212,22 @@ export class SettingsGatewayController {
       headers: { authorization: req.headers.authorization || '' },
     });
   }
+
+  // Company Lookup (ЕГРЮЛ через ФНС)
+  @Get('company-lookup/egrul')
+  @ApiOperation({ summary: 'Поиск компании по ИНН/ОГРН в ЕГРЮЛ' })
+  @ApiQuery({ name: 'query', required: false })
+  @ApiQuery({ name: 'inn', required: false })
+  async lookupEgrul(
+    @Req() req: Request,
+    @Query('query') query?: string,
+    @Query('inn') inn?: string,
+  ) {
+    return this.proxyService.forward('settings', {
+      method: 'GET',
+      path: '/company-lookup/egrul',
+      headers: { authorization: req.headers.authorization || '' },
+      params: { query, inn },
+    });
+  }
 }

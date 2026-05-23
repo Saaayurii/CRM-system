@@ -176,4 +176,20 @@ export class UpdateSystemSettingsDto {
   @ApiPropertyOptional({ description: 'ID пользователя — главный бухгалтер' })
   @IsOptional() @IsInt()
   accountantUserId?: number | null;
+
+  @ApiPropertyOptional({ description: 'ФИО директора (например, из ЕГРЮЛ)', maxLength: 255 })
+  @IsOptional() @IsString() @MaxLength(255)
+  directorNameText?: string;
+
+  @ApiPropertyOptional({ description: 'Должность директора', maxLength: 255 })
+  @IsOptional() @IsString() @MaxLength(255)
+  directorPosition?: string;
+
+  @ApiPropertyOptional({ description: 'ФИО главбуха', maxLength: 255 })
+  @IsOptional() @IsString() @MaxLength(255)
+  accountantNameText?: string;
+
+  @ApiPropertyOptional({ description: 'Должность главбуха', maxLength: 255 })
+  @IsOptional() @IsString() @MaxLength(255)
+  accountantPosition?: string;
 }

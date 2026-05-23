@@ -26,6 +26,11 @@ model Account {
   directorUserId   Int?     @map("director_user_id")
   accountantUserId Int?     @map("accountant_user_id")
 
+  directorNameText   String? @map("director_name_text")   @db.VarChar(255)
+  directorPosition   String? @map("director_position")    @db.VarChar(255)
+  accountantNameText String? @map("accountant_name_text") @db.VarChar(255)
+  accountantPosition String? @map("accountant_position")  @db.VarChar(255)
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
 

@@ -19,6 +19,10 @@ const SELECT = {
   email: true,
   directorUserId: true,
   accountantUserId: true,
+  directorNameText: true,
+  directorPosition: true,
+  accountantNameText: true,
+  accountantPosition: true,
 };
 
 const SCALAR_FIELDS: (keyof UpdateSystemSettingsDto)[] = [
@@ -33,6 +37,10 @@ const SCALAR_FIELDS: (keyof UpdateSystemSettingsDto)[] = [
   'email',
   'directorUserId',
   'accountantUserId',
+  'directorNameText',
+  'directorPosition',
+  'accountantNameText',
+  'accountantPosition',
 ];
 
 @Injectable()

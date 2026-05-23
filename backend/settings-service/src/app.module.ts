@@ -7,6 +7,7 @@ import { DatabaseModule } from './database/database.module';
 import { SystemSettingsModule } from './modules/system-settings/system-settings.module';
 import { UserPreferencesModule } from './modules/user-preferences/user-preferences.module';
 import { CompanyBankAccountsModule } from './modules/company-bank-accounts/company-bank-accounts.module';
+import { EgrulLookupModule } from './modules/egrul-lookup/egrul-lookup.module';
 import { HealthModule } from './modules/health/health.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { JwtStrategy } from './common/guards/jwt.strategy';
@@ -20,6 +21,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     SystemSettingsModule,
     UserPreferencesModule,
     CompanyBankAccountsModule,
+    EgrulLookupModule,
     HealthModule,
   ],
   providers: [
