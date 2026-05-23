@@ -4,6 +4,71 @@ import { useState, useEffect, useRef } from 'react';
 import type { FormField } from '@/types/admin';
 import api from '@/lib/api';
 
+function formatThousands(raw: string): string {
+  const clean = raw.replace(/\s/g, '');
+  const [intPart, ...rest] = clean.split(/[.,]/);
+  const formatted = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  return rest.length > 0 ? formatted + ',' + rest.join('') : formatted;
+}
+
+function NumberInput({
+  value,
+  onChange,
+  placeholder,
+  required,
+}: {
+  value: number | string;
+  onChange: (v: number | string) => void;
+  placeholder?: string;
+  required?: boolean;
+}) {
+  const [display, setDisplay] = useState('');
+
+  useEffect(() => {
+    if (value === '' || value === null || value === undefined || value === 0) {
+      setDisplay('');
+    } else {
+      setDisplay(formatThousands(String(value)));
+    }
+  }, [value]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value;
+    const clean = raw.replace(/\s/g, '');
+    if (clean === '' || clean === '-') {
+      setDisplay(raw === '' ? '' : clean);
+      onChange('');
+      return;
+    }
+    const hasDecimal = /[.,]/.test(clean);
+    const [intStr, ...decParts] = clean.split(/[.,]/);
+    const intClean = intStr.replace(/\D/g, '');
+    if (intClean === '' && !hasDecimal) {
+      setDisplay('');
+      onChange('');
+      return;
+    }
+    const decStr = decParts.join('').replace(/\D/g, '');
+    const formatted = intClean ? formatThousands(intClean) : '';
+    setDisplay(hasDecimal ? formatted + ',' + decStr : formatted);
+    const numStr = hasDecimal ? intClean + '.' + decStr : intClean;
+    const num = parseFloat(numStr);
+    onChange(isNaN(num) ? '' : num);
+  };
+
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      className="form-input w-full"
+      value={display}
+      onChange={handleChange}
+      placeholder={placeholder}
+      required={required}
+    />
+  );
+}
+
 function PasswordInput({
   value,
   onChange,
@@ -267,14 +332,19 @@ export default function EntityFormModal({
                         onChange={(e) => handleFileChange(field, e.target.files?.[0] ?? null)}
                       />
                     </div>
+                  ) : field.type === 'number' ? (
+                    <NumberInput
+                      value={formData[field.key] as number | string}
+                      onChange={(v) => handleChange(field.key, v)}
+                      placeholder={field.placeholder}
+                      required={field.required}
+                    />
                   ) : (
                     <input
                       type={field.type}
                       className="form-input w-full"
                       value={String(formData[field.key] ?? '')}
-                      onChange={(e) =>
-                        handleChange(field.key, field.type === 'number' ? Number(e.target.value) : e.target.value)
-                      }
+                      onChange={(e) => handleChange(field.key, e.target.value)}
                       placeholder={field.placeholder}
                       required={field.required}
                     />

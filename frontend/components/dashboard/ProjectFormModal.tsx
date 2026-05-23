@@ -5,6 +5,21 @@ import api from '@/lib/api';
 import { useDraft } from '@/hooks/useDraft';
 import DraftBanner from '@/components/ui/DraftBanner';
 
+function formatThousands(s: string): string {
+  const [intPart, ...rest] = s.replace(/\s/g, '').split(/[.,]/);
+  const formatted = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  return rest.length > 0 ? formatted + ',' + rest.join('') : formatted;
+}
+
+function toDisplayBudget(raw: string): string {
+  if (!raw) return '';
+  return formatThousands(raw.replace(/\s/g, ''));
+}
+
+function fromDisplayBudget(display: string): string {
+  return display.replace(/\s/g, '');
+}
+
 interface Team {
   id: number;
   name: string;
@@ -301,10 +316,10 @@ export default function ProjectFormModal({ project, onClose, onSaved }: ProjectF
             <div>
               <label className={LABEL_CLS}>Бюджет</label>
               <input
-                type="number"
-                value={budget}
-                onChange={(e) => setBudget(e.target.value)}
-                min={0}
+                type="text"
+                inputMode="numeric"
+                value={toDisplayBudget(budget)}
+                onChange={(e) => setBudget(fromDisplayBudget(e.target.value.replace(/[^\d\s.,]/g, '')))}
                 className={INPUT_CLS}
                 placeholder="0"
               />
@@ -312,10 +327,10 @@ export default function ProjectFormModal({ project, onClose, onSaved }: ProjectF
             <div>
               <label className={LABEL_CLS}>Фактические затраты</label>
               <input
-                type="number"
-                value={actualCost}
-                onChange={(e) => setActualCost(e.target.value)}
-                min={0}
+                type="text"
+                inputMode="numeric"
+                value={toDisplayBudget(actualCost)}
+                onChange={(e) => setActualCost(fromDisplayBudget(e.target.value.replace(/[^\d\s.,]/g, '')))}
                 className={INPUT_CLS}
                 placeholder="0"
               />
