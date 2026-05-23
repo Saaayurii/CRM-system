@@ -348,6 +348,79 @@ export class ChatRepository {
     });
   }
 
+  /**
+   * Aggregate all attachments from messages in channels where the user is a member.
+   * Filters out soft-deleted messages and tg_meta pseudo-attachments.
+   */
+  async findUserMediaAttachments(
+    accountId: number,
+    userId: number,
+    page: number = 1,
+    limit: number = 50,
+  ) {
+    const skip = (page - 1) * limit;
+
+    // Find channel IDs the user belongs to within this account
+    const channels: { id: number; name: string | null }[] = await (this.prisma as any).chatChannel.findMany({
+      where: { accountId, members: { some: { userId } } },
+      select: { id: true, name: true },
+    });
+    if (channels.length === 0) {
+      return { data: [], total: 0, page, limit };
+    }
+    const channelIds = channels.map((c) => c.id);
+    const channelNameById = new Map(channels.map((c) => [c.id, c.name] as const));
+
+    // Fetch all non-deleted messages with non-empty attachments from these channels.
+    // Prisma JSON filter "not equals [] / not null" support is limited, so we filter
+    // in application code after retrieval. Volume per account is generally manageable
+    // for this aggregator view; if needed, can be moved to raw SQL.
+    const messages = await (this.prisma as any).chatMessage.findMany({
+      where: {
+        channelId: { in: channelIds },
+        isDeleted: false,
+        NOT: { attachments: { equals: [] } },
+      },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        channelId: true,
+        userId: true,
+        attachments: true,
+        createdAt: true,
+        user: { select: { id: true, name: true, avatarUrl: true } },
+      },
+    });
+
+    // Flatten into one attachment per row; skip tg_meta and empty entries
+    const flat: any[] = [];
+    for (const m of messages) {
+      const atts = Array.isArray(m.attachments) ? m.attachments : [];
+      for (const a of atts) {
+        if (!a || a.type === 'tg_meta') continue;
+        if (!a.fileUrl) continue;
+        flat.push({
+          source: 'chat',
+          url: a.fileUrl,
+          fileName: a.fileName || null,
+          fileSize: a.fileSize || null,
+          mimeType: a.mimeType || null,
+          createdAt: m.createdAt,
+          messageId: m.id,
+          channelId: m.channelId,
+          channelName: channelNameById.get(m.channelId) || null,
+          userId: m.user?.id || m.userId || null,
+          userName: m.user?.name || null,
+          userAvatarUrl: m.user?.avatarUrl || null,
+        });
+      }
+    }
+
+    const total = flat.length;
+    const data = flat.slice(skip, skip + limit);
+    return { data, total, page, limit };
+  }
+
   async getUnreadSummary(userId: number) {
     const memberships = await (this.prisma as any).chatChannelMember.findMany({
       where: { userId },

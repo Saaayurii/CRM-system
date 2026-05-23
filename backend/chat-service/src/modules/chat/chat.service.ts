@@ -388,6 +388,15 @@ export class ChatService {
     return this.chatRepository.getUnreadSummary(userId);
   }
 
+  async findUserMediaAttachments(
+    accountId: number,
+    userId: number,
+    page: number = 1,
+    limit: number = 50,
+  ) {
+    return this.chatRepository.findUserMediaAttachments(accountId, userId, page, limit);
+  }
+
   async getUserChannelIds(userId: number): Promise<number[]> {
     const memberships = await this.chatRepository.findUserChannels(userId);
     return memberships.map((m: any) => m.channelId);

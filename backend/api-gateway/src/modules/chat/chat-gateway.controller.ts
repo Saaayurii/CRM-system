@@ -71,6 +71,23 @@ export class ChatGatewayController {
     });
   }
 
+  @Get('chat-channels/media')
+  @ApiOperation({ summary: 'Get all chat attachments accessible to the current user' })
+  @ApiQuery({ name: 'page', required: false })
+  @ApiQuery({ name: 'limit', required: false })
+  async getUserMediaAttachments(
+    @Req() req: Request,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    return this.proxyService.forward('chat', {
+      method: 'GET',
+      path: '/chat-channels/media',
+      headers: { authorization: req.headers.authorization || '' },
+      params: { page, limit },
+    });
+  }
+
   @Patch('chat-channels/:id/archive')
   @ApiOperation({ summary: 'Archive or unarchive a channel for the current user' })
   async archiveChannel(

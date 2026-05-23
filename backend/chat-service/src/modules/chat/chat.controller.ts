@@ -74,6 +74,25 @@ export class ChatController {
     return this.chatService.getUnreadSummary(userId);
   }
 
+  @Get('media')
+  @ApiOperation({ summary: 'Get all chat attachments accessible to the current user' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiResponse({ status: 200, description: 'Media attachments retrieved' })
+  findUserMediaAttachments(
+    @CurrentUser('accountId') accountId: number,
+    @CurrentUser('id') userId: number,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.chatService.findUserMediaAttachments(
+      accountId,
+      userId,
+      page ? parseInt(page, 10) : 1,
+      limit ? parseInt(limit, 10) : 50,
+    );
+  }
+
   @Post()
   @ApiOperation({ summary: 'Create a chat channel' })
   @ApiResponse({ status: 201, description: 'Channel created' })
