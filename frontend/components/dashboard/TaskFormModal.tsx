@@ -375,6 +375,7 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
   // Comments
   const [comments, setComments] = useState<TaskComment[]>([]);
   const [hideSystemMessages, setHideSystemMessages] = useState(false);
+  const [highlightedItemId, setHighlightedItemId] = useState<string | null>(null);
   const [commentText, setCommentText] = useState('');
   const [commentAttachments, setCommentAttachments] = useState<Attachment[]>([]);
   const [sendingComment, setSendingComment] = useState(false);
@@ -724,7 +725,7 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
       };
       const verb = labelMap[newStatus];
       if (verb) {
-        postSystemComment(`Подзадача «${item.text}» ${verb} — ${actorName}`);
+        postSystemComment(`Подзадача «${item.text}» ${verb} — Система`);
       }
     }
   };
@@ -1314,7 +1315,7 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
                           const isDone = itemStatus === SUBTASK_STATUS.DONE;
                           const isRejected = itemStatus === SUBTASK_STATUS.REJECTED;
                           return (
-                          <div key={item.id} className="flex items-start gap-3 px-4 py-2.5 group/item">
+                          <div key={item.id} id={`checklist-item-${item.id}`} className={`flex items-start gap-3 px-4 py-2.5 group/item transition-colors duration-300 ${highlightedItemId === item.id ? 'bg-violet-50 dark:bg-violet-900/20' : ''}`}>
                             <button
                               onClick={() => toggleItem(group.id, item.id)}
                               title={statusInfo?.label}
@@ -1352,7 +1353,7 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
                               {(isPending || isDone || isRejected) && item.completedByName && (
                                 <p className="text-[10px] text-gray-400 mt-0.5">
                                   {statusInfo?.label}
-                                  {isPending ? ' · Система' : (item.completedByName ? ` · ${item.completedByName}` : '')}
+                                  {(isPending || isDone) ? ' · Система' : (item.completedByName ? ` · ${item.completedByName}` : '')}
                                   {item.completedAt ? ` · ${new Date(item.completedAt).toLocaleString('ru-RU', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}` : ''}
                                 </p>
                               )}
@@ -1508,8 +1509,28 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
                     const isSystemMessage = c.type === 'system' || rawText.startsWith('__system__:');
                     const text = rawText.startsWith('__system__:') ? rawText.slice('__system__:'.length) : rawText;
                     if (isSystemMessage) {
+                      const subtaskMatch = text.match(/^Подзадача «(.+)»/);
+                      const handleSubtaskClick = subtaskMatch ? () => {
+                        const title = subtaskMatch[1];
+                        let foundId: string | null = null;
+                        for (const g of checklists) {
+                          const found = g.items.find((i) => i.text === title || i.text.startsWith(title));
+                          if (found) { foundId = found.id; break; }
+                        }
+                        if (!foundId) return;
+                        const el = document.getElementById(`checklist-item-${foundId}`);
+                        if (el) {
+                          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                          setHighlightedItemId(foundId);
+                          setTimeout(() => setHighlightedItemId(null), 2000);
+                        }
+                      } : undefined;
                       return (
-                        <div key={c.id} className="flex items-center gap-2 py-1 px-3 bg-gray-50 dark:bg-gray-800/40 rounded-lg text-xs text-gray-500 dark:text-gray-400">
+                        <div
+                          key={c.id}
+                          onClick={handleSubtaskClick}
+                          className={`flex items-center gap-2 py-1 px-3 bg-gray-50 dark:bg-gray-800/40 rounded-lg text-xs text-gray-500 dark:text-gray-400 ${handleSubtaskClick ? 'cursor-pointer hover:bg-violet-50 dark:hover:bg-violet-900/20 hover:text-violet-600 dark:hover:text-violet-400 transition-colors' : ''}`}
+                        >
                           <svg className="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
