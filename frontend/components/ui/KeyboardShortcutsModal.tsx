@@ -22,7 +22,6 @@ const NAV_SHORTCUTS: ShortcutItem[] = [
   { label: 'Сотрудники', key: '4' },
   { label: 'Документы', key: '5' },
   { label: 'Команды', key: '6', roleOnly: true },
-  { label: 'Заявки и инвайты', key: '7', roleOnly: true },
   { label: 'Чат', key: '8' },
   { label: 'Компания', key: '9', roleOnly: true },
   { label: 'Настройки', key: '0' },

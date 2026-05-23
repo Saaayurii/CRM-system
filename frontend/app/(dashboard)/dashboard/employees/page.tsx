@@ -264,6 +264,7 @@ export default function EmployeesPage() {
   });
 
   const canEdit = [1, 2].includes(currentUser?.roleId ?? 0);
+  const canManageInvites = [1, 2, 3].includes(currentUser?.roleId ?? 0);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterRole, setFilterRole] = useState('');
@@ -364,6 +365,18 @@ export default function EmployeesPage() {
             </svg>
             {pdfLoading ? 'PDF...' : 'PDF'}
           </button>
+          {canManageInvites && (
+            <Link
+              href="/dashboard/employees/invites"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:border-violet-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors"
+              title="Заявки и инвайты"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+              </svg>
+              Заявки и инвайты
+            </Link>
+          )}
           <Link href="/dashboard" className="text-sm text-violet-500 hover:text-violet-600">
             &larr; Назад
           </Link>

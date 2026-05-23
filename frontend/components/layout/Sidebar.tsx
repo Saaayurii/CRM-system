@@ -201,14 +201,6 @@ function IconHRDocs() {
   );
 }
 
-function IconInvites() {
-  return (
-    <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M18 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM3 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A12.318 12.318 0 0 1 9.374 21c-2.331 0-4.512-.645-6.374-1.766Z" />
-    </svg>
-  );
-}
-
 /* ─── Company switcher (was in Header) ─── */
 interface AccountOption { id: number; name: string; logoUrl?: string; status: number; }
 
@@ -382,7 +374,6 @@ export default function Sidebar() {
       { key: '5', href: '/dashboard/documents' },
     ];
     if (showTeams) list.push({ key: '6', href: '/dashboard/teams' });
-    if (isAdmin || isHR || isSuperAdmin) list.push({ key: '7', href: '/dashboard/invites' });
     if (showChat) list.push({ key: '8', href: '/dashboard/chat' });
     if (isAdmin) list.push({ key: '9', href: '/dashboard/company' });
     list.push({ key: '0', href: settingsHref });
@@ -700,16 +691,6 @@ export default function Sidebar() {
                   <NavLink href="/dashboard/teams" hotkey={hkByHref['/dashboard/teams']} className={linkCls(pathname === '/dashboard/teams')}>
                     <IconTeams />
                     <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Команды</span>
-                  </NavLink>
-                </li>
-              )}
-
-              {/* Invites & Requests */}
-              {(isAdmin || isHR || isSuperAdmin) && (
-                <li className="mb-1 last:mb-0">
-                  <NavLink href="/dashboard/invites" hotkey={hkByHref['/dashboard/invites']} className={linkCls(pathname === '/dashboard/invites')}>
-                    <IconInvites />
-                    <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Заявки и инвайты</span>
                   </NavLink>
                 </li>
               )}
