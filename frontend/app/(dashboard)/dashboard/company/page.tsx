@@ -105,7 +105,13 @@ export default function CompanyPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
-  const [egrulLoading, setEgrulLoading] = useState(false);
+  const [egrulModal, setEgrulModal] = useState<{
+    open: boolean;
+    loading: boolean;
+    data: EgrulLookupResult | null;
+    error: string | null;
+    matchedEmployeeId: number | null;
+  }>({ open: false, loading: false, data: null, error: null, matchedEmployeeId: null });
   const logoInputRef = useRef<HTMLInputElement>(null);
 
   // Bank accounts state
@@ -236,58 +242,78 @@ export default function CompanyPage() {
   const handleEgrulLookup = async () => {
     const query = (inn || ogrn || '').trim();
     if (!query) {
-      addToast('error', 'Заполните ИНН (или ОГРН)');
+      addToast('error', 'Заполните ИНН (или ОГРН), затем нажмите ЕГРЮЛ');
       return;
     }
+    setEgrulModal({
+      open: true,
+      loading: true,
+      data: null,
+      error: null,
+      matchedEmployeeId: null,
+    });
     try {
-      setEgrulLoading(true);
       const { data } = await api.get<EgrulLookupResult>('/company-lookup/egrul', {
         params: { query },
       });
-
-      if (data.isLiquidated) {
-        addToast('error', 'Организация ликвидирована — данные подтянуты, проверьте');
-      }
-
-      if (data.name) setCompanyName(data.name);
-      if (data.legalForm) setLegalForm(data.legalForm);
-      if (data.inn) setInn(data.inn);
-      if (data.kpp) setKpp(data.kpp);
-      if (data.ogrn) setOgrn(data.ogrn);
-      if (data.legalAddress) {
-        setLegalAddress(data.legalAddress);
-        // Если фактический адрес пустой — продублируем
-        if (!actualAddress) setActualAddress(data.legalAddress);
-      }
-
-      if (data.directorName) {
-        setDirectorNameText(data.directorName);
-        setDirectorPosition(data.directorPosition || 'Генеральный директор');
-        const matchedId = findEmployeeByName(data.directorName);
-        if (matchedId) {
-          setDirectorUserId(matchedId);
-          addToast('success', `Данные подтянуты, директор найден в сотрудниках`);
-        } else {
-          // Сбрасываем FK, если ранее был выбран другой сотрудник
-          if (directorUserId !== '') setDirectorUserId('');
-          addToast(
-            'success',
-            'Данные подтянуты. Директор из ЕГРЮЛ не найден среди сотрудников',
-          );
-        }
-      } else if (!data.isLiquidated) {
-        addToast('success', 'Данные подтянуты из ЕГРЮЛ');
-      }
+      const matchedEmployeeId = data.directorName
+        ? findEmployeeByName(data.directorName)
+        : null;
+      setEgrulModal({
+        open: true,
+        loading: false,
+        data,
+        error: null,
+        matchedEmployeeId,
+      });
     } catch (err: any) {
-      const msg =
+      const status = err?.response?.status;
+      const backendMsg =
         err?.response?.data?.message ||
-        err?.message ||
-        'Не удалось получить данные из ЕГРЮЛ';
-      addToast('error', String(msg));
-    } finally {
-      setEgrulLoading(false);
+        err?.response?.data?.error ||
+        err?.message;
+      let msg = backendMsg || 'Не удалось получить данные из ЕГРЮЛ';
+      if (status === 404) msg = 'Организация с таким ИНН/ОГРН не найдена в ЕГРЮЛ';
+      if (status === 502) msg = `ФНС временно недоступна${backendMsg ? ` (${backendMsg})` : ''}. Попробуйте через минуту.`;
+      if (status === 401) msg = 'Сессия истекла — войдите заново';
+      setEgrulModal({
+        open: true,
+        loading: false,
+        data: null,
+        error: msg,
+        matchedEmployeeId: null,
+      });
     }
   };
+
+  const applyEgrulData = () => {
+    const data = egrulModal.data;
+    if (!data) return;
+
+    if (data.name) setCompanyName(data.name);
+    if (data.legalForm) setLegalForm(data.legalForm);
+    if (data.inn) setInn(data.inn);
+    if (data.kpp) setKpp(data.kpp);
+    if (data.ogrn) setOgrn(data.ogrn);
+    if (data.legalAddress) {
+      setLegalAddress(data.legalAddress);
+      if (!actualAddress) setActualAddress(data.legalAddress);
+    }
+    if (data.directorName) {
+      setDirectorNameText(data.directorName);
+      setDirectorPosition(data.directorPosition || 'Генеральный директор');
+      if (egrulModal.matchedEmployeeId) {
+        setDirectorUserId(egrulModal.matchedEmployeeId);
+      } else if (directorUserId !== '') {
+        setDirectorUserId('');
+      }
+    }
+    setEgrulModal((s) => ({ ...s, open: false }));
+    addToast('success', 'Данные применены — не забудьте «Сохранить»');
+  };
+
+  const closeEgrulModal = () =>
+    setEgrulModal({ open: false, loading: false, data: null, error: null, matchedEmployeeId: null });
 
   const saveDetails = async () => {
     try {
@@ -517,15 +543,15 @@ export default function CompanyPage() {
                 <button
                   type="button"
                   onClick={handleEgrulLookup}
-                  disabled={egrulLoading || (!inn && !ogrn)}
+                  disabled={egrulModal.loading || (!inn && !ogrn)}
                   title="Подтянуть данные из ЕГРЮЛ"
-                  className="px-3 py-2 text-xs font-medium bg-violet-50 hover:bg-violet-100 dark:bg-violet-500/10 dark:hover:bg-violet-500/20 text-violet-700 dark:text-violet-300 rounded-lg whitespace-nowrap disabled:opacity-50 transition-colors flex items-center gap-1.5"
+                  className="px-4 py-2 text-sm font-medium bg-violet-500 hover:bg-violet-600 text-white rounded-lg whitespace-nowrap disabled:opacity-50 transition-colors flex items-center gap-2 shadow-sm"
                 >
-                  {egrulLoading ? (
-                    <span className="w-3.5 h-3.5 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+                  {egrulModal.loading ? (
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   ) : (
                     <svg
-                      className="w-3.5 h-3.5"
+                      className="w-4 h-4"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -538,7 +564,7 @@ export default function CompanyPage() {
                       />
                     </svg>
                   )}
-                  ЕГРЮЛ
+                  Подтянуть из ЕГРЮЛ
                 </button>
               </div>
             </Field>
@@ -742,6 +768,25 @@ export default function CompanyPage() {
           ))}
         </div>
       )}
+
+      {egrulModal.open && (
+        <EgrulModal
+          state={egrulModal}
+          current={{
+            companyName,
+            legalForm,
+            inn,
+            kpp,
+            ogrn,
+            legalAddress,
+            directorUserId: directorUserId === '' ? null : Number(directorUserId),
+          }}
+          employees={employees}
+          onClose={closeEgrulModal}
+          onApply={applyEgrulData}
+          onRetry={handleEgrulLookup}
+        />
+      )}
     </div>
   );
 }
@@ -932,6 +977,281 @@ function BankCard({
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+function EgrulModal({
+  state,
+  current,
+  employees,
+  onClose,
+  onApply,
+  onRetry,
+}: {
+  state: {
+    loading: boolean;
+    data: EgrulLookupResult | null;
+    error: string | null;
+    matchedEmployeeId: number | null;
+  };
+  current: {
+    companyName: string;
+    legalForm: string;
+    inn: string;
+    kpp: string;
+    ogrn: string;
+    legalAddress: string;
+    directorUserId: number | null;
+  };
+  employees: EmployeeOption[];
+  onClose: () => void;
+  onApply: () => void;
+  onRetry: () => void;
+}) {
+  const { loading, data, error, matchedEmployeeId } = state;
+  const matchedEmployee = matchedEmployeeId
+    ? employees.find((e) => e.id === matchedEmployeeId)
+    : null;
+
+  const rows: Array<{ label: string; current: string; next: string }> = data
+    ? [
+        { label: 'Форма', current: current.legalForm, next: data.legalForm || '' },
+        { label: 'Название', current: current.companyName, next: data.name || '' },
+        { label: 'ИНН', current: current.inn, next: data.inn || '' },
+        { label: 'КПП', current: current.kpp, next: data.kpp || '' },
+        { label: 'ОГРН', current: current.ogrn, next: data.ogrn || '' },
+        {
+          label: 'Юр. адрес',
+          current: current.legalAddress,
+          next: data.legalAddress || '',
+        },
+        {
+          label: 'Директор',
+          current: '',
+          next: data.directorName
+            ? `${data.directorName}${data.directorPosition ? ` · ${data.directorPosition}` : ''}`
+            : '',
+        },
+      ]
+    : [];
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-violet-100 dark:bg-violet-500/20 flex items-center justify-center">
+              <svg
+                className="w-5 h-5 text-violet-600 dark:text-violet-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100">
+                Данные из ЕГРЮЛ
+              </h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Источник: egrul.nalog.ru (ФНС)
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-6 py-5">
+          {loading && (
+            <div className="flex flex-col items-center justify-center py-10 gap-3">
+              <div className="w-10 h-10 border-3 border-violet-500 border-t-transparent rounded-full animate-spin" />
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                Запрашиваем данные из ФНС…
+              </p>
+              <p className="text-xs text-gray-400 dark:text-gray-500">
+                Обычно занимает 1–3 секунды
+              </p>
+            </div>
+          )}
+
+          {error && (
+            <div className="space-y-3">
+              <div className="flex items-start gap-3 p-4 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-lg">
+                <svg
+                  className="w-5 h-5 text-red-500 shrink-0 mt-0.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <div className="text-sm text-red-700 dark:text-red-300">{error}</div>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Проверьте, что ИНН введён правильно. Иногда ФНС просит CAPTCHA — повторите
+                через минуту.
+              </p>
+            </div>
+          )}
+
+          {data && !loading && (
+            <div className="space-y-4">
+              {data.isLiquidated && (
+                <div className="flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-lg text-sm text-amber-800 dark:text-amber-300">
+                  <svg
+                    className="w-4 h-4 shrink-0"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12 9v2m0 4h.01M5 19h14a2 2 0 001.84-2.75L13.74 4a2 2 0 00-3.48 0L3.16 16.25A2 2 0 005 19z"
+                    />
+                  </svg>
+                  Организация числится ликвидированной в ЕГРЮЛ
+                </div>
+              )}
+
+              <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 dark:bg-gray-700/50">
+                    <tr>
+                      <th className="text-left px-3 py-2 font-medium text-gray-500 dark:text-gray-400">
+                        Поле
+                      </th>
+                      <th className="text-left px-3 py-2 font-medium text-gray-500 dark:text-gray-400">
+                        Текущее
+                      </th>
+                      <th className="text-left px-3 py-2 font-medium text-gray-500 dark:text-gray-400">
+                        Из ЕГРЮЛ
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                    {rows.map((row) => {
+                      const changed = row.next && row.next !== row.current;
+                      return (
+                        <tr key={row.label}>
+                          <td className="px-3 py-2 text-gray-500 dark:text-gray-400 align-top whitespace-nowrap">
+                            {row.label}
+                          </td>
+                          <td className="px-3 py-2 text-gray-600 dark:text-gray-300 align-top">
+                            {row.current || <span className="text-gray-300 dark:text-gray-600">—</span>}
+                          </td>
+                          <td
+                            className={`px-3 py-2 align-top ${
+                              changed
+                                ? 'text-violet-700 dark:text-violet-300 font-medium'
+                                : 'text-gray-600 dark:text-gray-300'
+                            }`}
+                          >
+                            {row.next || <span className="text-gray-300 dark:text-gray-600">—</span>}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {data.directorName && (
+                <div
+                  className={`p-3 rounded-lg border text-sm ${
+                    matchedEmployee
+                      ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-300'
+                      : 'bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/30 text-amber-800 dark:text-amber-300'
+                  }`}
+                >
+                  {matchedEmployee ? (
+                    <>
+                      ✓ Директор «{data.directorName}» найден среди сотрудников как{' '}
+                      <strong>{matchedEmployee.name}</strong> — будет привязан автоматически.
+                    </>
+                  ) : (
+                    <>
+                      ⚠ Директор «{data.directorName}» не найден среди сотрудников. ФИО будет
+                      сохранено отдельно, привяжите сотрудника вручную при необходимости.
+                    </>
+                  )}
+                </div>
+              )}
+
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                «Применить» подставит данные в форму — после этого нажмите «Сохранить» на странице,
+                чтобы записать их в БД.
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-2">
+          {error && (
+            <button
+              onClick={onRetry}
+              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+            >
+              Повторить
+            </button>
+          )}
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+          >
+            {data ? 'Отмена' : 'Закрыть'}
+          </button>
+          {data && !loading && (
+            <button
+              onClick={onApply}
+              className="px-5 py-2 text-sm font-medium bg-violet-500 hover:bg-violet-600 text-white rounded-lg transition-colors flex items-center gap-2"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              Применить
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
