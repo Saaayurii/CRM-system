@@ -54,7 +54,80 @@ function formatDateTime(value?: string | null) {
   }
 }
 
-type TabKey = 'all' | 'income' | 'expense';
+type TabKey = 'all' | 'income' | 'expense' | 'documents';
+
+interface DocumentTemplate {
+  key: string;
+  title: string;
+  description: string;
+  file: string;
+  fileLabel: string;
+  icon: React.ReactNode;
+}
+
+const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
+  {
+    key: 'price-list',
+    title: 'Прайс-лист',
+    description: 'Прайс на работы по ремонту в формате Excel — открывается в любой табличной программе',
+    file: '/templates/price-list.csv',
+    fileLabel: 'price-list.csv',
+    icon: (
+      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 3v2m6-2v2M3 7h18M5 7v12a2 2 0 002 2h10a2 2 0 002-2V7M8 11h8M8 15h5" />
+      </svg>
+    ),
+  },
+  {
+    key: 'contract-repair',
+    title: 'Договор подряда на ремонт',
+    description: 'Для безопасных сделок с заказчиками — физическими и юридическими лицами',
+    file: '/templates/contract-repair.rtf',
+    fileLabel: 'contract-repair.rtf',
+    icon: (
+      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M14.7 6.3l3 3M4 20h4l10.5-10.5a2.121 2.121 0 10-3-3L5 17v3z" />
+      </svg>
+    ),
+  },
+  {
+    key: 'contract-construction',
+    title: 'Договор подряда на строительство',
+    description: 'Для сделок по налоговому стимулированию строительной отрасли',
+    file: '/templates/contract-construction.rtf',
+    fileLabel: 'contract-construction.rtf',
+    icon: (
+      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 10l9-7 9 7v10a2 2 0 01-2 2h-4v-7H10v7H6a2 2 0 01-2-2V10z" />
+      </svg>
+    ),
+  },
+  {
+    key: 'contract-subcontract',
+    title: 'Договор субподряда',
+    description: 'Защитит подрядчика при работе с субподрядчиком — гарантии, ответственность, удержания',
+    file: '/templates/contract-subcontract.rtf',
+    fileLabel: 'contract-subcontract.rtf',
+    icon: (
+      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317a1.724 1.724 0 013.35 0l.477 1.857a1.724 1.724 0 002.485 1.03l1.687-.9a1.724 1.724 0 012.37 2.37l-.9 1.687a1.724 1.724 0 001.03 2.485l1.857.477a1.724 1.724 0 010 3.35l-1.857.477a1.724 1.724 0 00-1.03 2.485l.9 1.687a1.724 1.724 0 01-2.37 2.37l-1.687-.9a1.724 1.724 0 00-2.485 1.03l-.477 1.857a1.724 1.724 0 01-3.35 0l-.477-1.857a1.724 1.724 0 00-2.485-1.03l-1.687.9a1.724 1.724 0 01-2.37-2.37l.9-1.687a1.724 1.724 0 00-1.03-2.485l-1.857-.477a1.724 1.724 0 010-3.35l1.857-.477a1.724 1.724 0 001.03-2.485l-.9-1.687a1.724 1.724 0 012.37-2.37l1.687.9a1.724 1.724 0 002.485-1.03l.477-1.857z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+    ),
+  },
+  {
+    key: 'contract-supply',
+    title: 'Договор комплектации',
+    description: 'Закрывает 90% правовых рисков подрядчика при поставке материалов и оборудования',
+    file: '/templates/contract-supply.rtf',
+    fileLabel: 'contract-supply.rtf',
+    icon: (
+      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-14L4 7m8 4L4 7m0 0v10l8 4" />
+      </svg>
+    ),
+  },
+];
 
 export default function FinancePage() {
   const [tab, setTab] = useState<TabKey>('all');
@@ -178,28 +251,32 @@ export default function FinancePage() {
             Финансы
           </h1>
         </div>
-        <button
-          onClick={() => setModalOpen(true)}
-          className="btn bg-violet-500 hover:bg-violet-600 text-white"
-        >
-          <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-          Добавить операцию
-        </button>
+        {tab !== 'documents' && (
+          <button
+            onClick={() => setModalOpen(true)}
+            className="btn bg-violet-500 hover:bg-violet-600 text-white"
+          >
+            <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Добавить операцию
+          </button>
+        )}
       </div>
 
       {/* Сводка */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <SummaryCard label="Приход" value={stats.income} color="emerald" />
-        <SummaryCard label="Расход" value={stats.expense} color="red" />
-        <SummaryCard
-          label="Баланс"
-          value={stats.balance}
-          color={stats.balance >= 0 ? 'emerald' : 'red'}
-        />
-        <SummaryCard label="В т.ч. авансы" value={stats.advance} color="violet" />
-      </div>
+      {tab !== 'documents' && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <SummaryCard label="Приход" value={stats.income} color="emerald" />
+          <SummaryCard label="Расход" value={stats.expense} color="red" />
+          <SummaryCard
+            label="Баланс"
+            value={stats.balance}
+            color={stats.balance >= 0 ? 'emerald' : 'red'}
+          />
+          <SummaryCard label="В т.ч. авансы" value={stats.advance} color="violet" />
+        </div>
+      )}
 
       {/* Табы и фильтры */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs">
@@ -209,6 +286,7 @@ export default function FinancePage() {
               { key: 'all', label: 'Все операции' },
               { key: 'income', label: 'Приходы' },
               { key: 'expense', label: 'Расходы' },
+              { key: 'documents', label: 'Пакеты документов' },
             ] as { key: TabKey; label: string }[]
           ).map((t) => (
             <button
@@ -225,6 +303,47 @@ export default function FinancePage() {
           ))}
         </div>
 
+        {tab === 'documents' ? (
+          <div className="p-4 sm:p-6">
+            <div className="mb-5">
+              <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
+                Пакеты готовых документов
+              </h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                Готовые шаблоны для скачивания и использования в работе. Файлы открываются в Word, Excel или LibreOffice.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {DOCUMENT_TEMPLATES.map((doc) => (
+                <a
+                  key={doc.key}
+                  href={doc.file}
+                  download={doc.fileLabel}
+                  className="group flex gap-4 p-5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-violet-400 hover:shadow-md transition"
+                >
+                  <div className="flex-shrink-0 w-11 h-11 rounded-lg bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-300 flex items-center justify-center">
+                    {doc.icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-gray-800 dark:text-gray-100 group-hover:text-violet-600 dark:group-hover:text-violet-300">
+                      {doc.title}
+                    </div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                      {doc.description}
+                    </div>
+                    <div className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-violet-600 dark:text-violet-300">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
+                      </svg>
+                      Скачать {doc.fileLabel}
+                    </div>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+        ) : (
+        <>
         <div className="p-4 border-b border-gray-100 dark:border-gray-700 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div>
             <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Проект</label>
@@ -380,6 +499,8 @@ export default function FinancePage() {
             </tbody>
           </table>
         </div>
+        </>
+        )}
       </div>
 
       <FinanceOperationModal
