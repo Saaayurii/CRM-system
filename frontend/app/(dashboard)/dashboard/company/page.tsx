@@ -61,6 +61,9 @@ type TabKey = 'details' | 'banks';
 
 const LEGAL_FORMS = ['ООО', 'ИП', 'Самозанятый', 'АО', 'ПАО', 'НКО'];
 
+const INPUT_CLS =
+  'w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-violet-500';
+
 const BLANK_BANK: Omit<BankAccount, 'id'> = {
   bankName: '',
   bik: '',
@@ -507,7 +510,7 @@ export default function CompanyPage() {
                 <input
                   value={inn}
                   onChange={(e) => setInn(e.target.value)}
-                  className="form-input-base flex-1"
+                  className={`${INPUT_CLS} flex-1`}
                   inputMode="numeric"
                   placeholder="10 или 12 цифр"
                 />
@@ -543,7 +546,7 @@ export default function CompanyPage() {
               <input
                 value={kpp}
                 onChange={(e) => setKpp(e.target.value)}
-                className="form-input-base"
+                className={INPUT_CLS}
                 inputMode="numeric"
               />
             </Field>
@@ -551,7 +554,7 @@ export default function CompanyPage() {
               <input
                 value={ogrn}
                 onChange={(e) => setOgrn(e.target.value)}
-                className="form-input-base"
+                className={INPUT_CLS}
                 inputMode="numeric"
               />
             </Field>
@@ -560,7 +563,7 @@ export default function CompanyPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="form-input-base"
+                className={INPUT_CLS}
               />
             </Field>
 
@@ -568,14 +571,14 @@ export default function CompanyPage() {
               <input
                 value={legalAddress}
                 onChange={(e) => setLegalAddress(e.target.value)}
-                className="form-input-base"
+                className={INPUT_CLS}
               />
             </Field>
             <Field label="Фактический адрес" className="md:col-span-2">
               <input
                 value={actualAddress}
                 onChange={(e) => setActualAddress(e.target.value)}
-                className="form-input-base"
+                className={INPUT_CLS}
               />
             </Field>
 
@@ -584,14 +587,14 @@ export default function CompanyPage() {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="+7 ..."
-                className="form-input-base"
+                className={INPUT_CLS}
               />
             </Field>
             <Field label="Добавочный">
               <input
                 value={phoneExt}
                 onChange={(e) => setPhoneExt(e.target.value)}
-                className="form-input-base"
+                className={INPUT_CLS}
               />
             </Field>
 
@@ -601,7 +604,7 @@ export default function CompanyPage() {
                 onChange={(e) =>
                   setDirectorUserId(e.target.value === '' ? '' : Number(e.target.value))
                 }
-                className="form-input-base"
+                className={INPUT_CLS}
               >
                 <option value="">— не назначен —</option>
                 {employees.map((e) => (
@@ -631,7 +634,7 @@ export default function CompanyPage() {
                 onChange={(e) =>
                   setAccountantUserId(e.target.value === '' ? '' : Number(e.target.value))
                 }
-                className="form-input-base"
+                className={INPUT_CLS}
               >
                 <option value="">— не назначен —</option>
                 {employees.map((e) => (
@@ -677,27 +680,6 @@ export default function CompanyPage() {
               {saving ? 'Сохранение...' : 'Сохранить'}
             </button>
           </div>
-
-          <style jsx>{`
-            :global(.form-input-base) {
-              width: 100%;
-              padding: 0.5rem 0.75rem;
-              font-size: 0.875rem;
-              border: 1px solid rgb(209 213 219);
-              border-radius: 0.5rem;
-              background-color: #fff;
-              color: rgb(17 24 39);
-            }
-            :global(.dark .form-input-base) {
-              background-color: rgb(55 65 81);
-              border-color: rgb(75 85 99);
-              color: rgb(243 244 246);
-            }
-            :global(.form-input-base:focus) {
-              outline: none;
-              box-shadow: 0 0 0 2px rgb(139 92 246);
-            }
-          `}</style>
         </div>
       )}
 
@@ -886,14 +868,14 @@ function BankCard({
           <input
             value={draft.bankName || ''}
             onChange={(e) => update({ bankName: e.target.value })}
-            className="form-input-base"
+            className={INPUT_CLS}
           />
         </Field>
         <Field label="БИК">
           <input
             value={draft.bik || ''}
             onChange={(e) => update({ bik: e.target.value })}
-            className="form-input-base"
+            className={INPUT_CLS}
             inputMode="numeric"
           />
         </Field>
@@ -901,7 +883,7 @@ function BankCard({
           <input
             value={draft.settlementAccount || ''}
             onChange={(e) => update({ settlementAccount: e.target.value })}
-            className="form-input-base"
+            className={INPUT_CLS}
             inputMode="numeric"
           />
         </Field>
@@ -909,7 +891,7 @@ function BankCard({
           <input
             value={draft.correspondentAccount || ''}
             onChange={(e) => update({ correspondentAccount: e.target.value })}
-            className="form-input-base"
+            className={INPUT_CLS}
             inputMode="numeric"
           />
         </Field>
@@ -917,7 +899,7 @@ function BankCard({
           <input
             value={draft.bankInn || ''}
             onChange={(e) => update({ bankInn: e.target.value })}
-            className="form-input-base"
+            className={INPUT_CLS}
             inputMode="numeric"
           />
         </Field>
@@ -925,7 +907,7 @@ function BankCard({
           <input
             value={draft.bankAddress || ''}
             onChange={(e) => update({ bankAddress: e.target.value })}
-            className="form-input-base"
+            className={INPUT_CLS}
           />
         </Field>
       </div>
