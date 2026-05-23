@@ -164,6 +164,13 @@ function IconSalaries() {
     </svg>
   );
 }
+function IconFinance() {
+  return (
+    <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 7.5h18M3 7.5V18a1.5 1.5 0 0 0 1.5 1.5h15A1.5 1.5 0 0 0 21 18V7.5M3 7.5l1.5-3h15L21 7.5M9 12h6m-6 3h3" />
+    </svg>
+  );
+}
 function IconDefects() {
   return (
     <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
@@ -667,6 +674,16 @@ export default function Sidebar() {
                     </NavLink>
                   </li>
                 </>
+              )}
+
+              {/* Finance — для admin/super_admin/accountant/PM */}
+              {(isSuperAdmin || isAdmin || isAccountant || isPM) && (
+                <li className="mb-1 last:mb-0">
+                  <NavLink href="/dashboard/finance" className={linkCls(pathname.startsWith('/dashboard/finance'))}>
+                    <IconFinance />
+                    <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Финансы</span>
+                  </NavLink>
+                </li>
               )}
 
               {/* Documents */}

@@ -138,7 +138,7 @@ describe('PaymentsService', () => {
   describe('findAllPayments', () => {
     it('should return paginated payments', async () => {
       paymentsRepository.findAll.mockResolvedValue(mockPaginatedPayments);
-      const result = await service.findAllPayments(1, 1, 20);
+      const result = await service.findAllPayments(1, { page: 1, limit: 20 });
       expect(result).toEqual(mockPaginatedPayments);
     });
   });

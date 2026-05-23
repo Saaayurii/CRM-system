@@ -104,18 +104,62 @@ export class FinanceGatewayController {
   @ApiQuery({ name: 'limit', required: false })
   @ApiQuery({ name: 'status', required: false })
   @ApiQuery({ name: 'projectId', required: false })
+  @ApiQuery({ name: 'constructionSiteId', required: false })
+  @ApiQuery({ name: 'direction', required: false, enum: ['income', 'expense'] })
+  @ApiQuery({ name: 'subType', required: false })
+  @ApiQuery({ name: 'paymentAccountId', required: false })
+  @ApiQuery({ name: 'dateFrom', required: false })
+  @ApiQuery({ name: 'dateTo', required: false })
   async findAllPayments(
     @Req() req: Request,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
     @Query('status') status?: number,
     @Query('projectId') projectId?: number,
+    @Query('constructionSiteId') constructionSiteId?: number,
+    @Query('direction') direction?: 'income' | 'expense',
+    @Query('subType') subType?: string,
+    @Query('paymentAccountId') paymentAccountId?: number,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
   ) {
     return this.proxyService.forward('finance', {
       method: 'GET',
       path: '/payments',
       headers: { authorization: req.headers.authorization || '' },
-      params: { page, limit, status, projectId },
+      params: {
+        page,
+        limit,
+        status,
+        projectId,
+        constructionSiteId,
+        direction,
+        subType,
+        paymentAccountId,
+        dateFrom,
+        dateTo,
+      },
+    });
+  }
+
+  @Get('payments/stats')
+  @ApiOperation({ summary: 'Aggregated finance stats' })
+  @ApiQuery({ name: 'projectId', required: false })
+  @ApiQuery({ name: 'constructionSiteId', required: false })
+  @ApiQuery({ name: 'dateFrom', required: false })
+  @ApiQuery({ name: 'dateTo', required: false })
+  async getPaymentStats(
+    @Req() req: Request,
+    @Query('projectId') projectId?: number,
+    @Query('constructionSiteId') constructionSiteId?: number,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+  ) {
+    return this.proxyService.forward('finance', {
+      method: 'GET',
+      path: '/payments/stats',
+      headers: { authorization: req.headers.authorization || '' },
+      params: { projectId, constructionSiteId, dateFrom, dateTo },
     });
   }
 

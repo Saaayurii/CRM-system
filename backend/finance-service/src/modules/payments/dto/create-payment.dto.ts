@@ -4,6 +4,7 @@ import {
   IsNumber,
   IsDateString,
   IsArray,
+  IsIn,
   MaxLength,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
@@ -19,16 +20,57 @@ export class CreatePaymentDto {
   @IsNumber()
   projectId?: number;
 
-  @ApiProperty({ description: 'Payment number', maxLength: 100 })
+  @ApiPropertyOptional({ description: 'Construction site ID' })
+  @IsOptional()
+  @IsNumber()
+  constructionSiteId?: number;
+
+  @ApiPropertyOptional({
+    description: 'Payment number (auto-generated if missing)',
+    maxLength: 100,
+  })
+  @IsOptional()
   @IsString()
   @MaxLength(100)
-  paymentNumber: string;
+  paymentNumber?: string;
 
-  @ApiPropertyOptional({ description: 'Payment type', maxLength: 100 })
+  @ApiPropertyOptional({ description: 'Payment type (legacy)', maxLength: 100 })
   @IsOptional()
   @IsString()
   @MaxLength(100)
   paymentType?: string;
+
+  @ApiPropertyOptional({ description: 'Direction', enum: ['income', 'expense'] })
+  @IsOptional()
+  @IsIn(['income', 'expense'])
+  direction?: 'income' | 'expense';
+
+  @ApiPropertyOptional({
+    description:
+      'Sub-type. income: advance|payment|refund; expense: bill|material|advance_disbursement|payroll',
+    maxLength: 50,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  subType?: string;
+
+  @ApiPropertyOptional({ description: 'Document type code (П, А, В, С, М, Д, Р)' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(10)
+  documentType?: string;
+
+  @ApiPropertyOptional({ description: 'Cash location', enum: ['hand', 'company'] })
+  @IsOptional()
+  @IsIn(['hand', 'company'])
+  cashLocation?: 'hand' | 'company';
+
+  @ApiPropertyOptional({ description: 'Bank name (for cashLocation=company)' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  bankName?: string;
 
   @ApiPropertyOptional({ description: 'Category', maxLength: 100 })
   @IsOptional()
@@ -81,9 +123,15 @@ export class CreatePaymentDto {
   @MaxLength(10)
   currency?: string;
 
-  @ApiProperty({ description: 'Payment date' })
+  @ApiPropertyOptional({ description: 'Payment date (defaults to today)' })
+  @IsOptional()
   @IsDateString()
-  paymentDate: string;
+  paymentDate?: string;
+
+  @ApiPropertyOptional({ description: 'Payment datetime (defaults to now)' })
+  @IsOptional()
+  @IsDateString()
+  paymentDatetime?: string;
 
   @ApiPropertyOptional({ description: 'Payment method', maxLength: 100 })
   @IsOptional()

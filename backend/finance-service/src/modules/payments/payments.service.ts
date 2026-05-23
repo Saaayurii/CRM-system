@@ -1,10 +1,12 @@
 import {
   Injectable,
   NotFoundException,
-  ForbiddenException,
 } from '@nestjs/common';
 import { PaymentAccountsRepository } from './repositories/payment-accounts.repository';
-import { PaymentsRepository } from './repositories/payments.repository';
+import {
+  PaymentsRepository,
+  PaymentFilters,
+} from './repositories/payments.repository';
 import { CreatePaymentAccountDto } from './dto/create-payment-account.dto';
 import { UpdatePaymentAccountDto } from './dto/update-payment-account.dto';
 import { CreatePaymentDto } from './dto/create-payment.dto';
@@ -52,8 +54,12 @@ export class PaymentsService {
   }
 
   // Payments
-  async findAllPayments(accountId: number, page: number, limit: number, projectId?: number) {
-    return this.paymentsRepository.findAll(accountId, page, limit, projectId);
+  async findAllPayments(accountId: number, filters: PaymentFilters) {
+    return this.paymentsRepository.findAll(accountId, filters);
+  }
+
+  async getStats(accountId: number, filters: PaymentFilters) {
+    return this.paymentsRepository.stats(accountId, filters);
   }
 
   async findPaymentById(id: number, accountId: number) {

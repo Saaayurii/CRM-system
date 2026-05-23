@@ -50,35 +50,46 @@ model PaymentAccount {
 }
 
 model Payment {
-  id               Int       @id @default(autoincrement())
-  accountId        Int       @map("account_id")
-  paymentAccountId Int?      @map("payment_account_id")
-  projectId        Int?      @map("project_id")
-  paymentNumber    String    @unique @map("payment_number") @db.VarChar(100)
-  paymentType      String?   @map("payment_type") @db.VarChar(100)
-  category         String?   @db.VarChar(100)
-  counterpartyType String?   @map("counterparty_type") @db.VarChar(50)
-  supplierId       Int?      @map("supplier_id")
-  contractorId     Int?      @map("contractor_id")
-  userId           Int?      @map("user_id")
-  supplierOrderId  Int?      @map("supplier_order_id")
-  actId            Int?      @map("act_id")
-  amount           Decimal   @db.Decimal(15, 2)
-  currency         String?   @default("RUB") @db.VarChar(10)
-  paymentDate      DateTime  @map("payment_date") @db.Date
-  paymentMethod    String?   @map("payment_method") @db.VarChar(100)
-  status           Int?      @default(0)
-  description      String?
-  notes            String?
-  documents        Json?     @default("[]")
-  createdByUserId  Int?      @map("created_by_user_id")
-  approvedByUserId Int?      @map("approved_by_user_id")
-  createdAt        DateTime? @default(now()) @map("created_at")
-  updatedAt        DateTime? @default(now()) @updatedAt @map("updated_at")
+  id                 Int       @id @default(autoincrement())
+  accountId          Int       @map("account_id")
+  paymentAccountId   Int?      @map("payment_account_id")
+  projectId          Int?      @map("project_id")
+  constructionSiteId Int?      @map("construction_site_id")
+  paymentNumber      String    @map("payment_number") @db.VarChar(100)
+  paymentType        String?   @map("payment_type") @db.VarChar(100)
+  direction          String?   @db.VarChar(20)
+  subType            String?   @map("sub_type") @db.VarChar(50)
+  documentType       String?   @map("document_type") @db.VarChar(10)
+  cashLocation       String?   @map("cash_location") @db.VarChar(20)
+  bankName           String?   @map("bank_name") @db.VarChar(255)
+  category           String?   @db.VarChar(100)
+  counterpartyType   String?   @map("counterparty_type") @db.VarChar(50)
+  supplierId         Int?      @map("supplier_id")
+  contractorId       Int?      @map("contractor_id")
+  userId             Int?      @map("user_id")
+  supplierOrderId    Int?      @map("supplier_order_id")
+  actId              Int?      @map("act_id")
+  amount             Decimal   @db.Decimal(15, 2)
+  currency           String?   @default("RUB") @db.VarChar(10)
+  paymentDate        DateTime  @map("payment_date") @db.Date
+  paymentDatetime    DateTime? @map("payment_datetime")
+  paymentMethod      String?   @map("payment_method") @db.VarChar(100)
+  status             Int?      @default(0)
+  description        String?
+  notes              String?
+  documents          Json?     @default("[]")
+  createdByUserId    Int?      @map("created_by_user_id")
+  approvedByUserId   Int?      @map("approved_by_user_id")
+  createdAt          DateTime? @default(now()) @map("created_at")
+  updatedAt          DateTime? @default(now()) @updatedAt @map("updated_at")
 
   account        Account         @relation(fields: [accountId], references: [id], onDelete: Cascade)
   paymentAccount PaymentAccount? @relation(fields: [paymentAccountId], references: [id])
 
+  @@unique([accountId, paymentNumber])
+  @@index([accountId, direction])
+  @@index([projectId])
+  @@index([constructionSiteId])
   @@map("payments")
 }
 

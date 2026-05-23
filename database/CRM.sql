@@ -1172,38 +1172,47 @@ CREATE TABLE payments (
     account_id INTEGER REFERENCES accounts(id) ON DELETE CASCADE,
     payment_account_id INTEGER REFERENCES payment_accounts(id),
     project_id INTEGER REFERENCES projects(id),
-    
-    payment_number VARCHAR(100) UNIQUE NOT NULL,
-    payment_type VARCHAR(100), -- income, expense
+    construction_site_id INTEGER REFERENCES construction_sites(id),
+
+    payment_number VARCHAR(100) NOT NULL,
+    payment_type VARCHAR(100), -- income, expense  (устаревшее, см. direction)
+    direction VARCHAR(20),       -- income | expense
+    sub_type VARCHAR(50),        -- advance|payment|refund | bill|material|advance_disbursement|payroll
+    document_type VARCHAR(10),   -- П, А, В, С, М, Д, Р
+    cash_location VARCHAR(20),   -- hand | company
+    bank_name VARCHAR(255),
     category VARCHAR(100), -- salary, materials, services, taxes, other
-    
+
     -- Контрагент
     counterparty_type VARCHAR(50), -- supplier, contractor, employee, client
     supplier_id INTEGER REFERENCES suppliers(id),
     contractor_id INTEGER REFERENCES contractors(id),
     user_id INTEGER REFERENCES users(id),
-    
+
     -- Связи
     supplier_order_id INTEGER REFERENCES supplier_orders(id),
     act_id INTEGER REFERENCES acts(id),
-    
+
     amount DECIMAL(15,2) NOT NULL,
     currency VARCHAR(10) DEFAULT 'RUB',
-    
+
     payment_date DATE NOT NULL,
-    
+    payment_datetime TIMESTAMP,
+
     payment_method VARCHAR(100), -- cash, bank_transfer, card
     status INTEGER DEFAULT 0, -- 0-pending, 1-completed, 2-cancelled
-    
+
     description TEXT,
     notes TEXT,
     documents JSONB DEFAULT '[]',
-    
+
     created_by_user_id INTEGER REFERENCES users(id),
     approved_by_user_id INTEGER REFERENCES users(id),
-    
+
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    UNIQUE (account_id, payment_number)
 );
 
 CREATE INDEX idx_payments_account ON payments(account_id);

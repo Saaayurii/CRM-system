@@ -89,13 +89,56 @@ export class PaymentsController {
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'projectId', required: false, type: Number })
+  @ApiQuery({ name: 'constructionSiteId', required: false, type: Number })
+  @ApiQuery({ name: 'direction', required: false, enum: ['income', 'expense'] })
+  @ApiQuery({ name: 'subType', required: false, type: String })
+  @ApiQuery({ name: 'paymentAccountId', required: false, type: Number })
+  @ApiQuery({ name: 'dateFrom', required: false, type: String })
+  @ApiQuery({ name: 'dateTo', required: false, type: String })
   findAll(
     @CurrentUser('accountId') accountId: number,
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 20,
     @Query('projectId') projectId?: number,
+    @Query('constructionSiteId') constructionSiteId?: number,
+    @Query('direction') direction?: 'income' | 'expense',
+    @Query('subType') subType?: string,
+    @Query('paymentAccountId') paymentAccountId?: number,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
   ) {
-    return this.paymentsService.findAllPayments(accountId, page, limit, projectId ? Number(projectId) : undefined);
+    return this.paymentsService.findAllPayments(accountId, {
+      page: Number(page),
+      limit: Number(limit),
+      projectId: projectId ? Number(projectId) : undefined,
+      constructionSiteId: constructionSiteId ? Number(constructionSiteId) : undefined,
+      direction,
+      subType,
+      paymentAccountId: paymentAccountId ? Number(paymentAccountId) : undefined,
+      dateFrom,
+      dateTo,
+    });
+  }
+
+  @Get('stats')
+  @ApiOperation({ summary: 'Aggregated stats by direction/subType' })
+  @ApiQuery({ name: 'projectId', required: false, type: Number })
+  @ApiQuery({ name: 'constructionSiteId', required: false, type: Number })
+  @ApiQuery({ name: 'dateFrom', required: false, type: String })
+  @ApiQuery({ name: 'dateTo', required: false, type: String })
+  getStats(
+    @CurrentUser('accountId') accountId: number,
+    @Query('projectId') projectId?: number,
+    @Query('constructionSiteId') constructionSiteId?: number,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+  ) {
+    return this.paymentsService.getStats(accountId, {
+      projectId: projectId ? Number(projectId) : undefined,
+      constructionSiteId: constructionSiteId ? Number(constructionSiteId) : undefined,
+      dateFrom,
+      dateTo,
+    });
   }
 
   @Get(':id')
