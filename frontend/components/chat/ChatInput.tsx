@@ -2,8 +2,13 @@
 
 import { useState, useRef, useCallback, KeyboardEvent, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
+import dynamic from 'next/dynamic';
 import { useChatStore, UploadedAttachment } from '@/stores/chatStore';
 import api from '@/lib/api';
+
+const TaskFormModal = dynamic(() => import('@/components/dashboard/TaskFormModal'), { ssr: false });
+
+const SLASH_TASK_RE = /^\/task(?:\s+([\s\S]*))?$/;
 
 const MAX_FILE_SIZE = 1 * 1024 * 1024 * 1024;
 const CHUNK_SIZE = 4 * 1024 * 1024;
@@ -30,6 +35,7 @@ const EMOJI_CATEGORIES = [
 interface ChatInputProps {
   channelId: number;
   projectId?: number;
+  channelType?: string;
   onFilesSent?: (attachments: UploadedAttachment[]) => void;
 }
 
@@ -41,6 +47,7 @@ interface PendingFile {
 }
 
 const DRAFT_KEY = (channelId: number) => `chat-draft-${channelId}`;
+const SHARE_MEDIA_KEY = (channelId: number) => `chat-share-media-${channelId}`;
 
 // ── Pure DOM helpers (no React) ───────────────────────────────────────────
 
@@ -116,10 +123,47 @@ function renderMarkdownInEditor(el: HTMLDivElement, md: string) {
 
 // ── Component ─────────────────────────────────────────────────────────────
 
-export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInputProps) {
+export default function ChatInput({ channelId, projectId, channelType, onFilesSent }: ChatInputProps) {
+  const isDirect = channelType === 'direct';
+
   const [text, setText] = useState(() => {
     try { return localStorage.getItem(DRAFT_KEY(channelId)) ?? ''; } catch { return ''; }
   });
+
+  // Per-channel toggle: whether attachments from this direct chat appear in /dashboard/media.
+  // Defaults to true (shared). Persisted to localStorage.
+  const [shareMedia, setShareMedia] = useState<boolean>(() => {
+    if (!isDirect) return true;
+    try {
+      const v = localStorage.getItem(SHARE_MEDIA_KEY(channelId));
+      return v === null ? true : v === '1';
+    } catch { return true; }
+  });
+
+  useEffect(() => {
+    if (!isDirect) { setShareMedia(true); return; }
+    try {
+      const v = localStorage.getItem(SHARE_MEDIA_KEY(channelId));
+      setShareMedia(v === null ? true : v === '1');
+    } catch { setShareMedia(true); }
+  }, [channelId, isDirect]);
+
+  const toggleShareMedia = useCallback(() => {
+    if (!isDirect) return;
+    setShareMedia((prev) => {
+      const next = !prev;
+      try { localStorage.setItem(SHARE_MEDIA_KEY(channelId), next ? '1' : '0'); } catch { /* ignore */ }
+      return next;
+    });
+  }, [channelId, isDirect]);
+
+  const decorateAttachments = useCallback(
+    (atts: UploadedAttachment[]): UploadedAttachment[] => {
+      if (!isDirect || shareMedia) return atts;
+      return atts.map((a) => ({ ...a, excludeFromMedia: true }));
+    },
+    [isDirect, shareMedia],
+  );
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
   const [isSending, setIsSending] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -135,6 +179,9 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
   const [taskQuery, setTaskQuery] = useState('');
   const [mentionStart, setMentionStart] = useState(-1);
   const [selectedTaskIndex, setSelectedTaskIndex] = useState(0);
+
+  const [showTaskCreateModal, setShowTaskCreateModal] = useState(false);
+  const [taskCreateInitialTitle, setTaskCreateInitialTitle] = useState('');
 
 
   const [members, setMembers] = useState<{ id: number; name: string; avatarUrl?: string }[]>([]);
@@ -680,10 +727,46 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
     try { localStorage.removeItem(DRAFT_KEY(channelId)); } catch { /* ignore */ }
   }, [channelId]);
 
+  const openTaskCreateModal = useCallback((title: string) => {
+    setTaskCreateInitialTitle(title);
+    setShowTaskCreateModal(true);
+  }, []);
+
+  const sendTaskCardMessage = useCallback((created: {
+    id: number;
+    title: string;
+    description?: string | null;
+    status: number;
+    priority: number;
+    dueDate: string | null;
+    projectId: number | null;
+    assignees: { userId: number; userName?: string }[];
+  }) => {
+    const cardAttachment = {
+      type: 'task_card' as const,
+      taskId: created.id,
+      title: created.title,
+      status: created.status,
+      priority: created.priority,
+      dueDate: created.dueDate,
+      projectId: created.projectId,
+      assignees: created.assignees,
+    };
+    sendMessage(channelId, '', [cardAttachment as unknown as UploadedAttachment], replyToMessage?.id, 'task_card');
+    clearEditor();
+  }, [channelId, sendMessage, replyToMessage, clearEditor]);
+
   const handleSend = useCallback(async () => {
     const el = editorRef.current;
     const raw = el ? serializeEditor(el) : text;
     const trimmed = raw.trim();
+
+    // Slash command: /task → open TaskFormModal instead of sending text
+    const slashMatch = !editingMessage && projectId ? trimmed.match(SLASH_TASK_RE) : null;
+    if (slashMatch) {
+      openTaskCreateModal((slashMatch[1] ?? '').trim());
+      return;
+    }
 
     // Edit mode
     if (editingMessage) {
@@ -717,16 +800,17 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
       }
     }
 
-    sendMessage(channelId, trimmed, uploadedAttachments.length > 0 ? uploadedAttachments : undefined, replyToMessage?.id);
+    const decorated = decorateAttachments(uploadedAttachments);
+    sendMessage(channelId, trimmed, decorated.length > 0 ? decorated : undefined, replyToMessage?.id);
 
-    if (uploadedAttachments.length > 0) onFilesSent?.(uploadedAttachments);
+    if (decorated.length > 0) onFilesSent?.(decorated);
 
     clearEditor();
     setPendingFiles([]);
     xhrMapRef.current.clear();
     stopTyping(channelId);
     setIsSending(false);
-  }, [text, channelId, pendingFiles, sendMessage, editMessage, editingMessage, setEditingMessage, clearEditor, stopTyping, replyToMessage, uploadFileWithProgress, onFilesSent]);
+  }, [text, channelId, pendingFiles, sendMessage, editMessage, editingMessage, setEditingMessage, clearEditor, stopTyping, replyToMessage, uploadFileWithProgress, onFilesSent, projectId, openTaskCreateModal, decorateAttachments]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent<HTMLDivElement>) => {
     // User mention picker has priority
@@ -890,10 +974,13 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
       });
       if (res.ok) {
         const attachment: UploadedAttachment = await res.json();
-        if (attachment.fileUrl) sendMessage(channelId, '', [attachment], replyToMessage?.id, 'voice');
+        if (attachment.fileUrl) {
+          const [decorated] = decorateAttachments([attachment]);
+          sendMessage(channelId, '', [decorated], replyToMessage?.id, 'voice');
+        }
       }
     } catch { /* discard */ } finally { setIsSending(false); }
-  }, [channelId, sendMessage, replyToMessage]);
+  }, [channelId, sendMessage, replyToMessage, decorateAttachments]);
 
   const startRecording = useCallback(async () => {
     if (isRecording || mediaRecorderRef.current?.state === 'recording') return;
@@ -960,10 +1047,13 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
       });
       if (res.ok) {
         const attachment: UploadedAttachment = await res.json();
-        if (attachment.fileUrl) sendMessage(channelId, '', [attachment], replyToMessage?.id, 'video_note');
+        if (attachment.fileUrl) {
+          const [decorated] = decorateAttachments([attachment]);
+          sendMessage(channelId, '', [decorated], replyToMessage?.id, 'video_note');
+        }
       }
     } catch { /* discard */ } finally { setIsSending(false); }
-  }, [channelId, sendMessage, replyToMessage]);
+  }, [channelId, sendMessage, replyToMessage, decorateAttachments]);
 
   const startVideoRecording = useCallback(async () => {
     if (isRecordingVideo) return;
@@ -1082,6 +1172,14 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
     document.addEventListener('mouseup', handleMouseUp);
     document.addEventListener('mousemove', handleMouseMove);
   }, [recordMode, startRecording, startVideoRecording, stopRecording, stopVideoRecording]);
+
+  // Slash command: /task [title] — only available in project-linked channels (not for ongoing edit)
+  const slashTaskMatch = useMemo<RegExpMatchArray | null>(() => {
+    if (!projectId || editingMessage) return null;
+    return text.match(SLASH_TASK_RE);
+  }, [text, projectId, editingMessage]);
+  const isTaskSlash = !!slashTaskMatch;
+  const taskSlashTitle = (slashTaskMatch?.[1] ?? '').trim();
 
   const canSend = (text.trim().length > 0 || pendingFiles.length > 0) && !isSending;
 
@@ -1322,6 +1420,28 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
         </div>
       )}
 
+      {/* Slash command hint: /task */}
+      {isTaskSlash && !editingMessage && (
+        <div className="flex items-center gap-2 mb-2 px-3 py-2 bg-violet-50 dark:bg-violet-900/20 rounded-lg border-l-2 border-violet-500">
+          <svg className="w-4 h-4 shrink-0 text-violet-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          </svg>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium text-violet-600 dark:text-violet-400">Создать задачу</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+              {taskSlashTitle ? `«${taskSlashTitle}» — Enter, чтобы открыть форму` : 'Введите название после /task и нажмите Enter'}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => openTaskCreateModal(taskSlashTitle)}
+            className="shrink-0 px-3 py-1 text-xs font-medium rounded-lg bg-violet-500 hover:bg-violet-600 text-white transition-colors"
+          >
+            Открыть
+          </button>
+        </div>
+      )}
+
       {/* Reply preview */}
       {replyToMessage && (
         <div className="flex items-center gap-2 mb-2 px-3 py-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg border-l-2 border-violet-500">
@@ -1479,6 +1599,36 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
           <input ref={fileInputRef} type="file" className="hidden" accept="*/*" multiple onChange={handleFileChange} />
           <input ref={cameraInputRef} type="file" className="hidden" accept="image/*,video/*" capture="environment" onChange={handleFileChange} />
 
+          {/* Direct-chat only: toggle whether attachments appear in the global Media tab */}
+          {isDirect && (
+            <button
+              type="button"
+              onClick={toggleShareMedia}
+              disabled={isSending}
+              className={`shrink-0 p-2 rounded-xl transition-colors disabled:opacity-50 ${
+                shareMedia
+                  ? 'text-violet-500 bg-violet-50 dark:bg-violet-900/20 hover:bg-violet-100 dark:hover:bg-violet-900/30'
+                  : 'text-gray-400 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/20'
+              }`}
+              title={shareMedia
+                ? 'Медиа из этого чата видны в разделе «Медиа». Нажмите, чтобы скрыть.'
+                : 'Медиа из этого чата скрыты из раздела «Медиа». Нажмите, чтобы делиться.'}
+            >
+              {shareMedia ? (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.6 9h16.8M3.6 15h16.8M12 3a14 14 0 010 18M12 3a14 14 0 000 18" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.6 9h16.8M3.6 15h16.8M12 3a14 14 0 010 18M12 3a14 14 0 000 18" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 4l16 16" />
+                </svg>
+              )}
+            </button>
+          )}
+
           {/* Center: input with emoji button inside */}
           <div className="relative flex-1">
             <div
@@ -1572,6 +1722,22 @@ export default function ChatInput({ channelId, projectId, onFilesSent }: ChatInp
             </button>
           </div>
         </div>
+      )}
+
+      {/* Task create modal (opened via /task slash command) */}
+      {showTaskCreateModal && projectId && (
+        <TaskFormModal
+          task={null}
+          initialProjectId={projectId}
+          initialTitle={taskCreateInitialTitle}
+          lockProjectId
+          onClose={() => setShowTaskCreateModal(false)}
+          onSaved={() => setShowTaskCreateModal(false)}
+          onSavedTask={(created) => {
+            sendTaskCardMessage(created);
+            setShowTaskCreateModal(false);
+          }}
+        />
       )}
     </div>
   );

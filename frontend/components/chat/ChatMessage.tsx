@@ -353,6 +353,22 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
     );
   }
 
+  // Карточка-задача, созданная через slash-команду /task
+  if (message.messageType === 'task_card') {
+    const card = (message.attachments as any[] ?? []).find((a: any) => a.type === 'task_card');
+    if (card) {
+      return (
+        <TaskCardMessage
+          card={card}
+          isOwn={isOwn}
+          senderName={displaySenderName}
+          createdAt={message.createdAt}
+          messageId={message.id}
+        />
+      );
+    }
+  }
+
   return (
     <div
       data-message-id={message.id}
@@ -1045,6 +1061,128 @@ function TaskCard({ id, title, status, priority, dueDate, isOwn }: {
     </Link>
   );
 }
+// ── Task card message (created via /task slash command) ──────────
+
+interface TaskCardSnapshot {
+  type: 'task_card';
+  taskId: number;
+  title: string;
+  status: number;
+  priority: number;
+  dueDate: string | null;
+  projectId?: number | null;
+  assignees?: { userId: number; userName?: string }[];
+}
+
+function TaskCardMessage({ card, isOwn, senderName, createdAt, messageId }: {
+  card: TaskCardSnapshot;
+  isOwn: boolean;
+  senderName: string;
+  createdAt: string;
+  messageId: number;
+}) {
+  const st = TASK_STATUS_LABELS[card.status];
+  const pr = TASK_PRIORITY_LABELS[card.priority];
+  const due = card.dueDate ? fmtDate(card.dueDate) : '';
+  const assignees = card.assignees ?? [];
+  const time = (() => {
+    try {
+      const d = new Date(createdAt);
+      return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    } catch { return ''; }
+  })();
+
+  return (
+    <div data-message-id={messageId} className={`flex ${isOwn ? 'justify-end' : 'justify-start'} my-1.5`}>
+      <Link
+        href={`/dashboard/tasks?edit=${card.taskId}`}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (typeof window !== 'undefined' && window.location.pathname.startsWith('/dashboard/chat')) {
+            try { sessionStorage.setItem('taskBackTo', window.location.pathname + window.location.search); } catch {}
+          }
+        }}
+        className="block max-w-md w-full rounded-2xl border border-violet-200 dark:border-violet-700/60 bg-gradient-to-br from-violet-50 to-white dark:from-violet-900/30 dark:to-gray-800 hover:from-violet-100 hover:to-violet-50 dark:hover:from-violet-900/40 dark:hover:to-gray-800/80 transition-colors shadow-sm no-underline p-3"
+      >
+        {/* Header */}
+        <div className="flex items-center gap-2 mb-2">
+          <div className="w-6 h-6 rounded-lg bg-violet-500/15 dark:bg-violet-500/25 flex items-center justify-center text-violet-600 dark:text-violet-300">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+          </div>
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-violet-600 dark:text-violet-300">
+            Новая задача
+          </span>
+          {time && (
+            <span className="ml-auto text-[10px] text-gray-400 dark:text-gray-500">{time}</span>
+          )}
+        </div>
+
+        {/* Title */}
+        <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 leading-snug mb-2 break-words">
+          {card.title}
+        </p>
+
+        {/* Badges */}
+        {(st || pr || due) && (
+          <div className="flex items-center gap-1.5 flex-wrap mb-2">
+            {st && (
+              <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium ${st.cls}`}>
+                {st.label}
+              </span>
+            )}
+            {pr && (
+              <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium ${pr.cls}`}>
+                {pr.label}
+              </span>
+            )}
+            {due && (
+              <span className="inline-flex items-center gap-1 text-[10px] text-gray-500 dark:text-gray-400">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                {due}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Footer: assignees + author */}
+        <div className="flex items-center justify-between gap-2 pt-2 border-t border-violet-100 dark:border-violet-800/40">
+          <div className="flex items-center gap-1.5 min-w-0">
+            {assignees.length > 0 ? (
+              <>
+                <div className="flex -space-x-1.5">
+                  {assignees.slice(0, 3).map((a) => (
+                    <div
+                      key={a.userId}
+                      className="w-6 h-6 rounded-full bg-violet-400 dark:bg-violet-500 text-white text-[10px] font-semibold flex items-center justify-center ring-2 ring-white dark:ring-gray-800"
+                      title={a.userName || `#${a.userId}`}
+                    >
+                      {(a.userName || '?').slice(0, 1).toUpperCase()}
+                    </div>
+                  ))}
+                </div>
+                <span className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
+                  {assignees.length === 1
+                    ? (assignees[0].userName || `#${assignees[0].userId}`)
+                    : `${assignees.length} исполн.`}
+                </span>
+              </>
+            ) : (
+              <span className="text-[11px] text-gray-400 dark:text-gray-500">Без исполнителей</span>
+            )}
+          </div>
+          <span className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
+            от {senderName || 'Пользователь'}
+          </span>
+        </div>
+      </Link>
+    </div>
+  );
+}
+
 function highlightSegment(raw: string, query: string | undefined, isOwn: boolean): React.ReactNode {
   if (!query) return raw;
   const lower = raw.toLowerCase();

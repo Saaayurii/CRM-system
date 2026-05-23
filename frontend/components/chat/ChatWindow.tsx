@@ -968,7 +968,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
             </div>
           </div>
         ) : (
-          <ChatInput channelId={activeChannelId} projectId={activeChannel.projectId ?? undefined} />
+          <ChatInput channelId={activeChannelId} projectId={activeChannel.projectId ?? undefined} channelType={activeChannel.channelType} />
         )}
       </div>
 

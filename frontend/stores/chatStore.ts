@@ -12,6 +12,7 @@ export interface UploadedAttachment {
   fileSize: number;
   mimeType: string;
   fileUrl: string;
+  excludeFromMedia?: boolean;
 }
 
 export interface ChatAttachment {
@@ -326,6 +327,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const message = mapRawMessage(raw);
       const { activeChannelId, channels, unreadCounts } = get();
 
+      // Preview text: task_card messages have empty .text, so derive from attachment snapshot
+      const previewText = (() => {
+        if (message.messageType === 'task_card') {
+          const card = (message.attachments as any[] ?? []).find((a: any) => a.type === 'task_card');
+          if (card?.title) return `📋 Задача: ${card.title}`;
+          return '📋 Новая задача';
+        }
+        return message.text;
+      })();
+
       const updatedChannel = channels.find((ch) => ch.id === message.channelId);
       const updatedChannels = updatedChannel
         ? [
@@ -337,7 +348,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         const withNewMsg = {
           ...updatedChannel,
           lastMessage: {
-            text: message.text,
+            text: previewText,
             senderName: message.senderName,
             createdAt: message.createdAt,
           },
@@ -361,7 +372,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
             [message.channelId]: (unreadCounts[message.channelId] || 0) + 1,
           },
         });
-        const preview = message.text ? message.text.slice(0, 60) : 'Новое сообщение';
+        const preview = previewText ? previewText.slice(0, 60) : 'Новое сообщение';
         useToastStore.getState().addToast('info', `${message.senderName}: ${preview}`);
       }
     });

@@ -294,17 +294,48 @@ function EmployeeCard({ user, assignedAt, onClose, onRemove }: {
   );
 }
 
+interface CreatedTaskSnapshot {
+  id: number;
+  title: string;
+  description?: string | null;
+  status: number;
+  priority: number;
+  dueDate: string | null;
+  projectId: number | null;
+  assignees: { userId: number; userName?: string }[];
+}
+
 interface TaskFormModalProps {
   task?: any | null;
   onClose: () => void;
   onSaved: () => void;
+  // Optional: pre-seed values when creating a new task from a chat slash command.
+  initialProjectId?: number;
+  initialTitle?: string;
+  lockProjectId?: boolean;
+  onSavedTask?: (task: CreatedTaskSnapshot) => void;
 }
 
-function AutoResizeTextarea({ value, onChange, className, placeholder }: {
+function renderTextWithLinks(text: string) {
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = text.split(urlRegex);
+  return parts.map((part, i) =>
+    /^https?:\/\//.test(part) ? (
+      <a key={i} href={part} target="_blank" rel="noopener noreferrer"
+        className="text-violet-500 underline hover:text-violet-700 break-all"
+        onClick={(e) => e.stopPropagation()}
+      >{part}</a>
+    ) : part
+  );
+}
+
+function AutoResizeTextarea({ value, onChange, className, placeholder, autoFocus, onBlur }: {
   value: string;
   onChange: (v: string) => void;
   className?: string;
   placeholder?: string;
+  autoFocus?: boolean;
+  onBlur?: () => void;
 }) {
   const ref = useRef<HTMLTextAreaElement>(null);
 
@@ -332,11 +363,13 @@ function AutoResizeTextarea({ value, onChange, className, placeholder }: {
       rows={1}
       className={className}
       placeholder={placeholder}
+      autoFocus={autoFocus}
+      onBlur={onBlur}
     />
   );
 }
 
-export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalProps) {
+export default function TaskFormModal({ task, onClose, onSaved, initialProjectId, initialTitle, lockProjectId, onSavedTask }: TaskFormModalProps) {
   const { user } = useAuthStore();
   const addToast = useToastStore((s) => s.addToast);
   const { lastSeenAt, setUnreadCount } = useTaskNotifStore();
@@ -344,12 +377,12 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
   const isNew = !task?.id;
 
   // Core fields
-  const [title, setTitle] = useState(task?.title || '');
+  const [title, setTitle] = useState(task?.title || initialTitle || '');
   const [description, setDescription] = useState(task?.description || '');
   const [status, setStatus] = useState<number>(task?.status ?? 0);
   const [priority, setPriority] = useState<number>(task?.priority ?? 1);
   const [dueDate, setDueDate] = useState(task?.dueDate?.split('T')[0] || task?.due_date?.split('T')[0] || '');
-  const [projectId, setProjectId] = useState(String(task?.projectId || task?.project_id || ''));
+  const [projectId, setProjectId] = useState(String(task?.projectId || task?.project_id || initialProjectId || ''));
   const [constructionSiteId, setConstructionSiteId] = useState(String(task?.constructionSiteId || task?.construction_site_id || ''));
   const [estimatedHours, setEstimatedHours] = useState(String(task?.estimatedHours || task?.estimated_hours || ''));
 
@@ -376,6 +409,7 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
   const [comments, setComments] = useState<TaskComment[]>([]);
   const [hideSystemMessages, setHideSystemMessages] = useState(false);
   const [highlightedItemId, setHighlightedItemId] = useState<string | null>(null);
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [commentText, setCommentText] = useState('');
   const [commentAttachments, setCommentAttachments] = useState<Attachment[]>([]);
   const [sendingComment, setSendingComment] = useState(false);
@@ -526,6 +560,18 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
           await api.put(`/tasks/${newId}`, {
             customFields: { checklists },
             attachments: filteredAttachments,
+          });
+        }
+        if (onSavedTask) {
+          onSavedTask({
+            id: Number(newId),
+            title,
+            description: description || null,
+            status: Number(status),
+            priority: Number(priority),
+            dueDate: dueDate || null,
+            projectId: projectId ? Number(projectId) : null,
+            assignees,
           });
         }
         addToast('success', 'Задача создана');
@@ -968,7 +1014,7 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
         <select
           value={projectId}
           onChange={(e) => setProjectId(e.target.value)}
-          disabled={!canEditProjectObject}
+          disabled={!canEditProjectObject || !!lockProjectId}
           className={`w-full text-sm px-3 py-1.5 border rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-violet-500 focus:border-transparent disabled:opacity-60 disabled:cursor-not-allowed ${
             !projectId ? 'border-amber-300 dark:border-amber-600' : 'border-gray-200 dark:border-gray-700'
           }`}
@@ -1344,12 +1390,23 @@ export default function TaskFormModal({ task, onClose, onSaved }: TaskFormModalP
                               )}
                             </button>
                             <div className="flex-1 min-w-0">
-                              <AutoResizeTextarea
-                                value={item.text}
-                                onChange={(v) => updateItemText(group.id, item.id, v)}
-                                className={`w-full text-sm bg-transparent outline-none border-none focus:ring-0 resize-none overflow-hidden leading-normal ${isDone ? 'line-through text-gray-400' : isRejected ? 'text-red-500 dark:text-red-400' : 'text-gray-700 dark:text-gray-300'}`}
-                                placeholder="Введите пункт..."
-                              />
+                              {editingItemId === item.id ? (
+                                <AutoResizeTextarea
+                                  value={item.text}
+                                  onChange={(v) => updateItemText(group.id, item.id, v)}
+                                  className={`w-full text-sm bg-transparent outline-none border-none focus:ring-0 resize-none overflow-hidden leading-normal ${isDone ? 'line-through text-gray-400' : isRejected ? 'text-red-500 dark:text-red-400' : 'text-gray-700 dark:text-gray-300'}`}
+                                  placeholder="Введите пункт..."
+                                  autoFocus
+                                  onBlur={() => setEditingItemId(null)}
+                                />
+                              ) : (
+                                <div
+                                  onClick={() => setEditingItemId(item.id)}
+                                  className={`w-full text-sm leading-normal cursor-text whitespace-pre-wrap break-words min-h-[1.25rem] ${isDone ? 'line-through text-gray-400' : isRejected ? 'text-red-500 dark:text-red-400' : 'text-gray-700 dark:text-gray-300'}`}
+                                >
+                                  {item.text ? renderTextWithLinks(item.text) : <span className="text-gray-400">Введите пункт...</span>}
+                                </div>
+                              )}
                               {(isPending || isDone || isRejected) && item.completedByName && (
                                 <p className="text-[10px] text-gray-400 mt-0.5">
                                   {statusInfo?.label}

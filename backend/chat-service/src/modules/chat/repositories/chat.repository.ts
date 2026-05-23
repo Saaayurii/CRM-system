@@ -399,6 +399,7 @@ export class ChatRepository {
       for (const a of atts) {
         if (!a || a.type === 'tg_meta') continue;
         if (!a.fileUrl) continue;
+        if (a.excludeFromMedia === true) continue;
         flat.push({
           source: 'chat',
           url: a.fileUrl,
