@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
@@ -9,6 +9,7 @@ import ProjectFormModal from '@/components/dashboard/ProjectFormModal';
 import FilterPanel from '@/components/ui/FilterPanel';
 import { useOfflineData } from '@/hooks/useOfflineData';
 import { useDownloadPdf } from '@/lib/hooks/useDownloadPdf';
+import { FAB_CREATED_EVENT } from '@/components/ui/QuickActionsButton';
 
 interface Project {
   id: number;
@@ -80,6 +81,14 @@ export default function ProjectsPage() {
 
   const { data: rawProjects, loading, error, isFromCache, cachedAt, refetch } =
     useOfflineData<Project[]>(fetchProjects, 'projects-page');
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      if ((e as CustomEvent).detail?.entity === 'project') refetch();
+    };
+    window.addEventListener(FAB_CREATED_EVENT, handler);
+    return () => window.removeEventListener(FAB_CREATED_EVENT, handler);
+  }, [refetch]);
 
   const projects = (rawProjects ?? []).filter((p) => {
     if (searchQuery && !p.name.toLowerCase().includes(searchQuery.toLowerCase()) && !(p.code || '').toLowerCase().includes(searchQuery.toLowerCase())) return false;

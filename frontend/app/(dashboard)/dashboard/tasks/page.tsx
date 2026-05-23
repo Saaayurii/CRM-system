@@ -10,6 +10,7 @@ import FilterPanel from '@/components/ui/FilterPanel';
 import { useOfflineData } from '@/hooks/useOfflineData';
 import { useDownloadPdf } from '@/lib/hooks/useDownloadPdf';
 import { useTaskNotifStore } from '@/stores/taskNotifStore';
+import { FAB_CREATED_EVENT } from '@/components/ui/QuickActionsButton';
 
 interface Assignee {
   userId: number;
@@ -136,6 +137,14 @@ export default function TasksPage() {
 
   const { data, loading, error, isFromCache, cachedAt, refetch } =
     useOfflineData<TasksPageData>(fetchTasksPageData, 'tasks-page');
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      if ((e as CustomEvent).detail?.entity === 'task') refetch();
+    };
+    window.addEventListener(FAB_CREATED_EVENT, handler);
+    return () => window.removeEventListener(FAB_CREATED_EVENT, handler);
+  }, [refetch]);
 
   const tasks = data?.tasks ?? [];
   const projects = data?.projects ?? [];

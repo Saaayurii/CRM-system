@@ -8,6 +8,7 @@ import { useToastStore } from '@/stores/toastStore';
 import EmployeeFormModal from '@/components/dashboard/EmployeeFormModal';
 import FilterPanel from '@/components/ui/FilterPanel';
 import { useDownloadPdf } from '@/lib/hooks/useDownloadPdf';
+import { FAB_CREATED_EVENT } from '@/components/ui/QuickActionsButton';
 
 interface Employee {
   id: number;
@@ -295,6 +296,14 @@ export default function EmployeesPage() {
 
   useEffect(() => {
     fetchEmployees();
+  }, []);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      if ((e as CustomEvent).detail?.entity === 'employee') fetchEmployees();
+    };
+    window.addEventListener(FAB_CREATED_EVENT, handler);
+    return () => window.removeEventListener(FAB_CREATED_EVENT, handler);
   }, []);
 
   const handleDelete = async (id: number) => {

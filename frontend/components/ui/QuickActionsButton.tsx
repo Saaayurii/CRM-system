@@ -1,14 +1,44 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import { useChatStore } from '@/stores/chatStore';
+import ProjectFormModal from '@/components/dashboard/ProjectFormModal';
+import TaskFormModal from '@/components/dashboard/TaskFormModal';
+import EmployeeFormModal from '@/components/dashboard/EmployeeFormModal';
+import DocumentFormModal from '@/components/dashboard/DocumentFormModal';
+import CreateTeamModal from '@/components/dashboard/CreateTeamModal';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
 type Panel = 'search' | 'task' | 'note' | 'timer' | null;
+type PageEntity = 'project' | 'task' | 'employee' | 'document' | 'team';
+
+export const FAB_CREATED_EVENT = 'crm:fab-created';
+
+interface PageContext {
+  entity: PageEntity;
+  label: string;
+  successMessage: string;
+}
+
+const PAGE_CONTEXTS: Array<{ match: RegExp; ctx: PageContext }> = [
+  { match: /^\/dashboard\/projects\/?$/,  ctx: { entity: 'project',  label: 'Создать проект',     successMessage: 'Проект создан' } },
+  { match: /^\/dashboard\/tasks\/?$/,     ctx: { entity: 'task',     label: 'Создать задачу',     successMessage: 'Задача создана' } },
+  { match: /^\/dashboard\/employees\/?$/, ctx: { entity: 'employee', label: 'Создать сотрудника', successMessage: 'Сотрудник создан' } },
+  { match: /^\/dashboard\/documents\/?$/, ctx: { entity: 'document', label: 'Создать документ',   successMessage: 'Документ создан' } },
+  { match: /^\/dashboard\/teams\/?$/,     ctx: { entity: 'team',     label: 'Создать команду',    successMessage: 'Команда создана' } },
+];
+
+function usePageContext(): PageContext | null {
+  const pathname = usePathname() || '';
+  for (const { match, ctx } of PAGE_CONTEXTS) {
+    if (match.test(pathname)) return ctx;
+  }
+  return null;
+}
 
 interface SearchResult {
   type: 'project' | 'task' | 'client';
@@ -38,9 +68,14 @@ const ACTIONS = [
 export default function QuickActionsButton() {
   const [open, setOpen] = useState(false);
   const [panel, setPanel] = useState<Panel>(null);
+  const [creatingEntity, setCreatingEntity] = useState<PageEntity | null>(null);
   const [hasModalOpen, setHasModalOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const chatWindowOpen = useChatStore((s) => s.chatWindowOpen);
+  const addToast = useToastStore((s) => s.addToast);
+  const pageContext = usePageContext();
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressFired = useRef(false);
 
   useEffect(() => {
     const checkModals = () => {
@@ -92,58 +127,135 @@ export default function QuickActionsButton() {
 
   const closePanel = () => setPanel(null);
 
-  if (chatWindowOpen || hasModalOpen) return null;
+  const openSpeedDial = () => {
+    setOpen((v) => !v);
+    setPanel(null);
+  };
+
+  const handleFabClick = () => {
+    if (longPressFired.current) {
+      longPressFired.current = false;
+      return;
+    }
+    if (pageContext) {
+      setCreatingEntity(pageContext.entity);
+      setOpen(false);
+      setPanel(null);
+    } else {
+      openSpeedDial();
+    }
+  };
+
+  const handleFabContextMenu = (e: React.MouseEvent) => {
+    if (!pageContext) return;
+    e.preventDefault();
+    setCreatingEntity(null);
+    setPanel(null);
+    setOpen(true);
+  };
+
+  const startLongPress = () => {
+    if (!pageContext) return;
+    longPressFired.current = false;
+    longPressTimer.current = setTimeout(() => {
+      longPressFired.current = true;
+      setCreatingEntity(null);
+      setPanel(null);
+      setOpen(true);
+    }, 500);
+  };
+
+  const cancelLongPress = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
+  const closeCreate = () => setCreatingEntity(null);
+
+  const handleCreated = () => {
+    const entity = creatingEntity;
+    if (pageContext) {
+      addToast('success', pageContext.successMessage);
+    }
+    if (entity) {
+      window.dispatchEvent(new CustomEvent(FAB_CREATED_EVENT, { detail: { entity } }));
+    }
+    setCreatingEntity(null);
+  };
+
+  const showFab = !chatWindowOpen && !hasModalOpen && !creatingEntity;
+  const fabTitle = pageContext ? `${pageContext.label} (удерживайте для меню)` : 'Быстрые действия';
 
   return (
-    <div ref={rootRef} className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
-      {/* Speed-dial items */}
-      {open && (
-        <div className="flex flex-col items-end gap-2 mb-1">
-          {ACTIONS.map((action, i) => (
-            <div
-              key={action.id}
-              className="flex items-center gap-2"
-              style={{ animation: `fabSlideIn 0.15s ease ${i * 0.04}s both` }}
-            >
-              <span className="text-xs font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 shadow px-2 py-0.5 rounded-full whitespace-nowrap">
-                {action.label}
-              </span>
-              <button
-                onClick={() => openPanel(action.id as Panel)}
-                className={`w-10 h-10 rounded-full text-white shadow-lg transition-all ${action.color}`}
-                title={action.label}
-              >
-                <action.icon />
-              </button>
+    <>
+      {showFab && (
+        <div ref={rootRef} className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
+          {/* Speed-dial items */}
+          {open && (
+            <div className="flex flex-col items-end gap-2 mb-1">
+              {ACTIONS.map((action, i) => (
+                <div
+                  key={action.id}
+                  className="flex items-center gap-2"
+                  style={{ animation: `fabSlideIn 0.15s ease ${i * 0.04}s both` }}
+                >
+                  <span className="text-xs font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 shadow px-2 py-0.5 rounded-full whitespace-nowrap">
+                    {action.label}
+                  </span>
+                  <button
+                    onClick={() => openPanel(action.id as Panel)}
+                    className={`w-10 h-10 rounded-full text-white shadow-lg transition-all ${action.color}`}
+                    title={action.label}
+                  >
+                    <action.icon />
+                  </button>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
+
+          {/* FAB */}
+          <button
+            onClick={handleFabClick}
+            onContextMenu={handleFabContextMenu}
+            onMouseDown={startLongPress}
+            onMouseUp={cancelLongPress}
+            onMouseLeave={cancelLongPress}
+            onTouchStart={startLongPress}
+            onTouchEnd={cancelLongPress}
+            onTouchCancel={cancelLongPress}
+            className={`w-14 h-14 rounded-full bg-violet-600 hover:bg-violet-700 text-white shadow-xl flex items-center justify-center transition-all duration-200 ${open ? 'rotate-45' : ''}`}
+            title={fabTitle}
+          >
+            <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+          </button>
+
+          {/* Panels */}
+          {panel === 'search' && <SearchPanel onClose={closePanel} />}
+          {panel === 'task'   && <QuickTaskPanel onClose={closePanel} />}
+          {panel === 'note'   && <NotePanel onClose={closePanel} />}
+          {panel === 'timer'  && <TimerPanel onClose={closePanel} />}
+
+          <style>{`
+            @keyframes fabSlideIn {
+              from { opacity: 0; transform: translateY(8px) scale(0.9); }
+              to   { opacity: 1; transform: translateY(0) scale(1); }
+            }
+          `}</style>
         </div>
       )}
 
-      {/* FAB */}
-      <button
-        onClick={() => { setOpen((v) => !v); setPanel(null); }}
-        className={`w-14 h-14 rounded-full bg-violet-600 hover:bg-violet-700 text-white shadow-xl flex items-center justify-center transition-all duration-200 ${open ? 'rotate-45' : ''}`}
-        title="Быстрые действия"
-      >
-        <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-        </svg>
-      </button>
-
-      {/* Panels */}
-      {panel === 'search' && <SearchPanel onClose={closePanel} />}
-      {panel === 'task'   && <QuickTaskPanel onClose={closePanel} />}
-      {panel === 'note'   && <NotePanel onClose={closePanel} />}
-      {panel === 'timer'  && <TimerPanel onClose={closePanel} />}
-
-      <style>{`
-        @keyframes fabSlideIn {
-          from { opacity: 0; transform: translateY(8px) scale(0.9); }
-          to   { opacity: 1; transform: translateY(0) scale(1); }
-        }
-      `}</style>
-    </div>
+      {/* Page-specific create modals */}
+      {creatingEntity === 'project'  && <ProjectFormModal  project={null}  onClose={closeCreate} onSaved={handleCreated} />}
+      {creatingEntity === 'task'     && <TaskFormModal     task={null}     onClose={closeCreate} onSaved={handleCreated} />}
+      {creatingEntity === 'employee' && <EmployeeFormModal employee={null} onClose={closeCreate} onSaved={handleCreated} />}
+      {creatingEntity === 'document' && <DocumentFormModal document={null} onClose={closeCreate} onSaved={handleCreated} />}
+      {creatingEntity === 'team'     && <CreateTeamModal                   onClose={closeCreate} onCreated={handleCreated} />}
+    </>
   );
 }
 

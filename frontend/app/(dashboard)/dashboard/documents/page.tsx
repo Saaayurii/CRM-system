@@ -8,6 +8,7 @@ import FilePreviewModal from '@/components/ui/FilePreviewModal';
 import { normalizeFileUrl } from '@/lib/utils';
 import { useDownloadPdf } from '@/lib/hooks/useDownloadPdf';
 import FilterPanel from '@/components/ui/FilterPanel';
+import { FAB_CREATED_EVENT } from '@/components/ui/QuickActionsButton';
 
 interface Document {
   id: number;
@@ -136,6 +137,14 @@ export default function DocumentsPage() {
 
   useEffect(() => {
     fetchDocuments();
+  }, [page, typeFilter, statusFilter, search, projectFilter]);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      if ((e as CustomEvent).detail?.entity === 'document') fetchDocuments();
+    };
+    window.addEventListener(FAB_CREATED_EVENT, handler);
+    return () => window.removeEventListener(FAB_CREATED_EVENT, handler);
   }, [page, typeFilter, statusFilter, search, projectFilter]);
 
   const handleCreate = () => {

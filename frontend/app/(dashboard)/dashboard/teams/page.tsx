@@ -7,6 +7,7 @@ import { useToastStore } from '@/stores/toastStore';
 import CreateTeamModal from '@/components/dashboard/CreateTeamModal';
 import { useDownloadPdf } from '@/lib/hooks/useDownloadPdf';
 import FilterPanel from '@/components/ui/FilterPanel';
+import { FAB_CREATED_EVENT } from '@/components/ui/QuickActionsButton';
 
 interface TeamMember {
   id: number;        // teamMember record ID
@@ -176,6 +177,14 @@ export default function TeamsPage() {
   }, []);
 
   useEffect(() => { fetchTeams(); }, [fetchTeams]);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      if ((e as CustomEvent).detail?.entity === 'team') fetchTeams();
+    };
+    window.addEventListener(FAB_CREATED_EVENT, handler);
+    return () => window.removeEventListener(FAB_CREATED_EVENT, handler);
+  }, [fetchTeams]);
 
   const searchUsers = async (query: string) => {
     setUserSearch(query);
