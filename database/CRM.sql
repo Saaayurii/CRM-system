@@ -8,11 +8,42 @@ CREATE TABLE accounts (
     subdomain VARCHAR(100) UNIQUE,
     settings JSONB DEFAULT '{}',
     status INTEGER DEFAULT 1, -- 0-inactive, 1-active, 2-suspended
+
+    -- Реквизиты юр. лица
+    legal_form VARCHAR(50),         -- ООО / ИП / Самозанятый
+    inn VARCHAR(20),
+    kpp VARCHAR(20),
+    ogrn VARCHAR(20),
+    legal_address TEXT,
+    actual_address TEXT,
+    phone VARCHAR(50),
+    phone_ext VARCHAR(20),
+    email VARCHAR(255),
+    director_user_id INTEGER,       -- FK на users(id), SET NULL при удалении (выставляется ниже после создания users)
+    accountant_user_id INTEGER,
+
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 COMMENT ON TABLE accounts IS 'Организации/компании - мультитенантность';
+
+-- Банковские реквизиты компании (несколько расчётных счетов на компанию)
+CREATE TABLE company_bank_accounts (
+    id SERIAL PRIMARY KEY,
+    account_id INTEGER NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    bank_name VARCHAR(255) NOT NULL,
+    bik VARCHAR(20),
+    settlement_account VARCHAR(50),
+    correspondent_account VARCHAR(50),
+    bank_inn VARCHAR(20),
+    bank_address TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_company_bank_accounts_account_id ON company_bank_accounts(account_id);
+COMMENT ON TABLE company_bank_accounts IS 'Банковские реквизиты (расчётные счета) компании';
 
 CREATE TABLE roles (
     id SERIAL PRIMARY KEY,
@@ -89,6 +120,13 @@ CREATE INDEX idx_users_role ON users(role_id);
 CREATE INDEX idx_users_email ON users(email);
 CREATE UNIQUE INDEX idx_users_email_account_unique ON users(email, account_id) WHERE deleted_at IS NULL;
 CREATE INDEX idx_users_active ON users(account_id, is_active);
+
+-- Привязка accounts.director_user_id / accountant_user_id к users (после создания users)
+ALTER TABLE accounts
+    ADD CONSTRAINT accounts_director_user_id_fkey
+        FOREIGN KEY (director_user_id) REFERENCES users(id) ON DELETE SET NULL,
+    ADD CONSTRAINT accounts_accountant_user_id_fkey
+        FOREIGN KEY (accountant_user_id) REFERENCES users(id) ON DELETE SET NULL;
 
 -- ==========================================
 -- КОМАНДЫ

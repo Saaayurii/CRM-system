@@ -131,4 +131,49 @@ export class UpdateSystemSettingsDto {
   @ApiPropertyOptional({ type: SystemSettingsPayloadDto })
   @IsOptional() @ValidateNested() @Type(() => SystemSettingsPayloadDto)
   settings?: SystemSettingsPayloadDto;
+
+  // ── Company / legal details ───────────────────────
+  @ApiPropertyOptional({ maxLength: 50, description: 'ООО, ИП, Самозанятый, ...' })
+  @IsOptional() @IsString() @MaxLength(50)
+  legalForm?: string;
+
+  @ApiPropertyOptional({ maxLength: 20 })
+  @IsOptional() @IsString() @MaxLength(20)
+  inn?: string;
+
+  @ApiPropertyOptional({ maxLength: 20 })
+  @IsOptional() @IsString() @MaxLength(20)
+  kpp?: string;
+
+  @ApiPropertyOptional({ maxLength: 20 })
+  @IsOptional() @IsString() @MaxLength(20)
+  ogrn?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional() @IsString()
+  legalAddress?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional() @IsString()
+  actualAddress?: string;
+
+  @ApiPropertyOptional({ maxLength: 50 })
+  @IsOptional() @IsString() @MaxLength(50)
+  phone?: string;
+
+  @ApiPropertyOptional({ maxLength: 20 })
+  @IsOptional() @IsString() @MaxLength(20)
+  phoneExt?: string;
+
+  @ApiPropertyOptional({ maxLength: 255 })
+  @IsOptional() @IsString() @MaxLength(255)
+  email?: string;
+
+  @ApiPropertyOptional({ description: 'ID пользователя — генеральный директор' })
+  @IsOptional() @IsInt()
+  directorUserId?: number | null;
+
+  @ApiPropertyOptional({ description: 'ID пользователя — главный бухгалтер' })
+  @IsOptional() @IsInt()
+  accountantUserId?: number | null;
 }

@@ -2,6 +2,8 @@ import {
   Controller,
   Get,
   Put,
+  Post,
+  Delete,
   Body,
   Param,
   Query,
@@ -155,6 +157,59 @@ export class SettingsGatewayController {
         'content-type': 'application/json',
       },
       data: body,
+    });
+  }
+
+  // Company Bank Accounts (CRUD)
+  @Get('company-bank-accounts')
+  @ApiOperation({ summary: 'List company bank accounts' })
+  async listCompanyBankAccounts(@Req() req: Request) {
+    return this.proxyService.forward('settings', {
+      method: 'GET',
+      path: '/company-bank-accounts',
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  @Post('company-bank-accounts')
+  @ApiOperation({ summary: 'Create company bank account' })
+  async createCompanyBankAccount(@Req() req: Request, @Body() body: any) {
+    return this.proxyService.forward('settings', {
+      method: 'POST',
+      path: '/company-bank-accounts',
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Put('company-bank-accounts/:id')
+  @ApiOperation({ summary: 'Update company bank account' })
+  async updateCompanyBankAccount(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
+    return this.proxyService.forward('settings', {
+      method: 'PUT',
+      path: `/company-bank-accounts/${id}`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Delete('company-bank-accounts/:id')
+  @ApiOperation({ summary: 'Delete company bank account' })
+  async deleteCompanyBankAccount(@Req() req: Request, @Param('id') id: string) {
+    return this.proxyService.forward('settings', {
+      method: 'DELETE',
+      path: `/company-bank-accounts/${id}`,
+      headers: { authorization: req.headers.authorization || '' },
     });
   }
 }

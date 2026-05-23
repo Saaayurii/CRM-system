@@ -13,10 +13,43 @@ model Account {
   subdomain String?  @unique @db.VarChar(100)
   settings  Json     @default("{}")
   status    Int      @default(1)
+
+  legalForm        String?  @map("legal_form")        @db.VarChar(50)
+  inn              String?  @db.VarChar(20)
+  kpp              String?  @db.VarChar(20)
+  ogrn             String?  @db.VarChar(20)
+  legalAddress     String?  @map("legal_address")
+  actualAddress    String?  @map("actual_address")
+  phone            String?  @db.VarChar(50)
+  phoneExt         String?  @map("phone_ext")         @db.VarChar(20)
+  email            String?  @db.VarChar(255)
+  directorUserId   Int?     @map("director_user_id")
+  accountantUserId Int?     @map("accountant_user_id")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
 
+  bankAccounts CompanyBankAccount[]
+
   @@map("accounts")
+}
+
+model CompanyBankAccount {
+  id                   Int      @id @default(autoincrement())
+  accountId            Int      @map("account_id")
+  bankName             String   @map("bank_name")             @db.VarChar(255)
+  bik                  String?  @db.VarChar(20)
+  settlementAccount    String?  @map("settlement_account")    @db.VarChar(50)
+  correspondentAccount String?  @map("correspondent_account") @db.VarChar(50)
+  bankInn              String?  @map("bank_inn")              @db.VarChar(20)
+  bankAddress          String?  @map("bank_address")
+  createdAt            DateTime @default(now())               @map("created_at")
+  updatedAt            DateTime @default(now()) @updatedAt    @map("updated_at")
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
+  @@map("company_bank_accounts")
 }
 
 model User {

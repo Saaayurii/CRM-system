@@ -8,21 +8,50 @@ const SELECT = {
   subdomain: true,
   settings: true,
   status: true,
+  legalForm: true,
+  inn: true,
+  kpp: true,
+  ogrn: true,
+  legalAddress: true,
+  actualAddress: true,
+  phone: true,
+  phoneExt: true,
+  email: true,
+  directorUserId: true,
+  accountantUserId: true,
 };
+
+const SCALAR_FIELDS: (keyof UpdateSystemSettingsDto)[] = [
+  'legalForm',
+  'inn',
+  'kpp',
+  'ogrn',
+  'legalAddress',
+  'actualAddress',
+  'phone',
+  'phoneExt',
+  'email',
+  'directorUserId',
+  'accountantUserId',
+];
 
 @Injectable()
 export class SystemSettingsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async findByAccountId(accountId: number) {
-    return (this.prisma as any).account.findUnique({
+    const account = await (this.prisma as any).account.findUnique({
       where: { id: accountId },
-      select: SELECT,
+      select: { ...SELECT, bankAccounts: { orderBy: { id: 'asc' } } },
     });
+    return account;
   }
 
   async update(accountId: number, dto: UpdateSystemSettingsDto) {
-    const current = await this.findByAccountId(accountId);
+    const current = await (this.prisma as any).account.findUnique({
+      where: { id: accountId },
+      select: { settings: true },
+    });
     const currentSettings = (current?.settings as Record<string, unknown>) ?? {};
 
     const updateData: Record<string, unknown> = {};
@@ -32,14 +61,21 @@ export class SystemSettingsRepository {
     }
 
     if (dto.settings !== undefined) {
-      // Merge new settings into existing JSONB — no field is lost on partial update
       updateData.settings = { ...currentSettings, ...dto.settings };
     }
 
-    return (this.prisma as any).account.update({
+    for (const field of SCALAR_FIELDS) {
+      const value = dto[field];
+      if (value !== undefined) {
+        updateData[field] = value === '' ? null : value;
+      }
+    }
+
+    await (this.prisma as any).account.update({
       where: { id: accountId },
       data: updateData,
-      select: SELECT,
     });
+
+    return this.findByAccountId(accountId);
   }
 }
