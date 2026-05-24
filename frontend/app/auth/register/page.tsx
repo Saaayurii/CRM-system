@@ -32,6 +32,8 @@ const COUNTRIES = [
 function RegisterForm() {
   const searchParams = useSearchParams();
   const inviteRef = searchParams.get('ref') ?? '';
+  const prefilledName = searchParams.get('name') ?? '';
+  const prefilledPhone = searchParams.get('phone') ?? '';
 
   // Invite validation state
   const [inviteState, setInviteState] = useState<'idle' | 'checking' | 'valid' | 'invalid'>('idle');
@@ -39,9 +41,9 @@ function RegisterForm() {
   const [inviteError, setInviteError] = useState('');
 
   const [companyName, setCompanyName] = useState('');
-  const [name, setName] = useState('');
+  const [name, setName] = useState(prefilledName);
   const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
+  const [phone, setPhone] = useState(prefilledPhone);
   const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0]);
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
   const [countrySearch, setCountrySearch] = useState('');
