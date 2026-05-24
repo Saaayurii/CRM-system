@@ -24,6 +24,10 @@ interface CrudPageProps {
     row: Record<string, unknown>,
     refetch: () => void,
   ) => void;
+  /** Если true — внутренний `<h1>` с config.title не отображается (для табов, где заголовок уже в табе). */
+  hideTitle?: boolean;
+  /** Если задан — клик по строке вызывает этот обработчик вместо открытия модалки редактирования. */
+  onRowClick?: (row: Record<string, unknown>) => void;
 }
 
 interface Assignee {
@@ -31,7 +35,7 @@ interface Assignee {
   userName?: string;
 }
 
-export default function CrudPage({ config, onExtraAction }: CrudPageProps) {
+export default function CrudPage({ config, onExtraAction, hideTitle, onRowClick }: CrudPageProps) {
   const crud = useCrudData<Record<string, unknown>>({ apiEndpoint: config.apiEndpoint, prepareCreate: config.prepareCreate, prepareUpdate: config.prepareUpdate });
   const addToast = useToastStore((s) => s.addToast);
   const [pdfLoading, setPdfLoading] = useState<number | null>(null);
@@ -173,8 +177,9 @@ export default function CrudPage({ config, onExtraAction }: CrudPageProps) {
   return (
     <ErrorBoundary>
       <div>
+        {(!hideTitle || config.hasPdf) && (
         <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-gray-100">{config.title}</h1>
+          {hideTitle ? <div /> : <h1 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-gray-100">{config.title}</h1>}
           {config.hasPdf && (
             <button
               onClick={handleDownloadListPdf}
@@ -189,6 +194,7 @@ export default function CrudPage({ config, onExtraAction }: CrudPageProps) {
             </button>
           )}
         </div>
+        )}
 
         <DataTable
           columns={config.columns}
@@ -202,6 +208,7 @@ export default function CrudPage({ config, onExtraAction }: CrudPageProps) {
           onSearch={crud.setSearch}
           onSort={crud.setSort}
           onEdit={config.canEdit !== false ? handleEdit : undefined}
+          onRowClick={onRowClick}
           onDelete={config.canDelete !== false ? ((row) => setDeleteItem(row)) : undefined}
           onCreate={config.canCreate !== false ? handleCreate : undefined}
           canCreate={config.canCreate !== false}

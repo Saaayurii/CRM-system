@@ -26,6 +26,8 @@ interface DataTableProps<T extends Record<string, unknown>> {
   customRowActions?: { key: string; label: string; title?: string }[];
   onCustomAction?: (actionKey: string, row: T) => void;
   loadingRowId?: number | null;
+  /** Если задан — клик по строке вызывает этот обработчик вместо onEdit. */
+  onRowClick?: (row: T) => void;
 }
 
 export default function DataTable<T extends Record<string, unknown>>({
@@ -48,6 +50,7 @@ export default function DataTable<T extends Record<string, unknown>>({
   customRowActions,
   onCustomAction,
   loadingRowId,
+  onRowClick,
 }: DataTableProps<T>) {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortKey, setSortKey] = useState<string | null>(null);
@@ -105,7 +108,7 @@ export default function DataTable<T extends Record<string, unknown>>({
   return (
     <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl overflow-hidden">
       {/* Toolbar */}
-      <div className="sticky top-16 z-10 bg-white dark:bg-gray-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-100 dark:border-gray-700/60">
+      <div className="bg-white dark:bg-gray-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-100 dark:border-gray-700/60">
         <div className="relative">
           <input
             type="search"
@@ -195,8 +198,10 @@ export default function DataTable<T extends Record<string, unknown>>({
                   </td>
                 </tr>
               ) : (
-                data.map((row, idx) => (
-                  <tr key={(row.id as string | number) || idx} className={`hover:bg-gray-50 dark:hover:bg-gray-900/20 ${onEdit ? 'cursor-pointer' : ''}`} onClick={() => onEdit?.(row)}>
+                data.map((row, idx) => {
+                  const rowHandler = onRowClick ?? onEdit;
+                  return (
+                  <tr key={(row.id as string | number) || idx} className={`hover:bg-gray-50 dark:hover:bg-gray-900/20 ${rowHandler ? 'cursor-pointer' : ''}`} onClick={rowHandler ? () => rowHandler(row) : undefined}>
                     {columns.map((col) => (
                       <td key={col.key} className="py-2.5 px-4 text-gray-800 dark:text-gray-100 max-w-[220px]">
                         <div className="truncate">{renderCellValue(col, row)}</div>
@@ -245,7 +250,8 @@ export default function DataTable<T extends Record<string, unknown>>({
                       </td>
                     )}
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import CrudPage from '@/components/admin/CrudPage';
 import { ADMIN_MODULES } from '@/lib/admin/modulesConfig';
 import WarehousesTab from '@/components/warehouse/WarehousesTab';
@@ -21,6 +22,7 @@ const TABS = [
 type TabKey = typeof TABS[number]['key'];
 
 export default function WarehousePage() {
+  const router = useRouter();
   const [tab, setTab] = useState<TabKey>(() => {
     if (typeof window !== 'undefined') {
       const v = localStorage.getItem('warehouseTab');
@@ -28,15 +30,15 @@ export default function WarehousePage() {
     }
     return 'warehouses';
   });
-  const [qrFor, setQrFor]     = useState<any>(null);
-  const [moveFor, setMoveFor] = useState<{ row: any; refetch: () => void } | null>(null);
+  const [qrFor, setQrFor]     = useState<Record<string, unknown> | null>(null);
+  const [moveFor, setMoveFor] = useState<{ row: Record<string, unknown>; refetch: () => void } | null>(null);
 
   const handleTab = (k: TabKey) => {
     setTab(k);
     if (typeof window !== 'undefined') localStorage.setItem('warehouseTab', k);
   };
 
-  const handleExtraAction = (key: string, row: any, refetch: () => void) => {
+  const handleExtraAction = (key: string, row: Record<string, unknown>, refetch: () => void) => {
     if (key === 'qr')   setQrFor(row);
     if (key === 'move') setMoveFor({ row, refetch });
   };
@@ -74,15 +76,27 @@ export default function WarehousePage() {
       </div>
 
       {tab === 'warehouses' && <WarehousesTab />}
-      {tab === 'equipment'  && <CrudPage config={ADMIN_MODULES.equipment} onExtraAction={handleExtraAction} />}
-      {tab === 'materials'  && <CrudPage config={ADMIN_MODULES.materials} />}
+      {tab === 'equipment'  && (
+        <CrudPage
+          config={ADMIN_MODULES.equipment}
+          hideTitle
+          onExtraAction={handleExtraAction}
+          onRowClick={(row) => router.push(`/dashboard/warehouse/equipment/${row.id}`)}
+        />
+      )}
+      {tab === 'materials'  && <CrudPage config={ADMIN_MODULES.materials} hideTitle />}
       {tab === 'inventory'  && <InventoryTab />}
       {tab === 'movements'  && <MovementsTab />}
 
-      {qrFor && <EquipmentQRModal equipment={qrFor} onClose={() => setQrFor(null)} />}
+      {qrFor && (
+        <EquipmentQRModal
+          equipment={qrFor as unknown as { id: number; name: string }}
+          onClose={() => setQrFor(null)}
+        />
+      )}
       {moveFor && (
         <EquipmentMoveModal
-          equipment={moveFor.row}
+          equipment={moveFor.row as unknown as { id: number; name: string }}
           onClose={() => setMoveFor(null)}
           onMoved={() => moveFor.refetch()}
         />
