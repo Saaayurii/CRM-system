@@ -4,11 +4,15 @@ import { useState, useRef, useCallback, KeyboardEvent, useEffect, useMemo } from
 import { createPortal } from 'react-dom';
 import dynamic from 'next/dynamic';
 import { useChatStore, UploadedAttachment } from '@/stores/chatStore';
+import { useToastStore } from '@/stores/toastStore';
 import api from '@/lib/api';
 
 const TaskFormModal = dynamic(() => import('@/components/dashboard/TaskFormModal'), { ssr: false });
 
 const SLASH_TASK_RE = /^\/task(?:\s+([\s\S]*))?$/;
+// Бот-ввод: распознаём «в инпуте только чип задачи» и триггер #new / #нов*
+const SINGLE_CHIP_RE = /^\s*#\[([^\]]+)\]\(task:(\d+)\|(\d+)\|(\d+)\|([^)]*)\)\s*$/;
+const NEW_TASK_TRIGGER_RE = /^\s*#(?:new|нов\w*)\s*$/i;
 
 const MAX_FILE_SIZE = 1 * 1024 * 1024 * 1024;
 const CHUNK_SIZE = 4 * 1024 * 1024;
@@ -171,7 +175,7 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
   const [activeCategory, setActiveCategory] = useState(0);
 
   const [isDraft, setIsDraft] = useState(() => {
-    try { return !!localStorage.getItem(DRAFT_KEY(channelId)); } catch { return false; }
+    try { return !!localStorage.getItem(DRAFT_KEY(channelId))?.trim(); } catch { return false; }
   });
 
   const [tasks, setTasks] = useState<{ id: number; title: string; status: number; priority: number; dueDate: string }[]>([]);
@@ -182,6 +186,22 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
 
   const [showTaskCreateModal, setShowTaskCreateModal] = useState(false);
   const [taskCreateInitialTitle, setTaskCreateInitialTitle] = useState('');
+
+  // ── Бот-визард (#задача → меню → подзадача/комментарий; #new → меню → создать задачу) ──
+  type WizardTaskRef = { taskId: number; taskTitle: string; status: number; priority: number; dueDate: string };
+  type Wizard =
+    | ({ kind: 'action-menu' } & WizardTaskRef)
+    | { kind: 'new-menu' }
+    | ({ kind: 'subtask' } & WizardTaskRef)
+    | ({ kind: 'comment' } & WizardTaskRef);
+  const [wizard, setWizard] = useState<Wizard | null>(null);
+  const [wizardMenuIdx, setWizardMenuIdx] = useState(0);
+  const [wizardSubmitting, setWizardSubmitting] = useState(false);
+  const wizardRef = useRef<Wizard | null>(null);
+  wizardRef.current = wizard;
+  const wizardMenuIdxRef = useRef(0);
+  wizardMenuIdxRef.current = wizardMenuIdx;
+  const addToast = useToastStore((s) => s.addToast);
 
 
   const [members, setMembers] = useState<{ id: number; name: string; avatarUrl?: string }[]>([]);
@@ -257,10 +277,11 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
     if (!el) return;
     try {
       const saved = localStorage.getItem(DRAFT_KEY(channelId)) ?? '';
-      setText(saved);
-      setIsDraft(!!saved);
-      renderMarkdownInEditor(el, saved);
-      if (saved) {
+      const hasContent = !!saved.trim();
+      setText(hasContent ? saved : '');
+      setIsDraft(hasContent);
+      renderMarkdownInEditor(el, hasContent ? saved : '');
+      if (hasContent) {
         // Move cursor to end
         requestAnimationFrame(() => {
           const range = document.createRange();
@@ -278,7 +299,7 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
   useEffect(() => {
     const timer = setTimeout(() => {
       try {
-        if (text) localStorage.setItem(DRAFT_KEY(channelId), text);
+        if (text.trim()) localStorage.setItem(DRAFT_KEY(channelId), text);
         else localStorage.removeItem(DRAFT_KEY(channelId));
       } catch { /* ignore */ }
     }, 400);
@@ -756,10 +777,104 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
     clearEditor();
   }, [channelId, sendMessage, replyToMessage, clearEditor]);
 
+  // ── Wizard handlers ─────────────────────────────────────────────────────
+  const closeWizard = useCallback(() => {
+    setWizard(null);
+    setWizardMenuIdx(0);
+    clearEditor();
+  }, [clearEditor]);
+
+  const pickWizardAction = useCallback((action: 'subtask' | 'comment') => {
+    const w = wizardRef.current;
+    if (!w || w.kind !== 'action-menu') return;
+    setWizard({ kind: action, taskId: w.taskId, taskTitle: w.taskTitle, status: w.status, priority: w.priority, dueDate: w.dueDate });
+    setWizardMenuIdx(0);
+    clearEditor();
+    requestAnimationFrame(() => editorRef.current?.focus());
+  }, [clearEditor]);
+
+  const submitWizardSubtask = useCallback(async (title: string) => {
+    const w = wizardRef.current;
+    if (!w || w.kind !== 'subtask') return;
+    const trimmed = title.trim();
+    if (!trimmed) { addToast('error', 'Введите название подзадачи'); return; }
+    setWizardSubmitting(true);
+    try {
+      const res = await api.post('/tasks', {
+        title: trimmed,
+        projectId: projectId ?? null,
+        parentTaskId: w.taskId,
+        status: 0,
+        priority: 2,
+      });
+      const created = res.data;
+      sendTaskCardMessage({
+        id: Number(created.id),
+        title: created.title ?? trimmed,
+        description: created.description ?? null,
+        status: Number(created.status ?? 0),
+        priority: Number(created.priority ?? 2),
+        dueDate: created.dueDate ?? null,
+        projectId: projectId ?? null,
+        assignees: [],
+      });
+      addToast('success', `Подзадача создана к «${w.taskTitle}»`);
+      setWizard(null);
+      setWizardMenuIdx(0);
+    } catch (e) {
+      const msg = (e as { response?: { data?: { message?: string | string[] } } })?.response?.data?.message;
+      addToast('error', Array.isArray(msg) ? msg.join(', ') : (msg || 'Не удалось создать подзадачу'));
+    } finally {
+      setWizardSubmitting(false);
+    }
+  }, [projectId, sendTaskCardMessage, addToast]);
+
+  const submitWizardComment = useCallback(async (text: string) => {
+    const w = wizardRef.current;
+    if (!w || w.kind !== 'comment') return;
+    const trimmed = text.trim();
+    if (!trimmed) { addToast('error', 'Введите текст комментария'); return; }
+    setWizardSubmitting(true);
+    try {
+      await api.post('/task-comments', { taskId: w.taskId, commentText: trimmed });
+      // Сообщение в чат: упоминание задачи + сам комментарий
+      const mention = `#[${w.taskTitle}](task:${w.taskId}|${w.status}|${w.priority}|${w.dueDate ?? ''})`;
+      sendMessage(channelId, `💬 ${mention} ${trimmed}`, undefined, replyToMessage?.id);
+      addToast('success', `Комментарий добавлен к «${w.taskTitle}»`);
+      setWizard(null);
+      setWizardMenuIdx(0);
+      clearEditor();
+    } catch (e) {
+      const msg = (e as { response?: { data?: { message?: string | string[] } } })?.response?.data?.message;
+      addToast('error', Array.isArray(msg) ? msg.join(', ') : (msg || 'Не удалось добавить комментарий'));
+    } finally {
+      setWizardSubmitting(false);
+    }
+  }, [channelId, sendMessage, replyToMessage, clearEditor, addToast]);
+
+  // Open «#new → Создать задачу» — reuse existing TaskFormModal
+  const pickNewMenuCreateTask = useCallback(() => {
+    setWizard(null);
+    setWizardMenuIdx(0);
+    clearEditor();
+    setTaskCreateInitialTitle('');
+    setShowTaskCreateModal(true);
+  }, [clearEditor]);
+
   const handleSend = useCallback(async () => {
     const el = editorRef.current;
     const raw = el ? serializeEditor(el) : text;
     const trimmed = raw.trim();
+
+    // Wizard режим: маршрутизируем submit в нужный обработчик
+    const w = wizardRef.current;
+    if (w?.kind === 'subtask') { submitWizardSubtask(raw); return; }
+    if (w?.kind === 'comment') { submitWizardComment(raw); return; }
+    if (w?.kind === 'action-menu') {
+      pickWizardAction(wizardMenuIdxRef.current === 0 ? 'subtask' : 'comment');
+      return;
+    }
+    if (w?.kind === 'new-menu') { pickNewMenuCreateTask(); return; }
 
     // Slash command: /task → open TaskFormModal instead of sending text
     const slashMatch = !editingMessage && projectId ? trimmed.match(SLASH_TASK_RE) : null;
@@ -810,9 +925,58 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
     xhrMapRef.current.clear();
     stopTyping(channelId);
     setIsSending(false);
-  }, [text, channelId, pendingFiles, sendMessage, editMessage, editingMessage, setEditingMessage, clearEditor, stopTyping, replyToMessage, uploadFileWithProgress, onFilesSent, projectId, openTaskCreateModal, decorateAttachments]);
+  }, [text, channelId, pendingFiles, sendMessage, editMessage, editingMessage, setEditingMessage, clearEditor, stopTyping, replyToMessage, uploadFileWithProgress, onFilesSent, projectId, openTaskCreateModal, decorateAttachments, pickNewMenuCreateTask, pickWizardAction, submitWizardComment, submitWizardSubtask]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent<HTMLDivElement>) => {
+    // ── Wizard режим: Enter → меню / submit подзадачи или комментария ──
+    const w = wizardRef.current;
+    if (w) {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closeWizard();
+        return;
+      }
+      // Меню выбора действия — ArrowUp/Down + Enter
+      if (w.kind === 'action-menu') {
+        const total = 2; // 0 — подзадача, 1 — комментарий
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          const next = Math.min(wizardMenuIdxRef.current + 1, total - 1);
+          setWizardMenuIdx(next);
+          return;
+        }
+        if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          const next = Math.max(wizardMenuIdxRef.current - 1, 0);
+          setWizardMenuIdx(next);
+          return;
+        }
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          pickWizardAction(wizardMenuIdxRef.current === 0 ? 'subtask' : 'comment');
+          return;
+        }
+        // Любой другой ввод выходит из меню (вернёт к обычному вводу с упоминанием)
+      }
+      if (w.kind === 'new-menu') {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          pickNewMenuCreateTask();
+          return;
+        }
+      }
+      if (w.kind === 'subtask' || w.kind === 'comment') {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          const el = editorRef.current;
+          const raw = el ? serializeEditor(el) : text;
+          if (w.kind === 'subtask') submitWizardSubtask(raw);
+          else submitWizardComment(raw);
+          return;
+        }
+      }
+    }
+
     // User mention picker has priority
     const userPickerOpen = showUserPickerRef.current;
     const userMentions = filteredUserMentionsRef.current;
@@ -876,10 +1040,33 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
       }
     }
     if (e.key === 'Enter' && !e.shiftKey) {
+      // ── Триггеры визарда: чип задачи в одиночку / #new ──
+      const el = editorRef.current;
+      const raw = el ? serializeEditor(el) : text;
+      const chipMatch = raw.match(SINGLE_CHIP_RE);
+      if (chipMatch) {
+        e.preventDefault();
+        setWizard({
+          kind: 'action-menu',
+          taskId: Number(chipMatch[2]),
+          taskTitle: chipMatch[1],
+          status: Number(chipMatch[3]),
+          priority: Number(chipMatch[4]),
+          dueDate: chipMatch[5] ?? '',
+        });
+        setWizardMenuIdx(0);
+        return;
+      }
+      if (projectId && NEW_TASK_TRIGGER_RE.test(raw)) {
+        e.preventDefault();
+        setWizard({ kind: 'new-menu' });
+        setWizardMenuIdx(0);
+        return;
+      }
       e.preventDefault();
       handleSend();
     }
-  }, [insertUserMention, insertTaskMention, handleSend]);
+  }, [insertUserMention, insertTaskMention, handleSend, text, projectId, pickWizardAction, pickNewMenuCreateTask, submitWizardSubtask, submitWizardComment, closeWizard]);
 
   const handleInput = useCallback(() => {
     const el = editorRef.current;
@@ -889,6 +1076,16 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
     if (isDraft) setIsDraft(false);
     startTyping(channelId);
     detectMention();
+    // Закрываем меню-действия, если контент инпута уже не подходит под триггер
+    const w = wizardRef.current;
+    if (w?.kind === 'action-menu' && !SINGLE_CHIP_RE.test(md)) {
+      setWizard(null);
+      setWizardMenuIdx(0);
+    }
+    if (w?.kind === 'new-menu' && !NEW_TASK_TRIGGER_RE.test(md)) {
+      setWizard(null);
+      setWizardMenuIdx(0);
+    }
   }, [isDraft, channelId, startTyping, detectMention]);
 
   const handlePaste = useCallback((e: React.ClipboardEvent<HTMLDivElement>) => {
@@ -1390,7 +1587,7 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
       )}
 
       {/* Draft indicator */}
-      {isDraft && text && (
+      {isDraft && text.trim() && (
         <div className="flex items-center gap-1.5 mb-2 px-1">
           <svg className="w-3 h-3 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -1412,6 +1609,96 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
           <button
             onClick={() => { setEditingMessage(null); clearEditor(); }}
             className="shrink-0 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
+
+      {/* Bot-wizard: меню действий после Enter на одиноком чипе #задача */}
+      {wizard?.kind === 'action-menu' && (
+        <div className="mb-2 px-3 py-2 bg-violet-50 dark:bg-violet-900/20 rounded-lg border-l-2 border-violet-500">
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <p className="text-xs font-medium text-violet-600 dark:text-violet-400 truncate">
+              Действие с задачей «{wizard.taskTitle}»
+            </p>
+            <button
+              type="button"
+              onClick={closeWizard}
+              className="shrink-0 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              title="Отмена (Esc)"
+            >Esc</button>
+          </div>
+          <div className="flex flex-col gap-1">
+            {[
+              { label: 'Добавить подзадачу', action: 'subtask' as const, icon: '➕' },
+              { label: 'Добавить комментарий', action: 'comment' as const, icon: '💬' },
+            ].map((opt, idx) => (
+              <button
+                key={opt.action}
+                type="button"
+                onClick={() => pickWizardAction(opt.action)}
+                onMouseEnter={() => setWizardMenuIdx(idx)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-left transition-colors ${
+                  wizardMenuIdx === idx
+                    ? 'bg-violet-500 text-white'
+                    : 'text-gray-700 dark:text-gray-200 hover:bg-violet-100 dark:hover:bg-violet-900/40'
+                }`}
+              >
+                <span>{opt.icon}</span>
+                <span className="flex-1">{opt.label}</span>
+                {wizardMenuIdx === idx && <span className="text-xs opacity-70">↵</span>}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Bot-wizard: меню после #new */}
+      {wizard?.kind === 'new-menu' && (
+        <div className="mb-2 px-3 py-2 bg-violet-50 dark:bg-violet-900/20 rounded-lg border-l-2 border-violet-500">
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <p className="text-xs font-medium text-violet-600 dark:text-violet-400">Что создать?</p>
+            <button
+              type="button"
+              onClick={closeWizard}
+              className="shrink-0 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              title="Отмена (Esc)"
+            >Esc</button>
+          </div>
+          <div className="flex flex-col gap-1">
+            <button
+              type="button"
+              onClick={pickNewMenuCreateTask}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-left bg-violet-500 text-white"
+            >
+              <span>➕</span>
+              <span className="flex-1">Создать задачу</span>
+              <span className="text-xs opacity-70">↵</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Bot-wizard: ввод подзадачи или комментария */}
+      {(wizard?.kind === 'subtask' || wizard?.kind === 'comment') && (
+        <div className="flex items-center gap-2 mb-2 px-3 py-2 bg-violet-50 dark:bg-violet-900/20 rounded-lg border-l-2 border-violet-500">
+          <span className="shrink-0 text-base">{wizard.kind === 'subtask' ? '➕' : '💬'}</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium text-violet-600 dark:text-violet-400">
+              {wizard.kind === 'subtask' ? 'Подзадача к задаче' : 'Комментарий к задаче'} «{wizard.taskTitle}»
+            </p>
+            <p className="text-[11px] text-gray-500 dark:text-gray-400">
+              {wizardSubmitting ? 'Отправка…' : 'Введите текст и нажмите Enter. Esc — отмена.'}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={closeWizard}
+            className="shrink-0 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            title="Отмена (Esc)"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1638,7 +1925,13 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
               onInput={handleInput}
               onKeyDown={handleKeyDown}
               onPaste={handlePaste}
-              data-placeholder={projectId ? 'Сообщение... (# задача, @ упоминание)' : 'Сообщение'}
+              data-placeholder={
+                wizard?.kind === 'subtask'
+                  ? 'Название подзадачи…'
+                  : wizard?.kind === 'comment'
+                    ? 'Текст комментария…'
+                    : projectId ? 'Сообщение... (# задача, @ упоминание, #new)' : 'Сообщение'
+              }
               className={`w-full py-2 pl-3 pr-9 bg-gray-100 dark:bg-gray-700 border-0 rounded-xl text-sm text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-violet-500 focus:outline-none overflow-y-auto min-h-[38px] max-h-[120px] break-words leading-relaxed ${isSending ? 'opacity-50 cursor-not-allowed' : ''}`}
             />
             {/* Emoji button inside the input */}
