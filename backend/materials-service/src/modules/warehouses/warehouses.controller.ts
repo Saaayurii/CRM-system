@@ -123,6 +123,28 @@ export class WarehousesController {
   }
 
   // Warehouse Movements
+  @Get('warehouse-movements')
+  @ApiOperation({ summary: 'List warehouse movements' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'warehouseId', required: false, type: Number })
+  @ApiQuery({ name: 'materialId', required: false, type: Number })
+  async findAllMovements(
+    @CurrentUser() user: RequestUser,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('warehouseId') warehouseId?: number,
+    @Query('materialId') materialId?: number,
+  ) {
+    return this.warehousesService.findAllMovements(
+      user.accountId,
+      page ? Number(page) : 1,
+      limit ? Number(limit) : 50,
+      warehouseId ? Number(warehouseId) : undefined,
+      materialId ? Number(materialId) : undefined,
+    );
+  }
+
   @Post('warehouse-movements')
   @ApiOperation({ summary: 'Create warehouse movement' })
   @ApiResponse({

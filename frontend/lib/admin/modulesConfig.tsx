@@ -535,6 +535,10 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
       { key: 'purchaseCost', label: 'Стоимость (₽)', type: 'number' },
       { key: 'notes', label: 'Заметки', type: 'textarea' },
     ],
+    customRowActions: [
+      { key: 'qr',   label: 'QR', title: 'Показать QR-код' },
+      { key: 'move', label: '→',  title: 'Переместить на другой склад' },
+    ],
   },
   suppliers: {
     slug: 'suppliers',

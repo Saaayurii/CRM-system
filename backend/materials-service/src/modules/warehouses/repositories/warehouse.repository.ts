@@ -107,6 +107,49 @@ export class WarehouseRepository {
   }
 
   // Warehouse Movements
+  async findAllMovements(
+    accountId: number,
+    options?: { skip?: number; take?: number; warehouseId?: number; materialId?: number },
+  ) {
+    const where: any = { accountId };
+    if (options?.warehouseId !== undefined) {
+      where.OR = [
+        { warehouseId: options.warehouseId },
+        { fromWarehouseId: options.warehouseId },
+        { toWarehouseId: options.warehouseId },
+      ];
+    }
+    if (options?.materialId !== undefined) where.materialId = options.materialId;
+
+    return (this.prisma as any).warehouseMovement.findMany({
+      where,
+      include: {
+        warehouse: { select: { id: true, name: true, code: true } },
+        material: { select: { id: true, name: true, code: true, unit: true } },
+        fromWarehouse: { select: { id: true, name: true, code: true } },
+        toWarehouse: { select: { id: true, name: true, code: true } },
+        performedBy: { select: { id: true, name: true, email: true } },
+        receivedBy: { select: { id: true, name: true, email: true } },
+      },
+      skip: options?.skip,
+      take: options?.take,
+      orderBy: { movementDate: 'desc' },
+    });
+  }
+
+  async countMovements(accountId: number, warehouseId?: number, materialId?: number) {
+    const where: any = { accountId };
+    if (warehouseId !== undefined) {
+      where.OR = [
+        { warehouseId },
+        { fromWarehouseId: warehouseId },
+        { toWarehouseId: warehouseId },
+      ];
+    }
+    if (materialId !== undefined) where.materialId = materialId;
+    return (this.prisma as any).warehouseMovement.count({ where });
+  }
+
   async createMovement(data: CreateWarehouseMovementDto) {
     return (this.prisma as any).warehouseMovement.create({
       data: {

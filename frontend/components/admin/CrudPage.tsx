@@ -14,6 +14,16 @@ import ErrorBoundary from './ErrorBoundary';
 
 interface CrudPageProps {
   config: CrudModuleConfig;
+  /**
+   * Optional handler for actions that aren't recognised by built-in keys
+   * ('assign' | 'members' | 'pdf'). Receives a `refetch` callback so the
+   * caller can refresh the table after performing the action.
+   */
+  onExtraAction?: (
+    actionKey: string,
+    row: Record<string, unknown>,
+    refetch: () => void,
+  ) => void;
 }
 
 interface Assignee {
@@ -21,7 +31,7 @@ interface Assignee {
   userName?: string;
 }
 
-export default function CrudPage({ config }: CrudPageProps) {
+export default function CrudPage({ config, onExtraAction }: CrudPageProps) {
   const crud = useCrudData<Record<string, unknown>>({ apiEndpoint: config.apiEndpoint, prepareCreate: config.prepareCreate, prepareUpdate: config.prepareUpdate });
   const addToast = useToastStore((s) => s.addToast);
   const [pdfLoading, setPdfLoading] = useState<number | null>(null);
@@ -122,6 +132,11 @@ export default function CrudPage({ config }: CrudPageProps) {
     if (actionKey === 'members') {
       setMembersTeamId(row.id as number);
       setMembersOpen(true);
+      return;
+    }
+
+    if (onExtraAction && actionKey !== 'assign' && actionKey !== 'members' && actionKey !== 'pdf') {
+      onExtraAction(actionKey, row, () => crud.refetch?.());
       return;
     }
 

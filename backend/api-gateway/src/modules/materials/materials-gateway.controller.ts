@@ -340,6 +340,27 @@ export class MaterialsGatewayController {
   }
 
   // Warehouse Movements
+  @Get('warehouse-movements')
+  @ApiOperation({ summary: 'List warehouse movements' })
+  @ApiQuery({ name: 'page', required: false })
+  @ApiQuery({ name: 'limit', required: false })
+  @ApiQuery({ name: 'warehouseId', required: false })
+  @ApiQuery({ name: 'materialId', required: false })
+  async findAllMovements(
+    @Req() req: Request,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('warehouseId') warehouseId?: number,
+    @Query('materialId') materialId?: number,
+  ) {
+    return this.proxyService.forward('materials', {
+      method: 'GET',
+      path: '/warehouse-movements',
+      headers: { authorization: req.headers.authorization || '' },
+      params: { page, limit, warehouseId, materialId },
+    });
+  }
+
   @Post('warehouse-movements')
   @ApiOperation({ summary: 'Create warehouse movement' })
   async createMovement(@Req() req: Request, @Body() body: any) {

@@ -200,6 +200,14 @@ function IconSettings() {
     </svg>
   );
 }
+function IconWarehouse() {
+  return (
+    <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 9.75 12 4l9 5.75V20a1 1 0 0 1-1 1h-4v-7H8v7H4a1 1 0 0 1-1-1V9.75Z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8 14h8M8 17h8" />
+    </svg>
+  );
+}
 function IconHRDocs() {
   return (
     <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
@@ -682,6 +690,16 @@ export default function Sidebar() {
                   <NavLink href="/dashboard/finance" className={linkCls(pathname.startsWith('/dashboard/finance'))}>
                     <IconFinance />
                     <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Финансы</span>
+                  </NavLink>
+                </li>
+              )}
+
+              {/* Warehouse — для admin/super_admin/PM/foreman/warehouse_keeper */}
+              {(isSuperAdmin || isAdmin || isPM || isForeman || isWarehouse) && (
+                <li className="mb-1 last:mb-0">
+                  <NavLink href="/dashboard/warehouse" className={linkCls(pathname === '/dashboard/warehouse' || pathname.startsWith('/dashboard/warehouse'))}>
+                    <IconWarehouse />
+                    <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Склад</span>
                   </NavLink>
                 </li>
               )}

@@ -110,17 +110,33 @@ export class WarehousesService {
   }
 
   // Warehouse Movements
+  async findAllMovements(
+    accountId: number,
+    page: number = 1,
+    limit: number = 50,
+    warehouseId?: number,
+    materialId?: number,
+  ) {
+    const skip = (page - 1) * limit;
+    const [movements, total] = await Promise.all([
+      this.warehouseRepository.findAllMovements(accountId, {
+        skip,
+        take: limit,
+        warehouseId,
+        materialId,
+      }),
+      this.warehouseRepository.countMovements(accountId, warehouseId, materialId),
+    ]);
+    return { movements, total, page, limit };
+  }
+
   async createMovement(
     createDto: CreateWarehouseMovementDto,
     requestingUserAccountId: number,
   ) {
-    if (createDto.accountId !== requestingUserAccountId) {
-      throw new ForbiddenException(
-        'Cannot create movements in another account',
-      );
-    }
-
-    return this.warehouseRepository.createMovement(createDto);
+    const dto: any = { ...createDto };
+    dto.accountId = requestingUserAccountId;
+    return this.warehouseRepository.createMovement(dto);
   }
 
   // Inventory Checks
