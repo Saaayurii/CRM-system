@@ -8,15 +8,17 @@ import { ADMIN_MODULES } from '@/lib/admin/modulesConfig';
 import WarehousesTab from '@/components/warehouse/WarehousesTab';
 import MovementsTab from '@/components/warehouse/MovementsTab';
 import InventoryTab from '@/components/warehouse/InventoryTab';
+import CalculatorsTab from '@/components/warehouse/CalculatorsTab';
 import EquipmentQRModal from '@/components/warehouse/EquipmentQRModal';
 import EquipmentMoveModal from '@/components/warehouse/EquipmentMoveModal';
 
 const TABS = [
-  { key: 'warehouses', label: 'Склады' },
-  { key: 'equipment',  label: 'Оборудование' },
-  { key: 'materials',  label: 'Материалы' },
-  { key: 'inventory',  label: 'Инвентаризации' },
-  { key: 'movements',  label: 'Перемещения' },
+  { key: 'warehouses',  label: 'Склады' },
+  { key: 'equipment',   label: 'Оборудование' },
+  { key: 'materials',   label: 'Материалы' },
+  { key: 'calculators', label: 'Калькуляторы' },
+  { key: 'inventory',   label: 'Инвентаризации' },
+  { key: 'movements',   label: 'Перемещения' },
 ] as const;
 
 type TabKey = typeof TABS[number]['key'];
@@ -84,9 +86,10 @@ export default function WarehousePage() {
           onRowClick={(row) => router.push(`/dashboard/warehouse/equipment/${row.id}`)}
         />
       )}
-      {tab === 'materials'  && <CrudPage config={ADMIN_MODULES.materials} hideTitle />}
-      {tab === 'inventory'  && <InventoryTab />}
-      {tab === 'movements'  && <MovementsTab />}
+      {tab === 'materials'   && <CrudPage config={ADMIN_MODULES.materials} hideTitle />}
+      {tab === 'calculators' && <CalculatorsTab />}
+      {tab === 'inventory'   && <InventoryTab />}
+      {tab === 'movements'   && <MovementsTab />}
 
       {qrFor && (
         <EquipmentQRModal

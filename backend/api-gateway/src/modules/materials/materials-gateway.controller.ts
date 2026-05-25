@@ -259,6 +259,80 @@ export class MaterialsGatewayController {
     });
   }
 
+  // Material Calculations
+  @Get('material-calculations')
+  @ApiOperation({ summary: 'List saved material calculations' })
+  @ApiQuery({ name: 'page', required: false })
+  @ApiQuery({ name: 'limit', required: false })
+  @ApiQuery({ name: 'projectId', required: false })
+  @ApiQuery({ name: 'calculatorType', required: false })
+  async findAllCalculations(
+    @Req() req: Request,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('projectId') projectId?: number,
+    @Query('calculatorType') calculatorType?: string,
+  ) {
+    return this.proxyService.forward('materials', {
+      method: 'GET',
+      path: '/material-calculations',
+      headers: { authorization: req.headers.authorization || '' },
+      params: { page, limit, projectId, calculatorType },
+    });
+  }
+
+  @Get('material-calculations/:id')
+  @ApiOperation({ summary: 'Get calculation by ID' })
+  async findOneCalculation(@Req() req: Request, @Param('id') id: string) {
+    return this.proxyService.forward('materials', {
+      method: 'GET',
+      path: `/material-calculations/${id}`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  @Post('material-calculations')
+  @ApiOperation({ summary: 'Save calculation' })
+  async createCalculation(@Req() req: Request, @Body() body: any) {
+    return this.proxyService.forward('materials', {
+      method: 'POST',
+      path: '/material-calculations',
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Put('material-calculations/:id')
+  @ApiOperation({ summary: 'Update calculation' })
+  async updateCalculation(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
+    return this.proxyService.forward('materials', {
+      method: 'PUT',
+      path: `/material-calculations/${id}`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Delete('material-calculations/:id')
+  @ApiOperation({ summary: 'Delete calculation' })
+  async removeCalculation(@Req() req: Request, @Param('id') id: string) {
+    return this.proxyService.forward('materials', {
+      method: 'DELETE',
+      path: `/material-calculations/${id}`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
   // Warehouses
   @Get('warehouses')
   @ApiOperation({ summary: 'Get all warehouses' })

@@ -16,12 +16,13 @@ model Account {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
 
-  materialCategories MaterialCategory[]
-  materials          Material[]
-  materialRequests   MaterialRequest[]
-  warehouses         Warehouse[]
-  warehouseMovements WarehouseMovement[]
-  users              User[]
+  materialCategories   MaterialCategory[]
+  materials            Material[]
+  materialRequests     MaterialRequest[]
+  warehouses           Warehouse[]
+  warehouseMovements   WarehouseMovement[]
+  users                User[]
+  materialCalculations MaterialCalculation[]
 
   @@map("accounts")
 }
@@ -268,4 +269,26 @@ model InventoryCheckItem {
   inventoryCheck InventoryCheck @relation(fields: [inventoryCheckId], references: [id], onDelete: Cascade)
 
   @@map("inventory_check_items")
+}
+
+model MaterialCalculation {
+  id              Int      @id @default(autoincrement())
+  accountId       Int      @map("account_id")
+  projectId       Int?     @map("project_id")
+  createdByUserId Int?     @map("created_by_user_id")
+  calculatorType  String   @map("calculator_type") @db.VarChar(50)
+  title           String?  @db.VarChar(255)
+  inputs          Json     @default("{}") @db.JsonB
+  results         Json     @default("{}") @db.JsonB
+  warnings        Json     @default("[]") @db.JsonB
+  notes           String?  @db.Text
+  taskId          Int?     @map("task_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at")
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId, projectId])
+  @@index([accountId, calculatorType])
+  @@map("material_calculations")
 }

@@ -6,6 +6,7 @@ import configuration from './config/configuration';
 import { DatabaseModule } from './database/database.module';
 import { MaterialsModule } from './modules/materials/materials.module';
 import { MaterialRequestsModule } from './modules/material-requests/material-requests.module';
+import { MaterialCalculationsModule } from './modules/material-calculations/material-calculations.module';
 import { WarehousesModule } from './modules/warehouses/warehouses.module';
 import { HealthModule } from './modules/health/health.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
@@ -22,6 +23,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     DatabaseModule,
     MaterialsModule,
     MaterialRequestsModule,
+    MaterialCalculationsModule,
     WarehousesModule,
     HealthModule,
   ],
