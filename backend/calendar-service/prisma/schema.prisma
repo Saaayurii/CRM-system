@@ -14,7 +14,9 @@ model Account {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
 
-  calendarEvents CalendarEvent[]
+  calendarEvents     CalendarEvent[]
+  customEventTypes   CalendarCustomEventType[]
+  integrations       CalendarIntegration[]
 
   @@map("accounts")
 }
@@ -25,9 +27,11 @@ model CalendarEvent {
   projectId          Int?      @map("project_id")
   constructionSiteId Int?      @map("construction_site_id")
   taskId             Int?      @map("task_id")
+  userId             Int?      @map("user_id")
   title              String    @db.VarChar(255)
   description        String?   @db.Text
   eventType          String?   @map("event_type") @db.VarChar(100)
+  customTypeId       Int?      @map("custom_type_id")
   startDatetime      DateTime  @map("start_datetime")
   endDatetime        DateTime? @map("end_datetime")
   isAllDay           Boolean   @default(false) @map("is_all_day")
@@ -37,13 +41,85 @@ model CalendarEvent {
   reminders          Json      @default("[]")
   status             String?   @db.VarChar(50)
   recurrenceRule     String?   @map("recurrence_rule") @db.VarChar(255)
+  colorHex           String?   @map("color_hex") @db.VarChar(9)
+  visibility         String?   @default("default") @db.VarChar(20)
+  sourceType         String?   @default("manual") @map("source_type") @db.VarChar(30)
+  sourceId           Int?      @map("source_id")
+  externalId         String?   @map("external_id") @db.VarChar(255)
+  externalProvider   String?   @map("external_provider") @db.VarChar(30)
+  externalEtag       String?   @map("external_etag") @db.VarChar(255)
+  integrationId      Int?      @map("integration_id")
+  syncedAt           DateTime? @map("synced_at")
+  extra              Json      @default("{}")
   createdAt          DateTime  @default(now()) @map("created_at")
   updatedAt          DateTime  @default(now()) @updatedAt @map("updated_at")
 
-  account            Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  account            Account                   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  customType         CalendarCustomEventType?  @relation(fields: [customTypeId], references: [id], onDelete: SetNull)
+  integration        CalendarIntegration?      @relation(fields: [integrationId], references: [id], onDelete: SetNull)
 
   @@index([accountId])
   @@index([startDatetime])
   @@index([projectId])
+  @@index([sourceType, sourceId])
+  @@index([externalProvider, externalId])
+  @@index([userId])
+  @@index([accountId, startDatetime])
   @@map("calendar_events")
+}
+
+model CalendarCustomEventType {
+  id         Int      @id @default(autoincrement())
+  accountId  Int      @map("account_id")
+  code       String   @db.VarChar(60)
+  name       String   @db.VarChar(120)
+  colorHex   String?  @default("#3b82f6") @map("color_hex") @db.VarChar(9)
+  icon       String?  @db.VarChar(60)
+  isActive   Boolean  @default(true) @map("is_active")
+  sortOrder  Int      @default(0) @map("sort_order")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at")
+
+  account    Account         @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  events     CalendarEvent[]
+
+  @@unique([accountId, code])
+  @@index([accountId])
+  @@map("calendar_custom_event_types")
+}
+
+model CalendarIntegration {
+  id                  Int       @id @default(autoincrement())
+  accountId           Int       @map("account_id")
+  userId              Int       @map("user_id")
+  provider            String    @db.VarChar(30)
+  displayName         String?   @map("display_name") @db.VarChar(255)
+  externalAccount     String?   @map("external_account") @db.VarChar(255)
+  accessToken         String?   @map("access_token") @db.Text
+  refreshToken        String?   @map("refresh_token") @db.Text
+  tokenExpiresAt      DateTime? @map("token_expires_at")
+  scope               String?   @db.Text
+  caldavUrl           String?   @map("caldav_url") @db.VarChar(255)
+  caldavUsername      String?   @map("caldav_username") @db.VarChar(255)
+  caldavPasswordEnc   String?   @map("caldav_password_enc") @db.Text
+  externalCalendarId  String?   @map("external_calendar_id") @db.VarChar(255)
+  syncToken           String?   @map("sync_token") @db.Text
+  syncDirection       String?   @default("bidirectional") @map("sync_direction") @db.VarChar(20)
+  lastSyncAt          DateTime? @map("last_sync_at")
+  lastSyncStatus      String?   @map("last_sync_status") @db.VarChar(20)
+  lastSyncError       String?   @map("last_sync_error") @db.Text
+  webhookChannelId    String?   @map("webhook_channel_id") @db.VarChar(255)
+  webhookResourceId   String?   @map("webhook_resource_id") @db.VarChar(255)
+  webhookExpiration   DateTime? @map("webhook_expiration")
+  isActive            Boolean   @default(true) @map("is_active")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  account             Account         @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  events              CalendarEvent[]
+
+  @@unique([userId, provider, externalAccount])
+  @@index([userId])
+  @@index([accountId])
+  @@map("calendar_integrations")
 }

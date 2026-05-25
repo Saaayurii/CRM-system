@@ -1,0 +1,392 @@
+import { Injectable, Logger } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
+import { ConfigService } from '@nestjs/config';
+import { firstValueFrom } from 'rxjs';
+import { PrismaService } from '../../database/prisma.service';
+
+export interface FeedEvent {
+  id: string;
+  title: string;
+  start: string;
+  end?: string;
+  allDay?: boolean;
+  color?: string;
+  sourceType: string;
+  sourceId?: number | string;
+  projectId?: number;
+  taskId?: number;
+  userId?: number;
+  status?: string;
+  url?: string;
+  editable?: boolean;
+  extendedProps?: Record<string, any>;
+}
+
+const COLOR_BY_SOURCE: Record<string, string> = {
+  manual: '#3b82f6',
+  task: '#f59e0b',
+  inspection: '#10b981',
+  time_off: '#a855f7',
+  attendance: '#64748b',
+  project: '#0ea5e9',
+  external_google: '#ea4335',
+  external_yandex: '#ffcc00',
+  external_apple: '#000000',
+};
+
+@Injectable()
+export class CalendarFeedService {
+  private readonly logger = new Logger(CalendarFeedService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly http: HttpService,
+    private readonly config: ConfigService,
+  ) {}
+
+  async getFeed(
+    accountId: number,
+    userId: number,
+    query: {
+      start: string;
+      end: string;
+      sources?: string[];
+      projectId?: number;
+      mine?: boolean;
+    },
+    authToken?: string,
+  ): Promise<FeedEvent[]> {
+    const sources = query.sources?.length
+      ? query.sources
+      : ['calendar', 'tasks', 'inspections', 'timeoff', 'projects'];
+
+    const tasks: Promise<FeedEvent[]>[] = [];
+    if (sources.includes('calendar') || sources.includes('external'))
+      tasks.push(this.fromCalendarEvents(accountId, userId, query, sources));
+    if (sources.includes('tasks'))
+      tasks.push(this.fromTasks(accountId, userId, query, authToken));
+    if (sources.includes('inspections'))
+      tasks.push(this.fromInspections(accountId, userId, query, authToken));
+    if (sources.includes('timeoff'))
+      tasks.push(this.fromTimeOff(accountId, userId, query, authToken));
+    if (sources.includes('attendance'))
+      tasks.push(this.fromAttendance(accountId, userId, query, authToken));
+    if (sources.includes('projects'))
+      tasks.push(this.fromProjects(accountId, userId, query, authToken));
+
+    const results = await Promise.allSettled(tasks);
+    const flat: FeedEvent[] = [];
+    results.forEach((r) => {
+      if (r.status === 'fulfilled') flat.push(...r.value);
+      else this.logger.warn(`Feed source failed: ${r.reason}`);
+    });
+    return flat;
+  }
+
+  private async fromCalendarEvents(
+    accountId: number,
+    userId: number,
+    query: { start: string; end: string; projectId?: number; mine?: boolean },
+    sources: string[],
+  ): Promise<FeedEvent[]> {
+    const where: any = {
+      accountId,
+      startDatetime: {
+        gte: new Date(query.start),
+        lte: new Date(query.end),
+      },
+    };
+    if (query.projectId) where.projectId = query.projectId;
+    if (query.mine) {
+      where.OR = [
+        { userId },
+        { organizerId: userId },
+        { participants: { array_contains: userId } },
+      ];
+    }
+    if (!sources.includes('external')) {
+      where.externalProvider = null;
+    }
+
+    const rows = await (this.prisma as any).calendarEvent.findMany({
+      where,
+      orderBy: { startDatetime: 'asc' },
+    });
+
+    return rows.map((r: any): FeedEvent => {
+      const isExternal = !!r.externalProvider;
+      const source = isExternal ? `external_${r.externalProvider}` : 'manual';
+      return {
+        id: `calendar:${r.id}`,
+        title: r.title,
+        start: r.startDatetime.toISOString(),
+        end: r.endDatetime?.toISOString(),
+        allDay: r.isAllDay,
+        color: r.colorHex || COLOR_BY_SOURCE[source],
+        sourceType: source,
+        sourceId: r.id,
+        projectId: r.projectId ?? undefined,
+        taskId: r.taskId ?? undefined,
+        userId: r.userId ?? undefined,
+        status: r.status,
+        editable: !isExternal || r.externalProvider === 'google', // Google two-way
+        extendedProps: {
+          eventType: r.eventType,
+          location: r.location,
+          description: r.description,
+          recurrenceRule: r.recurrenceRule,
+          customTypeId: r.customTypeId,
+          integrationId: r.integrationId,
+          externalProvider: r.externalProvider,
+        },
+      };
+    });
+  }
+
+  private async fromTasks(
+    accountId: number,
+    userId: number,
+    query: { start: string; end: string; projectId?: number; mine?: boolean },
+    authToken?: string,
+  ): Promise<FeedEvent[]> {
+    const baseUrl = this.config.get<string>('TASKS_SERVICE_URL') ||
+      this.config.get<string>('tasksServiceUrl') ||
+      'http://tasks-service:3004';
+    try {
+      const url = `${baseUrl}/tasks?limit=500${query.projectId ? `&projectId=${query.projectId}` : ''}`;
+      const { data } = await firstValueFrom(
+        this.http.get(url, { headers: this.auth(authToken) }),
+      );
+      const items: any[] = data?.data ?? data ?? [];
+      const startD = new Date(query.start).getTime();
+      const endD = new Date(query.end).getTime();
+      return items
+        .filter((t) => t.dueDate)
+        .filter((t) => {
+          if (query.mine) {
+            const isMine =
+              t.createdByUserId === userId ||
+              (t.assignees ?? []).some((a: any) => a.userId === userId);
+            if (!isMine) return false;
+          }
+          const ts = new Date(t.dueDate).getTime();
+          return ts >= startD && ts <= endD;
+        })
+        .map(
+          (t): FeedEvent => ({
+            id: `task:${t.id}`,
+            title: `[Задача] ${t.title}`,
+            start: new Date(t.dueDate).toISOString(),
+            allDay: true,
+            color: COLOR_BY_SOURCE.task,
+            sourceType: 'task',
+            sourceId: t.id,
+            projectId: t.projectId,
+            taskId: t.id,
+            status: t.status,
+            editable: false,
+            url: `/dashboard/tasks?taskId=${t.id}`,
+            extendedProps: {
+              priority: t.priority,
+              status: t.status,
+              description: t.description,
+            },
+          }),
+        );
+    } catch (e: any) {
+      this.logger.warn(`tasks feed failed: ${e?.message}`);
+      return [];
+    }
+  }
+
+  private async fromInspections(
+    accountId: number,
+    userId: number,
+    query: { start: string; end: string; projectId?: number; mine?: boolean },
+    authToken?: string,
+  ): Promise<FeedEvent[]> {
+    const baseUrl = this.config.get<string>('INSPECTIONS_SERVICE_URL') ||
+      'http://inspections-service:3008';
+    try {
+      const url = `${baseUrl}/inspections?limit=500${query.projectId ? `&projectId=${query.projectId}` : ''}`;
+      const { data } = await firstValueFrom(
+        this.http.get(url, { headers: this.auth(authToken) }),
+      );
+      const items: any[] = data?.data ?? data ?? [];
+      const startD = new Date(query.start).getTime();
+      const endD = new Date(query.end).getTime();
+      return items
+        .filter((i) => i.scheduledDate || i.scheduled_date)
+        .filter((i) => {
+          if (query.mine && i.inspectorId !== userId) return false;
+          const d = new Date(i.scheduledDate ?? i.scheduled_date).getTime();
+          return d >= startD && d <= endD;
+        })
+        .map(
+          (i): FeedEvent => ({
+            id: `inspection:${i.id}`,
+            title: `[Инспекция] ${i.title ?? i.objectName ?? `#${i.id}`}`,
+            start: new Date(i.scheduledDate ?? i.scheduled_date).toISOString(),
+            allDay: false,
+            color: COLOR_BY_SOURCE.inspection,
+            sourceType: 'inspection',
+            sourceId: i.id,
+            projectId: i.projectId,
+            status: i.status,
+            editable: false,
+            url: `/dashboard/inspector/inspections?id=${i.id}`,
+          }),
+        );
+    } catch (e: any) {
+      this.logger.warn(`inspections feed failed: ${e?.message}`);
+      return [];
+    }
+  }
+
+  private async fromTimeOff(
+    accountId: number,
+    userId: number,
+    query: { start: string; end: string; mine?: boolean },
+    authToken?: string,
+  ): Promise<FeedEvent[]> {
+    const baseUrl = this.config.get<string>('HR_SERVICE_URL') ||
+      'http://hr-service:3009';
+    try {
+      const url = `${baseUrl}/time-off?limit=500`;
+      const { data } = await firstValueFrom(
+        this.http.get(url, { headers: this.auth(authToken) }),
+      );
+      const items: any[] = data?.data ?? data ?? [];
+      const startD = new Date(query.start).getTime();
+      const endD = new Date(query.end).getTime();
+      return items
+        .filter((t) => t.startDate || t.start_date)
+        .filter((t) => {
+          if (query.mine && t.userId !== userId) return false;
+          const s = new Date(t.startDate ?? t.start_date).getTime();
+          const e = new Date(t.endDate ?? t.end_date ?? t.startDate ?? t.start_date).getTime();
+          return e >= startD && s <= endD;
+        })
+        .map(
+          (t): FeedEvent => ({
+            id: `timeoff:${t.id}`,
+            title: `[${t.type ?? 'Отсутствие'}] ${t.userName ?? `user#${t.userId}`}`,
+            start: new Date(t.startDate ?? t.start_date).toISOString(),
+            end: new Date(
+              t.endDate ?? t.end_date ?? t.startDate ?? t.start_date,
+            ).toISOString(),
+            allDay: true,
+            color: COLOR_BY_SOURCE.time_off,
+            sourceType: 'time_off',
+            sourceId: t.id,
+            userId: t.userId,
+            status: t.status,
+            editable: false,
+            url: '/dashboard/hr/time-off',
+          }),
+        );
+    } catch (e: any) {
+      this.logger.warn(`time-off feed failed: ${e?.message}`);
+      return [];
+    }
+  }
+
+  private async fromAttendance(
+    accountId: number,
+    userId: number,
+    query: { start: string; end: string; mine?: boolean },
+    authToken?: string,
+  ): Promise<FeedEvent[]> {
+    const baseUrl = this.config.get<string>('HR_SERVICE_URL') ||
+      'http://hr-service:3009';
+    try {
+      const url = `${baseUrl}/attendance?limit=500&startDate=${query.start}&endDate=${query.end}`;
+      const { data } = await firstValueFrom(
+        this.http.get(url, { headers: this.auth(authToken) }),
+      );
+      const items: any[] = data?.data ?? data ?? [];
+      return items
+        .filter((a) => a.date && (!query.mine || a.userId === userId))
+        .map(
+          (a): FeedEvent => ({
+            id: `attendance:${a.id}`,
+            title: `[Табель] ${a.userName ?? `user#${a.userId}`}`,
+            start: a.checkIn ?? a.date,
+            end: a.checkOut ?? undefined,
+            allDay: !a.checkIn,
+            color: COLOR_BY_SOURCE.attendance,
+            sourceType: 'attendance',
+            sourceId: a.id,
+            userId: a.userId,
+            editable: false,
+          }),
+        );
+    } catch (e: any) {
+      this.logger.warn(`attendance feed failed: ${e?.message}`);
+      return [];
+    }
+  }
+
+  private async fromProjects(
+    accountId: number,
+    userId: number,
+    query: { start: string; end: string; projectId?: number },
+    authToken?: string,
+  ): Promise<FeedEvent[]> {
+    const baseUrl = this.config.get<string>('PROJECTS_SERVICE_URL') ||
+      'http://projects-service:3003';
+    try {
+      const url = `${baseUrl}/projects?limit=200`;
+      const { data } = await firstValueFrom(
+        this.http.get(url, { headers: this.auth(authToken) }),
+      );
+      const items: any[] = data?.data ?? data ?? [];
+      const startD = new Date(query.start).getTime();
+      const endD = new Date(query.end).getTime();
+      const out: FeedEvent[] = [];
+      for (const p of items) {
+        if (query.projectId && p.id !== query.projectId) continue;
+        if (p.startDate) {
+          const s = new Date(p.startDate).getTime();
+          if (s >= startD && s <= endD)
+            out.push({
+              id: `project-start:${p.id}`,
+              title: `▶ Старт: ${p.name}`,
+              start: new Date(p.startDate).toISOString(),
+              allDay: true,
+              color: COLOR_BY_SOURCE.project,
+              sourceType: 'project',
+              sourceId: p.id,
+              projectId: p.id,
+              editable: false,
+              url: `/dashboard/projects/${p.id}`,
+            });
+        }
+        if (p.endDate) {
+          const e = new Date(p.endDate).getTime();
+          if (e >= startD && e <= endD)
+            out.push({
+              id: `project-end:${p.id}`,
+              title: `■ Финиш: ${p.name}`,
+              start: new Date(p.endDate).toISOString(),
+              allDay: true,
+              color: '#ef4444',
+              sourceType: 'project',
+              sourceId: p.id,
+              projectId: p.id,
+              editable: false,
+              url: `/dashboard/projects/${p.id}`,
+            });
+        }
+      }
+      return out;
+    } catch (e: any) {
+      this.logger.warn(`projects feed failed: ${e?.message}`);
+      return [];
+    }
+  }
+
+  private auth(token?: string) {
+    return token ? { Authorization: token.startsWith('Bearer ') ? token : `Bearer ${token}` } : {};
+  }
+}

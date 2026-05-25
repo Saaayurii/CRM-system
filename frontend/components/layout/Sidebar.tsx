@@ -215,6 +215,13 @@ function IconHRDocs() {
     </svg>
   );
 }
+function IconCalendar() {
+  return (
+    <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 9h18M5.25 5.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25A2.25 2.25 0 0 1 18.75 21H5.25A2.25 2.25 0 0 1 3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25Z" />
+    </svg>
+  );
+}
 
 /* ─── Company switcher (was in Header) ─── */
 interface AccountOption { id: number; name: string; logoUrl?: string; status: number; }
@@ -366,6 +373,16 @@ export default function Sidebar() {
   const isAdmin = roleCode === 'admin';
   const showTeams = isSuperAdmin || isAdmin || isPM || isHR;
   const showChat = true;
+  const calendarHref =
+    isPM        ? '/dashboard/pm/calendar' :
+    isInspector ? '/dashboard/inspector/calendar' :
+    isHR        ? '/dashboard/hr/calendar' :
+    isForeman   ? '/dashboard/foreman/calendar' :
+    isWorker    ? '/dashboard/worker/calendar' :
+    isAccountant? '/dashboard/accountant/calendar' :
+    isSupplier  ? '/dashboard/supplier/calendar' :
+    isWarehouse ? '/dashboard/warehouse/calendar' :
+    '/dashboard/calendar';
   const taskUnread = useTaskNotifStore((s) => s.unreadCount);
   const chatUnread = useChatStore((s) => Object.values(s.unreadCounts).reduce((a, b) => a + b, 0));
   const fetchChatUnreadSummary = useChatStore((s) => s.fetchUnreadSummary);
@@ -503,6 +520,14 @@ export default function Sidebar() {
                 <NavLink href="/dashboard/employees" hotkey={hkByHref['/dashboard/employees']} className={linkCls(pathname === '/dashboard/employees')}>
                   <IconEmployees />
                   <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Сотрудники</span>
+                </NavLink>
+              </li>
+
+              {/* Calendar */}
+              <li className="mb-1 last:mb-0">
+                <NavLink href={calendarHref} className={linkCls(pathname.includes('/calendar'))}>
+                  <IconCalendar />
+                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Календарь</span>
                 </NavLink>
               </li>
 
