@@ -88,7 +88,7 @@ export default function RootLayout({
           });
         `}} />
       </head>
-      <body className={`${inter.variable} font-inter antialiased bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100`}>
+      <body className={`${inter.variable} font-inter antialiased bg-[#e9e9e9] dark:bg-gray-900 text-gray-800 dark:text-gray-100`}>
         <ThemeProvider>
           <AuthProvider>
             {children}
