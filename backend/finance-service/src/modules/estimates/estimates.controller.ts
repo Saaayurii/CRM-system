@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -8,9 +9,13 @@ import {
   Post,
   Put,
   Query,
+  Req,
+  Res,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import type { Request, Response } from 'express';
 import { EstimatesService } from './estimates.service';
+import { EstimateExportService, EstimateExportFormat } from './estimate-export.service';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import {
   CreateEstimateDto,
@@ -23,7 +28,36 @@ import {
 @ApiBearerAuth()
 @Controller('estimates')
 export class EstimatesController {
-  constructor(private readonly svc: EstimatesService) {}
+  constructor(
+    private readonly svc: EstimatesService,
+    private readonly exportSvc: EstimateExportService,
+  ) {}
+
+  @Get(':id/export')
+  @ApiOperation({ summary: 'Export estimate as PDF (summary | ks2 | act)' })
+  @ApiQuery({ name: 'format', enum: ['summary', 'ks2', 'act'], required: true })
+  async export(
+    @CurrentUser('accountId') accountId: number,
+    @Param('id', ParseIntPipe) id: number,
+    @Query('format') format: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    if (!['summary', 'ks2', 'act'].includes(format)) {
+      throw new BadRequestException('format must be one of: summary, ks2, act');
+    }
+    const buffer = await this.exportSvc.generate(
+      accountId,
+      id,
+      format as EstimateExportFormat,
+      req.headers.authorization,
+    );
+    const stamp = new Date().toISOString().slice(0, 10);
+    const filename = `estimate-${id}-${format}-${stamp}.pdf`;
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(buffer);
+  }
 
   @Get()
   @ApiOperation({ summary: 'List estimates' })

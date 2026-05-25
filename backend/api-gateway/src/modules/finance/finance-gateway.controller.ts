@@ -8,6 +8,7 @@ import {
   Param,
   Query,
   Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -16,16 +17,22 @@ import {
   ApiBearerAuth,
   ApiQuery,
 } from '@nestjs/swagger';
-import { Request } from 'express';
+import { Request, Response } from 'express';
+import { HttpService } from '@nestjs/axios';
 import { ProxyService } from '../../common/services/proxy.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RequestContextService } from '../../common/services/request-context.service';
 
 @ApiTags('Finance')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller('api/v1')
 export class FinanceGatewayController {
-  constructor(private readonly proxyService: ProxyService) {}
+  constructor(
+    private readonly proxyService: ProxyService,
+    private readonly httpService: HttpService,
+    private readonly requestContext: RequestContextService,
+  ) {}
 
   // Payment Accounts
   @Get('payment-accounts')
@@ -930,6 +937,38 @@ export class FinanceGatewayController {
       },
       data: body,
     });
+  }
+
+  @Get('estimates/:id/export')
+  @ApiOperation({ summary: 'Export estimate as PDF' })
+  @ApiQuery({ name: 'format', enum: ['summary', 'ks2', 'act'], required: true })
+  async exportEstimate(
+    @Req() req: Request,
+    @Res() res: Response,
+    @Param('id') id: string,
+    @Query('format') format: string,
+  ) {
+    try {
+      const serviceUrl = this.proxyService.getServiceUrl('finance');
+      const accountOverride = this.requestContext.getAccountIdOverride();
+      const headers: Record<string, string> = {
+        authorization: req.headers.authorization || '',
+      };
+      if (accountOverride) headers['x-account-id'] = accountOverride;
+      const response = await this.httpService.axiosRef.get(
+        `${serviceUrl}/estimates/${id}/export`,
+        { params: { format }, headers, responseType: 'stream' },
+      );
+      const contentType = response.headers['content-type'] as string | undefined;
+      const disposition = response.headers['content-disposition'] as string | undefined;
+      if (contentType) res.setHeader('Content-Type', contentType);
+      if (disposition) res.setHeader('Content-Disposition', disposition);
+      response.data.pipe(res);
+    } catch (err) {
+      const e = err as { response?: { status?: number } };
+      const status = e?.response?.status ?? 500;
+      res.status(status).json({ message: 'Ошибка при экспорте сметы' });
+    }
   }
 
   @Delete('estimates/:id/sections/:sectionId/items/:itemId')

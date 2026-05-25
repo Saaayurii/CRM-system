@@ -225,10 +225,35 @@ function EstimateEditor({
   const addToast = useToastStore((s) => s.addToast);
   const [editingMeta, setEditingMeta] = useState(false);
   const [addingSection, setAddingSection] = useState(false);
+  const [exportingFormat, setExportingFormat] = useState<'summary' | 'ks2' | 'act' | null>(null);
 
   const subtotal = num(estimate.totalAmount);
   const markup = subtotal * (num(estimate.markupPercent) / 100);
   const total = subtotal + markup;
+
+  const handleExport = async (format: 'summary' | 'ks2' | 'act') => {
+    try {
+      setExportingFormat(format);
+      const res = await api.get(`/estimates/${estimate.id}/export`, {
+        params: { format },
+        responseType: 'blob',
+      });
+      const blob = res.data as Blob;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const stamp = new Date().toISOString().slice(0, 10);
+      a.download = `estimate-${estimate.id}-${format}-${stamp}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      addToast('error', 'Не удалось сформировать PDF');
+    } finally {
+      setExportingFormat(null);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -252,7 +277,25 @@ function EstimateEditor({
               наценка {num(estimate.markupPercent)}%
             </p>
           </div>
-          <div className="flex gap-1">
+          <div className="flex gap-1 flex-wrap">
+            <ExportButton
+              onClick={() => handleExport('summary')}
+              loading={exportingFormat === 'summary'}
+              label="Сводный расчёт"
+              title="Сводный сметный расчёт (PDF)"
+            />
+            <ExportButton
+              onClick={() => handleExport('ks2')}
+              loading={exportingFormat === 'ks2'}
+              label="КС-2"
+              title="Унифицированная форма КС-2 (PDF)"
+            />
+            <ExportButton
+              onClick={() => handleExport('act')}
+              loading={exportingFormat === 'act'}
+              label="Акт приёмки"
+              title="Акт приёмки выполненных работ (PDF)"
+            />
             <button
               onClick={() => setEditingMeta(true)}
               className="px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg"
@@ -1085,6 +1128,36 @@ function EditItemModal({
 /* ════════════════════════════════════════════════════════════
  * UI helpers
  * ════════════════════════════════════════════════════════════ */
+
+function ExportButton({
+  onClick,
+  loading,
+  label,
+  title,
+}: {
+  onClick: () => void;
+  loading: boolean;
+  label: string;
+  title: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={loading}
+      title={title}
+      className="px-3 py-1.5 text-xs font-medium text-violet-700 dark:text-violet-300 bg-violet-50 dark:bg-violet-500/10 hover:bg-violet-100 dark:hover:bg-violet-500/20 rounded-lg disabled:opacity-50 flex items-center gap-1.5"
+    >
+      {loading ? (
+        <span className="w-3 h-3 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+      ) : (
+        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3M4 6h16M5 6v13a2 2 0 002 2h10a2 2 0 002-2V6" />
+        </svg>
+      )}
+      {label}
+    </button>
+  );
+}
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
