@@ -390,7 +390,7 @@ export default function Sidebar() {
     ];
     if (showTeams) list.push({ key: '6', href: '/dashboard/teams' });
     if (showChat) list.push({ key: '8', href: '/dashboard/chat' });
-    if (isAdmin) list.push({ key: '9', href: '/dashboard/company' });
+    if (isAdmin || isSuperAdmin) list.push({ key: '9', href: '/dashboard/company' });
     list.push({ key: '0', href: settingsHref });
     if (isSuperAdmin) list.push({ key: 'a', href: '/admin' });
     return list;
@@ -747,8 +747,8 @@ export default function Sidebar() {
                 </li>
               )}
 
-              {/* Company (admin only) */}
-              {isAdmin && (
+              {/* Company (admin + super_admin) */}
+              {(isAdmin || isSuperAdmin) && (
                 <li className="mb-1 last:mb-0">
                   <NavLink href="/dashboard/company" hotkey={hkByHref['/dashboard/company']} className={linkCls(pathname === '/dashboard/company')}>
                     <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>

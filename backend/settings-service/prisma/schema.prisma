@@ -71,3 +71,75 @@ model User {
   @@index([accountId])
   @@map("users")
 }
+
+model PriceProjectCategory {
+  id        Int      @id @default(autoincrement())
+  accountId Int      @map("account_id")
+  name      String   @db.VarChar(255)
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  prices PriceItemPrice[]
+
+  @@unique([accountId, name])
+  @@index([accountId])
+  @@map("price_project_categories")
+}
+
+model PriceCategory {
+  id          Int      @id @default(autoincrement())
+  accountId   Int      @map("account_id")
+  name        String   @db.VarChar(255)
+  description String?
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  items PriceItem[]
+
+  @@unique([accountId, name])
+  @@index([accountId])
+  @@map("price_categories")
+}
+
+model PriceItem {
+  id          Int      @id @default(autoincrement())
+  accountId   Int      @map("account_id")
+  categoryId  Int?     @map("category_id")
+  parentId    Int?     @map("parent_id")
+  name        String   @db.VarChar(500)
+  description String?
+  unit        String?  @db.VarChar(50)
+  cost        Decimal? @db.Decimal(14, 2)
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  category  PriceCategory?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  parent    PriceItem?        @relation("PriceItemModifiers", fields: [parentId], references: [id], onDelete: Cascade)
+  modifiers PriceItem[]       @relation("PriceItemModifiers")
+  prices    PriceItemPrice[]
+
+  @@index([accountId])
+  @@index([categoryId])
+  @@index([parentId])
+  @@map("price_items")
+}
+
+model PriceItemPrice {
+  id                Int      @id @default(autoincrement())
+  itemId            Int      @map("item_id")
+  projectCategoryId Int      @map("project_category_id")
+  price             Decimal  @db.Decimal(14, 2)
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at")
+
+  item            PriceItem            @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  projectCategory PriceProjectCategory @relation(fields: [projectCategoryId], references: [id], onDelete: Cascade)
+
+  @@unique([itemId, projectCategoryId])
+  @@index([itemId])
+  @@index([projectCategoryId])
+  @@map("price_item_prices")
+}

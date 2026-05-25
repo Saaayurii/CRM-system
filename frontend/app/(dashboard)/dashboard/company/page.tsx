@@ -5,6 +5,7 @@ import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useRouter } from 'next/navigation';
+import PriceTab from '@/components/company/PriceTab';
 
 interface AccountData {
   id: number;
@@ -57,7 +58,7 @@ interface EmployeeOption {
   name: string;
 }
 
-type TabKey = 'details' | 'banks';
+type TabKey = 'details' | 'banks' | 'price';
 
 const LEGAL_FORMS = ['ООО', 'ИП', 'Самозанятый', 'АО', 'ПАО', 'НКО'];
 
@@ -413,6 +414,7 @@ export default function CompanyPage() {
           {[
             { key: 'details' as TabKey, label: 'Реквизиты' },
             { key: 'banks' as TabKey, label: 'Счета (банки)' },
+            { key: 'price' as TabKey, label: 'Прайс' },
           ].map((t) => (
             <button
               key={t.key}
@@ -768,6 +770,8 @@ export default function CompanyPage() {
           ))}
         </div>
       )}
+
+      {activeTab === 'price' && <PriceTab />}
 
       {egrulModal.open && (
         <EgrulModal

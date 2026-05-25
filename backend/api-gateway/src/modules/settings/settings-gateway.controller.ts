@@ -213,6 +213,193 @@ export class SettingsGatewayController {
     });
   }
 
+  // Price — Project categories (price columns)
+  @Get('price-project-categories')
+  @ApiOperation({ summary: 'List project categories (price columns)' })
+  async listPriceProjectCategories(@Req() req: Request) {
+    return this.proxyService.forward('settings', {
+      method: 'GET',
+      path: '/price-project-categories',
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  @Post('price-project-categories')
+  @ApiOperation({ summary: 'Create project category' })
+  async createPriceProjectCategory(@Req() req: Request, @Body() body: any) {
+    return this.proxyService.forward('settings', {
+      method: 'POST',
+      path: '/price-project-categories',
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Put('price-project-categories/:id')
+  @ApiOperation({ summary: 'Update project category' })
+  async updatePriceProjectCategory(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
+    return this.proxyService.forward('settings', {
+      method: 'PUT',
+      path: `/price-project-categories/${id}`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Delete('price-project-categories/:id')
+  @ApiOperation({ summary: 'Delete project category' })
+  async deletePriceProjectCategory(@Req() req: Request, @Param('id') id: string) {
+    return this.proxyService.forward('settings', {
+      method: 'DELETE',
+      path: `/price-project-categories/${id}`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  // Price — Categories
+  @Get('price-categories')
+  @ApiOperation({ summary: 'List price categories' })
+  async listPriceCategories(@Req() req: Request) {
+    return this.proxyService.forward('settings', {
+      method: 'GET',
+      path: '/price-categories',
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  @Post('price-categories')
+  @ApiOperation({ summary: 'Create price category' })
+  async createPriceCategory(@Req() req: Request, @Body() body: any) {
+    return this.proxyService.forward('settings', {
+      method: 'POST',
+      path: '/price-categories',
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Put('price-categories/:id')
+  @ApiOperation({ summary: 'Update price category' })
+  async updatePriceCategory(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
+    return this.proxyService.forward('settings', {
+      method: 'PUT',
+      path: `/price-categories/${id}`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Delete('price-categories/:id')
+  @ApiOperation({ summary: 'Delete price category' })
+  async deletePriceCategory(@Req() req: Request, @Param('id') id: string) {
+    return this.proxyService.forward('settings', {
+      method: 'DELETE',
+      path: `/price-categories/${id}`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  // Price — Items
+  @Get('price-items')
+  @ApiOperation({ summary: 'List price items' })
+  @ApiQuery({ name: 'categoryId', required: false })
+  @ApiQuery({ name: 'rootOnly', required: false })
+  async listPriceItems(
+    @Req() req: Request,
+    @Query('categoryId') categoryId?: string,
+    @Query('rootOnly') rootOnly?: string,
+  ) {
+    return this.proxyService.forward('settings', {
+      method: 'GET',
+      path: '/price-items',
+      headers: { authorization: req.headers.authorization || '' },
+      params: { categoryId, rootOnly },
+    });
+  }
+
+  @Get('price-items/:id')
+  @ApiOperation({ summary: 'Get price item' })
+  async getPriceItem(@Req() req: Request, @Param('id') id: string) {
+    return this.proxyService.forward('settings', {
+      method: 'GET',
+      path: `/price-items/${id}`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  @Post('price-items')
+  @ApiOperation({ summary: 'Create price item' })
+  async createPriceItem(@Req() req: Request, @Body() body: any) {
+    return this.proxyService.forward('settings', {
+      method: 'POST',
+      path: '/price-items',
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Put('price-items/:id')
+  @ApiOperation({ summary: 'Update price item' })
+  async updatePriceItem(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
+    return this.proxyService.forward('settings', {
+      method: 'PUT',
+      path: `/price-items/${id}`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Delete('price-items/:id')
+  @ApiOperation({ summary: 'Delete price item' })
+  async deletePriceItem(@Req() req: Request, @Param('id') id: string) {
+    return this.proxyService.forward('settings', {
+      method: 'DELETE',
+      path: `/price-items/${id}`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  // Price — Aggregate (для UI вкладки «Прайс»)
+  @Get('price-list')
+  @ApiOperation({ summary: 'Get full price list (categories + items + prices)' })
+  async getPriceList(@Req() req: Request) {
+    return this.proxyService.forward('settings', {
+      method: 'GET',
+      path: '/price-list',
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
   // Company Lookup (ЕГРЮЛ через ФНС)
   @Get('company-lookup/egrul')
   @ApiOperation({ summary: 'Поиск компании по ИНН/ОГРН в ЕГРЮЛ' })
