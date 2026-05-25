@@ -939,6 +939,58 @@ export class FinanceGatewayController {
     });
   }
 
+  @Get('financial-reports/project/:projectId/articles')
+  @ApiOperation({ summary: 'List distinct expense articles for a project' })
+  async listExpenseArticles(@Req() req: Request, @Param('projectId') projectId: string) {
+    return this.proxyService.forward('finance', {
+      method: 'GET',
+      path: `/financial-reports/project/${projectId}/articles`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  @Get('financial-reports/project/:projectId/export')
+  @ApiOperation({ summary: 'Export project financial report as PDF' })
+  @ApiQuery({ name: 'format', enum: ['expense-statement', 'balance-detail'], required: true })
+  @ApiQuery({ name: 'article', required: false })
+  @ApiQuery({ name: 'periodFrom', required: false })
+  @ApiQuery({ name: 'periodTo', required: false })
+  async exportFinancialReport(
+    @Req() req: Request,
+    @Res() res: Response,
+    @Param('projectId') projectId: string,
+    @Query('format') format: string,
+    @Query('article') article?: string,
+    @Query('periodFrom') periodFrom?: string,
+    @Query('periodTo') periodTo?: string,
+  ) {
+    try {
+      const serviceUrl = this.proxyService.getServiceUrl('finance');
+      const accountOverride = this.requestContext.getAccountIdOverride();
+      const headers: Record<string, string> = {
+        authorization: req.headers.authorization || '',
+      };
+      if (accountOverride) headers['x-account-id'] = accountOverride;
+      const response = await this.httpService.axiosRef.get(
+        `${serviceUrl}/financial-reports/project/${projectId}/export`,
+        {
+          params: { format, article, periodFrom, periodTo },
+          headers,
+          responseType: 'stream',
+        },
+      );
+      const contentType = response.headers['content-type'] as string | undefined;
+      const disposition = response.headers['content-disposition'] as string | undefined;
+      if (contentType) res.setHeader('Content-Type', contentType);
+      if (disposition) res.setHeader('Content-Disposition', disposition);
+      response.data.pipe(res);
+    } catch (err) {
+      const e = err as { response?: { status?: number } };
+      const status = e?.response?.status ?? 500;
+      res.status(status).json({ message: 'Ошибка при экспорте отчёта' });
+    }
+  }
+
   @Get('estimates/:id/export')
   @ApiOperation({ summary: 'Export estimate as PDF' })
   @ApiQuery({ name: 'format', enum: ['summary', 'ks2', 'act'], required: true })

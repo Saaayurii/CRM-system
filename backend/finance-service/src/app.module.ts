@@ -14,6 +14,7 @@ import { WorkTemplatesModule } from './modules/work-templates/work-templates.mod
 import { CommercialProposalsModule } from './modules/commercial-proposals/commercial-proposals.module';
 import { ContractsModule } from './modules/contracts/contracts.module';
 import { EstimatesModule } from './modules/estimates/estimates.module';
+import { FinancialReportsModule } from './modules/financial-reports/financial-reports.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { JwtStrategy } from './common/guards/jwt.strategy';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -33,6 +34,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     CommercialProposalsModule,
     ContractsModule,
     EstimatesModule,
+    FinancialReportsModule,
   ],
   providers: [
     JwtStrategy,
