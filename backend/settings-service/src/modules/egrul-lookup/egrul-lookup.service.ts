@@ -13,17 +13,18 @@ import Redis from 'ioredis';
  * Lookup юридических данных по ИНН/ОГРН через публичный поиск egrul.nalog.ru.
  *
  * Реальный JSON-эндпоинт ФНС:
- *   1. POST /search-proc.json (form-urlencoded) → { t: <token> }
+ *   1. POST / (form-urlencoded) → { t: <token> }
  *   2. GET  /search-result/<token>             → { rows: [...] }
  *
  * Поля в rows[]:
  *   n  — полное наименование организации
- *   c  — ОГРН
+ *   c  — краткое наименование (ООО "Ромашка")
+ *   o  — ОГРН
  *   i  — ИНН
  *   p  — КПП
- *   r  — дата регистрации (YYYY-MM-DD)
+ *   r  — дата регистрации (DD.MM.YYYY)
  *   a  — юридический адрес (одной строкой)
- *   g  — ФИО + должность руководителя (строка)
+ *   g  — должность + ФИО руководителя ("ГЕНЕРАЛЬНЫЙ ДИРЕКТОР: Иванов И.И.")
  *   e  — дата исключения / ликвидации (если есть)
  *   k  — тип записи (`ul` — юр. лицо, `ip` — ИП)
  */
@@ -31,6 +32,7 @@ import Redis from 'ioredis';
 interface EgrulRow {
   n?: string;
   c?: string;
+  o?: string;
   i?: string;
   p?: string;
   r?: string;
@@ -116,7 +118,7 @@ export class EgrulLookupService implements OnModuleDestroy {
       PreventChromeAutocomplete: '',
     });
 
-    const res = await this.fetchWithTimeout(`${EGRUL_BASE}/search-proc.json`, {
+    const res = await this.fetchWithTimeout(`${EGRUL_BASE}/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -202,7 +204,7 @@ export class EgrulLookupService implements OnModuleDestroy {
       legalForm,
       inn: row.i,
       kpp: row.p,
-      ogrn: row.c,
+      ogrn: row.o,
       legalAddress: row.a,
       registrationDate: row.r,
       directorName,
@@ -253,14 +255,14 @@ export class EgrulLookupService implements OnModuleDestroy {
 
     // Известные шаблоны должностей
     const POSITION_PATTERNS: Array<{ re: RegExp; label: string }> = [
-      { re: /^Г\s*Д\b\.?\s*/i, label: 'Генеральный директор' },
-      { re: /^ГЕНЕРАЛЬНЫЙ\s+ДИРЕКТОР\s+/i, label: 'Генеральный директор' },
-      { re: /^ДИРЕКТОР\s+/i, label: 'Директор' },
-      { re: /^ПРЕЗИДЕНТ\s+/i, label: 'Президент' },
-      { re: /^РУКОВОДИТЕЛЬ\s+/i, label: 'Руководитель' },
-      { re: /^КОНКУРСНЫЙ УПРАВЛЯЮЩИЙ\s+/i, label: 'Конкурсный управляющий' },
-      { re: /^ЛИКВИДАТОР\s+/i, label: 'Ликвидатор' },
-      { re: /^УПРАВЛЯЮЩИЙ\s+/i, label: 'Управляющий' },
+      { re: /^Г\s*Д\b\.?[\s:]+/i, label: 'Генеральный директор' },
+      { re: /^ГЕНЕРАЛЬНЫЙ\s+ДИРЕКТОР[\s:]+/i, label: 'Генеральный директор' },
+      { re: /^ДИРЕКТОР[\s:]+/i, label: 'Директор' },
+      { re: /^ПРЕЗИДЕНТ[\s:]+/i, label: 'Президент' },
+      { re: /^РУКОВОДИТЕЛЬ[\s:]+/i, label: 'Руководитель' },
+      { re: /^КОНКУРСНЫЙ УПРАВЛЯЮЩИЙ[\s:]+/i, label: 'Конкурсный управляющий' },
+      { re: /^ЛИКВИДАТОР[\s:]+/i, label: 'Ликвидатор' },
+      { re: /^УПРАВЛЯЮЩИЙ[\s:]+/i, label: 'Управляющий' },
     ];
 
     for (const { re, label } of POSITION_PATTERNS) {
