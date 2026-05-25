@@ -7,7 +7,7 @@ RUN if [ -f prisma/schema.prisma ]; then npx prisma generate; fi
 RUN npm run build && npm prune --omit=dev && npm cache clean --force
 
 FROM node:20-alpine AS production
-RUN apk add --no-cache wget
+RUN apk add --no-cache wget ttf-dejavu
 WORKDIR /app
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist

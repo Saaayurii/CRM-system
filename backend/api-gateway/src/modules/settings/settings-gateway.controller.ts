@@ -8,6 +8,7 @@ import {
   Param,
   Query,
   Req,
+  Res,
   UseGuards,
   Sse,
 } from '@nestjs/common';
@@ -18,13 +19,15 @@ import {
   ApiBearerAuth,
   ApiQuery,
 } from '@nestjs/swagger';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import { Observable, map } from 'rxjs';
 import { MessageEvent } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
 import { ProxyService } from '../../common/services/proxy.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { MaintenanceSubService } from '../../redis/maintenance-sub.service';
+import { RequestContextService } from '../../common/services/request-context.service';
 
 @ApiTags('Settings')
 @ApiBearerAuth()
@@ -34,6 +37,8 @@ export class SettingsGatewayController {
   constructor(
     private readonly proxyService: ProxyService,
     private readonly maintenanceSub: MaintenanceSubService,
+    private readonly httpService: HttpService,
+    private readonly requestContext: RequestContextService,
   ) {}
 
   /** SSE stream — browser connects once, receives push events on maintenance changes */
@@ -398,6 +403,51 @@ export class SettingsGatewayController {
       path: '/price-list',
       headers: { authorization: req.headers.authorization || '' },
     });
+  }
+
+  @Post('price-list/import')
+  @ApiOperation({ summary: 'Import parsed CSV rows into the price list' })
+  async importPriceList(@Req() req: Request, @Body() body: any) {
+    return this.proxyService.forward('settings', {
+      method: 'POST',
+      path: '/price-list/import',
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Get('price-list/export')
+  @ApiOperation({ summary: 'Export price list as PDF or XLSX' })
+  @ApiQuery({ name: 'format', enum: ['pdf', 'xlsx'], required: true })
+  async exportPriceList(
+    @Req() req: Request,
+    @Res() res: Response,
+    @Query('format') format: string,
+  ) {
+    try {
+      const serviceUrl = this.proxyService.getServiceUrl('settings');
+      const accountOverride = this.requestContext.getAccountIdOverride();
+      const headers: Record<string, string> = {
+        authorization: req.headers.authorization || '',
+      };
+      if (accountOverride) headers['x-account-id'] = accountOverride;
+      const response = await this.httpService.axiosRef.get(
+        `${serviceUrl}/price-list/export`,
+        { params: { format }, headers, responseType: 'stream' },
+      );
+      const contentType = response.headers['content-type'] as string | undefined;
+      const disposition = response.headers['content-disposition'] as string | undefined;
+      if (contentType) res.setHeader('Content-Type', contentType);
+      if (disposition) res.setHeader('Content-Disposition', disposition);
+      response.data.pipe(res);
+    } catch (err) {
+      const e = err as { response?: { status?: number; data?: unknown } };
+      const status = e?.response?.status ?? 500;
+      res.status(status).json({ message: 'Ошибка при экспорте прайса' });
+    }
   }
 
   // Company Lookup (ЕГРЮЛ через ФНС)

@@ -1,8 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
+import ImportCsvModal from './ImportCsvModal';
 
 interface ProjectCategory {
   id: number;
@@ -42,6 +43,12 @@ interface PriceListResponse {
   items: PriceItem[];
 }
 
+type EditingState =
+  | null
+  | { mode: 'create' }
+  | { mode: 'edit'; item: PriceItem }
+  | { mode: 'createModifier'; parent: PriceItem };
+
 const INPUT_CLS =
   'w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-violet-500';
 
@@ -64,9 +71,20 @@ export default function PriceTab() {
     items: [],
   });
   const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState<PriceItem | 'new' | null>(null);
+  const [editing, setEditing] = useState<EditingState>(null);
   const [managingProjectCats, setManagingProjectCats] = useState(false);
   const [managingCats, setManagingCats] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [expanded, setExpanded] = useState<Set<number>>(new Set());
+
+  const toggleExpand = (id: number) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const load = useCallback(async () => {
     try {
@@ -106,6 +124,26 @@ export default function PriceTab() {
     }
   };
 
+  const handleExport = async (format: 'pdf' | 'xlsx') => {
+    try {
+      const res = await api.get('/price-list/export', {
+        params: { format },
+        responseType: 'blob',
+      });
+      const blob = res.data as Blob;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `price-list-${new Date().toISOString().slice(0, 10)}.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      addToast('error', 'Не удалось выгрузить прайс');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -134,7 +172,41 @@ export default function PriceTab() {
             Категории ({data.categories.length})
           </button>
           <button
-            onClick={() => setEditing('new')}
+            onClick={() => setImporting(true)}
+            className="px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors flex items-center gap-1.5"
+            title="Импорт прайса из CSV"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 16V4m0 12l-3-3m3 3l3-3m6 6.5V19a2 2 0 01-2 2H6a2 2 0 01-2-2v-2.5" />
+            </svg>
+            Импорт CSV
+          </button>
+          {data.items.length > 0 && (
+            <>
+              <button
+                onClick={() => handleExport('pdf')}
+                className="px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors flex items-center gap-1.5"
+                title="Скачать прайс PDF"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3M4 6h16M5 6v13a2 2 0 002 2h10a2 2 0 002-2V6" />
+                </svg>
+                PDF
+              </button>
+              <button
+                onClick={() => handleExport('xlsx')}
+                className="px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors flex items-center gap-1.5"
+                title="Скачать прайс Excel"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3M4 6h16M5 6v13a2 2 0 002 2h10a2 2 0 002-2V6" />
+                </svg>
+                Excel
+              </button>
+            </>
+          )}
+          <button
+            onClick={() => setEditing({ mode: 'create' })}
             className="px-4 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg flex items-center gap-1.5 transition-colors"
           >
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -189,7 +261,10 @@ export default function PriceTab() {
                       colSpan={4 + data.projectCategories.length}
                       items={list}
                       projectCategories={data.projectCategories}
-                      onEdit={setEditing}
+                      expanded={expanded}
+                      onToggleExpand={toggleExpand}
+                      onEdit={(it) => setEditing({ mode: 'edit', item: it })}
+                      onAddModifier={(parent) => setEditing({ mode: 'createModifier', parent })}
                       onDelete={handleDelete}
                     />
                   );
@@ -202,7 +277,7 @@ export default function PriceTab() {
 
       {editing !== null && (
         <PriceItemModal
-          item={editing === 'new' ? null : editing}
+          state={editing}
           categories={data.categories}
           projectCategories={data.projectCategories}
           onClose={() => setEditing(null)}
@@ -228,6 +303,14 @@ export default function PriceTab() {
           onChanged={load}
         />
       )}
+
+      {importing && (
+        <ImportCsvModal
+          projectCategories={data.projectCategories}
+          onClose={() => setImporting(false)}
+          onImported={load}
+        />
+      )}
     </div>
   );
 }
@@ -237,14 +320,20 @@ function FragmentRows({
   colSpan,
   items,
   projectCategories,
+  expanded,
+  onToggleExpand,
   onEdit,
+  onAddModifier,
   onDelete,
 }: {
   heading: string;
   colSpan: number;
   items: PriceItem[];
   projectCategories: ProjectCategory[];
+  expanded: Set<number>;
+  onToggleExpand: (id: number) => void;
   onEdit: (it: PriceItem) => void;
+  onAddModifier: (parent: PriceItem) => void;
   onDelete: (id: number) => void;
 }) {
   return (
@@ -254,95 +343,193 @@ function FragmentRows({
           {heading}
         </td>
       </tr>
-      {items.map((it) => (
-        <tr key={it.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
-          <td className="px-3 py-2 text-gray-800 dark:text-gray-100">
-            <div className="font-medium">{it.name}</div>
-            {it.description && (
-              <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{it.description}</div>
-            )}
-            {it.modifiers && it.modifiers.length > 0 && (
-              <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-                + модификаторов: {it.modifiers.length}
-              </div>
-            )}
-          </td>
-          <td className="px-3 py-2 text-gray-600 dark:text-gray-300 whitespace-nowrap">{it.unit || ''}</td>
-          <td className="px-3 py-2 text-gray-600 dark:text-gray-300 text-right whitespace-nowrap">{fmtMoney(it.cost)}</td>
-          {projectCategories.map((pc) => {
-            const p = it.prices.find((pp) => pp.projectCategoryId === pc.id);
-            return (
-              <td
-                key={pc.id}
-                className="px-3 py-2 text-gray-800 dark:text-gray-100 text-right whitespace-nowrap font-medium"
-              >
-                {p ? fmtMoney(p.price) : <span className="text-gray-300 dark:text-gray-600">—</span>}
+      {items.map((it) => {
+        const mods = it.modifiers ?? [];
+        const isOpen = expanded.has(it.id);
+        return (
+          <Fragment key={it.id}>
+            <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
+              <td className="px-3 py-2 text-gray-800 dark:text-gray-100">
+                <div className="flex items-start gap-1.5">
+                  <button
+                    onClick={() => onToggleExpand(it.id)}
+                    className={`mt-0.5 p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-transform ${isOpen ? 'rotate-90' : ''}`}
+                    title={isOpen ? 'Свернуть' : 'Развернуть модификаторы'}
+                  >
+                    <svg className="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                  <div>
+                    <div className="font-medium">{it.name}</div>
+                    {it.description && (
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{it.description}</div>
+                    )}
+                    {mods.length > 0 && !isOpen && (
+                      <div className="text-xs text-violet-500 dark:text-violet-400 mt-0.5">
+                        ▸ модификаторов: {mods.length}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </td>
-            );
-          })}
-          <td className="px-2 py-2 whitespace-nowrap">
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => onEdit(it)}
-                className="p-1.5 text-gray-500 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-500/10 rounded transition-colors"
-                title="Редактировать"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-5m-1.4-9.6a2 2 0 0 1 2.8 2.8L11.8 15 8 16l1-3.8 9.6-9.8z" />
-                </svg>
-              </button>
-              <button
-                onClick={() => onDelete(it.id)}
-                className="p-1.5 text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded transition-colors"
-                title="Удалить"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3" />
-                </svg>
-              </button>
-            </div>
-          </td>
-        </tr>
-      ))}
+              <td className="px-3 py-2 text-gray-600 dark:text-gray-300 whitespace-nowrap">{it.unit || ''}</td>
+              <td className="px-3 py-2 text-gray-600 dark:text-gray-300 text-right whitespace-nowrap">{fmtMoney(it.cost)}</td>
+              {projectCategories.map((pc) => {
+                const p = it.prices.find((pp) => pp.projectCategoryId === pc.id);
+                return (
+                  <td
+                    key={pc.id}
+                    className="px-3 py-2 text-gray-800 dark:text-gray-100 text-right whitespace-nowrap font-medium"
+                  >
+                    {p ? fmtMoney(p.price) : <span className="text-gray-300 dark:text-gray-600">—</span>}
+                  </td>
+                );
+              })}
+              <td className="px-2 py-2 whitespace-nowrap">
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => onEdit(it)}
+                    className="p-1.5 text-gray-500 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-500/10 rounded transition-colors"
+                    title="Редактировать"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-5m-1.4-9.6a2 2 0 0 1 2.8 2.8L11.8 15 8 16l1-3.8 9.6-9.8z" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => onDelete(it.id)}
+                    className="p-1.5 text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded transition-colors"
+                    title="Удалить"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3" />
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            {isOpen && (
+              <>
+                {mods.map((mod) => (
+                  <tr key={mod.id} className="bg-violet-50/30 dark:bg-violet-500/5 hover:bg-violet-50/60 dark:hover:bg-violet-500/10">
+                    <td className="px-3 py-1.5 text-gray-700 dark:text-gray-200">
+                      <div className="flex items-start gap-1.5 pl-6">
+                        <span className="mt-1 text-violet-400">└</span>
+                        <div>
+                          <div className="font-medium text-sm">{mod.name}</div>
+                          {mod.description && (
+                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{mod.description}</div>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-3 py-1.5 text-gray-600 dark:text-gray-300 whitespace-nowrap text-sm">{mod.unit || ''}</td>
+                    <td className="px-3 py-1.5 text-gray-600 dark:text-gray-300 text-right whitespace-nowrap text-sm">{fmtMoney(mod.cost)}</td>
+                    {projectCategories.map((pc) => {
+                      const p = mod.prices.find((pp) => pp.projectCategoryId === pc.id);
+                      return (
+                        <td
+                          key={pc.id}
+                          className="px-3 py-1.5 text-gray-700 dark:text-gray-200 text-right whitespace-nowrap text-sm font-medium"
+                        >
+                          {p ? fmtMoney(p.price) : <span className="text-gray-300 dark:text-gray-600">—</span>}
+                        </td>
+                      );
+                    })}
+                    <td className="px-2 py-1.5 whitespace-nowrap">
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => onEdit(mod)}
+                          className="p-1 text-gray-500 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-500/10 rounded transition-colors"
+                          title="Редактировать"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-5m-1.4-9.6a2 2 0 0 1 2.8 2.8L11.8 15 8 16l1-3.8 9.6-9.8z" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => onDelete(mod.id)}
+                          className="p-1 text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded transition-colors"
+                          title="Удалить"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3" />
+                          </svg>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                <tr className="bg-violet-50/20 dark:bg-violet-500/5">
+                  <td colSpan={colSpan} className="px-3 py-1.5">
+                    <button
+                      onClick={() => onAddModifier(it)}
+                      className="ml-6 text-xs text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 font-medium flex items-center gap-1"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                      </svg>
+                      Добавить модификатор
+                    </button>
+                  </td>
+                </tr>
+              </>
+            )}
+          </Fragment>
+        );
+      })}
     </>
   );
 }
 
 function PriceItemModal({
-  item,
+  state,
   categories,
   projectCategories,
   onClose,
   onSaved,
 }: {
-  item: PriceItem | null;
+  state: Exclude<EditingState, null>;
   categories: PriceCategory[];
   projectCategories: ProjectCategory[];
   onClose: () => void;
   onSaved: () => void;
 }) {
   const addToast = useToastStore((st) => st.addToast);
-  const [name, setName] = useState(item?.name ?? '');
-  const [description, setDescription] = useState(item?.description ?? '');
-  const [unit, setUnit] = useState(item?.unit ?? '');
-  const [cost, setCost] = useState<string>(item?.cost != null ? String(item.cost) : '');
-  const [categoryId, setCategoryId] = useState<number | ''>(item?.categoryId ?? '');
+  const editingItem = state.mode === 'edit' ? state.item : null;
+  const parentItem = state.mode === 'createModifier' ? state.parent : null;
+  const isModifier = state.mode === 'createModifier' || (editingItem?.parentId != null);
+
+  const [name, setName] = useState(editingItem?.name ?? '');
+  const [description, setDescription] = useState(editingItem?.description ?? '');
+  const [unit, setUnit] = useState(editingItem?.unit ?? parentItem?.unit ?? '');
+  const [cost, setCost] = useState<string>(editingItem?.cost != null ? String(editingItem.cost) : '');
+  const [categoryId, setCategoryId] = useState<number | ''>(
+    editingItem?.categoryId ?? parentItem?.categoryId ?? '',
+  );
   const [prices, setPrices] = useState<Record<number, string>>(() => {
     const m: Record<number, string> = {};
     for (const pc of projectCategories) {
-      const existing = item?.prices.find((p) => p.projectCategoryId === pc.id);
+      const existing = editingItem?.prices.find((p) => p.projectCategoryId === pc.id);
       m[pc.id] = existing ? String(existing.price) : '';
     }
     return m;
   });
   const [saving, setSaving] = useState(false);
 
+  const titleText = editingItem
+    ? (isModifier ? 'Редактирование модификатора' : 'Редактирование позиции')
+    : parentItem
+      ? `Новый модификатор для «${parentItem.name}»`
+      : 'Новая позиция прайса';
+
   const handleSave = async () => {
     if (!name.trim()) {
       addToast('error', 'Укажите название');
       return;
     }
-    const payload = {
+    const payload: Record<string, unknown> = {
       name: name.trim(),
       description: description || null,
       unit: unit || null,
@@ -353,10 +540,11 @@ function PriceItemModal({
         .filter((p) => p.raw !== '' && p.raw !== undefined && !Number.isNaN(Number(p.raw)))
         .map((p) => ({ projectCategoryId: p.projectCategoryId, price: Number(p.raw) })),
     };
+    if (parentItem) payload.parentId = parentItem.id;
     try {
       setSaving(true);
-      if (item) {
-        await api.put(`/price-items/${item.id}`, payload);
+      if (editingItem) {
+        await api.put(`/price-items/${editingItem.id}`, payload);
       } else {
         await api.post('/price-items', payload);
       }
@@ -380,7 +568,7 @@ function PriceItemModal({
       >
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
           <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100">
-            {item ? 'Редактирование позиции' : 'Новая позиция прайса'}
+            {titleText}
           </h3>
           <button
             onClick={onClose}
@@ -393,9 +581,21 @@ function PriceItemModal({
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+          {(parentItem || (editingItem?.parentId != null)) && (
+            <div className="bg-violet-50 dark:bg-violet-500/10 border border-violet-200 dark:border-violet-500/30 rounded-lg p-3 text-xs text-violet-800 dark:text-violet-300">
+              Модификатор наследует категорию прайса от родительской позиции. Укажите отличающиеся параметры (например, размер) и собственные цены.
+            </div>
+          )}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Название</label>
-            <input value={name} onChange={(e) => setName(e.target.value)} className={INPUT_CLS} />
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+              {isModifier ? 'Название модификатора' : 'Название'}
+            </label>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className={INPUT_CLS}
+              placeholder={isModifier ? 'Например: 180 мм' : ''}
+            />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Описание</label>
@@ -407,19 +607,21 @@ function PriceItemModal({
             />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Категория</label>
-              <select
-                value={categoryId === '' ? '' : String(categoryId)}
-                onChange={(e) => setCategoryId(e.target.value === '' ? '' : Number(e.target.value))}
-                className={INPUT_CLS}
-              >
-                <option value="">— без категории —</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-            </div>
+            {!isModifier && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Категория</label>
+                <select
+                  value={categoryId === '' ? '' : String(categoryId)}
+                  onChange={(e) => setCategoryId(e.target.value === '' ? '' : Number(e.target.value))}
+                  className={INPUT_CLS}
+                >
+                  <option value="">— без категории —</option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Ед. изм.</label>
               <input value={unit ?? ''} onChange={(e) => setUnit(e.target.value)} className={INPUT_CLS} placeholder="м², м³, шт..." />
