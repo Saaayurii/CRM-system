@@ -11,6 +11,8 @@ import DeleteConfirmModal from './DeleteConfirmModal';
 import AssignUsersModal from './AssignUsersModal';
 import ManageMembersModal from './ManageMembersModal';
 import ErrorBoundary from './ErrorBoundary';
+import ClientPortalAccessModal from './ClientPortalAccessModal';
+import { useIsClient } from '@/hooks/useIsClient';
 
 interface CrudPageProps {
   config: CrudModuleConfig;
@@ -40,6 +42,13 @@ export default function CrudPage({ config, onExtraAction, hideTitle, onRowClick 
   const addToast = useToastStore((s) => s.addToast);
   const [pdfLoading, setPdfLoading] = useState<number | null>(null);
   const [pdfListLoading, setPdfListLoading] = useState(false);
+
+  // Клиент портала видит данные только в режиме просмотра (write-операции
+  // блокируются api-gateway, но кнопки прячем заранее — чтобы не вводить в заблуждение).
+  const isClient = useIsClient();
+  const canCreate = !isClient && config.canCreate !== false;
+  const canEdit = !isClient && config.canEdit !== false;
+  const canDelete = !isClient && config.canDelete !== false;
 
   const handleDownloadListPdf = async () => {
     setPdfListLoading(true);
@@ -87,6 +96,10 @@ export default function CrudPage({ config, onExtraAction, hideTitle, onRowClick 
   // Manage members modal state (teams only)
   const [membersOpen, setMembersOpen] = useState(false);
   const [membersTeamId, setMembersTeamId] = useState<number | null>(null);
+
+  // Client portal access modal (clients only)
+  const [portalClientId, setPortalClientId] = useState<number | null>(null);
+  const [portalClientName, setPortalClientName] = useState<string | undefined>();
 
   const handleCreate = () => {
     setEditingItem(null);
@@ -139,7 +152,18 @@ export default function CrudPage({ config, onExtraAction, hideTitle, onRowClick 
       return;
     }
 
-    if (onExtraAction && actionKey !== 'assign' && actionKey !== 'members' && actionKey !== 'pdf') {
+    if (actionKey === 'portal') {
+      const r = row as Record<string, any>;
+      const name =
+        r.companyName ||
+        [r.lastName, r.firstName, r.middleName].filter(Boolean).join(' ') ||
+        `#${r.id}`;
+      setPortalClientId(r.id as number);
+      setPortalClientName(name);
+      return;
+    }
+
+    if (onExtraAction && actionKey !== 'assign' && actionKey !== 'members' && actionKey !== 'pdf' && actionKey !== 'portal') {
       onExtraAction(actionKey, row, () => crud.refetch?.());
       return;
     }
@@ -207,14 +231,14 @@ export default function CrudPage({ config, onExtraAction, hideTitle, onRowClick 
           onPageChange={crud.setPage}
           onSearch={crud.setSearch}
           onSort={crud.setSort}
-          onEdit={config.canEdit !== false ? handleEdit : undefined}
+          onEdit={canEdit ? handleEdit : undefined}
           onRowClick={onRowClick}
-          onDelete={config.canDelete !== false ? ((row) => setDeleteItem(row)) : undefined}
-          onCreate={config.canCreate !== false ? handleCreate : undefined}
-          canCreate={config.canCreate !== false}
-          canEdit={config.canEdit !== false}
-          canDelete={config.canDelete !== false}
-          customRowActions={config.customRowActions}
+          onDelete={canDelete ? ((row) => setDeleteItem(row)) : undefined}
+          onCreate={canCreate ? handleCreate : undefined}
+          canCreate={canCreate}
+          canEdit={canEdit}
+          canDelete={canDelete}
+          customRowActions={isClient ? undefined : config.customRowActions}
           onCustomAction={handleCustomAction}
           loadingRowId={pdfLoading}
         />
@@ -252,6 +276,18 @@ export default function CrudPage({ config, onExtraAction, hideTitle, onRowClick 
             teamId={membersTeamId}
             onClose={() => setMembersOpen(false)}
             onSaved={crud.refetch}
+          />
+        )}
+
+        {config.slug === 'clients' && portalClientId !== null && (
+          <ClientPortalAccessModal
+            clientId={portalClientId}
+            clientName={portalClientName}
+            onClose={() => {
+              setPortalClientId(null);
+              setPortalClientName(undefined);
+              crud.refetch?.();
+            }}
           />
         )}
       </div>

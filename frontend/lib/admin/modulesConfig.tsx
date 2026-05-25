@@ -402,6 +402,9 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
     title: 'Клиенты',
     apiEndpoint: '/clients',
     searchField: 'названию',
+    customRowActions: [
+      { key: 'portal', label: 'Доступ', title: 'Выдать доступ к клиентскому порталу' },
+    ],
     columns: [
       { key: 'id', header: 'ID', sortable: true, width: '80px' },
       {

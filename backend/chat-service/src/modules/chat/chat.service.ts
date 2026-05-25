@@ -92,6 +92,25 @@ export class ChatService {
     return channel;
   }
 
+  /**
+   * Внешний вариант findChannelById: помимо проверки принадлежности к accountId
+   * для клиента портала (roleId=15) обязательна membership в этом канале —
+   * иначе он мог бы прочитать metadata любого канала своей компании по ID.
+   */
+  async findChannelByIdForUser(
+    id: number,
+    user: { id: number; roleId: number; accountId: number },
+  ) {
+    const channel = await this.findChannelById(id, user.accountId);
+    if (user.roleId === 15) {
+      const member = await this.chatRepository.findChannelMember(id, user.id);
+      if (!member) {
+        throw new ForbiddenException('Access denied');
+      }
+    }
+    return channel;
+  }
+
   async createChannel(
     accountId: number,
     userId: number,
@@ -265,11 +284,17 @@ export class ChatService {
 
   async findChannelMessagesCursor(
     channelId: number,
-    accountId: number,
+    user: { id: number; roleId: number; accountId: number },
     cursor?: number,
     limit: number = 50,
   ) {
-    await this.findChannelById(channelId, accountId);
+    await this.findChannelById(channelId, user.accountId);
+    if (user.roleId === 15) {
+      const member = await this.chatRepository.findChannelMember(channelId, user.id);
+      if (!member) {
+        throw new ForbiddenException('Access denied');
+      }
+    }
     return this.chatRepository.findChannelMessagesCursor(
       channelId,
       cursor,

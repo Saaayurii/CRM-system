@@ -16,6 +16,7 @@ import {
   CLIENT_ROLE_ID,
   RequestUser,
   getClientAllowedProjectIds,
+  sanitizePaymentForClient,
 } from '../../common/helpers/client-access.helper';
 
 @Injectable()
@@ -63,10 +64,14 @@ export class PaymentsService {
   // Payments
   async findAllPayments(user: RequestUser, filters: PaymentFilters) {
     const allowedProjectIds = await getClientAllowedProjectIds(this.prisma, user);
-    return this.paymentsRepository.findAll(user.accountId, {
+    const result = await this.paymentsRepository.findAll(user.accountId, {
       ...filters,
       allowedProjectIds,
     });
+    if (user.roleId === CLIENT_ROLE_ID && Array.isArray(result?.data)) {
+      result.data = result.data.map((p: any) => sanitizePaymentForClient(user, p));
+    }
+    return result;
   }
 
   async getStats(accountId: number, filters: PaymentFilters) {

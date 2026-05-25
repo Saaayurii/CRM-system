@@ -121,9 +121,9 @@ export class ChatController {
   @ApiResponse({ status: 404, description: 'Channel not found' })
   findChannelById(
     @Param('id', ParseIntPipe) id: number,
-    @CurrentUser('accountId') accountId: number,
+    @CurrentUser() user: any,
   ) {
-    return this.chatService.findChannelById(id, accountId);
+    return this.chatService.findChannelByIdForUser(id, user);
   }
 
   @Put(':id')
@@ -261,13 +261,13 @@ export class ChatController {
   @ApiResponse({ status: 200, description: 'Messages retrieved' })
   findChannelMessages(
     @Param('id', ParseIntPipe) id: number,
-    @CurrentUser('accountId') accountId: number,
+    @CurrentUser() user: any,
     @Query('cursor') cursor?: string,
     @Query('limit') limit?: string,
   ) {
     return this.chatService.findChannelMessagesCursor(
       id,
-      accountId,
+      user,
       cursor ? parseInt(cursor, 10) : undefined,
       limit ? parseInt(limit, 10) : 50,
     );

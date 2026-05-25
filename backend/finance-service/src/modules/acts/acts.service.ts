@@ -8,6 +8,7 @@ import {
   CLIENT_ROLE_ID,
   RequestUser,
   getClientAllowedProjectIds,
+  sanitizeActForClient,
 } from '../../common/helpers/client-access.helper';
 
 @Injectable()
@@ -19,13 +20,17 @@ export class ActsService {
 
   async findAll(user: RequestUser, page: number, limit: number, projectId?: number) {
     const allowedProjectIds = await getClientAllowedProjectIds(this.prisma, user);
-    return this.actRepository.findAll(
+    const result = await this.actRepository.findAll(
       user.accountId,
       page,
       limit,
       projectId,
       allowedProjectIds,
     );
+    if (user.roleId === CLIENT_ROLE_ID && Array.isArray(result?.data)) {
+      result.data = result.data.map((a: any) => sanitizeActForClient(user, a));
+    }
+    return result;
   }
 
   async findById(id: number, user: RequestUser) {
@@ -38,6 +43,7 @@ export class ActsService {
       if (!act.projectId || !allowed?.includes(act.projectId)) {
         throw new ForbiddenException('Access denied');
       }
+      return sanitizeActForClient(user, act);
     }
     return act;
   }

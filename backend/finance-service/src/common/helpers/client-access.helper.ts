@@ -46,3 +46,53 @@ export async function clientCanViewFinancials(
   `;
   return rows[0]?.can_view_financials === true;
 }
+
+// Поля, которые клиент в портале НЕ должен видеть, даже если получил
+// доступ к финансам — это внутренняя кухня компании.
+const INTERNAL_PAYMENT_FIELDS = [
+  'cashLocation',
+  'bankName',
+  'counterpartyType',
+  'supplierId',
+  'contractorId',
+  'supplierOrderId',
+  'notes',
+  'createdByUserId',
+  'approvedByUserId',
+  'documents',
+  'paymentAccountId',
+  'paymentAccount',
+] as const;
+
+const INTERNAL_ACT_FIELDS = [
+  'contractorId',
+  'preparedByUserId',
+  'approvedByUserId',
+  'notes',
+  'documents',
+] as const;
+
+function strip<T extends Record<string, any>>(obj: T, fields: readonly string[]): T {
+  if (!obj || typeof obj !== 'object') return obj;
+  const copy: any = { ...obj };
+  for (const f of fields) delete copy[f];
+  return copy;
+}
+
+/** Прячет внутренние поля платежа для клиента. */
+export function sanitizePaymentForClient<T extends Record<string, any>>(
+  user: RequestUser,
+  payment: T,
+): T {
+  if (user.roleId !== CLIENT_ROLE_ID) return payment;
+  return strip(payment, INTERNAL_PAYMENT_FIELDS);
+}
+
+/** Прячет внутренние поля акта для клиента. */
+export function sanitizeActForClient<T extends Record<string, any>>(
+  user: RequestUser,
+  act: T,
+): T {
+  if (user.roleId !== CLIENT_ROLE_ID) return act;
+  return strip(act, INTERNAL_ACT_FIELDS);
+}
