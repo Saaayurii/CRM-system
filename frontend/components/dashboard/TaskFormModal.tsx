@@ -1564,7 +1564,8 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                     const name = isSystemUser ? 'Система' : userName(author!);
                     const rawText = c.commentText || (c as any).content || '';
                     const isSystemMessage = c.type === 'system' || rawText.startsWith('__system__:');
-                    const text = rawText.startsWith('__system__:') ? rawText.slice('__system__:'.length) : rawText;
+                    const text = (rawText.startsWith('__system__:') ? rawText.slice('__system__:'.length) : rawText)
+                      .replace(/ — (?!Система).+$/, ' — Система');
                     if (isSystemMessage) {
                       const subtaskMatch = text.match(/^Подзадача «(.+)»/);
                       const handleSubtaskClick = subtaskMatch ? () => {
