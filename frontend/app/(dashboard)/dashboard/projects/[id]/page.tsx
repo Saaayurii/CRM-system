@@ -3499,6 +3499,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
           <div className="flex gap-0.5 bg-white dark:bg-gray-800 rounded-xl shadow-xs px-3 py-1.5 overflow-x-auto">
             {([
               { key: 'overview',  label: 'Обзор' },
+              { key: 'documents', label: 'Документы' },
               { key: 'payments',  label: 'Платежи',      count: financePayments.length },
               { key: 'budgets',   label: 'Бюджеты',      count: financeBudgets.length },
               { key: 'acts',      label: 'Акты',         count: financeActs.length },
@@ -3525,6 +3526,15 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
               </button>
             ))}
           </div>
+
+          {/* ── Documents flow ── */}
+          {financeSubTab === 'documents' && (
+            <DocumentsOverview
+              projectId={Number(projectId)}
+              onCreateEstimate={() => setActiveTab('estimates')}
+              onOpenFinancialReport={() => setShowFinancialReport(true)}
+            />
+          )}
 
           {/* ── Overview ── */}
           {financeSubTab === 'overview' && (loadingFinance ? <LoadingState /> : (

@@ -6,6 +6,8 @@ import api from '@/lib/api';
 import { formatMoney } from '@/lib/utils';
 import { useDownloadPdf } from '@/lib/hooks/useDownloadPdf';
 import FinanceOperationModal from '@/components/finance/FinanceOperationModal';
+import DocumentsOverview from '@/components/estimates/DocumentsOverview';
+import FinancialReportModal from '@/components/estimates/FinancialReportModal';
 
 interface Operation {
   id: number;
@@ -135,6 +137,8 @@ export default function FinancePage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [sites, setSites] = useState<Site[]>([]);
   const [projectFilter, setProjectFilter] = useState<number | ''>('');
+  const [docFlowProjectId, setDocFlowProjectId] = useState<number | ''>('');
+  const [showFinancialReport, setShowFinancialReport] = useState(false);
   const [siteFilter, setSiteFilter] = useState<number | ''>('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -329,7 +333,48 @@ export default function FinancePage() {
         </div>
 
         {tab === 'documents' ? (
-          <div className="p-4 sm:p-6">
+          <div className="p-4 sm:p-6 space-y-6">
+            {/* ─── Документооборот по проекту ────────────────── */}
+            <div>
+              <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
+                    Документооборот проекта
+                  </h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    Прайс компании, сметы проекта и платежи — источники для генерации PDF.
+                  </p>
+                </div>
+                <div className="min-w-[260px]">
+                  <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Проект</label>
+                  <select
+                    value={docFlowProjectId}
+                    onChange={(e) => setDocFlowProjectId(e.target.value ? Number(e.target.value) : '')}
+                    className="form-select w-full text-sm"
+                  >
+                    <option value="">— выберите проект —</option>
+                    {projects.map((p) => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {docFlowProjectId === '' ? (
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-10 text-center text-sm text-gray-500 dark:text-gray-400">
+                  Выберите проект, чтобы увидеть его документооборот.
+                </div>
+              ) : (
+                <DocumentsOverview
+                  projectId={Number(docFlowProjectId)}
+                  onCreateEstimate={() => window.location.assign(`/dashboard/projects/${docFlowProjectId}?tab=estimates`)}
+                  onOpenFinancialReport={() => setShowFinancialReport(true)}
+                />
+              )}
+            </div>
+
+            <div className="border-t border-gray-100 dark:border-gray-700" />
+
             <div className="mb-5">
               <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
                 Пакеты готовых документов
@@ -537,6 +582,13 @@ export default function FinancePage() {
         defaultProjectId={projectFilter || null}
         defaultConstructionSiteId={siteFilter || null}
       />
+
+      {showFinancialReport && docFlowProjectId !== '' && (
+        <FinancialReportModal
+          projectId={Number(docFlowProjectId)}
+          onClose={() => setShowFinancialReport(false)}
+        />
+      )}
     </div>
   );
 }

@@ -48,6 +48,8 @@ interface ProjectData {
   teamId?: number;
   team_id?: number;
   address?: string;
+  clientId?: number | null;
+  client_id?: number | null;
   clientName?: string;
   client_name?: string;
   settings?: Record<string, any>;
@@ -102,6 +104,7 @@ export default function ProjectFormModal({ project, onClose, onSaved }: ProjectF
     teamId: String(project?.teamId || project?.team_id || ''),
     managerId: String(project?.projectManagerId || project?.managerId || project?.manager_id || project?.projectManager?.id || ''),
     address: project?.address || '',
+    clientId: (project?.clientId ?? project?.client_id ?? '') as number | '',
     clientName: project?.clientName || project?.client_name || '',
     notes: project?.settings?.notes || '',
   };
@@ -121,6 +124,27 @@ export default function ProjectFormModal({ project, onClose, onSaved }: ProjectF
   const [managerId, setManagerId] = useState<number | ''>(initialDraft.managerId ? Number(initialDraft.managerId) : '');
   const [address, setAddress] = useState(initialDraft.address);
   const [clientName, setClientName] = useState(initialDraft.clientName);
+  const [clientId, setClientId] = useState<number | ''>(
+    typeof initialDraft.clientId === 'number' ? initialDraft.clientId : '',
+  );
+  const [clientOptions, setClientOptions] = useState<{ id: number; label: string }[]>([]);
+
+  useEffect(() => {
+    api.get('/clients', { params: { limit: 500 } }).then(({ data }) => {
+      const list: any[] = Array.isArray(data) ? data : (data?.data || data?.clients || []);
+      setClientOptions(
+        list.map((c) => {
+          const label =
+            c.legalName ||
+            c.companyName ||
+            [c.lastName, c.firstName, c.middleName].filter(Boolean).join(' ') ||
+            c.email ||
+            `#${c.id}`;
+          return { id: c.id, label };
+        }),
+      );
+    }).catch(() => setClientOptions([]));
+  }, []);
   const [notes, setNotes] = useState<string>(initialDraft.notes);
 
   const applyDraft = useCallback((d: typeof initialDraft) => {
@@ -179,6 +203,7 @@ export default function ProjectFormModal({ project, onClose, onSaved }: ProjectF
     if (isEdit && actualEndDate) payload.actualEndDate = actualEndDate;
     if (managerId) payload.projectManagerId = managerId;
     if (address.trim()) payload.address = address.trim();
+    if (clientId !== '') payload.clientId = clientId;
     if (clientName.trim()) payload.clientName = clientName.trim();
     payload.settings = { ...(project?.settings || {}), notes: notes.trim() };
 
@@ -291,12 +316,32 @@ export default function ProjectFormModal({ project, onClose, onSaved }: ProjectF
             </div>
             <div>
               <label className={LABEL_CLS}>Клиент</label>
+              <select
+                value={clientId === '' ? '' : String(clientId)}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === '') {
+                    setClientId('');
+                    return;
+                  }
+                  const id = Number(v);
+                  setClientId(id);
+                  const picked = clientOptions.find((c) => c.id === id);
+                  if (picked) setClientName(picked.label);
+                }}
+                className={INPUT_CLS}
+              >
+                <option value="">— не выбран —</option>
+                {clientOptions.map((c) => (
+                  <option key={c.id} value={c.id}>{c.label}</option>
+                ))}
+              </select>
               <input
                 type="text"
                 value={clientName}
                 onChange={(e) => setClientName(e.target.value)}
-                className={INPUT_CLS}
-                placeholder="Название клиента"
+                className={`${INPUT_CLS} mt-1.5`}
+                placeholder="Или введите вручную (если клиента ещё нет в базе)"
               />
             </div>
           </div>

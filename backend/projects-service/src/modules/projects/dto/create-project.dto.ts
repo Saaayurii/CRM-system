@@ -37,6 +37,11 @@ export class CreateProjectDto {
   @IsOptional()
   projectManagerId?: number;
 
+  @ApiPropertyOptional({ description: 'Client ID (from clients-service)', example: 12 })
+  @IsNumber()
+  @IsOptional()
+  clientId?: number;
+
   @ApiPropertyOptional({
     description: 'Client name',
     example: 'ООО Застройщик',

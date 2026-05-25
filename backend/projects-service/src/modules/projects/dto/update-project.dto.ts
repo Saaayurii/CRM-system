@@ -31,6 +31,11 @@ export class UpdateProjectDto {
   @IsOptional()
   projectManagerId?: number;
 
+  @ApiPropertyOptional({ description: 'Client ID (from clients-service)' })
+  @IsNumber()
+  @IsOptional()
+  clientId?: number;
+
   @ApiPropertyOptional({ description: 'Client name' })
   @IsString()
   @IsOptional()
