@@ -1,0 +1,202 @@
+/* FullCalendar visual polish — light & dark */
+
+.fc {
+  --fc-border-color: rgb(229 231 235);
+  --fc-page-bg-color: transparent;
+  --fc-neutral-bg-color: transparent;
+  --fc-today-bg-color: rgb(245 243 255 / 0.5);
+  --fc-event-text-color: #fff;
+  --fc-now-indicator-color: rgb(239 68 68);
+  font-family: inherit;
+}
+
+.dark .fc {
+  --fc-border-color: rgb(55 65 81);
+  --fc-today-bg-color: rgb(139 92 246 / 0.08);
+  --fc-neutral-text-color: rgb(229 231 235);
+}
+
+/* Toolbar: title + nav */
+.fc .fc-toolbar.fc-header-toolbar {
+  margin-bottom: 1rem;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.fc .fc-toolbar-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-transform: capitalize;
+  color: rgb(31 41 55);
+}
+.dark .fc .fc-toolbar-title {
+  color: rgb(229 231 235);
+}
+
+/* Toolbar buttons — clean pill style */
+.fc .fc-button,
+.fc .fc-button-primary {
+  background: rgb(243 244 246);
+  border: 1px solid rgb(229 231 235);
+  color: rgb(55 65 81);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  padding: 0.35rem 0.75rem;
+  border-radius: 0.5rem;
+  box-shadow: none;
+  text-transform: none;
+  transition: all 0.15s ease;
+}
+.dark .fc .fc-button,
+.dark .fc .fc-button-primary {
+  background: rgb(55 65 81);
+  border-color: rgb(75 85 99);
+  color: rgb(229 231 235);
+}
+.fc .fc-button:hover,
+.fc .fc-button-primary:hover {
+  background: rgb(229 231 235);
+  border-color: rgb(209 213 219);
+  color: rgb(17 24 39);
+}
+.dark .fc .fc-button:hover,
+.dark .fc .fc-button-primary:hover {
+  background: rgb(75 85 99);
+  border-color: rgb(107 114 128);
+  color: rgb(243 244 246);
+}
+.fc .fc-button-primary:not(:disabled).fc-button-active,
+.fc .fc-button-primary:not(:disabled):active {
+  background: rgb(139 92 246);
+  border-color: rgb(139 92 246);
+  color: #fff;
+  box-shadow: 0 1px 2px rgb(139 92 246 / 0.25);
+}
+.fc .fc-button-primary:focus {
+  box-shadow: 0 0 0 3px rgb(139 92 246 / 0.25);
+}
+
+/* Button group: tighter visual unit */
+.fc .fc-button-group {
+  gap: 0;
+}
+.fc .fc-button-group > .fc-button {
+  border-radius: 0;
+}
+.fc .fc-button-group > .fc-button:first-child {
+  border-top-left-radius: 0.5rem;
+  border-bottom-left-radius: 0.5rem;
+}
+.fc .fc-button-group > .fc-button:last-child {
+  border-top-right-radius: 0.5rem;
+  border-bottom-right-radius: 0.5rem;
+}
+.fc .fc-button-group > .fc-button + .fc-button {
+  border-left-width: 0;
+}
+
+/* Day cells */
+.fc .fc-col-header-cell {
+  padding: 0.5rem 0;
+  background: rgb(249 250 251);
+}
+.dark .fc .fc-col-header-cell {
+  background: rgb(31 41 55 / 0.5);
+}
+.fc .fc-col-header-cell-cushion {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgb(107 114 128);
+  padding: 0.35rem 0.5rem;
+}
+.dark .fc .fc-col-header-cell-cushion {
+  color: rgb(156 163 175);
+}
+
+.fc .fc-daygrid-day-number {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  padding: 0.4rem 0.55rem;
+  color: rgb(75 85 99);
+}
+.dark .fc .fc-daygrid-day-number {
+  color: rgb(209 213 219);
+}
+.fc .fc-day-other .fc-daygrid-day-number {
+  opacity: 0.4;
+}
+.fc .fc-day-today .fc-daygrid-day-number {
+  color: rgb(139 92 246);
+  font-weight: 700;
+}
+.fc .fc-day-sat .fc-daygrid-day-number,
+.fc .fc-day-sun .fc-daygrid-day-number {
+  color: rgb(220 38 38);
+}
+.dark .fc .fc-day-sat .fc-daygrid-day-number,
+.dark .fc .fc-day-sun .fc-daygrid-day-number {
+  color: rgb(248 113 113);
+}
+
+/* Events */
+.fc .fc-event {
+  border: 0;
+  border-radius: 0.375rem;
+  padding: 1px 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  box-shadow: 0 1px 1px rgb(0 0 0 / 0.05);
+}
+.fc .fc-event:hover {
+  filter: brightness(0.95);
+}
+.fc .fc-event-title {
+  font-weight: 500;
+}
+.fc .fc-daygrid-event-dot {
+  border-width: 4px;
+}
+
+/* List view (Лента) */
+.fc .fc-list {
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+.fc .fc-list-day-cushion {
+  background: rgb(249 250 251);
+  font-weight: 600;
+  font-size: 0.8125rem;
+}
+.dark .fc .fc-list-day-cushion {
+  background: rgb(31 41 55);
+}
+.fc .fc-list-event:hover td {
+  background: rgb(245 243 255 / 0.7);
+}
+.dark .fc .fc-list-event:hover td {
+  background: rgb(139 92 246 / 0.08);
+}
+
+/* "+N ещё" link */
+.fc .fc-daygrid-more-link {
+  font-size: 0.7rem;
+  color: rgb(139 92 246);
+  font-weight: 500;
+}
+
+/* Now indicator */
+.fc .fc-timegrid-now-indicator-line {
+  border-color: rgb(239 68 68);
+  border-width: 1.5px;
+}
+
+/* Time grid */
+.fc .fc-timegrid-slot-label-cushion {
+  font-size: 0.7rem;
+  color: rgb(107 114 128);
+}
+.dark .fc .fc-timegrid-slot-label-cushion {
+  color: rgb(156 163 175);
+}
