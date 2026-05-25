@@ -81,12 +81,9 @@ export default function ClientPortalAccessModal({ clientId, clientName, onClose 
         accessToken: data.accessToken ?? null,
         login: data.login ?? login ?? null,
       });
-      addToast({ type: 'success', message: 'Доступ к порталу выдан' });
+      addToast('success', 'Доступ к порталу выдан');
     } catch (err: any) {
-      addToast({
-        type: 'error',
-        message: err?.response?.data?.message || 'Не удалось выдать доступ',
-      });
+      addToast('error', err?.response?.data?.message || 'Не удалось выдать доступ');
     } finally {
       setSubmitting(false);
     }
@@ -244,7 +241,7 @@ export default function ClientPortalAccessModal({ clientId, clientName, onClose 
                     type="button"
                     onClick={() => {
                       navigator.clipboard.writeText(magicLink);
-                      addToast({ type: 'success', message: 'Ссылка скопирована' });
+                      addToast('success', 'Ссылка скопирована');
                     }}
                     className="px-3 py-2 rounded bg-violet-600 hover:bg-violet-700 text-white text-xs"
                   >
