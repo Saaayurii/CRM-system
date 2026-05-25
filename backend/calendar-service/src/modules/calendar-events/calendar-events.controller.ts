@@ -35,7 +35,7 @@ export class CalendarEventsController {
   @ApiQuery({ name: 'endDate', required: false, type: String })
   @ApiResponse({ status: 200, description: 'Calendar events retrieved' })
   findAll(
-    @CurrentUser('accountId') accountId: number,
+    @CurrentUser() user: any,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('projectId') projectId?: string,
@@ -43,7 +43,7 @@ export class CalendarEventsController {
     @Query('endDate') endDate?: string,
   ) {
     return this.calendarEventsService.findAll(
-      accountId,
+      user,
       page ? parseInt(page, 10) : 1,
       limit ? parseInt(limit, 10) : 20,
       {
@@ -60,9 +60,9 @@ export class CalendarEventsController {
   @ApiResponse({ status: 404, description: 'Calendar event not found' })
   findById(
     @Param('id', ParseIntPipe) id: number,
-    @CurrentUser('accountId') accountId: number,
+    @CurrentUser() user: any,
   ) {
-    return this.calendarEventsService.findById(id, accountId);
+    return this.calendarEventsService.findById(id, user);
   }
 
   @Post()

@@ -23,6 +23,7 @@ export interface PaymentFilters {
   paymentAccountId?: number;
   dateFrom?: string;
   dateTo?: string;
+  allowedProjectIds?: number[];
 }
 
 @Injectable()
@@ -40,6 +41,7 @@ export class PaymentsRepository {
       paymentAccountId,
       dateFrom,
       dateTo,
+      allowedProjectIds,
     } = filters;
     const skip = (page - 1) * limit;
     const where: any = { accountId };
@@ -52,6 +54,9 @@ export class PaymentsRepository {
       where.paymentDate = {};
       if (dateFrom) where.paymentDate.gte = new Date(dateFrom);
       if (dateTo) where.paymentDate.lte = new Date(dateTo);
+    }
+    if (allowedProjectIds) {
+      where.projectId = allowedProjectIds.length > 0 ? { in: allowedProjectIds } : -1;
     }
     const [data, total] = await Promise.all([
       (this.prisma as any).payment.findMany({

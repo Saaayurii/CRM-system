@@ -6,16 +6,23 @@ import {
 import { TaskRepository } from './repositories/task.repository';
 import { NotificationsClientService } from './notifications-client.service';
 import { CreateTaskDto, UpdateTaskDto } from './dto';
+import { PrismaService } from '../../database/prisma.service';
+import {
+  CLIENT_ROLE_ID,
+  RequestUser,
+  getClientAllowedProjectIds,
+} from '../../common/helpers/client-access.helper';
 
 @Injectable()
 export class TasksService {
   constructor(
     private readonly taskRepository: TaskRepository,
     private readonly notificationsClient: NotificationsClientService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async findAll(
-    accountId: number,
+    user: RequestUser,
     page: number = 1,
     limit: number = 20,
     filters?: {
@@ -26,24 +33,42 @@ export class TasksService {
     },
   ) {
     const skip = (page - 1) * limit;
+    const allowedProjectIds = await getClientAllowedProjectIds(this.prisma, user);
     const [tasks, total] = await Promise.all([
-      this.taskRepository.findAll(accountId, { skip, take: limit, ...filters }),
-      this.taskRepository.count(accountId, filters),
+      this.taskRepository.findAll(user.accountId, {
+        skip,
+        take: limit,
+        ...filters,
+        allowedProjectIds,
+      }),
+      this.taskRepository.count(user.accountId, { ...filters, allowedProjectIds }),
     ]);
 
     return { tasks, total, page, limit };
   }
 
-  async findById(id: number, requestingUserAccountId: number) {
+  async findById(id: number, user: RequestUser) {
     const task = await this.taskRepository.findById(id);
     if (!task) throw new NotFoundException('Task not found');
-    if (task.accountId !== requestingUserAccountId)
+    if (task.accountId !== user.accountId)
       throw new ForbiddenException('Access denied');
+    if (user.roleId === CLIENT_ROLE_ID) {
+      const allowed = await getClientAllowedProjectIds(this.prisma, user);
+      if (!allowed?.includes(task.projectId)) {
+        throw new ForbiddenException('Access denied');
+      }
+    }
     return task;
   }
 
-  async findByProject(projectId: number, accountId: number) {
-    return this.taskRepository.findByProject(projectId, accountId);
+  async findByProject(projectId: number, user: RequestUser) {
+    if (user.roleId === CLIENT_ROLE_ID) {
+      const allowed = await getClientAllowedProjectIds(this.prisma, user);
+      if (!allowed?.includes(projectId)) {
+        throw new ForbiddenException('Access denied');
+      }
+    }
+    return this.taskRepository.findByProject(projectId, user.accountId);
   }
 
   async create(

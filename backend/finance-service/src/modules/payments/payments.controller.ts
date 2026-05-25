@@ -96,7 +96,7 @@ export class PaymentsController {
   @ApiQuery({ name: 'dateFrom', required: false, type: String })
   @ApiQuery({ name: 'dateTo', required: false, type: String })
   findAll(
-    @CurrentUser('accountId') accountId: number,
+    @CurrentUser() user: any,
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 20,
     @Query('projectId') projectId?: number,
@@ -107,7 +107,7 @@ export class PaymentsController {
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string,
   ) {
-    return this.paymentsService.findAllPayments(accountId, {
+    return this.paymentsService.findAllPayments(user, {
       page: Number(page),
       limit: Number(limit),
       projectId: projectId ? Number(projectId) : undefined,

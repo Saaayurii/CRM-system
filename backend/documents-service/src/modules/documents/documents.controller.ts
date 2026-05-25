@@ -35,7 +35,7 @@ export class DocumentsController {
   @ApiQuery({ name: 'status', required: false, type: String })
   @ApiQuery({ name: 'constructionSiteId', required: false, type: Number })
   findAll(
-    @CurrentUser('accountId') accountId: number,
+    @CurrentUser() user: any,
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 20,
     @Query('projectId') projectId?: number,
@@ -48,16 +48,16 @@ export class DocumentsController {
     if (documentType) filters.documentType = documentType;
     if (status) filters.status = status;
     if (constructionSiteId) filters.constructionSiteId = +constructionSiteId;
-    return this.documentsService.findAll(accountId, +page, +limit, filters);
+    return this.documentsService.findAll(user, +page, +limit, filters);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get document by ID' })
   findOne(
     @Param('id', ParseIntPipe) id: number,
-    @CurrentUser('accountId') accountId: number,
+    @CurrentUser() user: any,
   ) {
-    return this.documentsService.findById(id, accountId);
+    return this.documentsService.findById(id, user);
   }
 
   @Post()

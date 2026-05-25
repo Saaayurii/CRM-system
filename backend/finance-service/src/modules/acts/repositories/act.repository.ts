@@ -8,10 +8,19 @@ import { CreateActItemDto } from '../dto/create-act-item.dto';
 export class ActRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(accountId: number, page: number = 1, limit: number = 20, projectId?: number) {
+  async findAll(
+    accountId: number,
+    page: number = 1,
+    limit: number = 20,
+    projectId?: number,
+    allowedProjectIds?: number[],
+  ) {
     const skip = (page - 1) * limit;
     const where: any = { accountId };
     if (projectId) where.projectId = projectId;
+    if (allowedProjectIds) {
+      where.projectId = allowedProjectIds.length > 0 ? { in: allowedProjectIds } : -1;
+    }
     const [data, total] = await Promise.all([
       (this.prisma as any).act.findMany({
         where,

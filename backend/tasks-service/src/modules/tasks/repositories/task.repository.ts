@@ -15,6 +15,7 @@ export class TaskRepository {
       status?: number;
       assignedToUserId?: number;
       constructionSiteId?: number;
+      allowedProjectIds?: number[];
     },
   ) {
     const where: any = { accountId, deletedAt: null };
@@ -28,6 +29,11 @@ export class TaskRepository {
     }
     if (options?.constructionSiteId !== undefined)
       where.constructionSiteId = options.constructionSiteId;
+    if (options?.allowedProjectIds) {
+      where.projectId = options.allowedProjectIds.length > 0
+        ? { in: options.allowedProjectIds }
+        : -1;
+    }
 
     return (this.prisma as any).task.findMany({
       where,
@@ -134,7 +140,13 @@ export class TaskRepository {
 
   async count(
     accountId: number,
-    options?: { projectId?: number; status?: number; assignedToUserId?: number; constructionSiteId?: number },
+    options?: {
+      projectId?: number;
+      status?: number;
+      assignedToUserId?: number;
+      constructionSiteId?: number;
+      allowedProjectIds?: number[];
+    },
   ) {
     const where: any = { accountId, deletedAt: null };
     if (options?.projectId) where.projectId = options.projectId;
@@ -147,6 +159,11 @@ export class TaskRepository {
     }
     if (options?.constructionSiteId !== undefined)
       where.constructionSiteId = options.constructionSiteId;
+    if (options?.allowedProjectIds) {
+      where.projectId = options.allowedProjectIds.length > 0
+        ? { in: options.allowedProjectIds }
+        : -1;
+    }
     return (this.prisma as any).task.count({ where });
   }
 

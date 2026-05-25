@@ -11,7 +11,13 @@ export class DocumentRepository {
     accountId: number,
     page: number = 1,
     limit: number = 20,
-    filters?: { projectId?: number; documentType?: string; status?: string; constructionSiteId?: number },
+    filters?: {
+      projectId?: number;
+      documentType?: string;
+      status?: string;
+      constructionSiteId?: number;
+      allowedProjectIds?: number[];
+    },
   ) {
     const skip = (page - 1) * limit;
     const where: any = { accountId, deletedAt: null };
@@ -27,6 +33,11 @@ export class DocumentRepository {
     }
     if (filters?.constructionSiteId !== undefined) {
       where.constructionSiteId = filters.constructionSiteId;
+    }
+    if (filters?.allowedProjectIds) {
+      where.projectId = filters.allowedProjectIds.length > 0
+        ? { in: filters.allowedProjectIds }
+        : -1;
     }
 
     const [data, total] = await Promise.all([

@@ -26,6 +26,7 @@ interface RequestUser {
   email: string;
   roleId: number;
   accountId: number;
+  clientId?: number;
 }
 
 @ApiTags('Tasks')
@@ -51,7 +52,7 @@ export class TasksController {
     @Query('assignedToUserId') assignedToUserId?: number,
     @Query('constructionSiteId') constructionSiteId?: number,
   ) {
-    return this.tasksService.findAll(user.accountId, page || 1, limit || 20, {
+    return this.tasksService.findAll(user, page || 1, limit || 20, {
       projectId,
       status,
       assignedToUserId,
@@ -75,7 +76,7 @@ export class TasksController {
     @CurrentUser() user: RequestUser,
     @Param('projectId', ParseIntPipe) projectId: number,
   ) {
-    return this.tasksService.findByProject(projectId, user.accountId);
+    return this.tasksService.findByProject(projectId, user);
   }
 
   @Get(':id')
@@ -84,7 +85,7 @@ export class TasksController {
     @CurrentUser() user: RequestUser,
     @Param('id', ParseIntPipe) id: number,
   ) {
-    return this.tasksService.findById(id, user.accountId);
+    return this.tasksService.findById(id, user);
   }
 
   @Post()

@@ -32,6 +32,7 @@ interface RequestUser {
   email: string;
   roleId: number;
   accountId: number;
+  clientId?: number;
 }
 
 @ApiTags('Defects')
@@ -56,7 +57,7 @@ export class DefectsController {
     @Query('projectId') projectId?: string,
   ) {
     return this.defectsService.findAll(
-      user.accountId,
+      user,
       page ? parseInt(page, 10) : 1,
       limit ? parseInt(limit, 10) : 20,
       status !== undefined ? parseInt(status, 10) : undefined,
@@ -72,7 +73,7 @@ export class DefectsController {
     @CurrentUser() user: RequestUser,
     @Param('id', ParseIntPipe) id: number,
   ) {
-    return this.defectsService.findById(id, user.accountId);
+    return this.defectsService.findById(id, user);
   }
 
   @Post()

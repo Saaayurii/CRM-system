@@ -11,12 +11,19 @@ import { CreatePaymentAccountDto } from './dto/create-payment-account.dto';
 import { UpdatePaymentAccountDto } from './dto/update-payment-account.dto';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { UpdatePaymentDto } from './dto/update-payment.dto';
+import { PrismaService } from '../../database/prisma.service';
+import {
+  CLIENT_ROLE_ID,
+  RequestUser,
+  getClientAllowedProjectIds,
+} from '../../common/helpers/client-access.helper';
 
 @Injectable()
 export class PaymentsService {
   constructor(
     private readonly paymentAccountsRepository: PaymentAccountsRepository,
     private readonly paymentsRepository: PaymentsRepository,
+    private readonly prisma: PrismaService,
   ) {}
 
   // Payment Accounts
@@ -54,8 +61,12 @@ export class PaymentsService {
   }
 
   // Payments
-  async findAllPayments(accountId: number, filters: PaymentFilters) {
-    return this.paymentsRepository.findAll(accountId, filters);
+  async findAllPayments(user: RequestUser, filters: PaymentFilters) {
+    const allowedProjectIds = await getClientAllowedProjectIds(this.prisma, user);
+    return this.paymentsRepository.findAll(user.accountId, {
+      ...filters,
+      allowedProjectIds,
+    });
   }
 
   async getStats(accountId: number, filters: PaymentFilters) {

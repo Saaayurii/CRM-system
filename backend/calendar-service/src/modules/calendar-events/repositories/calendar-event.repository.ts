@@ -15,6 +15,7 @@ export class CalendarEventRepository {
       projectId?: number;
       startDate?: string;
       endDate?: string;
+      allowedProjectIds?: number[];
     },
   ) {
     const skip = (page - 1) * limit;
@@ -31,6 +32,13 @@ export class CalendarEventRepository {
       if (filters.endDate) {
         where.startDatetime.lte = new Date(filters.endDate);
       }
+    }
+    if (filters?.allowedProjectIds) {
+      // Клиент видит только события своих проектов (для общих событий без projectId
+      // оставляем выбор за бизнесом — сейчас они тоже скрываются)
+      where.projectId = filters.allowedProjectIds.length > 0
+        ? { in: filters.allowedProjectIds }
+        : -1;
     }
 
     const [data, total] = await Promise.all([

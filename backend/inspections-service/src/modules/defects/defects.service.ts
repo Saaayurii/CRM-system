@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { DefectRepository } from './repositories/defect.repository';
 import {
   CreateDefectDto,
@@ -6,31 +6,48 @@ import {
   CreateDefectTemplateDto,
   UpdateDefectTemplateDto,
 } from './dto';
+import { PrismaService } from '../../database/prisma.service';
+import {
+  CLIENT_ROLE_ID,
+  RequestUser,
+  getClientAllowedProjectIds,
+} from '../../common/helpers/client-access.helper';
 
 @Injectable()
 export class DefectsService {
-  constructor(private readonly defectRepository: DefectRepository) {}
+  constructor(
+    private readonly defectRepository: DefectRepository,
+    private readonly prisma: PrismaService,
+  ) {}
 
   async findAll(
-    accountId: number,
+    user: RequestUser,
     page: number,
     limit: number,
     status?: number,
     projectId?: number,
   ) {
+    const allowedProjectIds = await getClientAllowedProjectIds(this.prisma, user);
     return this.defectRepository.findAll(
-      accountId,
+      user.accountId,
       page,
       limit,
       status,
       projectId,
+      allowedProjectIds,
     );
   }
 
-  async findById(id: number, accountId: number) {
-    const defect = await this.defectRepository.findById(id, accountId);
+  async findById(id: number, user: RequestUser) {
+    const defect = await this.defectRepository.findById(id, user.accountId);
     if (!defect) {
       throw new NotFoundException(`Defect with ID ${id} not found`);
+    }
+    if (user.roleId === CLIENT_ROLE_ID) {
+      const allowed = await getClientAllowedProjectIds(this.prisma, user);
+      if (!defect.projectId || !allowed?.includes(defect.projectId)) {
+        throw new ForbiddenException('Access denied');
+      }
     }
     return defect;
   }
@@ -47,18 +64,20 @@ export class DefectsService {
   }
 
   async update(id: number, accountId: number, dto: UpdateDefectDto) {
-    await this.findById(id, accountId);
+    const existing = await this.defectRepository.findById(id, accountId);
+    if (!existing) throw new NotFoundException(`Defect with ID ${id} not found`);
     const data: any = { ...dto };
     if (dto.reportedDate) data.reportedDate = new Date(dto.reportedDate);
     if (dto.dueDate) data.dueDate = new Date(dto.dueDate);
     if (dto.fixedDate) data.fixedDate = new Date(dto.fixedDate);
     if (dto.verifiedDate) data.verifiedDate = new Date(dto.verifiedDate);
     await this.defectRepository.update(id, accountId, data);
-    return this.findById(id, accountId);
+    return this.defectRepository.findById(id, accountId);
   }
 
   async delete(id: number, accountId: number) {
-    await this.findById(id, accountId);
+    const existing = await this.defectRepository.findById(id, accountId);
+    if (!existing) throw new NotFoundException(`Defect with ID ${id} not found`);
     await this.defectRepository.delete(id, accountId);
     return { message: `Defect with ID ${id} deleted successfully` };
   }

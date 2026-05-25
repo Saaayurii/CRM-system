@@ -11,11 +11,15 @@ export class DefectRepository {
     limit: number,
     status?: number,
     projectId?: number,
+    allowedProjectIds?: number[],
   ) {
     const skip = (page - 1) * limit;
     const where: any = { accountId };
     if (status !== undefined) where.status = status;
     if (projectId !== undefined) where.projectId = projectId;
+    if (allowedProjectIds) {
+      where.projectId = allowedProjectIds.length > 0 ? { in: allowedProjectIds } : -1;
+    }
 
     const [data, total] = await Promise.all([
       (this.prisma as any).defect.findMany({

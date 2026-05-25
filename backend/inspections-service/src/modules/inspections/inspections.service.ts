@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InspectionRepository } from './repositories/inspection.repository';
 import {
   CreateInspectionDto,
@@ -6,31 +6,48 @@ import {
   CreateInspectionTemplateDto,
   UpdateInspectionTemplateDto,
 } from './dto';
+import { PrismaService } from '../../database/prisma.service';
+import {
+  CLIENT_ROLE_ID,
+  RequestUser,
+  getClientAllowedProjectIds,
+} from '../../common/helpers/client-access.helper';
 
 @Injectable()
 export class InspectionsService {
-  constructor(private readonly inspectionRepository: InspectionRepository) {}
+  constructor(
+    private readonly inspectionRepository: InspectionRepository,
+    private readonly prisma: PrismaService,
+  ) {}
 
   async findAll(
-    accountId: number,
+    user: RequestUser,
     page: number,
     limit: number,
     status?: number,
     projectId?: number,
   ) {
+    const allowedProjectIds = await getClientAllowedProjectIds(this.prisma, user);
     return this.inspectionRepository.findAll(
-      accountId,
+      user.accountId,
       page,
       limit,
       status,
       projectId,
+      allowedProjectIds,
     );
   }
 
-  async findById(id: number, accountId: number) {
-    const inspection = await this.inspectionRepository.findById(id, accountId);
+  async findById(id: number, user: RequestUser) {
+    const inspection = await this.inspectionRepository.findById(id, user.accountId);
     if (!inspection) {
       throw new NotFoundException(`Inspection with ID ${id} not found`);
+    }
+    if (user.roleId === CLIENT_ROLE_ID) {
+      const allowed = await getClientAllowedProjectIds(this.prisma, user);
+      if (!inspection.projectId || !allowed?.includes(inspection.projectId)) {
+        throw new ForbiddenException('Access denied');
+      }
     }
     return inspection;
   }
@@ -47,16 +64,18 @@ export class InspectionsService {
   }
 
   async update(id: number, accountId: number, dto: UpdateInspectionDto) {
-    await this.findById(id, accountId);
+    const existing = await this.inspectionRepository.findById(id, accountId);
+    if (!existing) throw new NotFoundException(`Inspection with ID ${id} not found`);
     const data: any = { ...dto };
     if (dto.scheduledDate) data.scheduledDate = new Date(dto.scheduledDate);
     if (dto.actualDate) data.actualDate = new Date(dto.actualDate);
     await this.inspectionRepository.update(id, accountId, data);
-    return this.findById(id, accountId);
+    return this.inspectionRepository.findById(id, accountId);
   }
 
   async delete(id: number, accountId: number) {
-    await this.findById(id, accountId);
+    const existing = await this.inspectionRepository.findById(id, accountId);
+    if (!existing) throw new NotFoundException(`Inspection with ID ${id} not found`);
     await this.inspectionRepository.delete(id, accountId);
     return { message: `Inspection with ID ${id} deleted successfully` };
   }

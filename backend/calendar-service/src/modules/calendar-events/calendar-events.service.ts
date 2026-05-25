@@ -1,6 +1,12 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
 import { CalendarEventRepository } from './repositories/calendar-event.repository';
 import { CreateCalendarEventDto, UpdateCalendarEventDto } from './dto';
+import { PrismaService } from '../../database/prisma.service';
+import {
+  CLIENT_ROLE_ID,
+  RequestUser,
+  getClientAllowedProjectIds,
+} from '../../common/helpers/client-access.helper';
 
 @Injectable()
 export class CalendarEventsService {
@@ -8,10 +14,11 @@ export class CalendarEventsService {
 
   constructor(
     private readonly calendarEventRepository: CalendarEventRepository,
+    private readonly prisma: PrismaService,
   ) {}
 
   async findAll(
-    accountId: number,
+    user: RequestUser,
     page: number = 1,
     limit: number = 20,
     filters?: {
@@ -20,13 +27,23 @@ export class CalendarEventsService {
       endDate?: string;
     },
   ) {
-    return this.calendarEventRepository.findAll(accountId, page, limit, filters);
+    const allowedProjectIds = await getClientAllowedProjectIds(this.prisma, user);
+    return this.calendarEventRepository.findAll(user.accountId, page, limit, {
+      ...filters,
+      allowedProjectIds,
+    });
   }
 
-  async findById(id: number, accountId: number) {
-    const event = await this.calendarEventRepository.findById(id, accountId);
+  async findById(id: number, user: RequestUser) {
+    const event = await this.calendarEventRepository.findById(id, user.accountId);
     if (!event) {
       throw new NotFoundException(`Calendar event with ID ${id} not found`);
+    }
+    if (user.roleId === CLIENT_ROLE_ID) {
+      const allowed = await getClientAllowedProjectIds(this.prisma, user);
+      if (!event.projectId || !allowed?.includes(event.projectId)) {
+        throw new ForbiddenException('Access denied');
+      }
     }
     return event;
   }
@@ -53,7 +70,8 @@ export class CalendarEventsService {
   }
 
   async update(id: number, accountId: number, dto: UpdateCalendarEventDto) {
-    await this.findById(id, accountId);
+    const existing = await this.calendarEventRepository.findById(id, accountId);
+    if (!existing) throw new NotFoundException(`Calendar event with ID ${id} not found`);
     const updateData: any = { ...dto };
     if (dto.startDatetime) {
       updateData.startDatetime = new Date(dto.startDatetime);
@@ -62,11 +80,12 @@ export class CalendarEventsService {
       updateData.endDatetime = new Date(dto.endDatetime);
     }
     await this.calendarEventRepository.update(id, accountId, updateData);
-    return this.findById(id, accountId);
+    return this.calendarEventRepository.findById(id, accountId);
   }
 
   async delete(id: number, accountId: number) {
-    await this.findById(id, accountId);
+    const existing = await this.calendarEventRepository.findById(id, accountId);
+    if (!existing) throw new NotFoundException(`Calendar event with ID ${id} not found`);
     await this.calendarEventRepository.delete(id, accountId);
     return { message: `Calendar event with ID ${id} deleted successfully` };
   }

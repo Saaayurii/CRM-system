@@ -33,21 +33,21 @@ export class ActsController {
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'projectId', required: false, type: Number })
   findAll(
-    @CurrentUser('accountId') accountId: number,
+    @CurrentUser() user: any,
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 20,
     @Query('projectId') projectId?: number,
   ) {
-    return this.actsService.findAll(accountId, page, limit, projectId ? Number(projectId) : undefined);
+    return this.actsService.findAll(user, page, limit, projectId ? Number(projectId) : undefined);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get act by ID' })
   findOne(
     @Param('id', ParseIntPipe) id: number,
-    @CurrentUser('accountId') accountId: number,
+    @CurrentUser() user: any,
   ) {
-    return this.actsService.findById(id, accountId);
+    return this.actsService.findById(id, user);
   }
 
   @Post()
