@@ -298,3 +298,94 @@ model ProposalLine {
   @@map("proposal_lines")
 }
 
+model Contract {
+  id           Int       @id @default(autoincrement())
+  accountId    Int       @map("account_id")
+  projectId    Int?      @map("project_id")
+  clientId     Int?      @map("client_id")
+  number       String    @default("Б/Н") @db.VarChar(100)
+  signedDate   DateTime? @map("signed_date") @db.Date
+  amount       Decimal?  @db.Decimal(15, 2)
+  description  String?   @db.Text
+  fileUrl      String?   @map("file_url") @db.VarChar(500)
+  status       Int       @default(1)
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  estimates    Estimate[]
+
+  @@index([accountId])
+  @@index([projectId])
+  @@index([clientId])
+  @@map("contracts")
+}
+
+model Estimate {
+  id             Int       @id @default(autoincrement())
+  accountId      Int       @map("account_id")
+  projectId      Int       @map("project_id")
+  contractId     Int?      @map("contract_id")
+  name           String    @db.VarChar(255)
+  article        String    @default("Работа") @db.VarChar(100)
+  docNumber      String?   @map("doc_number") @db.VarChar(50)
+  docDate        DateTime? @map("doc_date") @db.Date
+  periodFrom     DateTime? @map("period_from") @db.Date
+  periodTo       DateTime? @map("period_to") @db.Date
+  markupPercent  Decimal   @default(0) @map("markup_percent") @db.Decimal(6, 2)
+  status         Int       @default(0)
+  totalAmount    Decimal   @default(0) @map("total_amount") @db.Decimal(15, 2)
+  notes          String?   @db.Text
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
+
+  contract       Contract?         @relation(fields: [contractId], references: [id], onDelete: SetNull)
+  sections       EstimateSection[]
+
+  @@index([accountId])
+  @@index([projectId])
+  @@index([contractId])
+  @@map("estimates")
+}
+
+model EstimateSection {
+  id           Int       @id @default(autoincrement())
+  estimateId   Int       @map("estimate_id")
+  name         String    @db.VarChar(500)
+  description  String?   @db.Text
+  sortOrder    Int       @default(0) @map("sort_order")
+  status       Int       @default(0)
+  confirmedAt  DateTime? @map("confirmed_at") @db.Date
+  sectionDate  DateTime? @map("section_date") @db.Date
+  totalAmount  Decimal   @default(0) @map("total_amount") @db.Decimal(15, 2)
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  estimate     Estimate        @relation(fields: [estimateId], references: [id], onDelete: Cascade)
+  items        EstimateItem[]
+
+  @@index([estimateId])
+  @@map("estimate_sections")
+}
+
+model EstimateItem {
+  id           Int      @id @default(autoincrement())
+  sectionId    Int      @map("section_id")
+  priceItemId  Int?     @map("price_item_id")
+  name         String   @db.VarChar(500)
+  description  String?  @db.Text
+  unit         String?  @db.VarChar(50)
+  quantity     Decimal  @default(0) @db.Decimal(14, 4)
+  unitPrice    Decimal  @default(0) @map("unit_price") @db.Decimal(14, 2)
+  amount       Decimal  @default(0) @db.Decimal(15, 2)
+  sortOrder    Int      @default(0) @map("sort_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
+
+  section      EstimateSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@index([sectionId])
+  @@index([priceItemId])
+  @@map("estimate_items")
+}
+

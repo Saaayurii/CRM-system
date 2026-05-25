@@ -45,6 +45,31 @@ export class CreateClientDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
+  ogrn?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  legalAddress?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  actualAddress?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  signatoryName?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  signatoryPosition?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
   phone?: string;
 
   @ApiPropertyOptional()

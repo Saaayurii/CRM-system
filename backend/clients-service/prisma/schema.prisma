@@ -29,9 +29,14 @@ model Client {
   legalName         String?  @map("legal_name") @db.VarChar(255)
   inn               String?  @db.VarChar(50)
   kpp               String?  @db.VarChar(50)
+  ogrn              String?  @db.VarChar(20)
   phone             String?  @db.VarChar(50)
   email             String?  @db.VarChar(255)
   address           String?  @db.Text
+  legalAddress      String?  @map("legal_address") @db.Text
+  actualAddress     String?  @map("actual_address") @db.Text
+  signatoryName     String?  @map("signatory_name") @db.VarChar(255)
+  signatoryPosition String?  @map("signatory_position") @db.VarChar(255)
   assignedManagerId Int?     @map("assigned_manager_id")
   status            String?  @db.VarChar(50)
   source            String?  @db.VarChar(100)

@@ -731,4 +731,218 @@ export class FinanceGatewayController {
       headers: { authorization: req.headers.authorization || '' },
     });
   }
+
+  // ── Contracts ─────────────────────────────────────────────
+  @Get('contracts')
+  @ApiOperation({ summary: 'List contracts' })
+  @ApiQuery({ name: 'projectId', required: false })
+  async listContracts(@Req() req: Request, @Query('projectId') projectId?: string) {
+    return this.proxyService.forward('finance', {
+      method: 'GET',
+      path: '/contracts',
+      headers: { authorization: req.headers.authorization || '' },
+      params: { projectId },
+    });
+  }
+
+  @Get('contracts/:id')
+  async getContract(@Req() req: Request, @Param('id') id: string) {
+    return this.proxyService.forward('finance', {
+      method: 'GET',
+      path: `/contracts/${id}`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  @Post('contracts')
+  async createContract(@Req() req: Request, @Body() body: any) {
+    return this.proxyService.forward('finance', {
+      method: 'POST',
+      path: '/contracts',
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Put('contracts/:id')
+  async updateContract(@Req() req: Request, @Param('id') id: string, @Body() body: any) {
+    return this.proxyService.forward('finance', {
+      method: 'PUT',
+      path: `/contracts/${id}`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Delete('contracts/:id')
+  async deleteContract(@Req() req: Request, @Param('id') id: string) {
+    return this.proxyService.forward('finance', {
+      method: 'DELETE',
+      path: `/contracts/${id}`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  // ── Estimates ─────────────────────────────────────────────
+  @Get('estimates')
+  @ApiOperation({ summary: 'List estimates' })
+  @ApiQuery({ name: 'projectId', required: false })
+  @ApiQuery({ name: 'contractId', required: false })
+  async listEstimates(
+    @Req() req: Request,
+    @Query('projectId') projectId?: string,
+    @Query('contractId') contractId?: string,
+  ) {
+    return this.proxyService.forward('finance', {
+      method: 'GET',
+      path: '/estimates',
+      headers: { authorization: req.headers.authorization || '' },
+      params: { projectId, contractId },
+    });
+  }
+
+  @Get('estimates/:id')
+  async getEstimate(@Req() req: Request, @Param('id') id: string) {
+    return this.proxyService.forward('finance', {
+      method: 'GET',
+      path: `/estimates/${id}`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  @Post('estimates')
+  async createEstimate(@Req() req: Request, @Body() body: any) {
+    return this.proxyService.forward('finance', {
+      method: 'POST',
+      path: '/estimates',
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Put('estimates/:id')
+  async updateEstimate(@Req() req: Request, @Param('id') id: string, @Body() body: any) {
+    return this.proxyService.forward('finance', {
+      method: 'PUT',
+      path: `/estimates/${id}`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Delete('estimates/:id')
+  async deleteEstimate(@Req() req: Request, @Param('id') id: string) {
+    return this.proxyService.forward('finance', {
+      method: 'DELETE',
+      path: `/estimates/${id}`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  @Post('estimates/:id/sections')
+  async addEstimateSection(@Req() req: Request, @Param('id') id: string, @Body() body: any) {
+    return this.proxyService.forward('finance', {
+      method: 'POST',
+      path: `/estimates/${id}/sections`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Put('estimates/:id/sections/:sectionId')
+  async updateEstimateSection(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Param('sectionId') sectionId: string,
+    @Body() body: any,
+  ) {
+    return this.proxyService.forward('finance', {
+      method: 'PUT',
+      path: `/estimates/${id}/sections/${sectionId}`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Delete('estimates/:id/sections/:sectionId')
+  async deleteEstimateSection(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Param('sectionId') sectionId: string,
+  ) {
+    return this.proxyService.forward('finance', {
+      method: 'DELETE',
+      path: `/estimates/${id}/sections/${sectionId}`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  @Post('estimates/:id/sections/:sectionId/items')
+  async addEstimateItem(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Param('sectionId') sectionId: string,
+    @Body() body: any,
+  ) {
+    return this.proxyService.forward('finance', {
+      method: 'POST',
+      path: `/estimates/${id}/sections/${sectionId}/items`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Put('estimates/:id/sections/:sectionId/items/:itemId')
+  async updateEstimateItem(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Param('sectionId') sectionId: string,
+    @Param('itemId') itemId: string,
+    @Body() body: any,
+  ) {
+    return this.proxyService.forward('finance', {
+      method: 'PUT',
+      path: `/estimates/${id}/sections/${sectionId}/items/${itemId}`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Delete('estimates/:id/sections/:sectionId/items/:itemId')
+  async deleteEstimateItem(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Param('sectionId') sectionId: string,
+    @Param('itemId') itemId: string,
+  ) {
+    return this.proxyService.forward('finance', {
+      method: 'DELETE',
+      path: `/estimates/${id}/sections/${sectionId}/items/${itemId}`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
 }

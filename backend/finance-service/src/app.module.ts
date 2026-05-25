@@ -12,6 +12,8 @@ import { PayrollModule } from './modules/payroll/payroll.module';
 import { HealthModule } from './modules/health/health.module';
 import { WorkTemplatesModule } from './modules/work-templates/work-templates.module';
 import { CommercialProposalsModule } from './modules/commercial-proposals/commercial-proposals.module';
+import { ContractsModule } from './modules/contracts/contracts.module';
+import { EstimatesModule } from './modules/estimates/estimates.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { JwtStrategy } from './common/guards/jwt.strategy';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -29,6 +31,8 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     HealthModule,
     WorkTemplatesModule,
     CommercialProposalsModule,
+    ContractsModule,
+    EstimatesModule,
   ],
   providers: [
     JwtStrategy,

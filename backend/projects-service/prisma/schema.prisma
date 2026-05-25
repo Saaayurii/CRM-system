@@ -43,6 +43,7 @@ model Project {
   code             String?   @unique @db.VarChar(100)
   description      String?   @db.Text
   projectManagerId Int?      @map("project_manager_id")
+  clientId         Int?      @map("client_id")
   clientName       String?   @map("client_name") @db.VarChar(255)
   clientContact    Json?     @map("client_contact")
   startDate        DateTime? @map("start_date") @db.Date
