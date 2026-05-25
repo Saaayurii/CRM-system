@@ -99,7 +99,7 @@ export default function FinanceOperationModal({
             .get('/payment-accounts', { params: { limit: 200 } })
             .catch(() => ({ data: { data: [] } })),
         ]);
-        const ps = Array.isArray(pRes.data) ? pRes.data : (pRes.data?.data ?? []);
+        const ps = Array.isArray(pRes.data) ? pRes.data : (pRes.data?.data ?? pRes.data?.projects ?? []);
         const as = Array.isArray(aRes.data) ? aRes.data : (aRes.data?.data ?? []);
         setProjects(ps.map((p: any) => ({ id: p.id, name: p.name ?? p.title ?? `#${p.id}` })));
         setAccounts(as.map((a: any) => ({ id: a.id, name: a.name, bankName: a.bankName ?? a.bank_name })));

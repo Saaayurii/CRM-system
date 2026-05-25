@@ -472,6 +472,7 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
     title: 'Материалы',
     apiEndpoint: '/materials',
     searchField: 'названию',
+    hasPdf: true,
     columns: [
       { key: 'id', header: 'ID', sortable: true, width: '80px' },
       { key: 'name', header: 'Название', sortable: true },
@@ -493,6 +494,7 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
     title: 'Оборудование',
     apiEndpoint: '/equipment',
     searchField: 'названию',
+    hasPdf: true,
     columns: [
       { key: 'id', header: 'ID', sortable: true, width: '80px' },
       { key: 'name', header: 'Название', sortable: true },

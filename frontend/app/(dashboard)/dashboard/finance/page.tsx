@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import api from '@/lib/api';
 import { formatMoney } from '@/lib/utils';
+import { useDownloadPdf } from '@/lib/hooks/useDownloadPdf';
 import FinanceOperationModal from '@/components/finance/FinanceOperationModal';
 
 interface Operation {
@@ -140,11 +141,12 @@ export default function FinancePage() {
   const [operations, setOperations] = useState<Operation[]>([]);
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const { download: downloadPdf, loading: pdfLoading } = useDownloadPdf();
 
   const loadProjects = useCallback(async () => {
     try {
       const res = await api.get('/projects', { params: { limit: 200 } });
-      const list = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
+      const list = Array.isArray(res.data) ? res.data : (res.data?.data ?? res.data?.projects ?? []);
       setProjects(list.map((p: any) => ({ id: p.id, name: p.name ?? p.title ?? `#${p.id}` })));
     } catch {
       setProjects([]);
@@ -252,15 +254,38 @@ export default function FinancePage() {
           </h1>
         </div>
         {tab !== 'documents' && (
-          <button
-            onClick={() => setModalOpen(true)}
-            className="btn bg-violet-500 hover:bg-violet-600 text-white"
-          >
-            <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-            Добавить операцию
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => downloadPdf('payments', tab === 'income' ? 'Приходы' : tab === 'expense' ? 'Расходы' : 'Операции', operations.map((op) => ({
+                Документ: op.paymentNumber ?? '—',
+                Тип: op.direction === 'income' ? 'Приход' : op.direction === 'expense' ? 'Расход' : '—',
+                Категория: op.subType ? (SUBTYPE_LABEL[op.subType] ?? op.subType) : '—',
+                Сумма: `${op.direction === 'income' ? '+' : '−'} ${formatMoney(op.amount)} ₽`,
+                'Дата/время': formatDateTime(op.paymentDatetime ?? op.paymentDate),
+                Проект: projectName(op.projectId) || '—',
+                Объект: siteName(op.constructionSiteId) || '—',
+                Счёт: op.cashLocation === 'hand' ? 'На руки' : (op.paymentAccount?.name || '—'),
+                Статус: STATUS_LABEL[Number(op.status ?? 0)]?.label || '—',
+              })))}
+              disabled={pdfLoading || operations.length === 0}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:border-violet-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors disabled:opacity-50"
+              title="Скачать PDF"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              {pdfLoading ? 'PDF...' : 'PDF'}
+            </button>
+            <button
+              onClick={() => setModalOpen(true)}
+              className="btn bg-violet-500 hover:bg-violet-600 text-white"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              Добавить операцию
+            </button>
+          </div>
         )}
       </div>
 

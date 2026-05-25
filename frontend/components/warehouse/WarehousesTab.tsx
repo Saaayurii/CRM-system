@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
+import { useDownloadPdf } from '@/lib/hooks/useDownloadPdf';
 import DeleteConfirmModal from '@/components/admin/DeleteConfirmModal';
 import InventoryStartModal from './InventoryStartModal';
 
@@ -44,6 +45,7 @@ export default function WarehousesTab() {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const { download: downloadPdf, loading: pdfLoading } = useDownloadPdf();
 
   const load = async () => {
     setLoading(true);
@@ -166,12 +168,29 @@ export default function WarehousesTab() {
             <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Склады оборудования</h2>
             <p className="text-xs text-gray-500 dark:text-gray-400">Места хранения инструмента и оборудования</p>
           </div>
-          <button
-            onClick={() => openCreate('eq')}
-            className="px-3 py-1.5 text-sm bg-violet-500 hover:bg-violet-600 text-white rounded-lg"
-          >
-            + Склад оборудования
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => downloadPdf('eq-warehouses', 'Склады оборудования', eq.map((w) => ({
+                Название: w.name || '—',
+                Адрес: w.address || '—',
+                Единиц: String(Array.isArray(w.equipment) ? w.equipment.length : 0),
+              })))}
+              disabled={pdfLoading || eq.length === 0}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:border-violet-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors disabled:opacity-50"
+              title="Скачать PDF"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              {pdfLoading ? 'PDF...' : 'PDF'}
+            </button>
+            <button
+              onClick={() => openCreate('eq')}
+              className="px-3 py-1.5 text-sm bg-violet-500 hover:bg-violet-600 text-white rounded-lg"
+            >
+              + Склад оборудования
+            </button>
+          </div>
         </div>
         {loading ? (
           <div className="bg-white dark:bg-gray-800 rounded-xl p-6 text-center text-gray-500">Загрузка...</div>
@@ -235,12 +254,31 @@ export default function WarehousesTab() {
             <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Склады материалов</h2>
             <p className="text-xs text-gray-500 dark:text-gray-400">Места хранения расходных материалов и комплектующих</p>
           </div>
-          <button
-            onClick={() => openCreate('mat')}
-            className="px-3 py-1.5 text-sm bg-violet-500 hover:bg-violet-600 text-white rounded-lg"
-          >
-            + Склад материалов
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => downloadPdf('warehouses', 'Склады материалов', mat.map((w) => ({
+                Название: w.name || '—',
+                Код: w.code || '—',
+                Тип: w.warehouseType || '—',
+                Адрес: w.address || '—',
+                Кладовщик: w.warehouseKeeper?.name || '—',
+              })))}
+              disabled={pdfLoading || mat.length === 0}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:border-violet-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors disabled:opacity-50"
+              title="Скачать PDF"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              {pdfLoading ? 'PDF...' : 'PDF'}
+            </button>
+            <button
+              onClick={() => openCreate('mat')}
+              className="px-3 py-1.5 text-sm bg-violet-500 hover:bg-violet-600 text-white rounded-lg"
+            >
+              + Склад материалов
+            </button>
+          </div>
         </div>
         {loading ? null : mat.length === 0 ? (
           <div className="bg-white dark:bg-gray-800 rounded-xl p-6 text-center text-gray-500">Складов материалов нет</div>
