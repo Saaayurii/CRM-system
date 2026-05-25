@@ -9,6 +9,7 @@ import interactionPlugin from '@fullcalendar/interaction';
 import rrulePlugin from '@fullcalendar/rrule';
 import ruLocale from '@fullcalendar/core/locales/ru';
 import api from '@/lib/api';
+import { useAuthStore } from '@/stores/authStore';
 import { CalendarSource, FeedEvent, SOURCE_COLORS, SOURCE_LABELS } from './types';
 import EventEditorModal from './EventEditorModal';
 import './calendar.css';
@@ -47,11 +48,18 @@ export default function UnifiedCalendar({
   subtitle,
 }: Props) {
   const calendarRef = useRef<any>(null);
+  const user = useAuthStore((s) => s.user);
+  const roleCode = user?.role?.code;
+  const isAdminLike =
+    roleCode === 'super_admin' || roleCode === 'admin' || user?.isGlobalAdmin;
   const [sources, setSources] = useState<CalendarSource[]>(
     defaultSources?.length ? defaultSources : availableSources,
   );
-  // "Только мои" — по умолчанию включено.
-  const [mine, setMine] = useState<boolean>(onlyMine ?? true);
+  // "Только мои" по умолчанию для обычных пользователей.
+  // Admin/Super-admin видят всё в компании по умолчанию.
+  const [mine, setMine] = useState<boolean>(
+    onlyMine !== undefined ? onlyMine : !isAdminLike,
+  );
   const [editorOpen, setEditorOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [refreshTick, setRefreshTick] = useState(0);

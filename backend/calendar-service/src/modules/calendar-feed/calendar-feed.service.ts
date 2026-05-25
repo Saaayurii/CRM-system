@@ -160,39 +160,45 @@ export class CalendarFeedService {
       const items: any[] = data?.data ?? data ?? [];
       const startD = new Date(query.start).getTime();
       const endD = new Date(query.end).getTime();
-      return items
-        .filter((t) => t.dueDate)
-        .filter((t) => {
-          if (query.mine) {
-            const isMine =
-              t.createdByUserId === userId ||
-              (t.assignees ?? []).some((a: any) => a.userId === userId);
-            if (!isMine) return false;
-          }
-          const ts = new Date(t.dueDate).getTime();
-          return ts >= startD && ts <= endD;
-        })
-        .map(
-          (t): FeedEvent => ({
-            id: `task:${t.id}`,
-            title: `[Задача] ${t.title}`,
-            start: new Date(t.dueDate).toISOString(),
-            allDay: true,
-            color: COLOR_BY_SOURCE.task,
-            sourceType: 'task',
-            sourceId: t.id,
-            projectId: t.projectId,
-            taskId: t.id,
+      const out: FeedEvent[] = [];
+      for (const t of items) {
+        const due = t.dueDate ?? t.due_date;
+        if (!due) continue;
+        if (query.mine) {
+          const isMine =
+            t.createdByUserId === userId ||
+            t.created_by_user_id === userId ||
+            t.assignedToUserId === userId ||
+            t.assigned_to_user_id === userId ||
+            (t.assignees ?? []).some(
+              (a: any) => a.userId === userId || a.user_id === userId,
+            );
+          if (!isMine) continue;
+        }
+        const ts = new Date(due).getTime();
+        if (Number.isNaN(ts) || ts < startD || ts > endD) continue;
+        out.push({
+          id: `task:${t.id}`,
+          title: `[Задача] ${t.title}`,
+          start: new Date(due).toISOString(),
+          allDay: true,
+          color: COLOR_BY_SOURCE.task,
+          sourceType: 'task',
+          sourceId: t.id,
+          projectId: t.projectId ?? t.project_id,
+          taskId: t.id,
+          status: t.status,
+          editable: false,
+          url: `/dashboard/tasks?taskId=${t.id}`,
+          extendedProps: {
+            priority: t.priority,
             status: t.status,
-            editable: false,
-            url: `/dashboard/tasks?taskId=${t.id}`,
-            extendedProps: {
-              priority: t.priority,
-              status: t.status,
-              description: t.description,
-            },
-          }),
-        );
+            description: t.description,
+          },
+        });
+      }
+      this.logger.debug(`tasks: ${out.length} of ${items.length} items mapped`);
+      return out;
     } catch (e: any) {
       this.logger.warn(`tasks feed failed: ${e?.message}`);
       return [];
@@ -346,13 +352,19 @@ export class CalendarFeedService {
       const out: FeedEvent[] = [];
       for (const p of items) {
         if (query.projectId && p.id !== query.projectId) continue;
-        if (p.startDate) {
-          const s = new Date(p.startDate).getTime();
-          if (s >= startD && s <= endD)
+        const sRaw = p.startDate ?? p.start_date;
+        const eRaw =
+          p.plannedEndDate ?? p.planned_end_date ??
+          p.actualEndDate  ?? p.actual_end_date  ??
+          p.endDate        ?? p.end_date;
+
+        if (sRaw) {
+          const s = new Date(sRaw).getTime();
+          if (!Number.isNaN(s) && s >= startD && s <= endD) {
             out.push({
               id: `project-start:${p.id}`,
               title: `▶ Старт: ${p.name}`,
-              start: new Date(p.startDate).toISOString(),
+              start: new Date(sRaw).toISOString(),
               allDay: true,
               color: COLOR_BY_SOURCE.project,
               sourceType: 'project',
@@ -361,14 +373,15 @@ export class CalendarFeedService {
               editable: false,
               url: `/dashboard/projects/${p.id}`,
             });
+          }
         }
-        if (p.endDate) {
-          const e = new Date(p.endDate).getTime();
-          if (e >= startD && e <= endD)
+        if (eRaw) {
+          const e = new Date(eRaw).getTime();
+          if (!Number.isNaN(e) && e >= startD && e <= endD) {
             out.push({
               id: `project-end:${p.id}`,
               title: `■ Финиш: ${p.name}`,
-              start: new Date(p.endDate).toISOString(),
+              start: new Date(eRaw).toISOString(),
               allDay: true,
               color: '#ef4444',
               sourceType: 'project',
@@ -377,8 +390,10 @@ export class CalendarFeedService {
               editable: false,
               url: `/dashboard/projects/${p.id}`,
             });
+          }
         }
       }
+      this.logger.debug(`projects: ${out.length} milestones across ${items.length} projects`);
       return out;
     } catch (e: any) {
       this.logger.warn(`projects feed failed: ${e?.message}`);
