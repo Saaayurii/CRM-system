@@ -17,6 +17,7 @@ import ForwardMessageModal from '@/components/chat/ForwardMessageModal';
 import FilePreviewModal from '@/components/ui/FilePreviewModal';
 import EstimatesPanel from '@/components/estimates/EstimatesPanel';
 import FinancialReportModal from '@/components/estimates/FinancialReportModal';
+import DocumentsOverview from '@/components/estimates/DocumentsOverview';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
@@ -805,7 +806,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   const [maintViewMode, setMaintViewMode] = useState<'table' | 'grid'>(() =>
     typeof window !== 'undefined' ? ((localStorage.getItem('maintViewMode') as 'table' | 'grid') || 'table') : 'table'
   );
-  const [financeSubTab, setFinanceSubTab] = useState<'overview' | 'payments' | 'budgets' | 'acts' | 'price' | 'proposals' | 'payroll' | 'bonuses'>('overview');
+  const [financeSubTab, setFinanceSubTab] = useState<'overview' | 'documents' | 'payments' | 'budgets' | 'acts' | 'price' | 'proposals' | 'payroll' | 'bonuses'>('overview');
   /* Price list (work templates) */
   const [priceItems, setPriceItems] = useState<WorkTemplate[]>([]);
   const [priceLoading, setPriceLoading] = useState(false);

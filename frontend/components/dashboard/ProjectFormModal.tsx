@@ -152,7 +152,9 @@ export default function ProjectFormModal({ project, onClose, onSaved }: ProjectF
     setPriority(Number(d.priority)); setBudget(d.budget); setActualCost(d.actualCost);
     setStartDate(d.startDate); setPlannedEndDate(d.plannedEndDate); setActualEndDate(d.actualEndDate);
     setTeamId(d.teamId ? Number(d.teamId) : ''); setManagerId(d.managerId ? Number(d.managerId) : '');
-    setAddress(d.address); setClientName(d.clientName); setNotes(d.notes);
+    setAddress(d.address);
+    setClientId(typeof d.clientId === 'number' ? d.clientId : '');
+    setClientName(d.clientName); setNotes(d.notes);
   }, []);
 
   const [teams, setTeams] = useState<Team[]>([]);
@@ -177,9 +179,9 @@ export default function ProjectFormModal({ project, onClose, onSaved }: ProjectF
   // Auto-save draft on field changes (only for new projects)
   useEffect(() => {
     if (isEdit) return;
-    draft.set({ name, description, status, priority, budget, actualCost, startDate, plannedEndDate, actualEndDate, teamId: String(teamId), managerId: String(managerId), address, clientName, notes });
+    draft.set({ name, description, status, priority, budget, actualCost, startDate, plannedEndDate, actualEndDate, teamId: String(teamId), managerId: String(managerId), address, clientId, clientName, notes });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isEdit, name, description, status, priority, budget, actualCost, startDate, plannedEndDate, actualEndDate, teamId, managerId, address, clientName, notes]);
+  }, [isEdit, name, description, status, priority, budget, actualCost, startDate, plannedEndDate, actualEndDate, teamId, managerId, address, clientId, clientName, notes]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
