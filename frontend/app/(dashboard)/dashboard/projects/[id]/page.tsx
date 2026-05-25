@@ -15,6 +15,7 @@ import ChatInput from '@/components/chat/ChatInput';
 import ChatMessageComponent from '@/components/chat/ChatMessage';
 import ForwardMessageModal from '@/components/chat/ForwardMessageModal';
 import FilePreviewModal from '@/components/ui/FilePreviewModal';
+import EstimatesPanel from '@/components/estimates/EstimatesPanel';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
@@ -321,6 +322,7 @@ const TABS = [
   { key: 'team', label: 'Команда' },
   { key: 'documents', label: 'Документы' },
   { key: 'finance', label: 'Финансы' },
+  { key: 'estimates', label: 'Сметы' },
   { key: 'resources', label: 'Ресурсы' },
   { key: 'chat', label: 'Диалог' },
   { key: 'photos', label: 'Медиа' },
@@ -3463,6 +3465,11 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
             </div>
           )}
         </div>
+      )}
+
+      {/* ─── Estimates ─── */}
+      {activeTab === 'estimates' && (
+        <EstimatesPanel projectId={Number(projectId)} />
       )}
 
       {/* ─── Finance ─── */}
