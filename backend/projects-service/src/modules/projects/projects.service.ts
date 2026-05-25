@@ -12,6 +12,12 @@ import {
   AddTeamMemberDto,
 } from './dto';
 import { NotificationsClientService } from './notifications-client.service';
+import { PrismaService } from '../../database/prisma.service';
+import {
+  CLIENT_ROLE_ID,
+  RequestUser,
+  getClientAllowedProjectIds,
+} from '../../common/helpers/client-access.helper';
 
 const PROJECT_STATUS_LABELS: Record<number, string> = {
   0: 'Черновик',
@@ -26,10 +32,11 @@ export class ProjectsService {
   constructor(
     private readonly projectRepository: ProjectRepository,
     private readonly notificationsClient: NotificationsClientService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async findAll(
-    accountId: number,
+    user: RequestUser,
     page: number = 1,
     limit: number = 20,
     status?: number,
@@ -40,9 +47,15 @@ export class ProjectsService {
     limit: number;
   }> {
     const skip = (page - 1) * limit;
+    const allowedIds = await getClientAllowedProjectIds(this.prisma, user);
     const [projects, total] = await Promise.all([
-      this.projectRepository.findAll(accountId, { skip, take: limit, status }),
-      this.projectRepository.count(accountId, status),
+      this.projectRepository.findAll(user.accountId, {
+        skip,
+        take: limit,
+        status,
+        allowedIds,
+      }),
+      this.projectRepository.count(user.accountId, status, allowedIds),
     ]);
 
     return {
@@ -55,15 +68,22 @@ export class ProjectsService {
 
   async findById(
     id: number,
-    requestingUserAccountId: number,
+    user: RequestUser,
   ): Promise<ProjectResponseDto> {
     const project = await this.projectRepository.findById(id);
     if (!project) {
       throw new NotFoundException('Project not found');
     }
 
-    if (project.accountId !== requestingUserAccountId) {
+    if (project.accountId !== user.accountId) {
       throw new ForbiddenException('Access denied');
+    }
+
+    if (user.roleId === CLIENT_ROLE_ID) {
+      const allowedIds = await getClientAllowedProjectIds(this.prisma, user);
+      if (!allowedIds?.includes(project.id)) {
+        throw new ForbiddenException('Access denied');
+      }
     }
 
     return this.toResponseDto(project);

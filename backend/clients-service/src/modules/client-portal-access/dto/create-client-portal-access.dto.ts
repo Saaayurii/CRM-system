@@ -4,6 +4,7 @@ import {
   IsString,
   IsBoolean,
   IsDateString,
+  MinLength,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -20,6 +21,22 @@ export class CreateClientPortalAccessDto {
   @IsOptional()
   @IsString()
   accessToken?: string;
+
+  @ApiPropertyOptional({ description: 'Логин для входа в портал' })
+  @IsOptional()
+  @IsString()
+  login?: string;
+
+  @ApiPropertyOptional({ description: 'Пароль (минимум 8 символов) — будет захеширован' })
+  @IsOptional()
+  @IsString()
+  @MinLength(8)
+  password?: string;
+
+  @ApiPropertyOptional({ description: 'Создать чат «Клиент — Проект» автоматически' })
+  @IsOptional()
+  @IsBoolean()
+  createChat?: boolean;
 
   @ApiPropertyOptional()
   @IsOptional()

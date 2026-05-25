@@ -32,6 +32,7 @@ interface RequestUser {
   email: string;
   roleId: number;
   accountId: number;
+  clientId?: number;
 }
 
 @ApiTags('Projects')
@@ -57,12 +58,7 @@ export class ProjectsController {
     @Query('limit') limit?: number,
     @Query('status') status?: number,
   ) {
-    return this.projectsService.findAll(
-      user.accountId,
-      page || 1,
-      limit || 20,
-      status,
-    );
+    return this.projectsService.findAll(user, page || 1, limit || 20, status);
   }
 
   @Get(':id')
@@ -73,7 +69,7 @@ export class ProjectsController {
     @CurrentUser() user: RequestUser,
     @Param('id', ParseIntPipe) id: number,
   ): Promise<ProjectResponseDto> {
-    return this.projectsService.findById(id, user.accountId);
+    return this.projectsService.findById(id, user);
   }
 
   @Post()

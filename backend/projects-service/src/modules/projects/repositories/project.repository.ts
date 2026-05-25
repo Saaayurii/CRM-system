@@ -8,7 +8,7 @@ export class ProjectRepository {
 
   async findAll(
     accountId: number,
-    options?: { skip?: number; take?: number; status?: number },
+    options?: { skip?: number; take?: number; status?: number; allowedIds?: number[] },
   ) {
     const where: any = {
       accountId,
@@ -16,6 +16,9 @@ export class ProjectRepository {
     };
     if (options?.status !== undefined) {
       where.status = options.status;
+    }
+    if (options?.allowedIds) {
+      where.id = options.allowedIds.length > 0 ? { in: options.allowedIds } : -1;
     }
 
     return (this.prisma as any).project.findMany({
@@ -101,9 +104,12 @@ export class ProjectRepository {
     });
   }
 
-  async count(accountId: number, status?: number) {
+  async count(accountId: number, status?: number, allowedIds?: number[]) {
     const where: any = { accountId, deletedAt: null };
     if (status !== undefined) where.status = status;
+    if (allowedIds) {
+      where.id = allowedIds.length > 0 ? { in: allowedIds } : -1;
+    }
     return (this.prisma as any).project.count({ where });
   }
 

@@ -77,6 +77,52 @@ export class AuthGatewayController {
     });
   }
 
+  @Post('portal/login')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @Throttle(AUTH_THROTTLE)
+  @ApiOperation({ summary: 'Client portal login (login + password)' })
+  @ApiResponse({ status: 200, description: 'Login successful' })
+  @ApiResponse({ status: 401, description: 'Invalid credentials' })
+  async portalLogin(
+    @Body() body: unknown,
+    @Headers('user-agent') userAgent: string,
+    @Req() req: any,
+  ) {
+    return this.proxyService.forward('auth', {
+      method: 'POST',
+      path: '/auth/portal/login',
+      data: body,
+      headers: {
+        'X-User-Agent': userAgent || '',
+        'X-Real-IP': req.ip || '',
+      },
+    });
+  }
+
+  @Post('portal/magic')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @Throttle(AUTH_THROTTLE)
+  @ApiOperation({ summary: 'Client portal login (magic link token)' })
+  @ApiResponse({ status: 200, description: 'Login successful' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired token' })
+  async portalMagic(
+    @Body() body: unknown,
+    @Headers('user-agent') userAgent: string,
+    @Req() req: any,
+  ) {
+    return this.proxyService.forward('auth', {
+      method: 'POST',
+      path: '/auth/portal/magic',
+      data: body,
+      headers: {
+        'X-User-Agent': userAgent || '',
+        'X-Real-IP': req.ip || '',
+      },
+    });
+  }
+
   @Post('refresh')
   @Public()
   @HttpCode(HttpStatus.OK)

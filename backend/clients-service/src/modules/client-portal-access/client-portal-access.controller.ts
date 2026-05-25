@@ -8,6 +8,7 @@ import {
   Param,
   Query,
   ParseIntPipe,
+  Req,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -15,6 +16,7 @@ import {
   ApiBearerAuth,
   ApiQuery,
 } from '@nestjs/swagger';
+import type { Request } from 'express';
 import { ClientPortalAccessService } from './client-portal-access.service';
 import { CreateClientPortalAccessDto } from './dto/create-client-portal-access.dto';
 import { UpdateClientPortalAccessDto } from './dto/update-client-portal-access.dto';
@@ -46,8 +48,9 @@ export class ClientPortalAccessController {
 
   @Post()
   @ApiOperation({ summary: 'Create client portal access' })
-  create(@Body() dto: CreateClientPortalAccessDto) {
-    return this.svc.create(dto);
+  create(@Body() dto: CreateClientPortalAccessDto, @Req() req: Request) {
+    const authHeader = req.headers['authorization'] as string | undefined;
+    return this.svc.create(dto, authHeader);
   }
 
   @Put(':id')

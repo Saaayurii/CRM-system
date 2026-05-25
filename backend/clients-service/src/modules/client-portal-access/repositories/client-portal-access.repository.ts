@@ -1,7 +1,34 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service';
-import { CreateClientPortalAccessDto } from '../dto/create-client-portal-access.dto';
-import { UpdateClientPortalAccessDto } from '../dto/update-client-portal-access.dto';
+
+export interface ClientPortalAccessCreateInput {
+  clientId: number;
+  projectId: number;
+  accessToken?: string;
+  login?: string;
+  passwordHash?: string;
+  userId?: number;
+  canViewProgress?: boolean;
+  canViewPhotos?: boolean;
+  canViewDocuments?: boolean;
+  canViewFinancials?: boolean;
+  isActive?: boolean;
+  expiresAt?: string | Date | null;
+}
+
+const ALLOWED_UPDATE_FIELDS = [
+  'accessToken',
+  'login',
+  'passwordHash',
+  'userId',
+  'canViewProgress',
+  'canViewPhotos',
+  'canViewDocuments',
+  'canViewFinancials',
+  'isActive',
+  'expiresAt',
+  'projectId',
+] as const;
 
 @Injectable()
 export class ClientPortalAccessRepository {
@@ -29,18 +56,31 @@ export class ClientPortalAccessRepository {
     });
   }
 
-  async create(dto: CreateClientPortalAccessDto) {
+  async create(input: ClientPortalAccessCreateInput) {
     return (this.prisma as any).clientPortalAccess.create({
       data: {
-        ...dto,
-        expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : null,
+        clientId: input.clientId,
+        projectId: input.projectId,
+        accessToken: input.accessToken,
+        login: input.login,
+        passwordHash: input.passwordHash,
+        userId: input.userId,
+        canViewProgress: input.canViewProgress,
+        canViewPhotos: input.canViewPhotos,
+        canViewDocuments: input.canViewDocuments,
+        canViewFinancials: input.canViewFinancials,
+        isActive: input.isActive,
+        expiresAt: input.expiresAt ? new Date(input.expiresAt) : null,
       },
     });
   }
 
-  async update(id: number, dto: UpdateClientPortalAccessDto) {
-    const data: any = { ...dto };
-    if (dto.expiresAt) data.expiresAt = new Date(dto.expiresAt);
+  async update(id: number, patch: Record<string, any>) {
+    const data: Record<string, any> = {};
+    for (const key of ALLOWED_UPDATE_FIELDS) {
+      if (patch[key] !== undefined) data[key] = patch[key];
+    }
+    if (data.expiresAt) data.expiresAt = new Date(data.expiresAt);
     return (this.prisma as any).clientPortalAccess.update({
       where: { id },
       data,

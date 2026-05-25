@@ -177,3 +177,28 @@ model RegistrationRequest {
 
   @@map("registration_requests")
 }
+
+// ===========================================
+// Client Portal Access — нужен auth-service для login/magic-flow клиентов
+// ===========================================
+model ClientPortalAccess {
+  id                Int       @id @default(autoincrement())
+  clientId          Int       @map("client_id")
+  projectId         Int       @map("project_id")
+  accessToken       String?   @unique @map("access_token") @db.VarChar(255)
+  login             String?   @db.VarChar(255)
+  passwordHash      String?   @map("password_hash") @db.VarChar(255)
+  userId            Int?      @map("user_id")
+  canViewProgress   Boolean   @default(true) @map("can_view_progress")
+  canViewPhotos     Boolean   @default(true) @map("can_view_photos")
+  canViewDocuments  Boolean   @default(false) @map("can_view_documents")
+  canViewFinancials Boolean   @default(false) @map("can_view_financials")
+  isActive          Boolean   @default(true) @map("is_active")
+  expiresAt         DateTime? @map("expires_at")
+  lastLoginAt       DateTime? @map("last_login_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@map("client_portal_access")
+}

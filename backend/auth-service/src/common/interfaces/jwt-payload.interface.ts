@@ -6,6 +6,8 @@ export interface JwtPayload {
   accountName?: string;
   accountLogoUrl?: string;
   isGlobalAdmin?: boolean;
+  // Заполняется только для пользователей-клиентов (roleId === 15)
+  clientId?: number;
   sid?: number; // session ID
   iat?: number;
   exp?: number;

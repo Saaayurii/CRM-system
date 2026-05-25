@@ -14,8 +14,39 @@ model Account {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
   clients   Client[]
+  users     User[]
 
   @@map("accounts")
+}
+
+// Минимальное представление пользователя — нужно для авто-создания при выдаче доступа клиенту в портал
+model User {
+  id                 Int       @id @default(autoincrement())
+  accountId          Int       @map("account_id")
+  roleId             Int?      @map("role_id")
+  name               String    @db.VarChar(255)
+  email              String    @db.VarChar(255)
+  passwordDigest     String?   @map("password_digest") @db.VarChar(255)
+  isActive           Boolean   @default(true) @map("is_active")
+  mustChangePassword Boolean   @default(false) @map("must_change_password")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @default(now()) @updatedAt @map("updated_at")
+  deletedAt          DateTime? @map("deleted_at")
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@map("users")
+}
+
+// Минимальное представление проекта — нужно для подстановки имени проекта в название чата
+model Project {
+  id        Int      @id @default(autoincrement())
+  accountId Int?     @map("account_id")
+  name      String   @db.VarChar(255)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("projects")
 }
 
 model Client {
@@ -76,6 +107,9 @@ model ClientPortalAccess {
   clientId         Int       @map("client_id")
   projectId        Int       @map("project_id")
   accessToken      String?   @unique @map("access_token") @db.VarChar(255)
+  login            String?   @db.VarChar(255)
+  passwordHash     String?   @map("password_hash") @db.VarChar(255)
+  userId           Int?      @map("user_id")
   canViewProgress  Boolean   @default(true) @map("can_view_progress")
   canViewPhotos    Boolean   @default(true) @map("can_view_photos")
   canViewDocuments Boolean   @default(false) @map("can_view_documents")
@@ -88,5 +122,6 @@ model ClientPortalAccess {
 
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
   @@map("client_portal_access")
 }

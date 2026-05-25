@@ -6,6 +6,7 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { TokenService } from './services/token.service';
 import { PasswordService } from './services/password.service';
+import { PortalAuthService } from './services/portal-auth.service';
 import { UserRepository } from './repositories/user.repository';
 import { RoleRepository } from './repositories/role.repository';
 import { AccountRepository } from './repositories/account.repository';
@@ -35,6 +36,7 @@ import { SessionBlacklistService } from '../../common/services/session-blacklist
   controllers: [AuthController],
   providers: [
     AuthService,
+    PortalAuthService,
     TokenService,
     PasswordService,
     UserRepository,

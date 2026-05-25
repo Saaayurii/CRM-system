@@ -21,6 +21,8 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
+import { PortalAuthService } from './services/portal-auth.service';
+import { PortalLoginDto, PortalMagicLoginDto } from './dto/portal-login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { RegisterCompanyDto } from './dto/register-company.dto';
 import { CreateInviteDto } from './dto/create-invite.dto';
@@ -55,7 +57,44 @@ interface UserPayload {
 @ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly portalAuthService: PortalAuthService,
+  ) {}
+
+  // ── Client Portal Login ────────────────────────────────────────────
+  @Post('portal/login')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Client portal login by login + password' })
+  @ApiResponse({ status: 200, description: 'Login successful', type: AuthResponseDto })
+  @ApiResponse({ status: 401, description: 'Invalid credentials' })
+  async portalLogin(@Body() dto: PortalLoginDto, @Req() req: any): Promise<AuthResponseDto> {
+    const userAgent = (req.headers['x-user-agent'] || req.headers['user-agent'] || '') as string;
+    const ipAddress = (req.headers['x-real-ip'] || req.headers['x-forwarded-for'] || req.ip || '') as string;
+    return this.portalAuthService.loginByPassword(
+      dto.login,
+      dto.password,
+      userAgent,
+      normalizeIp(ipAddress.split(',')[0].trim()),
+    );
+  }
+
+  @Post('portal/magic')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Client portal login by magic-link token' })
+  @ApiResponse({ status: 200, description: 'Login successful', type: AuthResponseDto })
+  @ApiResponse({ status: 401, description: 'Invalid or expired token' })
+  async portalMagic(@Body() dto: PortalMagicLoginDto, @Req() req: any): Promise<AuthResponseDto> {
+    const userAgent = (req.headers['x-user-agent'] || req.headers['user-agent'] || '') as string;
+    const ipAddress = (req.headers['x-real-ip'] || req.headers['x-forwarded-for'] || req.ip || '') as string;
+    return this.portalAuthService.loginByMagicToken(
+      dto.token,
+      userAgent,
+      normalizeIp(ipAddress.split(',')[0].trim()),
+    );
+  }
 
   @Post('register')
   @Public()

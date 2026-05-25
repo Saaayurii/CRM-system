@@ -83,13 +83,14 @@ describe('ClientPortalAccessController', () => {
 
   describe('create', () => {
     it('should create and return a new portal access record', async () => {
-      const dto = { clientId: 2, email: 'new@portal.com' } as any;
+      const dto = { clientId: 2, projectId: 7 } as any;
       service.create.mockResolvedValue({ ...mockAccess, ...dto });
+      const req = { headers: { authorization: 'Bearer x' } } as any;
 
-      const result = await controller.create(dto);
+      const result = await controller.create(dto, req);
 
       expect(result).toBeDefined();
-      expect(service.create).toHaveBeenCalledWith(dto);
+      expect(service.create).toHaveBeenCalledWith(dto, 'Bearer x');
     });
   });
 

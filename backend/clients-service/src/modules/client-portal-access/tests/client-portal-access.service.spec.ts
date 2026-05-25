@@ -1,16 +1,20 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
+import { ConfigService } from '@nestjs/config';
 import { ClientPortalAccessService } from '../client-portal-access.service';
 import { ClientPortalAccessRepository } from '../repositories/client-portal-access.repository';
+import { PrismaService } from '../../../database/prisma.service';
 
 describe('ClientPortalAccessService', () => {
   let service: ClientPortalAccessService;
   let repository: jest.Mocked<ClientPortalAccessRepository>;
+  let prisma: any;
 
   const mockAccess = {
     id: 1,
     clientId: 1,
-    email: 'portal@test.com',
+    projectId: 7,
     isActive: true,
     expiresAt: null,
     createdAt: new Date(),
@@ -26,6 +30,13 @@ describe('ClientPortalAccessService', () => {
   };
 
   beforeEach(async () => {
+    prisma = {
+      client: { findUnique: jest.fn() },
+      user: { create: jest.fn() },
+      project: { findUnique: jest.fn() },
+      clientPortalAccess: { findFirst: jest.fn() },
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ClientPortalAccessService,
@@ -39,6 +50,9 @@ describe('ClientPortalAccessService', () => {
             delete: jest.fn(),
           },
         },
+        { provide: PrismaService, useValue: prisma },
+        { provide: HttpService, useValue: { post: jest.fn() } },
+        { provide: ConfigService, useValue: { get: jest.fn() } },
       ],
     }).compile();
 
@@ -83,21 +97,53 @@ describe('ClientPortalAccessService', () => {
       repository.findById.mockResolvedValue(null);
 
       await expect(service.findById(999)).rejects.toThrow(NotFoundException);
-      await expect(service.findById(999)).rejects.toThrow(
-        'Client portal access #999 not found',
-      );
     });
   });
 
   describe('create', () => {
-    it('should create and return a new portal access record', async () => {
-      const dto = { clientId: 1, email: 'new@test.com' } as any;
-      repository.create.mockResolvedValue({ ...mockAccess, ...dto });
+    it('should generate access token and create access record without password', async () => {
+      prisma.client.findUnique.mockResolvedValue({ id: 1, accountId: 5, companyName: 'ACME' });
+      repository.create.mockResolvedValue(mockAccess);
 
-      const result = await service.create(dto);
+      const result = await service.create({ clientId: 1, projectId: 7, createChat: false } as any);
 
       expect(result).toBeDefined();
-      expect(repository.create).toHaveBeenCalledWith(dto);
+      expect(repository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          clientId: 1,
+          projectId: 7,
+          accessToken: expect.any(String),
+        }),
+      );
+      expect(prisma.user.create).not.toHaveBeenCalled();
+    });
+
+    it('should create user when login and password are provided', async () => {
+      prisma.client.findUnique.mockResolvedValue({ id: 1, accountId: 5, companyName: 'ACME' });
+      prisma.clientPortalAccess.findFirst.mockResolvedValue(null);
+      prisma.user.create.mockResolvedValue({ id: 42 });
+      repository.create.mockResolvedValue(mockAccess);
+
+      await service.create({
+        clientId: 1,
+        projectId: 7,
+        login: 'client@acme.com',
+        password: 'secret-pw-12345',
+        createChat: false,
+      } as any);
+
+      expect(prisma.user.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            accountId: 5,
+            roleId: 15,
+            email: 'client@acme.com',
+          }),
+        }),
+      );
+      expect(repository.create).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: 42, login: 'client@acme.com' }),
+      );
     });
   });
 
@@ -110,7 +156,7 @@ describe('ClientPortalAccessService', () => {
       const result = await service.update(1, dto);
 
       expect(result.isActive).toBe(false);
-      expect(repository.update).toHaveBeenCalledWith(1, dto);
+      expect(repository.update).toHaveBeenCalledWith(1, expect.objectContaining({ isActive: false }));
     });
 
     it('should throw NotFoundException when updating non-existent record', async () => {

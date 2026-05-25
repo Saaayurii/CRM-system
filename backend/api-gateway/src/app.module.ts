@@ -32,6 +32,7 @@ import { DashboardGatewayModule } from './modules/dashboard/dashboard-gateway.mo
 import { HealthModule } from './modules/health/health.module';
 import { JwtStrategy } from './common/guards/jwt.strategy';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
+import { ClientReadOnlyGuard } from './common/guards/client-readonly.guard';
 import { GatewayExceptionFilter } from './common/filters/gateway-exception.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor';
@@ -103,6 +104,10 @@ import { RequestContextMiddleware } from './common/middleware/request-context.mi
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: ClientReadOnlyGuard,
     },
     {
       provide: APP_GUARD,

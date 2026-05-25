@@ -18,6 +18,8 @@
 - `PUT  /auth/registration-requests/:id/reject` — отклонение заявки (Admin/HR)
 - `POST /auth/invites` — создание инвайт-ссылки (Super Admin)
 - `GET  /auth/invites/:token/check` — проверка инвайта (публичный)
+- `POST /auth/portal/login` — вход клиента в клиентский портал по логину/паролю (публичный)
+- `POST /auth/portal/magic` — вход клиента по одноразовому magic-токену (публичный)
 
 ## Модели данных (Prisma)
 - `User` — пользователь системы (email, passwordHash, roleId, accountId)

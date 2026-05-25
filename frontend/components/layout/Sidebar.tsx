@@ -9,6 +9,7 @@ import { useTaskNotifStore } from '@/stores/taskNotifStore';
 import { useChatStore } from '@/stores/chatStore';
 import { useNavHotkeys, type NavHotkey } from '@/hooks/useNavHotkeys';
 import SidebarLinkGroup from './SidebarLinkGroup';
+import ClientSidebar from './ClientSidebar';
 import NotificationDropdown from './NotificationDropdown';
 import ThemeToggle from './ThemeToggle';
 import ProfileDropdown from './ProfileDropdown';
@@ -371,6 +372,7 @@ export default function Sidebar() {
   const isAccountant = roleCode === 'accountant';
   const isInspector = roleCode === 'inspector';
   const isAdmin = roleCode === 'admin';
+  const isClient = user?.roleId === 15;
   const showTeams = isSuperAdmin || isAdmin || isPM || isHR;
   const showChat = true;
   const calendarHref =
@@ -420,6 +422,10 @@ export default function Sidebar() {
   const sidebar = useRef<HTMLDivElement>(null);
 
   useEffect(() => { initialize(); }, [initialize]);
+
+  if (isClient) {
+    return <ClientSidebar />;
+  }
 
   useEffect(() => {
     const clickHandler = ({ target }: MouseEvent) => {
