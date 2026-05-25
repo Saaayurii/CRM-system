@@ -57,7 +57,36 @@ function formatDateTime(value?: string | null) {
   }
 }
 
+function formatTimeShort(value?: string | null) {
+  if (!value) return '';
+  try {
+    const d = new Date(value);
+    return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  } catch {
+    return '';
+  }
+}
+
+function groupByDate(ops: Operation[]) {
+  const groups: Record<string, Operation[]> = {};
+  for (const op of ops) {
+    const raw = op.paymentDatetime ?? op.paymentDate;
+    let key = 'Без даты';
+    if (raw) {
+      try {
+        const d = new Date(raw);
+        key = d.toLocaleDateString('ru-RU', { day: '2-digit', month: 'long', year: 'numeric' });
+      } catch {
+        key = raw;
+      }
+    }
+    (groups[key] ||= []).push(op);
+  }
+  return groups;
+}
+
 type TabKey = 'all' | 'income' | 'expense' | 'documents';
+type ViewMode = 'table' | 'grid';
 
 interface DocumentTemplate {
   key: string;
@@ -145,7 +174,18 @@ export default function FinancePage() {
   const [operations, setOperations] = useState<Operation[]>([]);
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('financeViewMode') as ViewMode) || 'table';
+    }
+    return 'table';
+  });
   const { download: downloadPdf, loading: pdfLoading } = useDownloadPdf();
+
+  const handleViewMode = (mode: ViewMode) => {
+    setViewMode(mode);
+    localStorage.setItem('financeViewMode', mode);
+  };
 
   const loadProjects = useCallback(async () => {
     try {
@@ -259,6 +299,26 @@ export default function FinancePage() {
         </div>
         {tab !== 'documents' && (
           <div className="flex items-center gap-2">
+            <div className="hidden sm:flex items-center gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
+              <button
+                onClick={() => handleViewMode('table')}
+                className={`p-1.5 rounded transition-colors ${viewMode === 'table' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}
+                title="Таблица"
+              >
+                <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+              </button>
+              <button
+                onClick={() => handleViewMode('grid')}
+                className={`p-1.5 rounded transition-colors ${viewMode === 'grid' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}
+                title="Карточки"
+              >
+                <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                </svg>
+              </button>
+            </div>
             <button
               onClick={() => downloadPdf('payments', tab === 'income' ? 'Приходы' : tab === 'expense' ? 'Расходы' : 'Операции', operations.map((op) => ({
                 Документ: op.paymentNumber ?? '—',
@@ -466,8 +526,92 @@ export default function FinancePage() {
           </div>
         </div>
 
-        {/* Таблица */}
-        <div className="overflow-x-auto">
+        {/* Мобильная лента — история операций (как в банке) */}
+        <div className="sm:hidden">
+          {loading ? (
+            <div className="px-4 py-6 text-center text-gray-500">Загрузка…</div>
+          ) : filteredOps.length === 0 ? (
+            <div className="px-4 py-6 text-center text-gray-500">
+              Нет операций по выбранным фильтрам
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-100 dark:divide-gray-700">
+              {Object.entries(groupByDate(filteredOps)).map(([dateLabel, ops]) => (
+                <div key={dateLabel}>
+                  <div className="px-4 py-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/30 sticky top-0">
+                    {dateLabel}
+                  </div>
+                  <ul className="divide-y divide-gray-100 dark:divide-gray-700">
+                    {ops.map((op) => {
+                      const isIncome = op.direction === 'income';
+                      const status = STATUS_LABEL[Number(op.status ?? 0)];
+                      const proj = projectName(op.projectId);
+                      const site = siteName(op.constructionSiteId);
+                      const account = op.cashLocation === 'hand'
+                        ? 'На руки'
+                        : op.paymentAccount?.name;
+                      const time = formatTimeShort(op.paymentDatetime ?? op.paymentDate);
+                      return (
+                        <li key={op.id} className="px-4 py-3 active:bg-gray-50 dark:active:bg-gray-900/30">
+                          <div className="flex items-start gap-3">
+                            <div
+                              className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
+                                isIncome
+                                  ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400'
+                                  : 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
+                              }`}
+                              aria-hidden
+                            >
+                              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                {isIncome ? (
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 14l-7-7m0 0l-7 7m7-7v18" />
+                                ) : (
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 10l7 7m0 0l7-7m-7 7V3" />
+                                )}
+                              </svg>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <div className="font-medium text-gray-800 dark:text-gray-100 truncate">
+                                    {op.subType ? SUBTYPE_LABEL[op.subType] ?? op.subType : (isIncome ? 'Приход' : 'Расход')}
+                                  </div>
+                                  <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                    {proj || account || op.paymentNumber || '—'}
+                                  </div>
+                                </div>
+                                <div
+                                  className={`text-right font-semibold whitespace-nowrap ${
+                                    isIncome ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
+                                  }`}
+                                >
+                                  {isIncome ? '+' : '−'} {formatMoney(op.amount)} ₽
+                                </div>
+                              </div>
+                              <div className="mt-1 flex items-center gap-2 flex-wrap text-xs">
+                                {time && <span className="text-gray-500 dark:text-gray-400">{time}</span>}
+                                {site && <span className="text-gray-500 dark:text-gray-400 truncate">{site}</span>}
+                                {status && (
+                                  <span className={`px-1.5 py-0.5 rounded font-medium ${status.color}`}>
+                                    {status.label}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Десктоп: таблица или сетка карточек */}
+        {viewMode === 'table' ? (
+        <div className="hidden sm:block overflow-x-auto">
           <table className="table-auto w-full text-sm">
             <thead className="text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/30 border-b border-gray-100 dark:border-gray-700">
               <tr>
@@ -569,6 +713,90 @@ export default function FinancePage() {
             </tbody>
           </table>
         </div>
+        ) : (
+        <div className="hidden sm:block p-4">
+          {loading ? (
+            <div className="py-6 text-center text-gray-500">Загрузка…</div>
+          ) : filteredOps.length === 0 ? (
+            <div className="py-6 text-center text-gray-500">Нет операций по выбранным фильтрам</div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {filteredOps.map((op) => {
+                const isIncome = op.direction === 'income';
+                const status = STATUS_LABEL[Number(op.status ?? 0)];
+                const proj = projectName(op.projectId);
+                const site = siteName(op.constructionSiteId);
+                return (
+                  <div
+                    key={op.id}
+                    className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex flex-col gap-3 hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`text-xs px-2 py-0.5 rounded font-medium ${
+                              isIncome
+                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
+                                : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+                            }`}
+                          >
+                            {isIncome ? 'Приход' : 'Расход'}
+                          </span>
+                          {status && (
+                            <span className={`text-xs px-2 py-0.5 rounded font-medium ${status.color}`}>
+                              {status.label}
+                            </span>
+                          )}
+                        </div>
+                        <div className="mt-2 font-semibold text-gray-800 dark:text-gray-100 truncate">
+                          {op.subType ? SUBTYPE_LABEL[op.subType] ?? op.subType : (isIncome ? 'Приход' : 'Расход')}
+                        </div>
+                        <div className="text-xs font-mono text-gray-400 dark:text-gray-500 truncate">
+                          {op.paymentNumber ?? '—'}
+                        </div>
+                      </div>
+                      <div
+                        className={`text-right font-bold text-lg whitespace-nowrap ${
+                          isIncome ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
+                        }`}
+                      >
+                        {isIncome ? '+' : '−'} {formatMoney(op.amount)} ₽
+                      </div>
+                    </div>
+                    <dl className="grid grid-cols-1 gap-1.5 text-xs">
+                      <div>
+                        <dt className="text-gray-400 dark:text-gray-500">Дата</dt>
+                        <dd className="text-gray-700 dark:text-gray-300">
+                          {formatDateTime(op.paymentDatetime ?? op.paymentDate)}
+                        </dd>
+                      </div>
+                      {(proj || site) && (
+                        <div>
+                          <dt className="text-gray-400 dark:text-gray-500">Проект / Объект</dt>
+                          <dd className="text-gray-700 dark:text-gray-300 truncate">
+                            {proj || '—'}{site ? ` · ${site}` : ''}
+                          </dd>
+                        </div>
+                      )}
+                      <div>
+                        <dt className="text-gray-400 dark:text-gray-500">Счёт / Способ</dt>
+                        <dd className="text-gray-700 dark:text-gray-300 truncate">
+                          {op.cashLocation === 'hand'
+                            ? 'На руки'
+                            : op.paymentAccount
+                              ? `${op.paymentAccount.name}${op.paymentAccount.bankName ? ` · ${op.paymentAccount.bankName}` : ''}`
+                              : '—'}
+                        </dd>
+                      </div>
+                    </dl>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+        )}
         </>
         )}
       </div>
