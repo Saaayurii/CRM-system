@@ -341,7 +341,7 @@ export default function EntityFormModal({
                     />
                   ) : (
                     <input
-                      type={field.type}
+                      type={field.type === 'datetime' ? 'datetime-local' : field.type}
                       className="form-input w-full"
                       value={String(formData[field.key] ?? '')}
                       onChange={(e) => handleChange(field.key, e.target.value)}

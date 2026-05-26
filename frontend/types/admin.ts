@@ -11,7 +11,7 @@ export interface ColumnDef<T = Record<string, unknown>> {
 export interface FormField {
   key: string;
   label: string;
-  type: 'text' | 'number' | 'email' | 'password' | 'select' | 'textarea' | 'date' | 'checkbox' | 'file';
+  type: 'text' | 'number' | 'email' | 'password' | 'select' | 'textarea' | 'date' | 'datetime' | 'checkbox' | 'file';
   required?: boolean;
   options?: { value: string | number; label: string }[];
   placeholder?: string;
