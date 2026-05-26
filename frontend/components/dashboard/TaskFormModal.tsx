@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback, useMemo, useLayoutEffect } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, useLayoutEffect, type ReactNode, type KeyboardEvent } from 'react';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import { useAuthStore } from '@/stores/authStore';
@@ -316,28 +316,68 @@ interface TaskFormModalProps {
   onSavedTask?: (task: CreatedTaskSnapshot) => void;
 }
 
-function renderTextWithLinks(text: string) {
-  const urlRegex = /(https?:\/\/[^\s]+)/g;
-  const parts = text.split(urlRegex);
-  return parts.map((part, i) =>
-    /^https?:\/\//.test(part) ? (
-      <a key={i} href={part} target="_blank" rel="noopener noreferrer"
-        className="text-violet-500 underline hover:text-violet-700 break-all"
-        onClick={(e) => e.stopPropagation()}
-      >{part}</a>
-    ) : part
-  );
+// Matches: @[Display Name](123) — mention token stored in checklist text
+const MENTION_REGEX = /@\[([^\]]+)\]\((\d+)\)/g;
+const URL_REGEX = /(https?:\/\/[^\s]+)/g;
+
+function renderTextWithLinks(text: string, onMentionClick?: (userId: number) => void) {
+  // Split text into segments by mentions first, then links inside non-mention segments
+  const out: ReactNode[] = [];
+  let lastIndex = 0;
+  let key = 0;
+  const pushPlain = (s: string) => {
+    if (!s) return;
+    const parts = s.split(URL_REGEX);
+    parts.forEach((p) => {
+      if (/^https?:\/\//.test(p)) {
+        out.push(
+          <a key={key++} href={p} target="_blank" rel="noopener noreferrer"
+            className="text-violet-500 underline hover:text-violet-700 break-all"
+            onClick={(e) => e.stopPropagation()}
+          >{p}</a>
+        );
+      } else if (p) {
+        out.push(<span key={key++}>{p}</span>);
+      }
+    });
+  };
+  const re = new RegExp(MENTION_REGEX.source, 'g');
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    pushPlain(text.slice(lastIndex, m.index));
+    const name = m[1];
+    const userId = Number(m[2]);
+    out.push(
+      <span
+        key={key++}
+        className="inline-flex items-center px-1.5 py-px rounded-md bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 font-medium hover:bg-violet-200 dark:hover:bg-violet-900/60 cursor-pointer transition-colors"
+        onClick={(e) => { e.stopPropagation(); onMentionClick?.(userId); }}
+      >@{name}</span>
+    );
+    lastIndex = m.index + m[0].length;
+  }
+  pushPlain(text.slice(lastIndex));
+  return out;
 }
 
-function AutoResizeTextarea({ value, onChange, className, placeholder, autoFocus, onBlur }: {
+interface MentionCandidate {
+  userId: number;
+  userName: string;
+  avatarUrl?: string;
+}
+
+function AutoResizeTextarea({ value, onChange, className, placeholder, autoFocus, onBlur, mentionCandidates }: {
   value: string;
   onChange: (v: string) => void;
   className?: string;
   placeholder?: string;
   autoFocus?: boolean;
   onBlur?: () => void;
+  mentionCandidates?: MentionCandidate[];
 }) {
   const ref = useRef<HTMLTextAreaElement>(null);
+  const [mention, setMention] = useState<{ start: number; query: string } | null>(null);
+  const [mentionIndex, setMentionIndex] = useState(0);
 
   const resize = useCallback(() => {
     if (ref.current) {
@@ -355,17 +395,130 @@ function AutoResizeTextarea({ value, onChange, className, placeholder, autoFocus
     return () => ro.disconnect();
   }, [resize]);
 
+  const detectMention = (text: string, caret: number) => {
+    if (!mentionCandidates || mentionCandidates.length === 0) {
+      setMention(null);
+      return;
+    }
+    // Walk back from caret to find @ that starts a mention (preceded by start/space)
+    let i = caret - 1;
+    while (i >= 0) {
+      const ch = text[i];
+      if (ch === '@') {
+        const prev = i > 0 ? text[i - 1] : '';
+        if (i === 0 || /\s/.test(prev)) {
+          const query = text.slice(i + 1, caret);
+          if (/^[^\s\]]*$/.test(query)) {
+            setMention({ start: i, query });
+            setMentionIndex(0);
+            return;
+          }
+        }
+        setMention(null);
+        return;
+      }
+      if (/\s/.test(ch)) break;
+      i--;
+    }
+    setMention(null);
+  };
+
+  const filtered = useMemo(() => {
+    if (!mention || !mentionCandidates) return [];
+    const q = mention.query.toLowerCase();
+    return mentionCandidates.filter((c) => c.userName.toLowerCase().includes(q)).slice(0, 8);
+  }, [mention, mentionCandidates]);
+
+  useEffect(() => {
+    if (mentionIndex >= filtered.length) setMentionIndex(0);
+  }, [filtered.length, mentionIndex]);
+
+  const insertMention = (candidate: MentionCandidate) => {
+    if (!mention || !ref.current) return;
+    const before = value.slice(0, mention.start);
+    const after = value.slice(mention.start + 1 + mention.query.length);
+    const token = `@[${candidate.userName}](${candidate.userId})`;
+    const next = `${before}${token} ${after}`;
+    onChange(next);
+    setMention(null);
+    requestAnimationFrame(() => {
+      if (!ref.current) return;
+      const pos = before.length + token.length + 1;
+      ref.current.focus();
+      ref.current.setSelectionRange(pos, pos);
+    });
+  };
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (!mention || filtered.length === 0) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setMentionIndex((i) => (i + 1) % filtered.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setMentionIndex((i) => (i - 1 + filtered.length) % filtered.length);
+    } else if (e.key === 'Enter' || e.key === 'Tab') {
+      e.preventDefault();
+      insertMention(filtered[mentionIndex]);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      setMention(null);
+    }
+  };
+
   return (
-    <textarea
-      ref={ref}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      rows={1}
-      className={className}
-      placeholder={placeholder}
-      autoFocus={autoFocus}
-      onBlur={onBlur}
-    />
+    <div className="relative">
+      <textarea
+        ref={ref}
+        value={value}
+        onChange={(e) => {
+          const v = e.target.value;
+          onChange(v);
+          detectMention(v, e.target.selectionStart ?? v.length);
+        }}
+        onKeyUp={(e) => {
+          if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'Home' || e.key === 'End') {
+            const el = e.currentTarget;
+            detectMention(el.value, el.selectionStart ?? el.value.length);
+          }
+        }}
+        onClick={(e) => {
+          const el = e.currentTarget;
+          detectMention(el.value, el.selectionStart ?? el.value.length);
+        }}
+        onKeyDown={handleKeyDown}
+        rows={1}
+        className={className}
+        placeholder={placeholder}
+        autoFocus={autoFocus}
+        onBlur={(e) => {
+          // Delay so click on dropdown can fire first
+          setTimeout(() => setMention(null), 150);
+          onBlur?.();
+        }}
+      />
+      {mention && filtered.length > 0 && (
+        <div className="absolute z-50 left-0 top-full mt-1 w-64 max-h-60 overflow-y-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1">
+          {filtered.map((c, i) => (
+            <button
+              key={c.userId}
+              type="button"
+              onMouseDown={(e) => { e.preventDefault(); insertMention(c); }}
+              className={`w-full flex items-center gap-2 px-3 py-1.5 text-left text-sm ${
+                i === mentionIndex
+                  ? 'bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/40'
+              }`}
+            >
+              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-violet-100 dark:bg-violet-900/40 text-violet-600 dark:text-violet-300 text-[10px] font-semibold shrink-0">
+                {initials(c.userName)}
+              </span>
+              <span className="truncate">{c.userName}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -396,7 +549,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
     (task?.assignees || []).map((a: any) => ({ userId: a.userId || a.user_id, userName: a.userName || a.user_name }))
   );
   const [showAssigneePicker, setShowAssigneePicker] = useState(false);
-  const [employeeCard, setEmployeeCard] = useState<{ user: User; assignedAt?: string; onRemove: () => void } | null>(null);
+  const [employeeCard, setEmployeeCard] = useState<{ user: User; assignedAt?: string; onRemove?: () => void } | null>(null);
 
   // Checklists
   const [checklists, setChecklists] = useState<ChecklistGroup[]>(() => {
@@ -1395,16 +1548,24 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                                   value={item.text}
                                   onChange={(v) => updateItemText(group.id, item.id, v)}
                                   className={`w-full text-sm bg-transparent outline-none border-none focus:ring-0 resize-none overflow-hidden leading-normal ${isDone ? 'line-through text-gray-400' : isRejected ? 'text-red-500 dark:text-red-400' : 'text-gray-700 dark:text-gray-300'}`}
-                                  placeholder="Введите пункт..."
+                                  placeholder={assignees.length > 0 ? 'Введите пункт, @ — упомянуть исполнителя' : 'Введите пункт...'}
                                   autoFocus
                                   onBlur={() => setEditingItemId(null)}
+                                  mentionCandidates={assignees.map((a) => ({
+                                    userId: a.userId,
+                                    userName: a.userName || (userMap[a.userId] ? userName(userMap[a.userId]) : `#${a.userId}`),
+                                    avatarUrl: userMap[a.userId]?.avatarUrl,
+                                  }))}
                                 />
                               ) : (
                                 <div
                                   onClick={() => setEditingItemId(item.id)}
                                   className={`w-full text-sm leading-normal cursor-text whitespace-pre-wrap break-words min-h-[1.25rem] ${isDone ? 'line-through text-gray-400' : isRejected ? 'text-red-500 dark:text-red-400' : 'text-gray-700 dark:text-gray-300'}`}
                                 >
-                                  {item.text ? renderTextWithLinks(item.text) : <span className="text-gray-400">Введите пункт...</span>}
+                                  {item.text ? renderTextWithLinks(item.text, (uid) => {
+                                    const u = userMap[uid];
+                                    if (u) setEmployeeCard({ user: u });
+                                  }) : <span className="text-gray-400">{assignees.length > 0 ? 'Введите пункт, @ — упомянуть исполнителя' : 'Введите пункт...'}</span>}
                                 </div>
                               )}
                               {(isPending || isDone || isRejected) && item.completedByName && (
