@@ -11,6 +11,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { ClientsModule } from './modules/clients/clients.module';
 import { ClientInteractionsModule } from './modules/client-interactions/client-interactions.module';
 import { ClientPortalAccessModule } from './modules/client-portal-access/client-portal-access.module';
+import { ClientInvitesModule } from './modules/client-invites/client-invites.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { ClientPortalAccessModule } from './modules/client-portal-access/client-
     ClientsModule,
     ClientInteractionsModule,
     ClientPortalAccessModule,
+    ClientInvitesModule,
     HealthModule,
   ],
   providers: [

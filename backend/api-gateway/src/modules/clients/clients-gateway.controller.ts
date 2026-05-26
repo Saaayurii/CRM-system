@@ -19,6 +19,7 @@ import {
 import { Request } from 'express';
 import { ProxyService } from '../../common/services/proxy.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { Public } from '../../common/decorators/public.decorator';
 
 @ApiTags('Clients')
 @ApiBearerAuth()
@@ -237,6 +238,71 @@ export class ClientsGatewayController {
       method: 'DELETE',
       path: `/client-portal-access/${id}`,
       headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  // Client Invites
+  @Get('client-invites')
+  @ApiOperation({ summary: 'List client invites' })
+  async listClientInvites(@Req() req: Request) {
+    return this.proxyService.forward('clients', {
+      method: 'GET',
+      path: '/client-invites',
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  @Post('client-invites')
+  @ApiOperation({ summary: 'Create client invite' })
+  async createClientInvite(@Req() req: Request, @Body() body: any) {
+    return this.proxyService.forward('clients', {
+      method: 'POST',
+      path: '/client-invites',
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Delete('client-invites/:token')
+  @ApiOperation({ summary: 'Revoke client invite' })
+  async revokeClientInvite(@Req() req: Request, @Param('token') token: string) {
+    return this.proxyService.forward('clients', {
+      method: 'DELETE',
+      path: `/client-invites/${token}`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  @Public()
+  @Get('client-invites/:token/check')
+  @ApiOperation({ summary: 'Check client invite (public)' })
+  async checkClientInvite(@Param('token') token: string) {
+    return this.proxyService.forward('clients', {
+      method: 'GET',
+      path: `/client-invites/${token}/check`,
+      headers: {},
+    });
+  }
+
+  @Public()
+  @Post('client-invites/:token/accept')
+  @ApiOperation({ summary: 'Accept client invite — create client + portal user (public)' })
+  async acceptClientInvite(
+    @Req() req: Request,
+    @Param('token') token: string,
+    @Body() body: any,
+  ) {
+    return this.proxyService.forward('clients', {
+      method: 'POST',
+      path: `/client-invites/${token}/accept`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
     });
   }
 }

@@ -125,3 +125,24 @@ model ClientPortalAccess {
   @@index([userId])
   @@map("client_portal_access")
 }
+
+model ClientInvite {
+  id                Int       @id @default(autoincrement())
+  token             String    @unique @db.VarChar(64)
+  accountId         Int       @map("account_id")
+  projectId         Int?      @map("project_id")
+  createdByUserId   Int?      @map("created_by_user_id")
+  note              String?   @db.VarChar(255)
+  canViewProgress   Boolean   @default(true) @map("can_view_progress")
+  canViewPhotos     Boolean   @default(true) @map("can_view_photos")
+  canViewDocuments  Boolean   @default(false) @map("can_view_documents")
+  canViewFinancials Boolean   @default(false) @map("can_view_financials")
+  expiresAt         DateTime? @map("expires_at")
+  usedAt            DateTime? @map("used_at")
+  usedByClientId    Int?      @map("used_by_client_id")
+  usedByUserId      Int?      @map("used_by_user_id")
+  createdAt         DateTime  @default(now()) @map("created_at")
+
+  @@index([accountId])
+  @@map("client_invites")
+}
