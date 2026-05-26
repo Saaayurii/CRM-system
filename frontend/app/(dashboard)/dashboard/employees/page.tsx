@@ -63,6 +63,7 @@ export default function EmployeesPage() {
   const [viewingEmployee, setViewingEmployee] = useState<Employee | null>(null);
   const [fullProfileEmployee, setFullProfileEmployee] = useState<Employee | null>(null);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [editReturnTo, setEditReturnTo] = useState<'none' | 'quickview' | 'fullprofile'>('none');
   const [creating, setCreating] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
@@ -362,6 +363,7 @@ export default function EmployeesPage() {
           canEdit={canEdit}
           onClose={() => setViewingEmployee(null)}
           onEdit={() => {
+            setEditReturnTo('quickview');
             setEditingEmployee(viewingEmployee);
             setViewingEmployee(null);
           }}
@@ -378,6 +380,7 @@ export default function EmployeesPage() {
           canEdit={canEdit}
           onClose={() => setFullProfileEmployee(null)}
           onEdit={() => {
+            setEditReturnTo('fullprofile');
             setEditingEmployee(fullProfileEmployee);
             setFullProfileEmployee(null);
           }}
@@ -387,10 +390,22 @@ export default function EmployeesPage() {
       {editingEmployee && (
         <EmployeeEditModal
           employee={editingEmployee}
-          onClose={() => setEditingEmployee(null)}
-          onSaved={async () => {
+          onClose={() => {
+            const emp = editingEmployee;
+            const returnTo = editReturnTo;
             setEditingEmployee(null);
+            setEditReturnTo('none');
+            if (returnTo === 'quickview') setViewingEmployee(emp);
+            else if (returnTo === 'fullprofile') setFullProfileEmployee(emp);
+          }}
+          onSaved={async () => {
+            const emp = editingEmployee;
+            const returnTo = editReturnTo;
+            setEditingEmployee(null);
+            setEditReturnTo('none');
             await fetchEmployees();
+            if (returnTo === 'quickview') setViewingEmployee(emp);
+            else if (returnTo === 'fullprofile') setFullProfileEmployee(emp);
           }}
         />
       )}
