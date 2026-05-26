@@ -205,7 +205,7 @@ export class CalendarFeedService {
       const { data } = await firstValueFrom(
         this.http.get(url, { headers: this.auth(authToken, accountHeader) }),
       );
-      const items: any[] = data?.data ?? data ?? [];
+      const items: any[] = data?.tasks ?? data?.data ?? (Array.isArray(data) ? data : []);
       const startD = new Date(query.start).getTime();
       const endD = new Date(query.end).getTime();
       const out: FeedEvent[] = [];
@@ -398,7 +398,7 @@ export class CalendarFeedService {
       const { data } = await firstValueFrom(
         this.http.get(url, { headers: this.auth(authToken, accountHeader) }),
       );
-      const items: any[] = data?.data ?? data ?? [];
+      const items: any[] = data?.projects ?? data?.data ?? (Array.isArray(data) ? data : []);
       const startD = new Date(query.start).getTime();
       const endD = new Date(query.end).getTime();
       const out: FeedEvent[] = [];
