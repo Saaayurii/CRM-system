@@ -113,6 +113,17 @@ export class CalendarGatewayController {
     });
   }
 
+  @Get('calendar-feed/debug')
+  @ApiOperation({ summary: 'Диагностика feed' })
+  async feedDebug(@Req() req: Request, @Query() query: Record<string, any>) {
+    return this.proxyService.forward('calendar', {
+      method: 'GET',
+      path: '/calendar-feed/debug',
+      headers: { authorization: req.headers.authorization || '' },
+      params: query,
+    });
+  }
+
   // -----------------------------
   // Custom event types
   // -----------------------------

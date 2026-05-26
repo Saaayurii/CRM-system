@@ -57,12 +57,23 @@ export default function UnifiedCalendar({
   );
   // "Только мои" по умолчанию для обычных пользователей.
   // Admin/Super-admin видят всё в компании по умолчанию.
+  // Если user ещё не загружен — стартуем с false (=Все), пересинхронизируем в useEffect.
   const [mine, setMine] = useState<boolean>(
-    onlyMine !== undefined ? onlyMine : !isAdminLike,
+    onlyMine !== undefined ? onlyMine : !!user && !isAdminLike,
   );
+  const [mineTouched, setMineTouched] = useState(false);
+  // Когда профиль пользователя приходит позже первого рендера —
+  // подставим правильный дефолт. Если пользователь уже сам переключал — не трогаем.
+  useEffect(() => {
+    if (onlyMine !== undefined || mineTouched || !user) return;
+    setMine(!isAdminLike);
+  }, [user, isAdminLike, onlyMine, mineTouched]);
+  const setMineAndTouch = (v: boolean) => { setMineTouched(true); setMine(v); };
+
   const [editorOpen, setEditorOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [refreshTick, setRefreshTick] = useState(0);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const eventsSource = useCallback(
     (info: any, success: any, fail: any) => {
@@ -76,6 +87,7 @@ export default function UnifiedCalendar({
       api
         .get<FeedEvent[]>(`/calendar-feed?${params.toString()}`)
         .then((res) => {
+          setLoadError(null);
           const evs = (res.data || []).map((e) => ({
             ...e,
             // FullCalendar воспринимает 'editable' напрямую
@@ -83,7 +95,11 @@ export default function UnifiedCalendar({
           }));
           success(evs);
         })
-        .catch((err) => fail(err));
+        .catch((err) => {
+          const msg = err?.response?.data?.message || err?.message || 'Ошибка загрузки событий';
+          setLoadError(typeof msg === 'string' ? msg : JSON.stringify(msg));
+          fail(err);
+        });
     },
     [sources, mine, projectId, refreshTick],
   );
@@ -177,7 +193,7 @@ export default function UnifiedCalendar({
           <div className="inline-flex p-0.5 rounded-lg bg-gray-100 dark:bg-gray-700/60 text-sm">
             <button
               type="button"
-              onClick={() => setMine(true)}
+              onClick={() => setMineAndTouch(true)}
               className={`px-3 py-1.5 rounded-md transition flex items-center gap-1.5 ${
                 mine
                   ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm'
@@ -191,7 +207,7 @@ export default function UnifiedCalendar({
             </button>
             <button
               type="button"
-              onClick={() => setMine(false)}
+              onClick={() => setMineAndTouch(false)}
               className={`px-3 py-1.5 rounded-md transition ${
                 !mine
                   ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm'
@@ -261,6 +277,12 @@ export default function UnifiedCalendar({
           );
         })}
       </div>
+
+      {loadError && (
+        <div className="mb-3 px-3 py-2 rounded-md border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 text-sm text-red-600 dark:text-red-300">
+          Не удалось загрузить события: {loadError}
+        </div>
+      )}
 
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 px-3 py-3 sm:px-4 sm:py-4">
         <FullCalendar

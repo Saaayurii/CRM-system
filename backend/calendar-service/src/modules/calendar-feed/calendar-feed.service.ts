@@ -55,6 +55,7 @@ export class CalendarFeedService {
       mine?: boolean;
     },
     authToken?: string,
+    accountHeader?: string,
   ): Promise<FeedEvent[]> {
     const sources = query.sources?.length
       ? query.sources
@@ -64,15 +65,15 @@ export class CalendarFeedService {
     if (sources.includes('calendar') || sources.includes('external'))
       tasks.push(this.fromCalendarEvents(accountId, userId, query, sources));
     if (sources.includes('tasks'))
-      tasks.push(this.fromTasks(accountId, userId, query, authToken));
+      tasks.push(this.fromTasks(accountId, userId, query, authToken, accountHeader));
     if (sources.includes('inspections'))
-      tasks.push(this.fromInspections(accountId, userId, query, authToken));
+      tasks.push(this.fromInspections(accountId, userId, query, authToken, accountHeader));
     if (sources.includes('timeoff'))
-      tasks.push(this.fromTimeOff(accountId, userId, query, authToken));
+      tasks.push(this.fromTimeOff(accountId, userId, query, authToken, accountHeader));
     if (sources.includes('attendance'))
-      tasks.push(this.fromAttendance(accountId, userId, query, authToken));
+      tasks.push(this.fromAttendance(accountId, userId, query, authToken, accountHeader));
     if (sources.includes('projects'))
-      tasks.push(this.fromProjects(accountId, userId, query, authToken));
+      tasks.push(this.fromProjects(accountId, userId, query, authToken, accountHeader));
 
     const results = await Promise.allSettled(tasks);
     const flat: FeedEvent[] = [];
@@ -81,6 +82,52 @@ export class CalendarFeedService {
       else this.logger.warn(`Feed source failed: ${r.reason}`);
     });
     return flat;
+  }
+
+  async debugFeed(
+    accountId: number,
+    userId: number,
+    query: { start: string; end: string; sources?: string[]; projectId?: number; mine?: boolean },
+    authToken?: string,
+    accountHeader?: string,
+  ): Promise<any> {
+    const sources = query.sources?.length
+      ? query.sources
+      : ['calendar', 'tasks', 'inspections', 'timeoff', 'attendance', 'projects'];
+
+    const probe = async (name: string, fn: () => Promise<FeedEvent[]>) => {
+      const t0 = Date.now();
+      try {
+        const r = await fn();
+        return { name, ok: true, count: r.length, ms: Date.now() - t0 };
+      } catch (e: any) {
+        return { name, ok: false, error: e?.message || String(e), ms: Date.now() - t0 };
+      }
+    };
+
+    const probes = await Promise.all([
+      probe('calendar', () => this.fromCalendarEvents(accountId, userId, query, sources)),
+      probe('tasks', () => this.fromTasks(accountId, userId, query, authToken, accountHeader)),
+      probe('inspections', () => this.fromInspections(accountId, userId, query, authToken, accountHeader)),
+      probe('timeoff', () => this.fromTimeOff(accountId, userId, query, authToken, accountHeader)),
+      probe('attendance', () => this.fromAttendance(accountId, userId, query, authToken, accountHeader)),
+      probe('projects', () => this.fromProjects(accountId, userId, query, authToken, accountHeader)),
+    ]);
+
+    return {
+      accountId,
+      userId,
+      range: { start: query.start, end: query.end },
+      mine: !!query.mine,
+      sourcesRequested: sources,
+      serviceUrls: {
+        tasks: this.config.get('TASKS_SERVICE_URL'),
+        inspections: this.config.get('INSPECTIONS_SERVICE_URL'),
+        hr: this.config.get('HR_SERVICE_URL'),
+        projects: this.config.get('PROJECTS_SERVICE_URL'),
+      },
+      sources: probes,
+    };
   }
 
   private async fromCalendarEvents(
@@ -148,6 +195,7 @@ export class CalendarFeedService {
     userId: number,
     query: { start: string; end: string; projectId?: number; mine?: boolean },
     authToken?: string,
+    accountHeader?: string,
   ): Promise<FeedEvent[]> {
     const baseUrl = this.config.get<string>('TASKS_SERVICE_URL') ||
       this.config.get<string>('tasksServiceUrl') ||
@@ -155,7 +203,7 @@ export class CalendarFeedService {
     try {
       const url = `${baseUrl}/tasks?limit=500${query.projectId ? `&projectId=${query.projectId}` : ''}`;
       const { data } = await firstValueFrom(
-        this.http.get(url, { headers: this.auth(authToken) }),
+        this.http.get(url, { headers: this.auth(authToken, accountHeader) }),
       );
       const items: any[] = data?.data ?? data ?? [];
       const startD = new Date(query.start).getTime();
@@ -210,13 +258,14 @@ export class CalendarFeedService {
     userId: number,
     query: { start: string; end: string; projectId?: number; mine?: boolean },
     authToken?: string,
+    accountHeader?: string,
   ): Promise<FeedEvent[]> {
     const baseUrl = this.config.get<string>('INSPECTIONS_SERVICE_URL') ||
       'http://inspections-service:3008';
     try {
       const url = `${baseUrl}/inspections?limit=500${query.projectId ? `&projectId=${query.projectId}` : ''}`;
       const { data } = await firstValueFrom(
-        this.http.get(url, { headers: this.auth(authToken) }),
+        this.http.get(url, { headers: this.auth(authToken, accountHeader) }),
       );
       const items: any[] = data?.data ?? data ?? [];
       const startD = new Date(query.start).getTime();
@@ -254,13 +303,14 @@ export class CalendarFeedService {
     userId: number,
     query: { start: string; end: string; mine?: boolean },
     authToken?: string,
+    accountHeader?: string,
   ): Promise<FeedEvent[]> {
     const baseUrl = this.config.get<string>('HR_SERVICE_URL') ||
       'http://hr-service:3009';
     try {
       const url = `${baseUrl}/time-off?limit=500`;
       const { data } = await firstValueFrom(
-        this.http.get(url, { headers: this.auth(authToken) }),
+        this.http.get(url, { headers: this.auth(authToken, accountHeader) }),
       );
       const items: any[] = data?.data ?? data ?? [];
       const startD = new Date(query.start).getTime();
@@ -302,13 +352,14 @@ export class CalendarFeedService {
     userId: number,
     query: { start: string; end: string; mine?: boolean },
     authToken?: string,
+    accountHeader?: string,
   ): Promise<FeedEvent[]> {
     const baseUrl = this.config.get<string>('HR_SERVICE_URL') ||
       'http://hr-service:3009';
     try {
       const url = `${baseUrl}/attendance?limit=500&startDate=${query.start}&endDate=${query.end}`;
       const { data } = await firstValueFrom(
-        this.http.get(url, { headers: this.auth(authToken) }),
+        this.http.get(url, { headers: this.auth(authToken, accountHeader) }),
       );
       const items: any[] = data?.data ?? data ?? [];
       return items
@@ -338,13 +389,14 @@ export class CalendarFeedService {
     userId: number,
     query: { start: string; end: string; projectId?: number },
     authToken?: string,
+    accountHeader?: string,
   ): Promise<FeedEvent[]> {
     const baseUrl = this.config.get<string>('PROJECTS_SERVICE_URL') ||
       'http://projects-service:3003';
     try {
       const url = `${baseUrl}/projects?limit=200`;
       const { data } = await firstValueFrom(
-        this.http.get(url, { headers: this.auth(authToken) }),
+        this.http.get(url, { headers: this.auth(authToken, accountHeader) }),
       );
       const items: any[] = data?.data ?? data ?? [];
       const startD = new Date(query.start).getTime();
@@ -401,7 +453,14 @@ export class CalendarFeedService {
     }
   }
 
-  private auth(token?: string) {
-    return token ? { Authorization: token.startsWith('Bearer ') ? token : `Bearer ${token}` } : {};
+  private auth(token?: string, accountHeader?: string) {
+    const h: Record<string, string> = {};
+    if (token) {
+      h.Authorization = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+    }
+    if (accountHeader) {
+      h['X-Account-Id'] = String(accountHeader);
+    }
+    return h;
   }
 }
