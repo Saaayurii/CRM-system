@@ -5,6 +5,7 @@ import Link from 'next/link';
 import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { useToastStore } from '@/stores/toastStore';
+import TrainingMaterialsManagerModal from '@/components/learning/TrainingMaterialsManagerModal';
 
 type MaterialType = 'video' | 'article' | 'instruction' | 'checklist' | 'presentation' | string;
 
@@ -71,6 +72,13 @@ export default function LearningLibraryPage() {
   const [categoryFilter, setCategoryFilter] = useState<string>('');
   const [tab, setTab] = useState<Tab>('all');
   const [sort, setSort] = useState<SortKey>('newest');
+  const [manageOpen, setManageOpen] = useState(false);
+  const [manageInitialMode, setManageInitialMode] = useState<'list' | 'create'>('list');
+
+  const openManager = (initialMode: 'list' | 'create' = 'list') => {
+    setManageInitialMode(initialMode);
+    setManageOpen(true);
+  };
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 200);
@@ -200,15 +208,16 @@ export default function LearningLibraryPage() {
           <div className="flex items-center gap-4">
             <ProgressRing pct={completionPct} />
             {canManage && (
-              <Link
-                href="/admin/training-materials"
+              <button
+                type="button"
+                onClick={() => openManager('list')}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg bg-white/15 hover:bg-white/25 backdrop-blur-sm transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
                 Управление
-              </Link>
+              </button>
             )}
           </div>
         </div>
@@ -290,7 +299,7 @@ export default function LearningLibraryPage() {
       {loading ? (
         <SkeletonGrid />
       ) : filtered.length === 0 ? (
-        <EmptyState canManage={canManage} hasMaterials={materials.length > 0} />
+        <EmptyState canManage={canManage} hasMaterials={materials.length > 0} onCreate={() => openManager('create')} />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filtered.map((m) => (
@@ -303,6 +312,15 @@ export default function LearningLibraryPage() {
             />
           ))}
         </div>
+      )}
+
+      {canManage && (
+        <TrainingMaterialsManagerModal
+          open={manageOpen}
+          initialMode={manageInitialMode}
+          onClose={() => setManageOpen(false)}
+          onChanged={fetchAll}
+        />
       )}
     </div>
   );
@@ -477,7 +495,7 @@ function SkeletonGrid() {
   );
 }
 
-function EmptyState({ canManage, hasMaterials }: { canManage: boolean; hasMaterials: boolean }) {
+function EmptyState({ canManage, hasMaterials, onCreate }: { canManage: boolean; hasMaterials: boolean; onCreate: () => void }) {
   return (
     <div className="text-center py-16 px-4">
       <div className="text-6xl mb-3">📚</div>
@@ -492,15 +510,16 @@ function EmptyState({ canManage, hasMaterials }: { canManage: boolean; hasMateri
           : 'Когда администратор добавит обучающие материалы, они появятся здесь.'}
       </p>
       {!hasMaterials && canManage && (
-        <Link
-          href="/admin/training-materials"
+        <button
+          type="button"
+          onClick={onCreate}
           className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg bg-violet-500 hover:bg-violet-600 text-white shadow-sm"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
           </svg>
           Добавить материал
-        </Link>
+        </button>
       )}
     </div>
   );
