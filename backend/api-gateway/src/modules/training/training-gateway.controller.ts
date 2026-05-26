@@ -98,20 +98,34 @@ export class TrainingGatewayController {
   }
 
   // Training Progress
+  @Get('training-progress/stats')
+  @ApiOperation({ summary: 'Aggregated training-progress stats for current account' })
+  async trainingProgressStats(@Req() req: Request) {
+    return this.proxyService.forward('training', {
+      method: 'GET',
+      path: '/training-progress/stats',
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
   @Get('training-progress')
   @ApiOperation({ summary: 'Get all training progress records' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
+  @ApiQuery({ name: 'userId', required: false })
+  @ApiQuery({ name: 'trainingMaterialId', required: false })
   async findAllTrainingProgress(
     @Req() req: Request,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
+    @Query('userId') userId?: number,
+    @Query('trainingMaterialId') trainingMaterialId?: number,
   ) {
     return this.proxyService.forward('training', {
       method: 'GET',
       path: '/training-progress',
       headers: { authorization: req.headers.authorization || '' },
-      params: { page, limit },
+      params: { page, limit, userId, trainingMaterialId },
     });
   }
 
@@ -172,16 +186,18 @@ export class TrainingGatewayController {
   @ApiOperation({ summary: 'Get all knowledge tests' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
+  @ApiQuery({ name: 'trainingMaterialId', required: false })
   async findAllKnowledgeTests(
     @Req() req: Request,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
+    @Query('trainingMaterialId') trainingMaterialId?: number,
   ) {
     return this.proxyService.forward('training', {
       method: 'GET',
       path: '/knowledge-tests',
       headers: { authorization: req.headers.authorization || '' },
-      params: { page, limit },
+      params: { page, limit, trainingMaterialId },
     });
   }
 

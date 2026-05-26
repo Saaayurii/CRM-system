@@ -37,4 +37,20 @@ export class TrainingProgressRepository {
       data: dto,
     });
   }
+  async statsByAccount(accountId: number) {
+    // Все прогрессы пользователей по материалам данного аккаунта.
+    const rows = await (this.prisma as any).trainingProgress.findMany({
+      where: { trainingMaterial: { accountId } },
+      select: {
+        id: true,
+        userId: true,
+        trainingMaterialId: true,
+        startedAt: true,
+        completedAt: true,
+        progressPercentage: true,
+        updatedAt: true,
+      },
+    });
+    return rows;
+  }
 }

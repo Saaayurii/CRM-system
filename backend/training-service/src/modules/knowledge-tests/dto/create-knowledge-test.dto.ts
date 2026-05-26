@@ -21,4 +21,5 @@ export class CreateKnowledgeTestDto {
   @ApiPropertyOptional() @IsOptional() @IsBoolean() isMandatory?: boolean;
   @ApiPropertyOptional() @IsOptional() @IsArray() questions?: any;
   @ApiPropertyOptional() @IsOptional() @IsBoolean() isActive?: boolean;
+  @ApiPropertyOptional() @IsOptional() @IsInt() trainingMaterialId?: number;
 }

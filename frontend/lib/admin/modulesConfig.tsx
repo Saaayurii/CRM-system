@@ -2048,15 +2048,20 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
       },
       {
         key: 'durationMinutes',
-        header: 'Длит. (мин)',
-        render: (v) => (v ? <span>{String(v)}</span> : <span className="text-gray-400">—</span>),
+        header: 'Длит.',
+        render: (v) => (v ? <span>{String(v)} мин</span> : <span className="text-gray-400">—</span>),
+      },
+      {
+        key: 'isMandatory',
+        header: 'Обяз.',
+        render: (v) => (v ? <StatusBadge label="Обязательно" color="red" /> : <span className="text-gray-400">—</span>),
       },
       {
         key: 'isPublished',
-        header: 'Опубликован',
+        header: 'Статус',
         render: (v) =>
           v ? (
-            <StatusBadge label="Да" color="green" />
+            <StatusBadge label="Опубл." color="green" />
           ) : (
             <StatusBadge label="Черновик" color="gray" />
           ),
@@ -2092,6 +2097,18 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
       { key: 'description', label: 'Краткое описание', type: 'textarea' },
       { key: 'content', label: 'Содержимое (текст/HTML/Markdown)', type: 'textarea' },
       { key: 'fileUrl', label: 'Ссылка на файл/видео (URL)', type: 'text' },
+      { key: 'coverUrl', label: 'Обложка (URL картинки)', type: 'text' },
+      { key: 'tagsCsv', label: 'Теги (через запятую)', type: 'text' },
+      { key: 'targetRoleIdsCsv', label: 'Назначить ролям (ID через запятую)', type: 'text' },
+      {
+        key: 'isMandatory',
+        label: 'Обязательно к изучению',
+        type: 'select',
+        options: [
+          { value: 'true', label: 'Да' },
+          { value: 'false', label: 'Нет' },
+        ],
+      },
       {
         key: 'isPublished',
         label: 'Опубликован',
@@ -2102,18 +2119,141 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
         ],
       },
     ],
-    prepareCreate: (data) => {
-      const out: Record<string, unknown> = { ...data };
-      if (typeof out.isPublished === 'string') out.isPublished = out.isPublished === 'true';
-      return out;
-    },
-    prepareUpdate: (data) => {
-      const out: Record<string, unknown> = { ...data };
-      if (typeof out.isPublished === 'string') out.isPublished = out.isPublished === 'true';
-      return out;
-    },
+    prepareCreate: (data) => prepareTrainingMaterial(data),
+    prepareUpdate: (data) => prepareTrainingMaterial(data),
+  },
+  'knowledge-tests': {
+    slug: 'knowledge-tests',
+    title: 'Тесты знаний',
+    apiEndpoint: '/knowledge-tests',
+    searchField: 'названию',
+    columns: [
+      { key: 'id', header: 'ID', sortable: true, width: '80px' },
+      { key: 'title', header: 'Название', sortable: true },
+      {
+        key: 'testType',
+        header: 'Тип',
+        render: (v) => {
+          const map: Record<string, { label: string; color: string }> = {
+            safety: { label: 'ОТ/ТБ', color: 'red' },
+            technical: { label: 'Технический', color: 'blue' },
+            certification: { label: 'Аттестация', color: 'purple' },
+          };
+          if (!v) return <span className="text-gray-400">—</span>;
+          const s = map[String(v)];
+          return s ? <StatusBadge label={s.label} color={s.color} /> : <span>{String(v)}</span>;
+        },
+      },
+      { key: 'passingScore', header: 'Проход. балл', render: (v) => (v ? `${v}%` : '—') },
+      { key: 'timeLimitMinutes', header: 'Время', render: (v) => (v ? `${v} мин` : '—') },
+      {
+        key: 'questions',
+        header: 'Вопросов',
+        render: (v) => Array.isArray(v) ? v.length : 0,
+      },
+      {
+        key: 'isMandatory',
+        header: 'Обяз.',
+        render: (v) => (v ? <StatusBadge label="Да" color="red" /> : <span className="text-gray-400">—</span>),
+      },
+      {
+        key: 'isActive',
+        header: 'Активен',
+        render: (v) =>
+          v === false ? <StatusBadge label="Нет" color="gray" /> : <StatusBadge label="Да" color="green" />,
+      },
+    ],
+    formFields: [
+      { key: 'title', label: 'Название', type: 'text', required: true },
+      {
+        key: 'testType',
+        label: 'Тип теста',
+        type: 'select',
+        options: [
+          { value: 'safety', label: 'Охрана труда' },
+          { value: 'technical', label: 'Технический' },
+          { value: 'certification', label: 'Аттестация' },
+        ],
+      },
+      {
+        key: 'trainingMaterialId',
+        label: 'Привязать к материалу',
+        type: 'select',
+        fetchOptions: { endpoint: '/training-materials', valueKey: 'id', labelKey: 'title' },
+      },
+      { key: 'description', label: 'Описание', type: 'textarea' },
+      { key: 'passingScore', label: 'Проходной балл (%)', type: 'number' },
+      { key: 'timeLimitMinutes', label: 'Лимит времени (мин)', type: 'number' },
+      {
+        key: 'questionsJson',
+        label: 'Вопросы (JSON-массив)',
+        type: 'textarea',
+      },
+      {
+        key: 'isMandatory',
+        label: 'Обязательный',
+        type: 'select',
+        options: [
+          { value: 'true', label: 'Да' },
+          { value: 'false', label: 'Нет' },
+        ],
+      },
+      {
+        key: 'isActive',
+        label: 'Активен',
+        type: 'select',
+        options: [
+          { value: 'true', label: 'Да' },
+          { value: 'false', label: 'Нет' },
+        ],
+      },
+    ],
+    prepareCreate: (data) => prepareKnowledgeTest(data),
+    prepareUpdate: (data) => prepareKnowledgeTest(data),
   },
 };
+
+function prepareTrainingMaterial(data: Record<string, unknown>) {
+  const out: Record<string, unknown> = { ...data };
+  if (typeof out.isPublished === 'string') out.isPublished = out.isPublished === 'true';
+  if (typeof out.isMandatory === 'string') out.isMandatory = out.isMandatory === 'true';
+  if (typeof out.tagsCsv === 'string') {
+    const s = (out.tagsCsv as string).trim();
+    out.tags = s ? s.split(',').map((t) => t.trim()).filter(Boolean) : [];
+    delete out.tagsCsv;
+  }
+  if (typeof out.targetRoleIdsCsv === 'string') {
+    const s = (out.targetRoleIdsCsv as string).trim();
+    out.targetRoleIds = s
+      ? s.split(',').map((t) => Number(t.trim())).filter((n) => Number.isFinite(n))
+      : [];
+    delete out.targetRoleIdsCsv;
+  }
+  return out;
+}
+
+function prepareKnowledgeTest(data: Record<string, unknown>) {
+  const out: Record<string, unknown> = { ...data };
+  if (typeof out.isMandatory === 'string') out.isMandatory = out.isMandatory === 'true';
+  if (typeof out.isActive === 'string') out.isActive = out.isActive === 'true';
+  if (typeof out.trainingMaterialId === 'string') {
+    out.trainingMaterialId = out.trainingMaterialId ? Number(out.trainingMaterialId) : null;
+  }
+  if (typeof out.questionsJson === 'string') {
+    const s = (out.questionsJson as string).trim();
+    if (s) {
+      try {
+        out.questions = JSON.parse(s);
+      } catch {
+        out.questions = [];
+      }
+    } else {
+      out.questions = [];
+    }
+    delete out.questionsJson;
+  }
+  return out;
+}
 
 export const MODULE_CATEGORIES: ModuleCategory[] = [
   {
@@ -2146,6 +2286,6 @@ export const MODULE_CATEGORIES: ModuleCategory[] = [
   },
   {
     name: 'Обучение',
-    modules: [ADMIN_MODULES['training-materials']],
+    modules: [ADMIN_MODULES['training-materials'], ADMIN_MODULES['knowledge-tests']],
   },
 ];

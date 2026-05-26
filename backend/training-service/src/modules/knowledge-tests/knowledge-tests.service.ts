@@ -6,8 +6,13 @@ import { UpdateKnowledgeTestDto } from './dto/update-knowledge-test.dto';
 @Injectable()
 export class KnowledgeTestsService {
   constructor(private readonly repo: KnowledgeTestRepository) {}
-  async findAll(accountId: number, page: number, limit: number) {
-    return this.repo.findAll(accountId, page, limit);
+  async findAll(
+    accountId: number,
+    page: number,
+    limit: number,
+    trainingMaterialId?: number,
+  ) {
+    return this.repo.findAll(accountId, page, limit, trainingMaterialId);
   }
   async findById(id: number, accountId: number) {
     const t = await this.repo.findById(id, accountId);

@@ -76,7 +76,8 @@ INSERT INTO roles (name, code, description, permissions) VALUES
 ('Поставщик', 'supplier', 'Внешний поставщик', '{"orders": "own", "deliveries": "own"}'),
 ('Подрядчик', 'contractor', 'Внешний подрядчик', '{"tasks": "own", "acts": "own", "payments": "view"}'),
 ('Наблюдатель', 'observer', 'Только просмотр', '{"all": "view"}'),
-('Аналитик', 'analyst', 'Отчёты и аналитика', '{"reports": "full", "analytics": "full", "all": "view"}');
+('Аналитик', 'analyst', 'Отчёты и аналитика', '{"reports": "full", "analytics": "full", "all": "view"}'),
+('Клиент', 'client', 'Внешний клиент компании — только просмотр своих проектов', '{"all": "view", "chat": "own"}');
 
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
@@ -2120,28 +2121,32 @@ CREATE TABLE calculator_results (
 CREATE TABLE training_materials (
     id SERIAL PRIMARY KEY,
     account_id INTEGER REFERENCES accounts(id) ON DELETE CASCADE,
-    
+
     title VARCHAR(255) NOT NULL,
     material_type VARCHAR(100), -- video, document, presentation, article
-    
+
     content TEXT,
     file_url VARCHAR(500),
-    
+    cover_url VARCHAR(500),
+
     category VARCHAR(100),
     difficulty_level VARCHAR(50), -- beginner, intermediate, advanced
-    
+
     duration_minutes INTEGER,
-    
+
     description TEXT,
-    
+
     tags JSONB DEFAULT '[]',
-    
+
+    is_mandatory BOOLEAN DEFAULT FALSE,
+    target_role_ids JSONB DEFAULT '[]',
+
     created_by_user_id INTEGER REFERENCES users(id),
-    
+
     is_published BOOLEAN DEFAULT FALSE,
-    
+
     view_count INTEGER DEFAULT 0,
-    
+
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -2171,23 +2176,24 @@ CREATE TABLE training_progress (
 CREATE TABLE knowledge_tests (
     id SERIAL PRIMARY KEY,
     account_id INTEGER REFERENCES accounts(id) ON DELETE CASCADE,
-    
+    training_material_id INTEGER REFERENCES training_materials(id) ON DELETE SET NULL,
+
     title VARCHAR(255) NOT NULL,
     test_type VARCHAR(100), -- safety, technical, certification
-    
+
     description TEXT,
-    
+
     passing_score INTEGER, -- в процентах
     time_limit_minutes INTEGER,
-    
+
     is_mandatory BOOLEAN DEFAULT FALSE,
-    
+
     questions JSONB DEFAULT '[]',
-    
+
     created_by_user_id INTEGER REFERENCES users(id),
-    
+
     is_active BOOLEAN DEFAULT TRUE,
-    
+
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -2223,21 +2229,33 @@ CREATE TABLE client_portal_access (
     project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
     
     access_token VARCHAR(255) UNIQUE,
-    
+
+    -- Авторизация по логину/паролю
+    login VARCHAR(255),
+    password_hash VARCHAR(255),
+    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+
     can_view_progress BOOLEAN DEFAULT TRUE,
     can_view_photos BOOLEAN DEFAULT TRUE,
     can_view_documents BOOLEAN DEFAULT FALSE,
     can_view_financials BOOLEAN DEFAULT FALSE,
-    
+
     is_active BOOLEAN DEFAULT TRUE,
-    
+
     expires_at TIMESTAMP,
-    
+
     last_login_at TIMESTAMP,
-    
+
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_client_portal_login
+    ON client_portal_access (login)
+    WHERE login IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_client_portal_user
+    ON client_portal_access (user_id);
 
 -- ==========================================
 -- АВТОМАТИЗАЦИЯ (ПРАВИЛА И ТРИГГЕРЫ)

@@ -25,11 +25,14 @@ model TrainingMaterial {
   materialType String? @map("material_type") @db.VarChar(100)
   content String? @db.Text
   fileUrl String? @map("file_url") @db.VarChar(500)
+  coverUrl String? @map("cover_url") @db.VarChar(500)
   category String? @db.VarChar(100)
   difficultyLevel String? @map("difficulty_level") @db.VarChar(50)
   durationMinutes Int? @map("duration_minutes")
   description String? @db.Text
   tags Json @default("[]")
+  isMandatory Boolean @default(false) @map("is_mandatory")
+  targetRoleIds Json @default("[]") @map("target_role_ids")
   createdByUserId Int? @map("created_by_user_id")
   isPublished Boolean @default(false) @map("is_published")
   viewCount Int @default(0) @map("view_count")
@@ -37,6 +40,7 @@ model TrainingMaterial {
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
   account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
   progress TrainingProgress[]
+  tests KnowledgeTest[]
   @@map("training_materials")
 }
 
@@ -58,6 +62,7 @@ model TrainingProgress {
 model KnowledgeTest {
   id Int @id @default(autoincrement())
   accountId Int @map("account_id")
+  trainingMaterialId Int? @map("training_material_id")
   title String @db.VarChar(255)
   testType String? @map("test_type") @db.VarChar(100)
   description String? @db.Text
@@ -70,7 +75,9 @@ model KnowledgeTest {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
   account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  trainingMaterial TrainingMaterial? @relation(fields: [trainingMaterialId], references: [id], onDelete: SetNull)
   attempts TestAttempt[]
+  @@index([trainingMaterialId])
   @@map("knowledge_tests")
 }
 

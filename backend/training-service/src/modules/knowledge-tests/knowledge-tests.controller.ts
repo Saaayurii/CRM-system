@@ -29,12 +29,19 @@ export class KnowledgeTestsController {
   @ApiOperation({ summary: 'Get all knowledge tests' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
+  @ApiQuery({ name: 'trainingMaterialId', required: false })
   findAll(
     @CurrentUser('accountId') accountId: number,
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 20,
+    @Query('trainingMaterialId') trainingMaterialId?: number,
   ) {
-    return this.svc.findAll(accountId, +page, +limit);
+    return this.svc.findAll(
+      accountId,
+      +page,
+      +limit,
+      trainingMaterialId ? +trainingMaterialId : undefined,
+    );
   }
   @Get(':id') @ApiOperation({ summary: 'Get knowledge test by ID' }) findOne(
     @Param('id', ParseIntPipe) id: number,

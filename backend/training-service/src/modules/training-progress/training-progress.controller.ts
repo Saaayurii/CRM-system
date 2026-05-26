@@ -17,12 +17,18 @@ import {
 import { TrainingProgressService } from './training-progress.service';
 import { CreateTrainingProgressDto } from './dto/create-training-progress.dto';
 import { UpdateTrainingProgressDto } from './dto/update-training-progress.dto';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
 @ApiTags('Training Progress')
 @ApiBearerAuth()
 @Controller('training-progress')
 export class TrainingProgressController {
   constructor(private readonly svc: TrainingProgressService) {}
+  @Get('stats')
+  @ApiOperation({ summary: 'Aggregated progress stats for current account' })
+  stats(@CurrentUser('accountId') accountId: number) {
+    return this.svc.stats(accountId);
+  }
   @Get()
   @ApiOperation({ summary: 'Get all training progress' })
   @ApiQuery({ name: 'page', required: false })

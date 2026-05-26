@@ -21,6 +21,11 @@ export class CreateTrainingMaterialDto {
   @IsString()
   @MaxLength(500)
   fileUrl?: string;
+  @ApiPropertyOptional({ maxLength: 500 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  coverUrl?: string;
   @ApiPropertyOptional({ maxLength: 100 })
   @IsOptional()
   @IsString()
@@ -34,5 +39,7 @@ export class CreateTrainingMaterialDto {
   @ApiPropertyOptional() @IsOptional() @IsInt() durationMinutes?: number;
   @ApiPropertyOptional() @IsOptional() @IsString() description?: string;
   @ApiPropertyOptional() @IsOptional() @IsArray() tags?: any;
+  @ApiPropertyOptional() @IsOptional() @IsBoolean() isMandatory?: boolean;
+  @ApiPropertyOptional() @IsOptional() @IsArray() targetRoleIds?: any;
   @ApiPropertyOptional() @IsOptional() @IsBoolean() isPublished?: boolean;
 }
