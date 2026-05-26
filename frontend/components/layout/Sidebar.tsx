@@ -779,6 +779,19 @@ export default function Sidebar() {
                 </NavLink>
               </li>
 
+              {/* HSE — Охрана труда */}
+              <li className="mb-1 last:mb-0">
+                <NavLink
+                  href="/dashboard/hse"
+                  className={linkCls(pathname.startsWith('/dashboard/hse') || pathname.startsWith('/dashboard/safety-briefings'))}
+                >
+                  <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                  </svg>
+                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Охрана труда</span>
+                </NavLink>
+              </li>
+
               {/* Teams */}
               {showTeams && (
                 <li className="mb-1 last:mb-0">

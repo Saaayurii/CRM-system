@@ -17,6 +17,7 @@ model Account {
   safetyIncidents SafetyIncident[]
   safetyTrainings SafetyTraining[]
   teams           Team[]
+  safetyBriefings SafetyBriefing[]
 
   @@map("accounts")
 }
@@ -208,4 +209,76 @@ model TeamMember {
   @@index([teamId])
   @@index([userId])
   @@map("team_members")
+}
+
+model SafetyBriefing {
+  id                  Int       @id @default(autoincrement())
+  accountId           Int       @map("account_id")
+  briefingType        String    @map("briefing_type") @db.VarChar(40)
+  title               String    @db.VarChar(255)
+  description         String?   @db.Text
+  projectId           Int?      @map("project_id")
+  constructionSiteId  Int?      @map("construction_site_id")
+  instructorId        Int?      @map("instructor_id")
+  instructorName      String?   @map("instructor_name") @db.VarChar(255)
+  scheduledAt         DateTime? @map("scheduled_at")
+  conductedAt         DateTime? @map("conducted_at")
+  location            String?   @db.VarChar(255)
+  durationMinutes     Int?      @map("duration_minutes")
+  validityMonths      Int?      @default(6) @map("validity_months")
+  status              String    @default("planned") @db.VarChar(30)
+  materials           Json      @default("[]")
+  notes               String?   @db.Text
+  createdByUserId     Int?      @map("created_by_user_id")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @default(now()) @updatedAt @map("updated_at")
+  deletedAt           DateTime? @map("deleted_at")
+
+  account      Account                      @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  topics       SafetyBriefingTopic[]
+  participants SafetyBriefingParticipant[]
+
+  @@index([accountId, deletedAt])
+  @@index([projectId])
+  @@index([accountId, status])
+  @@index([accountId, briefingType])
+  @@map("safety_briefings")
+}
+
+model SafetyBriefingTopic {
+  id          Int      @id @default(autoincrement())
+  briefingId  Int      @map("briefing_id")
+  topic       String   @db.VarChar(500)
+  description String?  @db.Text
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  briefing SafetyBriefing @relation(fields: [briefingId], references: [id], onDelete: Cascade)
+
+  @@index([briefingId])
+  @@map("safety_briefing_topics")
+}
+
+model SafetyBriefingParticipant {
+  id            Int       @id @default(autoincrement())
+  briefingId    Int       @map("briefing_id")
+  userId        Int       @map("user_id")
+  userName      String?   @map("user_name") @db.VarChar(255)
+  userPosition  String?   @map("user_position") @db.VarChar(255)
+  status        String    @default("invited") @db.VarChar(30)
+  signedAt      DateTime? @map("signed_at")
+  signatureData String?   @map("signature_data") @db.Text
+  signatureIp   String?   @map("signature_ip") @db.VarChar(64)
+  notes         String?   @db.Text
+  validUntil    DateTime? @map("valid_until") @db.Date
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  briefing SafetyBriefing @relation(fields: [briefingId], references: [id], onDelete: Cascade)
+
+  @@unique([briefingId, userId])
+  @@index([briefingId])
+  @@index([userId, status])
+  @@index([userId, validUntil])
+  @@map("safety_briefing_participants")
 }

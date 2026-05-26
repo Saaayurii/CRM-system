@@ -8,6 +8,7 @@ import { EmployeeDocumentsModule } from './modules/employee-documents/employee-d
 import { TimeOffModule } from './modules/time-off/time-off.module';
 import { AttendanceModule } from './modules/attendance/attendance.module';
 import { SafetyModule } from './modules/safety/safety.module';
+import { SafetyBriefingsModule } from './modules/safety-briefings/safety-briefings.module';
 import { HealthModule } from './modules/health/health.module';
 import { TeamsModule } from './modules/teams/teams.module';
 import { TeamMembersModule } from './modules/team-members/team-members.module';
@@ -27,6 +28,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     TimeOffModule,
     AttendanceModule,
     SafetyModule,
+    SafetyBriefingsModule,
     HealthModule,
     TeamsModule,
     TeamMembersModule,

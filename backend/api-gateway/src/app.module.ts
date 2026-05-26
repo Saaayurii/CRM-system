@@ -15,6 +15,8 @@ import { SuppliersGatewayModule } from './modules/suppliers/suppliers-gateway.mo
 import { FinanceGatewayModule } from './modules/finance/finance-gateway.module';
 import { InspectionsGatewayModule } from './modules/inspections/inspections-gateway.module';
 import { HrGatewayModule } from './modules/hr/hr-gateway.module';
+import { HseGatewayModule } from './modules/hse/hse-gateway.module';
+import { SafetyBriefingsGatewayModule } from './modules/safety-briefings/safety-briefings-gateway.module';
 import { NotificationsGatewayModule } from './modules/notifications/notifications-gateway.module';
 import { ChatGatewayModule } from './modules/chat/chat-gateway.module';
 import { CalendarGatewayModule } from './modules/calendar/calendar-gateway.module';
@@ -82,6 +84,8 @@ import { RequestContextMiddleware } from './common/middleware/request-context.mi
     FinanceGatewayModule,
     InspectionsGatewayModule,
     HrGatewayModule,
+    HseGatewayModule,
+    SafetyBriefingsGatewayModule,
     NotificationsGatewayModule,
     ChatGatewayModule,
     CalendarGatewayModule,

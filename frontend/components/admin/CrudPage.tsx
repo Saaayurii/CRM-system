@@ -92,6 +92,7 @@ export default function CrudPage({ config, onExtraAction, hideTitle, onRowClick 
   const [assignOpen, setAssignOpen] = useState(false);
   const [assignTaskId, setAssignTaskId] = useState<number | null>(null);
   const [assignCurrentUsers, setAssignCurrentUsers] = useState<Assignee[]>([]);
+  const [assignBriefingTypes, setAssignBriefingTypes] = useState<string[]>([]);
 
   // Manage members modal state (teams only)
   const [membersOpen, setMembersOpen] = useState(false);
@@ -123,6 +124,10 @@ export default function CrudPage({ config, onExtraAction, hideTitle, onRowClick 
         if (config.slug === 'tasks' && created.id) {
           setAssignTaskId(created.id as number);
           setAssignCurrentUsers([]);
+          const briefs = Array.isArray((created as any).requiresBriefingTypes)
+            ? ((created as any).requiresBriefingTypes as string[])
+            : [];
+          setAssignBriefingTypes(briefs);
           setAssignOpen(true);
         }
       }
@@ -142,6 +147,10 @@ export default function CrudPage({ config, onExtraAction, hideTitle, onRowClick 
         ? (row.assignees as Assignee[])
         : [];
       setAssignCurrentUsers(assignees);
+      const briefs = Array.isArray((row as any).requiresBriefingTypes)
+        ? ((row as any).requiresBriefingTypes as string[])
+        : [];
+      setAssignBriefingTypes(briefs);
       setAssignOpen(true);
       return;
     }
@@ -265,6 +274,7 @@ export default function CrudPage({ config, onExtraAction, hideTitle, onRowClick 
             open={assignOpen}
             taskId={assignTaskId}
             currentAssignees={assignCurrentUsers}
+            requiresBriefingTypes={assignBriefingTypes}
             onClose={() => setAssignOpen(false)}
             onSaved={crud.refetch}
           />

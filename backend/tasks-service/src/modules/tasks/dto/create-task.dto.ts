@@ -100,4 +100,12 @@ export class CreateTaskDto {
   @ApiPropertyOptional({ description: 'Custom JSONB fields (e.g. checklists)' })
   @IsOptional()
   customFields?: Record<string, any>;
+
+  @ApiPropertyOptional({
+    description: 'Briefing types required before this task can be performed',
+    example: ['primary', 'targeted'],
+  })
+  @IsArray()
+  @IsOptional()
+  requiresBriefingTypes?: string[];
 }

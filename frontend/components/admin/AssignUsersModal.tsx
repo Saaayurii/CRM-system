@@ -19,14 +19,25 @@ interface AssignUsersModalProps {
   open: boolean;
   taskId: number | null;
   currentAssignees: Assignee[];
+  /** Если у задачи задан список требуемых типов инструктажей — показываем warning. */
+  requiresBriefingTypes?: string[];
   onClose: () => void;
   onSaved: () => void;
 }
+
+const BRIEFING_TYPE_LABELS: Record<string, string> = {
+  introductory: 'Вводный',
+  primary: 'Первичный',
+  repeat: 'Повторный',
+  targeted: 'Целевой',
+  unscheduled: 'Внеплановый',
+};
 
 export default function AssignUsersModal({
   open,
   taskId,
   currentAssignees,
+  requiresBriefingTypes,
   onClose,
   onSaved,
 }: AssignUsersModalProps) {
@@ -35,6 +46,8 @@ export default function AssignUsersModal({
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
+  /** userId → список отсутствующих типов инструктажей */
+  const [missingByUser, setMissingByUser] = useState<Record<number, string[]>>({});
 
   // Load users when modal opens
   useEffect(() => {
@@ -61,8 +74,43 @@ export default function AssignUsersModal({
     if (open) {
       setSelected(new Set(currentAssignees.map((a) => a.userId)));
       setSearch('');
+      setMissingByUser({});
     }
   }, [open, currentAssignees]);
+
+  // Refresh missing briefings whenever selected users change
+  useEffect(() => {
+    if (!open) return;
+    if (!requiresBriefingTypes?.length) return;
+    const types = requiresBriefingTypes.join(',');
+    const ids = Array.from(selected);
+    if (ids.length === 0) {
+      setMissingByUser({});
+      return;
+    }
+
+    let cancelled = false;
+    Promise.all(
+      ids.map((uid) =>
+        api
+          .get<{ missing: string[] }>(`/safety-briefings/users/${uid}/missing`, {
+            params: { types },
+          })
+          .then(({ data }) => ({ uid, missing: data?.missing ?? [] }))
+          .catch(() => ({ uid, missing: [] as string[] })),
+      ),
+    ).then((results) => {
+      if (cancelled) return;
+      const next: Record<number, string[]> = {};
+      for (const r of results) {
+        if (r.missing.length > 0) next[r.uid] = r.missing;
+      }
+      setMissingByUser(next);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, selected, requiresBriefingTypes]);
 
   const filtered = users.filter(
     (u) =>
@@ -138,27 +186,50 @@ export default function AssignUsersModal({
             <p className="py-6 text-center text-gray-500 dark:text-gray-400 text-sm">Пользователи не найдены</p>
           ) : (
             <ul className="divide-y divide-gray-100 dark:divide-gray-700">
-              {filtered.map((user) => (
-                <li key={user.id}>
-                  <label className="flex items-center gap-3 py-2.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900/20 px-1 rounded">
-                    <input
-                      type="checkbox"
-                      checked={selected.has(user.id)}
-                      onChange={() => toggle(user.id)}
-                      className="w-4 h-4 accent-violet-500"
-                    />
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">
-                        {user.name}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
-                    </div>
-                  </label>
-                </li>
-              ))}
+              {filtered.map((user) => {
+                const missing = missingByUser[user.id];
+                const isSelected = selected.has(user.id);
+                return (
+                  <li key={user.id}>
+                    <label className="flex items-start gap-3 py-2.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900/20 px-1 rounded">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggle(user.id)}
+                        className="w-4 h-4 accent-violet-500 mt-0.5"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">
+                          {user.name}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
+                        {isSelected && missing && missing.length > 0 && (
+                          <p className="mt-1 text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded px-2 py-1">
+                            ⚠ Нет актуального инструктажа:{' '}
+                            {missing.map((m) => BRIEFING_TYPE_LABELS[m] ?? m).join(', ')}
+                          </p>
+                        )}
+                      </div>
+                    </label>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>
+
+        {requiresBriefingTypes && requiresBriefingTypes.length > 0 && (
+          <div className="px-4 py-2 text-xs text-gray-600 dark:text-gray-400 bg-amber-50 dark:bg-amber-900/20 border-t border-amber-200 dark:border-amber-800">
+            Задача требует инструктажей:{' '}
+            <span className="font-semibold">
+              {requiresBriefingTypes
+                .map((t) => BRIEFING_TYPE_LABELS[t] ?? t)
+                .join(', ')}
+            </span>
+            . Назначение возможно, но участникам без актуального инструктажа сначала
+            нужно его пройти.
+          </div>
+        )}
 
         {/* Footer */}
         <div className="flex items-center justify-between gap-3 px-5 py-4 border-t border-gray-200 dark:border-gray-700">

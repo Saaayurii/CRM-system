@@ -395,7 +395,15 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
         ],
       },
       { key: 'dueDate', label: 'Срок', type: 'date' },
+      {
+        key: 'requiresBriefingTypesCsv',
+        label: 'Требуемые инструктажи (через запятую)',
+        type: 'text',
+        // допустимые значения: introductory, primary, repeat, targeted, unscheduled
+      },
     ],
+    prepareCreate: (data) => prepareTaskData(data),
+    prepareUpdate: (data) => prepareTaskData(data),
   },
   clients: {
     slug: 'clients',
@@ -2211,7 +2219,689 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
     prepareCreate: (data) => prepareKnowledgeTest(data),
     prepareUpdate: (data) => prepareKnowledgeTest(data),
   },
+
+  // ──── HSE Module ────────────────────────────────────────────────────────────
+
+  'hse-risks': {
+    slug: 'hse-risks',
+    title: 'Реестр рисков',
+    apiEndpoint: '/hse-risks',
+    searchField: 'описанию',
+    columns: [
+      { key: 'id', header: 'ID', sortable: true, width: '80px' },
+      { key: 'title', header: 'Название', sortable: true },
+      {
+        key: 'category',
+        header: 'Категория',
+        render: (v) => {
+          const map: Record<string, string> = {
+            height: 'Работы на высоте',
+            electrical: 'Электробезопасность',
+            fire: 'Пожарная',
+            chemical: 'Химия',
+            mechanical: 'Механика',
+            environmental: 'Экология',
+            ergonomic: 'Эргономика',
+            other: 'Прочее',
+          };
+          return <span>{map[String(v ?? '')] || String(v ?? '—')}</span>;
+        },
+      },
+      {
+        key: 'riskLevel',
+        header: 'Уровень',
+        render: (v) => {
+          const map: Record<string, { label: string; color: string }> = {
+            low: { label: 'Низкий', color: 'green' },
+            medium: { label: 'Средний', color: 'yellow' },
+            high: { label: 'Высокий', color: 'orange' },
+            critical: { label: 'Критический', color: 'red' },
+          };
+          const s = map[String(v ?? '')];
+          return s ? <StatusBadge label={s.label} color={s.color} /> : <span className="text-gray-400">—</span>;
+        },
+      },
+      {
+        key: 'status',
+        header: 'Статус',
+        render: (v) => {
+          const map: Record<string, { label: string; color: string }> = {
+            identified: { label: 'Выявлен', color: 'red' },
+            mitigated: { label: 'Смягчён', color: 'yellow' },
+            accepted: { label: 'Принят', color: 'blue' },
+            closed: { label: 'Закрыт', color: 'gray' },
+          };
+          const s = map[String(v ?? '')];
+          return s ? <StatusBadge label={s.label} color={s.color} /> : <span>{String(v ?? '—')}</span>;
+        },
+      },
+      { key: 'reviewDate', header: 'Пересмотр', render: (v) => fmtDate(v) },
+    ],
+    formFields: [
+      { key: 'title', label: 'Название', type: 'text', required: true },
+      { key: 'description', label: 'Описание', type: 'textarea' },
+      { key: 'projectId', label: 'Проект', type: 'select', fetchOptions: { endpoint: '/projects', valueKey: 'id', labelKey: 'name' } },
+      { key: 'hazardSource', label: 'Источник опасности', type: 'text' },
+      {
+        key: 'category',
+        label: 'Категория',
+        type: 'select',
+        options: [
+          { value: 'height', label: 'Работы на высоте' },
+          { value: 'electrical', label: 'Электробезопасность' },
+          { value: 'fire', label: 'Пожарная безопасность' },
+          { value: 'chemical', label: 'Химическая' },
+          { value: 'mechanical', label: 'Механическая' },
+          { value: 'environmental', label: 'Экологическая' },
+          { value: 'ergonomic', label: 'Эргономика' },
+          { value: 'other', label: 'Прочее' },
+        ],
+      },
+      { key: 'likelihood', label: 'Вероятность (1-5)', type: 'number' },
+      { key: 'severity', label: 'Тяжесть (1-5)', type: 'number' },
+      { key: 'controlMeasures', label: 'Меры контроля', type: 'textarea' },
+      { key: 'responsibleUserId', label: 'Ответственный', type: 'select', fetchOptions: { endpoint: '/users', valueKey: 'id', labelKey: 'name' } },
+      {
+        key: 'status',
+        label: 'Статус',
+        type: 'select',
+        options: [
+          { value: 'identified', label: 'Выявлен' },
+          { value: 'mitigated', label: 'Смягчён' },
+          { value: 'accepted', label: 'Принят' },
+          { value: 'closed', label: 'Закрыт' },
+        ],
+      },
+      { key: 'reviewDate', label: 'Дата пересмотра', type: 'date' },
+    ],
+  },
+
+  'hse-incidents': {
+    slug: 'hse-incidents',
+    title: 'Инциденты и НС',
+    apiEndpoint: '/hse-incidents',
+    searchField: 'описанию',
+    columns: [
+      { key: 'id', header: 'ID', sortable: true, width: '80px' },
+      { key: 'occurredAt', header: 'Когда', sortable: true, render: (v) => fmtDate(v) },
+      {
+        key: 'incidentType',
+        header: 'Тип',
+        render: (v) => {
+          const map: Record<string, { label: string; color: string }> = {
+            near_miss: { label: 'Микро-инцидент', color: 'yellow' },
+            minor_injury: { label: 'Лёгкая травма', color: 'orange' },
+            serious_injury: { label: 'Тяжёлая травма', color: 'red' },
+            fatality: { label: 'Смертельный', color: 'red' },
+            property_damage: { label: 'Имущество', color: 'gray' },
+            environmental: { label: 'Экология', color: 'green' },
+            fire: { label: 'Возгорание', color: 'red' },
+          };
+          const s = map[String(v ?? '')];
+          return s ? <StatusBadge label={s.label} color={s.color} /> : <span>{String(v ?? '—')}</span>;
+        },
+      },
+      {
+        key: 'severity',
+        header: 'Серьёзность',
+        render: (v) => {
+          const map: Record<string, { label: string; color: string }> = {
+            low: { label: 'Низкая', color: 'green' },
+            medium: { label: 'Средняя', color: 'yellow' },
+            high: { label: 'Высокая', color: 'orange' },
+            critical: { label: 'Критическая', color: 'red' },
+          };
+          const s = map[String(v ?? '')];
+          return s ? <StatusBadge label={s.label} color={s.color} /> : <span>{String(v ?? '—')}</span>;
+        },
+      },
+      { key: 'location', header: 'Место' },
+      {
+        key: 'investigationStatus',
+        header: 'Расследование',
+        render: (v) => {
+          const map: Record<string, { label: string; color: string }> = {
+            new: { label: 'Новый', color: 'red' },
+            investigating: { label: 'Расследуется', color: 'yellow' },
+            completed: { label: 'Завершено', color: 'green' },
+            closed: { label: 'Закрыт', color: 'gray' },
+          };
+          const s = map[String(v ?? '')];
+          return s ? <StatusBadge label={s.label} color={s.color} /> : <span>{String(v ?? '—')}</span>;
+        },
+      },
+    ],
+    formFields: [
+      { key: 'occurredAt', label: 'Дата и время', type: 'datetime', required: true },
+      {
+        key: 'incidentType',
+        label: 'Тип инцидента',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'near_miss', label: 'Микро-инцидент (near miss)' },
+          { value: 'minor_injury', label: 'Лёгкая травма' },
+          { value: 'serious_injury', label: 'Тяжёлая травма' },
+          { value: 'fatality', label: 'Смертельный случай' },
+          { value: 'property_damage', label: 'Ущерб имуществу' },
+          { value: 'environmental', label: 'Экологический' },
+          { value: 'fire', label: 'Возгорание' },
+        ],
+      },
+      {
+        key: 'severity',
+        label: 'Серьёзность',
+        type: 'select',
+        options: [
+          { value: 'low', label: 'Низкая' },
+          { value: 'medium', label: 'Средняя' },
+          { value: 'high', label: 'Высокая' },
+          { value: 'critical', label: 'Критическая' },
+        ],
+      },
+      { key: 'projectId', label: 'Проект', type: 'select', fetchOptions: { endpoint: '/projects', valueKey: 'id', labelKey: 'name' } },
+      { key: 'location', label: 'Место', type: 'text' },
+      { key: 'description', label: 'Описание', type: 'textarea', required: true },
+      { key: 'victimUserId', label: 'Пострадавший (сотрудник)', type: 'select', fetchOptions: { endpoint: '/users', valueKey: 'id', labelKey: 'name' } },
+      { key: 'victimName', label: 'Пострадавший (внешний)', type: 'text' },
+      { key: 'immediateActions', label: 'Принятые меры', type: 'textarea' },
+      { key: 'rootCause', label: 'Корневая причина', type: 'textarea' },
+      {
+        key: 'investigationStatus',
+        label: 'Статус расследования',
+        type: 'select',
+        options: [
+          { value: 'new', label: 'Новый' },
+          { value: 'investigating', label: 'Расследуется' },
+          { value: 'completed', label: 'Расследование завершено' },
+          { value: 'closed', label: 'Закрыт' },
+        ],
+      },
+      { key: 'daysLost', label: 'Дней нетрудоспособности', type: 'number' },
+      { key: 'estimatedCost', label: 'Оценка ущерба (₽)', type: 'number' },
+    ],
+  },
+
+  'hse-permits': {
+    slug: 'hse-permits',
+    title: 'Наряды-допуски',
+    apiEndpoint: '/hse-permits',
+    searchField: 'описанию',
+    columns: [
+      { key: 'id', header: 'ID', sortable: true, width: '80px' },
+      { key: 'permitNumber', header: '№', width: '100px' },
+      {
+        key: 'permitType',
+        header: 'Тип',
+        render: (v) => {
+          const map: Record<string, string> = {
+            hot_work: 'Огневые работы',
+            confined_space: 'Замкнутое пространство',
+            work_at_height: 'Высотные',
+            electrical: 'Электротехнические',
+            excavation: 'Земляные',
+            lifting: 'Грузоподъёмные',
+            other: 'Прочее',
+          };
+          return <span>{map[String(v ?? '')] || String(v ?? '—')}</span>;
+        },
+      },
+      { key: 'validFrom', header: 'С', render: (v) => fmtDate(v) },
+      { key: 'validUntil', header: 'По', render: (v) => fmtDate(v) },
+      {
+        key: 'status',
+        header: 'Статус',
+        render: (v) => {
+          const map: Record<string, { label: string; color: string }> = {
+            draft: { label: 'Черновик', color: 'gray' },
+            pending_approval: { label: 'На согласовании', color: 'yellow' },
+            approved: { label: 'Согласован', color: 'blue' },
+            active: { label: 'Действует', color: 'green' },
+            expired: { label: 'Истёк', color: 'red' },
+            revoked: { label: 'Отозван', color: 'red' },
+            completed: { label: 'Закрыт', color: 'gray' },
+          };
+          const s = map[String(v ?? '')];
+          return s ? <StatusBadge label={s.label} color={s.color} /> : <span>{String(v ?? '—')}</span>;
+        },
+      },
+    ],
+    formFields: [
+      { key: 'permitNumber', label: 'Номер наряда', type: 'text' },
+      {
+        key: 'permitType',
+        label: 'Тип наряда',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'hot_work', label: 'Огневые работы' },
+          { value: 'confined_space', label: 'Работы в замкнутом пространстве' },
+          { value: 'work_at_height', label: 'Работы на высоте' },
+          { value: 'electrical', label: 'Электротехнические работы' },
+          { value: 'excavation', label: 'Земляные работы' },
+          { value: 'lifting', label: 'Грузоподъёмные работы' },
+          { value: 'other', label: 'Прочее' },
+        ],
+      },
+      { key: 'projectId', label: 'Проект', type: 'select', fetchOptions: { endpoint: '/projects', valueKey: 'id', labelKey: 'name' } },
+      { key: 'workDescription', label: 'Описание работ', type: 'textarea', required: true },
+      { key: 'location', label: 'Место', type: 'text' },
+      { key: 'validFrom', label: 'Действителен с', type: 'datetime', required: true },
+      { key: 'validUntil', label: 'Действителен до', type: 'datetime', required: true },
+      { key: 'controlMeasures', label: 'Меры безопасности', type: 'textarea' },
+      {
+        key: 'status',
+        label: 'Статус',
+        type: 'select',
+        options: [
+          { value: 'draft', label: 'Черновик' },
+          { value: 'pending_approval', label: 'На согласовании' },
+          { value: 'approved', label: 'Согласован' },
+          { value: 'active', label: 'Действует' },
+          { value: 'expired', label: 'Истёк' },
+          { value: 'revoked', label: 'Отозван' },
+          { value: 'completed', label: 'Закрыт' },
+        ],
+      },
+    ],
+  },
+
+  'hse-violations': {
+    slug: 'hse-violations',
+    title: 'Нарушения ТБ',
+    apiEndpoint: '/hse-violations',
+    searchField: 'описанию',
+    columns: [
+      { key: 'id', header: 'ID', sortable: true, width: '80px' },
+      { key: 'observedAt', header: 'Когда', sortable: true, render: (v) => fmtDate(v) },
+      {
+        key: 'category',
+        header: 'Категория',
+        render: (v) => {
+          const map: Record<string, string> = {
+            ppe: 'СИЗ',
+            unsafe_act: 'Опасные действия',
+            unsafe_condition: 'Опасные условия',
+            procedure: 'Нарушение процедуры',
+            housekeeping: 'Порядок',
+            other: 'Прочее',
+          };
+          return <span>{map[String(v ?? '')] || String(v ?? '—')}</span>;
+        },
+      },
+      {
+        key: 'severity',
+        header: 'Серьёзность',
+        render: (v) => {
+          const map: Record<string, { label: string; color: string }> = {
+            low: { label: 'Низкая', color: 'green' },
+            medium: { label: 'Средняя', color: 'yellow' },
+            high: { label: 'Высокая', color: 'orange' },
+            critical: { label: 'Критическая', color: 'red' },
+          };
+          const s = map[String(v ?? '')];
+          return s ? <StatusBadge label={s.label} color={s.color} /> : <span>{String(v ?? '—')}</span>;
+        },
+      },
+      {
+        key: 'status',
+        header: 'Статус',
+        render: (v) => {
+          const map: Record<string, { label: string; color: string }> = {
+            open: { label: 'Открыто', color: 'red' },
+            acknowledged: { label: 'Принято', color: 'yellow' },
+            corrected: { label: 'Исправлено', color: 'green' },
+            closed: { label: 'Закрыто', color: 'gray' },
+            dismissed: { label: 'Отклонено', color: 'gray' },
+          };
+          const s = map[String(v ?? '')];
+          return s ? <StatusBadge label={s.label} color={s.color} /> : <span>{String(v ?? '—')}</span>;
+        },
+      },
+      { key: 'deadline', header: 'Срок', render: (v) => fmtDate(v) },
+    ],
+    formFields: [
+      { key: 'observedAt', label: 'Когда замечено', type: 'datetime', required: true },
+      { key: 'description', label: 'Описание нарушения', type: 'textarea', required: true },
+      {
+        key: 'category',
+        label: 'Категория',
+        type: 'select',
+        options: [
+          { value: 'ppe', label: 'СИЗ' },
+          { value: 'unsafe_act', label: 'Опасные действия' },
+          { value: 'unsafe_condition', label: 'Опасные условия' },
+          { value: 'procedure', label: 'Нарушение процедуры' },
+          { value: 'housekeeping', label: 'Порядок на объекте' },
+          { value: 'other', label: 'Прочее' },
+        ],
+      },
+      {
+        key: 'severity',
+        label: 'Серьёзность',
+        type: 'select',
+        options: [
+          { value: 'low', label: 'Низкая' },
+          { value: 'medium', label: 'Средняя' },
+          { value: 'high', label: 'Высокая' },
+          { value: 'critical', label: 'Критическая' },
+        ],
+      },
+      { key: 'projectId', label: 'Проект', type: 'select', fetchOptions: { endpoint: '/projects', valueKey: 'id', labelKey: 'name' } },
+      { key: 'location', label: 'Место', type: 'text' },
+      { key: 'violatorUserId', label: 'Нарушитель (сотрудник)', type: 'select', fetchOptions: { endpoint: '/users', valueKey: 'id', labelKey: 'name' } },
+      { key: 'violatorName', label: 'Нарушитель (внешний)', type: 'text' },
+      { key: 'correctiveAction', label: 'Корректирующее действие', type: 'textarea' },
+      { key: 'deadline', label: 'Срок устранения', type: 'date' },
+      {
+        key: 'status',
+        label: 'Статус',
+        type: 'select',
+        options: [
+          { value: 'open', label: 'Открыто' },
+          { value: 'acknowledged', label: 'Принято к работе' },
+          { value: 'corrected', label: 'Исправлено' },
+          { value: 'closed', label: 'Закрыто' },
+          { value: 'dismissed', label: 'Отклонено' },
+        ],
+      },
+    ],
+  },
+
+  'hse-corrective-actions': {
+    slug: 'hse-corrective-actions',
+    title: 'Корректирующие меры',
+    apiEndpoint: '/hse-corrective-actions',
+    searchField: 'описанию',
+    columns: [
+      { key: 'id', header: 'ID', sortable: true, width: '80px' },
+      { key: 'title', header: 'Название', sortable: true },
+      {
+        key: 'sourceType',
+        header: 'Источник',
+        render: (v) => {
+          const map: Record<string, string> = {
+            incident: 'Инцидент',
+            violation: 'Нарушение',
+            inspection: 'Инспекция',
+            risk: 'Риск',
+            other: 'Прочее',
+          };
+          return <span>{map[String(v ?? '')] || String(v ?? '—')}</span>;
+        },
+      },
+      {
+        key: 'priority',
+        header: 'Приоритет',
+        render: (v) => {
+          const map: Record<string, { label: string; color: string }> = {
+            low: { label: 'Низкий', color: 'green' },
+            medium: { label: 'Средний', color: 'yellow' },
+            high: { label: 'Высокий', color: 'orange' },
+            critical: { label: 'Критический', color: 'red' },
+          };
+          const s = map[String(v ?? '')];
+          return s ? <StatusBadge label={s.label} color={s.color} /> : <span>{String(v ?? '—')}</span>;
+        },
+      },
+      {
+        key: 'status',
+        header: 'Статус',
+        render: (v) => {
+          const map: Record<string, { label: string; color: string }> = {
+            open: { label: 'Открыта', color: 'red' },
+            in_progress: { label: 'В работе', color: 'yellow' },
+            completed: { label: 'Выполнена', color: 'green' },
+            cancelled: { label: 'Отменена', color: 'gray' },
+            overdue: { label: 'Просрочена', color: 'red' },
+          };
+          const s = map[String(v ?? '')];
+          return s ? <StatusBadge label={s.label} color={s.color} /> : <span>{String(v ?? '—')}</span>;
+        },
+      },
+      { key: 'dueDate', header: 'Срок', render: (v) => fmtDate(v) },
+    ],
+    formFields: [
+      { key: 'title', label: 'Название', type: 'text', required: true },
+      { key: 'description', label: 'Описание', type: 'textarea' },
+      {
+        key: 'sourceType',
+        label: 'Тип источника',
+        type: 'select',
+        options: [
+          { value: 'incident', label: 'Инцидент' },
+          { value: 'violation', label: 'Нарушение' },
+          { value: 'inspection', label: 'Инспекция' },
+          { value: 'risk', label: 'Риск' },
+          { value: 'other', label: 'Прочее' },
+        ],
+      },
+      { key: 'sourceId', label: 'ID источника', type: 'number' },
+      { key: 'assignedToUserId', label: 'Ответственный', type: 'select', fetchOptions: { endpoint: '/users', valueKey: 'id', labelKey: 'name' } },
+      {
+        key: 'priority',
+        label: 'Приоритет',
+        type: 'select',
+        options: [
+          { value: 'low', label: 'Низкий' },
+          { value: 'medium', label: 'Средний' },
+          { value: 'high', label: 'Высокий' },
+          { value: 'critical', label: 'Критический' },
+        ],
+      },
+      { key: 'dueDate', label: 'Срок', type: 'date' },
+      {
+        key: 'status',
+        label: 'Статус',
+        type: 'select',
+        options: [
+          { value: 'open', label: 'Открыта' },
+          { value: 'in_progress', label: 'В работе' },
+          { value: 'completed', label: 'Выполнена' },
+          { value: 'cancelled', label: 'Отменена' },
+        ],
+      },
+    ],
+  },
+
+  'hse-monitoring': {
+    slug: 'hse-monitoring',
+    title: 'Мониторинг условий',
+    apiEndpoint: '/hse-monitoring',
+    searchField: 'параметру',
+    columns: [
+      { key: 'id', header: 'ID', sortable: true, width: '80px' },
+      { key: 'measuredAt', header: 'Когда', sortable: true, render: (v) => fmtDate(v) },
+      {
+        key: 'parameterType',
+        header: 'Параметр',
+        render: (v, row) => {
+          const map: Record<string, string> = {
+            temperature: 'Температура',
+            wind_speed: 'Ветер',
+            humidity: 'Влажность',
+            gas_level: 'Газ',
+            noise_level: 'Шум',
+            electrical: 'Электричество',
+            fire_alarm: 'Пожар',
+            dust: 'Пыль',
+            other: 'Прочее',
+          };
+          const label = (row as any).parameterLabel || map[String(v ?? '')] || String(v ?? '—');
+          return <span>{label}</span>;
+        },
+      },
+      {
+        key: 'value',
+        header: 'Значение',
+        render: (v, row) => {
+          if (v == null || v === '') return <span className="text-gray-400">—</span>;
+          return <span className="font-mono">{String(v)} {(row as any).unit || ''}</span>;
+        },
+      },
+      {
+        key: 'status',
+        header: 'Статус',
+        render: (v) => {
+          const map: Record<string, { label: string; color: string }> = {
+            normal: { label: 'Норма', color: 'green' },
+            warning: { label: 'Предупреждение', color: 'yellow' },
+            critical: { label: 'Критично', color: 'red' },
+          };
+          const s = map[String(v ?? '')];
+          return s ? <StatusBadge label={s.label} color={s.color} /> : <span>{String(v ?? '—')}</span>;
+        },
+      },
+    ],
+    formFields: [
+      { key: 'measuredAt', label: 'Когда измерено', type: 'datetime', required: true },
+      {
+        key: 'parameterType',
+        label: 'Параметр',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'temperature', label: 'Температура' },
+          { value: 'wind_speed', label: 'Скорость ветра' },
+          { value: 'humidity', label: 'Влажность' },
+          { value: 'gas_level', label: 'Уровень газа' },
+          { value: 'noise_level', label: 'Уровень шума' },
+          { value: 'electrical', label: 'Электричество' },
+          { value: 'fire_alarm', label: 'Пожарная сигнализация' },
+          { value: 'dust', label: 'Запылённость' },
+          { value: 'other', label: 'Прочее' },
+        ],
+      },
+      { key: 'parameterLabel', label: 'Уточнение параметра', type: 'text' },
+      { key: 'value', label: 'Значение', type: 'number' },
+      { key: 'unit', label: 'Единица', type: 'text' },
+      { key: 'thresholdMin', label: 'Мин. порог', type: 'number' },
+      { key: 'thresholdMax', label: 'Макс. порог', type: 'number' },
+      { key: 'projectId', label: 'Проект', type: 'select', fetchOptions: { endpoint: '/projects', valueKey: 'id', labelKey: 'name' } },
+      { key: 'notes', label: 'Заметки', type: 'textarea' },
+      {
+        key: 'status',
+        label: 'Статус (если не вычислять авто)',
+        type: 'select',
+        options: [
+          { value: 'normal', label: 'Норма' },
+          { value: 'warning', label: 'Предупреждение' },
+          { value: 'critical', label: 'Критично' },
+        ],
+      },
+    ],
+  },
+
+  'safety-briefings': {
+    slug: 'safety-briefings',
+    title: 'Журнал инструктажей',
+    apiEndpoint: '/safety-briefings',
+    searchField: 'теме',
+    customRowActions: [
+      { key: 'open-detail', label: 'Открыть', title: 'Карточка инструктажа' },
+    ],
+    columns: [
+      { key: 'id', header: 'ID', sortable: true, width: '80px' },
+      { key: 'title', header: 'Тема', sortable: true },
+      {
+        key: 'briefingType',
+        header: 'Тип',
+        render: (v) => {
+          const map: Record<string, { label: string; color: string }> = {
+            introductory: { label: 'Вводный', color: 'blue' },
+            primary: { label: 'Первичный', color: 'purple' },
+            repeat: { label: 'Повторный', color: 'green' },
+            targeted: { label: 'Целевой', color: 'yellow' },
+            unscheduled: { label: 'Внеплановый', color: 'orange' },
+          };
+          const s = map[String(v ?? '')];
+          return s ? <StatusBadge label={s.label} color={s.color} /> : <span>{String(v ?? '—')}</span>;
+        },
+      },
+      {
+        key: 'scheduledAt',
+        header: 'Запланирован',
+        sortable: true,
+        render: (v) => fmtDate(v),
+      },
+      {
+        key: 'conductedAt',
+        header: 'Проведён',
+        render: (v) => fmtDate(v),
+      },
+      {
+        key: 'status',
+        header: 'Статус',
+        render: (v) => {
+          const map: Record<string, { label: string; color: string }> = {
+            planned: { label: 'Запланирован', color: 'gray' },
+            in_progress: { label: 'Идёт', color: 'yellow' },
+            completed: { label: 'Завершён', color: 'green' },
+            cancelled: { label: 'Отменён', color: 'red' },
+          };
+          const s = map[String(v ?? '')];
+          return s ? <StatusBadge label={s.label} color={s.color} /> : <span>{String(v ?? '—')}</span>;
+        },
+      },
+      {
+        key: 'participants',
+        header: 'Участники',
+        render: (v) => {
+          if (!Array.isArray(v)) return <span className="text-gray-400">—</span>;
+          const signed = v.filter((p: any) => p.status === 'signed').length;
+          return <span className="text-sm">{signed}/{v.length}</span>;
+        },
+      },
+    ],
+    formFields: [
+      { key: 'title', label: 'Тема инструктажа', type: 'text', required: true },
+      {
+        key: 'briefingType',
+        label: 'Тип инструктажа',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'introductory', label: 'Вводный' },
+          { value: 'primary', label: 'Первичный на рабочем месте' },
+          { value: 'repeat', label: 'Повторный' },
+          { value: 'targeted', label: 'Целевой' },
+          { value: 'unscheduled', label: 'Внеплановый' },
+        ],
+      },
+      { key: 'description', label: 'Описание / программа', type: 'textarea' },
+      { key: 'projectId', label: 'Проект', type: 'select', fetchOptions: { endpoint: '/projects', valueKey: 'id', labelKey: 'name' } },
+      { key: 'instructorId', label: 'Инструктор', type: 'select', fetchOptions: { endpoint: '/users', valueKey: 'id', labelKey: 'name' } },
+      { key: 'scheduledAt', label: 'Дата проведения', type: 'datetime' },
+      { key: 'location', label: 'Место', type: 'text' },
+      { key: 'durationMinutes', label: 'Продолжительность (мин)', type: 'number' },
+      { key: 'validityMonths', label: 'Срок действия (мес)', type: 'number' },
+      {
+        key: 'status',
+        label: 'Статус',
+        type: 'select',
+        options: [
+          { value: 'planned', label: 'Запланирован' },
+          { value: 'in_progress', label: 'Идёт' },
+          { value: 'completed', label: 'Завершён' },
+          { value: 'cancelled', label: 'Отменён' },
+        ],
+      },
+      { key: 'notes', label: 'Заметки', type: 'textarea' },
+    ],
+  },
 };
+
+function prepareTaskData(data: Record<string, unknown>) {
+  const out: Record<string, unknown> = { ...data };
+  if (typeof out.requiresBriefingTypesCsv === 'string') {
+    const s = (out.requiresBriefingTypesCsv as string).trim();
+    out.requiresBriefingTypes = s
+      ? s.split(',').map((t) => t.trim()).filter(Boolean)
+      : [];
+    delete out.requiresBriefingTypesCsv;
+  }
+  return out;
+}
 
 function prepareTrainingMaterial(data: Record<string, unknown>) {
   const out: Record<string, unknown> = { ...data };
@@ -2287,5 +2977,17 @@ export const MODULE_CATEGORIES: ModuleCategory[] = [
   {
     name: 'Обучение',
     modules: [ADMIN_MODULES['training-materials'], ADMIN_MODULES['knowledge-tests']],
+  },
+  {
+    name: 'Охрана труда',
+    modules: [
+      ADMIN_MODULES['safety-briefings'],
+      ADMIN_MODULES['hse-risks'],
+      ADMIN_MODULES['hse-incidents'],
+      ADMIN_MODULES['hse-permits'],
+      ADMIN_MODULES['hse-violations'],
+      ADMIN_MODULES['hse-corrective-actions'],
+      ADMIN_MODULES['hse-monitoring'],
+    ],
   },
 ];

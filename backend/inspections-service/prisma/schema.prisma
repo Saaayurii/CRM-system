@@ -18,6 +18,12 @@ model Account {
   inspectionChecklistTemplates InspectionChecklistTemplate[]
   defects                      Defect[]
   defectTemplates              DefectTemplate[]
+  hseRisks                     HseRisk[]
+  hseIncidents                 HseIncident[]
+  hsePermits                   HsePermit[]
+  hseViolations                HseViolation[]
+  hseCorrectiveActions         HseCorrectiveAction[]
+  hseMonitoring                HseMonitoring[]
 
   @@map("accounts")
 }
@@ -142,4 +148,201 @@ model DefectTemplate {
   account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
 
   @@map("defect_templates")
+}
+
+// ============================================================
+// HSE Module
+// ============================================================
+
+model HseRisk {
+  id                 Int       @id @default(autoincrement())
+  accountId          Int       @map("account_id")
+  projectId          Int?      @map("project_id")
+  constructionSiteId Int?      @map("construction_site_id")
+  riskCode           String?   @map("risk_code") @db.VarChar(50)
+  category           String?   @db.VarChar(100)
+  hazardSource       String?   @map("hazard_source") @db.VarChar(255)
+  title              String    @db.VarChar(255)
+  description        String?   @db.Text
+  likelihood         Int       @default(1)
+  severity           Int       @default(1)
+  riskLevel          String?   @map("risk_level") @db.VarChar(20)
+  controlMeasures    String?   @map("control_measures") @db.Text
+  responsibleUserId  Int?      @map("responsible_user_id")
+  status             String    @default("identified") @db.VarChar(30)
+  identifiedAt       DateTime? @default(now()) @map("identified_at") @db.Date
+  reviewDate         DateTime? @map("review_date") @db.Date
+  lastReviewedAt     DateTime? @map("last_reviewed_at") @db.Date
+  attachments        Json      @default("[]")
+  createdByUserId    Int?      @map("created_by_user_id")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @default(now()) @updatedAt @map("updated_at")
+  deletedAt          DateTime? @map("deleted_at")
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId, deletedAt])
+  @@index([projectId])
+  @@index([accountId, status])
+  @@map("hse_risks")
+}
+
+model HseIncident {
+  id                  Int       @id @default(autoincrement())
+  accountId           Int       @map("account_id")
+  incidentNumber      String?   @map("incident_number") @db.VarChar(50)
+  projectId           Int?      @map("project_id")
+  constructionSiteId  Int?      @map("construction_site_id")
+  incidentType        String    @map("incident_type") @db.VarChar(50)
+  severity            String    @default("medium") @db.VarChar(20)
+  occurredAt          DateTime  @map("occurred_at")
+  location            String?   @db.VarChar(255)
+  description         String    @db.Text
+  victimUserId        Int?      @map("victim_user_id")
+  victimName          String?   @map("victim_name") @db.VarChar(255)
+  victimPosition      String?   @map("victim_position") @db.VarChar(255)
+  reportedByUserId    Int?      @map("reported_by_user_id")
+  witnesses           Json      @default("[]")
+  immediateActions    String?   @map("immediate_actions") @db.Text
+  rootCause           String?   @map("root_cause") @db.Text
+  investigationStatus String    @default("new") @map("investigation_status") @db.VarChar(30)
+  daysLost            Int?      @map("days_lost")
+  estimatedCost       Decimal?  @map("estimated_cost") @db.Decimal(14, 2)
+  attachments         Json      @default("[]")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @default(now()) @updatedAt @map("updated_at")
+  deletedAt           DateTime? @map("deleted_at")
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId, deletedAt])
+  @@index([projectId])
+  @@index([accountId, incidentType])
+  @@index([occurredAt])
+  @@map("hse_incidents")
+}
+
+model HsePermit {
+  id                  Int       @id @default(autoincrement())
+  accountId           Int       @map("account_id")
+  permitNumber        String?   @map("permit_number") @db.VarChar(50)
+  permitType          String    @map("permit_type") @db.VarChar(50)
+  projectId           Int?      @map("project_id")
+  constructionSiteId  Int?      @map("construction_site_id")
+  workDescription     String    @map("work_description") @db.Text
+  location            String?   @db.VarChar(255)
+  requestedByUserId   Int?      @map("requested_by_user_id")
+  approvedByUserId    Int?      @map("approved_by_user_id")
+  workers             Json      @default("[]")
+  hazards             Json      @default("[]")
+  controlMeasures     String?   @map("control_measures") @db.Text
+  ppeRequired         Json      @default("[]") @map("ppe_required")
+  validFrom           DateTime  @map("valid_from")
+  validUntil          DateTime  @map("valid_until")
+  status              String    @default("draft") @db.VarChar(30)
+  approvedAt          DateTime? @map("approved_at")
+  closedAt            DateTime? @map("closed_at")
+  closingNotes        String?   @map("closing_notes") @db.Text
+  attachments         Json      @default("[]")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @default(now()) @updatedAt @map("updated_at")
+  deletedAt           DateTime? @map("deleted_at")
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId, deletedAt])
+  @@index([projectId])
+  @@index([accountId, status])
+  @@index([validUntil])
+  @@map("hse_permits")
+}
+
+model HseViolation {
+  id                  Int       @id @default(autoincrement())
+  accountId           Int       @map("account_id")
+  projectId           Int?      @map("project_id")
+  constructionSiteId  Int?      @map("construction_site_id")
+  observedByUserId    Int?      @map("observed_by_user_id")
+  violatorUserId      Int?      @map("violator_user_id")
+  violatorName        String?   @map("violator_name") @db.VarChar(255)
+  contractorId        Int?      @map("contractor_id")
+  category            String?   @db.VarChar(100)
+  description         String    @db.Text
+  severity            String    @default("medium") @db.VarChar(20)
+  observedAt          DateTime  @map("observed_at")
+  location            String?   @db.VarChar(255)
+  photos              Json      @default("[]")
+  status              String    @default("open") @db.VarChar(30)
+  correctiveAction    String?   @map("corrective_action") @db.Text
+  deadline            DateTime? @db.Date
+  resolvedAt          DateTime? @map("resolved_at")
+  resolutionNotes     String?   @map("resolution_notes") @db.Text
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @default(now()) @updatedAt @map("updated_at")
+  deletedAt           DateTime? @map("deleted_at")
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId, deletedAt])
+  @@index([projectId])
+  @@index([accountId, status])
+  @@index([violatorUserId])
+  @@map("hse_violations")
+}
+
+model HseCorrectiveAction {
+  id                  Int       @id @default(autoincrement())
+  accountId           Int       @map("account_id")
+  sourceType          String?   @map("source_type") @db.VarChar(30)
+  sourceId            Int?      @map("source_id")
+  projectId           Int?      @map("project_id")
+  constructionSiteId  Int?      @map("construction_site_id")
+  title               String    @db.VarChar(255)
+  description         String?   @db.Text
+  assignedToUserId    Int?      @map("assigned_to_user_id")
+  assignedByUserId    Int?      @map("assigned_by_user_id")
+  priority            String    @default("medium") @db.VarChar(20)
+  dueDate             DateTime? @map("due_date") @db.Date
+  status              String    @default("open") @db.VarChar(30)
+  completedAt         DateTime? @map("completed_at")
+  completionNotes     String?   @map("completion_notes") @db.Text
+  attachments         Json      @default("[]")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @default(now()) @updatedAt @map("updated_at")
+  deletedAt           DateTime? @map("deleted_at")
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId, deletedAt])
+  @@index([assignedToUserId, status])
+  @@index([sourceType, sourceId])
+  @@index([dueDate, status])
+  @@map("hse_corrective_actions")
+}
+
+model HseMonitoring {
+  id                  Int       @id @default(autoincrement())
+  accountId           Int       @map("account_id")
+  projectId           Int?      @map("project_id")
+  constructionSiteId  Int?      @map("construction_site_id")
+  parameterType       String    @map("parameter_type") @db.VarChar(50)
+  parameterLabel      String?   @map("parameter_label") @db.VarChar(100)
+  value               Decimal?  @db.Decimal(14, 4)
+  valueText           String?   @map("value_text") @db.VarChar(255)
+  unit                String?   @db.VarChar(50)
+  thresholdMin        Decimal?  @map("threshold_min") @db.Decimal(14, 4)
+  thresholdMax        Decimal?  @map("threshold_max") @db.Decimal(14, 4)
+  status              String    @default("normal") @db.VarChar(20)
+  measuredAt          DateTime  @map("measured_at")
+  measuredByUserId    Int?      @map("measured_by_user_id")
+  notes               String?   @db.Text
+  createdAt           DateTime  @default(now()) @map("created_at")
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
+  @@index([projectId])
+  @@index([measuredAt])
+  @@index([accountId, status, measuredAt])
+  @@map("hse_monitoring")
 }

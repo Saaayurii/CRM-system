@@ -88,6 +88,7 @@ export class TaskRepository {
         tags: data.tags || [],
         attachments: data.attachments || [],
         customFields: data.customFields || {},
+        requiresBriefingTypes: data.requiresBriefingTypes || [],
       },
     });
   }

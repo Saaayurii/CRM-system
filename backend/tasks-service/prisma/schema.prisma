@@ -37,6 +37,7 @@ model Task {
   attachments         Json      @default("[]")
   tags                Json      @default("[]")
   customFields        Json      @default("{}") @map("custom_fields")
+  requiresBriefingTypes Json    @default("[]") @map("requires_briefing_types")
   createdAt           DateTime  @default(now()) @map("created_at")
   updatedAt           DateTime  @default(now()) @updatedAt @map("updated_at")
   deletedAt           DateTime? @map("deleted_at")
