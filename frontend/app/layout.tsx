@@ -7,8 +7,10 @@ import OfflineBanner from '@/components/ui/OfflineBanner';
 import ServiceWorkerInit from '@/components/layout/ServiceWorkerInit';
 
 const inter = Inter({
-  subsets: ['latin', 'cyrillic'],
+  subsets: ['cyrillic', 'latin'],
   variable: '--font-inter',
+  display: 'swap',
+  preload: false,
 });
 
 export const metadata: Metadata = {
