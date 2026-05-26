@@ -1,7 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import api from '@/lib/api';
 import { formatMoney } from '@/lib/utils';
 import { useDownloadPdf } from '@/lib/hooks/useDownloadPdf';
@@ -85,8 +86,41 @@ function groupByDate(ops: Operation[]) {
   return groups;
 }
 
-type TabKey = 'all' | 'income' | 'expense' | 'documents';
+type TabKey = 'all' | 'income' | 'expense' | 'advance' | 'documents';
 type ViewMode = 'table' | 'grid';
+type QuickPeriod = 'today' | 'week' | 'month' | 'quarter' | 'year' | 'custom';
+
+const PIE_COLORS = ['#8b5cf6', '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#ec4899', '#14b8a6', '#a855f7'];
+
+function periodRange(p: QuickPeriod): { from: string; to: string } | null {
+  if (p === 'custom') return null;
+  const now = new Date();
+  const to = now.toISOString().slice(0, 10);
+  const start = new Date(now);
+  if (p === 'today') {
+    // start stays today
+  } else if (p === 'week') {
+    start.setDate(start.getDate() - 6);
+  } else if (p === 'month') {
+    start.setDate(1);
+  } else if (p === 'quarter') {
+    const qStartMonth = Math.floor(start.getMonth() / 3) * 3;
+    start.setMonth(qStartMonth, 1);
+  } else if (p === 'year') {
+    start.setMonth(0, 1);
+  }
+  return { from: start.toISOString().slice(0, 10), to };
+}
+
+function formatDateShort(value?: string) {
+  if (!value) return '';
+  try {
+    const d = new Date(value);
+    return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  } catch {
+    return value;
+  }
+}
 
 interface DocumentTemplate {
   key: string;
@@ -169,11 +203,14 @@ export default function FinancePage() {
   const [docFlowProjectId, setDocFlowProjectId] = useState<number | ''>('');
   const [showFinancialReport, setShowFinancialReport] = useState(false);
   const [siteFilter, setSiteFilter] = useState<number | ''>('');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const [quickPeriod, setQuickPeriod] = useState<QuickPeriod>('month');
+  const [dateFrom, setDateFrom] = useState(() => periodRange('month')!.from);
+  const [dateTo, setDateTo] = useState(() => periodRange('month')!.to);
   const [operations, setOperations] = useState<Operation[]>([]);
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     if (typeof window !== 'undefined') {
       return (localStorage.getItem('financeViewMode') as ViewMode) || 'table';
@@ -181,6 +218,27 @@ export default function FinancePage() {
     return 'table';
   });
   const { download: downloadPdf, loading: pdfLoading } = useDownloadPdf();
+
+  // Close action menu on outside click
+  useEffect(() => {
+    if (openMenuId === null) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpenMenuId(null);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [openMenuId]);
+
+  const applyQuickPeriod = (p: QuickPeriod) => {
+    setQuickPeriod(p);
+    const r = periodRange(p);
+    if (r) {
+      setDateFrom(r.from);
+      setDateTo(r.to);
+    }
+  };
 
   const handleViewMode = (mode: ViewMode) => {
     setViewMode(mode);
@@ -223,8 +281,8 @@ export default function FinancePage() {
   const loadOperations = useCallback(async () => {
     setLoading(true);
     try {
-      const params: Record<string, unknown> = { limit: 100 };
-      if (tab !== 'all') params.direction = tab;
+      const params: Record<string, unknown> = { limit: 200 };
+      if (tab === 'income' || tab === 'expense') params.direction = tab;
       if (projectFilter) params.projectId = projectFilter;
       if (siteFilter) params.constructionSiteId = siteFilter;
       if (dateFrom) params.dateFrom = dateFrom;
@@ -255,18 +313,82 @@ export default function FinancePage() {
   const stats = useMemo(() => {
     let income = 0;
     let expense = 0;
-    let advance = 0;
+    let advanceIn = 0;
+    let advanceOut = 0;
     for (const op of operations) {
       const amt = Number(op.amount ?? 0);
       if (op.direction === 'income') {
         income += amt;
-        if (op.subType === 'advance') advance += amt;
+        if (op.subType === 'advance') advanceIn += amt;
       } else if (op.direction === 'expense') {
         expense += amt;
+        if (op.subType === 'advance_disbursement') advanceOut += amt;
       }
     }
-    return { income, expense, advance, balance: income - expense };
+    return {
+      income,
+      expense,
+      cashFlow: income - expense,
+      advanceBalance: advanceIn - advanceOut,
+    };
   }, [operations]);
+
+  // Балансы по счетам/кассам
+  const accountBalances = useMemo(() => {
+    const map = new Map<string, { key: string; label: string; bank?: string; total: number }>();
+    for (const op of operations) {
+      const sign = op.direction === 'income' ? 1 : op.direction === 'expense' ? -1 : 0;
+      if (!sign) continue;
+      const amt = Number(op.amount ?? 0) * sign;
+      let key: string;
+      let label: string;
+      let bank: string | undefined;
+      if (op.cashLocation === 'hand') {
+        key = 'hand';
+        label = 'Касса (на руки)';
+      } else if (op.paymentAccount) {
+        key = `acc-${op.paymentAccount.id}`;
+        label = op.paymentAccount.name;
+        bank = op.paymentAccount.bankName ?? undefined;
+      } else {
+        key = 'unknown';
+        label = 'Без счёта';
+      }
+      const cur = map.get(key) ?? { key, label, bank, total: 0 };
+      cur.total += amt;
+      map.set(key, cur);
+    }
+    return Array.from(map.values()).sort((a, b) => b.total - a.total);
+  }, [operations]);
+
+  // Расходы по категориям (subType)
+  const expenseByCategory = useMemo(() => {
+    const sums: Record<string, number> = {};
+    for (const op of operations) {
+      if (op.direction !== 'expense') continue;
+      const key = op.subType || 'other';
+      sums[key] = (sums[key] ?? 0) + Number(op.amount ?? 0);
+    }
+    return Object.entries(sums)
+      .map(([k, v]) => ({ name: SUBTYPE_LABEL[k] ?? 'Прочее', value: v }))
+      .sort((a, b) => b.value - a.value);
+  }, [operations]);
+
+  // Расходы по проектам
+  const expenseByProject = useMemo(() => {
+    const sums: Record<string, number> = {};
+    for (const op of operations) {
+      if (op.direction !== 'expense') continue;
+      const key = op.projectId ? String(op.projectId) : 'none';
+      sums[key] = (sums[key] ?? 0) + Number(op.amount ?? 0);
+    }
+    return Object.entries(sums)
+      .map(([k, v]) => {
+        const name = k === 'none' ? 'Без проекта' : (projects.find((p) => p.id === Number(k))?.name ?? `#${k}`);
+        return { name, value: v };
+      })
+      .sort((a, b) => b.value - a.value);
+  }, [operations, projects]);
 
   const projectName = (id?: number | null) => {
     if (!id) return null;
@@ -278,7 +400,38 @@ export default function FinancePage() {
     return s ? s.address ?? s.name ?? `#${id}` : `#${id}`;
   };
 
-  const filteredOps = operations;
+  const filteredOps = useMemo(() => {
+    if (tab === 'advance') {
+      return operations.filter(
+        (op) => op.subType === 'advance' || op.subType === 'advance_disbursement',
+      );
+    }
+    return operations;
+  }, [operations, tab]);
+
+  // Итого по отфильтрованным операциям (для футер-строки таблицы)
+  const totals = useMemo(() => {
+    let income = 0;
+    let expense = 0;
+    for (const op of filteredOps) {
+      const amt = Number(op.amount ?? 0);
+      if (op.direction === 'income') income += amt;
+      else if (op.direction === 'expense') expense += amt;
+    }
+    return { income, expense, net: income - expense };
+  }, [filteredOps]);
+
+  const handleDeleteOperation = useCallback(async (id: number) => {
+    if (!confirm('Удалить операцию?')) return;
+    try {
+      await api.delete(`/payments/${id}`);
+      loadOperations();
+    } catch {
+      alert('Не удалось удалить операцию');
+    } finally {
+      setOpenMenuId(null);
+    }
+  }, [loadOperations]);
 
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-9xl mx-auto">
@@ -296,6 +449,14 @@ export default function FinancePage() {
           <h1 className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-gray-100 mt-2">
             Финансы
           </h1>
+          {tab !== 'documents' && (dateFrom || dateTo) && (
+            <div className="mt-1 text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              Период: {formatDateShort(dateFrom) || '—'} – {formatDateShort(dateTo) || '—'}
+            </div>
+          )}
         </div>
         {tab !== 'documents' && (
           <div className="flex items-center gap-2">
@@ -353,17 +514,108 @@ export default function FinancePage() {
         )}
       </div>
 
-      {/* Сводка */}
+      {/* Быстрые периоды */}
       {tab !== 'documents' && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <SummaryCard label="Приход" value={stats.income} color="emerald" />
-          <SummaryCard label="Расход" value={stats.expense} color="red" />
+        <div className="mb-4 flex items-center gap-1 flex-wrap">
+          {([
+            ['today', 'Сегодня'],
+            ['week', 'Неделя'],
+            ['month', 'Месяц'],
+            ['quarter', 'Квартал'],
+            ['year', 'Год'],
+            ['custom', 'Произвольный'],
+          ] as [QuickPeriod, string][]).map(([k, l]) => (
+            <button
+              key={k}
+              onClick={() => applyQuickPeriod(k)}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                quickPeriod === k
+                  ? 'bg-violet-500 text-white border-violet-500'
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-violet-400'
+              }`}
+            >
+              {l}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Сводка KPI */}
+      {tab !== 'documents' && (
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
           <SummaryCard
-            label="Баланс"
-            value={stats.balance}
-            color={stats.balance >= 0 ? 'emerald' : 'red'}
+            label="Денежный поток"
+            value={stats.cashFlow}
+            color={stats.cashFlow >= 0 ? 'emerald' : 'red'}
+            hint="Приход − Расход"
+            sign
           />
-          <SummaryCard label="В т.ч. авансы" value={stats.advance} color="violet" />
+          <SummaryCard label="Приход" value={stats.income} color="emerald" sign="+" />
+          <SummaryCard label="Расход" value={stats.expense} color="red" sign="−" />
+          <SummaryCard
+            label="Баланс по счетам"
+            value={accountBalances.reduce((s, a) => s + a.total, 0)}
+            color={accountBalances.reduce((s, a) => s + a.total, 0) >= 0 ? 'emerald' : 'red'}
+          />
+          <SummaryCard
+            label="Авансовый остаток"
+            value={stats.advanceBalance}
+            color="violet"
+            hint="Авансы получено − выдано"
+          />
+        </div>
+      )}
+
+      {/* Счета / кассы + графики */}
+      {tab !== 'documents' && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+          {/* Счета / кассы */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-gray-800 dark:text-gray-100">Счета / кассы</h3>
+              <span className="text-xs text-gray-400">{accountBalances.length}</span>
+            </div>
+            {accountBalances.length === 0 ? (
+              <div className="text-sm text-gray-400 py-6 text-center">Нет операций</div>
+            ) : (
+              <ul className="divide-y divide-gray-100 dark:divide-gray-700">
+                {accountBalances.map((a) => (
+                  <li key={a.key} className="flex items-center justify-between py-2.5">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${
+                        a.key === 'hand'
+                          ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-300'
+                          : 'bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-300'
+                      }`}>
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          {a.key === 'hand' ? (
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m3-6h10a2 2 0 012 2v6a2 2 0 01-2 2H10a2 2 0 01-2-2v-6a2 2 0 012-2zm7 5a2 2 0 11-4 0 2 2 0 014 0z" />
+                          ) : (
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18m-7-4v8M5 6h14a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2z" />
+                          )}
+                        </svg>
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">{a.label}</div>
+                        {a.bank && <div className="text-xs text-gray-500 truncate">{a.bank}</div>}
+                      </div>
+                    </div>
+                    <div className={`text-sm font-semibold whitespace-nowrap ${
+                      a.total >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
+                    }`}>
+                      {formatMoney(a.total)} ₽
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {/* Расходы по категориям */}
+          <ExpenseDonut title="Расходы по категориям" data={expenseByCategory} />
+
+          {/* Расходы по проектам */}
+          <ExpenseDonut title="Расходы по проектам" data={expenseByProject} />
         </div>
       )}
 
@@ -375,6 +627,7 @@ export default function FinancePage() {
               { key: 'all', label: 'Все операции' },
               { key: 'income', label: 'Приходы' },
               { key: 'expense', label: 'Расходы' },
+              { key: 'advance', label: 'Авансы' },
               { key: 'documents', label: 'Пакеты документов' },
             ] as { key: TabKey; label: string }[]
           ).map((t) => (
@@ -511,7 +764,7 @@ export default function FinancePage() {
             <input
               type="date"
               value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
+              onChange={(e) => { setDateFrom(e.target.value); setQuickPeriod('custom'); }}
               className="form-input w-full text-sm"
             />
           </div>
@@ -520,7 +773,7 @@ export default function FinancePage() {
             <input
               type="date"
               value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
+              onChange={(e) => { setDateTo(e.target.value); setQuickPeriod('custom'); }}
               className="form-input w-full text-sm"
             />
           </div>
@@ -615,26 +868,29 @@ export default function FinancePage() {
           <table className="table-auto w-full text-sm">
             <thead className="text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/30 border-b border-gray-100 dark:border-gray-700">
               <tr>
-                <th className="px-4 py-2 text-left whitespace-nowrap">Документ</th>
+                <th className="px-4 py-2 text-left whitespace-nowrap">№ документа</th>
                 <th className="px-4 py-2 text-left">Тип</th>
                 <th className="px-4 py-2 text-left">Категория</th>
+                <th className="px-4 py-2 text-left">Назначение</th>
                 <th className="px-4 py-2 text-right">Сумма</th>
                 <th className="px-4 py-2 text-left whitespace-nowrap">Дата/время</th>
                 <th className="px-4 py-2 text-left">Проект / Объект</th>
                 <th className="px-4 py-2 text-left">Счёт / Способ</th>
+                <th className="px-4 py-2 text-center">Док.</th>
                 <th className="px-4 py-2 text-left">Статус</th>
+                <th className="px-4 py-2 text-center w-12"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-6 text-center text-gray-500">
+                  <td colSpan={11} className="px-4 py-6 text-center text-gray-500">
                     Загрузка…
                   </td>
                 </tr>
               ) : filteredOps.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-6 text-center text-gray-500">
+                  <td colSpan={11} className="px-4 py-6 text-center text-gray-500">
                     Нет операций по выбранным фильтрам
                   </td>
                 </tr>
@@ -660,6 +916,11 @@ export default function FinancePage() {
                       </td>
                       <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
                         {op.subType ? SUBTYPE_LABEL[op.subType] ?? op.subType : '—'}
+                      </td>
+                      <td className="px-4 py-3 text-gray-600 dark:text-gray-400 max-w-[260px]">
+                        <div className="truncate" title={op.description ?? ''}>
+                          {op.description || <span className="text-gray-400">—</span>}
+                        </div>
                       </td>
                       <td
                         className={`px-4 py-3 text-right font-semibold whitespace-nowrap ${
@@ -697,6 +958,17 @@ export default function FinancePage() {
                           <span className="text-gray-400">—</span>
                         )}
                       </td>
+                      <td className="px-4 py-3 text-center">
+                        {op.paymentNumber ? (
+                          <span className="inline-flex items-center text-violet-500" title={`Документ ${op.paymentNumber}`}>
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          </span>
+                        ) : (
+                          <span className="text-gray-300">—</span>
+                        )}
+                      </td>
                       <td className="px-4 py-3">
                         {status ? (
                           <span className={`text-xs px-2 py-1 rounded font-medium ${status.color}`}>
@@ -706,11 +978,67 @@ export default function FinancePage() {
                           '—'
                         )}
                       </td>
+                      <td className="px-4 py-3 text-center relative">
+                        <button
+                          onClick={() => setOpenMenuId(openMenuId === op.id ? null : op.id)}
+                          className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500"
+                          aria-label="Действия"
+                        >
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                            <circle cx="5" cy="12" r="2" />
+                            <circle cx="12" cy="12" r="2" />
+                            <circle cx="19" cy="12" r="2" />
+                          </svg>
+                        </button>
+                        {openMenuId === op.id && (
+                          <div
+                            ref={menuRef}
+                            className="absolute right-2 top-10 z-20 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 text-sm text-left"
+                          >
+                            <button className="w-full px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 text-left">
+                              Открыть
+                            </button>
+                            <button className="w-full px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 text-left">
+                              Редактировать
+                            </button>
+                            <button className="w-full px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 text-left">
+                              Копировать
+                            </button>
+                            <button className="w-full px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 text-left">
+                              Прикрепить документ
+                            </button>
+                            <div className="border-t border-gray-100 dark:border-gray-700 my-1" />
+                            <button
+                              onClick={() => handleDeleteOperation(op.id)}
+                              className="w-full px-3 py-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 text-left"
+                            >
+                              Удалить
+                            </button>
+                          </div>
+                        )}
+                      </td>
                     </tr>
                   );
                 })
               )}
             </tbody>
+            {filteredOps.length > 0 && !loading && (
+              <tfoot className="bg-gray-50 dark:bg-gray-900/30 border-t-2 border-gray-200 dark:border-gray-700">
+                <tr>
+                  <td colSpan={4} className="px-4 py-3 text-sm font-semibold text-gray-700 dark:text-gray-200">
+                    Итого за период
+                  </td>
+                  <td className="px-4 py-3 text-right whitespace-nowrap">
+                    <div className="text-xs text-emerald-600 dark:text-emerald-400">+ {formatMoney(totals.income)} ₽</div>
+                    <div className="text-xs text-red-600 dark:text-red-400">− {formatMoney(totals.expense)} ₽</div>
+                    <div className={`text-sm font-bold mt-0.5 ${totals.net >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                      = {formatMoney(totals.net)} ₽
+                    </div>
+                  </td>
+                  <td colSpan={6}></td>
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
         ) : (
@@ -825,20 +1153,86 @@ function SummaryCard({
   label,
   value,
   color,
+  hint,
+  sign,
 }: {
   label: string;
   value: number;
   color: 'emerald' | 'red' | 'violet';
+  hint?: string;
+  sign?: '+' | '−' | boolean;
 }) {
   const colorMap: Record<string, string> = {
     emerald: 'text-emerald-600 dark:text-emerald-400',
     red: 'text-red-600 dark:text-red-400',
     violet: 'text-violet-600 dark:text-violet-400',
   };
+  const prefix =
+    sign === '+' ? '+ ' :
+    sign === '−' ? '− ' :
+    sign === true ? (value > 0 ? '+ ' : value < 0 ? '− ' : '') :
+    '';
+  const displayValue = sign === true ? Math.abs(value) : value;
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-4">
       <div className="text-xs uppercase text-gray-500 dark:text-gray-400 font-semibold">{label}</div>
-      <div className={`mt-1 text-2xl font-bold ${colorMap[color]}`}>{formatMoney(value)} ₽</div>
+      <div className={`mt-1 text-2xl font-bold ${colorMap[color]} whitespace-nowrap`}>
+        {prefix}{formatMoney(displayValue)} ₽
+      </div>
+      {hint && <div className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">{hint}</div>}
+    </div>
+  );
+}
+
+function ExpenseDonut({ title, data }: { title: string; data: { name: string; value: number }[] }) {
+  const total = data.reduce((s, d) => s + d.value, 0);
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-4 flex flex-col">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="font-semibold text-gray-800 dark:text-gray-100">{title}</h3>
+        <span className="text-xs text-gray-400">{formatMoney(total)} ₽</span>
+      </div>
+      {data.length === 0 ? (
+        <div className="text-sm text-gray-400 py-10 text-center flex-1">Нет расходов</div>
+      ) : (
+        <div className="flex items-center gap-3 flex-1">
+          <div className="w-32 h-32 flex-shrink-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={data} dataKey="value" nameKey="name" innerRadius={36} outerRadius={56} paddingAngle={2}>
+                  {data.map((_, i) => (
+                    <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  formatter={(v) => `${formatMoney(Number(v) || 0)} ₽`}
+                  contentStyle={{ fontSize: 12, borderRadius: 8 }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <ul className="flex-1 min-w-0 space-y-1 text-sm">
+            {data.slice(0, 5).map((d, i) => {
+              const pct = total > 0 ? Math.round((d.value / total) * 100) : 0;
+              return (
+                <li key={d.name} className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span
+                      className="w-2.5 h-2.5 rounded-sm flex-shrink-0"
+                      style={{ background: PIE_COLORS[i % PIE_COLORS.length] }}
+                    />
+                    <span className="truncate text-gray-700 dark:text-gray-300">{d.name}</span>
+                  </div>
+                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">{pct}%</span>
+                </li>
+              );
+            })}
+            {data.length > 5 && (
+              <li className="text-xs text-gray-400 pl-4">+ ещё {data.length - 5}</li>
+            )}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
