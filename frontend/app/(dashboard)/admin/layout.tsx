@@ -11,16 +11,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const isLoading = useAuthStore((s) => s.isLoading);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const isAdminish =
-    user?.role?.code === 'super_admin' || user?.role?.code === 'admin';
-
   useEffect(() => {
-    if (!isLoading && !isAdminish) {
+    if (!isLoading && user?.role?.code !== 'super_admin') {
       router.push('/dashboard');
     }
-  }, [isLoading, isAdminish, router]);
+  }, [user, isLoading, router]);
 
-  if (isLoading || !isAdminish) {
+  if (isLoading || user?.role?.code !== 'super_admin') {
     return null;
   }
 

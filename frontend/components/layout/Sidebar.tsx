@@ -67,6 +67,13 @@ function IconEmployees() {
     </svg>
   );
 }
+function IconClients() {
+  return (
+    <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 0 1 3 3h-15a3 3 0 0 1 3-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.006 0V6.375c0-.621-.504-1.125-1.125-1.125H9.62c-.622 0-1.125.504-1.125 1.125v8.25m5.625 0H9.62" />
+    </svg>
+  );
+}
 function IconSite() {
   return (
     <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
@@ -408,12 +415,13 @@ export default function Sidebar() {
       { key: '5', href: '/dashboard/documents' },
     ];
     if (showTeams) list.push({ key: '6', href: '/dashboard/teams' });
+    if (isSuperAdmin || isAdmin || isPM) list.push({ key: '7', href: '/dashboard/clients' });
     if (showChat) list.push({ key: '8', href: '/dashboard/chat' });
     if (isAdmin || isSuperAdmin) list.push({ key: '9', href: '/dashboard/company' });
     list.push({ key: '0', href: settingsHref });
-    if (isSuperAdmin || isAdmin) list.push({ key: 'a', href: '/admin' });
+    if (isSuperAdmin) list.push({ key: 'a', href: '/admin' });
     return list;
-  }, [showTeams, isAdmin, isHR, isSuperAdmin, showChat, settingsHref]);
+  }, [showTeams, isAdmin, isHR, isPM, isSuperAdmin, showChat, settingsHref]);
 
   useNavHotkeys(hotkeys);
   const hkByHref = useMemo(() => Object.fromEntries(hotkeys.map((h) => [h.href, h])), [hotkeys]);
@@ -528,6 +536,16 @@ export default function Sidebar() {
                   <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Сотрудники</span>
                 </NavLink>
               </li>
+
+              {/* Clients (admin/super_admin/PM работают с клиентской базой) */}
+              {(isSuperAdmin || isAdmin || isPM) && (
+                <li className="mb-1 last:mb-0">
+                  <NavLink href="/dashboard/clients" hotkey={hkByHref['/dashboard/clients']} className={linkCls(pathname.startsWith('/dashboard/clients'))}>
+                    <IconClients />
+                    <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Клиенты</span>
+                  </NavLink>
+                </li>
+              )}
 
               {/* Calendar */}
               <li className="mb-1 last:mb-0">
@@ -802,8 +820,8 @@ export default function Sidebar() {
                 </NavLink>
               </li>
 
-              {/* Admin (admin + super_admin) */}
-              {(isSuperAdmin || isAdmin) && (
+              {/* Admin (super_admin only) */}
+              {isSuperAdmin && (
                 <li className="mb-1 last:mb-0">
                   <NavLink href="/admin" hotkey={hkByHref['/admin']} className={linkCls(pathname.startsWith('/admin') && pathname !== '/admin/settings')}>
                     <svg
