@@ -85,10 +85,12 @@ export default function ClientFormModal({ open, initial, onClose, onSaved }: Pro
     e.preventDefault();
     setSaving(true);
     try {
-      // strip empty string fields
+      // strip empty strings and server-generated fields
+      const SERVER_FIELDS = new Set(['id', 'accountId', 'createdAt', 'updatedAt', 'deletedAt']);
       const payload: Record<string, unknown> = {};
       for (const [k, v] of Object.entries(data)) {
         if (v === '' || v === undefined || v === null) continue;
+        if (SERVER_FIELDS.has(k)) continue;
         payload[k] = v;
       }
       if (initial?.id) {
