@@ -2007,6 +2007,112 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
       { key: 'fileUrl', label: 'Файл отчёта', type: 'file', uploadEndpoint: '/report-templates/upload', accept: '.pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png' },
     ],
   },
+  'training-materials': {
+    slug: 'training-materials',
+    title: 'Обучающие материалы',
+    apiEndpoint: '/training-materials',
+    searchField: 'названию',
+    columns: [
+      { key: 'id', header: 'ID', sortable: true, width: '80px' },
+      { key: 'title', header: 'Название', sortable: true },
+      {
+        key: 'materialType',
+        header: 'Тип',
+        render: (v) => {
+          const map: Record<string, { label: string; color: string }> = {
+            video: { label: 'Видео', color: 'purple' },
+            article: { label: 'Статья', color: 'blue' },
+            instruction: { label: 'Инструкция', color: 'orange' },
+            checklist: { label: 'Чек-лист', color: 'green' },
+            presentation: { label: 'Презентация', color: 'yellow' },
+          };
+          if (!v) return <span className="text-gray-400">—</span>;
+          const s = map[String(v)];
+          return s ? <StatusBadge label={s.label} color={s.color} /> : <span>{String(v)}</span>;
+        },
+      },
+      { key: 'category', header: 'Категория', sortable: true },
+      {
+        key: 'difficultyLevel',
+        header: 'Сложность',
+        render: (v) => {
+          const map: Record<string, { label: string; color: string }> = {
+            beginner: { label: 'Начальный', color: 'green' },
+            intermediate: { label: 'Средний', color: 'yellow' },
+            advanced: { label: 'Продвинутый', color: 'red' },
+          };
+          if (!v) return <span className="text-gray-400">—</span>;
+          const s = map[String(v)];
+          return s ? <StatusBadge label={s.label} color={s.color} /> : <span>{String(v)}</span>;
+        },
+      },
+      {
+        key: 'durationMinutes',
+        header: 'Длит. (мин)',
+        render: (v) => (v ? <span>{String(v)}</span> : <span className="text-gray-400">—</span>),
+      },
+      {
+        key: 'isPublished',
+        header: 'Опубликован',
+        render: (v) =>
+          v ? (
+            <StatusBadge label="Да" color="green" />
+          ) : (
+            <StatusBadge label="Черновик" color="gray" />
+          ),
+      },
+      { key: 'viewCount', header: 'Просмотры' },
+    ],
+    formFields: [
+      { key: 'title', label: 'Название', type: 'text', required: true },
+      {
+        key: 'materialType',
+        label: 'Тип материала',
+        type: 'select',
+        options: [
+          { value: 'video', label: 'Видео' },
+          { value: 'article', label: 'Статья' },
+          { value: 'instruction', label: 'Инструкция' },
+          { value: 'checklist', label: 'Чек-лист' },
+          { value: 'presentation', label: 'Презентация' },
+        ],
+      },
+      { key: 'category', label: 'Категория', type: 'text' },
+      {
+        key: 'difficultyLevel',
+        label: 'Уровень сложности',
+        type: 'select',
+        options: [
+          { value: 'beginner', label: 'Начальный' },
+          { value: 'intermediate', label: 'Средний' },
+          { value: 'advanced', label: 'Продвинутый' },
+        ],
+      },
+      { key: 'durationMinutes', label: 'Длительность (мин)', type: 'number' },
+      { key: 'description', label: 'Краткое описание', type: 'textarea' },
+      { key: 'content', label: 'Содержимое (текст/HTML/Markdown)', type: 'textarea' },
+      { key: 'fileUrl', label: 'Ссылка на файл/видео (URL)', type: 'text' },
+      {
+        key: 'isPublished',
+        label: 'Опубликован',
+        type: 'select',
+        options: [
+          { value: 'true', label: 'Да' },
+          { value: 'false', label: 'Нет (черновик)' },
+        ],
+      },
+    ],
+    prepareCreate: (data) => {
+      const out: Record<string, unknown> = { ...data };
+      if (typeof out.isPublished === 'string') out.isPublished = out.isPublished === 'true';
+      return out;
+    },
+    prepareUpdate: (data) => {
+      const out: Record<string, unknown> = { ...data };
+      if (typeof out.isPublished === 'string') out.isPublished = out.isPublished === 'true';
+      return out;
+    },
+  },
 };
 
 export const MODULE_CATEGORIES: ModuleCategory[] = [
@@ -2037,5 +2143,9 @@ export const MODULE_CATEGORIES: ModuleCategory[] = [
   {
     name: 'Контроль',
     modules: [ADMIN_MODULES.inspections, ADMIN_MODULES.defects, ADMIN_MODULES.documents, ADMIN_MODULES.audit, ADMIN_MODULES.reports],
+  },
+  {
+    name: 'Обучение',
+    modules: [ADMIN_MODULES['training-materials']],
   },
 ];
