@@ -7,6 +7,7 @@ import api from '@/lib/api';
 import { formatMoney } from '@/lib/utils';
 import { useDownloadPdf } from '@/lib/hooks/useDownloadPdf';
 import FinanceOperationModal from '@/components/finance/FinanceOperationModal';
+import FinanceOperationDrawer from '@/components/finance/FinanceOperationDrawer';
 import DocumentsOverview from '@/components/estimates/DocumentsOverview';
 import FinancialReportModal from '@/components/estimates/FinancialReportModal';
 
@@ -209,6 +210,8 @@ export default function FinancePage() {
   const [operations, setOperations] = useState<Operation[]>([]);
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [editingOperation, setEditingOperation] = useState<Operation | null>(null);
+  const [selectedOp, setSelectedOp] = useState<Operation | null>(null);
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
@@ -899,7 +902,11 @@ export default function FinancePage() {
                   const isIncome = op.direction === 'income';
                   const status = STATUS_LABEL[Number(op.status ?? 0)];
                   return (
-                    <tr key={op.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20">
+                    <tr
+                      key={op.id}
+                      className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer"
+                      onClick={() => setSelectedOp(op)}
+                    >
                       <td className="px-4 py-3 font-mono text-xs text-gray-700 dark:text-gray-300">
                         {op.paymentNumber ?? '—'}
                       </td>
@@ -978,9 +985,9 @@ export default function FinancePage() {
                           '—'
                         )}
                       </td>
-                      <td className="px-4 py-3 text-center relative">
+                      <td className="px-4 py-3 text-center relative" onClick={(e) => e.stopPropagation()}>
                         <button
-                          onClick={() => setOpenMenuId(openMenuId === op.id ? null : op.id)}
+                          onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === op.id ? null : op.id); }}
                           className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500"
                           aria-label="Действия"
                         >
@@ -995,17 +1002,17 @@ export default function FinancePage() {
                             ref={menuRef}
                             className="absolute right-2 top-10 z-20 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 text-sm text-left"
                           >
-                            <button className="w-full px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 text-left">
+                            <button
+                              onClick={() => { setSelectedOp(op); setOpenMenuId(null); }}
+                              className="w-full px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 text-left"
+                            >
                               Открыть
                             </button>
-                            <button className="w-full px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 text-left">
+                            <button
+                              onClick={() => { setEditingOperation(op); setModalOpen(true); setOpenMenuId(null); }}
+                              className="w-full px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 text-left"
+                            >
                               Редактировать
-                            </button>
-                            <button className="w-full px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 text-left">
-                              Копировать
-                            </button>
-                            <button className="w-full px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 text-left">
-                              Прикрепить документ
                             </button>
                             <div className="border-t border-gray-100 dark:border-gray-700 my-1" />
                             <button
@@ -1057,7 +1064,8 @@ export default function FinancePage() {
                 return (
                   <div
                     key={op.id}
-                    className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex flex-col gap-3 hover:shadow-md transition-shadow"
+                    className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex flex-col gap-3 hover:shadow-md transition-shadow cursor-pointer"
+                    onClick={() => setSelectedOp(op)}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
@@ -1131,12 +1139,33 @@ export default function FinancePage() {
 
       <FinanceOperationModal
         open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={() => { setModalOpen(false); setEditingOperation(null); }}
         onCreated={() => {
           loadOperations();
+          setEditingOperation(null);
         }}
         defaultProjectId={projectFilter || null}
         defaultConstructionSiteId={siteFilter || null}
+        operation={editingOperation}
+      />
+
+      <FinanceOperationDrawer
+        operation={selectedOp}
+        projectName={projectName}
+        siteName={siteName}
+        onClose={() => setSelectedOp(null)}
+        onEdit={(op) => {
+          setEditingOperation(op);
+          setModalOpen(true);
+        }}
+        onDelete={async (id) => {
+          await handleDeleteOperation(id);
+          setSelectedOp(null);
+        }}
+        onStatusChanged={() => {
+          loadOperations();
+          setSelectedOp(null);
+        }}
       />
 
       {showFinancialReport && docFlowProjectId !== '' && (

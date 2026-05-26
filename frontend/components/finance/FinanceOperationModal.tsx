@@ -29,12 +29,28 @@ interface ProjectOpt { id: number; name: string }
 interface SiteOpt { id: number; address?: string; name?: string; projectId?: number }
 interface PaymentAccountOpt { id: number; name: string; bankName?: string | null }
 
+interface ExistingOperation {
+  id: number;
+  direction?: 'income' | 'expense' | null;
+  subType?: string | null;
+  amount: number | string;
+  paymentDatetime?: string | null;
+  paymentDate?: string;
+  cashLocation?: string | null;
+  paymentAccountId?: number | null;
+  projectId?: number | null;
+  constructionSiteId?: number | null;
+  description?: string | null;
+  status?: number | null;
+}
+
 interface Props {
   open: boolean;
   onClose: () => void;
   onCreated: () => void;
   defaultProjectId?: number | null;
   defaultConstructionSiteId?: number | null;
+  operation?: ExistingOperation | null;
 }
 
 function pad2(n: number) {
@@ -52,7 +68,9 @@ export default function FinanceOperationModal({
   onCreated,
   defaultProjectId,
   defaultConstructionSiteId,
+  operation,
 }: Props) {
+  const isEdit = !!operation;
   const [direction, setDirection] = useState<Direction>('income');
   const [subType, setSubType] = useState<string>('payment');
   const [amount, setAmount] = useState<string>('');
@@ -71,22 +89,36 @@ export default function FinanceOperationModal({
 
   const amountInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Reset state when modal opens
+  // Reset / prefill state when modal opens
   useEffect(() => {
     if (!open) return;
-    setDirection('income');
-    setSubType('payment');
-    setAmount('');
-    setDatetime(nowLocal());
-    setProjectId(defaultProjectId ?? null);
-    setSiteId(defaultConstructionSiteId ?? null);
-    setCashLocation('');
-    setPaymentAccountId(null);
-    setDescription('');
+    if (operation) {
+      const dir = (operation.direction as Direction) || 'income';
+      setDirection(dir);
+      setSubType(operation.subType ?? (dir === 'income' ? 'payment' : 'bill'));
+      setAmount(formatMoney(operation.amount));
+      const dt = operation.paymentDatetime ?? operation.paymentDate;
+      setDatetime(dt ? dt.slice(0, 16) : nowLocal());
+      setProjectId(operation.projectId ?? null);
+      setSiteId(operation.constructionSiteId ?? null);
+      setCashLocation((operation.cashLocation as 'hand' | 'company' | '') ?? '');
+      setPaymentAccountId(operation.paymentAccountId ?? null);
+      setDescription(operation.description ?? '');
+    } else {
+      setDirection('income');
+      setSubType('payment');
+      setAmount('');
+      setDatetime(nowLocal());
+      setProjectId(defaultProjectId ?? null);
+      setSiteId(defaultConstructionSiteId ?? null);
+      setCashLocation('');
+      setPaymentAccountId(null);
+      setDescription('');
+    }
     setError(null);
     setSaving(false);
     setTimeout(() => amountInputRef.current?.focus(), 50);
-  }, [open, defaultProjectId, defaultConstructionSiteId]);
+  }, [open, defaultProjectId, defaultConstructionSiteId, operation]);
 
   // Подгрузка справочников при открытии
   useEffect(() => {
@@ -165,9 +197,13 @@ export default function FinanceOperationModal({
         projectId: projectId || undefined,
         constructionSiteId: siteId || undefined,
         description: description.trim() || undefined,
-        status: 1, // создаём сразу проведённым
+        status: isEdit ? (operation!.status ?? 1) : 1,
       };
-      await api.post('/payments', body);
+      if (isEdit) {
+        await api.put(`/payments/${operation!.id}`, body);
+      } else {
+        await api.post('/payments', body);
+      }
       onCreated();
       onClose();
     } catch (e: any) {
@@ -188,7 +224,7 @@ export default function FinanceOperationModal({
       <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
-            Новая финансовая операция
+            {isEdit ? 'Редактировать операцию' : 'Новая финансовая операция'}
           </h3>
           <button
             onClick={onClose}
@@ -440,7 +476,7 @@ export default function FinanceOperationModal({
                 : 'bg-red-500 hover:bg-red-600'
             }`}
           >
-            {saving ? 'Сохранение…' : direction === 'income' ? 'Зафиксировать приход' : 'Зафиксировать расход'}
+            {saving ? 'Сохранение…' : isEdit ? 'Сохранить изменения' : direction === 'income' ? 'Зафиксировать приход' : 'Зафиксировать расход'}
           </button>
         </div>
       </div>
