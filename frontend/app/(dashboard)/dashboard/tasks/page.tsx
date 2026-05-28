@@ -170,6 +170,7 @@ export default function TasksPage() {
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSettings, setShowSettings] = useState(false);
+  const [showFilter, setShowFilter] = useState(false);
   const [filterStatus, setFilterStatus] = useState<number | null>(null);
   const [filterProject, setFilterProject] = useState<number | null>(null);
   const [filterOverdue, setFilterOverdue] = useState(false);
@@ -291,6 +292,7 @@ export default function TasksPage() {
     setFilterProject(null);
     setFilterOverdue(false);
     setShowSearch(false);
+    setShowFilter(false);
   };
 
   const exportCSV = () => {
@@ -435,6 +437,18 @@ export default function TasksPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
             </button>
+            <button
+              onClick={() => { setShowFilter((v) => !v); setShowSearch(false); }}
+              title="Фильтры"
+              className={`relative p-2 rounded-lg transition-colors ${showFilter || filterStatus !== null || filterProject !== null || filterOverdue ? 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20' : 'text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20'}`}
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z" />
+              </svg>
+              {(filterStatus !== null || filterProject !== null || filterOverdue) && (
+                <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-violet-500" />
+              )}
+            </button>
             {/* Settings dropdown */}
             <div className="relative" ref={settingsRef}>
               <button
@@ -534,8 +548,8 @@ export default function TasksPage() {
         </div>
       )}
 
-      {/* Filter tabs — always visible */}
-      <div className="mb-4 flex flex-wrap items-center gap-2">
+      {/* Filter tabs — visible when filter is toggled */}
+      {showFilter && <div className="mb-4 flex flex-wrap items-center gap-2">
         {/* Status tabs */}
         <div className="flex items-center gap-1 flex-wrap">
           <button
@@ -571,7 +585,7 @@ export default function TasksPage() {
             <option key={p.id} value={p.id}>{p.name}</option>
           ))}
         </select>
-      </div>
+      </div>}
 
       {loading ? (
         <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-8 text-center text-gray-500 dark:text-gray-400">Загрузка...</div>
