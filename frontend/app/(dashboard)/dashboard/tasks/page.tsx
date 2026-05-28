@@ -162,8 +162,12 @@ export default function TasksPage() {
     if (typeof window !== 'undefined') return (localStorage.getItem('dashViewMode') as 'table' | 'grid') || 'table';
     return 'table';
   });
-  // Quick create: pre-fill project
   const [quickCreateProjectId, setQuickCreateProjectId] = useState<number | undefined>(undefined);
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showFilter, setShowFilter] = useState(false);
+  const [filterStatus, setFilterStatus] = useState<number | null>(null);
+  const [filterProject, setFilterProject] = useState<number | null>(null);
 
   useEffect(() => { markTasksRead(); }, []);
 
@@ -253,6 +257,25 @@ export default function TasksPage() {
     });
   }, [tasks, sortKey, sortDir, users]);
 
+  const filteredTasks = useMemo(() => {
+    return sortedTasks.filter((t) => {
+      if (searchQuery && !t.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+      if (filterStatus !== null && t.status !== filterStatus) return false;
+      if (filterProject !== null && (t.projectId || t.project_id) !== filterProject) return false;
+      return true;
+    });
+  }, [sortedTasks, searchQuery, filterStatus, filterProject]);
+
+  const hasActiveFilters = searchQuery || filterStatus !== null || filterProject !== null;
+
+  const resetFilters = () => {
+    setSearchQuery('');
+    setFilterStatus(null);
+    setFilterProject(null);
+    setShowSearch(false);
+    setShowFilter(false);
+  };
+
   const handleCreate = (projectId?: number) => {
     setQuickCreateProjectId(projectId);
     setEditingTask(null);
@@ -308,8 +331,9 @@ export default function TasksPage() {
           {/* 4 action buttons */}
           <div className="flex items-center gap-0.5">
             <button
+              onClick={() => { setShowSearch((v) => !v); setShowFilter(false); }}
               title="Поиск"
-              className="p-2 text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors"
+              className={`relative p-2 rounded-lg transition-colors ${showSearch || searchQuery ? 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20' : 'text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20'}`}
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -325,16 +349,21 @@ export default function TasksPage() {
               </svg>
             </button>
             <button
+              onClick={() => { setShowFilter((v) => !v); setShowSearch(false); }}
               title="Фильтры"
-              className="p-2 text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors"
+              className={`relative p-2 rounded-lg transition-colors ${showFilter || filterStatus !== null || filterProject !== null ? 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20' : 'text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20'}`}
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z" />
               </svg>
+              {(filterStatus !== null || filterProject !== null) && (
+                <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-violet-500" />
+              )}
             </button>
             <button
-              title="Настройки"
-              className="p-2 text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors"
+              onClick={resetFilters}
+              title={hasActiveFilters ? 'Сбросить все фильтры' : 'Нет активных фильтров'}
+              className={`p-2 rounded-lg transition-colors ${hasActiveFilters ? 'text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20' : 'text-gray-300 dark:text-gray-600 cursor-default'}`}
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -366,15 +395,75 @@ export default function TasksPage() {
         </div>
       </div>
 
+      {/* Search bar */}
+      {showSearch && (
+        <div className="mb-3 flex items-center gap-2 bg-white dark:bg-gray-800 rounded-xl px-4 py-2.5 shadow-xs border border-gray-100 dark:border-gray-700">
+          <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            autoFocus
+            type="text"
+            placeholder="Поиск по названию задачи..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="flex-1 text-sm bg-transparent text-gray-800 dark:text-gray-100 placeholder-gray-400 outline-none"
+          />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Filter panel */}
+      {showFilter && (
+        <div className="mb-3 flex flex-wrap items-center gap-3 bg-white dark:bg-gray-800 rounded-xl px-4 py-3 shadow-xs border border-gray-100 dark:border-gray-700">
+          <select
+            value={filterStatus ?? ''}
+            onChange={(e) => setFilterStatus(e.target.value === '' ? null : Number(e.target.value))}
+            className="text-sm bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 outline-none focus:border-violet-400"
+          >
+            <option value="">Все статусы</option>
+            {Object.entries(STATUS_LABELS).map(([k, v]) => (
+              <option key={k} value={k}>{v.label}</option>
+            ))}
+          </select>
+          <select
+            value={filterProject ?? ''}
+            onChange={(e) => setFilterProject(e.target.value === '' ? null : Number(e.target.value))}
+            className="text-sm bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 outline-none focus:border-violet-400"
+          >
+            <option value="">Все проекты</option>
+            {(data?.projects ?? []).map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+          {(filterStatus !== null || filterProject !== null) && (
+            <button
+              onClick={() => { setFilterStatus(null); setFilterProject(null); }}
+              className="text-xs text-violet-600 dark:text-violet-400 hover:underline"
+            >
+              Сбросить
+            </button>
+          )}
+        </div>
+      )}
+
       {loading ? (
         <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-8 text-center text-gray-500 dark:text-gray-400">Загрузка...</div>
       ) : error ? (
         <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-8 text-center text-red-500">{error}</div>
-      ) : sortedTasks.length === 0 ? (
-        <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-8 text-center text-gray-500 dark:text-gray-400">Задачи не найдены</div>
+      ) : filteredTasks.length === 0 ? (
+        <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-8 text-center text-gray-500 dark:text-gray-400">
+          {hasActiveFilters ? 'Задачи не найдены — попробуйте изменить фильтры' : 'Задачи не найдены'}
+        </div>
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {sortedTasks.map((t) => {
+          {filteredTasks.map((t) => {
             const status = STATUS_LABELS[t.status] || STATUS_LABELS[0];
             const priority = PRIORITY_LABELS[t.priority] || PRIORITY_LABELS[2];
             const assignee = t.assignedToUser || t.assigned_to_user;
@@ -444,7 +533,7 @@ export default function TasksPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
-                {sortedTasks.flatMap((t) => {
+                {filteredTasks.flatMap((t) => {
                   const status = STATUS_LABELS[t.status] || STATUS_LABELS[0];
                   const priority = PRIORITY_LABELS[t.priority] || PRIORITY_LABELS[2];
                   const assignee = t.assignedToUser || t.assigned_to_user;
