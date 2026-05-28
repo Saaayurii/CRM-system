@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
@@ -9,7 +9,6 @@ import EmployeeFormModal from '@/components/dashboard/EmployeeFormModal';
 import EmployeeQuickViewModal from '@/components/employee/EmployeeQuickViewModal';
 import EmployeeEditModal from '@/components/employee/EmployeeEditModal';
 import EmployeeFullProfileModal from '@/components/employee/EmployeeFullProfileModal';
-import FilterPanel from '@/components/ui/FilterPanel';
 import { useDownloadPdf } from '@/lib/hooks/useDownloadPdf';
 import { FAB_CREATED_EVENT } from '@/components/ui/QuickActionsButton';
 
@@ -78,6 +77,18 @@ export default function EmployeesPage() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterRole, setFilterRole] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
+  const [showFilter, setShowFilter] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const settingsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (settingsRef.current && !settingsRef.current.contains(e.target as Node)) setShowSettings(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   const filteredEmployees = employees.filter((e) => {
     const roleId = e.roleId ?? e.role_id ?? 0;
@@ -133,12 +144,96 @@ export default function EmployeesPage() {
 
   return (
     <div>
-      <div className="sm:flex sm:justify-between sm:items-center mb-8">
+      <div className="sm:flex sm:justify-between sm:items-center mb-4">
         <div>
           <h1 className="text-2xl md:text-3xl text-gray-800 dark:text-gray-100 font-bold">Сотрудники</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Список всех сотрудников</p>
         </div>
-        <div className="flex items-center gap-3 mt-2 sm:mt-0">
+        <div className="flex items-center gap-2 mt-3 sm:mt-0">
+          <div className="flex items-center gap-0.5">
+            <button
+              onClick={() => { setShowSearch((v) => !v); setShowFilter(false); }}
+              title="Поиск"
+              className={`p-2 rounded-lg transition-colors ${showSearch || searchQuery ? 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20' : 'text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20'}`}
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </button>
+            {canEdit && (
+              <button
+                onClick={() => setCreating(true)}
+                title="Создать сотрудника"
+                className="p-2 text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
+            )}
+            <button
+              onClick={() => { setShowFilter((v) => !v); setShowSearch(false); }}
+              title="Фильтры"
+              className={`relative p-2 rounded-lg transition-colors ${showFilter || filterRole ? 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20' : 'text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20'}`}
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z" />
+              </svg>
+              {filterRole && <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-violet-500" />}
+            </button>
+            <div className="relative" ref={settingsRef}>
+              <button
+                onClick={() => setShowSettings((v) => !v)}
+                title="Экспорт и настройки"
+                className={`p-2 rounded-lg transition-colors ${showSettings ? 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20' : 'text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20'}`}
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </button>
+              {showSettings && (
+                <div className="absolute right-0 top-full mt-1 w-52 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl py-1.5 z-50">
+                  <button
+                    onClick={() => { downloadPdf('employees', 'Сотрудники', employees.map((e) => ({ Имя: e.name || '—', Email: e.email, Роль: e.role?.name || ROLE_NAMES[e.roleId || e.role_id || 0] || '—', Должность: e.position || '—', Статус: (e.isActive ?? e.is_active ?? true) ? 'Активен' : 'Неактивен' }))); setShowSettings(false); }}
+                    disabled={pdfLoading || employees.length === 0}
+                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/60 transition-colors disabled:opacity-50"
+                  >
+                    <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    {pdfLoading ? 'PDF...' : 'Скачать PDF'}
+                  </button>
+                  {canManageInvites && (
+                    <Link
+                      href="/dashboard/employees/invites"
+                      onClick={() => setShowSettings(false)}
+                      className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/60 transition-colors"
+                    >
+                      <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                      </svg>
+                      Заявки и инвайты
+                    </Link>
+                  )}
+                  {hasActiveFilters && (
+                    <>
+                      <div className="mx-3 my-1 border-t border-gray-100 dark:border-gray-700" />
+                      <button
+                        onClick={() => { setSearchQuery(''); setFilterRole(''); setShowSettings(false); }}
+                        className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"
+                      >
+                        <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        Сбросить фильтры
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
           <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
             <button
               onClick={() => handleViewMode('table')}
@@ -159,60 +254,51 @@ export default function EmployeesPage() {
               </svg>
             </button>
           </div>
-          <button
-            onClick={() => downloadPdf('employees', 'Сотрудники', employees.map((e) => ({
-              Имя: e.name || '—',
-              Email: e.email,
-              Роль: e.role?.name || ROLE_NAMES[e.roleId || e.role_id || 0] || '—',
-              Должность: e.position || '—',
-              Статус: (e.isActive ?? e.is_active ?? true) ? 'Активен' : 'Неактивен',
-            })))}
-            disabled={pdfLoading || employees.length === 0}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:border-violet-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors disabled:opacity-50"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            {pdfLoading ? 'PDF...' : 'PDF'}
-          </button>
-          {canManageInvites && (
-            <Link
-              href="/dashboard/employees/invites"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:border-violet-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors"
-              title="Заявки и инвайты"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
-              </svg>
-              Заявки и инвайты
-            </Link>
-          )}
-          <Link href="/dashboard" className="text-sm text-violet-500 hover:text-violet-600">
-            &larr; Назад
-          </Link>
-          {canEdit && (
-            <button
-              onClick={() => setCreating(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg bg-violet-500 hover:bg-violet-600 text-white font-medium transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
-              Создать
-            </button>
-          )}
         </div>
       </div>
 
-      <FilterPanel
-        hasActiveFilters={!!hasActiveFilters}
-        onReset={() => { setSearchQuery(''); setFilterRole(''); }}
-        fields={[
-          { type: 'search', key: 'search', placeholder: 'Поиск по имени или email...', value: searchQuery, onChange: setSearchQuery },
-          { type: 'select', key: 'role', placeholder: 'Все роли', value: filterRole, onChange: setFilterRole,
-            options: Object.entries(ROLE_NAMES).filter(([k]) => k !== '1').map(([v, label]) => ({ value: v, label })) },
-        ]}
-      />
+      {showSearch && (
+        <div className="mb-3 flex items-center gap-2 bg-white dark:bg-gray-800 rounded-xl px-4 py-2.5 shadow-xs border border-gray-100 dark:border-gray-700">
+          <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            autoFocus
+            type="text"
+            placeholder="Поиск по имени или email..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="flex-1 text-sm bg-transparent text-gray-800 dark:text-gray-100 placeholder-gray-400 outline-none"
+          />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+      )}
+
+      {showFilter && (
+        <div className="mb-4 flex items-center gap-3 bg-white dark:bg-gray-800 rounded-xl px-4 py-3 shadow-xs border border-gray-100 dark:border-gray-700">
+          <select
+            value={filterRole}
+            onChange={(e) => setFilterRole(e.target.value)}
+            className="text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none"
+          >
+            <option value="">Все роли</option>
+            {Object.entries(ROLE_NAMES).filter(([k]) => k !== '1').map(([v, label]) => (
+              <option key={v} value={v}>{label}</option>
+            ))}
+          </select>
+          {filterRole && (
+            <button onClick={() => setFilterRole('')} className="text-xs text-gray-400 hover:text-red-500 transition-colors">
+              Сбросить
+            </button>
+          )}
+        </div>
+      )}
 
       {loading ? (
         <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-8 text-center text-gray-500 dark:text-gray-400">Загрузка...</div>
