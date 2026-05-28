@@ -407,6 +407,7 @@ export default function TasksPage() {
     { key: 'creator',   label: 'Поставил' },
     { key: 'dueDate',   label: 'Срок' },
     { key: 'updatedAt', label: 'Изменён' },
+    { key: null,        label: '' },
   ];
 
   return (
@@ -762,13 +763,43 @@ export default function TasksPage() {
                       <td className="py-2.5 px-4 whitespace-nowrap text-gray-500 dark:text-gray-400 text-sm">
                         {formatDate(updatedAt)}
                       </td>
+                      {/* Действия */}
+                      <td className="py-2.5 px-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center gap-0.5 opacity-0 group-hover/row:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => handleEdit(t)}
+                            title="Редактировать"
+                            className="p-1.5 text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => handleDelete(t.id)}
+                            disabled={deletingId === t.id}
+                            title="Удалить"
+                            className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-40"
+                          >
+                            {deletingId === t.id ? (
+                              <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v4m0 8v4M4 12H8m8 0h4" />
+                              </svg>
+                            ) : (
+                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            )}
+                          </button>
+                        </div>
+                      </td>
                     </tr>,
                   ];
 
                   if (total > 0) {
                     rows.push(
                       <tr key={`${t.id}-prog`} className={overdue ? 'bg-red-50/70 dark:bg-red-900/10' : ''}>
-                        <td colSpan={8} className="px-0 pb-1.5 pt-0 border-0">
+                        <td colSpan={9} className="px-0 pb-1.5 pt-0 border-0">
                           <div className="mx-4 flex items-center gap-2">
                             <div className="flex-1 h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                               <div

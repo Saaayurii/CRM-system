@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import Link from 'next/link';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import api from '@/lib/api';
 import { formatMoney } from '@/lib/utils';
@@ -440,16 +439,7 @@ export default function FinancePage() {
     <div className="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-9xl mx-auto">
       <div className="mb-4 flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <Link
-            href="/dashboard"
-            className="text-sm text-violet-500 hover:text-violet-600 flex items-center gap-1"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-            </svg>
-            Назад к панели управления
-          </Link>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-gray-100 mt-2">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-gray-100">
             Финансы
           </h1>
           {tab !== 'documents' && (dateFrom || dateTo) && (
