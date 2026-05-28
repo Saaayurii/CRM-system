@@ -38,6 +38,13 @@ interface ChecklistItem {
   completedAt?: string;
   approvedBy?: number;
   approvedAt?: string;
+  // Extended fields (stored in JSONB, no migration needed)
+  assigneeId?: number;
+  assigneeName?: string;
+  dueDate?: string;
+  priority?: number;
+  createdAt?: string;
+  createdByUserId?: number;
 }
 
 interface ChecklistGroup {
@@ -117,6 +124,28 @@ const SUBTASK_STATUS_LABELS: Record<number, { label: string; bg: string; text: s
   3: { label: 'Выполнена',      bg: 'bg-green-500 dark:bg-green-500',   text: 'text-green-700 dark:text-green-300' },
   4: { label: 'Отклонена',      bg: 'bg-red-400 dark:bg-red-500',       text: 'text-red-700 dark:text-red-300' },
 };
+
+const SUBTASK_STATUS_TABLE: Record<number, { label: string; dotClass: string; textClass: string }> = {
+  0: { label: 'Новая',          dotClass: 'bg-gray-400 dark:bg-gray-500',    textClass: 'text-gray-500 dark:text-gray-400' },
+  1: { label: 'В работе',       dotClass: 'bg-blue-500',                     textClass: 'text-blue-600 dark:text-blue-400' },
+  2: { label: 'На утверждении', dotClass: 'bg-yellow-500',                   textClass: 'text-yellow-600 dark:text-yellow-400' },
+  3: { label: 'Выполнена',      dotClass: 'bg-green-500',                    textClass: 'text-green-600 dark:text-green-400' },
+  4: { label: 'Отклонена',      dotClass: 'bg-red-500',                      textClass: 'text-red-600 dark:text-red-400' },
+};
+
+const SUBTASK_PRIORITY_TABLE: Record<number, { label: string; cls: string }> = {
+  1: { label: 'Низкий',      cls: 'bg-gray-100 dark:bg-gray-700/60 text-gray-600 dark:text-gray-400' },
+  2: { label: 'Средний',     cls: 'bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400' },
+  3: { label: 'Высокий',     cls: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' },
+  4: { label: 'Критический', cls: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' },
+};
+
+function isItemOverdue(item: ChecklistItem): boolean {
+  if (!item.dueDate) return false;
+  const st = typeof item.status === 'number' ? item.status : (item.checked ? 3 : 0);
+  if (st === 3 || st === 4) return false;
+  return new Date(item.dueDate).getTime() < Date.now();
+}
 
 function getItemStatus(item: ChecklistItem): number {
   if (typeof item.status === 'number') return item.status;
@@ -553,6 +582,8 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
   // Drag & drop
   const dragItemRef = useRef<{ groupId: string; itemId: string } | null>(null);
   const dragOverItemRef = useRef<{ groupId: string; itemId: string } | null>(null);
+  // Inline cell editing for subtask table fields
+  const [editingCell, setEditingCell] = useState<{ itemId: string; field: 'status' | 'assignee' | 'dueDate' | 'priority' } | null>(null);
 
   // Assignees
   const [assignees, setAssignees] = useState<Assignee[]>(() =>
@@ -870,8 +901,19 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
     updateChecklists((prev) => prev.map((g) => g.id === gid ? { ...g, title: t } : g));
   const addItem = (gid: string) => {
     const newId = uid();
-    updateChecklists((prev) => prev.map((g) => g.id === gid ? { ...g, items: [...g.items, { id: newId, text: '', checked: false }] } : g));
+    const newItem: ChecklistItem = {
+      id: newId, text: '', checked: false,
+      createdAt: new Date().toISOString(),
+      createdByUserId: user ? Number(user.id) : undefined,
+    };
+    updateChecklists((prev) => prev.map((g) => g.id === gid ? { ...g, items: [...g.items, newItem] } : g));
     setEditingItemId(newId);
+  };
+
+  const updateItemField = (gid: string, iid: string, fields: Partial<ChecklistItem>) => {
+    updateChecklists((prev) => prev.map((g) => g.id === gid ? {
+      ...g, items: g.items.map((i) => i.id === iid ? { ...i, ...fields } : i),
+    } : g));
   };
   const removeItem = (gid: string, iid: string) =>
     updateChecklists((prev) => prev.map((g) => g.id === gid ? { ...g, items: g.items.filter((i) => i.id !== iid) } : g));
@@ -1591,173 +1633,246 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                     </>
                   )}
                   {!group.collapsed && (
-                    <>
-                      {/* Add item button at the top */}
-                      <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-700/30">
-                        <button
-                          onClick={() => addItem(group.id)}
-                          className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-violet-500 transition-colors"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                          </svg>
-                          Добавить подзадачу
-                        </button>
-                      </div>
-                      {/* Items list */}
-                      <div className="divide-y divide-gray-100 dark:divide-gray-700/30">
-                        {group.items.map((item) => {
-                          const itemStatus = getItemStatus(item);
-                          const statusInfo = SUBTASK_STATUS_LABELS[itemStatus];
-                          const isPending = itemStatus === SUBTASK_STATUS.PENDING_APPROVAL;
-                          const isDone = itemStatus === SUBTASK_STATUS.DONE;
-                          const isRejected = itemStatus === SUBTASK_STATUS.REJECTED;
-                          return (
-                            <div
-                              key={item.id}
-                              id={`checklist-item-${item.id}`}
-                              onDragOver={(e) => handleDragOver(e, group.id, item.id)}
-                              onDrop={() => handleDrop(group.id)}
-                              className={`flex items-start gap-2 px-3 py-2.5 group/item transition-colors duration-300 ${highlightedItemId === item.id ? 'bg-violet-50 dark:bg-violet-900/20' : ''}`}
-                            >
-                              {/* Drag handle */}
-                              <div
-                                draggable
-                                onDragStart={(e) => { e.stopPropagation(); dragItemRef.current = { groupId: group.id, itemId: item.id }; }}
-                                onDragEnd={() => { dragItemRef.current = null; dragOverItemRef.current = null; }}
-                                className="opacity-0 group-hover/item:opacity-40 hover:!opacity-80 cursor-grab active:cursor-grabbing shrink-0 mt-1 pt-0.5 text-gray-400 select-none"
-                                title="Перетащить"
-                              >
-                                <svg className="w-3 h-3" viewBox="0 0 10 16" fill="currentColor">
-                                  <circle cx="3" cy="2" r="1.5" /><circle cx="3" cy="8" r="1.5" /><circle cx="3" cy="14" r="1.5" />
-                                  <circle cx="7" cy="2" r="1.5" /><circle cx="7" cy="8" r="1.5" /><circle cx="7" cy="14" r="1.5" />
-                                </svg>
-                              </div>
-                              {/* Checkbox */}
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm min-w-[600px]">
+                        <thead>
+                          <tr className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider border-b border-gray-100 dark:border-gray-700/40 bg-gray-50/60 dark:bg-gray-800/30">
+                            <th className="px-3 py-2 text-left font-semibold">Статус</th>
+                            <th className="px-3 py-2 text-left font-semibold">Название подзадачи</th>
+                            <th className="px-3 py-2 text-left font-semibold whitespace-nowrap">Исполнитель</th>
+                            <th className="px-3 py-2 text-left font-semibold">Срок</th>
+                            <th className="px-3 py-2 text-left font-semibold">Приоритет</th>
+                            <th className="px-3 py-2 text-left font-semibold">Создано</th>
+                            <th className="px-2 py-2 w-14">
                               <button
-                                onClick={() => toggleItem(group.id, item.id)}
-                                title={statusInfo?.label}
-                                className={`w-5 h-5 shrink-0 mt-0.5 rounded border-2 flex items-center justify-center transition-colors ${
-                                  isDone ? 'bg-green-500 border-green-500'
-                                  : isPending ? 'bg-yellow-400 border-yellow-400'
-                                  : isRejected ? 'bg-red-400 border-red-400'
-                                  : 'border-gray-300 dark:border-gray-600 hover:border-violet-400'
-                                }`}
+                                onClick={() => addItem(group.id)}
+                                title="Добавить подзадачу"
+                                className="flex items-center gap-1 text-gray-400 hover:text-violet-500 transition-colors text-[10px] font-normal normal-case tracking-normal"
                               >
-                                {isDone && (
-                                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                  </svg>
-                                )}
-                                {isPending && (
-                                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4l3 3" />
-                                    <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth={2.5} fill="none" />
-                                  </svg>
-                                )}
-                                {isRejected && (
-                                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-                                  </svg>
-                                )}
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                                Добавить
                               </button>
-                              {/* Item text */}
-                              <div className="flex-1 min-w-0">
-                                {editingItemId === item.id ? (
-                                  <AutoResizeTextarea
-                                    value={item.text}
-                                    onChange={(v) => updateItemText(group.id, item.id, v)}
-                                    className={`w-full text-sm bg-transparent outline-none border-none focus:ring-0 resize-none overflow-hidden leading-normal ${isDone ? 'line-through text-gray-400' : isRejected ? 'text-red-500 dark:text-red-400' : 'text-gray-700 dark:text-gray-300'}`}
-                                    placeholder={assignees.length > 0 ? 'Введите пункт, @ — упомянуть исполнителя' : 'Введите пункт...'}
-                                    autoFocus
-                                    onBlur={() => {
-                                      if (!item.text.trim()) removeItem(group.id, item.id);
-                                      setEditingItemId(null);
-                                    }}
-                                    mentionCandidates={assignees.map((a) => ({
-                                      userId: a.userId,
-                                      userName: a.userName || (userMap[a.userId] ? userName(userMap[a.userId]) : `#${a.userId}`),
-                                      avatarUrl: userMap[a.userId]?.avatarUrl,
-                                    }))}
-                                  />
-                                ) : (
-                                  <div
-                                    onClick={() => setEditingItemId(item.id)}
-                                    className={`w-full text-sm leading-normal cursor-text whitespace-pre-wrap break-words min-h-[1.25rem] ${isDone ? 'line-through text-gray-400' : isRejected ? 'text-red-500 dark:text-red-400' : 'text-gray-700 dark:text-gray-300'}`}
-                                  >
-                                    {item.text ? renderTextWithLinks(item.text, (uid) => {
-                                      const u = userMap[uid];
-                                      if (u) setEmployeeCard({ user: u });
-                                    }) : <span className="text-gray-400">{assignees.length > 0 ? 'Введите пункт, @ — упомянуть исполнителя' : 'Введите пункт...'}</span>}
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 dark:divide-gray-700/30">
+                          {group.items.map((item) => {
+                            const itemStatus = getItemStatus(item);
+                            const isPending = itemStatus === SUBTASK_STATUS.PENDING_APPROVAL;
+                            const isDone = itemStatus === SUBTASK_STATUS.DONE;
+                            const isRejected = itemStatus === SUBTASK_STATUS.REJECTED;
+                            const overdue = isItemOverdue(item);
+                            const statusDisplay = overdue
+                              ? { label: 'Просрочена', dotClass: 'bg-red-500', textClass: 'text-red-500 dark:text-red-400' }
+                              : (SUBTASK_STATUS_TABLE[itemStatus] || SUBTASK_STATUS_TABLE[0]);
+                            const priorityInfo = item.priority ? SUBTASK_PRIORITY_TABLE[item.priority] : null;
+                            const isEditingStatus = editingCell?.itemId === item.id && editingCell.field === 'status';
+                            const isEditingAssignee = editingCell?.itemId === item.id && editingCell.field === 'assignee';
+                            const isEditingDate = editingCell?.itemId === item.id && editingCell.field === 'dueDate';
+                            const isEditingPriority = editingCell?.itemId === item.id && editingCell.field === 'priority';
+                            return (
+                              <tr
+                                key={item.id}
+                                id={`checklist-item-${item.id}`}
+                                onDragOver={(e) => handleDragOver(e, group.id, item.id)}
+                                onDrop={() => handleDrop(group.id)}
+                                className={`group/item transition-colors ${highlightedItemId === item.id ? 'bg-violet-50 dark:bg-violet-900/10' : 'hover:bg-gray-50 dark:hover:bg-gray-800/20'}`}
+                              >
+                                {/* Status */}
+                                <td className="px-3 py-2 whitespace-nowrap">
+                                  <div className="flex items-center gap-1">
+                                    {isEditingStatus ? (
+                                      <select
+                                        autoFocus
+                                        value={itemStatus}
+                                        onChange={(e) => { setSubtaskStatus(group.id, item.id, Number(e.target.value)); setEditingCell(null); }}
+                                        onBlur={() => setEditingCell(null)}
+                                        className="text-xs border border-gray-200 dark:border-gray-600 rounded px-1 py-0.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 outline-none"
+                                      >
+                                        {Object.entries(SUBTASK_STATUS_TABLE).map(([k, v]) => (
+                                          <option key={k} value={k}>{v.label}</option>
+                                        ))}
+                                      </select>
+                                    ) : (
+                                      <button
+                                        onClick={() => setEditingCell({ itemId: item.id, field: 'status' })}
+                                        className="flex items-center gap-1.5 hover:opacity-75 transition-opacity"
+                                        title="Изменить статус"
+                                      >
+                                        <span className={`w-2 h-2 rounded-full shrink-0 ${statusDisplay.dotClass}`} />
+                                        <span className={`text-xs font-medium ${statusDisplay.textClass}`}>{statusDisplay.label}</span>
+                                      </button>
+                                    )}
+                                    {/* ⓘ history */}
+                                    {item.text && !isNew && (
+                                      <button
+                                        className="opacity-0 group-hover/item:opacity-50 hover:!opacity-100 p-0.5 text-gray-400 hover:text-violet-500 shrink-0 transition-all ml-0.5"
+                                        title="История подзадачи"
+                                        onMouseEnter={(e) => showHistoryTooltip(e, item.id)}
+                                        onMouseLeave={hideHistoryTooltip}
+                                        onClick={(e) => { e.stopPropagation(); setHistoryPanelItemId(item.id); setSidebarCollapsed(false); setHistoryTooltip(null); }}
+                                      >
+                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                      </button>
+                                    )}
+                                    {/* Approve/Reject for pending */}
+                                    {isPending && canApproveSubtasks && (
+                                      <div className="flex items-center gap-0.5 opacity-0 group-hover/item:opacity-100 transition-opacity ml-0.5">
+                                        <button onClick={() => setSubtaskStatus(group.id, item.id, SUBTASK_STATUS.DONE)} title="Утвердить" className="p-0.5 text-green-500 hover:bg-green-50 dark:hover:bg-green-900/30 rounded">
+                                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                                        </button>
+                                        <button onClick={() => setSubtaskStatus(group.id, item.id, SUBTASK_STATUS.REJECTED)} title="Отклонить" className="p-0.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded">
+                                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+                                        </button>
+                                      </div>
+                                    )}
                                   </div>
-                                )}
-                                {(isPending || isDone || isRejected) && item.completedByName && (
-                                  <p className="text-[10px] text-gray-400 mt-0.5">
-                                    {statusInfo?.label}
-                                    {(isPending || isDone) ? ' · Система' : (item.completedByName ? ` · ${item.completedByName}` : '')}
-                                    {item.completedAt ? ` · ${new Date(item.completedAt).toLocaleString('ru-RU', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}` : ''}
-                                  </p>
-                                )}
-                              </div>
-                              {/* Approve/Reject */}
-                              {isPending && canApproveSubtasks && (
-                                <div className="flex items-center gap-1 shrink-0">
-                                  <button
-                                    onClick={() => setSubtaskStatus(group.id, item.id, SUBTASK_STATUS.DONE)}
-                                    title="Утвердить"
-                                    className="p-1 text-green-500 hover:bg-green-50 dark:hover:bg-green-900/30 rounded"
-                                  >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                                    </svg>
-                                  </button>
-                                  <button
-                                    onClick={() => setSubtaskStatus(group.id, item.id, SUBTASK_STATUS.REJECTED)}
-                                    title="Отклонить"
-                                    className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded"
-                                  >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                  </button>
-                                </div>
-                              )}
-                              {/* History ⓘ button */}
-                              {item.text && !isNew && (
-                                <button
-                                  className="opacity-0 group-hover/item:opacity-60 hover:!opacity-100 p-0.5 text-gray-400 hover:text-violet-500 shrink-0 transition-all"
-                                  title="История подзадачи"
-                                  onMouseEnter={(e) => showHistoryTooltip(e, item.id)}
-                                  onMouseLeave={hideHistoryTooltip}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setHistoryPanelItemId(item.id);
-                                    setSidebarCollapsed(false);
-                                    setHistoryTooltip(null);
-                                  }}
-                                >
-                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                  </svg>
-                                </button>
-                              )}
-                              {/* Delete (admin/creator only) */}
-                              {canApproveSubtasks && (
-                                <button
-                                  onClick={() => removeItem(group.id, item.id)}
-                                  className="opacity-0 group-hover/item:opacity-100 text-gray-300 hover:text-red-400 transition-all shrink-0"
-                                  title="Удалить подзадачу"
-                                >
-                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                  </svg>
-                                </button>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </>
+                                </td>
+                                {/* Name */}
+                                <td className="px-3 py-2 max-w-[220px]">
+                                  {editingItemId === item.id ? (
+                                    <AutoResizeTextarea
+                                      value={item.text}
+                                      onChange={(v) => updateItemText(group.id, item.id, v)}
+                                      className={`w-full text-sm bg-transparent outline-none border-none focus:ring-0 resize-none overflow-hidden leading-normal ${isDone ? 'line-through text-gray-400' : isRejected ? 'text-red-500 dark:text-red-400' : 'text-gray-700 dark:text-gray-300'}`}
+                                      placeholder="Введите название подзадачи..."
+                                      autoFocus
+                                      onBlur={() => { if (!item.text.trim()) removeItem(group.id, item.id); setEditingItemId(null); }}
+                                      mentionCandidates={assignees.map((a) => ({
+                                        userId: a.userId,
+                                        userName: a.userName || (userMap[a.userId] ? userName(userMap[a.userId]) : `#${a.userId}`),
+                                        avatarUrl: userMap[a.userId]?.avatarUrl,
+                                      }))}
+                                    />
+                                  ) : (
+                                    <div
+                                      onClick={() => setEditingItemId(item.id)}
+                                      className={`text-sm cursor-text leading-normal whitespace-pre-wrap break-words min-h-[1.25rem] ${isDone ? 'line-through text-gray-400' : isRejected ? 'text-red-500 dark:text-red-400' : 'text-gray-700 dark:text-gray-300'}`}
+                                    >
+                                      {item.text
+                                        ? renderTextWithLinks(item.text, (uid) => { const u = userMap[uid]; if (u) setEmployeeCard({ user: u }); })
+                                        : <span className="text-gray-400 dark:text-gray-600">Введите название...</span>
+                                      }
+                                    </div>
+                                  )}
+                                </td>
+                                {/* Assignee */}
+                                <td className="px-3 py-2 whitespace-nowrap">
+                                  {isEditingAssignee ? (
+                                    <select
+                                      autoFocus
+                                      value={item.assigneeId || ''}
+                                      onChange={(e) => {
+                                        const uid = Number(e.target.value) || undefined;
+                                        const asgn = uid ? assignees.find((a) => a.userId === uid) : undefined;
+                                        updateItemField(group.id, item.id, { assigneeId: uid, assigneeName: asgn?.userName || (uid ? `#${uid}` : undefined) });
+                                        setEditingCell(null);
+                                      }}
+                                      onBlur={() => setEditingCell(null)}
+                                      className="text-xs border border-gray-200 dark:border-gray-600 rounded px-1 py-0.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 outline-none max-w-[130px]"
+                                    >
+                                      <option value="">— Не назначен —</option>
+                                      {assignees.map((a) => (
+                                        <option key={a.userId} value={a.userId}>{a.userName || `#${a.userId}`}</option>
+                                      ))}
+                                    </select>
+                                  ) : (
+                                    <span
+                                      onClick={() => setEditingCell({ itemId: item.id, field: 'assignee' })}
+                                      className="text-sm text-gray-600 dark:text-gray-400 cursor-pointer hover:text-violet-500 transition-colors"
+                                      title="Нажмите для выбора исполнителя"
+                                    >
+                                      {item.assigneeName || <span className="text-gray-300 dark:text-gray-600">—</span>}
+                                    </span>
+                                  )}
+                                </td>
+                                {/* Due date */}
+                                <td className="px-3 py-2 whitespace-nowrap">
+                                  {isEditingDate ? (
+                                    <input
+                                      type="date"
+                                      autoFocus
+                                      value={item.dueDate || ''}
+                                      onChange={(e) => updateItemField(group.id, item.id, { dueDate: e.target.value || undefined })}
+                                      onBlur={() => setEditingCell(null)}
+                                      className="text-xs border border-gray-200 dark:border-gray-600 rounded px-1 py-0.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 outline-none"
+                                    />
+                                  ) : (
+                                    <span
+                                      onClick={() => setEditingCell({ itemId: item.id, field: 'dueDate' })}
+                                      className={`text-sm cursor-pointer transition-colors ${overdue ? 'text-red-500 dark:text-red-400 font-medium' : 'text-gray-600 dark:text-gray-400 hover:text-violet-500'}`}
+                                      title="Нажмите для изменения срока"
+                                    >
+                                      {item.dueDate ? new Date(item.dueDate).toLocaleDateString('ru-RU') : <span className="text-gray-300 dark:text-gray-600">—</span>}
+                                    </span>
+                                  )}
+                                </td>
+                                {/* Priority */}
+                                <td className="px-3 py-2 whitespace-nowrap">
+                                  {isEditingPriority ? (
+                                    <select
+                                      autoFocus
+                                      value={item.priority || ''}
+                                      onChange={(e) => { updateItemField(group.id, item.id, { priority: e.target.value ? Number(e.target.value) : undefined }); setEditingCell(null); }}
+                                      onBlur={() => setEditingCell(null)}
+                                      className="text-xs border border-gray-200 dark:border-gray-600 rounded px-1 py-0.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 outline-none"
+                                    >
+                                      <option value="">— Без —</option>
+                                      <option value="1">Низкий</option>
+                                      <option value="2">Средний</option>
+                                      <option value="3">Высокий</option>
+                                      <option value="4">Критический</option>
+                                    </select>
+                                  ) : (
+                                    <span
+                                      onClick={() => setEditingCell({ itemId: item.id, field: 'priority' })}
+                                      className={`text-xs font-medium px-2 py-0.5 rounded cursor-pointer hover:opacity-75 transition-opacity ${priorityInfo ? priorityInfo.cls : 'text-gray-300 dark:text-gray-600'}`}
+                                      title="Нажмите для изменения приоритета"
+                                    >
+                                      {priorityInfo ? priorityInfo.label : '—'}
+                                    </span>
+                                  )}
+                                </td>
+                                {/* Created */}
+                                <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-400 dark:text-gray-500">
+                                  {item.createdAt ? new Date(item.createdAt).toLocaleDateString('ru-RU') : '—'}
+                                </td>
+                                {/* Actions */}
+                                <td className="px-2 py-2">
+                                  <div className="flex items-center gap-0.5 opacity-0 group-hover/item:opacity-100 transition-opacity">
+                                    <div
+                                      draggable
+                                      onDragStart={(e) => { e.stopPropagation(); dragItemRef.current = { groupId: group.id, itemId: item.id }; }}
+                                      onDragEnd={() => { dragItemRef.current = null; dragOverItemRef.current = null; }}
+                                      className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 select-none p-0.5"
+                                      title="Перетащить"
+                                    >
+                                      <svg className="w-3 h-3" viewBox="0 0 10 16" fill="currentColor">
+                                        <circle cx="3" cy="2" r="1.5" /><circle cx="3" cy="8" r="1.5" /><circle cx="3" cy="14" r="1.5" />
+                                        <circle cx="7" cy="2" r="1.5" /><circle cx="7" cy="8" r="1.5" /><circle cx="7" cy="14" r="1.5" />
+                                      </svg>
+                                    </div>
+                                    {canApproveSubtasks && (
+                                      <button
+                                        onClick={() => removeItem(group.id, item.id)}
+                                        className="text-gray-300 hover:text-red-400 transition-colors p-0.5"
+                                        title="Удалить подзадачу"
+                                      >
+                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                      </button>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
                   )}
                 </div>
               );
