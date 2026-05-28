@@ -2229,6 +2229,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
             style={{ top: historyTooltip.y + 6, left }}
             onMouseEnter={keepHistoryTooltip}
             onMouseLeave={hideHistoryTooltip}
+            onClick={(e) => e.stopPropagation()}
           >
             <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">История (последние события)</p>
             {tEvents.length === 0 ? (

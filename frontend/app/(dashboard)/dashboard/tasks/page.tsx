@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
@@ -163,13 +163,29 @@ export default function TasksPage() {
     return 'table';
   });
   const [quickCreateProjectId, setQuickCreateProjectId] = useState<number | undefined>(undefined);
+  const historyCache = useRef<Record<number, any[]>>({});
+  const tooltipTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const settingsRef = useRef<HTMLDivElement>(null);
+  const [historyTooltip, setHistoryTooltip] = useState<{ taskId: number; x: number; y: number; events: any[] } | null>(null);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [showFilter, setShowFilter] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [filterStatus, setFilterStatus] = useState<number | null>(null);
   const [filterProject, setFilterProject] = useState<number | null>(null);
+  const [filterOverdue, setFilterOverdue] = useState(false);
+  const [historyTask, setHistoryTask] = useState<Task | null>(null);
+  const [historyEvents, setHistoryEvents] = useState<any[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   useEffect(() => { markTasksRead(); }, []);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (settingsRef.current && !settingsRef.current.contains(e.target as Node)) setShowSettings(false);
+    };
+    if (showSettings) document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showSettings]);
 
   const { data, loading, error, refetch } =
     useOfflineData<TasksPageData>(fetchTasksPageData, 'tasks-page');
@@ -262,18 +278,89 @@ export default function TasksPage() {
       if (searchQuery && !t.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
       if (filterStatus !== null && t.status !== filterStatus) return false;
       if (filterProject !== null && (t.projectId || t.project_id) !== filterProject) return false;
+      if (filterOverdue && !isTaskOverdue(t)) return false;
       return true;
     });
-  }, [sortedTasks, searchQuery, filterStatus, filterProject]);
+  }, [sortedTasks, searchQuery, filterStatus, filterProject, filterOverdue]);
 
-  const hasActiveFilters = searchQuery || filterStatus !== null || filterProject !== null;
+  const hasActiveFilters = !!(searchQuery || filterStatus !== null || filterProject !== null || filterOverdue);
 
   const resetFilters = () => {
     setSearchQuery('');
     setFilterStatus(null);
     setFilterProject(null);
+    setFilterOverdue(false);
     setShowSearch(false);
-    setShowFilter(false);
+  };
+
+  const exportCSV = () => {
+    const headers = ['Название', 'Проект', 'Статус', 'Приоритет', 'Исполнитель', 'Поставил', 'Срок', 'Изменён'];
+    const rows = filteredTasks.map((t) => {
+      const status = STATUS_LABELS[t.status]?.label || '';
+      const priority = PRIORITY_LABELS[t.priority]?.label || '';
+      const assigneeName =
+        t.assignees?.length
+          ? t.assignees.map((a) => resolveAssigneeName(a.userId, a.userName ?? null)).join('; ')
+          : t.assignedToUser?.name || t.assigned_to_user?.name || '—';
+      const creatorId = t.createdByUserId || t.created_by_user_id;
+      const creatorUser = creatorId ? users.find((u) => u.id === creatorId) : null;
+      const creatorName = !creatorId || creatorUser?.roleId === 1 ? 'Система' : (creatorUser?.name || '—');
+      return [
+        t.title, t.project?.name || '—', status, priority,
+        assigneeName, creatorName,
+        formatDate(t.dueDate || t.due_date),
+        formatDate(t.updatedAt || t.updated_at),
+      ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',');
+    });
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `задачи_${new Date().toLocaleDateString('ru-RU').replace(/\./g, '-')}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const fetchTaskComments = async (taskId: number) => {
+    if (historyCache.current[taskId]) return historyCache.current[taskId];
+    const res = await api.get('/task-comments', { params: { taskId, limit: 200 } });
+    const raw: any[] = Array.isArray(res.data) ? res.data : (res.data?.data || res.data?.comments || []);
+    const sorted = raw.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    historyCache.current[taskId] = sorted;
+    return sorted;
+  };
+
+  const showTaskHistory = (e: React.MouseEvent, taskId: number) => {
+    if (tooltipTimer.current) clearTimeout(tooltipTimer.current);
+    const rect = e.currentTarget.getBoundingClientRect();
+    tooltipTimer.current = setTimeout(async () => {
+      try {
+        const events = await fetchTaskComments(taskId);
+        setHistoryTooltip({ taskId, x: rect.left, y: rect.bottom, events: [...events].reverse().slice(0, 3) });
+      } catch {}
+    }, 250);
+  };
+  const hideTaskHistory = () => {
+    tooltipTimer.current = setTimeout(() => setHistoryTooltip(null), 150);
+  };
+  const keepTaskHistory = () => {
+    if (tooltipTimer.current) clearTimeout(tooltipTimer.current);
+  };
+
+  const openTaskHistory = async (task: Task) => {
+    setHistoryTask(task);
+    setHistoryEvents([]);
+    setHistoryLoading(true);
+    setHistoryTooltip(null);
+    try {
+      const events = await fetchTaskComments(task.id);
+      setHistoryEvents(events);
+    } catch {
+      setHistoryEvents([]);
+    } finally {
+      setHistoryLoading(false);
+    }
   };
 
   const handleCreate = (projectId?: number) => {
@@ -328,10 +415,10 @@ export default function TasksPage() {
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Управление задачами проекта</p>
         </div>
         <div className="flex items-center gap-2 mt-3 sm:mt-0">
-          {/* 4 action buttons */}
+          {/* Action buttons */}
           <div className="flex items-center gap-0.5">
             <button
-              onClick={() => { setShowSearch((v) => !v); setShowFilter(false); }}
+              onClick={() => setShowSearch((v) => !v)}
               title="Поиск"
               className={`relative p-2 rounded-lg transition-colors ${showSearch || searchQuery ? 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20' : 'text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20'}`}
             >
@@ -348,28 +435,56 @@ export default function TasksPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
             </button>
-            <button
-              onClick={() => { setShowFilter((v) => !v); setShowSearch(false); }}
-              title="Фильтры"
-              className={`relative p-2 rounded-lg transition-colors ${showFilter || filterStatus !== null || filterProject !== null ? 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20' : 'text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20'}`}
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z" />
-              </svg>
-              {(filterStatus !== null || filterProject !== null) && (
-                <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-violet-500" />
+            {/* Settings dropdown */}
+            <div className="relative" ref={settingsRef}>
+              <button
+                onClick={() => setShowSettings((v) => !v)}
+                title="Настройки и экспорт"
+                className={`p-2 rounded-lg transition-colors ${showSettings ? 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20' : 'text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20'}`}
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </button>
+              {showSettings && (
+                <div className="absolute right-0 top-full mt-1 w-56 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl py-1.5 z-50">
+                  <p className="px-4 py-1 text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">Экспорт</p>
+                  <button
+                    onClick={() => { window.print(); setShowSettings(false); }}
+                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/60 transition-colors"
+                  >
+                    <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                    </svg>
+                    Скачать PDF
+                  </button>
+                  <button
+                    onClick={() => { exportCSV(); setShowSettings(false); }}
+                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/60 transition-colors"
+                  >
+                    <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Загрузить таблицу (CSV)
+                  </button>
+                  {hasActiveFilters && (
+                    <>
+                      <div className="mx-3 my-1 border-t border-gray-100 dark:border-gray-700" />
+                      <button
+                        onClick={() => { resetFilters(); setShowSettings(false); }}
+                        className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"
+                      >
+                        <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        Сбросить фильтры
+                      </button>
+                    </>
+                  )}
+                </div>
               )}
-            </button>
-            <button
-              onClick={resetFilters}
-              title={hasActiveFilters ? 'Сбросить все фильтры' : 'Нет активных фильтров'}
-              className={`p-2 rounded-lg transition-colors ${hasActiveFilters ? 'text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20' : 'text-gray-300 dark:text-gray-600 cursor-default'}`}
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-            </button>
+            </div>
           </div>
           {/* View toggle */}
           <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
@@ -419,39 +534,44 @@ export default function TasksPage() {
         </div>
       )}
 
-      {/* Filter panel */}
-      {showFilter && (
-        <div className="mb-3 flex flex-wrap items-center gap-3 bg-white dark:bg-gray-800 rounded-xl px-4 py-3 shadow-xs border border-gray-100 dark:border-gray-700">
-          <select
-            value={filterStatus ?? ''}
-            onChange={(e) => setFilterStatus(e.target.value === '' ? null : Number(e.target.value))}
-            className="text-sm bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 outline-none focus:border-violet-400"
+      {/* Filter tabs — always visible */}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        {/* Status tabs */}
+        <div className="flex items-center gap-1 flex-wrap">
+          <button
+            onClick={() => { setFilterStatus(null); setFilterOverdue(false); }}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${filterStatus === null && !filterOverdue ? 'bg-violet-500 text-white shadow-sm' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:border-violet-300 dark:hover:border-violet-700'}`}
           >
-            <option value="">Все статусы</option>
-            {Object.entries(STATUS_LABELS).map(([k, v]) => (
-              <option key={k} value={k}>{v.label}</option>
-            ))}
-          </select>
-          <select
-            value={filterProject ?? ''}
-            onChange={(e) => setFilterProject(e.target.value === '' ? null : Number(e.target.value))}
-            className="text-sm bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 outline-none focus:border-violet-400"
-          >
-            <option value="">Все проекты</option>
-            {(data?.projects ?? []).map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
-          {(filterStatus !== null || filterProject !== null) && (
+            Все
+          </button>
+          {Object.entries(STATUS_LABELS).map(([k, v]) => (
             <button
-              onClick={() => { setFilterStatus(null); setFilterProject(null); }}
-              className="text-xs text-violet-600 dark:text-violet-400 hover:underline"
+              key={k}
+              onClick={() => { setFilterStatus(Number(k)); setFilterOverdue(false); }}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${filterStatus === Number(k) ? 'bg-violet-500 text-white shadow-sm' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:border-violet-300 dark:hover:border-violet-700'}`}
             >
-              Сбросить
+              {v.label}
             </button>
-          )}
+          ))}
+          <button
+            onClick={() => { setFilterOverdue((v) => !v); setFilterStatus(null); }}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${filterOverdue ? 'bg-red-500 text-white shadow-sm' : 'bg-white dark:bg-gray-800 text-red-500 dark:text-red-400 border border-red-200 dark:border-red-700/50 hover:border-red-400 dark:hover:border-red-500'}`}
+          >
+            Просроченные
+          </button>
         </div>
-      )}
+        {/* Project filter */}
+        <select
+          value={filterProject ?? ''}
+          onChange={(e) => setFilterProject(e.target.value === '' ? null : Number(e.target.value))}
+          className={`text-xs font-medium rounded-lg px-3 py-1.5 outline-none transition-colors border ${filterProject !== null ? 'bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300 border-violet-300 dark:border-violet-700' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700'} focus:border-violet-400`}
+        >
+          <option value="">Все проекты</option>
+          {(data?.projects ?? []).map((p) => (
+            <option key={p.id} value={p.id}>{p.name}</option>
+          ))}
+        </select>
+      </div>
 
       {loading ? (
         <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-8 text-center text-gray-500 dark:text-gray-400">Загрузка...</div>
@@ -481,9 +601,22 @@ export default function TasksPage() {
             const { done, total } = getTaskProgress(t);
             const progressPct = total > 0 ? Math.round((done / total) * 100) : 0;
             return (
-              <div key={t.id} className={`border rounded-xl p-4 flex flex-col gap-3 hover:shadow-md transition-shadow ${overdue ? 'bg-red-50/70 dark:bg-red-900/10 border-red-300 dark:border-red-700/60' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'}`}>
-                <div className="font-semibold text-gray-800 dark:text-gray-100 cursor-pointer hover:text-violet-600 dark:hover:text-violet-400" onClick={() => handleEdit(t)}>
-                  {t.title}
+              <div key={t.id} className={`group/card border rounded-xl p-4 flex flex-col gap-3 hover:shadow-md transition-shadow ${overdue ? 'bg-red-50/70 dark:bg-red-900/10 border-red-300 dark:border-red-700/60' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'}`}>
+                <div className="flex items-start gap-1.5">
+                  <div className="font-semibold text-gray-800 dark:text-gray-100 cursor-pointer hover:text-violet-600 dark:hover:text-violet-400 flex-1 leading-snug" onClick={() => handleEdit(t)}>
+                    {t.title}
+                  </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleEdit(t); setHistoryTooltip(null); }}
+                    onMouseEnter={(e) => showTaskHistory(e, t.id)}
+                    onMouseLeave={hideTaskHistory}
+                    className="shrink-0 opacity-0 group-hover/card:opacity-60 hover:!opacity-100 p-0.5 text-gray-400 hover:text-violet-500 transition-all mt-0.5"
+                    title="История задачи"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </button>
                 </div>
                 {total > 0 && (
                   <div className="flex items-center gap-1.5">
@@ -557,12 +690,25 @@ export default function TasksPage() {
                   const rows = [
                     <tr
                       key={t.id}
-                      className={`cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900/20 ${overdue ? 'bg-red-50/70 dark:bg-red-900/10 hover:bg-red-50 dark:hover:bg-red-900/20' : ''}`}
+                      className={`group/row cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900/20 ${overdue ? 'bg-red-50/70 dark:bg-red-900/10 hover:bg-red-50 dark:hover:bg-red-900/20' : ''}`}
                       onClick={() => handleEdit(t)}
                     >
                       {/* Название */}
                       <td className="pt-2.5 pb-1 px-4 font-medium text-gray-800 dark:text-gray-100 max-w-[220px]">
-                        <div className="truncate">{t.title}</div>
+                        <div className="flex items-center gap-1.5">
+                          <div className="truncate flex-1">{t.title}</div>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); openTaskHistory(t); }}
+                            onMouseEnter={(e) => { e.stopPropagation(); showTaskHistory(e, t.id); }}
+                            onMouseLeave={hideTaskHistory}
+                            className="shrink-0 opacity-0 group-hover/row:opacity-60 hover:!opacity-100 p-0.5 text-gray-400 hover:text-violet-500 transition-all"
+                            title="История задачи"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </button>
+                        </div>
                       </td>
                       {/* Проект */}
                       <td className="py-2.5 px-4 text-gray-600 dark:text-gray-400 whitespace-nowrap">
@@ -627,6 +773,189 @@ export default function TasksPage() {
                 })}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* History tooltip (hover preview) */}
+      {historyTooltip && (
+        <div
+          className="fixed z-[200] w-80 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl p-4"
+          style={{ top: historyTooltip.y + 8, left: Math.min(historyTooltip.x, (typeof window !== 'undefined' ? window.innerWidth : 1400) - 330) }}
+          onMouseEnter={keepTaskHistory}
+          onMouseLeave={hideTaskHistory}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-3">Последние события</p>
+          {historyTooltip.events.length === 0 ? (
+            <p className="text-xs text-gray-400">Комментариев пока нет</p>
+          ) : (
+            <ul className="space-y-2.5">
+              {historyTooltip.events.map((ev: any, i) => {
+                const isSystem = ev.type === 'system' || (ev.commentText || ev.content || '').startsWith('__system__:');
+                const text = (ev.commentText || ev.content || '').replace(/^__system__:/, '');
+                const authorId = ev.userId || ev.user_id;
+                const author = authorId ? users.find((u) => u.id === authorId) : null;
+                const authorName = isSystem ? 'Система' : (author?.name || author?.email || 'Пользователь');
+                return (
+                  <li key={i} className="flex items-start gap-2 text-xs">
+                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 text-[9px] font-bold ${isSystem ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400'}`}>
+                      {isSystem ? '⚙' : authorName.slice(0, 1).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className="font-medium text-gray-700 dark:text-gray-300">{authorName}</span>
+                      <p className="text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{text}</p>
+                    </div>
+                    <span className="text-[10px] text-gray-400 shrink-0 whitespace-nowrap">{new Date(ev.createdAt).toLocaleDateString('ru-RU')}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          <button
+            onClick={() => { const t = tasks.find((t) => t.id === historyTooltip.taskId); if (t) openTaskHistory(t); setHistoryTooltip(null); }}
+            className="text-xs text-violet-500 hover:text-violet-600 mt-3 block font-medium"
+          >
+            Смотреть всю историю →
+          </button>
+        </div>
+      )}
+
+      {/* Full history drawer */}
+      {historyTask && (
+        <div className="fixed inset-0 z-[150] flex" onClick={() => setHistoryTask(null)}>
+          <div className="flex-1" />
+          <div
+            className="w-full max-w-xl bg-white dark:bg-gray-900 shadow-2xl flex flex-col border-l border-gray-200 dark:border-gray-700"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 shrink-0">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">История задачи</p>
+                  <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 truncate">{historyTask.title}</h2>
+                  {historyTask.project?.name && (
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{historyTask.project.name}</p>
+                  )}
+                </div>
+                <button
+                  onClick={() => setHistoryTask(null)}
+                  className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg transition-colors shrink-0"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="flex items-center gap-4 mt-3 text-xs text-gray-500 dark:text-gray-400">
+                <span>Статус: <span className="font-medium text-gray-700 dark:text-gray-300">{STATUS_LABELS[historyTask.status]?.label || '—'}</span></span>
+                <span>Приоритет: <span className="font-medium text-gray-700 dark:text-gray-300">{PRIORITY_LABELS[historyTask.priority]?.label || '—'}</span></span>
+                {(historyTask.dueDate || historyTask.due_date) && (
+                  <span>Срок: <span className="font-medium text-gray-700 dark:text-gray-300">{formatDate(historyTask.dueDate || historyTask.due_date)}</span></span>
+                )}
+              </div>
+            </div>
+
+            {/* Timeline */}
+            <div className="flex-1 overflow-y-auto px-6 py-4">
+              {historyLoading ? (
+                <div className="flex items-center justify-center py-16 text-gray-400">
+                  <div className="w-6 h-6 border-2 border-violet-400 border-t-transparent rounded-full animate-spin mr-2" />
+                  Загрузка истории...
+                </div>
+              ) : historyEvents.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+                  <svg className="w-12 h-12 mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p className="text-sm">История пуста</p>
+                  <p className="text-xs mt-1 text-gray-300 dark:text-gray-600">Комментарии появятся после первых действий</p>
+                </div>
+              ) : (
+                <div className="relative">
+                  {/* Vertical line */}
+                  <div className="absolute left-4 top-4 bottom-0 w-px bg-gray-200 dark:bg-gray-700" />
+                  <div className="space-y-0">
+                    {historyEvents.map((ev: any, i) => {
+                      const isSystem = ev.type === 'system' || (ev.commentText || ev.content || '').startsWith('__system__:');
+                      const rawText = ev.commentText || ev.content || '';
+                      const text = rawText.replace(/^__system__:/, '');
+                      const authorId = ev.userId || ev.user_id;
+                      const author = authorId ? users.find((u) => u.id === authorId) : null;
+                      const authorName = isSystem ? 'Система' : (author?.name || author?.email || `#${authorId}`);
+                      const dt = new Date(ev.createdAt);
+                      const prevDt = i > 0 ? new Date(historyEvents[i - 1].createdAt) : null;
+                      const showDate = !prevDt || dt.toDateString() !== prevDt.toDateString();
+
+                      const iconBg = isSystem
+                        ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400'
+                        : 'bg-violet-100 dark:bg-violet-900/40 text-violet-600 dark:text-violet-400';
+
+                      return (
+                        <div key={ev.id || i}>
+                          {showDate && (
+                            <div className="flex items-center gap-3 my-4 pl-10">
+                              <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                                {dt.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
+                              </span>
+                            </div>
+                          )}
+                          <div className="flex gap-4 py-3 relative">
+                            {/* Icon */}
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold z-10 ${iconBg}`}>
+                              {isSystem
+                                ? <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                : authorName.slice(0, 2).toUpperCase()
+                              }
+                            </div>
+                            {/* Content */}
+                            <div className="flex-1 min-w-0 pt-0.5">
+                              <div className="flex items-baseline justify-between gap-2 mb-1">
+                                <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">{authorName}</span>
+                                <span className="text-[11px] text-gray-400 dark:text-gray-500 shrink-0">
+                                  {dt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              </div>
+                              <p className={`text-sm leading-relaxed break-words ${isSystem ? 'text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 px-3 py-2 rounded-lg' : 'text-gray-700 dark:text-gray-300'}`}>
+                                {text}
+                              </p>
+                              {/* Attachments in comments */}
+                              {ev.attachments && (() => {
+                                let atts: any[] = [];
+                                try { atts = Array.isArray(ev.attachments) ? ev.attachments : JSON.parse(ev.attachments); } catch {}
+                                return atts.length > 0 ? (
+                                  <div className="flex flex-wrap gap-1.5 mt-2">
+                                    {atts.map((a: any, ai: number) => (
+                                      <a key={ai} href={a.fileUrl || a.file_url} target="_blank" rel="noopener noreferrer"
+                                        className="text-xs text-violet-500 hover:underline bg-violet-50 dark:bg-violet-900/20 px-2 py-0.5 rounded"
+                                      >
+                                        {a.fileName || a.file_name || 'файл'}
+                                      </a>
+                                    ))}
+                                  </div>
+                                ) : null;
+                              })()}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-3 border-t border-gray-200 dark:border-gray-700 shrink-0 flex items-center justify-between">
+              <span className="text-xs text-gray-400">{historyEvents.length} событий</span>
+              <button
+                onClick={() => { setHistoryTask(null); handleEdit(historyTask); }}
+                className="px-4 py-1.5 text-sm font-medium text-white bg-violet-500 hover:bg-violet-600 rounded-lg transition-colors"
+              >
+                Открыть задачу
+              </button>
+            </div>
           </div>
         </div>
       )}
