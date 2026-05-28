@@ -1,20 +1,27 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import TaskFormModal from '@/components/dashboard/TaskFormModal';
-import FilterPanel from '@/components/ui/FilterPanel';
 import { useOfflineData } from '@/hooks/useOfflineData';
-import { useDownloadPdf } from '@/lib/hooks/useDownloadPdf';
 import { useTaskNotifStore } from '@/stores/taskNotifStore';
 import { FAB_CREATED_EVENT } from '@/components/ui/QuickActionsButton';
 
 interface Assignee {
   userId: number;
   userName?: string;
+}
+
+interface ChecklistItem {
+  status?: number;
+  checked?: boolean;
+}
+
+interface ChecklistGroup {
+  id: string;
+  items: ChecklistItem[];
 }
 
 interface Task {
@@ -40,6 +47,8 @@ interface Task {
   assignedToUser?: { name: string; email: string };
   assigned_to_user?: { name: string; email: string };
   createdByUser?: { name: string; email: string };
+  customFields?: { checklists?: ChecklistGroup[] };
+  custom_fields?: { checklists?: ChecklistGroup[] };
 }
 
 interface Project {
@@ -61,18 +70,18 @@ interface TasksPageData {
 }
 
 const STATUS_LABELS: Record<number, { label: string; color: string }> = {
-  0: { label: 'Новая', color: 'bg-gray-500/20 text-gray-600 dark:text-gray-300' },
-  1: { label: 'Назначена', color: 'bg-sky-500/20 text-sky-700 dark:text-sky-400' },
-  2: { label: 'В работе', color: 'bg-violet-500/20 text-violet-700 dark:text-violet-400' },
+  0: { label: 'Новая',       color: 'bg-gray-500/20 text-gray-600 dark:text-gray-300' },
+  1: { label: 'Назначена',   color: 'bg-sky-500/20 text-sky-700 dark:text-sky-400' },
+  2: { label: 'В работе',    color: 'bg-violet-500/20 text-violet-700 dark:text-violet-400' },
   3: { label: 'На проверке', color: 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-400' },
-  4: { label: 'Завершена', color: 'bg-green-500/20 text-green-700 dark:text-green-400' },
-  5: { label: 'Отменена', color: 'bg-red-500/20 text-red-700 dark:text-red-400' },
+  4: { label: 'Завершена',   color: 'bg-green-500/20 text-green-700 dark:text-green-400' },
+  5: { label: 'Отменена',    color: 'bg-red-500/20 text-red-700 dark:text-red-400' },
 };
 
 const PRIORITY_LABELS: Record<number, { label: string; color: string }> = {
-  1: { label: 'Низкий', color: 'text-gray-500' },
-  2: { label: 'Средний', color: 'text-sky-500' },
-  3: { label: 'Высокий', color: 'text-yellow-500' },
+  1: { label: 'Низкий',      color: 'text-gray-500' },
+  2: { label: 'Средний',     color: 'text-sky-500' },
+  3: { label: 'Высокий',     color: 'text-yellow-500' },
   4: { label: 'Критический', color: 'text-red-500' },
 };
 
@@ -84,9 +93,22 @@ function formatDate(d?: string): string {
 function isTaskOverdue(t: Task): boolean {
   const due = t.dueDate || t.due_date;
   if (!due) return false;
-  // Done(4) и Cancelled(5) не считаются просроченными
   if (t.status === 4 || t.status === 5) return false;
   return new Date(due).getTime() < Date.now();
+}
+
+function getTaskProgress(t: Task): { done: number; total: number } {
+  const cf = t.customFields || t.custom_fields;
+  const lists: ChecklistGroup[] = cf?.checklists || [];
+  let total = 0, done = 0;
+  for (const g of lists) {
+    for (const item of g.items || []) {
+      total++;
+      const st = typeof item.status === 'number' ? item.status : (item.checked ? 3 : 0);
+      if (st === 3) done++;
+    }
+  }
+  return { done, total };
 }
 
 async function fetchTasksPageData(): Promise<TasksPageData> {
@@ -102,11 +124,29 @@ async function fetchTasksPageData(): Promise<TasksPageData> {
   };
 }
 
-type ViewMode = 'table' | 'grid';
+type SortKey = 'title' | 'project' | 'status' | 'priority' | 'assignee' | 'creator' | 'dueDate';
+
+function SortIcon({ active, dir }: { active: boolean; dir: 'asc' | 'desc' }) {
+  return (
+    <span className="inline-flex flex-col gap-px ml-1 align-middle">
+      <svg
+        className={`w-2.5 h-2.5 transition-colors ${active && dir === 'asc' ? 'text-violet-500' : 'text-gray-300 dark:text-gray-600'}`}
+        viewBox="0 0 10 6" fill="currentColor"
+      >
+        <path d="M5 0L10 6H0L5 0Z" />
+      </svg>
+      <svg
+        className={`w-2.5 h-2.5 transition-colors ${active && dir === 'desc' ? 'text-violet-500' : 'text-gray-300 dark:text-gray-600'}`}
+        viewBox="0 0 10 6" fill="currentColor"
+      >
+        <path d="M5 6L0 0H10L5 6Z" />
+      </svg>
+    </span>
+  );
+}
 
 export default function TasksPage() {
   const addToast = useToastStore((s) => s.addToast);
-  const { download: downloadPdf, loading: pdfLoading } = useDownloadPdf();
   const searchParams = useSearchParams();
   const router = useRouter();
   const markTasksRead = useTaskNotifStore((s) => s.markRead);
@@ -114,28 +154,18 @@ export default function TasksPage() {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [openedFromChat, setOpenedFromChat] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>(() => {
-    if (typeof window !== 'undefined') {
-      return (localStorage.getItem('dashViewMode') as ViewMode) || 'table';
-    }
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [viewMode, setViewMode] = useState<'table' | 'grid'>(() => {
+    if (typeof window !== 'undefined') return (localStorage.getItem('dashViewMode') as 'table' | 'grid') || 'table';
     return 'table';
   });
-
-  const handleViewMode = (mode: ViewMode) => {
-    setViewMode(mode);
-    localStorage.setItem('dashViewMode', mode);
-  };
-
-  // Filters
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState<string>('');
-  const [filterPriority, setFilterPriority] = useState<string>('');
-  const [filterProject, setFilterProject] = useState<string>('');
-  const [filterAssignee, setFilterAssignee] = useState<string>('');
+  // Quick create: pre-fill project
+  const [quickCreateProjectId, setQuickCreateProjectId] = useState<number | undefined>(undefined);
 
   useEffect(() => { markTasksRead(); }, []);
 
-  const { data, loading, error, isFromCache, cachedAt, refetch } =
+  const { data, loading, error, refetch } =
     useOfflineData<TasksPageData>(fetchTasksPageData, 'tasks-page');
 
   useEffect(() => {
@@ -147,7 +177,6 @@ export default function TasksPage() {
   }, [refetch]);
 
   const tasks = data?.tasks ?? [];
-  const projects = data?.projects ?? [];
   const users = data?.users ?? [];
 
   useEffect(() => {
@@ -165,36 +194,68 @@ export default function TasksPage() {
     }
   }, [tasks, searchParams]);
 
-  const filteredTasks = useMemo(() => {
-    const filtered = tasks.filter((t) => {
-      if (searchQuery && !t.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-      if (filterStatus && String(t.status) !== filterStatus) return false;
-      if (filterPriority && String(t.priority) !== filterPriority) return false;
-      if (filterProject && String(t.projectId || t.project_id) !== filterProject) return false;
-      if (filterAssignee) {
-        const single = t.assignedToUserId || t.assigned_to_user_id;
-        const inAssignees = (t.assignees || []).some((a) => String(a.userId) === filterAssignee);
-        if (String(single) !== filterAssignee && !inAssignees) return false;
-      }
-      return true;
-    });
-    return [...filtered].sort((a, b) => {
-      const aOverdue = isTaskOverdue(a);
-      const bOverdue = isTaskOverdue(b);
-      if (aOverdue !== bOverdue) return aOverdue ? -1 : 1;
-      const aDate = a.createdAt || a.created_at || '';
-      const bDate = b.createdAt || b.created_at || '';
-      return new Date(bDate).getTime() - new Date(aDate).getTime();
-    });
-  }, [tasks, searchQuery, filterStatus, filterPriority, filterProject, filterAssignee]);
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      if (sortDir === 'asc') setSortDir('desc');
+      else { setSortKey(null); setSortDir('asc'); }
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  };
 
-  const handleCreate = () => {
+  const resolveAssigneeName = (userId: number, userName: string | null) => {
+    if (userName) return userName;
+    const u = users.find((u) => u.id === userId);
+    return u?.name || u?.email || `#${userId}`;
+  };
+
+  const sortedTasks = useMemo(() => {
+    const base = [...tasks].sort((a, b) => {
+      const aO = isTaskOverdue(a), bO = isTaskOverdue(b);
+      if (aO !== bO) return aO ? -1 : 1;
+      return new Date(b.createdAt || b.created_at || '').getTime() -
+             new Date(a.createdAt || a.created_at || '').getTime();
+    });
+    if (!sortKey) return base;
+    return base.sort((a, b) => {
+      let cmp = 0;
+      if (sortKey === 'title') cmp = a.title.localeCompare(b.title, 'ru');
+      else if (sortKey === 'project') cmp = (a.project?.name || '').localeCompare(b.project?.name || '', 'ru');
+      else if (sortKey === 'status') cmp = a.status - b.status;
+      else if (sortKey === 'priority') cmp = a.priority - b.priority;
+      else if (sortKey === 'dueDate') {
+        const ad = a.dueDate || a.due_date || '';
+        const bd = b.dueDate || b.due_date || '';
+        cmp = ad < bd ? -1 : ad > bd ? 1 : 0;
+      } else if (sortKey === 'assignee') {
+        const aName = (a.assignees && a.assignees.length > 0)
+          ? resolveAssigneeName(a.assignees[0].userId, a.assignees[0].userName ?? null)
+          : (a.assignedToUser?.name || '');
+        const bName = (b.assignees && b.assignees.length > 0)
+          ? resolveAssigneeName(b.assignees[0].userId, b.assignees[0].userName ?? null)
+          : (b.assignedToUser?.name || '');
+        cmp = aName.localeCompare(bName, 'ru');
+      } else if (sortKey === 'creator') {
+        const aId = a.createdByUserId || a.created_by_user_id;
+        const bId = b.createdByUserId || b.created_by_user_id;
+        const aU = aId ? users.find((u) => u.id === aId) : null;
+        const bU = bId ? users.find((u) => u.id === bId) : null;
+        cmp = (aU?.name || '').localeCompare(bU?.name || '', 'ru');
+      }
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+  }, [tasks, sortKey, sortDir, users]);
+
+  const handleCreate = (projectId?: number) => {
+    setQuickCreateProjectId(projectId);
     setEditingTask(null);
     setShowModal(true);
   };
 
   const handleEdit = (task: Task) => {
     setEditingTask(task);
+    setQuickCreateProjectId(undefined);
     setShowModal(true);
   };
 
@@ -215,162 +276,189 @@ export default function TasksPage() {
   const handleSaved = async () => {
     setShowModal(false);
     setEditingTask(null);
+    setQuickCreateProjectId(undefined);
     await refetch();
   };
 
-  const resetFilters = () => {
-    setSearchQuery('');
-    setFilterStatus('');
-    setFilterPriority('');
-    setFilterProject('');
-    setFilterAssignee('');
-  };
-
-  const hasActiveFilters =
-    searchQuery || filterStatus || filterPriority || filterProject || filterAssignee;
+  const COLUMNS: { key: SortKey | null; label: string }[] = [
+    { key: 'title',    label: 'Название' },
+    { key: 'project',  label: 'Проект' },
+    { key: 'status',   label: 'Статус' },
+    { key: 'priority', label: 'Приоритет' },
+    { key: 'assignee', label: 'Исполнитель' },
+    { key: 'creator',  label: 'Поставил' },
+    { key: 'dueDate',  label: 'Срок' },
+    { key: null,       label: '' },
+  ];
 
   return (
     <div>
-      <div className="sm:flex sm:justify-between sm:items-center mb-6">
+      <div className="sm:flex sm:items-center sm:justify-between mb-6">
         <div>
           <h1 className="text-2xl md:text-3xl text-gray-800 dark:text-gray-100 font-bold">Задачи</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Управление задачами проекта</p>
         </div>
-        <div className="flex items-center gap-3 mt-3 sm:mt-0">
-          <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
-            <button
-              onClick={() => handleViewMode('table')}
-              className={`p-1.5 rounded transition-colors ${viewMode === 'table' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}
-              title="Таблица"
-            >
-              <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
-            </button>
-            <button
-              onClick={() => handleViewMode('grid')}
-              className={`p-1.5 rounded transition-colors ${viewMode === 'grid' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}
-              title="Карточки"
-            >
-              <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-              </svg>
-            </button>
-          </div>
+        <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg mt-3 sm:mt-0 w-fit">
           <button
-            onClick={() => downloadPdf('tasks', 'Задачи', filteredTasks.map((t) => ({
-              Название: t.title,
-              Статус: (STATUS_LABELS[t.status] || STATUS_LABELS[0]).label,
-              Приоритет: (PRIORITY_LABELS[t.priority] || PRIORITY_LABELS[2]).label,
-              Срок: t.dueDate ? new Date(t.dueDate).toLocaleDateString('ru-RU') : '—',
-            })))}
-            disabled={pdfLoading || filteredTasks.length === 0}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:border-violet-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors disabled:opacity-50"
+            onClick={() => { setViewMode('table'); localStorage.setItem('dashViewMode', 'table'); }}
+            className={`p-1.5 rounded transition-colors ${viewMode === 'table' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}
+            title="Таблица"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
             </svg>
-            {pdfLoading ? 'PDF...' : 'PDF'}
           </button>
-          <Link href="/dashboard" className="text-sm text-violet-500 hover:text-violet-600">
-            &larr; Назад
-          </Link>
           <button
-            onClick={handleCreate}
-            className="px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-lg transition-colors"
+            onClick={() => { setViewMode('grid'); localStorage.setItem('dashViewMode', 'grid'); }}
+            className={`p-1.5 rounded transition-colors ${viewMode === 'grid' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}
+            title="Карточки"
           >
-            + Создать задачу
+            <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+            </svg>
           </button>
         </div>
       </div>
 
-
-      {/* Filters */}
-      <FilterPanel
-        hasActiveFilters={!!hasActiveFilters}
-        onReset={resetFilters}
-        fields={[
-          { type: 'search', key: 'search', placeholder: 'Поиск по названию...', value: searchQuery, onChange: setSearchQuery },
-          { type: 'select', key: 'status', placeholder: 'Все статусы', value: filterStatus, onChange: setFilterStatus,
-            options: Object.entries(STATUS_LABELS).map(([v, { label }]) => ({ value: v, label })) },
-          { type: 'select', key: 'priority', placeholder: 'Все приоритеты', value: filterPriority, onChange: setFilterPriority,
-            options: Object.entries(PRIORITY_LABELS).map(([v, { label }]) => ({ value: v, label })) },
-          { type: 'select', key: 'project', placeholder: 'Все проекты', value: filterProject, onChange: setFilterProject,
-            options: projects.map((p) => ({ value: String(p.id), label: p.name })) },
-          { type: 'select', key: 'assignee', placeholder: 'Все исполнители', value: filterAssignee, onChange: setFilterAssignee,
-            options: users.filter((u) => u.roleId !== 1).map((u) => ({ value: String(u.id), label: u.name || u.email })) },
-        ]}
-      />
-
-      {/* Content */}
       {loading ? (
         <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-8 text-center text-gray-500 dark:text-gray-400">Загрузка...</div>
       ) : error ? (
         <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-8 text-center text-red-500">{error}</div>
-      ) : filteredTasks.length === 0 ? (
-        <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-8 text-center text-gray-500 dark:text-gray-400">
-          {hasActiveFilters ? 'Задачи не найдены по заданным фильтрам' : 'Задачи не найдены'}
+      ) : sortedTasks.length === 0 ? (
+        <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-8 text-center text-gray-500 dark:text-gray-400">Задачи не найдены</div>
+      ) : viewMode === 'grid' ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {sortedTasks.map((t) => {
+            const status = STATUS_LABELS[t.status] || STATUS_LABELS[0];
+            const priority = PRIORITY_LABELS[t.priority] || PRIORITY_LABELS[2];
+            const assignee = t.assignedToUser || t.assigned_to_user;
+            const assigneeId = t.assignedToUserId || t.assigned_to_user_id;
+            const resolvedUser = assigneeId ? users.find((u) => u.id === assigneeId) : null;
+            const assigneeName =
+              t.assignees && t.assignees.length > 0
+                ? t.assignees.map((a) => resolveAssigneeName(a.userId, a.userName ?? null)).join(', ')
+                : assignee?.name || assignee?.email || resolvedUser?.name || resolvedUser?.email || '—';
+            const creatorId = t.createdByUserId || t.created_by_user_id;
+            const creatorUser = creatorId ? users.find((u) => u.id === creatorId) : null;
+            const creatorName = !creatorId || creatorUser?.roleId === 1 ? 'Система' : creatorUser?.name || creatorUser?.email || 'Система';
+            const createdAt = t.createdAt || t.created_at;
+            const overdue = isTaskOverdue(t);
+            const { done, total } = getTaskProgress(t);
+            const progressPct = total > 0 ? Math.round((done / total) * 100) : 0;
+            return (
+              <div key={t.id} className={`border rounded-xl p-4 flex flex-col gap-3 hover:shadow-md transition-shadow ${overdue ? 'bg-red-50/70 dark:bg-red-900/10 border-red-300 dark:border-red-700/60' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'}`}>
+                <div className="font-semibold text-gray-800 dark:text-gray-100 cursor-pointer hover:text-violet-600 dark:hover:text-violet-400" onClick={() => handleEdit(t)}>
+                  {t.title}
+                </div>
+                {total > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    <div className="flex-1 h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                      <div className={`h-full rounded-full ${progressPct === 100 ? 'bg-green-500' : 'bg-violet-400'}`} style={{ width: `${progressPct}%` }} />
+                    </div>
+                    <span className="text-[10px] text-gray-400">{done}/{total}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${status.color}`}>{status.label}</span>
+                  <span className={`text-xs font-medium ${priority.color}`}>{priority.label}</span>
+                </div>
+                <dl className="grid grid-cols-2 gap-x-3 gap-y-2">
+                  <div><dt className="text-xs text-gray-400">Проект</dt><dd className="text-xs text-gray-700 dark:text-gray-300 truncate">{t.project?.name || '—'}</dd></div>
+                  <div><dt className="text-xs text-gray-400">Срок</dt><dd className={`text-xs ${overdue ? 'text-red-600 font-semibold' : 'text-gray-700 dark:text-gray-300'}`}>{formatDate(t.dueDate || t.due_date)}</dd></div>
+                  <div className="col-span-2"><dt className="text-xs text-gray-400">Исполнитель</dt><dd className="text-xs text-gray-700 dark:text-gray-300 truncate">{assigneeName}</dd></div>
+                  <div className="col-span-2"><dt className="text-xs text-gray-400">Поставил</dt><dd className="text-xs text-gray-700 dark:text-gray-300 truncate">{creatorName}{createdAt && <span className="ml-1 text-gray-400">{formatDate(createdAt)}</span>}</dd></div>
+                </dl>
+                <div className="flex items-center gap-1.5 pt-2 border-t border-gray-100 dark:border-gray-700">
+                  <button onClick={() => handleEdit(t)} className="flex-1 px-3 py-1.5 text-xs font-medium text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-500/10 rounded transition-colors text-center">Изменить</button>
+                  <button onClick={() => handleDelete(t.id)} disabled={deletingId === t.id} className="px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded transition-colors disabled:opacity-50">{deletingId === t.id ? '...' : 'Удалить'}</button>
+                </div>
+              </div>
+            );
+          })}
         </div>
-      ) : viewMode === 'table' ? (
+      ) : (
         <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="table-auto w-full text-sm">
               <thead>
-                <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
-                  <th className="py-3 px-4 text-left font-semibold">Название</th>
-                  <th className="py-3 px-4 text-left font-semibold">Проект</th>
-                  <th className="py-3 px-4 text-left font-semibold">Статус</th>
-                  <th className="py-3 px-4 text-left font-semibold">Приоритет</th>
-                  <th className="py-3 px-4 text-left font-semibold">Исполнитель</th>
-                  <th className="py-3 px-4 text-left font-semibold">Поставил</th>
-                  <th className="py-3 px-4 text-left font-semibold">Срок</th>
-                  <th className="py-3 px-4 text-center font-semibold">Действия</th>
+                <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20 border-b border-gray-100 dark:border-gray-700/60">
+                  {COLUMNS.map((col) => (
+                    <th key={col.label} className="py-3 px-4 text-left font-semibold">
+                      {col.key ? (
+                        <button
+                          onClick={() => handleSort(col.key!)}
+                          className="inline-flex items-center gap-0.5 hover:text-gray-600 dark:hover:text-gray-300 transition-colors select-none"
+                        >
+                          {col.label}
+                          <SortIcon active={sortKey === col.key} dir={sortDir} />
+                        </button>
+                      ) : col.label}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
-                {filteredTasks.map((t) => {
+                {sortedTasks.map((t) => {
                   const status = STATUS_LABELS[t.status] || STATUS_LABELS[0];
                   const priority = PRIORITY_LABELS[t.priority] || PRIORITY_LABELS[2];
                   const assignee = t.assignedToUser || t.assigned_to_user;
                   const assigneeId = t.assignedToUserId || t.assigned_to_user_id;
                   const resolvedUser = assigneeId ? users.find((u) => u.id === assigneeId) : null;
-                  const resolveAssigneeName = (userId: number, userName: string | null) => {
-                    if (userName) return userName;
-                    const u = users.find((u) => u.id === userId);
-                    return u?.name || u?.email || `#${userId}`;
-                  };
                   const assigneeName =
                     t.assignees && t.assignees.length > 0
                       ? t.assignees.map((a) => resolveAssigneeName(a.userId, a.userName ?? null)).join(', ')
-                      : assignee?.name || assignee?.email
-                        || resolvedUser?.name || resolvedUser?.email
-                        || '—';
+                      : assignee?.name || assignee?.email || resolvedUser?.name || resolvedUser?.email || '—';
                   const creatorId = t.createdByUserId || t.created_by_user_id;
                   const creatorUser = creatorId ? users.find((u) => u.id === creatorId) : null;
-                  const isCreatorAdmin = !creatorUser || creatorUser.roleId === 1;
-                  const creatorName = !creatorId || isCreatorAdmin
+                  const creatorName = !creatorId || creatorUser?.roleId === 1
                     ? 'Система'
                     : creatorUser?.name || creatorUser?.email || 'Система';
                   const createdAt = t.createdAt || t.created_at;
+                  const overdue = isTaskOverdue(t);
+                  const { done, total } = getTaskProgress(t);
+                  const progressPct = total > 0 ? Math.round((done / total) * 100) : 0;
+
                   return (
                     <tr
                       key={t.id}
-                      className={`hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer ${isTaskOverdue(t) ? 'bg-red-50/70 dark:bg-red-900/10 hover:bg-red-50 dark:hover:bg-red-900/20' : ''}`}
+                      className={`group/row relative hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer ${overdue ? 'bg-red-50/70 dark:bg-red-900/10 hover:bg-red-50 dark:hover:bg-red-900/20' : ''}`}
                       onClick={() => handleEdit(t)}
                     >
-                      <td className="py-2.5 px-4 font-medium text-gray-800 dark:text-gray-100">{t.title}</td>
-                      <td className="py-2.5 px-4 text-gray-600 dark:text-gray-400">{t.project?.name || '—'}</td>
-                      <td className="py-2.5 px-4">
+                      {/* Название */}
+                      <td className="py-2.5 px-4 font-medium text-gray-800 dark:text-gray-100 max-w-[220px]">
+                        <div className="truncate">{t.title}</div>
+                        {/* Progress bar */}
+                        {total > 0 && (
+                          <div className="mt-1.5 flex items-center gap-1.5">
+                            <div className="flex-1 h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full rounded-full transition-all ${progressPct === 100 ? 'bg-green-500' : 'bg-violet-400'}`}
+                                style={{ width: `${progressPct}%` }}
+                              />
+                            </div>
+                            <span className="text-[10px] text-gray-400 shrink-0">{done}/{total}</span>
+                          </div>
+                        )}
+                      </td>
+                      {/* Проект */}
+                      <td className="py-2.5 px-4 text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                        {t.project?.name || '—'}
+                      </td>
+                      {/* Статус */}
+                      <td className="py-2.5 px-4 whitespace-nowrap">
                         <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${status.color}`}>
                           {status.label}
                         </span>
                       </td>
-                      <td className="py-2.5 px-4">
+                      {/* Приоритет */}
+                      <td className="py-2.5 px-4 whitespace-nowrap">
                         <span className={`text-xs font-medium ${priority.color}`}>{priority.label}</span>
                       </td>
-                      <td className="py-2.5 px-4 text-gray-600 dark:text-gray-400">
-                        {assigneeName}
+                      {/* Исполнитель */}
+                      <td className="py-2.5 px-4 text-gray-600 dark:text-gray-400 max-w-[160px]">
+                        <div className="truncate">{assigneeName}</div>
                       </td>
+                      {/* Поставил */}
                       <td className="py-2.5 px-4">
                         <span className="text-gray-700 dark:text-gray-300 text-sm">{creatorName}</span>
                         {createdAt && (
@@ -379,35 +467,58 @@ export default function TasksPage() {
                           </div>
                         )}
                       </td>
-                      <td className="py-2.5 px-4">
-                        <span className={isTaskOverdue(t) ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-gray-600 dark:text-gray-400'}>
+                      {/* Срок */}
+                      <td className="py-2.5 px-4 whitespace-nowrap">
+                        <span className={overdue ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-gray-600 dark:text-gray-400'}>
                           {formatDate(t.dueDate || t.due_date)}
-                          {isTaskOverdue(t) && <span className="ml-1 text-[10px] uppercase tracking-wide">просрочена</span>}
+                          {overdue && <span className="ml-1 text-[10px] uppercase tracking-wide">просрочена</span>}
                         </span>
                       </td>
+                      {/* Действия: 4 иконки */}
                       <td className="py-2.5 px-4 text-center" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-center gap-1">
+                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover/row:opacity-100 transition-opacity">
+                          {/* Открыть */}
                           <button
                             onClick={() => handleEdit(t)}
-                            className="p-1.5 text-gray-400 hover:text-violet-500 transition-colors"
-                            title="Редактировать"
+                            title="Открыть задачу"
+                            className="p-1.5 text-gray-400 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors"
                           >
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
                           </button>
+                          {/* Создать связанную */}
+                          <button
+                            onClick={() => handleCreate(t.projectId || t.project_id)}
+                            title="Создать задачу в этом проекте"
+                            className="p-1.5 text-gray-400 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                            </svg>
+                          </button>
+                          {/* Редактировать */}
+                          <button
+                            onClick={() => handleEdit(t)}
+                            title="Редактировать"
+                            className="p-1.5 text-gray-400 hover:text-sky-500 hover:bg-sky-50 dark:hover:bg-sky-900/20 rounded-lg transition-colors"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                          </button>
+                          {/* Удалить */}
                           <button
                             onClick={() => handleDelete(t.id)}
                             disabled={deletingId === t.id}
-                            className="p-1.5 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
                             title="Удалить"
+                            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-50"
                           >
                             {deletingId === t.id ? (
-                              <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                              </svg>
+                              <span className="w-3.5 h-3.5 border-2 border-red-400 border-t-transparent rounded-full animate-spin block" />
                             ) : (
-                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                               </svg>
                             )}
@@ -421,106 +532,22 @@ export default function TasksPage() {
             </table>
           </div>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredTasks.map((t) => {
-            const status = STATUS_LABELS[t.status] || STATUS_LABELS[0];
-            const priority = PRIORITY_LABELS[t.priority] || PRIORITY_LABELS[2];
-            const assignee = t.assignedToUser || t.assigned_to_user;
-            const assigneeId = t.assignedToUserId || t.assigned_to_user_id;
-            const resolvedUser = assigneeId ? users.find((u) => u.id === assigneeId) : null;
-            const resolveAssigneeName = (userId: number, userName: string | null) => {
-              if (userName) return userName;
-              const u = users.find((u) => u.id === userId);
-              return u?.name || u?.email || `#${userId}`;
-            };
-            const assigneeName =
-              t.assignees && t.assignees.length > 0
-                ? t.assignees.map((a) => resolveAssigneeName(a.userId, a.userName ?? null)).join(', ')
-                : assignee?.name || assignee?.email
-                  || resolvedUser?.name || resolvedUser?.email
-                  || '—';
-            const creatorId = t.createdByUserId || t.created_by_user_id;
-            const creatorUser = creatorId ? users.find((u) => u.id === creatorId) : null;
-            const isCreatorAdmin = !creatorUser || creatorUser.roleId === 1;
-            const creatorName = !creatorId || isCreatorAdmin
-              ? 'Система'
-              : creatorUser?.name || creatorUser?.email || 'Система';
-            const createdAt = t.createdAt || t.created_at;
-            return (
-              <div key={t.id} className={`border rounded-xl p-4 flex flex-col gap-3 hover:shadow-md transition-shadow ${isTaskOverdue(t) ? 'bg-red-50/70 dark:bg-red-900/10 border-red-300 dark:border-red-700/60' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'}`}>
-                <div
-                  className="font-semibold text-gray-800 dark:text-gray-100 cursor-pointer hover:text-violet-600 dark:hover:text-violet-400"
-                  onClick={() => handleEdit(t)}
-                >
-                  {t.title}
-                </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${status.color}`}>
-                    {status.label}
-                  </span>
-                  <span className={`text-xs font-medium ${priority.color}`}>{priority.label}</span>
-                </div>
-                <dl className="grid grid-cols-2 gap-x-3 gap-y-2">
-                  <div>
-                    <dt className="text-xs text-gray-400 dark:text-gray-500">Проект</dt>
-                    <dd className="text-xs text-gray-700 dark:text-gray-300 truncate">{t.project?.name || '—'}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs text-gray-400 dark:text-gray-500">Срок</dt>
-                    <dd className={`text-xs ${isTaskOverdue(t) ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-gray-700 dark:text-gray-300'}`}>
-                      {formatDate(t.dueDate || t.due_date)}
-                      {isTaskOverdue(t) && <span className="ml-1 text-[10px] uppercase">просрочена</span>}
-                    </dd>
-                  </div>
-                  <div className="col-span-2">
-                    <dt className="text-xs text-gray-400 dark:text-gray-500">Исполнитель</dt>
-                    <dd className="text-xs text-gray-700 dark:text-gray-300 truncate">{assigneeName}</dd>
-                  </div>
-                  <div className="col-span-2">
-                    <dt className="text-xs text-gray-400 dark:text-gray-500">Поставил</dt>
-                    <dd className="text-xs text-gray-700 dark:text-gray-300 truncate">
-                      {creatorName}
-                      {createdAt && <span className="ml-1 text-gray-400 dark:text-gray-500">{formatDate(createdAt)}</span>}
-                    </dd>
-                  </div>
-                </dl>
-                <div className="flex items-center gap-1.5 pt-2 border-t border-gray-100 dark:border-gray-700">
-                  <button
-                    onClick={() => handleEdit(t)}
-                    className="flex-1 px-3 py-1.5 text-xs font-medium text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-500/10 rounded transition-colors text-center"
-                  >
-                    Изменить
-                  </button>
-                  <button
-                    onClick={() => handleDelete(t.id)}
-                    disabled={deletingId === t.id}
-                    className="px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded transition-colors disabled:opacity-50"
-                  >
-                    {deletingId === t.id ? '...' : 'Удалить'}
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
       )}
 
       {showModal && (
         <TaskFormModal
           task={editingTask}
+          initialProjectId={!editingTask && quickCreateProjectId ? quickCreateProjectId : undefined}
           onClose={() => {
             setShowModal(false);
             setEditingTask(null);
+            setQuickCreateProjectId(undefined);
             if (openedFromChat) {
               try {
                 const backTo = sessionStorage.getItem('taskBackTo');
                 sessionStorage.removeItem('taskBackTo');
                 setOpenedFromChat(false);
-                if (backTo) {
-                  router.push(backTo);
-                  return;
-                }
+                if (backTo) { router.push(backTo); return; }
               } catch {}
             }
           }}

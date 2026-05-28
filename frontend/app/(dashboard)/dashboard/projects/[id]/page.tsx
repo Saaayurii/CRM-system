@@ -18,6 +18,7 @@ import FilePreviewModal from '@/components/ui/FilePreviewModal';
 import EstimatesPanel from '@/components/estimates/EstimatesPanel';
 import FinancialReportModal from '@/components/estimates/FinancialReportModal';
 import DocumentsOverview from '@/components/estimates/DocumentsOverview';
+import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
@@ -2042,6 +2043,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
       {/* Header */}
       <div className="sm:flex sm:justify-between sm:items-start mb-6">
         <div>
+          <Breadcrumbs items={[{ label: 'Проекты', href: '/dashboard/projects' }, { label: project.name }]} />
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-2xl md:text-3xl text-gray-800 dark:text-gray-100 font-bold">{project.name}</h1>
             {project.code && (

@@ -543,6 +543,16 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
   const [showMobileSettings, setShowMobileSettings] = useState(false);
   // History collapse
   const [showHistory, setShowHistory] = useState(true);
+  // Sidebar collapsed state
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  // History panel in sidebar
+  const [historyPanelItemId, setHistoryPanelItemId] = useState<string | null>(null);
+  // Hover tooltip for item history
+  const [historyTooltip, setHistoryTooltip] = useState<{ itemId: string; x: number; y: number } | null>(null);
+  const historyTooltipTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Drag & drop
+  const dragItemRef = useRef<{ groupId: string; itemId: string } | null>(null);
+  const dragOverItemRef = useRef<{ groupId: string; itemId: string } | null>(null);
 
   // Assignees
   const [assignees, setAssignees] = useState<Assignee[]>(() =>
@@ -846,14 +856,23 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
   // ---- Checklist helpers ----
   const addChecklist = () =>
     updateChecklists((prev) => [...prev, { id: uid(), title: 'Список задач', collapsed: false, items: [] }]);
-  const removeChecklist = (gid: string) =>
+  const removeChecklist = (gid: string) => {
+    const group = checklists.find((g) => g.id === gid);
+    if (group && group.items.length > 0) {
+      addToast('error', 'Сначала удалите все подзадачи из этого списка');
+      return;
+    }
     updateChecklists((prev) => prev.filter((g) => g.id !== gid));
+  };
   const toggleCollapse = (gid: string) =>
     updateChecklists((prev) => prev.map((g) => g.id === gid ? { ...g, collapsed: !g.collapsed } : g));
   const updateGroupTitle = (gid: string, t: string) =>
     updateChecklists((prev) => prev.map((g) => g.id === gid ? { ...g, title: t } : g));
-  const addItem = (gid: string) =>
-    updateChecklists((prev) => prev.map((g) => g.id === gid ? { ...g, items: [...g.items, { id: uid(), text: '', checked: false }] } : g));
+  const addItem = (gid: string) => {
+    const newId = uid();
+    updateChecklists((prev) => prev.map((g) => g.id === gid ? { ...g, items: [...g.items, { id: newId, text: '', checked: false }] } : g));
+    setEditingItemId(newId);
+  };
   const removeItem = (gid: string, iid: string) =>
     updateChecklists((prev) => prev.map((g) => g.id === gid ? { ...g, items: g.items.filter((i) => i.id !== iid) } : g));
   const updateItemText = (gid: string, iid: string, text: string) => {
@@ -995,6 +1014,66 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
     if (task && Number(user.id) === Number(task.createdByUserId)) return true;
     return false;
   }, [user, task]);
+
+  const extractItemHistory = useCallback((itemText: string) => {
+    if (!itemText) return [];
+    return comments
+      .filter((c) => {
+        const t = c.commentText || (c as any).content || '';
+        const isSys = c.type === 'system' || t.startsWith('__system__:');
+        if (!isSys) return false;
+        const clean = t.startsWith('__system__:') ? t.slice('__system__:'.length) : t;
+        return clean.includes(`«${itemText}»`);
+      })
+      .map((c) => {
+        const t = c.commentText || (c as any).content || '';
+        const clean = t.startsWith('__system__:') ? t.slice('__system__:'.length) : t;
+        const m = clean.match(/^Подзадача «.+?» (.+?) — Система/);
+        return { action: m ? m[1] : clean, time: c.createdAt };
+      })
+      .reverse();
+  }, [comments]);
+
+  const HISTORY_ACTION_COLORS: Record<string, string> = {
+    'отправлена на утверждение': 'bg-yellow-400',
+    'выполнена': 'bg-green-500',
+    'отклонена': 'bg-red-400',
+    'возвращена в работу': 'bg-gray-400',
+  };
+
+  const showHistoryTooltip = (e: React.MouseEvent, itemId: string) => {
+    if (historyTooltipTimer.current) clearTimeout(historyTooltipTimer.current);
+    const rect = e.currentTarget.getBoundingClientRect();
+    setHistoryTooltip({ itemId, x: rect.left, y: rect.bottom });
+  };
+  const hideHistoryTooltip = () => {
+    historyTooltipTimer.current = setTimeout(() => setHistoryTooltip(null), 150);
+  };
+  const keepHistoryTooltip = () => {
+    if (historyTooltipTimer.current) clearTimeout(historyTooltipTimer.current);
+  };
+
+  const handleDragOver = (e: React.DragEvent, groupId: string, itemId: string) => {
+    e.preventDefault();
+    dragOverItemRef.current = { groupId, itemId };
+  };
+  const handleDrop = (groupId: string) => {
+    const from = dragItemRef.current;
+    const to = dragOverItemRef.current;
+    dragItemRef.current = null;
+    dragOverItemRef.current = null;
+    if (!from || !to || from.groupId !== groupId || to.groupId !== groupId || from.itemId === to.itemId) return;
+    updateChecklists((prev) => prev.map((g) => {
+      if (g.id !== groupId) return g;
+      const items = [...g.items];
+      const fromIdx = items.findIndex((i) => i.id === from.itemId);
+      const toIdx = items.findIndex((i) => i.id === to.itemId);
+      if (fromIdx === -1 || toIdx === -1) return g;
+      const [moved] = items.splice(fromIdx, 1);
+      items.splice(toIdx, 0, moved);
+      return { ...g, items };
+    }));
+  };
 
   // Project / Object lock: для существующих задач только admin/super_admin/PM может менять
   const canEditProjectObject = useMemo(() => {
@@ -1360,12 +1439,12 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center p-3 sm:p-6 bg-black/60 overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60"
       onClick={onClose}
     >
       <div
-        className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-5xl my-2 sm:my-6 flex flex-col overflow-hidden"
-        style={{ minHeight: 580 }}
+        className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-5xl flex flex-col overflow-hidden"
+        style={{ height: 'calc(100dvh - 32px)', maxHeight: 920, minHeight: 500 }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Hidden file inputs — inside modal to avoid click bubble to backdrop */}
@@ -1456,8 +1535,9 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
               }, {});
               const done = statusCounts[SUBTASK_STATUS.DONE] || 0;
               return (
-                <div key={group.id} className="border border-gray-200 dark:border-gray-700/60 rounded-xl overflow-hidden">
-                  <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 dark:bg-gray-800/60">
+                <div key={group.id} className="border border-gray-200 dark:border-gray-700/60 rounded-xl overflow-visible">
+                  {/* Group header */}
+                  <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 dark:bg-gray-800/60 rounded-t-xl">
                     <button onClick={() => toggleCollapse(group.id)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                       <svg className={`w-4 h-4 transition-transform duration-200 ${group.collapsed ? '-rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -1469,12 +1549,19 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                       className="flex-1 text-sm font-semibold text-gray-800 dark:text-gray-200 bg-transparent outline-none border-none focus:ring-0"
                     />
                     {total > 0 && <span className="text-xs text-gray-400 shrink-0">{done}/{total}</span>}
-                    <button onClick={() => removeChecklist(group.id)} className="text-gray-300 hover:text-red-400 transition-colors shrink-0">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
+                    {canApproveSubtasks && (
+                      <button
+                        onClick={() => removeChecklist(group.id)}
+                        title={total > 0 ? 'Сначала удалите все подзадачи' : 'Удалить список'}
+                        className={`transition-colors shrink-0 ${total > 0 ? 'text-gray-200 dark:text-gray-700 cursor-not-allowed' : 'text-gray-300 hover:text-red-400'}`}
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    )}
                   </div>
+                  {/* Progress bar */}
                   {total > 0 && (
                     <>
                       <div className="h-1.5 bg-gray-100 dark:bg-gray-800/60 flex overflow-hidden">
@@ -1489,7 +1576,6 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                           );
                         })}
                       </div>
-                      {/* Status counts legend */}
                       <div className="flex items-center gap-2 px-4 py-1.5 bg-gray-50/60 dark:bg-gray-800/30 flex-wrap">
                         {Object.entries(statusCounts).map(([st, cnt]) => {
                           const info = SUBTASK_STATUS_LABELS[Number(st)];
@@ -1506,6 +1592,19 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                   )}
                   {!group.collapsed && (
                     <>
+                      {/* Add item button at the top */}
+                      <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-700/30">
+                        <button
+                          onClick={() => addItem(group.id)}
+                          className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-violet-500 transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                          </svg>
+                          Добавить подзадачу
+                        </button>
+                      </div>
+                      {/* Items list */}
                       <div className="divide-y divide-gray-100 dark:divide-gray-700/30">
                         {group.items.map((item) => {
                           const itemStatus = getItemStatus(item);
@@ -1514,107 +1613,149 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                           const isDone = itemStatus === SUBTASK_STATUS.DONE;
                           const isRejected = itemStatus === SUBTASK_STATUS.REJECTED;
                           return (
-                          <div key={item.id} id={`checklist-item-${item.id}`} className={`flex items-start gap-3 px-4 py-2.5 group/item transition-colors duration-300 ${highlightedItemId === item.id ? 'bg-violet-50 dark:bg-violet-900/20' : ''}`}>
-                            <button
-                              onClick={() => toggleItem(group.id, item.id)}
-                              title={statusInfo?.label}
-                              className={`w-5 h-5 shrink-0 mt-0.5 rounded border-2 flex items-center justify-center transition-colors ${
-                                isDone ? 'bg-green-500 border-green-500'
-                                : isPending ? 'bg-yellow-400 border-yellow-400'
-                                : isRejected ? 'bg-red-400 border-red-400'
-                                : 'border-gray-300 dark:border-gray-600 hover:border-violet-400'
-                              }`}
+                            <div
+                              key={item.id}
+                              id={`checklist-item-${item.id}`}
+                              onDragOver={(e) => handleDragOver(e, group.id, item.id)}
+                              onDrop={() => handleDrop(group.id)}
+                              className={`flex items-start gap-2 px-3 py-2.5 group/item transition-colors duration-300 ${highlightedItemId === item.id ? 'bg-violet-50 dark:bg-violet-900/20' : ''}`}
                             >
-                              {isDone && (
-                                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                              {/* Drag handle */}
+                              <div
+                                draggable
+                                onDragStart={(e) => { e.stopPropagation(); dragItemRef.current = { groupId: group.id, itemId: item.id }; }}
+                                onDragEnd={() => { dragItemRef.current = null; dragOverItemRef.current = null; }}
+                                className="opacity-0 group-hover/item:opacity-40 hover:!opacity-80 cursor-grab active:cursor-grabbing shrink-0 mt-1 pt-0.5 text-gray-400 select-none"
+                                title="Перетащить"
+                              >
+                                <svg className="w-3 h-3" viewBox="0 0 10 16" fill="currentColor">
+                                  <circle cx="3" cy="2" r="1.5" /><circle cx="3" cy="8" r="1.5" /><circle cx="3" cy="14" r="1.5" />
+                                  <circle cx="7" cy="2" r="1.5" /><circle cx="7" cy="8" r="1.5" /><circle cx="7" cy="14" r="1.5" />
                                 </svg>
-                              )}
-                              {isPending && (
-                                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4l3 3" />
-                                  <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth={2.5} fill="none" />
-                                </svg>
-                              )}
-                              {isRejected && (
-                                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                              )}
-                            </button>
-                            <div className="flex-1 min-w-0">
-                              {editingItemId === item.id ? (
-                                <AutoResizeTextarea
-                                  value={item.text}
-                                  onChange={(v) => updateItemText(group.id, item.id, v)}
-                                  className={`w-full text-sm bg-transparent outline-none border-none focus:ring-0 resize-none overflow-hidden leading-normal ${isDone ? 'line-through text-gray-400' : isRejected ? 'text-red-500 dark:text-red-400' : 'text-gray-700 dark:text-gray-300'}`}
-                                  placeholder={assignees.length > 0 ? 'Введите пункт, @ — упомянуть исполнителя' : 'Введите пункт...'}
-                                  autoFocus
-                                  onBlur={() => setEditingItemId(null)}
-                                  mentionCandidates={assignees.map((a) => ({
-                                    userId: a.userId,
-                                    userName: a.userName || (userMap[a.userId] ? userName(userMap[a.userId]) : `#${a.userId}`),
-                                    avatarUrl: userMap[a.userId]?.avatarUrl,
-                                  }))}
-                                />
-                              ) : (
-                                <div
-                                  onClick={() => setEditingItemId(item.id)}
-                                  className={`w-full text-sm leading-normal cursor-text whitespace-pre-wrap break-words min-h-[1.25rem] ${isDone ? 'line-through text-gray-400' : isRejected ? 'text-red-500 dark:text-red-400' : 'text-gray-700 dark:text-gray-300'}`}
-                                >
-                                  {item.text ? renderTextWithLinks(item.text, (uid) => {
-                                    const u = userMap[uid];
-                                    if (u) setEmployeeCard({ user: u });
-                                  }) : <span className="text-gray-400">{assignees.length > 0 ? 'Введите пункт, @ — упомянуть исполнителя' : 'Введите пункт...'}</span>}
+                              </div>
+                              {/* Checkbox */}
+                              <button
+                                onClick={() => toggleItem(group.id, item.id)}
+                                title={statusInfo?.label}
+                                className={`w-5 h-5 shrink-0 mt-0.5 rounded border-2 flex items-center justify-center transition-colors ${
+                                  isDone ? 'bg-green-500 border-green-500'
+                                  : isPending ? 'bg-yellow-400 border-yellow-400'
+                                  : isRejected ? 'bg-red-400 border-red-400'
+                                  : 'border-gray-300 dark:border-gray-600 hover:border-violet-400'
+                                }`}
+                              >
+                                {isDone && (
+                                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                )}
+                                {isPending && (
+                                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4l3 3" />
+                                    <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth={2.5} fill="none" />
+                                  </svg>
+                                )}
+                                {isRejected && (
+                                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                )}
+                              </button>
+                              {/* Item text */}
+                              <div className="flex-1 min-w-0">
+                                {editingItemId === item.id ? (
+                                  <AutoResizeTextarea
+                                    value={item.text}
+                                    onChange={(v) => updateItemText(group.id, item.id, v)}
+                                    className={`w-full text-sm bg-transparent outline-none border-none focus:ring-0 resize-none overflow-hidden leading-normal ${isDone ? 'line-through text-gray-400' : isRejected ? 'text-red-500 dark:text-red-400' : 'text-gray-700 dark:text-gray-300'}`}
+                                    placeholder={assignees.length > 0 ? 'Введите пункт, @ — упомянуть исполнителя' : 'Введите пункт...'}
+                                    autoFocus
+                                    onBlur={() => {
+                                      if (!item.text.trim()) removeItem(group.id, item.id);
+                                      setEditingItemId(null);
+                                    }}
+                                    mentionCandidates={assignees.map((a) => ({
+                                      userId: a.userId,
+                                      userName: a.userName || (userMap[a.userId] ? userName(userMap[a.userId]) : `#${a.userId}`),
+                                      avatarUrl: userMap[a.userId]?.avatarUrl,
+                                    }))}
+                                  />
+                                ) : (
+                                  <div
+                                    onClick={() => setEditingItemId(item.id)}
+                                    className={`w-full text-sm leading-normal cursor-text whitespace-pre-wrap break-words min-h-[1.25rem] ${isDone ? 'line-through text-gray-400' : isRejected ? 'text-red-500 dark:text-red-400' : 'text-gray-700 dark:text-gray-300'}`}
+                                  >
+                                    {item.text ? renderTextWithLinks(item.text, (uid) => {
+                                      const u = userMap[uid];
+                                      if (u) setEmployeeCard({ user: u });
+                                    }) : <span className="text-gray-400">{assignees.length > 0 ? 'Введите пункт, @ — упомянуть исполнителя' : 'Введите пункт...'}</span>}
+                                  </div>
+                                )}
+                                {(isPending || isDone || isRejected) && item.completedByName && (
+                                  <p className="text-[10px] text-gray-400 mt-0.5">
+                                    {statusInfo?.label}
+                                    {(isPending || isDone) ? ' · Система' : (item.completedByName ? ` · ${item.completedByName}` : '')}
+                                    {item.completedAt ? ` · ${new Date(item.completedAt).toLocaleString('ru-RU', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}` : ''}
+                                  </p>
+                                )}
+                              </div>
+                              {/* Approve/Reject */}
+                              {isPending && canApproveSubtasks && (
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <button
+                                    onClick={() => setSubtaskStatus(group.id, item.id, SUBTASK_STATUS.DONE)}
+                                    title="Утвердить"
+                                    className="p-1 text-green-500 hover:bg-green-50 dark:hover:bg-green-900/30 rounded"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  </button>
+                                  <button
+                                    onClick={() => setSubtaskStatus(group.id, item.id, SUBTASK_STATUS.REJECTED)}
+                                    title="Отклонить"
+                                    className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                  </button>
                                 </div>
                               )}
-                              {(isPending || isDone || isRejected) && item.completedByName && (
-                                <p className="text-[10px] text-gray-400 mt-0.5">
-                                  {statusInfo?.label}
-                                  {(isPending || isDone) ? ' · Система' : (item.completedByName ? ` · ${item.completedByName}` : '')}
-                                  {item.completedAt ? ` · ${new Date(item.completedAt).toLocaleString('ru-RU', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}` : ''}
-                                </p>
+                              {/* History ⓘ button */}
+                              {item.text && !isNew && (
+                                <button
+                                  className="opacity-0 group-hover/item:opacity-60 hover:!opacity-100 p-0.5 text-gray-400 hover:text-violet-500 shrink-0 transition-all"
+                                  title="История подзадачи"
+                                  onMouseEnter={(e) => showHistoryTooltip(e, item.id)}
+                                  onMouseLeave={hideHistoryTooltip}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setHistoryPanelItemId(item.id);
+                                    setSidebarCollapsed(false);
+                                    setHistoryTooltip(null);
+                                  }}
+                                >
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                </button>
+                              )}
+                              {/* Delete (admin/creator only) */}
+                              {canApproveSubtasks && (
+                                <button
+                                  onClick={() => removeItem(group.id, item.id)}
+                                  className="opacity-0 group-hover/item:opacity-100 text-gray-300 hover:text-red-400 transition-all shrink-0"
+                                  title="Удалить подзадачу"
+                                >
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </button>
                               )}
                             </div>
-                            {/* Approve/Reject for pending items (only for authorized) */}
-                            {isPending && canApproveSubtasks && (
-                              <div className="flex items-center gap-1 shrink-0">
-                                <button
-                                  onClick={() => setSubtaskStatus(group.id, item.id, SUBTASK_STATUS.DONE)}
-                                  title="Утвердить"
-                                  className="p-1 text-green-500 hover:bg-green-50 dark:hover:bg-green-900/30 rounded"
-                                >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                                  </svg>
-                                </button>
-                                <button
-                                  onClick={() => setSubtaskStatus(group.id, item.id, SUBTASK_STATUS.REJECTED)}
-                                  title="Отклонить"
-                                  className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded"
-                                >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                                  </svg>
-                                </button>
-                              </div>
-                            )}
-                            <button onClick={() => removeItem(group.id, item.id)} className="opacity-0 group-hover/item:opacity-100 text-gray-300 hover:text-red-400 transition-all shrink-0">
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                              </svg>
-                            </button>
-                          </div>
                           );
                         })}
-                      </div>
-                      <div className="px-4 py-2.5 border-t border-gray-100 dark:border-gray-700/30">
-                        <button onClick={() => addItem(group.id)} className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-violet-500 transition-colors">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                          </svg>
-                          Добавить задачу
-                        </button>
                       </div>
                     </>
                   )}
@@ -1897,11 +2038,108 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
           </div>
 
           {/* ── Right sidebar (desktop only) ── */}
-          <div className="w-60 xl:w-64 shrink-0 border-l border-gray-200 dark:border-gray-700/60 px-4 py-5 overflow-y-auto hidden sm:flex sm:flex-col">
-            <SidebarContent />
+          <div className={`shrink-0 border-l border-gray-200 dark:border-gray-700/60 transition-all duration-200 hidden sm:flex sm:flex-col ${sidebarCollapsed ? 'w-8' : 'w-60 xl:w-64'}`}>
+            {/* Toggle button */}
+            <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'justify-end'} px-1.5 pt-3 pb-1 shrink-0`}>
+              <button
+                onClick={() => { setSidebarCollapsed((v) => !v); if (!sidebarCollapsed) setHistoryPanelItemId(null); }}
+                className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded transition-colors"
+                title={sidebarCollapsed ? 'Развернуть панель' : 'Свернуть панель'}
+              >
+                <svg className={`w-4 h-4 transition-transform duration-200 ${sidebarCollapsed ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+            {!sidebarCollapsed && (
+              <div className="flex-1 overflow-y-auto px-4 pb-5 min-h-0">
+                {historyPanelItemId ? (() => {
+                  const allItems = checklists.flatMap((g) => g.items);
+                  const hItem = allItems.find((i) => i.id === historyPanelItemId);
+                  const hEvents = hItem ? extractItemHistory(hItem.text) : [];
+                  return (
+                    <div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <button
+                          onClick={() => setHistoryPanelItemId(null)}
+                          className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded transition-colors"
+                          title="Назад"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                          </svg>
+                        </button>
+                        <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">История подзадачи</p>
+                      </div>
+                      {hItem && (
+                        <p className="text-xs text-gray-600 dark:text-gray-300 mb-4 bg-gray-50 dark:bg-gray-800/50 px-3 py-2 rounded-lg leading-relaxed">
+                          {hItem.text}
+                        </p>
+                      )}
+                      {hEvents.length === 0 ? (
+                        <p className="text-sm text-gray-400 text-center py-8">Нет событий</p>
+                      ) : (
+                        <div className="space-y-3">
+                          {hEvents.map((ev, i) => (
+                            <div key={i} className="flex items-start gap-2.5">
+                              <div className={`w-2.5 h-2.5 rounded-full shrink-0 mt-1 ${HISTORY_ACTION_COLORS[ev.action] || 'bg-violet-400'}`} />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs text-gray-700 dark:text-gray-300 capitalize">{ev.action}</p>
+                                <p className="text-[10px] text-gray-400 mt-0.5">
+                                  {new Date(ev.time).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })() : <SidebarContent />}
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* History tooltip (fixed overlay) */}
+      {historyTooltip && (() => {
+        const allItems = checklists.flatMap((g) => g.items);
+        const tItem = allItems.find((i) => i.id === historyTooltip.itemId);
+        const tEvents = tItem ? extractItemHistory(tItem.text) : [];
+        const left = Math.min(historyTooltip.x, (typeof window !== 'undefined' ? window.innerWidth : 1200) - 288);
+        return (
+          <div
+            className="fixed z-[200] w-72 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl p-3"
+            style={{ top: historyTooltip.y + 6, left }}
+            onMouseEnter={keepHistoryTooltip}
+            onMouseLeave={hideHistoryTooltip}
+          >
+            <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">История (последние события)</p>
+            {tEvents.length === 0 ? (
+              <p className="text-xs text-gray-400">Событий пока нет</p>
+            ) : (
+              <ul className="space-y-1.5">
+                {tEvents.slice(0, 3).map((ev, i) => (
+                  <li key={i} className="flex items-center gap-2 text-xs">
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${HISTORY_ACTION_COLORS[ev.action] || 'bg-violet-400'}`} />
+                    <span className="flex-1 text-gray-700 dark:text-gray-300 capitalize">{ev.action}</span>
+                    <span className="text-gray-400 shrink-0">{formatAgo(ev.time)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {tEvents.length > 0 && (
+              <button
+                onClick={() => { setHistoryPanelItemId(historyTooltip.itemId); setSidebarCollapsed(false); setHistoryTooltip(null); }}
+                className="text-xs text-violet-500 hover:text-violet-600 mt-2 block"
+              >
+                Смотреть всю историю →
+              </button>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Mobile settings sheet */}
       {showMobileSettings && (

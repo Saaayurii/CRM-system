@@ -13,7 +13,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <div className="w-full max-w-md bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-8 sm:p-10 animate-slideInLeft">
             {children}
           </div>
-        </div>
+        </div>  
 
         {/* Decorative panel (hidden on mobile) */}
         <div className="hidden md:block md:w-1/2 relative overflow-hidden">

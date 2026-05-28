@@ -355,7 +355,7 @@ function CompanySwitcher() {
   );
 }
 
-/* ─── link class helper ─── */
+/* ─── link class helpers ─── */
 function linkCls(active: boolean) {
   return `flex items-center gap-3 py-2 px-3 rounded-lg transition duration-150 truncate ${
     active
@@ -363,6 +363,7 @@ function linkCls(active: boolean) {
       : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
   }`;
 }
+
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -529,23 +530,21 @@ export default function Sidebar() {
                 </NavLink>
               </li>
 
-              {/* Employees */}
+              {/* Сообщество */}
               <li className="mb-1 last:mb-0">
-                <NavLink href="/dashboard/employees" hotkey={hkByHref['/dashboard/employees']} className={linkCls(pathname === '/dashboard/employees')}>
+                <NavLink
+                  href="/dashboard/community"
+                  className={linkCls(
+                    pathname.startsWith('/dashboard/community') ||
+                    pathname === '/dashboard/employees' ||
+                    pathname.startsWith('/dashboard/clients') ||
+                    pathname === '/dashboard/teams'
+                  )}
+                >
                   <IconEmployees />
-                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Сотрудники</span>
+                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Сообщество</span>
                 </NavLink>
               </li>
-
-              {/* Clients (admin/super_admin/PM работают с клиентской базой) */}
-              {(isSuperAdmin || isAdmin || isPM) && (
-                <li className="mb-1 last:mb-0">
-                  <NavLink href="/dashboard/clients" hotkey={hkByHref['/dashboard/clients']} className={linkCls(pathname.startsWith('/dashboard/clients'))}>
-                    <IconClients />
-                    <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Клиенты</span>
-                  </NavLink>
-                </li>
-              )}
 
               {/* Calendar */}
               <li className="mb-1 last:mb-0">
@@ -791,16 +790,6 @@ export default function Sidebar() {
                   <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Охрана труда</span>
                 </NavLink>
               </li>
-
-              {/* Teams */}
-              {showTeams && (
-                <li className="mb-1 last:mb-0">
-                  <NavLink href="/dashboard/teams" hotkey={hkByHref['/dashboard/teams']} className={linkCls(pathname === '/dashboard/teams')}>
-                    <IconTeams />
-                    <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Команды</span>
-                  </NavLink>
-                </li>
-              )}
 
               {/* Chat */}
               {showChat && (
