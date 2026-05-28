@@ -32,6 +32,8 @@ interface Task {
   priority: number;
   dueDate?: string;
   due_date?: string;
+  updatedAt?: string;
+  updated_at?: string;
   projectId?: number;
   project_id?: number;
   assignedToUserId?: number;
@@ -124,7 +126,7 @@ async function fetchTasksPageData(): Promise<TasksPageData> {
   };
 }
 
-type SortKey = 'title' | 'project' | 'status' | 'priority' | 'assignee' | 'creator' | 'dueDate';
+type SortKey = 'title' | 'project' | 'status' | 'priority' | 'assignee' | 'creator' | 'dueDate' | 'updatedAt';
 
 function SortIcon({ active, dir }: { active: boolean; dir: 'asc' | 'desc' }) {
   return (
@@ -242,6 +244,10 @@ export default function TasksPage() {
         const aU = aId ? users.find((u) => u.id === aId) : null;
         const bU = bId ? users.find((u) => u.id === bId) : null;
         cmp = (aU?.name || '').localeCompare(bU?.name || '', 'ru');
+      } else if (sortKey === 'updatedAt') {
+        const au = a.updatedAt || a.updated_at || '';
+        const bu = b.updatedAt || b.updated_at || '';
+        cmp = au < bu ? -1 : au > bu ? 1 : 0;
       }
       return sortDir === 'asc' ? cmp : -cmp;
     });
@@ -281,14 +287,14 @@ export default function TasksPage() {
   };
 
   const COLUMNS: { key: SortKey | null; label: string }[] = [
-    { key: 'title',    label: 'Название' },
-    { key: 'project',  label: 'Проект' },
-    { key: 'status',   label: 'Статус' },
-    { key: 'priority', label: 'Приоритет' },
-    { key: 'assignee', label: 'Исполнитель' },
-    { key: 'creator',  label: 'Поставил' },
-    { key: 'dueDate',  label: 'Срок' },
-    { key: null,       label: '' },
+    { key: 'title',     label: 'Название' },
+    { key: 'project',   label: 'Проект' },
+    { key: 'status',    label: 'Статус' },
+    { key: 'priority',  label: 'Приоритет' },
+    { key: 'assignee',  label: 'Исполнитель' },
+    { key: 'creator',   label: 'Поставил' },
+    { key: 'dueDate',   label: 'Срок' },
+    { key: 'updatedAt', label: 'Изменён' },
   ];
 
   return (
@@ -298,25 +304,65 @@ export default function TasksPage() {
           <h1 className="text-2xl md:text-3xl text-gray-800 dark:text-gray-100 font-bold">Задачи</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Управление задачами проекта</p>
         </div>
-        <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg mt-3 sm:mt-0 w-fit">
-          <button
-            onClick={() => { setViewMode('table'); localStorage.setItem('dashViewMode', 'table'); }}
-            className={`p-1.5 rounded transition-colors ${viewMode === 'table' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}
-            title="Таблица"
-          >
-            <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-            </svg>
-          </button>
-          <button
-            onClick={() => { setViewMode('grid'); localStorage.setItem('dashViewMode', 'grid'); }}
-            className={`p-1.5 rounded transition-colors ${viewMode === 'grid' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}
-            title="Карточки"
-          >
-            <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-            </svg>
-          </button>
+        <div className="flex items-center gap-2 mt-3 sm:mt-0">
+          {/* 4 action buttons */}
+          <div className="flex items-center gap-0.5">
+            <button
+              title="Поиск"
+              className="p-2 text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </button>
+            <button
+              onClick={() => handleCreate()}
+              title="Создать задачу"
+              className="p-2 text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+            </button>
+            <button
+              title="Фильтры"
+              className="p-2 text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z" />
+              </svg>
+            </button>
+            <button
+              title="Настройки"
+              className="p-2 text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </button>
+          </div>
+          {/* View toggle */}
+          <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
+            <button
+              onClick={() => { setViewMode('table'); localStorage.setItem('dashViewMode', 'table'); }}
+              className={`p-1.5 rounded transition-colors ${viewMode === 'table' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}
+              title="Таблица"
+            >
+              <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+            </button>
+            <button
+              onClick={() => { setViewMode('grid'); localStorage.setItem('dashViewMode', 'grid'); }}
+              className={`p-1.5 rounded transition-colors ${viewMode === 'grid' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}
+              title="Карточки"
+            >
+              <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -398,7 +444,7 @@ export default function TasksPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
-                {sortedTasks.map((t) => {
+                {sortedTasks.flatMap((t) => {
                   const status = STATUS_LABELS[t.status] || STATUS_LABELS[0];
                   const priority = PRIORITY_LABELS[t.priority] || PRIORITY_LABELS[2];
                   const assignee = t.assignedToUser || t.assigned_to_user;
@@ -414,31 +460,20 @@ export default function TasksPage() {
                     ? 'Система'
                     : creatorUser?.name || creatorUser?.email || 'Система';
                   const createdAt = t.createdAt || t.created_at;
+                  const updatedAt = t.updatedAt || t.updated_at;
                   const overdue = isTaskOverdue(t);
                   const { done, total } = getTaskProgress(t);
                   const progressPct = total > 0 ? Math.round((done / total) * 100) : 0;
 
-                  return (
+                  const rows = [
                     <tr
                       key={t.id}
-                      className={`group/row relative hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer ${overdue ? 'bg-red-50/70 dark:bg-red-900/10 hover:bg-red-50 dark:hover:bg-red-900/20' : ''}`}
+                      className={`cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900/20 ${overdue ? 'bg-red-50/70 dark:bg-red-900/10 hover:bg-red-50 dark:hover:bg-red-900/20' : ''}`}
                       onClick={() => handleEdit(t)}
                     >
                       {/* Название */}
-                      <td className="py-2.5 px-4 font-medium text-gray-800 dark:text-gray-100 max-w-[220px]">
+                      <td className="pt-2.5 pb-1 px-4 font-medium text-gray-800 dark:text-gray-100 max-w-[220px]">
                         <div className="truncate">{t.title}</div>
-                        {/* Progress bar */}
-                        {total > 0 && (
-                          <div className="mt-1.5 flex items-center gap-1.5">
-                            <div className="flex-1 h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                              <div
-                                className={`h-full rounded-full transition-all ${progressPct === 100 ? 'bg-green-500' : 'bg-violet-400'}`}
-                                style={{ width: `${progressPct}%` }}
-                              />
-                            </div>
-                            <span className="text-[10px] text-gray-400 shrink-0">{done}/{total}</span>
-                          </div>
-                        )}
                       </td>
                       {/* Проект */}
                       <td className="py-2.5 px-4 text-gray-600 dark:text-gray-400 whitespace-nowrap">
@@ -474,59 +509,32 @@ export default function TasksPage() {
                           {overdue && <span className="ml-1 text-[10px] uppercase tracking-wide">просрочена</span>}
                         </span>
                       </td>
-                      {/* Действия: 4 иконки */}
-                      <td className="py-2.5 px-4 text-center" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover/row:opacity-100 transition-opacity">
-                          {/* Открыть */}
-                          <button
-                            onClick={() => handleEdit(t)}
-                            title="Открыть задачу"
-                            className="p-1.5 text-gray-400 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors"
-                          >
-                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
-                          </button>
-                          {/* Создать связанную */}
-                          <button
-                            onClick={() => handleCreate(t.projectId || t.project_id)}
-                            title="Создать задачу в этом проекте"
-                            className="p-1.5 text-gray-400 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors"
-                          >
-                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                            </svg>
-                          </button>
-                          {/* Редактировать */}
-                          <button
-                            onClick={() => handleEdit(t)}
-                            title="Редактировать"
-                            className="p-1.5 text-gray-400 hover:text-sky-500 hover:bg-sky-50 dark:hover:bg-sky-900/20 rounded-lg transition-colors"
-                          >
-                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            </svg>
-                          </button>
-                          {/* Удалить */}
-                          <button
-                            onClick={() => handleDelete(t.id)}
-                            disabled={deletingId === t.id}
-                            title="Удалить"
-                            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-50"
-                          >
-                            {deletingId === t.id ? (
-                              <span className="w-3.5 h-3.5 border-2 border-red-400 border-t-transparent rounded-full animate-spin block" />
-                            ) : (
-                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            )}
-                          </button>
-                        </div>
+                      {/* Дата изменения */}
+                      <td className="py-2.5 px-4 whitespace-nowrap text-gray-500 dark:text-gray-400 text-sm">
+                        {formatDate(updatedAt)}
                       </td>
-                    </tr>
-                  );
+                    </tr>,
+                  ];
+
+                  if (total > 0) {
+                    rows.push(
+                      <tr key={`${t.id}-prog`} className={overdue ? 'bg-red-50/70 dark:bg-red-900/10' : ''}>
+                        <td colSpan={8} className="px-0 pb-1.5 pt-0 border-0">
+                          <div className="mx-4 flex items-center gap-2">
+                            <div className="flex-1 h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full rounded-full transition-all ${progressPct === 100 ? 'bg-green-500' : 'bg-violet-400'}`}
+                                style={{ width: `${progressPct}%` }}
+                              />
+                            </div>
+                            <span className="text-[10px] text-gray-400 shrink-0">{done}/{total}</span>
+                          </div>
+                        </td>
+                      </tr>,
+                    );
+                  }
+
+                  return rows;
                 })}
               </tbody>
             </table>
