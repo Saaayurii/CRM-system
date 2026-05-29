@@ -1609,7 +1609,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
         <div className="flex flex-1 overflow-hidden min-h-0">
 
           {/* ── Left column ── */}
-          <div className="flex-1 overflow-y-auto px-5 sm:px-6 py-5 space-y-6 min-w-0">
+          <div className="flex-1 overflow-y-auto scrollbar-none px-5 sm:px-6 py-5 space-y-6 min-w-0">
 
             {/* Description */}
             <div>
@@ -1646,6 +1646,14 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                       onChange={(e) => updateGroupTitle(group.id, e.target.value)}
                       className="flex-1 text-sm font-semibold text-gray-800 dark:text-gray-200 bg-transparent outline-none border-none focus:ring-0"
                     />
+                    <button
+                      onClick={() => addItem(group.id)}
+                      title="Добавить подзадачу"
+                      className="flex items-center gap-1 text-gray-400 hover:text-violet-500 transition-colors text-xs font-normal shrink-0"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                      Добавить
+                    </button>
                     {total > 0 && <span className="text-xs text-gray-400 shrink-0">{done}/{total}</span>}
                     {canApproveSubtasks && (
                       <button
@@ -1689,7 +1697,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                     </>
                   )}
                   {!group.collapsed && (
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto scrollbar-none">
                       <table className="w-full text-sm min-w-[600px]">
                         <thead>
                           <tr className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider border-b border-gray-100 dark:border-gray-700/40 bg-gray-50/60 dark:bg-gray-800/30">
@@ -1699,16 +1707,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                             <th className="px-3 py-2 text-left font-semibold">Срок</th>
                             <th className="px-3 py-2 text-left font-semibold">Приоритет</th>
                             <th className="px-3 py-2 text-left font-semibold">Создано</th>
-                            <th className="px-2 py-2 w-14">
-                              <button
-                                onClick={() => addItem(group.id)}
-                                title="Добавить подзадачу"
-                                className="flex items-center gap-1 text-gray-400 hover:text-violet-500 transition-colors text-[10px] font-normal normal-case tracking-normal"
-                              >
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                                Добавить
-                              </button>
-                            </th>
+                            <th className="px-2 py-2 w-14" aria-hidden />
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-gray-700/30">
@@ -2223,7 +2222,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
               </button>
             </div>
             {!sidebarCollapsed && (
-              <div className="flex-1 overflow-y-auto px-4 pb-5 min-h-0">
+              <div className="flex-1 overflow-y-auto scrollbar-none px-4 pb-5 min-h-0">
                 {historyPanelItemId ? (() => {
                   const allItems = checklists.flatMap((g) => g.items);
                   const hItem = allItems.find((i) => i.id === historyPanelItemId);
