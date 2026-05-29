@@ -439,42 +439,36 @@ export class CalendarFeedService {
           p.actualEndDate  ?? p.actual_end_date  ??
           p.endDate        ?? p.end_date;
 
-        if (sRaw) {
-          const s = new Date(sRaw).getTime();
-          if (!Number.isNaN(s) && s >= startD && s <= endD) {
-            out.push({
-              id: `project-start:${p.id}`,
-              title: `▶ Старт: ${p.name}`,
-              start: new Date(sRaw).toISOString(),
-              allDay: true,
-              color: COLOR_BY_SOURCE.project,
-              sourceType: 'project',
-              sourceId: p.id,
-              projectId: p.id,
-              editable: false,
-              url: `/dashboard/projects/${p.id}`,
-            });
-          }
-        }
-        if (eRaw) {
-          const e = new Date(eRaw).getTime();
-          if (!Number.isNaN(e) && e >= startD && e <= endD) {
-            out.push({
-              id: `project-end:${p.id}`,
-              title: `■ Финиш: ${p.name}`,
-              start: new Date(eRaw).toISOString(),
-              allDay: true,
-              color: '#ef4444',
-              sourceType: 'project',
-              sourceId: p.id,
-              projectId: p.id,
-              editable: false,
-              url: `/dashboard/projects/${p.id}`,
-            });
-          }
-        }
+        const sMs = sRaw ? new Date(sRaw).getTime() : NaN;
+        const eMs = eRaw ? new Date(eRaw).getTime() : NaN;
+
+        // Show project as a span bar if it overlaps with the visible range.
+        // Fallback: project has no dates → skip.
+        const projStart = Number.isNaN(sMs) ? null : sMs;
+        const projEnd   = Number.isNaN(eMs) ? null : eMs;
+        if (projStart === null && projEnd === null) continue;
+
+        // Overlaps when: projStart <= endD  AND  projEnd >= startD
+        // (use range boundaries when one side is missing)
+        const effectiveStart = projStart ?? startD;
+        const effectiveEnd   = projEnd   ?? endD;
+        if (effectiveStart > endD || effectiveEnd < startD) continue;
+
+        out.push({
+          id: `project:${p.id}`,
+          title: p.name,
+          start: new Date(effectiveStart).toISOString(),
+          end:   new Date(effectiveEnd).toISOString(),
+          allDay: true,
+          color: COLOR_BY_SOURCE.project,
+          sourceType: 'project',
+          sourceId: p.id,
+          projectId: p.id,
+          editable: false,
+          url: `/dashboard/projects/${p.id}`,
+        });
       }
-      this.logger.debug(`projects: ${out.length} milestones across ${items.length} projects`);
+      this.logger.debug(`projects: ${out.length} active projects in range`);
       return out;
     } catch (e: any) {
       this.logger.warn(`projects feed failed: ${e?.message}`);
