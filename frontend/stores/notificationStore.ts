@@ -9,6 +9,7 @@ import {
   disablePushNotifications,
   isPushSubscribed,
 } from '@/lib/pushNotifications';
+import { setFaviconBadge, startTitleFlash, stopTitleFlash } from '@/lib/tabBadge';
 
 export interface Notification {
   id: number;
@@ -47,9 +48,16 @@ interface NotificationState {
   checkPushStatus: () => Promise<void>;
 }
 
+// Ensures the visibilitychange listener is attached only once
+let visibilityListenerAttached = false;
+
 // ─── App Badging API ──────────────────────────────────────────────────────────
 
 function updateBadge(count: number): void {
+  // Favicon badge — works in every browser tab
+  setFaviconBadge(count);
+
+  // PWA app icon badge — only when installed & supported
   if (typeof navigator === 'undefined') return;
   if (!('setAppBadge' in navigator)) return;
 
@@ -179,6 +187,14 @@ export const useNotificationStore = create<NotificationState>()(
         const { eventSource } = get();
         if (eventSource) return;
 
+        // Stop the flashing title as soon as the user returns to the tab (once)
+        if (typeof document !== 'undefined' && !visibilityListenerAttached) {
+          visibilityListenerAttached = true;
+          document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) stopTitleFlash();
+          });
+        }
+
         const token =
           typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
         if (!token) return;
@@ -191,6 +207,10 @@ export const useNotificationStore = create<NotificationState>()(
             const notification: Notification = JSON.parse(event.data);
             playNotificationSound();
             showBrowserNotification(notification);
+            // Flash the tab title while the tab is in the background
+            if (typeof document !== 'undefined' && document.hidden) {
+              startTitleFlash(`🔔 ${notification.title}`);
+            }
             set((state) => {
               const unreadCount = state.unreadCount + 1;
               updateBadge(unreadCount);

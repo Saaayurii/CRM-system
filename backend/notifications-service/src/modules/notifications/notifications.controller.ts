@@ -30,6 +30,8 @@ import {
   UpdateAnnouncementDto,
   SavePushSubscriptionDto,
   DeletePushSubscriptionDto,
+  InternalCreateNotificationDto,
+  BroadcastNotificationDto,
 } from './dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
@@ -83,6 +85,26 @@ export class NotificationsController {
       sessionId: body.sessionId,
     });
     return { ok: true };
+  }
+
+  @Public()
+  @Post('notifications/internal')
+  @ApiOperation({
+    summary: 'Internal (service-to-service): create a notification for one user',
+  })
+  createInternalNotification(@Body() dto: InternalCreateNotificationDto) {
+    const { accountId, ...rest } = dto;
+    return this.notificationsService.createNotification(accountId, rest);
+  }
+
+  @Public()
+  @Post('notifications/internal/broadcast')
+  @ApiOperation({
+    summary:
+      'Internal (service-to-service): broadcast to roles + explicit users, minus the actor',
+  })
+  broadcastInternalNotification(@Body() dto: BroadcastNotificationDto) {
+    return this.notificationsService.broadcastNotification(dto);
   }
 
   // ─── Web Push / VAPID ───────────────────────────────────────────────────────

@@ -176,4 +176,21 @@ export class NotificationRepository {
       where: { accountId, roleId: { in: roleIds } },
     });
   }
+
+  /** Active (non-deleted) user IDs in an account having any of the given roles */
+  async findUserIdsByRoles(
+    accountId: number,
+    roleIds: number[],
+  ): Promise<number[]> {
+    const users = await (this.prisma as any).user.findMany({
+      where: {
+        accountId,
+        roleId: { in: roleIds },
+        isActive: true,
+        deletedAt: null,
+      },
+      select: { id: true },
+    });
+    return users.map((u: { id: number }) => u.id);
+  }
 }

@@ -16,6 +16,7 @@ import {
   UpdateAnnouncementDto,
   SavePushSubscriptionDto,
   DeletePushSubscriptionDto,
+  BroadcastNotificationDto,
 } from './dto';
 import { shouldPushToRole } from '../../config/notification-roles.config';
 
@@ -248,6 +249,49 @@ export class NotificationsService implements OnModuleInit {
     }
 
     return notification;
+  }
+
+  /**
+   * Broadcast a notification to a computed audience: every active user with one
+   * of `roleIds`, plus explicit `userIds`, minus `excludeUserId` (the actor).
+   */
+  async broadcastNotification(dto: BroadcastNotificationDto) {
+    const recipientIds = new Set<number>();
+
+    if (dto.userIds?.length) {
+      dto.userIds.forEach((id) => recipientIds.add(id));
+    }
+
+    if (dto.roleIds?.length) {
+      const ids = await this.notificationRepository.findUserIdsByRoles(
+        dto.accountId,
+        dto.roleIds,
+      );
+      ids.forEach((id) => recipientIds.add(id));
+    }
+
+    if (dto.excludeUserId !== undefined) {
+      recipientIds.delete(dto.excludeUserId);
+    }
+
+    const results = await Promise.allSettled(
+      [...recipientIds].map((userId) =>
+        this.createNotification(dto.accountId, {
+          userId,
+          title: dto.title,
+          message: dto.message,
+          notificationType: dto.notificationType,
+          entityType: dto.entityType,
+          entityId: dto.entityId,
+          channels: dto.channels,
+          priority: dto.priority,
+          actionUrl: dto.actionUrl,
+        }),
+      ),
+    );
+
+    const sent = results.filter((r) => r.status === 'fulfilled').length;
+    return { sent, recipients: recipientIds.size };
   }
 
   async updateNotification(
