@@ -184,15 +184,17 @@
   background: var(--ev-color);
 }
 
-/* Список (lista) — используется FullCalendar для allDay в WeekView */
-.fc .fc-daygrid-event {
-  margin-top: 2px;
-}
-
-/* Prevent event overlap in timegrid all-day slot: ensure each harness has
-   enough height so FullCalendar's top-offset computation doesn't collapse to 0. */
-.fc .fc-timegrid .fc-daygrid-event-harness {
+/* FullCalendar computes event top-offsets using offsetHeight on the harness.
+   offsetHeight does NOT include child margin-top, so using margin on .fc-daygrid-event
+   causes every level to overlap by that margin amount.
+   Fix: put spacing as padding on the harness (padding IS in offsetHeight). */
+.fc .fc-daygrid-event-harness {
   min-height: 22px;
+  padding-top: 2px;
+  box-sizing: border-box;
+}
+.fc .fc-daygrid-event {
+  margin-top: 0;
 }
 
 /* «+N ещё» */
