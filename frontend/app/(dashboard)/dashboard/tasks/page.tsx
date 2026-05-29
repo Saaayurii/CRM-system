@@ -701,14 +701,14 @@ export default function TasksPage() {
                   const { done, total } = getTaskProgress(t);
                   const progressPct = total > 0 ? Math.round((done / total) * 100) : 0;
 
-                  const rows = [
+                  return (
                     <tr
                       key={t.id}
                       className={`group/row cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900/20 ${overdue ? 'bg-red-50/70 dark:bg-red-900/10 hover:bg-red-50 dark:hover:bg-red-900/20' : ''}`}
                       onClick={() => handleEdit(t)}
                     >
                       {/* Название */}
-                      <td className="pt-2.5 pb-1 px-4 font-medium text-gray-800 dark:text-gray-100 max-w-[220px]">
+                      <td className="py-2.5 px-4 font-medium text-gray-800 dark:text-gray-100 max-w-[220px]">
                         <div className="flex items-center gap-1.5">
                           <div className="truncate flex-1">{t.title}</div>
                           <button
@@ -723,6 +723,14 @@ export default function TasksPage() {
                             </svg>
                           </button>
                         </div>
+                        {total > 0 && (
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <div className="flex-1 h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                              <div className={`h-full rounded-full transition-all ${progressPct === 100 ? 'bg-green-500' : 'bg-violet-400'}`} style={{ width: `${progressPct}%` }} />
+                            </div>
+                            <span className="text-[10px] text-gray-400 shrink-0">{done}/{total}</span>
+                          </div>
+                        )}
                       </td>
                       {/* Проект */}
                       <td className="py-2.5 px-4 text-gray-600 dark:text-gray-400 whitespace-nowrap">
@@ -795,28 +803,8 @@ export default function TasksPage() {
                           </button>
                         </div>
                       </td>
-                    </tr>,
-                  ];
-
-                  if (total > 0) {
-                    rows.push(
-                      <tr key={`${t.id}-prog`} className={overdue ? 'bg-red-50/70 dark:bg-red-900/10' : ''}>
-                        <td colSpan={9} className="px-0 pb-1.5 pt-0 border-0">
-                          <div className="mx-4 flex items-center gap-2">
-                            <div className="flex-1 h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                              <div
-                                className={`h-full rounded-full transition-all ${progressPct === 100 ? 'bg-green-500' : 'bg-violet-400'}`}
-                                style={{ width: `${progressPct}%` }}
-                              />
-                            </div>
-                            <span className="text-[10px] text-gray-400 shrink-0">{done}/{total}</span>
-                          </div>
-                        </td>
-                      </tr>,
-                    );
-                  }
-
-                  return rows;
+                    </tr>
+                  );
                 })}
               </tbody>
             </table>
