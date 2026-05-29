@@ -189,6 +189,12 @@
   margin-top: 2px;
 }
 
+/* Prevent event overlap in timegrid all-day slot: ensure each harness has
+   enough height so FullCalendar's top-offset computation doesn't collapse to 0. */
+.fc .fc-timegrid .fc-daygrid-event-harness {
+  min-height: 22px;
+}
+
 /* «+N ещё» */
 .fc .fc-daygrid-more-link {
   font-size: 0.7rem;

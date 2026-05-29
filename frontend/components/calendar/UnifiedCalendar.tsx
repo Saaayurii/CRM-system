@@ -352,6 +352,17 @@ export default function UnifiedCalendar({
     }
   };
 
+  // Force FullCalendar to remeasure all-day row heights after React renders custom chips.
+  // Without this, getBoundingClientRect() returns 0 before React paints EventChip,
+  // causing all events to collapse to top:0 and overlap each other.
+  useEffect(() => {
+    if (view === 'timeline') return;
+    const timer = setTimeout(() => {
+      calendarRef.current?.getApi()?.updateSize();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [allEvents, view]);
+
   // FullCalendar — компактное представление события
   const renderEventContent = (arg: any) => {
     const ev = arg.event;
@@ -363,7 +374,7 @@ export default function UnifiedCalendar({
         sourceType={sourceType}
         priority={priority}
         timeText={arg.timeText && !ev.allDay ? arg.timeText : undefined}
-        filled
+        filled={!ev.allDay}
         compact
       />
     );
