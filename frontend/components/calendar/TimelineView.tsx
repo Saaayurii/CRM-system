@@ -15,7 +15,7 @@ interface Props {
 type RowKind = 'user' | 'project' | 'company';
 
 // Deterministic pastel color per user (based on id)
-const AVATAR_COLORS = [
+const AVATAR_COLORS: [string, string][] = [
   ['#ddd6fe', '#7c3aed'], // violet
   ['#bfdbfe', '#1d4ed8'], // blue
   ['#bbf7d0', '#15803d'], // green
