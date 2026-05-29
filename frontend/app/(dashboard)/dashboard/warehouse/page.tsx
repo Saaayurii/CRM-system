@@ -54,9 +54,6 @@ export default function WarehousePage() {
             Склады, оборудование, материалы, инвентаризация и перемещения
           </p>
         </div>
-        <Link href="/dashboard" className="text-sm text-violet-500 hover:text-violet-600">
-          &larr; К панели управления
-        </Link>
       </div>
 
       <div className="border-b border-gray-200 dark:border-gray-700 mb-6">

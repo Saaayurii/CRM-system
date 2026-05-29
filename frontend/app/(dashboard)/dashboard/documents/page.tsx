@@ -7,7 +7,6 @@ import DocumentFormModal from '@/components/dashboard/DocumentFormModal';
 import FilePreviewModal from '@/components/ui/FilePreviewModal';
 import { normalizeFileUrl } from '@/lib/utils';
 import { useDownloadPdf } from '@/lib/hooks/useDownloadPdf';
-import FilterPanel from '@/components/ui/FilterPanel';
 import { FAB_CREATED_EVENT } from '@/components/ui/QuickActionsButton';
 
 interface Document {
@@ -108,6 +107,8 @@ export default function DocumentsPage() {
   const [editingDoc, setEditingDoc] = useState<Document | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
+  const [showSearch, setShowSearch] = useState(false);
+  const [showFilter, setShowFilter] = useState(false);
   const limit = 20;
 
   useEffect(() => {
@@ -190,9 +191,53 @@ export default function DocumentsPage() {
             Управление документами и файлами
           </p>
         </div>
-        <div className="flex items-center gap-3 mt-3 sm:mt-0">
-          {/* View Mode Toggle */}
-          <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
+        <div className="flex items-center gap-0.5 mt-3 sm:mt-0">
+          <button
+            onClick={() => { setShowSearch((v) => !v); setShowFilter(false); }}
+            title="Поиск"
+            className={`p-2 rounded-lg transition-colors ${showSearch || search ? 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20' : 'text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20'}`}
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </button>
+          <button
+            onClick={handleCreate}
+            title="Загрузить документ"
+            className="p-2 text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+          </button>
+          <button
+            onClick={() => { setShowFilter((v) => !v); setShowSearch(false); }}
+            title="Фильтры"
+            className={`relative p-2 rounded-lg transition-colors ${showFilter || typeFilter || statusFilter || projectFilter ? 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20' : 'text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20'}`}
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z" />
+            </svg>
+            {(typeFilter || statusFilter || projectFilter) && (
+              <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-violet-500" />
+            )}
+          </button>
+          <button
+            onClick={() => downloadPdf('documents', 'Документы', documents.map((d) => ({
+              Название: d.title,
+              Тип: d.documentType || '—',
+              Статус: d.status || '—',
+              Дата: d.createdAt ? new Date(d.createdAt).toLocaleDateString('ru-RU') : '—',
+            })))}
+            disabled={pdfLoading || documents.length === 0}
+            title={pdfLoading ? 'Формирование...' : 'Скачать PDF'}
+            className="p-2 text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors disabled:opacity-50"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </button>
+          <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg ml-1">
             <button
               onClick={() => setViewMode('table')}
               className={`p-1.5 rounded ${viewMode === 'table' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''} transition-colors`}
@@ -212,48 +257,54 @@ export default function DocumentsPage() {
               </svg>
             </button>
           </div>
-          <button
-            onClick={() => downloadPdf('documents', 'Документы', documents.map((d) => ({
-              Название: d.title,
-              Тип: d.documentType || '—',
-              Статус: d.status || '—',
-              Дата: d.createdAt ? new Date(d.createdAt).toLocaleDateString('ru-RU') : '—',
-            })))}
-            disabled={pdfLoading || documents.length === 0}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:border-violet-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors disabled:opacity-50"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            {pdfLoading ? 'PDF...' : 'PDF'}
-          </button>
-          <button
-            onClick={handleCreate}
-            className="px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-lg transition-colors"
-          >
-            + Загрузить документ
-          </button>
         </div>
       </div>
 
-      {/* Filters */}
-      <FilterPanel
-        hasActiveFilters={!!(search || typeFilter || statusFilter || projectFilter)}
-        onReset={() => { setSearch(''); setTypeFilter(''); setStatusFilter(''); setProjectFilter(''); setPage(1); }}
-        fields={[
-          { type: 'search', key: 'search', placeholder: 'Поиск по названию...', value: search,
-            onChange: (v) => { setSearch(v); setPage(1); } },
-          { type: 'select', key: 'type', placeholder: 'Все типы', value: typeFilter,
-            onChange: (v) => { setTypeFilter(v); setPage(1); },
-            options: Object.entries(typeLabels).map(([k, label]) => ({ value: k, label })) },
-          { type: 'select', key: 'status', placeholder: 'Все статусы', value: statusFilter,
-            onChange: (v) => { setStatusFilter(v); setPage(1); },
-            options: Object.entries(statusLabels).map(([k, label]) => ({ value: k, label })) },
-          { type: 'select', key: 'project', placeholder: 'Все проекты', value: projectFilter,
-            onChange: (v) => { setProjectFilter(v); setPage(1); },
-            options: projects.map((p) => ({ value: String(p.id), label: p.name })) },
-        ]}
-      />
+      {/* Inline search */}
+      {showSearch && (
+        <div className="mb-3 flex items-center gap-2 bg-white dark:bg-gray-800 rounded-xl px-4 py-2.5 shadow-xs border border-gray-100 dark:border-gray-700">
+          <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            autoFocus
+            type="text"
+            placeholder="Поиск по названию..."
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            className="flex-1 text-sm bg-transparent text-gray-800 dark:text-gray-100 placeholder-gray-400 outline-none"
+          />
+          {search && (
+            <button onClick={() => { setSearch(''); setPage(1); }} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+      )}
+      {/* Filters panel */}
+      {showFilter && (
+        <div className="mb-4 flex flex-wrap items-center gap-3 bg-white dark:bg-gray-800 rounded-xl px-4 py-3 shadow-xs border border-gray-100 dark:border-gray-700">
+          <select value={typeFilter} onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }} className="text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none">
+            <option value="">Все типы</option>
+            {Object.entries(typeLabels).map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+          </select>
+          <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }} className="text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none">
+            <option value="">Все статусы</option>
+            {Object.entries(statusLabels).map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+          </select>
+          <select value={projectFilter} onChange={(e) => { setProjectFilter(e.target.value); setPage(1); }} className="text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none">
+            <option value="">Все проекты</option>
+            {projects.map((p) => <option key={p.id} value={String(p.id)}>{p.name}</option>)}
+          </select>
+          {(typeFilter || statusFilter || projectFilter) && (
+            <button onClick={() => { setTypeFilter(''); setStatusFilter(''); setProjectFilter(''); setPage(1); }} className="text-xs text-gray-400 hover:text-red-500 transition-colors">
+              Сбросить
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Content */}
       <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl overflow-hidden">

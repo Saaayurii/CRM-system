@@ -213,6 +213,8 @@ export default function FinancePage() {
   const [selectedOp, setSelectedOp] = useState<Operation | null>(null);
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const settingsRef = useRef<HTMLDivElement | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     if (typeof window !== 'undefined') {
       return (localStorage.getItem('financeViewMode') as ViewMode) || 'table';
@@ -232,6 +234,18 @@ export default function FinancePage() {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [openMenuId]);
+
+  // Close settings dropdown on outside click
+  useEffect(() => {
+    if (!showSettings) return;
+    const handler = (e: MouseEvent) => {
+      if (settingsRef.current && !settingsRef.current.contains(e.target as Node)) {
+        setShowSettings(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showSettings]);
 
   const applyQuickPeriod = (p: QuickPeriod) => {
     setQuickPeriod(p);
@@ -452,8 +466,56 @@ export default function FinancePage() {
           )}
         </div>
         {tab !== 'documents' && (
-          <div className="flex items-center gap-2">
-            <div className="hidden sm:flex items-center gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
+          <div className="flex items-center gap-0.5">
+            <button
+              onClick={() => setModalOpen(true)}
+              title="Добавить операцию"
+              className="p-2 text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+            </button>
+            <div className="relative" ref={settingsRef}>
+              <button
+                onClick={() => setShowSettings((v) => !v)}
+                title="Экспорт"
+                className={`p-2 rounded-lg transition-colors ${showSettings ? 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20' : 'text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20'}`}
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </button>
+              {showSettings && (
+                <div className="absolute right-0 top-full mt-1 w-52 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl py-1.5 z-50">
+                  <button
+                    onClick={() => {
+                      downloadPdf('payments', tab === 'income' ? 'Приходы' : tab === 'expense' ? 'Расходы' : 'Операции', operations.map((op) => ({
+                        Документ: op.paymentNumber ?? '—',
+                        Тип: op.direction === 'income' ? 'Приход' : op.direction === 'expense' ? 'Расход' : '—',
+                        Категория: op.subType ? (SUBTYPE_LABEL[op.subType] ?? op.subType) : '—',
+                        Сумма: `${op.direction === 'income' ? '+' : '−'} ${formatMoney(op.amount)} ₽`,
+                        'Дата/время': formatDateTime(op.paymentDatetime ?? op.paymentDate),
+                        Проект: projectName(op.projectId) || '—',
+                        Объект: siteName(op.constructionSiteId) || '—',
+                        Счёт: op.cashLocation === 'hand' ? 'На руки' : (op.paymentAccount?.name || '—'),
+                        Статус: STATUS_LABEL[Number(op.status ?? 0)]?.label || '—',
+                      })));
+                      setShowSettings(false);
+                    }}
+                    disabled={pdfLoading || operations.length === 0}
+                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/60 transition-colors disabled:opacity-50"
+                  >
+                    <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    {pdfLoading ? 'PDF...' : 'Скачать PDF'}
+                  </button>
+                </div>
+              )}
+            </div>
+            <div className="hidden sm:flex items-center gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg ml-1">
               <button
                 onClick={() => handleViewMode('table')}
                 className={`p-1.5 rounded transition-colors ${viewMode === 'table' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}
@@ -473,36 +535,6 @@ export default function FinancePage() {
                 </svg>
               </button>
             </div>
-            <button
-              onClick={() => downloadPdf('payments', tab === 'income' ? 'Приходы' : tab === 'expense' ? 'Расходы' : 'Операции', operations.map((op) => ({
-                Документ: op.paymentNumber ?? '—',
-                Тип: op.direction === 'income' ? 'Приход' : op.direction === 'expense' ? 'Расход' : '—',
-                Категория: op.subType ? (SUBTYPE_LABEL[op.subType] ?? op.subType) : '—',
-                Сумма: `${op.direction === 'income' ? '+' : '−'} ${formatMoney(op.amount)} ₽`,
-                'Дата/время': formatDateTime(op.paymentDatetime ?? op.paymentDate),
-                Проект: projectName(op.projectId) || '—',
-                Объект: siteName(op.constructionSiteId) || '—',
-                Счёт: op.cashLocation === 'hand' ? 'На руки' : (op.paymentAccount?.name || '—'),
-                Статус: STATUS_LABEL[Number(op.status ?? 0)]?.label || '—',
-              })))}
-              disabled={pdfLoading || operations.length === 0}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:border-violet-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors disabled:opacity-50"
-              title="Скачать PDF"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              {pdfLoading ? 'PDF...' : 'PDF'}
-            </button>
-            <button
-              onClick={() => setModalOpen(true)}
-              className="btn bg-violet-500 hover:bg-violet-600 text-white"
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
-              Добавить операцию
-            </button>
           </div>
         )}
       </div>

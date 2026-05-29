@@ -210,23 +210,10 @@ export default function CrudPage({ config, onExtraAction, hideTitle, onRowClick 
   return (
     <ErrorBoundary>
       <div>
-        {(!hideTitle || config.hasPdf) && (
-        <div className="mb-6 flex items-center justify-between">
-          {hideTitle ? <div /> : <h1 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-gray-100">{config.title}</h1>}
-          {config.hasPdf && (
-            <button
-              onClick={handleDownloadListPdf}
-              disabled={pdfListLoading || crud.loading}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:border-violet-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors disabled:opacity-50"
-              title="Скачать PDF таблицы"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              {pdfListLoading ? 'Формирование...' : 'Скачать PDF'}
-            </button>
-          )}
-        </div>
+        {!hideTitle && (
+          <div className="mb-6">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-gray-100">{config.title}</h1>
+          </div>
         )}
 
         <DataTable
@@ -250,6 +237,8 @@ export default function CrudPage({ config, onExtraAction, hideTitle, onRowClick 
           customRowActions={isClient ? undefined : config.customRowActions}
           onCustomAction={handleCustomAction}
           loadingRowId={pdfLoading}
+          onDownloadPdf={config.hasPdf ? handleDownloadListPdf : undefined}
+          pdfLoading={pdfListLoading}
         />
 
         <EntityFormModal

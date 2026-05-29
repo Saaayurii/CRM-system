@@ -28,6 +28,10 @@ interface DataTableProps<T extends Record<string, unknown>> {
   loadingRowId?: number | null;
   /** Если задан — клик по строке вызывает этот обработчик вместо onEdit. */
   onRowClick?: (row: T) => void;
+  /** Callback для скачивания PDF всей таблицы */
+  onDownloadPdf?: () => void;
+  /** Идёт загрузка PDF */
+  pdfLoading?: boolean;
 }
 
 export default function DataTable<T extends Record<string, unknown>>({
@@ -51,8 +55,11 @@ export default function DataTable<T extends Record<string, unknown>>({
   onCustomAction,
   loadingRowId,
   onRowClick,
+  onDownloadPdf,
+  pdfLoading,
 }: DataTableProps<T>) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
@@ -81,6 +88,7 @@ export default function DataTable<T extends Record<string, unknown>>({
     (key: string) => {
       let dir: 'asc' | 'desc' = 'asc';
       if (sortKey === key && sortDir === 'asc') dir = 'desc';
+      else if (sortKey === key && sortDir === 'desc') { setSortKey(null); setSortDir('asc'); onSort(key, 'asc'); return; }
       setSortKey(key);
       setSortDir(dir);
       onSort(key, dir);
@@ -108,57 +116,87 @@ export default function DataTable<T extends Record<string, unknown>>({
   return (
     <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl overflow-hidden">
       {/* Toolbar */}
-      <div className="bg-white dark:bg-gray-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-100 dark:border-gray-700/60">
-        <div className="relative">
-          <input
-            type="search"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={searchPlaceholder}
-            className="form-input pl-9 w-full sm:w-64 text-sm"
-          />
-          <svg
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
+      <div className="bg-white dark:bg-gray-800 flex items-center justify-end gap-0.5 px-4 sm:px-5 py-3 border-b border-gray-100 dark:border-gray-700/60">
+        {/* Search icon */}
+        <button
+          onClick={() => setShowSearch((v) => !v)}
+          title="Поиск"
+          className={`p-2 rounded-lg transition-colors ${showSearch || searchQuery ? 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20' : 'text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20'}`}
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
+        </button>
+        {/* PDF icon */}
+        {onDownloadPdf && (
+          <button
+            onClick={onDownloadPdf}
+            disabled={pdfLoading}
+            title={pdfLoading ? 'Формирование...' : 'Скачать PDF'}
+            className="p-2 text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors disabled:opacity-50"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </button>
+        )}
+        {/* Create icon */}
+        {canCreate && onCreate && (
+          <button
+            onClick={onCreate}
+            title="Создать"
+            className="p-2 text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+          </button>
+        )}
+        {/* View mode toggle */}
+        <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg ml-1">
+          <button
+            onClick={() => handleViewMode('table')}
+            className={`p-1.5 rounded transition-colors ${viewMode === 'table' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}
+            title="Таблица"
+          >
+            <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+          </button>
+          <button
+            onClick={() => handleViewMode('grid')}
+            className={`p-1.5 rounded transition-colors ${viewMode === 'grid' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}
+            title="Карточки"
+          >
+            <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+            </svg>
+          </button>
         </div>
-        <div className="flex items-center gap-2">
-          {/* View mode toggle */}
-          <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
-            <button
-              onClick={() => handleViewMode('table')}
-              className={`p-1.5 rounded transition-colors ${viewMode === 'table' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}
-              title="Таблица"
-            >
-              <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+      </div>
+      {/* Expandable search bar */}
+      {showSearch && (
+        <div className="flex items-center gap-2 px-4 sm:px-5 py-2.5 border-b border-gray-100 dark:border-gray-700/60 bg-white dark:bg-gray-800">
+          <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            autoFocus
+            type="text"
+            placeholder={searchPlaceholder}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="flex-1 text-sm bg-transparent text-gray-800 dark:text-gray-100 placeholder-gray-400 outline-none"
+          />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
-            </button>
-            <button
-              onClick={() => handleViewMode('grid')}
-              className={`p-1.5 rounded transition-colors ${viewMode === 'grid' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}
-              title="Карточки"
-            >
-              <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-              </svg>
-            </button>
-          </div>
-          {canCreate && onCreate && (
-            <button onClick={onCreate} className="btn-sm bg-violet-500 hover:bg-violet-600 text-white">
-              <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
-              Создать
             </button>
           )}
         </div>
-      </div>
+      )}
 
       {/* Table view */}
       {viewMode === 'table' ? (
@@ -166,25 +204,32 @@ export default function DataTable<T extends Record<string, unknown>>({
           <table className="table-auto w-full min-w-[680px] text-sm">
             <thead>
               <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
-                {columns.map((col) => (
-                  <th
-                    key={col.key}
-                    className={`py-3 px-4 text-left font-semibold whitespace-nowrap ${
-                      col.sortable ? 'cursor-pointer hover:text-gray-600 dark:hover:text-gray-300 select-none' : ''
-                    }`}
-                    style={col.width ? { width: col.width } : undefined}
-                    onClick={col.sortable ? () => handleSort(col.key) : undefined}
-                  >
-                    <div className="flex items-center gap-1">
-                      {col.header}
-                      {col.sortable && sortKey === col.key && (
-                        <svg className={`w-3 h-3 shrink-0 ${sortDir === 'desc' ? 'rotate-180' : ''}`} fill="currentColor" viewBox="0 0 12 12">
-                          <path d="M6 0l4 6H2z" />
-                        </svg>
-                      )}
-                    </div>
-                  </th>
-                ))}
+                {columns.map((col) => {
+                  const isSortable = col.sortable !== false;
+                  const isActive = sortKey === col.key;
+                  return (
+                    <th
+                      key={col.key}
+                      className={`py-3 px-4 text-left font-semibold whitespace-nowrap ${isSortable ? 'cursor-pointer hover:text-gray-600 dark:hover:text-gray-300 select-none' : ''}`}
+                      style={col.width ? { width: col.width } : undefined}
+                      onClick={isSortable ? () => handleSort(col.key) : undefined}
+                    >
+                      <div className="flex items-center gap-1">
+                        {col.header}
+                        {isSortable && (
+                          <span className="inline-flex flex-col gap-px ml-0.5 align-middle shrink-0">
+                            <svg className={`w-2 h-2 transition-colors ${isActive && sortDir === 'asc' ? 'text-violet-500' : 'text-gray-300 dark:text-gray-600'}`} viewBox="0 0 10 6" fill="currentColor">
+                              <path d="M5 0L10 6H0L5 0Z" />
+                            </svg>
+                            <svg className={`w-2 h-2 transition-colors ${isActive && sortDir === 'desc' ? 'text-violet-500' : 'text-gray-300 dark:text-gray-600'}`} viewBox="0 0 10 6" fill="currentColor">
+                              <path d="M5 6L0 0H10L5 6Z" />
+                            </svg>
+                          </span>
+                        )}
+                      </div>
+                    </th>
+                  );
+                })}
                 {(canEdit || canDelete || (customRowActions && customRowActions.length > 0)) && (
                   <th className="py-3 px-4 text-right font-semibold whitespace-nowrap w-px">Действия</th>
                 )}

@@ -6,7 +6,6 @@ import { useToastStore } from '@/stores/toastStore';
 import { normalizeFileUrl } from '@/lib/utils';
 import MediaViewer, { MediaItem as ViewerItem } from '@/components/chat/MediaViewer';
 import FilePreviewModal, { FileIcon } from '@/components/ui/FilePreviewModal';
-import FilterPanel from '@/components/ui/FilterPanel';
 
 type MediaSource = 'chat' | 'document' | 'defect' | 'site';
 type MediaKind = 'image' | 'video' | 'audio' | 'document';
@@ -101,6 +100,8 @@ export default function MediaPage() {
   const [sourceFilter, setSourceFilter] = useState<MediaSource | ''>('');
   const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [showSearch, setShowSearch] = useState(false);
+  const [showFilter, setShowFilter] = useState(false);
   const [viewerItems, setViewerItems] = useState<ViewerItem[]>([]);
   const [viewerIndex, setViewerIndex] = useState(0);
   const [previewFile, setPreviewFile] = useState<MediaItem | null>(null);
@@ -308,80 +309,96 @@ export default function MediaPage() {
             Все файлы из чатов, документов, дефектов и объектов
           </p>
         </div>
-        <div className="flex items-center gap-3 mt-3 sm:mt-0">
-          {/* View mode toggle */}
-          <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
-            <button
-              onClick={() => setViewMode('grid')}
-              className={`p-1.5 rounded ${viewMode === 'grid' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''} transition-colors`}
-              title="Сетка"
-            >
+        <div className="flex items-center gap-0.5 mt-3 sm:mt-0">
+          <button
+            onClick={() => { setShowSearch((v) => !v); setShowFilter(false); }}
+            title="Поиск"
+            className={`p-2 rounded-lg transition-colors ${showSearch || search ? 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20' : 'text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20'}`}
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </button>
+          <input ref={fileInputRef} type="file" multiple className="hidden" onChange={(e) => handleFiles(e.target.files)} />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            title={uploading ? 'Загрузка...' : 'Загрузить файлы'}
+            className="p-2 text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors disabled:opacity-50"
+          >
+            {uploading
+              ? <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin inline-block" />
+              : <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+            }
+          </button>
+          <button
+            onClick={() => { setShowFilter((v) => !v); setShowSearch(false); }}
+            title="Фильтры"
+            className={`relative p-2 rounded-lg transition-colors ${showFilter || kindFilter || sourceFilter ? 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20' : 'text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20'}`}
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z" />
+            </svg>
+            {(kindFilter || sourceFilter) && <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-violet-500" />}
+          </button>
+          <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg ml-1">
+            <button onClick={() => setViewMode('grid')} className={`p-1.5 rounded ${viewMode === 'grid' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''} transition-colors`} title="Сетка">
               <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
               </svg>
             </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`p-1.5 rounded ${viewMode === 'list' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''} transition-colors`}
-              title="Список"
-            >
+            <button onClick={() => setViewMode('list')} className={`p-1.5 rounded ${viewMode === 'list' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''} transition-colors`} title="Список">
               <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
           </div>
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            className="hidden"
-            onChange={(e) => handleFiles(e.target.files)}
-          />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-            className="px-4 py-2 bg-violet-500 hover:bg-violet-600 disabled:opacity-60 text-white text-sm font-medium rounded-lg transition-colors inline-flex items-center gap-1.5"
-          >
-            {uploading ? (
-              <>
-                <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                Загрузка...
-              </>
-            ) : (
-              <>+ Загрузить</>
-            )}
-          </button>
         </div>
       </div>
 
-      {/* Filters */}
-      <FilterPanel
-        hasActiveFilters={!!(search || kindFilter || sourceFilter)}
-        onReset={() => { setSearch(''); setKindFilter(''); setSourceFilter(''); }}
-        fields={[
-          {
-            type: 'search', key: 'search', placeholder: 'Поиск по названию...',
-            value: search, onChange: setSearch,
-          },
-          {
-            type: 'select', key: 'kind', placeholder: 'Все типы',
-            value: kindFilter, onChange: (v) => setKindFilter((v as MediaKind) || ''),
-            options: (Object.keys(KIND_LABEL) as MediaKind[]).map((k) => ({
-              value: k,
-              label: `${KIND_LABEL[k]} (${counts.byKind[k]})`,
-            })),
-          },
-          {
-            type: 'select', key: 'source', placeholder: 'Все источники',
-            value: sourceFilter, onChange: (v) => setSourceFilter((v as MediaSource) || ''),
-            options: (Object.keys(SOURCE_LABEL) as MediaSource[]).map((s) => ({
-              value: s,
-              label: `${SOURCE_LABEL[s]} (${counts.bySource[s]})`,
-            })),
-          },
-        ]}
-      />
+      {/* Inline search */}
+      {showSearch && (
+        <div className="mb-3 flex items-center gap-2 bg-white dark:bg-gray-800 rounded-xl px-4 py-2.5 shadow-xs border border-gray-100 dark:border-gray-700">
+          <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            autoFocus
+            type="text"
+            placeholder="Поиск по названию..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="flex-1 text-sm bg-transparent text-gray-800 dark:text-gray-100 placeholder-gray-400 outline-none"
+          />
+          {search && (
+            <button onClick={() => setSearch('')} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+      )}
+      {/* Filter panel */}
+      {showFilter && (
+        <div className="mb-4 flex flex-wrap items-center gap-3 bg-white dark:bg-gray-800 rounded-xl px-4 py-3 shadow-xs border border-gray-100 dark:border-gray-700">
+          <select value={kindFilter} onChange={(e) => setKindFilter((e.target.value as MediaKind) || '')} className="text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none">
+            <option value="">Все типы</option>
+            {(Object.keys(KIND_LABEL) as MediaKind[]).map((k) => <option key={k} value={k}>{KIND_LABEL[k]} ({counts.byKind[k]})</option>)}
+          </select>
+          <select value={sourceFilter} onChange={(e) => setSourceFilter((e.target.value as MediaSource) || '')} className="text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none">
+            <option value="">Все источники</option>
+            {(Object.keys(SOURCE_LABEL) as MediaSource[]).map((s) => <option key={s} value={s}>{SOURCE_LABEL[s]} ({counts.bySource[s as MediaSource]})</option>)}
+          </select>
+          {(kindFilter || sourceFilter) && (
+            <button onClick={() => { setKindFilter(''); setSourceFilter(''); }} className="text-xs text-gray-400 hover:text-red-500 transition-colors">
+              Сбросить
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Content */}
       <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl overflow-hidden">

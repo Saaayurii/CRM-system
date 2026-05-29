@@ -398,7 +398,7 @@ export default function CompanyPage() {
   }
 
   return (
-    <div className="max-w-4xl">
+    <div>
       <div className="mb-6">
         <h1 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-gray-100">
           Компания
