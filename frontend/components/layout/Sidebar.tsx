@@ -16,9 +16,9 @@ import ProfileDropdown from './ProfileDropdown';
 import api from '@/lib/api';
 
 function NavLink({ href, className, children }: { href: string; className?: string; hotkey?: NavHotkey; children: React.ReactNode }) {
-  const { setSidebarOpen } = useSidebarStore();
+  const { setSidebarOpen, setSidebarExpanded } = useSidebarStore();
   return (
-    <Link href={href} className={className} onClick={() => setSidebarOpen(false)}>
+    <Link href={href} className={className} onClick={() => { setSidebarOpen(false); setSidebarExpanded(false); }}>
       {children}
     </Link>
   );
