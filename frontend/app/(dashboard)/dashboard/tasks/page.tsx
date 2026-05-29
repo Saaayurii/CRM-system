@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import api from '@/lib/api';
+import UserProfileModal from '@/components/chat/UserProfileModal';
 import { useToastStore } from '@/stores/toastStore';
 import TaskFormModal from '@/components/dashboard/TaskFormModal';
 import { useOfflineData } from '@/hooks/useOfflineData';
@@ -116,63 +117,12 @@ function getTaskProgress(t: Task): { done: number; total: number } {
   return { done, total };
 }
 
-function getInitials(name: string): string {
-  return name.trim().split(/\s+/).slice(0, 2).map((p) => p[0] || '').join('').toUpperCase();
-}
-const AVATAR_COLORS = ['bg-violet-500','bg-blue-500','bg-emerald-500','bg-amber-500','bg-rose-500','bg-cyan-500','bg-indigo-500','bg-pink-500'];
-function avatarColor(id: number): string { return AVATAR_COLORS[Math.abs(id) % AVATAR_COLORS.length]; }
-
-function UserProfileModal({ user, onClose }: { user: User; onClose: () => void }) {
-  const copy = (text: string) => navigator.clipboard.writeText(text).catch(() => {});
-  const photoUrl = user.avatarUrl || user.avatar_url;
-  const name = user.name || user.email;
-  return (
-    <div className="fixed inset-0 z-[300] flex items-center justify-center" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/30" />
-      <div className="relative w-80 bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
-        <div className="absolute top-3 right-3 z-10">
-          <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-200 hover:bg-gray-700/60 rounded-lg transition-colors">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-          </button>
-        </div>
-        <div className="flex flex-col items-center pt-8 pb-5 px-6 bg-gray-800/60">
-          <div className="mb-3">
-            {photoUrl ? (
-              <img src={photoUrl} alt={name} className="w-20 h-20 rounded-full object-cover border-4 border-gray-700" />
-            ) : (
-              <div className={`w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold text-white ${avatarColor(user.id)}`}>{getInitials(name)}</div>
-            )}
-          </div>
-          <h3 className="text-sm font-semibold text-white text-center leading-tight">{name}</h3>
-        </div>
-        <div className="px-4 py-3 space-y-2">
-          {user.phone && (
-            <div className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-800">
-              <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
-              <span className="flex-1 text-sm text-gray-200">{user.phone}</span>
-              <button onClick={() => copy(user.phone!)} className="text-gray-400 hover:text-gray-200 transition-colors" title="Скопировать">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-              </button>
-            </div>
-          )}
-          <div className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-800">
-            <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-            <span className="flex-1 text-sm text-gray-200 break-all">{user.email}</span>
-            <button onClick={() => copy(user.email)} className="text-gray-400 hover:text-gray-200 transition-colors" title="Скопировать">
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function AssigneeTextCell({ task, users, onUpdated, onNameClick }: {
   task: Task;
   users: User[];
   onUpdated: (taskId: number, newAssignees: Assignee[]) => void;
-  onNameClick: (user: User) => void;
+  onNameClick: (userId: number) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -218,10 +168,14 @@ function AssigneeTextCell({ task, users, onUpdated, onNameClick }: {
 
   return (
     <div className="relative flex items-center gap-1 min-w-0" ref={ref}>
-      <div className="flex items-center gap-0.5 min-w-0 flex-wrap">
+      <div className="flex items-center gap-0.5 min-w-0 flex-wrap flex-1">
         {displayAssignees.length === 0 ? (
-          <button onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }} className="text-gray-400 dark:text-gray-500 hover:text-violet-600 dark:hover:text-violet-400 text-xs transition-colors">
+          <button
+            onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
+            className="text-gray-400 dark:text-gray-500 hover:text-violet-600 dark:hover:text-violet-400 text-xs transition-colors flex items-center gap-0.5"
+          >
             — Назначить
+            <svg className="w-3 h-3 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
           </button>
         ) : (
           displayAssignees.map((a, i) => {
@@ -230,7 +184,7 @@ function AssigneeTextCell({ task, users, onUpdated, onNameClick }: {
             return (
               <span key={a.userId} className="flex items-center">
                 <button
-                  onClick={(e) => { e.stopPropagation(); if (u) onNameClick(u); }}
+                  onClick={(e) => { e.stopPropagation(); onNameClick(a.userId); }}
                   className="text-xs text-gray-700 dark:text-gray-300 hover:text-violet-600 dark:hover:text-violet-400 hover:underline truncate transition-colors max-w-[130px]"
                   title={name}
                 >
@@ -242,17 +196,18 @@ function AssigneeTextCell({ task, users, onUpdated, onNameClick }: {
           })
         )}
       </div>
-      <button
-        onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
-        className="shrink-0 opacity-0 group-hover/row:opacity-60 hover:!opacity-100 p-0.5 text-gray-400 hover:text-violet-500 transition-all ml-0.5"
-        title="Изменить исполнителей"
-      >
-        {saving ? (
-          <div className="w-3 h-3 border border-violet-400 border-t-transparent rounded-full animate-spin" />
-        ) : (
-          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-        )}
-      </button>
+      {/* Dropdown trigger — chevron visible on row hover */}
+      {saving ? (
+        <div className="w-3 h-3 border border-violet-400 border-t-transparent rounded-full animate-spin shrink-0" />
+      ) : (
+        <button
+          onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
+          className="shrink-0 opacity-0 group-hover/row:opacity-50 hover:!opacity-100 p-0.5 text-gray-400 hover:text-violet-500 transition-all"
+          title="Изменить исполнителей"
+        >
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+        </button>
+      )}
       {open && (
         <div className="absolute left-0 top-full mt-1.5 w-60 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-[100] overflow-hidden" onClick={(e) => e.stopPropagation()}>
           <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-700">
@@ -354,7 +309,7 @@ export default function TasksPage() {
   const [historyTask, setHistoryTask] = useState<Task | null>(null);
   const [historyEvents, setHistoryEvents] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [profileUser, setProfileUser] = useState<User | null>(null);
+  const [profileUserId, setProfileUserId] = useState<number | null>(null);
   const [assigneeOverrides, setAssigneeOverrides] = useState<Record<number, Assignee[]>>({});
 
   useEffect(() => { markTasksRead(); }, []);
@@ -926,14 +881,14 @@ export default function TasksPage() {
                           task={assigneeOverrides[t.id] !== undefined ? { ...t, assignees: assigneeOverrides[t.id] } : t}
                           users={users}
                           onUpdated={handleAssigneesUpdated}
-                          onNameClick={setProfileUser}
+                          onNameClick={setProfileUserId}
                         />
                       </td>
                       {/* Поставил */}
                       <td className="py-2.5 px-4" onClick={(e) => e.stopPropagation()}>
                         <button
                           className={`text-sm text-left transition-colors ${!isSystem ? 'text-gray-700 dark:text-gray-300 hover:text-violet-600 dark:hover:text-violet-400 hover:underline cursor-pointer' : 'text-gray-500 dark:text-gray-400 cursor-default'}`}
-                          onClick={(e) => { e.stopPropagation(); if (!isSystem && creatorUser) setProfileUser(creatorUser); }}
+                          onClick={(e) => { e.stopPropagation(); if (!isSystem && creatorId) setProfileUserId(creatorId); }}
                           disabled={isSystem}
                         >
                           {creatorName}
@@ -1180,7 +1135,7 @@ export default function TasksPage() {
         </div>
       )}
 
-      {profileUser && <UserProfileModal user={profileUser} onClose={() => setProfileUser(null)} />}
+      {profileUserId !== null && <UserProfileModal userId={profileUserId} onClose={() => setProfileUserId(null)} />}
 
       {showModal && (
         <TaskFormModal
