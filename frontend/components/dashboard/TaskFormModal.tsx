@@ -567,6 +567,10 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
   const [projectId, setProjectId] = useState(String(task?.projectId || task?.project_id || initialProjectId || ''));
   const [constructionSiteId, setConstructionSiteId] = useState(String(task?.constructionSiteId || task?.construction_site_id || ''));
   const [estimatedHours, setEstimatedHours] = useState(String(task?.estimatedHours || task?.estimated_hours || ''));
+  const [requiresBriefingTypes, setRequiresBriefingTypes] = useState<string[]>(() => {
+    const raw = task?.requiresBriefingTypes || task?.requires_briefing_types;
+    return Array.isArray(raw) ? raw : [];
+  });
 
   // Mobile sidebar sheet
   const [showMobileSettings, setShowMobileSettings] = useState(false);
@@ -736,6 +740,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
         estimatedHours: estimatedHours ? Number(estimatedHours) : null,
         attachments: filteredAttachments,
         customFields: { checklists },
+        requiresBriefingTypes,
       };
       if (isNew) {
         // Step 1: create the task WITHOUT checklists/attachments to avoid backend rejection
@@ -1170,6 +1175,19 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
         </div>
+        {requiresBriefingTypes.length > 0 && status === 1 && (
+          <div className="mt-2 flex items-start gap-2 p-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-xs text-amber-700 dark:text-amber-400">
+            <svg className="w-3.5 h-3.5 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+            </svg>
+            <span>
+              Требуется инструктаж: {requiresBriefingTypes.join(', ')}.{' '}
+              <a href="/dashboard/safety-briefings?tab=compliance" target="_blank" className="underline hover:text-amber-900 dark:hover:text-amber-200">
+                Проверить
+              </a>
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Priority */}
@@ -1381,6 +1399,44 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
           className="w-full text-sm px-3 py-1.5 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-violet-500 focus:border-transparent"
           placeholder="0"
         />
+      </div>
+
+      {/* Required briefing types */}
+      <div>
+        <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">
+          Требуемые инструктажи
+        </p>
+        <div className="flex flex-col gap-1">
+          {[
+            { value: 'introductory', label: 'Вводный' },
+            { value: 'primary', label: 'Первичный' },
+            { value: 'repeat', label: 'Повторный' },
+            { value: 'targeted', label: 'Целевой' },
+            { value: 'unscheduled', label: 'Внеплановый' },
+          ].map((opt) => (
+            <label key={opt.value} className="flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                checked={requiresBriefingTypes.includes(opt.value)}
+                onChange={(e) => {
+                  setRequiresBriefingTypes((prev) =>
+                    e.target.checked ? [...prev, opt.value] : prev.filter((v) => v !== opt.value),
+                  );
+                }}
+                className="accent-violet-600 w-3.5 h-3.5"
+              />
+              <span className="text-gray-700 dark:text-gray-300">{opt.label}</span>
+            </label>
+          ))}
+        </div>
+        {requiresBriefingTypes.length > 0 && (
+          <p className="mt-1.5 text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
+            <svg className="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+            </svg>
+            Ответственным нужен актуальный инструктаж
+          </p>
+        )}
       </div>
 
       {/* Attachments */}
