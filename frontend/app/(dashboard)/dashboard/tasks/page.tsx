@@ -235,8 +235,7 @@ export default function TasksPage() {
 
   const sortedTasks = useMemo(() => {
     const base = [...tasks].sort((a, b) => {
-      const aO = isTaskOverdue(a), bO = isTaskOverdue(b);
-      if (aO !== bO) return aO ? -1 : 1;
+      if (a.status !== b.status) return a.status - b.status;
       return new Date(b.createdAt || b.created_at || '').getTime() -
              new Date(a.createdAt || a.created_at || '').getTime();
     });
@@ -764,7 +763,10 @@ export default function TasksPage() {
                         {formatDate(updatedAt)}
                       </td>
                       {/* Действия */}
-                      <td className="py-2.5 px-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                      <td
+                        className={`py-2.5 px-3 whitespace-nowrap sticky right-0 ${overdue ? 'bg-red-50/70 dark:bg-red-900/10 group-hover/row:bg-red-50 dark:group-hover/row:bg-red-900/20' : 'bg-white dark:bg-gray-800 group-hover/row:bg-gray-50 dark:group-hover/row:bg-gray-900/20'}`}
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <div className="flex items-center gap-0.5 opacity-0 group-hover/row:opacity-100 transition-opacity">
                           <button
                             onClick={() => handleEdit(t)}
