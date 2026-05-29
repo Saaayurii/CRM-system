@@ -205,6 +205,37 @@
   padding: 0 0.55rem;
 }
 
+/* Поповер «+N ещё» — непрозрачный фон, чтобы события под ним не просвечивали
+   (тема задаёт --fc-page-bg-color: transparent, из-за чего дефолтный фон поповера прозрачный) */
+.fc .fc-popover {
+  background: rgb(255 255 255);
+  border: 1px solid rgb(229 231 235);
+  border-radius: 0.6rem;
+  box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.2), 0 8px 10px -6px rgb(0 0 0 / 0.15);
+  overflow: hidden;
+  z-index: 30;
+}
+.dark .fc .fc-popover {
+  background: rgb(31 41 55);
+  border-color: rgb(55 65 81);
+  box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.5), 0 8px 10px -6px rgb(0 0 0 / 0.4);
+}
+.fc .fc-popover-header {
+  background: rgb(249 250 251);
+  padding: 0.5rem 0.65rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: rgb(31 41 55);
+}
+.dark .fc .fc-popover-header {
+  background: rgb(17 24 39);
+  color: rgb(229 231 235);
+}
+.fc .fc-popover-body {
+  background: inherit;
+  padding: 0.4rem 0.5rem;
+}
+
 /* Time-grid слоты */
 .fc .fc-timegrid-slot {
   height: 2.2em;

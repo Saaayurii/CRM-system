@@ -432,6 +432,9 @@ export default function Sidebar() {
 
   useEffect(() => { initialize(); }, [initialize]);
 
+  // Close mobile sidebar on route change
+  useEffect(() => { setSidebarOpen(false); }, [pathname]);
+
   if (isClient) {
     return <ClientSidebar />;
   }
