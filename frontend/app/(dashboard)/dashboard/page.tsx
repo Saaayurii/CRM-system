@@ -487,7 +487,13 @@ function AdminDashboard({ user }: { user: any }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {tasks.slice(0, 5).map((t: any) => {
+                  {[...tasks]
+                    .sort((a: any, b: any) =>
+                      new Date(b.updatedAt || b.updated_at || 0).getTime() -
+                      new Date(a.updatedAt || a.updated_at || 0).getTime()
+                    )
+                    .slice(0, 5)
+                    .map((t: any) => {
                     const st = TASK_STATUS_MAP[Number(t.status)];
                     const pr = TASK_PRIORITY_MAP[Number(t.priority)];
                     return (
@@ -552,9 +558,6 @@ function AdminDashboard({ user }: { user: any }) {
           </div>
         </div>
       </div>
-
-      {/* Registration requests */}
-      <RegistrationRequestsPanel />
     </div>
   );
 }
