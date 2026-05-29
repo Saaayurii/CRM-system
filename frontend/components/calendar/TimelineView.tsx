@@ -23,6 +23,9 @@ interface Row {
 }
 
 const DAY_WIDTH = 110;
+const BAR_HEIGHT = 26;
+const BAR_GAP = 4;
+const ROW_PAD = 6;
 
 function diffDays(a: Date, b: Date): number {
   const ms = b.getTime() - a.getTime();
@@ -49,6 +52,43 @@ function dayLabel(d: Date): string {
 }
 function dowLabel(d: Date): string {
   return d.toLocaleDateString('ru-RU', { weekday: 'short' }).replace('.', '');
+}
+
+/** Assign non-overlapping vertical lanes to events within a row. */
+function assignLanes(events: FeedEvent[]): Map<string, number> {
+  const result = new Map<string, number>();
+  // laneEnds[i] = exclusive end Date of the last event placed in lane i
+  const laneEnds: Date[] = [];
+
+  const sorted = [...events].sort(
+    (a, b) => new Date(a.start).getTime() - new Date(b.start).getTime(),
+  );
+
+  for (const ev of sorted) {
+    const evStart = startOfDay(new Date(ev.start));
+    const evEnd = startOfDay(new Date(ev.end || ev.start));
+
+    let lane = -1;
+    for (let i = 0; i < laneEnds.length; i++) {
+      // Safe to place if this event starts after lane's last event ends
+      if (laneEnds[i] <= evStart) {
+        lane = i;
+        break;
+      }
+    }
+    if (lane === -1) {
+      lane = laneEnds.length;
+      laneEnds.push(new Date(0));
+    }
+
+    // Exclusive end = day after evEnd (so adjacent events don't collide)
+    const excl = new Date(evEnd);
+    excl.setDate(excl.getDate() + 1);
+    laneEnds[lane] = excl;
+    result.set(ev.id, lane);
+  }
+
+  return result;
 }
 
 export default function TimelineView({
@@ -82,13 +122,7 @@ export default function TimelineView({
         const k = ev.userId;
         if (!userRows[k]) {
           const name = userNameById[k] || `Сотрудник #${k}`;
-          userRows[k] = {
-            key: `user:${k}`,
-            kind: 'user',
-            label: name,
-            initials: shortInitials(name),
-            events: [],
-          };
+          userRows[k] = { key: `user:${k}`, kind: 'user', label: name, initials: shortInitials(name), events: [] };
         }
         userRows[k].events.push(ev);
       } else if (ev.projectId) {
@@ -110,6 +144,15 @@ export default function TimelineView({
     return list;
   }, [events, userNameById, projectNameById]);
 
+  // Precompute lanes for every row
+  const rowLanes = useMemo(() => {
+    const map = new Map<string, Map<string, number>>();
+    for (const row of rows) {
+      map.set(row.key, assignLanes(row.events));
+    }
+    return map;
+  }, [rows]);
+
   const today = startOfDay(new Date());
   const todayOffset = (() => {
     const i = diffDays(startDay, today);
@@ -117,7 +160,7 @@ export default function TimelineView({
     return i * DAY_WIDTH + DAY_WIDTH / 2;
   })();
 
-  const renderBar = (ev: FeedEvent) => {
+  const renderBar = (ev: FeedEvent, laneIndex: number) => {
     const s = startOfDay(new Date(ev.start));
     const e = startOfDay(new Date(ev.end || ev.start));
     const startIdx = Math.max(0, diffDays(startDay, s));
@@ -126,6 +169,7 @@ export default function TimelineView({
     const left = startIdx * DAY_WIDTH + 6;
     const width = (endIdx - startIdx + 1) * DAY_WIDTH - 12;
     const meta = resolveTypeMeta(ev.sourceType);
+    const top = ROW_PAD + laneIndex * (BAR_HEIGHT + BAR_GAP);
     return (
       <button
         key={ev.id}
@@ -135,6 +179,8 @@ export default function TimelineView({
         style={{
           left: `${left}px`,
           width: `${Math.max(28, width)}px`,
+          top: `${top}px`,
+          height: `${BAR_HEIGHT}px`,
           background: `${meta.color}26`,
           borderLeft: `3px solid ${meta.color}`,
           color: 'inherit',
@@ -161,10 +207,7 @@ export default function TimelineView({
             const isToday = isoDateKey(d) === isoDateKey(today);
             const isWeekend = d.getDay() === 0 || d.getDay() === 6;
             return (
-              <div
-                key={i}
-                className={`tl-day ${isToday ? 'is-today' : ''} ${isWeekend ? 'is-weekend' : ''}`}
-              >
+              <div key={i} className={`tl-day ${isToday ? 'is-today' : ''} ${isWeekend ? 'is-weekend' : ''}`}>
                 <div className="tl-day-num">{dayLabel(d)}</div>
                 <div className="tl-day-dow">{dowLabel(d)}</div>
               </div>
@@ -175,48 +218,50 @@ export default function TimelineView({
         {/* Rows */}
         <div className="tl-body" style={{ position: 'relative' }}>
           {todayOffset !== null && (
-            <div
-              className="tl-today-line"
-              style={{ left: `${220 + todayOffset}px` }}
-              aria-hidden
-            />
+            <div className="tl-today-line" style={{ left: `${220 + todayOffset}px` }} aria-hidden />
           )}
           {rows.length === 0 && (
             <div className="tl-empty">Нет событий в выбранном периоде</div>
           )}
-          {rows.map((row) => (
-            <div
-              key={row.key}
-              className="tl-row tl-grid"
-              style={{ gridTemplateColumns: `220px repeat(${days.length}, ${DAY_WIDTH}px)` }}
-            >
-              <div className={`tl-rowhead tl-rowhead-${row.kind}`}>
-                {row.kind === 'user' ? (
-                  <span className="tl-avatar">{row.initials || '?'}</span>
-                ) : (
-                  <span className="tl-folder">
-                    <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.8}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75A2.25 2.25 0 0 1 4.5 4.5h4.378a2.25 2.25 0 0 1 1.591.659l1.122 1.122a2.25 2.25 0 0 0 1.591.659H19.5A2.25 2.25 0 0 1 21.75 9v9a2.25 2.25 0 0 1-2.25 2.25h-15A2.25 2.25 0 0 1 2.25 18V6.75Z" />
-                    </svg>
-                  </span>
-                )}
-                <span className="tl-rowhead-label" title={row.label}>{row.label}</span>
+          {rows.map((row) => {
+            const lanes = rowLanes.get(row.key)!;
+            const maxLane = row.events.reduce((m, ev) => Math.max(m, lanes.get(ev.id) ?? 0), 0);
+            const rowHeight = ROW_PAD * 2 + (maxLane + 1) * (BAR_HEIGHT + BAR_GAP) - BAR_GAP;
+
+            return (
+              <div
+                key={row.key}
+                className="tl-row tl-grid"
+                style={{
+                  gridTemplateColumns: `220px repeat(${days.length}, ${DAY_WIDTH}px)`,
+                  minHeight: `${Math.max(48, rowHeight)}px`,
+                }}
+              >
+                <div className={`tl-rowhead tl-rowhead-${row.kind}`}>
+                  {row.kind === 'user' ? (
+                    <span className="tl-avatar">{row.initials || '?'}</span>
+                  ) : (
+                    <span className="tl-folder">
+                      <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.8}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75A2.25 2.25 0 0 1 4.5 4.5h4.378a2.25 2.25 0 0 1 1.591.659l1.122 1.122a2.25 2.25 0 0 0 1.591.659H19.5A2.25 2.25 0 0 1 21.75 9v9a2.25 2.25 0 0 1-2.25 2.25h-15A2.25 2.25 0 0 1 2.25 18V6.75Z" />
+                      </svg>
+                    </span>
+                  )}
+                  <span className="tl-rowhead-label" title={row.label}>{row.label}</span>
+                </div>
+                {days.map((d, i) => {
+                  const isToday = isoDateKey(d) === isoDateKey(today);
+                  const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+                  return (
+                    <div key={i} className={`tl-cell ${isToday ? 'is-today' : ''} ${isWeekend ? 'is-weekend' : ''}`} />
+                  );
+                })}
+                <div className="tl-bars-layer" style={{ left: '220px' }}>
+                  {row.events.map((ev) => renderBar(ev, lanes.get(ev.id) ?? 0))}
+                </div>
               </div>
-              {days.map((d, i) => {
-                const isToday = isoDateKey(d) === isoDateKey(today);
-                const isWeekend = d.getDay() === 0 || d.getDay() === 6;
-                return (
-                  <div
-                    key={i}
-                    className={`tl-cell ${isToday ? 'is-today' : ''} ${isWeekend ? 'is-weekend' : ''}`}
-                  />
-                );
-              })}
-              <div className="tl-bars-layer" style={{ left: '220px' }}>
-                {row.events.map(renderBar)}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

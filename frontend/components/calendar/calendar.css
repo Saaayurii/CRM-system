@@ -478,9 +478,6 @@
 .tl-bar {
   pointer-events: auto;
   position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  height: 28px;
   border-radius: 6px;
   padding: 0 0.6rem;
   font-size: 0.75rem;
@@ -491,10 +488,10 @@
   overflow: hidden;
   text-overflow: ellipsis;
   cursor: pointer;
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  transition: box-shadow 0.12s ease, opacity 0.12s ease;
 }
 .tl-bar:hover {
-  transform: translateY(-50%) scale(1.01);
+  opacity: 0.88;
   box-shadow: 0 4px 12px rgb(0 0 0 / 0.12);
 }
 .tl-bar-title {
