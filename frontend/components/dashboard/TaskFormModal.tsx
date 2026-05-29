@@ -561,6 +561,14 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
   // Core fields
   const [title, setTitle] = useState(task?.title || initialTitle || '');
   const [description, setDescription] = useState(task?.description || '');
+  const [descExpanded, setDescExpanded] = useState(false);
+  const descRef = useRef<HTMLTextAreaElement>(null);
+  useLayoutEffect(() => {
+    if (descExpanded && descRef.current) {
+      descRef.current.style.height = 'auto';
+      descRef.current.style.height = descRef.current.scrollHeight + 'px';
+    }
+  }, [descExpanded]);
   const [status, setStatus] = useState<number>(task?.status ?? 0);
   const [priority, setPriority] = useState<number>(task?.priority ?? 1);
   const [dueDate, setDueDate] = useState(task?.dueDate?.split('T')[0] || task?.due_date?.split('T')[0] || '');
@@ -1614,13 +1622,32 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
             {/* Description */}
             <div>
               <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1.5">Описание</p>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={3}
-                className="w-full bg-transparent text-sm text-gray-700 dark:text-gray-300 border-none outline-none focus:ring-0 resize-none placeholder-gray-400"
-                placeholder="Добавить описание задачи..."
-              />
+              {descExpanded || !description ? (
+                <textarea
+                  ref={descRef}
+                  value={description}
+                  onChange={(e) => {
+                    setDescription(e.target.value);
+                    const el = e.currentTarget;
+                    el.style.height = 'auto';
+                    el.style.height = el.scrollHeight + 'px';
+                  }}
+                  onFocus={() => setDescExpanded(true)}
+                  onBlur={() => setDescExpanded(false)}
+                  autoFocus={descExpanded}
+                  rows={3}
+                  className="w-full bg-transparent text-sm text-gray-700 dark:text-gray-300 border-none outline-none focus:ring-0 resize-none overflow-hidden placeholder-gray-400"
+                  placeholder="Добавить описание задачи..."
+                />
+              ) : (
+                <div
+                  onClick={() => setDescExpanded(true)}
+                  className="w-full text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words line-clamp-3 cursor-text"
+                  title="Нажмите, чтобы развернуть"
+                >
+                  {description}
+                </div>
+              )}
             </div>
 
             {/* Checklists */}
