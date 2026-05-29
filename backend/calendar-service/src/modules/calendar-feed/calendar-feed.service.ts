@@ -212,6 +212,16 @@ export class CalendarFeedService {
       for (const t of items) {
         const due = t.dueDate ?? t.due_date;
         if (!due) continue;
+        const dueTs = new Date(due).getTime();
+        if (Number.isNaN(dueTs)) continue;
+
+        // Use startDate if available, otherwise fall back to dueDate
+        const rawStart = t.startDate ?? t.start_date ?? due;
+        const startTs = new Date(rawStart).getTime();
+
+        // Include task if it overlaps with the view range
+        if (dueTs < startD || startTs > endD) continue;
+
         if (query.mine) {
           const isMine =
             t.createdByUserId === userId ||
@@ -223,12 +233,20 @@ export class CalendarFeedService {
             );
           if (!isMine) continue;
         }
-        const ts = new Date(due).getTime();
-        if (Number.isNaN(ts) || ts < startD || ts > endD) continue;
-        out.push({
-          id: `task:${t.id}`,
-          title: `[Задача] ${t.title}`,
-          start: new Date(due).toISOString(),
+
+        // Collect unique assignee user IDs
+        const assigneeIds = new Set<number>();
+        const primary = t.assignedToUserId ?? t.assigned_to_user_id;
+        if (primary) assigneeIds.add(primary);
+        for (const a of (t.assignees ?? [])) {
+          const uid = a.userId ?? a.user_id;
+          if (uid) assigneeIds.add(uid);
+        }
+
+        const base: Omit<FeedEvent, 'id' | 'userId'> = {
+          title: t.title,
+          start: new Date(rawStart).toISOString(),
+          end: new Date(due).toISOString(),
           allDay: true,
           color: COLOR_BY_SOURCE.task,
           sourceType: 'task',
@@ -243,7 +261,17 @@ export class CalendarFeedService {
             status: t.status,
             description: t.description,
           },
-        });
+        };
+
+        if (assigneeIds.size > 0) {
+          // One event per assignee so each appears in their user row on the timeline
+          for (const uid of assigneeIds) {
+            out.push({ ...base, id: `task:${t.id}:u${uid}`, userId: uid });
+          }
+        } else {
+          // No assignee — show under the project row
+          out.push({ ...base, id: `task:${t.id}` });
+        }
       }
       this.logger.debug(`tasks: ${out.length} of ${items.length} items mapped`);
       return out;
@@ -287,6 +315,7 @@ export class CalendarFeedService {
             sourceType: 'inspection',
             sourceId: i.id,
             projectId: i.projectId,
+            userId: i.inspectorId ?? i.inspector_id ?? undefined,
             status: i.status,
             editable: false,
             url: `/dashboard/inspector/inspections?id=${i.id}`,

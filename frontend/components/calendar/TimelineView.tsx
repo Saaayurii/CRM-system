@@ -14,11 +14,27 @@ interface Props {
 
 type RowKind = 'user' | 'project' | 'company';
 
+// Deterministic pastel color per user (based on id)
+const AVATAR_COLORS = [
+  ['#ddd6fe', '#7c3aed'], // violet
+  ['#bfdbfe', '#1d4ed8'], // blue
+  ['#bbf7d0', '#15803d'], // green
+  ['#fde68a', '#b45309'], // amber
+  ['#fecaca', '#dc2626'], // red
+  ['#e0f2fe', '#0369a1'], // sky
+  ['#fbcfe8', '#9d174d'], // pink
+  ['#d1fae5', '#065f46'], // emerald
+];
+function avatarColor(uid: number): [string, string] {
+  return AVATAR_COLORS[uid % AVATAR_COLORS.length];
+}
+
 interface Row {
   key: string;
   kind: RowKind;
   label: string;
   initials?: string;
+  uid?: number;
   events: FeedEvent[];
 }
 
@@ -122,7 +138,7 @@ export default function TimelineView({
         const k = ev.userId;
         if (!userRows[k]) {
           const name = userNameById[k] || `Сотрудник #${k}`;
-          userRows[k] = { key: `user:${k}`, kind: 'user', label: name, initials: shortInitials(name), events: [] };
+          userRows[k] = { key: `user:${k}`, kind: 'user', label: name, initials: shortInitials(name), uid: k, events: [] };
         }
         userRows[k].events.push(ev);
       } else if (ev.projectId) {
@@ -239,7 +255,12 @@ export default function TimelineView({
               >
                 <div className={`tl-rowhead tl-rowhead-${row.kind}`}>
                   {row.kind === 'user' ? (
-                    <span className="tl-avatar">{row.initials || '?'}</span>
+                    <span
+                      className="tl-avatar"
+                      style={row.uid ? { background: avatarColor(row.uid)[0], color: avatarColor(row.uid)[1] } : undefined}
+                    >
+                      {row.initials || '?'}
+                    </span>
                   ) : (
                     <span className="tl-folder">
                       <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.8}>
