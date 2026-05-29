@@ -1831,7 +1831,8 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                                   ) : (
                                     <div
                                       onClick={() => setEditingItemId(item.id)}
-                                      className={`text-sm cursor-text leading-normal whitespace-pre-wrap break-words min-h-[1.25rem] ${isDone ? 'line-through text-gray-400' : isRejected ? 'text-red-500 dark:text-red-400' : 'text-gray-700 dark:text-gray-300'}`}
+                                      title="Нажмите, чтобы развернуть"
+                                      className={`text-sm cursor-text leading-normal whitespace-pre-wrap break-words line-clamp-2 min-h-[1.25rem] ${isDone ? 'line-through text-gray-400' : isRejected ? 'text-red-500 dark:text-red-400' : 'text-gray-700 dark:text-gray-300'}`}
                                     >
                                       {item.text
                                         ? renderTextWithLinks(item.text, (uid) => { const u = userMap[uid]; if (u) setEmployeeCard({ user: u }); })
