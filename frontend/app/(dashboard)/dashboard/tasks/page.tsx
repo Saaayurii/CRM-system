@@ -63,6 +63,9 @@ interface User {
   name: string;
   email: string;
   roleId?: number;
+  phone?: string;
+  avatarUrl?: string;
+  avatar_url?: string;
 }
 
 interface TasksPageData {
@@ -111,6 +114,180 @@ function getTaskProgress(t: Task): { done: number; total: number } {
     }
   }
   return { done, total };
+}
+
+function getInitials(name: string): string {
+  return name.trim().split(/\s+/).slice(0, 2).map((p) => p[0] || '').join('').toUpperCase();
+}
+const AVATAR_COLORS = ['bg-violet-500','bg-blue-500','bg-emerald-500','bg-amber-500','bg-rose-500','bg-cyan-500','bg-indigo-500','bg-pink-500'];
+function avatarColor(id: number): string { return AVATAR_COLORS[Math.abs(id) % AVATAR_COLORS.length]; }
+
+function UserProfileModal({ user, onClose }: { user: User; onClose: () => void }) {
+  const copy = (text: string) => navigator.clipboard.writeText(text).catch(() => {});
+  const photoUrl = user.avatarUrl || user.avatar_url;
+  const name = user.name || user.email;
+  return (
+    <div className="fixed inset-0 z-[300] flex items-center justify-center" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/30" />
+      <div className="relative w-80 bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="absolute top-3 right-3 z-10">
+          <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-200 hover:bg-gray-700/60 rounded-lg transition-colors">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+        <div className="flex flex-col items-center pt-8 pb-5 px-6 bg-gray-800/60">
+          <div className="mb-3">
+            {photoUrl ? (
+              <img src={photoUrl} alt={name} className="w-20 h-20 rounded-full object-cover border-4 border-gray-700" />
+            ) : (
+              <div className={`w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold text-white ${avatarColor(user.id)}`}>{getInitials(name)}</div>
+            )}
+          </div>
+          <h3 className="text-sm font-semibold text-white text-center leading-tight">{name}</h3>
+        </div>
+        <div className="px-4 py-3 space-y-2">
+          {user.phone && (
+            <div className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-800">
+              <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+              <span className="flex-1 text-sm text-gray-200">{user.phone}</span>
+              <button onClick={() => copy(user.phone!)} className="text-gray-400 hover:text-gray-200 transition-colors" title="Скопировать">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+              </button>
+            </div>
+          )}
+          <div className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-800">
+            <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+            <span className="flex-1 text-sm text-gray-200 break-all">{user.email}</span>
+            <button onClick={() => copy(user.email)} className="text-gray-400 hover:text-gray-200 transition-colors" title="Скопировать">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AssigneeTextCell({ task, users, onUpdated, onNameClick }: {
+  task: Task;
+  users: User[];
+  onUpdated: (taskId: number, newAssignees: Assignee[]) => void;
+  onNameClick: (user: User) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const [selected, setSelected] = useState<number[]>(() => (task.assignees || []).map((a) => a.userId));
+  const [saving, setSaving] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const stateRef = useRef({ selected, task, users, onUpdated });
+  stateRef.current = { selected, task, users, onUpdated };
+
+  useEffect(() => { setSelected((task.assignees || []).map((a) => a.userId)); }, [task.assignees]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) doSave();
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const doSave = () => {
+    const { selected, task, users, onUpdated } = stateRef.current;
+    setOpen(false); setSearch('');
+    const original = (task.assignees || []).map((a) => a.userId);
+    if (selected.length === original.length && selected.every((id) => original.includes(id))) return;
+    setSaving(true);
+    const assignees = selected.map((userId) => {
+      const u = users.find((u) => u.id === userId);
+      return { userId, userName: u?.name || u?.email || '' };
+    });
+    api.post(`/tasks/${task.id}/assignees`, { assignees })
+      .then(() => { onUpdated(task.id, assignees); setSaving(false); })
+      .catch(() => setSaving(false));
+  };
+
+  const toggle = (userId: number) =>
+    setSelected((prev) => prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]);
+
+  const displayAssignees = task.assignees || [];
+  const filteredUsers = users.filter((u) =>
+    !search || (u.name || '').toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div className="relative flex items-center gap-1 min-w-0" ref={ref}>
+      <div className="flex items-center gap-0.5 min-w-0 flex-wrap">
+        {displayAssignees.length === 0 ? (
+          <button onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }} className="text-gray-400 dark:text-gray-500 hover:text-violet-600 dark:hover:text-violet-400 text-xs transition-colors">
+            — Назначить
+          </button>
+        ) : (
+          displayAssignees.map((a, i) => {
+            const u = users.find((u) => u.id === a.userId);
+            const name = a.userName || u?.name || u?.email || `#${a.userId}`;
+            return (
+              <span key={a.userId} className="flex items-center">
+                <button
+                  onClick={(e) => { e.stopPropagation(); if (u) onNameClick(u); }}
+                  className="text-xs text-gray-700 dark:text-gray-300 hover:text-violet-600 dark:hover:text-violet-400 hover:underline truncate transition-colors max-w-[130px]"
+                  title={name}
+                >
+                  {name}
+                </button>
+                {i < displayAssignees.length - 1 && <span className="text-gray-400 mr-0.5">,</span>}
+              </span>
+            );
+          })
+        )}
+      </div>
+      <button
+        onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
+        className="shrink-0 opacity-0 group-hover/row:opacity-60 hover:!opacity-100 p-0.5 text-gray-400 hover:text-violet-500 transition-all ml-0.5"
+        title="Изменить исполнителей"
+      >
+        {saving ? (
+          <div className="w-3 h-3 border border-violet-400 border-t-transparent rounded-full animate-spin" />
+        ) : (
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+        )}
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full mt-1.5 w-60 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-[100] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+          <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-700">
+            <input autoFocus type="text" placeholder="Поиск сотрудника..." value={search} onChange={(e) => setSearch(e.target.value)}
+              className="w-full text-xs bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-2.5 py-1.5 outline-none focus:border-violet-400 text-gray-800 dark:text-gray-100 placeholder-gray-400" />
+          </div>
+          <div className="max-h-52 overflow-y-auto">
+            {filteredUsers.length === 0 ? (
+              <div className="px-3 py-3 text-xs text-gray-400 text-center">Не найдено</div>
+            ) : filteredUsers.map((u) => {
+              const isSel = selected.includes(u.id);
+              return (
+                <button key={u.id} onClick={(e) => { e.stopPropagation(); toggle(u.id); }}
+                  className={`w-full flex items-center gap-2 px-3 py-2 text-left transition-colors ${isSel ? 'bg-violet-50 dark:bg-violet-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-700/60'}`}>
+                  <span className="flex-1 text-xs text-gray-700 dark:text-gray-300 truncate">{u.name || u.email}</span>
+                  <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${isSel ? 'bg-violet-500 border-violet-500' : 'border-gray-300 dark:border-gray-600'}`}>
+                    {isSel && <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="px-3 py-2 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
+            <span className="text-[10px] text-gray-400">Выбрано: {selected.length}</span>
+            <div className="flex items-center gap-2">
+              {selected.length > 0 && (
+                <button onClick={(e) => { e.stopPropagation(); setSelected([]); }} className="text-[10px] text-red-500 hover:text-red-600 transition-colors">Очистить</button>
+              )}
+              <button onClick={(e) => { e.stopPropagation(); doSave(); }} className="text-[10px] font-medium text-violet-600 dark:text-violet-400 hover:text-violet-700 transition-colors">Сохранить</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 async function fetchTasksPageData(): Promise<TasksPageData> {
@@ -177,6 +354,8 @@ export default function TasksPage() {
   const [historyTask, setHistoryTask] = useState<Task | null>(null);
   const [historyEvents, setHistoryEvents] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [profileUser, setProfileUser] = useState<User | null>(null);
+  const [assigneeOverrides, setAssigneeOverrides] = useState<Record<number, Assignee[]>>({});
 
   useEffect(() => { markTasksRead(); }, []);
 
@@ -388,6 +567,10 @@ export default function TasksPage() {
     } finally {
       setDeletingId(null);
     }
+  };
+
+  const handleAssigneesUpdated = (taskId: number, newAssignees: Assignee[]) => {
+    setAssigneeOverrides((prev) => ({ ...prev, [taskId]: newAssignees }));
   };
 
   const handleSaved = async () => {
@@ -683,19 +866,10 @@ export default function TasksPage() {
                 {filteredTasks.flatMap((t) => {
                   const status = STATUS_LABELS[t.status] || STATUS_LABELS[0];
                   const priority = PRIORITY_LABELS[t.priority] || PRIORITY_LABELS[2];
-                  const assignee = t.assignedToUser || t.assigned_to_user;
-                  const assigneeId = t.assignedToUserId || t.assigned_to_user_id;
-                  const resolvedUser = assigneeId ? users.find((u) => u.id === assigneeId) : null;
-                  const assigneeName =
-                    t.assignees && t.assignees.length > 0
-                      ? t.assignees.map((a) => resolveAssigneeName(a.userId, a.userName ?? null)).join(', ')
-                      : assignee?.name || assignee?.email || resolvedUser?.name || resolvedUser?.email || '—';
                   const creatorId = t.createdByUserId || t.created_by_user_id;
                   const creatorUser = creatorId ? users.find((u) => u.id === creatorId) : null;
-                  const creatorName = !creatorId || creatorUser?.roleId === 1
-                    ? 'Система'
-                    : creatorUser?.name || creatorUser?.email || 'Система';
-                  const createdAt = t.createdAt || t.created_at;
+                  const isSystem = !creatorId || creatorUser?.roleId === 1;
+                  const creatorName = isSystem ? 'Система' : (creatorUser?.name || creatorUser?.email || 'Система');
                   const updatedAt = t.updatedAt || t.updated_at;
                   const overdue = isTaskOverdue(t);
                   const { done, total } = getTaskProgress(t);
@@ -747,15 +921,26 @@ export default function TasksPage() {
                         <span className={`text-xs font-medium ${priority.color}`}>{priority.label}</span>
                       </td>
                       {/* Исполнитель */}
-                      <td className="py-2.5 px-4 text-gray-600 dark:text-gray-400 max-w-[160px]">
-                        <div className="truncate">{assigneeName}</div>
+                      <td className="py-2.5 px-4 max-w-[180px]" onClick={(e) => e.stopPropagation()}>
+                        <AssigneeTextCell
+                          task={assigneeOverrides[t.id] !== undefined ? { ...t, assignees: assigneeOverrides[t.id] } : t}
+                          users={users}
+                          onUpdated={handleAssigneesUpdated}
+                          onNameClick={setProfileUser}
+                        />
                       </td>
                       {/* Поставил */}
-                      <td className="py-2.5 px-4">
-                        <span className="text-gray-700 dark:text-gray-300 text-sm">{creatorName}</span>
-                        {createdAt && (
+                      <td className="py-2.5 px-4" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          className={`text-sm text-left transition-colors ${!isSystem ? 'text-gray-700 dark:text-gray-300 hover:text-violet-600 dark:hover:text-violet-400 hover:underline cursor-pointer' : 'text-gray-500 dark:text-gray-400 cursor-default'}`}
+                          onClick={(e) => { e.stopPropagation(); if (!isSystem && creatorUser) setProfileUser(creatorUser); }}
+                          disabled={isSystem}
+                        >
+                          {creatorName}
+                        </button>
+                        {(t.createdAt || t.created_at) && (
                           <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-                            {formatDate(createdAt)}
+                            {formatDate(t.createdAt || t.created_at)}
                           </div>
                         )}
                       </td>
@@ -994,6 +1179,8 @@ export default function TasksPage() {
           </div>
         </div>
       )}
+
+      {profileUser && <UserProfileModal user={profileUser} onClose={() => setProfileUser(null)} />}
 
       {showModal && (
         <TaskFormModal
