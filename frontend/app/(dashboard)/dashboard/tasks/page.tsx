@@ -118,127 +118,122 @@ function getTaskProgress(t: Task): { done: number; total: number } {
 }
 
 
-function AssigneeTextCell({ task, users, onUpdated, onNameClick }: {
+/** Просто показывает имена исполнителей; клик на имя → профиль. */
+function AssigneeTextCell({ task, users, onNameClick }: {
   task: Task;
   users: User[];
-  onUpdated: (taskId: number, newAssignees: Assignee[]) => void;
   onNameClick: (userId: number) => void;
+}) {
+  const displayAssignees = task.assignees || [];
+  if (displayAssignees.length === 0) return <span className="text-gray-400 dark:text-gray-500 text-xs">—</span>;
+  return (
+    <div className="flex flex-col gap-0.5 min-w-0">
+      {displayAssignees.map((a, i) => {
+        const u = users.find((u) => u.id === a.userId);
+        const name = a.userName || u?.name || u?.email || `#${a.userId}`;
+        return (
+          <button
+            key={a.userId}
+            onClick={(e) => { e.stopPropagation(); onNameClick(a.userId); }}
+            className="text-xs text-gray-700 dark:text-gray-300 hover:text-violet-600 dark:hover:text-violet-400 hover:underline truncate text-left transition-colors max-w-[160px]"
+            title={name}
+          >
+            {name}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Фильтр-дропдаун в заголовке колонки. multi=true — мультивыбор (исполнитель). */
+function ColumnUserFilter({ users, selectedIds, onChange, multi = false }: {
+  users: User[];
+  selectedIds: number[];
+  onChange: (ids: number[]) => void;
+  multi?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const [selected, setSelected] = useState<number[]>(() => (task.assignees || []).map((a) => a.userId));
-  const [saving, setSaving] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const stateRef = useRef({ selected, task, users, onUpdated });
-  stateRef.current = { selected, task, users, onUpdated };
-
-  useEffect(() => { setSelected((task.assignees || []).map((a) => a.userId)); }, [task.assignees]);
 
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) doSave();
+      if (ref.current && !ref.current.contains(e.target as Node)) { setOpen(false); setSearch(''); }
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [open]);
 
-  const doSave = () => {
-    const { selected, task, users, onUpdated } = stateRef.current;
-    setOpen(false); setSearch('');
-    const original = (task.assignees || []).map((a) => a.userId);
-    if (selected.length === original.length && selected.every((id) => original.includes(id))) return;
-    setSaving(true);
-    const assignees = selected.map((userId) => {
-      const u = users.find((u) => u.id === userId);
-      return { userId, userName: u?.name || u?.email || '' };
-    });
-    api.post(`/tasks/${task.id}/assignees`, { assignees })
-      .then(() => { onUpdated(task.id, assignees); setSaving(false); })
-      .catch(() => setSaving(false));
-  };
-
-  const toggle = (userId: number) =>
-    setSelected((prev) => prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]);
-
-  const displayAssignees = task.assignees || [];
-  const filteredUsers = users.filter((u) =>
+  const filtered = users.filter((u) =>
     !search || (u.name || '').toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase())
   );
 
+  const toggle = (id: number) => {
+    if (multi) {
+      onChange(selectedIds.includes(id) ? selectedIds.filter((x) => x !== id) : [...selectedIds, id]);
+    } else {
+      onChange(selectedIds.includes(id) ? [] : [id]);
+      setOpen(false);
+    }
+  };
+
+  const active = selectedIds.length > 0;
+
   return (
-    <div className="relative flex items-center gap-1 min-w-0" ref={ref}>
-      <div className="flex items-center gap-0.5 min-w-0 flex-wrap flex-1">
-        {displayAssignees.length === 0 ? (
-          <button
-            onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
-            className="text-gray-400 dark:text-gray-500 hover:text-violet-600 dark:hover:text-violet-400 text-xs transition-colors flex items-center gap-0.5"
-          >
-            — Назначить
-            <svg className="w-3 h-3 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-          </button>
-        ) : (
-          displayAssignees.map((a, i) => {
-            const u = users.find((u) => u.id === a.userId);
-            const name = a.userName || u?.name || u?.email || `#${a.userId}`;
-            return (
-              <span key={a.userId} className="flex items-center">
-                <button
-                  onClick={(e) => { e.stopPropagation(); onNameClick(a.userId); }}
-                  className="text-xs text-gray-700 dark:text-gray-300 hover:text-violet-600 dark:hover:text-violet-400 hover:underline truncate transition-colors max-w-[130px]"
-                  title={name}
-                >
-                  {name}
-                </button>
-                {i < displayAssignees.length - 1 && <span className="text-gray-400 mr-0.5">,</span>}
-              </span>
-            );
-          })
-        )}
-      </div>
-      {/* Dropdown trigger — chevron visible on row hover */}
-      {saving ? (
-        <div className="w-3 h-3 border border-violet-400 border-t-transparent rounded-full animate-spin shrink-0" />
-      ) : (
-        <button
-          onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
-          className="shrink-0 opacity-0 group-hover/row:opacity-50 hover:!opacity-100 p-0.5 text-gray-400 hover:text-violet-500 transition-all"
-          title="Изменить исполнителей"
-        >
-          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-        </button>
-      )}
+    <div className="relative inline-flex items-center" ref={ref} onClick={(e) => e.stopPropagation()}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className={`inline-flex items-center gap-0.5 ml-1 rounded px-0.5 transition-colors ${active ? 'text-violet-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+        title="Фильтр"
+      >
+        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+        {active && <span className="text-[9px] font-bold leading-none">{selectedIds.length}</span>}
+      </button>
       {open && (
-        <div className="absolute left-0 top-full mt-1.5 w-60 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-[100] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="absolute top-full left-0 mt-1 w-56 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-[200] overflow-hidden">
           <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-700">
-            <input autoFocus type="text" placeholder="Поиск сотрудника..." value={search} onChange={(e) => setSearch(e.target.value)}
-              className="w-full text-xs bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-2.5 py-1.5 outline-none focus:border-violet-400 text-gray-800 dark:text-gray-100 placeholder-gray-400" />
+            <input
+              autoFocus
+              type="text"
+              placeholder="Поиск..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full text-xs bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-2.5 py-1.5 outline-none focus:border-violet-400 text-gray-800 dark:text-gray-100 placeholder-gray-400"
+            />
           </div>
           <div className="max-h-52 overflow-y-auto">
-            {filteredUsers.length === 0 ? (
+            {filtered.length === 0 ? (
               <div className="px-3 py-3 text-xs text-gray-400 text-center">Не найдено</div>
-            ) : filteredUsers.map((u) => {
-              const isSel = selected.includes(u.id);
+            ) : filtered.map((u) => {
+              const isSel = selectedIds.includes(u.id);
               return (
-                <button key={u.id} onClick={(e) => { e.stopPropagation(); toggle(u.id); }}
-                  className={`w-full flex items-center gap-2 px-3 py-2 text-left transition-colors ${isSel ? 'bg-violet-50 dark:bg-violet-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-700/60'}`}>
+                <button
+                  key={u.id}
+                  onClick={() => toggle(u.id)}
+                  className={`w-full flex items-center gap-2 px-3 py-2 text-left transition-colors ${isSel ? 'bg-violet-50 dark:bg-violet-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-700/60'}`}
+                >
                   <span className="flex-1 text-xs text-gray-700 dark:text-gray-300 truncate">{u.name || u.email}</span>
-                  <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${isSel ? 'bg-violet-500 border-violet-500' : 'border-gray-300 dark:border-gray-600'}`}>
-                    {isSel && <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
-                  </span>
+                  {multi && (
+                    <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${isSel ? 'bg-violet-500 border-violet-500' : 'border-gray-300 dark:border-gray-600'}`}>
+                      {isSel && <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                    </span>
+                  )}
+                  {!multi && isSel && <svg className="w-3.5 h-3.5 text-violet-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>}
                 </button>
               );
             })}
           </div>
-          <div className="px-3 py-2 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
-            <span className="text-[10px] text-gray-400">Выбрано: {selected.length}</span>
-            <div className="flex items-center gap-2">
-              {selected.length > 0 && (
-                <button onClick={(e) => { e.stopPropagation(); setSelected([]); }} className="text-[10px] text-red-500 hover:text-red-600 transition-colors">Очистить</button>
-              )}
-              <button onClick={(e) => { e.stopPropagation(); doSave(); }} className="text-[10px] font-medium text-violet-600 dark:text-violet-400 hover:text-violet-700 transition-colors">Сохранить</button>
+          {active && (
+            <div className="px-3 py-2 border-t border-gray-100 dark:border-gray-700 flex justify-end">
+              <button onClick={() => onChange([])} className="text-[10px] text-red-500 hover:text-red-600 transition-colors">
+                Сбросить
+              </button>
             </div>
-          </div>
+          )}
         </div>
       )}
     </div>
@@ -311,6 +306,8 @@ export default function TasksPage() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [profileUserId, setProfileUserId] = useState<number | null>(null);
   const [assigneeOverrides, setAssigneeOverrides] = useState<Record<number, Assignee[]>>({});
+  const [filterAssigneeIds, setFilterAssigneeIds] = useState<number[]>([]);
+  const [filterCreatorId, setFilterCreatorId] = useState<number[]>([]);
 
   useEffect(() => { markTasksRead(); }, []);
 
@@ -413,9 +410,17 @@ export default function TasksPage() {
       if (filterStatus !== null && t.status !== filterStatus) return false;
       if (filterProject !== null && (t.projectId || t.project_id) !== filterProject) return false;
       if (filterOverdue && !isTaskOverdue(t)) return false;
+      if (filterAssigneeIds.length > 0) {
+        const effective = assigneeOverrides[t.id] ?? t.assignees ?? [];
+        if (!filterAssigneeIds.some((id) => effective.some((a) => a.userId === id))) return false;
+      }
+      if (filterCreatorId.length > 0) {
+        const cId = t.createdByUserId || t.created_by_user_id;
+        if (!cId || !filterCreatorId.includes(cId)) return false;
+      }
       return true;
     });
-  }, [sortedTasks, searchQuery, filterStatus, filterProject, filterOverdue]);
+  }, [sortedTasks, searchQuery, filterStatus, filterProject, filterOverdue, filterAssigneeIds, filterCreatorId, assigneeOverrides]);
 
   const hasActiveFilters = !!(searchQuery || filterStatus !== null || filterProject !== null || filterOverdue);
 
@@ -804,15 +809,32 @@ export default function TasksPage() {
                 <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20 border-b border-gray-100 dark:border-gray-700/60">
                   {COLUMNS.map((col) => (
                     <th key={col.label} className="py-3 px-4 text-left font-semibold">
-                      {col.key ? (
-                        <button
-                          onClick={() => handleSort(col.key!)}
-                          className="inline-flex items-center gap-0.5 hover:text-gray-600 dark:hover:text-gray-300 transition-colors select-none"
-                        >
-                          {col.label}
-                          <SortIcon active={sortKey === col.key} dir={sortDir} />
-                        </button>
-                      ) : col.label}
+                      <div className="inline-flex items-center">
+                        {col.key ? (
+                          <button
+                            onClick={() => handleSort(col.key!)}
+                            className="inline-flex items-center gap-0.5 hover:text-gray-600 dark:hover:text-gray-300 transition-colors select-none"
+                          >
+                            {col.label}
+                            <SortIcon active={sortKey === col.key} dir={sortDir} />
+                          </button>
+                        ) : col.label}
+                        {col.key === 'assignee' && (
+                          <ColumnUserFilter
+                            users={users}
+                            selectedIds={filterAssigneeIds}
+                            onChange={setFilterAssigneeIds}
+                            multi
+                          />
+                        )}
+                        {col.key === 'creator' && (
+                          <ColumnUserFilter
+                            users={users}
+                            selectedIds={filterCreatorId}
+                            onChange={setFilterCreatorId}
+                          />
+                        )}
+                      </div>
                     </th>
                   ))}
                 </tr>
@@ -880,7 +902,6 @@ export default function TasksPage() {
                         <AssigneeTextCell
                           task={assigneeOverrides[t.id] !== undefined ? { ...t, assignees: assigneeOverrides[t.id] } : t}
                           users={users}
-                          onUpdated={handleAssigneesUpdated}
                           onNameClick={setProfileUserId}
                         />
                       </td>
