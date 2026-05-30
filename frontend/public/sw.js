@@ -6,8 +6,8 @@
  * - Stale-while-revalidate for synced API routes
  */
 
-const CACHE_NAME = 'crm-v2';
-const API_CACHE_NAME = 'crm-api-v2';
+const CACHE_NAME = 'crm-v3';
+const API_CACHE_NAME = 'crm-api-v3';
 const OFFLINE_URL = '/dashboard';
 
 // Assets to pre-cache on install
@@ -292,11 +292,12 @@ self.addEventListener('push', (event) => {
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-      const focused = windowClients.find((c) => c.focused);
-      if (focused) {
-        focused.postMessage({ type: 'PUSH_NOTIFICATION', data });
-        return;
+      // Let any open window update its in-app UI…
+      for (const c of windowClients) {
+        c.postMessage({ type: 'PUSH_NOTIFICATION', data });
       }
+      // …but ALWAYS show a system notification. iOS revokes/throttles the push
+      // subscription if a push event does not result in a visible notification.
       return self.registration.showNotification(title, options);
     })
   );
