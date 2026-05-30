@@ -482,7 +482,7 @@ services:
       # Web Push / VAPID
       VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
-      VAPID_EMAIL: ${VAPID_EMAIL:-mailto:admin@crm.local}
+      VAPID_EMAIL: ${VAPID_EMAIL:-https://crm.3stroy15.pro}
 
       # Email (опционально)
       SMTP_HOST: ${SMTP_HOST:-}
