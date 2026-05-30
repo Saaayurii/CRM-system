@@ -16,6 +16,7 @@ import ChatMessageComponent from '@/components/chat/ChatMessage';
 import ForwardMessageModal from '@/components/chat/ForwardMessageModal';
 import FilePreviewModal from '@/components/ui/FilePreviewModal';
 import EstimatesPanel from '@/components/estimates/EstimatesPanel';
+import ImportFromCompanyPriceModal from '@/components/projects/ImportFromCompanyPriceModal';
 import FinancialReportModal from '@/components/estimates/FinancialReportModal';
 import DocumentsOverview from '@/components/estimates/DocumentsOverview';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
@@ -816,6 +817,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   const [priceCategoryFilter, setPriceCategoryFilter] = useState('');
   const [priceCategories, setPriceCategories] = useState<string[]>([]);
   const [showPriceModal, setShowPriceModal] = useState(false);
+  const [showImportPriceModal, setShowImportPriceModal] = useState(false);
   const [editingPrice, setEditingPrice] = useState<WorkTemplate | null>(null);
   const [savingPrice, setSavingPrice] = useState(false);
   /* Commercial proposals */
@@ -3977,6 +3979,10 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                     {priceCategories.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 )}
+                <button onClick={() => setShowImportPriceModal(true)} className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-medium rounded-lg transition-colors whitespace-nowrap" title="Импорт позиций из прайс-листа компании">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 16V4m0 12l-3-3m3 3l3-3m6 6.5V19a2 2 0 01-2 2H6a2 2 0 01-2-2v-2.5" /></svg>
+                  Из прайса компании
+                </button>
                 <button onClick={() => { setEditingPrice(null); setShowPriceModal(true); }} className="flex items-center gap-1.5 px-3 py-2 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
                   Добавить услугу
@@ -6020,6 +6026,13 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
             { key: 'description', label: 'Описание', type: 'textarea' },
           ]}
           initialData={editingPrice ? editingPrice as unknown as Record<string, unknown> : undefined}
+        />
+      )}
+
+      {showImportPriceModal && (
+        <ImportFromCompanyPriceModal
+          onClose={() => setShowImportPriceModal(false)}
+          onImported={() => { reloadPriceItems(); }}
         />
       )}
 
