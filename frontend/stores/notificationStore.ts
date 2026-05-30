@@ -204,6 +204,9 @@ export const useNotificationStore = create<NotificationState>()(
               }
               get().connectSSE();
             }
+            // Resync to catch anything pushed while the stream was down
+            // (SSE does not replay missed events)
+            void get().fetchNotifications();
           });
         }
 
