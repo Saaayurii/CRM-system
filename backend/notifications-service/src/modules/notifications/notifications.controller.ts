@@ -98,6 +98,15 @@ export class NotificationsController {
   }
 
   @Public()
+  @Post('notifications/internal/delete-by-entity')
+  @ApiOperation({
+    summary: 'Internal: delete notifications linked to an entity (e.g. a deleted chat message)',
+  })
+  deleteNotificationsByEntity(@Body() body: { entityType: string; entityId: number }) {
+    return this.notificationsService.deleteByEntity(body.entityType, body.entityId);
+  }
+
+  @Public()
   @Post('notifications/internal/broadcast')
   @ApiOperation({
     summary:

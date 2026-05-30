@@ -206,8 +206,10 @@ export class ChatGateway
             priority: 2,
             channels: ['in_app', 'push'],
             actionUrl,
-            entityType: 'chat_channel',
-            entityId: data.channelId,
+            // Link to the message itself so the notification can be removed if
+            // the message is later deleted.
+            entityType: 'chat_message',
+            entityId: message.id,
           }));
 
         this.notificationsClient.sendToMany(payloads);
@@ -253,6 +255,9 @@ export class ChatGateway
       messageId: data.messageId,
       deletedBy: client.user.id,
     });
+
+    // Remove any notifications that referenced this message (fire-and-forget)
+    void this.notificationsClient.deleteByEntity('chat_message', data.messageId);
 
     return { event: 'message:delete:ack', data: result };
   }

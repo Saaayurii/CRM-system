@@ -268,6 +268,31 @@ export class NotificationsService implements OnModuleInit {
   }
 
   /**
+   * Delete every notification linked to an entity (e.g. a deleted chat message)
+   * and tell the affected users over SSE so their lists update live.
+   */
+  async deleteByEntity(entityType: string, entityId: number) {
+    const rows: { id: number; userId: number }[] =
+      await this.notificationRepository.findByEntity(entityType, entityId);
+    if (rows.length === 0) return { deleted: 0 };
+
+    await this.notificationRepository.deleteByEntity(entityType, entityId);
+
+    // Group deleted ids per user and push a 'notification_deleted' SSE event
+    const byUser = new Map<number, number[]>();
+    for (const r of rows) {
+      const list = byUser.get(r.userId) ?? [];
+      list.push(r.id);
+      byUser.set(r.userId, list);
+    }
+    for (const [userId, ids] of byUser) {
+      this.pushSystemEvent(userId, 'notification_deleted', { ids });
+    }
+
+    return { deleted: rows.length };
+  }
+
+  /**
    * Broadcast a notification to a computed audience: every active user with one
    * of `roleIds`, plus explicit `userIds`, minus `excludeUserId` (the actor).
    */

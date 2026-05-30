@@ -49,6 +49,20 @@ export class NotificationRepository {
     return (this.prisma as any).notification.create({ data });
   }
 
+  /** All notifications linked to a given entity (id + userId, for SSE cleanup). */
+  async findByEntity(entityType: string, entityId: number) {
+    return (this.prisma as any).notification.findMany({
+      where: { entityType, entityId },
+      select: { id: true, userId: true },
+    });
+  }
+
+  async deleteByEntity(entityType: string, entityId: number) {
+    return (this.prisma as any).notification.deleteMany({
+      where: { entityType, entityId },
+    });
+  }
+
   async updateNotification(id: number, accountId: number, data: any) {
     return (this.prisma as any).notification.updateMany({
       where: { id, accountId },

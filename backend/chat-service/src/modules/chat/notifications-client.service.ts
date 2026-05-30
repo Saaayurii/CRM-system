@@ -80,6 +80,23 @@ export class NotificationsClientService {
     for (const p of payloads) void this.sendNotification(p);
   }
 
+  /** Delete all notifications linked to an entity (e.g. when a chat message is removed). */
+  async deleteByEntity(entityType: string, entityId: number): Promise<void> {
+    try {
+      const res = await fetch(`${this.baseUrl}/notifications/internal/delete-by-entity`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entityType, entityId }),
+        signal: AbortSignal.timeout(5000),
+      });
+      if (!res.ok) {
+        this.logger.warn(`notifications-service delete-by-entity responded ${res.status}`);
+      }
+    } catch (err) {
+      this.logger.error(`Failed to delete notifications for ${entityType}#${entityId}: ${(err as Error).message}`);
+    }
+  }
+
   /**
    * Broadcast to a computed audience: every active user with one of `roleIds`,
    * plus explicit `userIds`, minus `excludeUserId`. Fire-and-forget.

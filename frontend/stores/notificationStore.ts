@@ -244,6 +244,22 @@ export const useNotificationStore = create<NotificationState>()(
           }
         });
 
+        es.addEventListener('notification_deleted', (event) => {
+          try {
+            const { ids } = JSON.parse(event.data) as { ids: number[] };
+            if (!Array.isArray(ids) || ids.length === 0) return;
+            const idSet = new Set(ids);
+            set((state) => {
+              const notifications = state.notifications.filter((n) => !idSet.has(n.id));
+              const unreadCount = notifications.filter((n) => !n.isRead).length;
+              updateBadge(unreadCount);
+              return { notifications, unreadCount };
+            });
+          } catch {
+            // ignore parse errors
+          }
+        });
+
         es.addEventListener('force_logout', (event) => {
           try {
             const { sessionId } = JSON.parse(event.data);
