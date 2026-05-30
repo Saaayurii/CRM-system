@@ -53,9 +53,9 @@ export const ROLE_NOTIFICATION_MAP: Record<string, number[]> = {
   contract_updated:      [1, 2, 4, 8, 12],
 
   // ── Quality & Inspections ─────────────────────────────────────
-  inspection_created:    [4, 5, 9],
+  inspection_created:    [1, 2, 4, 5, 9],
   inspection_failed:     [1, 2, 4, 9],
-  defect_found:          [4, 5, 9],
+  defect_found:          [1, 2, 4, 5, 9],
 
   // ── Equipment ─────────────────────────────────────────────────
   equipment_maintenance_due: [4, 5, 7],
