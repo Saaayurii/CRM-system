@@ -77,7 +77,7 @@ export default function ChatPage() {
   // On mobile: fixed fullscreen always (avoids py-8 layout padding issues)
   const mobileClass = activeChannelId
     ? 'max-lg:fixed max-lg:inset-0 max-lg:z-50'
-    : 'max-lg:fixed max-lg:inset-x-0 max-lg:top-16 max-lg:bottom-0 max-lg:z-10';
+    : 'max-lg:fixed max-lg:inset-0 max-lg:z-30';
 
   return (
     <div ref={chatContainerRef} className={`flex ${mobileClass} lg:h-dvh lg:-mx-8 lg:-my-8 lg:w-[calc(100%+4rem)] sm:max-lg:h-[calc(100dvh-64px)] sm:max-lg:-mx-6 sm:max-lg:-my-8 sm:max-lg:w-[calc(100%+3rem)] bg-white dark:bg-gray-900 max-lg:rounded-none shadow-xs overflow-hidden`}>

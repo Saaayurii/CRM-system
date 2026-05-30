@@ -11,12 +11,15 @@ import { useSidebarStore } from '@/stores/sidebarStore';
 export default function Header() {
   const { sidebarOpen, setSidebarOpen } = useSidebarStore();
 
+  // Hide the floating trigger while the menu is open (the sidebar covers it)
+  if (sidebarOpen) return null;
+
   return (
     <button
       className="lg:hidden fixed bottom-6 left-6 z-40 w-14 h-14 rounded-full bg-violet-600 hover:bg-violet-700 text-white shadow-xl flex items-center justify-center transition-colors"
       aria-controls="sidebar"
       aria-expanded={sidebarOpen}
-      onClick={(e) => { e.stopPropagation(); setSidebarOpen(!sidebarOpen); }}
+      onClick={(e) => { e.stopPropagation(); setSidebarOpen(true); }}
     >
       <span className="sr-only">Открыть меню</span>
       <svg className="w-7 h-7 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">

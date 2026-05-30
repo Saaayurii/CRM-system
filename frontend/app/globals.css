@@ -316,3 +316,14 @@
 .recharts-default-tooltip .recharts-tooltip-item * {
   color: #f3f4f6 !important;
 }
+
+/* Recharts wrapper/surface is focusable — suppress the blue focus outline
+   that appears as a border around the chart when tapped/clicked. */
+.recharts-wrapper:focus,
+.recharts-wrapper:focus-visible,
+.recharts-surface:focus,
+.recharts-surface:focus-visible,
+.recharts-wrapper *:focus,
+.recharts-wrapper *:focus-visible {
+  outline: none !important;
+}

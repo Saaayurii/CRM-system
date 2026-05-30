@@ -356,7 +356,7 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
         </div>
 
         {/* Archived channel list */}
-        <div className="flex-1 overflow-y-auto scrollbar-none">
+        <div className="flex-1 overflow-y-auto overscroll-contain scrollbar-none">
           {archiveFiltered.length === 0 && (
             <div className="p-4 text-center text-sm text-gray-400 dark:text-gray-500">
               {search ? 'Ничего не найдено' : 'Архив пуст'}
@@ -519,7 +519,7 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
       )}
 
       {/* Channel list */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-none">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto overscroll-contain scrollbar-none">
         {/* Archive entry — shown when there are archived chats */}
         {archivedCount > 0 && !search && activeFolder === 'all' && (
           <div
