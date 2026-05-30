@@ -92,6 +92,7 @@ export class ProjectsService {
   async create(
     createProjectDto: CreateProjectDto,
     requestingUserAccountId: number,
+    requestingUserId?: number,
   ): Promise<ProjectResponseDto> {
     if (createProjectDto.code) {
       const existingProject = await this.projectRepository.findByCode(
@@ -106,6 +107,23 @@ export class ProjectsService {
       ...createProjectDto,
       accountId: requestingUserAccountId,
     });
+
+    // Notify admins/PMs (and the assigned PM) about the new project
+    void this.notificationsClient.broadcast({
+      accountId: requestingUserAccountId,
+      roleIds: [1, 2, 4],
+      userIds: project.projectManagerId ? [project.projectManagerId] : [],
+      excludeUserId: requestingUserId,
+      title: `Создан проект: ${project.name}`,
+      message: project.code ? `Код: ${project.code}` : undefined,
+      notificationType: 'project_created',
+      priority: 2,
+      channels: ['in_app'],
+      actionUrl: `/dashboard/projects/${project.id}`,
+      entityType: 'project',
+      entityId: project.id,
+    });
+
     return this.toResponseDto(project);
   }
 

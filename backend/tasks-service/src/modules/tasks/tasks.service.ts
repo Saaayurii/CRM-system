@@ -13,6 +13,9 @@ import {
   getClientAllowedProjectIds,
 } from '../../common/helpers/client-access.helper';
 
+// Admins (super_admin, admin) + project managers — get a feed of significant activity
+const ADMIN_PM_ROLES = [1, 2, 4];
+
 @Injectable()
 export class TasksService {
   constructor(
@@ -100,6 +103,21 @@ export class TasksService {
         entityId: task.id,
       }]);
     }
+
+    // Notify admins/PMs about the new task (excluding the creator)
+    void this.notificationsClient.broadcast({
+      accountId: requestingUserAccountId,
+      roleIds: ADMIN_PM_ROLES,
+      excludeUserId: requestingUserId,
+      title: `Создана задача: ${task.title}`,
+      message: task.project?.name ? `Проект: ${task.project.name}` : undefined,
+      notificationType: 'task_created',
+      priority: 2,
+      channels: ['in_app'],
+      actionUrl: `/dashboard/tasks/${task.id}`,
+      entityType: 'task',
+      entityId: task.id,
+    });
 
     return task;
   }
@@ -197,12 +215,42 @@ export class TasksService {
     return updated;
   }
 
-  async remove(id: number, requestingUserAccountId: number): Promise<void> {
+  async remove(
+    id: number,
+    requestingUserAccountId: number,
+    requestingUserId?: number,
+  ): Promise<void> {
     const task = await this.taskRepository.findById(id);
     if (!task) throw new NotFoundException('Task not found');
     if (task.accountId !== requestingUserAccountId)
       throw new ForbiddenException('Access denied');
+
+    // Collect affected users (assignees) before deletion
+    let assigneeIds: number[] = [];
+    try {
+      const assignees = await this.taskRepository.getAssignees(id);
+      assigneeIds = assignees.map((a: { userId: number }) => a.userId);
+    } catch {
+      assigneeIds = [];
+    }
+    if (task.assignedToUserId) assigneeIds.push(task.assignedToUserId);
+
     await this.taskRepository.softDelete(id);
+
+    // Notify admins/PMs + affected assignees that the task was deleted
+    void this.notificationsClient.broadcast({
+      accountId: requestingUserAccountId,
+      roleIds: ADMIN_PM_ROLES,
+      userIds: assigneeIds,
+      excludeUserId: requestingUserId,
+      title: `Удалена задача: ${task.title}`,
+      message: task.project?.name ? `Проект: ${task.project.name}` : undefined,
+      notificationType: 'task_deleted',
+      priority: 2,
+      channels: ['in_app'],
+      entityType: 'task',
+      entityId: id,
+    });
   }
 
   async setAssignees(

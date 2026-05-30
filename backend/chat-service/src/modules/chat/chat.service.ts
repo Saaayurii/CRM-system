@@ -6,6 +6,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { ChatRepository } from './repositories/chat.repository';
+import { NotificationsClientService } from './notifications-client.service';
 import {
   CreateChannelDto,
   UpdateChannelDto,
@@ -19,7 +20,10 @@ import {
 export class ChatService {
   private readonly logger = new Logger(ChatService.name);
 
-  constructor(private readonly chatRepository: ChatRepository) {}
+  constructor(
+    private readonly chatRepository: ChatRepository,
+    private readonly notificationsClient: NotificationsClientService,
+  ) {}
 
   // --- Channels ---
 
@@ -150,7 +154,7 @@ export class ChatService {
     const settings: Record<string, unknown> = { ...(dto.settings || {}) };
     if (dto.avatarUrl) settings.avatarUrl = dto.avatarUrl;
 
-    return this.chatRepository.createChannel({
+    const channel = await this.chatRepository.createChannel({
       accountId,
       channelType: dto.channelType,
       name: dto.name,
@@ -165,6 +169,46 @@ export class ChatService {
         create: memberCreates,
       },
     });
+
+    // Notify members who were added (skip direct/self chats and the creator)
+    if (dto.channelType !== 'direct') {
+      const addedMemberIds = memberCreates
+        .map((m) => m.userId)
+        .filter((id) => id !== userId);
+      const channelName = dto.name || 'Новый чат';
+      this.notificationsClient.sendToMany(
+        addedMemberIds.map((memberId) => ({
+          userId: memberId,
+          accountId,
+          title: `Вас добавили в чат: ${channelName}`,
+          message: dto.description,
+          notificationType: 'chat_channel_added',
+          priority: 2,
+          channels: ['in_app', 'push'],
+          actionUrl: `/dashboard/chat?channelId=${channel.id}`,
+          entityType: 'chat_channel',
+          entityId: channel.id,
+        })),
+      );
+
+      // For project channels, also surface to admins/PMs
+      if (dto.projectId) {
+        void this.notificationsClient.broadcast({
+          accountId,
+          roleIds: [1, 2, 4],
+          excludeUserId: userId,
+          title: `Создан чат в проекте: ${channelName}`,
+          notificationType: 'chat_channel_created',
+          priority: 1,
+          channels: ['in_app'],
+          actionUrl: `/dashboard/chat?channelId=${channel.id}`,
+          entityType: 'chat_channel',
+          entityId: channel.id,
+        });
+      }
+    }
+
+    return channel;
   }
 
   async importTelegram(accountId: number, userId: number, body: any) {

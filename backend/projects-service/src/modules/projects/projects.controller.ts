@@ -83,7 +83,7 @@ export class ProjectsController {
     @CurrentUser() user: RequestUser,
     @Body() createProjectDto: CreateProjectDto,
   ): Promise<ProjectResponseDto> {
-    return this.projectsService.create(createProjectDto, user.accountId);
+    return this.projectsService.create(createProjectDto, user.accountId, user.id);
   }
 
   @Put(':id')

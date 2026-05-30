@@ -114,7 +114,7 @@ export class TasksController {
     @CurrentUser() user: RequestUser,
     @Param('id', ParseIntPipe) id: number,
   ) {
-    return this.tasksService.remove(id, user.accountId);
+    return this.tasksService.remove(id, user.accountId, user.id);
   }
 
   @Post(':id/assignees')
