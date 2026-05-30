@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { sseUrl } from '@/lib/sseUrl';
+import { getFreshAccessToken } from '@/lib/freshToken';
 import api from '@/lib/api';
 
 interface MaintenanceEvent {
@@ -25,10 +26,9 @@ export default function MaintenanceGuard({ children }: { children: React.ReactNo
     if (isLoading || !user) return;
     if (user.role?.code === 'super_admin') return;
 
-    const token = localStorage.getItem('accessToken');
-    if (!token) return;
-
     const userRole = user.role?.code ?? '';
+    let closed = false;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
     // 1. Initial check — catches the case where maintenance was already on before opening the page
     api.get('/system-settings').then((res) => {
@@ -40,21 +40,45 @@ export default function MaintenanceGuard({ children }: { children: React.ReactNo
       if (shouldBlock(event, userRole)) router.push('/maintenance');
     }).catch(() => {});
 
-    // 2. SSE — catches real-time changes while user is active
-    const es = new EventSource(sseUrl('/system-settings/events', token));
-    esRef.current = es;
+    // 2. SSE — catches real-time changes; reconnects with a fresh token so a
+    //    15-min token expiry (or a backgrounded tab) never strands the stream.
+    const connect = async () => {
+      if (closed) return;
+      const token = await getFreshAccessToken();
+      if (closed || !token) return;
 
-    es.addEventListener('maintenance', (e: MessageEvent) => {
-      try {
-        const event: MaintenanceEvent = JSON.parse(e.data);
-        if (shouldBlock(event, userRole)) router.push('/maintenance');
-      } catch {
-        // ignore parse errors
-      }
-    });
+      const es = new EventSource(sseUrl('/system-settings/events', token));
+      esRef.current = es;
+
+      es.addEventListener('maintenance', (e: MessageEvent) => {
+        try {
+          const event: MaintenanceEvent = JSON.parse(e.data);
+          if (shouldBlock(event, userRole)) router.push('/maintenance');
+        } catch {
+          // ignore parse errors
+        }
+      });
+
+      es.onerror = () => {
+        es.close();
+        esRef.current = null;
+        if (closed) return;
+        reconnectTimer = setTimeout(connect, 5000);
+      };
+    };
+
+    void connect();
+
+    const onVisible = () => {
+      if (!document.hidden && !esRef.current && !closed) void connect();
+    };
+    document.addEventListener('visibilitychange', onVisible);
 
     return () => {
-      es.close();
+      closed = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      document.removeEventListener('visibilitychange', onVisible);
+      esRef.current?.close();
       esRef.current = null;
     };
   }, [user, isLoading, router]);

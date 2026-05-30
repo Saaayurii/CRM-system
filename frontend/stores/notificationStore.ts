@@ -10,6 +10,7 @@ import {
   isPushSubscribed,
 } from '@/lib/pushNotifications';
 import { setFaviconBadge, startTitleFlash, stopTitleFlash } from '@/lib/tabBadge';
+import { getFreshAccessToken } from '@/lib/freshToken';
 
 export interface Notification {
   id: number;
@@ -187,20 +188,36 @@ export const useNotificationStore = create<NotificationState>()(
         const { eventSource } = get();
         if (eventSource) return;
 
-        // Stop the flashing title as soon as the user returns to the tab (once)
+        // On returning to the tab: stop the flashing title and revive the
+        // stream if the browser dropped it while the tab was backgrounded (once)
         if (typeof document !== 'undefined' && !visibilityListenerAttached) {
           visibilityListenerAttached = true;
           document.addEventListener('visibilitychange', () => {
-            if (!document.hidden) stopTitleFlash();
+            if (document.hidden) return;
+            stopTitleFlash();
+            // Background tabs get throttled/closed — reconnect immediately
+            if (!get().eventSource) {
+              const { reconnectTimer } = get();
+              if (reconnectTimer) {
+                clearTimeout(reconnectTimer);
+                set({ reconnectTimer: null });
+              }
+              get().connectSSE();
+            }
           });
         }
 
-        const token =
-          typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-        if (!token) return;
+        // Open the stream with a guaranteed-fresh token. EventSource bakes the
+        // token into the URL, so a stale token here would 401 on (re)connect —
+        // refresh it first if it's near expiry.
+        void (async () => {
+          const token = await getFreshAccessToken();
+          if (!token) return;
+          // Bail if another connection was established while we awaited
+          if (get().eventSource) return;
 
-        const url = sseUrl('/notifications/events', token);
-        const es = new EventSource(url);
+          const url = sseUrl('/notifications/events', token);
+          const es = new EventSource(url);
 
         es.addEventListener('notification', (event) => {
           try {
@@ -241,23 +258,20 @@ export const useNotificationStore = create<NotificationState>()(
           }
         });
 
-        es.onerror = () => {
-          es.close();
-          set({ eventSource: null });
-          const timer = setTimeout(() => {
-            set({ reconnectTimer: null });
-            const freshToken =
-              typeof window !== 'undefined'
-                ? localStorage.getItem('accessToken')
-                : null;
-            if (freshToken) {
+          es.onerror = () => {
+            es.close();
+            set({ eventSource: null });
+            const timer = setTimeout(() => {
+              set({ reconnectTimer: null });
+              // connectSSE() re-fetches a fresh token before reconnecting,
+              // so a 15-min token expiry never strands the stream.
               get().connectSSE();
-            }
-          }, 30000);
-          set({ reconnectTimer: timer });
-        };
+            }, 5000);
+            set({ reconnectTimer: timer });
+          };
 
-        set({ eventSource: es });
+          set({ eventSource: es });
+        })();
       },
 
       disconnectSSE: () => {
