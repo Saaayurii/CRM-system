@@ -80,12 +80,12 @@ export default function ChatPage() {
     : 'max-lg:fixed max-lg:inset-0 max-lg:z-30';
 
   return (
-    <div ref={chatContainerRef} className={`flex ${mobileClass} lg:h-dvh lg:-mx-8 lg:-my-8 lg:w-[calc(100%+4rem)] sm:max-lg:h-[calc(100dvh-64px)] sm:max-lg:-mx-6 sm:max-lg:-my-8 sm:max-lg:w-[calc(100%+3rem)] bg-white dark:bg-gray-900 max-lg:rounded-none shadow-xs overflow-hidden`}>
+    <div ref={chatContainerRef} className={`flex ${mobileClass} lg:h-dvh lg:-mx-8 lg:-my-8 lg:w-[calc(100%+4rem)] sm:max-lg:h-[calc(100dvh-64px)] sm:max-lg:-mx-6 sm:max-lg:-my-8 sm:max-lg:w-[calc(100%+3rem)] bg-[#e9e9e9] dark:bg-gray-900 max-lg:rounded-none shadow-xs overflow-hidden`}>
       {/* Sidebar: always visible on lg+, toggle on mobile */}
       <div
         className={`${
           showSidebar ? 'flex' : 'hidden'
-        } lg:flex w-full lg:w-80 shrink-0 flex-col border-r border-gray-200 dark:border-gray-700`}
+        } lg:flex w-full lg:w-80 shrink-0 flex-col border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800`}
       >
         <ChatSidebar onSelectChannel={handleSelectChannel} />
       </div>

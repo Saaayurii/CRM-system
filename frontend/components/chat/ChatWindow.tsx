@@ -565,7 +565,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
   // No active channel
   if (!activeChannelId || !activeChannel) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <div className="flex-1 flex items-center justify-center bg-[#e9e9e9] dark:bg-gray-900">
         <div className="text-center">
           <svg
             className="mx-auto w-16 h-16 text-gray-300 dark:text-gray-600 mb-4"
@@ -813,7 +813,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
         {/* Messages */}
         <div
           ref={messagesContainerRef}
-          className="flex-1 overflow-y-auto px-4 py-3 space-y-1 bg-gray-50 dark:bg-gray-900"
+          className="flex-1 overflow-y-auto px-4 py-3 space-y-1 bg-[#e9e9e9] dark:bg-gray-900"
         >
           {/* Initial loading — full area spinner */}
           {isLoadingMessages && messages.length === 0 && (
