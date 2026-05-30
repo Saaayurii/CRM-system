@@ -169,12 +169,28 @@ export class NotificationsService implements OnModuleInit {
         }),
       );
 
-      // Remove expired/invalid subscriptions (410 Gone)
+      // Log each delivery result so we can see exactly what the push service returned
+      results.forEach((result, idx) => {
+        const ep = String(subscriptions[idx].endpoint).slice(0, 50);
+        if (result.status === 'fulfilled') {
+          const sc = (result.value as any)?.statusCode;
+          this.logger.log(
+            `Web Push OK user=${userId} status=${sc ?? 'n/a'} ep=${ep}`,
+          );
+        } else {
+          const reason = result.reason as any;
+          this.logger.warn(
+            `Web Push FAIL user=${userId} status=${reason?.statusCode} body=${reason?.body ?? reason?.message} ep=${ep}`,
+          );
+        }
+      });
+
+      // Remove expired/invalid subscriptions (404/410 Gone)
       const staleEndpoints: string[] = [];
       results.forEach((result, idx) => {
         if (
           result.status === 'rejected' &&
-          (result.reason as any)?.statusCode === 410
+          [404, 410].includes((result.reason as any)?.statusCode)
         ) {
           staleEndpoints.push(subscriptions[idx].endpoint);
         }
