@@ -5,6 +5,7 @@ import ReactDOM from 'react-dom';
 import Link from 'next/link';
 import Transition from '@/components/ui/Transition';
 import { useAuthStore } from '@/stores/authStore';
+import { useSidebarStore } from '@/stores/sidebarStore';
 import KeyboardShortcutsModal from '@/components/ui/KeyboardShortcutsModal';
 
 export default function ProfileDropdown({ navItem }: { navItem?: boolean }) {
@@ -23,6 +24,12 @@ export default function ProfileDropdown({ navItem }: { navItem?: boolean }) {
   }, []);
 
   useEffect(() => { setMounted(true); }, []);
+
+  // Close the dropdown when the mobile sidebar closes (same as the bell menu)
+  const sidebarOpen = useSidebarStore((s) => s.sidebarOpen);
+  useEffect(() => {
+    if (navItem && !sidebarOpen) setDropdownOpen(false);
+  }, [sidebarOpen, navItem]);
 
   useEffect(() => {
     const clickHandler = ({ target }: MouseEvent) => {
