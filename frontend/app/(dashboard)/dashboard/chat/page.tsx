@@ -85,7 +85,7 @@ export default function ChatPage() {
       <div
         className={`${
           showSidebar ? 'flex' : 'hidden'
-        } lg:flex w-full lg:w-80 shrink-0 flex-col border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800`}
+        } lg:flex w-full lg:w-80 shrink-0 flex-col border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900`}
       >
         <ChatSidebar onSelectChannel={handleSelectChannel} />
       </div>
