@@ -5,6 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { MaterialRepository } from './repositories/material.repository';
+import { NotificationsClientService } from '../../common/notifications/notifications-client.service';
 import {
   CreateMaterialDto,
   UpdateMaterialDto,
@@ -14,9 +15,15 @@ import {
   CreateMaterialAlternativeDto,
 } from './dto';
 
+// Admins + PM + procurement + warehouse keeper get materials activity
+const MATERIALS_ROLES = [1, 2, 4, 6, 7];
+
 @Injectable()
 export class MaterialsService {
-  constructor(private readonly materialRepository: MaterialRepository) {}
+  constructor(
+    private readonly materialRepository: MaterialRepository,
+    private readonly notificationsClient: NotificationsClientService,
+  ) {}
 
   // Materials
   async findAll(
@@ -67,6 +74,7 @@ export class MaterialsService {
   async create(
     createMaterialDto: CreateMaterialDto,
     requestingUserAccountId: number,
+    actorUserId?: number,
   ): Promise<MaterialResponseDto> {
     if (createMaterialDto.accountId !== requestingUserAccountId) {
       throw new ForbiddenException(
@@ -84,6 +92,21 @@ export class MaterialsService {
     }
 
     const material = await this.materialRepository.create(createMaterialDto);
+
+    void this.notificationsClient.broadcast({
+      accountId: requestingUserAccountId,
+      roleIds: MATERIALS_ROLES,
+      excludeUserId: actorUserId,
+      title: `Добавлен материал: ${material.name}`,
+      message: material.code ? `Код: ${material.code}` : undefined,
+      notificationType: 'material_added',
+      priority: 1,
+      channels: ['in_app'],
+      actionUrl: `/dashboard/warehouse/materials`,
+      entityType: 'material',
+      entityId: material.id,
+    });
+
     return this.toResponseDto(material);
   }
 

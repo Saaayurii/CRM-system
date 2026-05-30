@@ -1,10 +1,17 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { EquipmentRepository } from './repositories/equipment.repository';
+import { NotificationsClientService } from '../../common/notifications/notifications-client.service';
 import { CreateEquipmentDto, UpdateEquipmentDto } from './dto';
+
+// Admins + PM + warehouse keeper get warehouse activity
+const WAREHOUSE_ROLES = [1, 2, 4, 7];
 
 @Injectable()
 export class EquipmentService {
-  constructor(private readonly equipmentRepository: EquipmentRepository) {}
+  constructor(
+    private readonly equipmentRepository: EquipmentRepository,
+    private readonly notificationsClient: NotificationsClientService,
+  ) {}
 
   async findAll(
     accountId: number,
@@ -30,8 +37,8 @@ export class EquipmentService {
     return equipment;
   }
 
-  async create(accountId: number, dto: CreateEquipmentDto) {
-    return this.equipmentRepository.create({
+  async create(accountId: number, dto: CreateEquipmentDto, actorUserId?: number) {
+    const equipment = await this.equipmentRepository.create({
       ...dto,
       accountId,
       purchaseDate: dto.purchaseDate ? new Date(dto.purchaseDate) : undefined,
@@ -42,6 +49,22 @@ export class EquipmentService {
         ? new Date(dto.nextMaintenanceDate)
         : undefined,
     });
+
+    void this.notificationsClient.broadcast({
+      accountId,
+      roleIds: WAREHOUSE_ROLES,
+      excludeUserId: actorUserId,
+      title: `Добавлено оборудование: ${equipment.name}`,
+      message: equipment.serialNumber ? `S/N: ${equipment.serialNumber}` : undefined,
+      notificationType: 'equipment_added',
+      priority: 1,
+      channels: ['in_app'],
+      actionUrl: `/dashboard/warehouse/equipment/${equipment.id}`,
+      entityType: 'equipment',
+      entityId: equipment.id,
+    });
+
+    return equipment;
   }
 
   async update(id: number, accountId: number, dto: UpdateEquipmentDto) {

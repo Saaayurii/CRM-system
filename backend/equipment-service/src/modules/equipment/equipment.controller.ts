@@ -77,7 +77,7 @@ export class EquipmentController {
     @CurrentUser() user: RequestUser,
     @Body() dto: CreateEquipmentDto,
   ) {
-    return this.equipmentService.create(user.accountId, dto);
+    return this.equipmentService.create(user.accountId, dto, user.id);
   }
 
   @Put(':id')

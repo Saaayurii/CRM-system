@@ -95,7 +95,7 @@ export class MaterialRequestsController {
     @CurrentUser() user: RequestUser,
     @Body() createDto: CreateMaterialRequestDto,
   ) {
-    return this.materialRequestsService.create(createDto, user.accountId);
+    return this.materialRequestsService.create(createDto, user.accountId, user.id);
   }
 
   @Put(':id')

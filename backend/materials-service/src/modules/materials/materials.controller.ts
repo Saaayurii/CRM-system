@@ -84,7 +84,7 @@ export class MaterialsController {
     @CurrentUser() user: RequestUser,
     @Body() createMaterialDto: CreateMaterialDto,
   ): Promise<MaterialResponseDto> {
-    return this.materialsService.create(createMaterialDto, user.accountId);
+    return this.materialsService.create(createMaterialDto, user.accountId, user.id);
   }
 
   @Put(':id')
