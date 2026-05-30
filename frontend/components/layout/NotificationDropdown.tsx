@@ -368,14 +368,7 @@ export default function NotificationDropdown({ navItem }: { navItem?: boolean })
           )}
         </div>
         {navItem && (
-          <>
-            <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Уведомления</span>
-            {unreadCount > 0 && (
-              <span className="ml-auto shrink-0 lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200 min-w-5 h-5 px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                {unreadCount > 9 ? '9+' : unreadCount}
-              </span>
-            )}
-          </>
+          <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Уведомления</span>
         )}
       </button>
 
