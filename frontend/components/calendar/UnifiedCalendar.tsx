@@ -501,6 +501,7 @@ export default function UnifiedCalendar({
             onEventClick={(ev, rect) => setPopover({ event: ev, rect })}
           />
         ) : (
+          <div className={view === 'week' ? 'cal-mobile-scroll' : ''}>
           <FullCalendar
             ref={calendarRef}
             plugins={[dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin, rrulePlugin]}
@@ -530,6 +531,7 @@ export default function UnifiedCalendar({
             dayCellContent={renderDayCellContent}
             datesSet={(arg: any) => setCurrentDate(arg.view.currentStart)}
           />
+          </div>
         )}
       </div>
 
