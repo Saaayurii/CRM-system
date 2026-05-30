@@ -136,9 +136,18 @@ export default function SettingsPage() {
   // PWA install — event is captured early by inline <head> script into window.__pwaInstallPrompt
   const [installPrompt, setInstallPrompt] = useState<any>(null);
   const [pwaInstalled, setPwaInstalled] = useState(false);
+  const [pwaPlatform, setPwaPlatform] = useState<'ios' | 'android' | 'desktop'>('desktop');
+  const [showInstallHelp, setShowInstallHelp] = useState(false);
 
   useEffect(() => {
-    if (window.matchMedia('(display-mode: standalone)').matches || (window as any).__pwaInstalled) {
+    const ua = navigator.userAgent || '';
+    const isIOS = /iphone|ipad|ipod/i.test(ua) || (/Macintosh/i.test(ua) && 'ontouchend' in document);
+    const isAndroid = /android/i.test(ua);
+    setPwaPlatform(isIOS ? 'ios' : isAndroid ? 'android' : 'desktop');
+
+    if (window.matchMedia('(display-mode: standalone)').matches
+      || (window.navigator as any).standalone === true
+      || (window as any).__pwaInstalled) {
       setPwaInstalled(true);
       return;
     }
@@ -316,11 +325,22 @@ export default function SettingsPage() {
   };
 
   const handleInstallPWA = async () => {
-    if (!installPrompt) return;
+    if (!installPrompt) {
+      // No native prompt (iOS Safari, or heuristics not met) — show manual steps
+      setShowInstallHelp((v) => !v);
+      return;
+    }
     installPrompt.prompt();
     const { outcome } = await installPrompt.userChoice;
     if (outcome === 'accepted') { setInstallPrompt(null); setPwaInstalled(true); }
   };
+
+  const installHelpSteps =
+    pwaPlatform === 'ios'
+      ? ['Откройте сайт в браузере Safari', 'Нажмите кнопку «Поделиться» (квадрат со стрелкой вверх)', 'Выберите «На экран “Домой”» и подтвердите']
+      : pwaPlatform === 'android'
+      ? ['Откройте сайт в браузере Chrome', 'Нажмите ⋮ (меню) в правом верхнем углу', 'Выберите «Установить приложение» или «Добавить на главный экран»']
+      : ['Откройте сайт в Chrome или Edge', 'Нажмите значок установки в адресной строке (справа) либо ⋮ → «Установить…»', 'Подтвердите установку'];
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -411,8 +431,8 @@ export default function SettingsPage() {
       </h1>
 
       {/* PWA install */}
-      {(installPrompt || pwaInstalled) && (
-        <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-6 mb-6 flex items-center justify-between gap-4">
+      <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-6 mb-6">
+        <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center shrink-0">
               <svg className="w-6 h-6 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -420,30 +440,50 @@ export default function SettingsPage() {
               </svg>
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">Установить приложение</p>
+              <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">Установить как приложение</p>
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-                {pwaInstalled ? 'Приложение уже установлено на вашем устройстве' : 'Откройте CRM как отдельное приложение без браузера'}
+                {pwaInstalled
+                  ? 'Приложение уже установлено на вашем устройстве'
+                  : 'Откройте CRM как отдельное приложение без браузера'}
               </p>
             </div>
           </div>
-          {!pwaInstalled && (
-            <button
-              onClick={handleInstallPWA}
-              className="shrink-0 px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-lg transition-colors"
-            >
-              Установить
-            </button>
-          )}
-          {pwaInstalled && (
+          {pwaInstalled ? (
             <span className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 text-xs font-medium rounded-lg">
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
               </svg>
               Установлено
             </span>
+          ) : (
+            <button
+              onClick={handleInstallPWA}
+              className="shrink-0 px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-lg transition-colors"
+            >
+              {installPrompt ? 'Установить' : 'Как установить?'}
+            </button>
           )}
         </div>
-      )}
+
+        {/* Manual install instructions (shown when no native prompt available) */}
+        {!pwaInstalled && !installPrompt && showInstallHelp && (
+          <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+              Ваш браузер не поддерживает установку в один клик. Установите вручную:
+            </p>
+            <ol className="space-y-2">
+              {installHelpSteps.map((step, i) => (
+                <li key={i} className="flex items-start gap-2.5 text-sm text-gray-700 dark:text-gray-300">
+                  <span className="shrink-0 w-5 h-5 rounded-full bg-violet-100 dark:bg-violet-900/40 text-violet-600 dark:text-violet-400 text-xs font-semibold flex items-center justify-center mt-0.5">
+                    {i + 1}
+                  </span>
+                  <span>{step}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
+      </div>
 
       {/* Avatar section */}
       <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-6 mb-6">
