@@ -12,6 +12,28 @@
   .cal-mobile-scroll > .fc {
     min-width: 760px;
   }
+
+  /* Компактная типографика сетки на телефоне */
+  .fc .fc-col-header-cell-cushion {
+    padding: 0.25rem 0.3rem;
+    font-size: 0.65rem;
+  }
+  .fc .fc-timegrid-slot-label-cushion,
+  .fc .fc-timegrid-axis-cushion {
+    font-size: 0.65rem;
+    padding: 0 0.25rem;
+  }
+  .fc .fc-timegrid-axis-frame {
+    justify-content: flex-start;
+  }
+  .ev-chip {
+    font-size: 0.7rem;
+    padding: 1px 4px;
+    gap: 3px;
+  }
+  .day-cell-inner {
+    padding: 0.25rem 0.3rem;
+  }
 }
 
 .fc {

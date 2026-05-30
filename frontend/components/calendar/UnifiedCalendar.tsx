@@ -400,78 +400,85 @@ export default function UnifiedCalendar({
   const periodTitle = formatTitle(currentDate, view);
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-6 w-full max-w-9xl mx-auto">
+    <div className="px-3 sm:px-6 lg:px-8 py-4 sm:py-6 w-full max-w-9xl mx-auto">
       {/* Header */}
-      <div className="mb-5 flex items-center justify-between gap-3 flex-wrap">
-        <div className="min-w-0 flex items-center gap-3">
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100 leading-tight">{title}</h1>
-          {subtitle && <p className="text-sm text-gray-500 dark:text-gray-400">{subtitle}</p>}
-        </div>
+      <div className="mb-4 min-w-0">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-gray-100 leading-tight">{title}</h1>
+        {subtitle && <p className="mt-0.5 text-xs sm:text-sm text-gray-500 dark:text-gray-400">{subtitle}</p>}
       </div>
 
-      {/* Top bar — упрощённая навигация */}
-      <div className="mb-4 flex items-center gap-2 flex-wrap">
-        <button
-          type="button"
-          onClick={goToday}
-          className="px-3 py-1.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
-        >
-          Сегодня
-        </button>
-        <div className="inline-flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+      {/* Top bar — мобайл-first: на узких экранах раскладывается по рядам,
+          на десктопе собирается в одну строку */}
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+        {/* Навигация по периоду */}
+        <div className="flex items-center gap-2 min-w-0">
           <button
             type="button"
-            onClick={goPrev}
-            className="px-2.5 py-1.5 text-sm bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200"
-            aria-label="Назад"
+            onClick={goToday}
+            className="shrink-0 px-3 py-1.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
           >
-            ‹
+            Сегодня
           </button>
+          <div className="shrink-0 inline-flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <button
+              type="button"
+              onClick={goPrev}
+              className="px-2.5 py-1.5 text-sm bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200"
+              aria-label="Назад"
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              onClick={goNext}
+              className="px-2.5 py-1.5 text-sm bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 border-l border-gray-200 dark:border-gray-700"
+              aria-label="Вперёд"
+            >
+              ›
+            </button>
+          </div>
+          <div className="min-w-0 truncate px-1 text-sm sm:text-base font-semibold text-gray-800 dark:text-gray-100 capitalize">
+            {periodTitle}
+          </div>
+        </div>
+
+        <div className="hidden sm:block sm:flex-1" />
+
+        {/* Действия */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              setEditing({ projectId });
+              setEditorOpen(true);
+            }}
+            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2 sm:py-1.5 text-sm rounded-lg bg-violet-500 hover:bg-violet-600 text-white shadow-sm transition"
+          >
+            <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
+            </svg>
+            <span className="truncate">Создать событие</span>
+          </button>
+
           <button
             type="button"
-            onClick={goNext}
-            className="px-2.5 py-1.5 text-sm bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 border-l border-gray-200 dark:border-gray-700"
-            aria-label="Вперёд"
+            onClick={() => setFiltersOpen(true)}
+            className="shrink-0 inline-flex items-center justify-center gap-1.5 px-3 py-2 sm:py-1.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+            aria-label="Фильтры"
           >
-            ›
+            <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 5.25h16.5M6.75 12h10.5M10.5 18.75h3" />
+            </svg>
+            <span className="hidden sm:inline">Фильтры</span>
           </button>
         </div>
-        <div className="px-2 text-base font-semibold text-gray-800 dark:text-gray-100 capitalize">
-          {periodTitle}
-        </div>
 
-        <div className="flex-1" />
-
-        <button
-          onClick={() => {
-            setEditing({ projectId });
-            setEditorOpen(true);
-          }}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg bg-violet-500 hover:bg-violet-600 text-white shadow-sm transition"
-        >
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
-          </svg>
-          Создать событие
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setFiltersOpen(true)}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
-        >
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 5.25h16.5M6.75 12h10.5M10.5 18.75h3" />
-          </svg>
-          Фильтры
-        </button>
-
-        <div className="inline-flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden text-sm">
+        {/* Переключатель вида */}
+        <div className="flex w-full sm:w-auto rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden text-sm">
           {(['month', 'week', 'day', 'timeline'] as CalendarViewMode[]).map((v) => (
             <button
               key={v}
               onClick={() => setView(v)}
-              className={`px-3 py-1.5 transition ${
+              className={`flex-1 sm:flex-none px-2 sm:px-3 py-1.5 text-center transition ${
                 view === v
                   ? 'bg-violet-500 text-white'
                   : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 border-l border-gray-200 dark:border-gray-700 first:border-l-0'
