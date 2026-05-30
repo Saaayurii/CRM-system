@@ -51,32 +51,39 @@ export class NotificationsGatewayController {
 
     const url = `${notificationsUrl}/notifications/events?token=${encodeURIComponent(token)}`;
 
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-    res.setHeader('X-Accel-Buffering', 'no');
-    res.flushHeaders();
-
-    const parsedUrl = new URL(url);
-    const options = {
-      hostname: parsedUrl.hostname,
-      port: parsedUrl.port || 80,
-      path: `${parsedUrl.pathname}${parsedUrl.search}`,
-      method: 'GET',
-      headers: { Accept: 'text/event-stream' },
-    };
-
-    const proxyReq = http.request(options, (proxyRes) => {
-      proxyRes.on('data', (chunk: Buffer) => {
-        res.write(chunk);
-      });
-      proxyRes.on('end', () => {
-        res.end();
-      });
+    // SSE headers — no-transform stops intermediaries from buffering/compressing
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-cache, no-transform',
+      Connection: 'keep-alive',
+      'X-Accel-Buffering': 'no',
     });
+    res.flushHeaders?.();
+    // Disable Nagle so each small SSE frame is sent immediately
+    res.socket?.setNoDelay(true);
+    // Initial comment — hands the client bytes right away and primes proxies
+    res.write(': connected\n\n');
+    (res as unknown as { flush?: () => void }).flush?.();
+
+    const proxyReq = http.request(
+      url,
+      { method: 'GET', headers: { Accept: 'text/event-stream' } },
+      (proxyRes) => {
+        proxyRes.on('data', (chunk: Buffer) => {
+          res.write(chunk);
+          // Force a flush in case a compression/buffering layer is present
+          (res as unknown as { flush?: () => void }).flush?.();
+        });
+        proxyRes.on('end', () => res.end());
+      },
+    );
 
     proxyReq.on('error', () => {
-      res.end();
+      try {
+        res.end();
+      } catch {
+        /* already closed */
+      }
     });
 
     res.on('close', () => {
