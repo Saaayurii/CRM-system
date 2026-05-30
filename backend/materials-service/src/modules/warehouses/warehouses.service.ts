@@ -5,6 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { WarehouseRepository } from './repositories/warehouse.repository';
+import { NotificationsClientService } from '../../common/notifications/notifications-client.service';
 import {
   CreateWarehouseDto,
   UpdateWarehouseDto,
@@ -13,9 +14,14 @@ import {
   UpdateInventoryCheckDto,
 } from './dto';
 
+const WAREHOUSE_ROLES = [1, 2, 4, 6, 7];
+
 @Injectable()
 export class WarehousesService {
-  constructor(private readonly warehouseRepository: WarehouseRepository) {}
+  constructor(
+    private readonly warehouseRepository: WarehouseRepository,
+    private readonly notificationsClient: NotificationsClientService,
+  ) {}
 
   // Warehouses
   async findAll(
@@ -133,10 +139,29 @@ export class WarehousesService {
   async createMovement(
     createDto: CreateWarehouseMovementDto,
     requestingUserAccountId: number,
+    actorUserId?: number,
   ) {
     const dto: any = { ...createDto };
     dto.accountId = requestingUserAccountId;
-    return this.warehouseRepository.createMovement(dto);
+    const movement = await this.warehouseRepository.createMovement(dto);
+
+    void this.notificationsClient.broadcast({
+      accountId: requestingUserAccountId,
+      roleIds: WAREHOUSE_ROLES,
+      excludeUserId: actorUserId,
+      title: 'Перемещение на складе',
+      message: createDto.movementType
+        ? `Тип: ${createDto.movementType}`
+        : undefined,
+      notificationType: 'warehouse_movement',
+      priority: 1,
+      channels: ['in_app'],
+      actionUrl: `/dashboard/warehouse/movements`,
+      entityType: 'warehouse_movement',
+      entityId: movement.id,
+    });
+
+    return movement;
   }
 
   // Inventory Checks

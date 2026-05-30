@@ -80,7 +80,7 @@ export class DefectsController {
   @ApiOperation({ summary: 'Create a new defect' })
   @ApiResponse({ status: 201, description: 'Defect created' })
   async create(@CurrentUser() user: RequestUser, @Body() dto: CreateDefectDto) {
-    return this.defectsService.create(user.accountId, dto);
+    return this.defectsService.create(user.accountId, dto, user.id);
   }
 
   @Put(':id')

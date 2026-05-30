@@ -4,6 +4,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { SupplierRepository } from './repositories/supplier.repository';
+import { NotificationsClientService } from '../../common/notifications/notifications-client.service';
 import {
   CreateSupplierDto,
   UpdateSupplierDto,
@@ -11,9 +12,15 @@ import {
   SupplierResponseDto,
 } from './dto';
 
+// Admins + PM + procurement
+const SUPPLIER_ROLES = [1, 2, 4, 6];
+
 @Injectable()
 export class SuppliersService {
-  constructor(private readonly supplierRepository: SupplierRepository) {}
+  constructor(
+    private readonly supplierRepository: SupplierRepository,
+    private readonly notificationsClient: NotificationsClientService,
+  ) {}
 
   async findAll(
     accountId: number,
@@ -59,6 +66,7 @@ export class SuppliersService {
   async create(
     createSupplierDto: CreateSupplierDto,
     requestingUserAccountId: number,
+    actorUserId?: number,
   ): Promise<SupplierResponseDto> {
     if (createSupplierDto.accountId !== requestingUserAccountId) {
       throw new ForbiddenException(
@@ -67,6 +75,20 @@ export class SuppliersService {
     }
 
     const supplier = await this.supplierRepository.create(createSupplierDto);
+
+    void this.notificationsClient.broadcast({
+      accountId: requestingUserAccountId,
+      roleIds: SUPPLIER_ROLES,
+      excludeUserId: actorUserId,
+      title: `Добавлен поставщик: ${supplier.name}`,
+      notificationType: 'supplier_created',
+      priority: 1,
+      channels: ['in_app'],
+      actionUrl: `/dashboard/suppliers/${supplier.id}`,
+      entityType: 'supplier',
+      entityId: supplier.id,
+    });
+
     return this.toResponseDto(supplier);
   }
 

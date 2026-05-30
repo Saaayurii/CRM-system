@@ -82,7 +82,7 @@ export class SuppliersController {
     @CurrentUser() user: RequestUser,
     @Body() createSupplierDto: CreateSupplierDto,
   ) {
-    return this.suppliersService.create(createSupplierDto, user.accountId);
+    return this.suppliersService.create(createSupplierDto, user.accountId, user.id);
   }
 
   @Put(':id')

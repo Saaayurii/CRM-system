@@ -1,14 +1,18 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { EquipmentMaintenanceRepository } from './repositories/equipment-maintenance.repository';
+import { NotificationsClientService } from '../../common/notifications/notifications-client.service';
 import {
   CreateEquipmentMaintenanceDto,
   UpdateEquipmentMaintenanceDto,
 } from './dto';
 
+const WAREHOUSE_ROLES = [1, 2, 4, 7];
+
 @Injectable()
 export class EquipmentMaintenanceService {
   constructor(
     private readonly maintenanceRepository: EquipmentMaintenanceRepository,
+    private readonly notificationsClient: NotificationsClientService,
   ) {}
 
   async findAll(
@@ -35,14 +39,34 @@ export class EquipmentMaintenanceService {
     return record;
   }
 
-  async create(accountId: number, dto: CreateEquipmentMaintenanceDto) {
-    return this.maintenanceRepository.create({
+  async create(
+    accountId: number,
+    dto: CreateEquipmentMaintenanceDto,
+    actorUserId?: number,
+  ) {
+    const record = await this.maintenanceRepository.create({
       ...dto,
       maintenanceDate: new Date(dto.maintenanceDate),
       nextMaintenanceDate: dto.nextMaintenanceDate
         ? new Date(dto.nextMaintenanceDate)
         : undefined,
     });
+
+    void this.notificationsClient.broadcast({
+      accountId,
+      roleIds: WAREHOUSE_ROLES,
+      excludeUserId: actorUserId,
+      title: 'Запланировано ТО оборудования',
+      message: dto.description || undefined,
+      notificationType: 'equipment_maintenance',
+      priority: 1,
+      channels: ['in_app'],
+      actionUrl: `/dashboard/warehouse/maintenance`,
+      entityType: 'equipment_maintenance',
+      entityId: record.id,
+    });
+
+    return record;
   }
 
   async update(

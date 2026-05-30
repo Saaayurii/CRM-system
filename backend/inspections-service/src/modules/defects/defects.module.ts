@@ -5,8 +5,10 @@ import {
 } from './defects.controller';
 import { DefectsService } from './defects.service';
 import { DefectRepository } from './repositories/defect.repository';
+import { NotificationsClientModule } from '../../common/notifications/notifications-client.module';
 
 @Module({
+  imports: [NotificationsClientModule],
   controllers: [DefectsController, DefectTemplatesController],
   providers: [DefectsService, DefectRepository],
   exports: [DefectsService],

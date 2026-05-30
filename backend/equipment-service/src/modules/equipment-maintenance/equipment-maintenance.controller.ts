@@ -79,7 +79,7 @@ export class EquipmentMaintenanceController {
     @CurrentUser() user: RequestUser,
     @Body() dto: CreateEquipmentMaintenanceDto,
   ) {
-    return this.maintenanceService.create(user.accountId, dto);
+    return this.maintenanceService.create(user.accountId, dto, user.id);
   }
 
   @Put(':id')

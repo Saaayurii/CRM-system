@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { DefectRepository } from './repositories/defect.repository';
+import { NotificationsClientService } from '../../common/notifications/notifications-client.service';
 import {
   CreateDefectDto,
   UpdateDefectDto,
@@ -13,11 +14,14 @@ import {
   getClientAllowedProjectIds,
 } from '../../common/helpers/client-access.helper';
 
+const INSPECT_ROLES = [1, 2, 4, 9];
+
 @Injectable()
 export class DefectsService {
   constructor(
     private readonly defectRepository: DefectRepository,
     private readonly prisma: PrismaService,
+    private readonly notificationsClient: NotificationsClientService,
   ) {}
 
   async findAll(
@@ -52,8 +56,8 @@ export class DefectsService {
     return defect;
   }
 
-  async create(accountId: number, dto: CreateDefectDto) {
-    return this.defectRepository.create({
+  async create(accountId: number, dto: CreateDefectDto, actorUserId?: number) {
+    const defect = await this.defectRepository.create({
       ...dto,
       accountId,
       reportedDate: new Date(dto.reportedDate),
@@ -61,6 +65,24 @@ export class DefectsService {
       fixedDate: dto.fixedDate ? new Date(dto.fixedDate) : undefined,
       verifiedDate: dto.verifiedDate ? new Date(dto.verifiedDate) : undefined,
     });
+
+    const isCritical = (defect.severity ?? 0) >= 3;
+    void this.notificationsClient.broadcast({
+      accountId,
+      roleIds: INSPECT_ROLES,
+      userIds: defect.assignedToUserId ? [defect.assignedToUserId] : [],
+      excludeUserId: actorUserId,
+      title: `Зафиксирован дефект: ${defect.title}`,
+      message: defect.description || undefined,
+      notificationType: 'defect_found',
+      priority: isCritical ? 3 : 2,
+      channels: isCritical ? ['in_app', 'push'] : ['in_app'],
+      actionUrl: `/dashboard/inspections/defects/${defect.id}`,
+      entityType: 'defect',
+      entityId: defect.id,
+    });
+
+    return defect;
   }
 
   async update(id: number, accountId: number, dto: UpdateDefectDto) {

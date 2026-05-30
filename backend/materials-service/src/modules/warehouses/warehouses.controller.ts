@@ -155,7 +155,7 @@ export class WarehousesController {
     @CurrentUser() user: RequestUser,
     @Body() createDto: CreateWarehouseMovementDto,
   ) {
-    return this.warehousesService.createMovement(createDto, user.accountId);
+    return this.warehousesService.createMovement(createDto, user.accountId, user.id);
   }
 
   // Inventory Checks

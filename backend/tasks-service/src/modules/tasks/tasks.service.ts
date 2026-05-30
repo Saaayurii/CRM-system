@@ -104,12 +104,13 @@ export class TasksService {
       }]);
     }
 
-    // Notify admins/PMs about the new task (excluding the creator)
+    // Notify admins/PMs about the new task/subtask (excluding the creator)
+    const isSubtask = !!createTaskDto.parentTaskId;
     void this.notificationsClient.broadcast({
       accountId: requestingUserAccountId,
       roleIds: ADMIN_PM_ROLES,
       excludeUserId: requestingUserId,
-      title: `Создана задача: ${task.title}`,
+      title: `${isSubtask ? 'Создана подзадача' : 'Создана задача'}: ${task.title}`,
       message: task.project?.name ? `Проект: ${task.project.name}` : undefined,
       notificationType: 'task_created',
       priority: 2,
@@ -134,6 +135,31 @@ export class TasksService {
       throw new ForbiddenException('Access denied');
 
     const updated = await this.taskRepository.update(id, updateTaskDto);
+
+    // Notify admins/PMs on any status change (excluding the actor)
+    if (updateTaskDto.status !== undefined && updateTaskDto.status !== task.status) {
+      const TASK_STATUS_LABEL: Record<number, string> = {
+        0: 'новая',
+        1: 'в работе',
+        2: 'на проверке',
+        3: 'выполнена',
+        4: 'просрочена',
+        5: 'отменена',
+      };
+      const label = TASK_STATUS_LABEL[updateTaskDto.status] ?? `статус ${updateTaskDto.status}`;
+      void this.notificationsClient.broadcast({
+        accountId: requestingUserAccountId,
+        roleIds: ADMIN_PM_ROLES,
+        excludeUserId: requestingUserId,
+        title: `Задача «${task.title}» — ${label}`,
+        notificationType: 'task_status_changed',
+        priority: 1,
+        channels: ['in_app'],
+        actionUrl: `/dashboard/tasks/${id}`,
+        entityType: 'task',
+        entityId: id,
+      });
+    }
 
     // Notify when status changes to "completed" (status === 3)
     if (updateTaskDto.status === 3 && task.createdByUserId) {
