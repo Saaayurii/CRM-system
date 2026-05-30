@@ -83,7 +83,7 @@ export class InspectionsController {
     @CurrentUser() user: RequestUser,
     @Body() dto: CreateInspectionDto,
   ) {
-    return this.inspectionsService.create(user.accountId, dto);
+    return this.inspectionsService.create(user.accountId, dto, user.id);
   }
 
   @Put(':id')
@@ -95,7 +95,7 @@ export class InspectionsController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateInspectionDto,
   ) {
-    return this.inspectionsService.update(id, user.accountId, dto);
+    return this.inspectionsService.update(id, user.accountId, dto, user.id);
   }
 
   @Delete(':id')

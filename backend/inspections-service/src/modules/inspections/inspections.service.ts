@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InspectionRepository } from './repositories/inspection.repository';
+import { NotificationsClientService } from '../../common/notifications/notifications-client.service';
 import {
   CreateInspectionDto,
   UpdateInspectionDto,
@@ -13,11 +14,15 @@ import {
   getClientAllowedProjectIds,
 } from '../../common/helpers/client-access.helper';
 
+// Admins + PM + inspector get inspection activity
+const INSPECT_ROLES = [1, 2, 4, 9];
+
 @Injectable()
 export class InspectionsService {
   constructor(
     private readonly inspectionRepository: InspectionRepository,
     private readonly prisma: PrismaService,
+    private readonly notificationsClient: NotificationsClientService,
   ) {}
 
   async findAll(
@@ -52,8 +57,8 @@ export class InspectionsService {
     return inspection;
   }
 
-  async create(accountId: number, dto: CreateInspectionDto) {
-    return this.inspectionRepository.create({
+  async create(accountId: number, dto: CreateInspectionDto, actorUserId?: number) {
+    const inspection = await this.inspectionRepository.create({
       ...dto,
       accountId,
       scheduledDate: dto.scheduledDate
@@ -61,16 +66,65 @@ export class InspectionsService {
         : undefined,
       actualDate: dto.actualDate ? new Date(dto.actualDate) : undefined,
     });
+
+    void this.notificationsClient.broadcast({
+      accountId,
+      roleIds: INSPECT_ROLES,
+      userIds: inspection.inspectorId ? [inspection.inspectorId] : [],
+      excludeUserId: actorUserId,
+      title: `Назначена инспекция №${inspection.inspectionNumber}`,
+      notificationType: 'inspection_scheduled',
+      priority: 2,
+      channels: ['in_app', 'push'],
+      actionUrl: `/dashboard/inspections/${inspection.id}`,
+      entityType: 'inspection',
+      entityId: inspection.id,
+    });
+
+    return inspection;
   }
 
-  async update(id: number, accountId: number, dto: UpdateInspectionDto) {
+  async update(
+    id: number,
+    accountId: number,
+    dto: UpdateInspectionDto,
+    actorUserId?: number,
+  ) {
     const existing = await this.inspectionRepository.findById(id, accountId);
     if (!existing) throw new NotFoundException(`Inspection with ID ${id} not found`);
     const data: any = { ...dto };
     if (dto.scheduledDate) data.scheduledDate = new Date(dto.scheduledDate);
     if (dto.actualDate) data.actualDate = new Date(dto.actualDate);
     await this.inspectionRepository.update(id, accountId, data);
-    return this.inspectionRepository.findById(id, accountId);
+    const updated = await this.inspectionRepository.findById(id, accountId);
+
+    // Notify on status change (e.g. approved / failed / corrected)
+    if (dto.status !== undefined && dto.status !== existing.status) {
+      const STATUS_LABEL: Record<number, string> = {
+        0: 'запланирована',
+        1: 'в работе',
+        2: 'пройдена',
+        3: 'провалена',
+        4: 'утверждена',
+      };
+      const label = STATUS_LABEL[dto.status] ?? `статус ${dto.status}`;
+      const failed = dto.status === 3;
+      void this.notificationsClient.broadcast({
+        accountId,
+        roleIds: INSPECT_ROLES,
+        userIds: existing.inspectorId ? [existing.inspectorId] : [],
+        excludeUserId: actorUserId,
+        title: `Инспекция №${existing.inspectionNumber}: ${label}`,
+        notificationType: failed ? 'inspection_failed' : 'inspection_updated',
+        priority: failed ? 3 : 2,
+        channels: failed ? ['in_app', 'push'] : ['in_app'],
+        actionUrl: `/dashboard/inspections/${id}`,
+        entityType: 'inspection',
+        entityId: id,
+      });
+    }
+
+    return updated;
   }
 
   async delete(id: number, accountId: number) {

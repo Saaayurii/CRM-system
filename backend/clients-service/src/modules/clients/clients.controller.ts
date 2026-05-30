@@ -62,8 +62,9 @@ export class ClientsController {
   create(
     @Body() dto: CreateClientDto,
     @CurrentUser('accountId') accountId: number,
+    @CurrentUser('id') userId: number,
   ) {
-    return this.svc.create(accountId, dto);
+    return this.svc.create(accountId, dto, userId);
   }
 
   @Put(':id')
