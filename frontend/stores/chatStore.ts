@@ -286,6 +286,9 @@ interface ChatState {
 
 let socketRef: Socket | null = null;
 let typingTimeout: ReturnType<typeof setTimeout> | null = null;
+// Reads requested before the socket finished connecting (e.g. opening a
+// channel straight from a push notification). Flushed on 'connect'.
+const pendingReads = new Set<number>();
 
 export const useChatStore = create<ChatState>((set, get) => ({
   channels: [],
@@ -316,6 +319,17 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     socket.on('connect', () => {
       set({ isConnected: true });
+      // Re-join the open channel and flush any reads queued before connect
+      // (e.g. when the channel was opened directly from a push notification).
+      const { activeChannelId } = get();
+      if (activeChannelId) {
+        socket.emit('channel:join', { channelId: activeChannelId });
+        pendingReads.add(activeChannelId);
+      }
+      pendingReads.forEach((channelId) => {
+        socket.emit('message:read', { channelId });
+      });
+      pendingReads.clear();
     });
 
     socket.on('disconnect', () => {
@@ -525,11 +539,17 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   markAsRead: (channelId) => {
-    if (!socketRef?.connected) return;
-    socketRef.emit('message:read', { channelId });
+    // Clear the local counter immediately so the UI updates even if the
+    // socket isn't connected yet (e.g. opening from a push notification).
     set((state) => ({
       unreadCounts: { ...state.unreadCounts, [channelId]: 0 },
     }));
+    if (socketRef?.connected) {
+      socketRef.emit('message:read', { channelId });
+    } else {
+      // Flush once the socket connects.
+      pendingReads.add(channelId);
+    }
   },
 
   startTyping: (channelId) => {
