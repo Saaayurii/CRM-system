@@ -1421,21 +1421,37 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
             { value: 'repeat', label: 'Повторный' },
             { value: 'targeted', label: 'Целевой' },
             { value: 'unscheduled', label: 'Внеплановый' },
-          ].map((opt) => (
-            <label key={opt.value} className="flex items-center gap-2 text-sm cursor-pointer">
-              <input
-                type="checkbox"
-                checked={requiresBriefingTypes.includes(opt.value)}
-                onChange={(e) => {
-                  setRequiresBriefingTypes((prev) =>
-                    e.target.checked ? [...prev, opt.value] : prev.filter((v) => v !== opt.value),
-                  );
-                }}
-                className="accent-violet-600 w-3.5 h-3.5"
-              />
-              <span className="text-gray-700 dark:text-gray-300">{opt.label}</span>
-            </label>
-          ))}
+          ].map((opt) => {
+            const checked = requiresBriefingTypes.includes(opt.value);
+            return (
+              <label key={opt.value} className="flex items-center gap-2 text-sm cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={(e) => {
+                    setRequiresBriefingTypes((prev) =>
+                      e.target.checked ? [...prev, opt.value] : prev.filter((v) => v !== opt.value),
+                    );
+                  }}
+                  className="sr-only"
+                />
+                <span
+                  className={`flex-shrink-0 w-4 h-4 rounded border transition-colors flex items-center justify-center ${
+                    checked
+                      ? 'bg-violet-600 border-violet-600'
+                      : 'bg-transparent border-gray-500 dark:border-gray-600 group-hover:border-violet-400'
+                  }`}
+                >
+                  {checked && (
+                    <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </span>
+                <span className="text-gray-700 dark:text-gray-300">{opt.label}</span>
+              </label>
+            );
+          })}
         </div>
         {requiresBriefingTypes.length > 0 && (
           <p className="mt-1.5 text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
