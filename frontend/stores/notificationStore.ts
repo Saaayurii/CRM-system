@@ -302,26 +302,23 @@ export const useNotificationStore = create<NotificationState>()(
       },
 
       initPush: async (roleId?: number) => {
-        const { pushEnabled, pushLoading } = get();
-        if (pushEnabled || pushLoading || !isPushSupported()) return;
+        const { pushLoading } = get();
+        if (pushLoading || !isPushSupported()) return;
 
         const permission = getPermissionState();
-        if (permission === 'denied') return; // user already blocked it
+        if (permission !== 'granted') return; // 'denied' or not yet asked
 
-        // Auto-subscribe only if permission already granted (silent re-register)
-        if (permission === 'granted') {
-          const subscribed = await isPushSubscribed();
-          if (!subscribed) {
-            set({ pushLoading: true });
-            try {
-              const sub = await enablePushNotifications(roleId);
-              set({ pushEnabled: !!sub, pushPermission: 'granted' });
-            } finally {
-              set({ pushLoading: false });
-            }
-          } else {
-            set({ pushEnabled: true, pushPermission: 'granted' });
-          }
+        // Always re-register on the backend, even if the browser already has a
+        // subscription. This rebinds the device endpoint to the CURRENT account
+        // (handles switching accounts on a shared device — otherwise pushes for
+        // the previous account keep arriving). The server reassigns the endpoint
+        // and drops stale rows for other users.
+        set({ pushLoading: true });
+        try {
+          const sub = await enablePushNotifications(roleId);
+          set({ pushEnabled: !!sub, pushPermission: 'granted' });
+        } finally {
+          set({ pushLoading: false });
         }
       },
 

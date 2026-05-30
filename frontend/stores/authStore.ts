@@ -4,6 +4,7 @@ import api from '@/lib/api';
 import { updateBadge } from '@/stores/notificationStore';
 import { normalizeFileUrl } from '@/lib/utils';
 import { clearAllCached } from '@/lib/offlineCache';
+import { disablePushNotifications } from '@/lib/pushNotifications';
 import type { User, LoginRequest, LoginResponse, JwtPayload } from '@/types/auth';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
@@ -41,7 +42,7 @@ interface AuthState {
   selectedAccountLogo: string | null;
   availableAccounts: AccountChoice[];
   login: (credentials: LoginRequest) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   initialize: () => void;
   refreshRole: () => Promise<void>;
   updateUser: (patch: Partial<User>) => void;
@@ -160,7 +161,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  logout: () => {
+  logout: async () => {
+    // Remove this device's push subscription on the backend BEFORE clearing the
+    // token, so a logged-out (or soon re-logged-in) device stops receiving
+    // pushes addressed to the account that just signed out.
+    try {
+      await disablePushNotifications();
+    } catch {
+      /* ignore — proceed with logout regardless */
+    }
+
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('sessionId');

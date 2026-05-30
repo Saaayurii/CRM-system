@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import ReactDOM from 'react-dom';
 import Transition from '@/components/ui/Transition';
 import { useNotificationStore } from '@/stores/notificationStore';
+import { useSidebarStore } from '@/stores/sidebarStore';
 import { getPermissionState } from '@/lib/pushNotifications';
 
 // Icon per notification type
@@ -135,6 +136,13 @@ export default function NotificationDropdown({ navItem }: { navItem?: boolean })
   }, [fetchNotifications, connectSSE, disconnectSSE, checkPushStatus]);
 
   useEffect(() => { setMounted(true); }, []);
+
+  // Close the dropdown when the mobile sidebar closes — otherwise the fixed
+  // panel keeps hanging and the user has to tap twice.
+  const sidebarOpen = useSidebarStore((s) => s.sidebarOpen);
+  useEffect(() => {
+    if (navItem && !sidebarOpen) setDropdownOpen(false);
+  }, [sidebarOpen, navItem]);
 
   // Close on click outside
   useEffect(() => {
