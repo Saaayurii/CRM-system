@@ -370,6 +370,13 @@ function AdminDashboard({ user }: { user: any }) {
   const [teamCount, setTeamCount] = useState<number | null>(null);
   const [tasksByStatus, setTasksByStatus] = useState<any[]>([]);
   const [projectsByStatus, setProjectsByStatus] = useState<any[]>([]);
+  const [recentTasksViewMode, setRecentTasksViewMode] = useState<'table' | 'grid'>(() => {
+    if (typeof window === 'undefined') return 'table';
+    const saved = localStorage.getItem('dashRecentTasksViewMode') as 'table' | 'grid' | null;
+    if (saved) return saved;
+    // Default to cards on small screens where the table is cramped
+    return window.matchMedia('(max-width: 640px)').matches ? 'grid' : 'table';
+  });
 
   useEffect(() => {
     (async () => {
@@ -466,16 +473,19 @@ function AdminDashboard({ user }: { user: any }) {
 
       {/* Recent tasks table */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs mb-6">
-        <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center justify-between">
+        <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center justify-between gap-3">
           <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Последние задачи</h3>
-          <Link href="/dashboard/tasks" className="text-xs text-violet-500 hover:text-violet-600 font-medium">Все задачи</Link>
+          <div className="flex items-center gap-3">
+            <ViewToggle mode={recentTasksViewMode} onChange={(m) => { setRecentTasksViewMode(m); localStorage.setItem('dashRecentTasksViewMode', m); }} />
+            <Link href="/dashboard/tasks" className="text-xs text-violet-500 hover:text-violet-600 font-medium">Все задачи</Link>
+          </div>
         </div>
         <div className="p-5">
           {loading ? (
             <div className="flex justify-center py-4"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-violet-500" /></div>
           ) : tasks.length === 0 ? (
             <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Нет задач</p>
-          ) : (
+          ) : recentTasksViewMode === 'table' ? (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -511,6 +521,38 @@ function AdminDashboard({ user }: { user: any }) {
                   })}
                 </tbody>
               </table>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {[...tasks]
+                .sort((a: any, b: any) =>
+                  new Date(b.updatedAt || b.updated_at || 0).getTime() -
+                  new Date(a.updatedAt || a.updated_at || 0).getTime()
+                )
+                .slice(0, 6)
+                .map((t: any) => {
+                  const st = TASK_STATUS_MAP[Number(t.status)];
+                  const pr = TASK_PRIORITY_MAP[Number(t.priority)];
+                  return (
+                    <div key={t.id} onClick={() => router.push(`/dashboard/tasks?edit=${t.id}`)}
+                      className="flex flex-col gap-2 p-4 border border-gray-200 dark:border-gray-700 rounded-xl cursor-pointer hover:shadow-md hover:border-violet-300 dark:hover:border-violet-700 transition-all">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="font-semibold text-sm text-gray-800 dark:text-gray-100 line-clamp-2">{t.title}</p>
+                        {st && <StatusBadge label={st.label} color={st.color} />}
+                      </div>
+                      <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 mt-1">
+                        <div>
+                          <dt className="text-xs text-gray-400 dark:text-gray-500">Приоритет</dt>
+                          <dd className="text-xs font-medium text-gray-700 dark:text-gray-300">{pr ? <StatusBadge label={pr.label} color={pr.color} /> : '—'}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-xs text-gray-400 dark:text-gray-500">Срок</dt>
+                          <dd className="text-xs font-medium text-gray-700 dark:text-gray-300">{fmtDate(t.dueDate)}</dd>
+                        </div>
+                      </dl>
+                    </div>
+                  );
+                })}
             </div>
           )}
         </div>
