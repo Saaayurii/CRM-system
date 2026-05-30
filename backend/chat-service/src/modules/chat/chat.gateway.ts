@@ -71,6 +71,9 @@ export class ChatGateway
         accountId: payload.accountId,
         name: payload.name || payload.email,
       };
+      // Expose userId on socket.data so it survives fetchSockets() — used to
+      // skip push notifications for users currently viewing the channel.
+      client.data.userId = payload.sub;
 
       // Mark user as online
       await this.presenceService.setUserOnline(client.user.id, client.id);
@@ -160,6 +163,14 @@ export class ChatGateway
 
     this.server.to(`channel:${data.channelId}`).emit('message:new', message);
 
+    // Users currently viewing this channel (socket joined the room) — they
+    // see the message live, so no push needed even if it's already read.
+    const activeViewerIds = new Set<number>(
+      (await this.server.in(`channel:${data.channelId}`).fetchSockets())
+        .map((s) => s.data?.userId as number | undefined)
+        .filter((id): id is number => typeof id === 'number'),
+    );
+
     // Push notifications to all channel members except the sender (fire-and-forget)
     void this.chatService
       .getChannelForNotification(data.channelId)
@@ -179,6 +190,7 @@ export class ChatGateway
         const payloads = channel.members
           .filter((m: { userId: number; isMuted?: boolean; mutedUntil?: Date | null }) => {
             if (m.userId === client.user.id) return false;
+            if (activeViewerIds.has(m.userId)) return false; // already viewing the channel
             if (m.isMuted) {
               const until = m.mutedUntil ? new Date(m.mutedUntil).getTime() : Infinity;
               if (until > now) return false; // still muted
