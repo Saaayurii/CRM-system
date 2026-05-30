@@ -142,6 +142,13 @@ export class NotificationRepository {
     auth: string;
     userAgent?: string;
   }) {
+    // A browser/device endpoint is unique to one device. If the same endpoint
+    // is still registered to a different user (e.g. the previous account on a
+    // shared device), drop those rows so pushes don't leak across accounts.
+    await (this.prisma as any).pushSubscription.deleteMany({
+      where: { endpoint: data.endpoint, userId: { not: data.userId } },
+    });
+
     return (this.prisma as any).pushSubscription.upsert({
       where: {
         userId_endpoint: { userId: data.userId, endpoint: data.endpoint },
