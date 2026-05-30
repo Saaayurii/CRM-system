@@ -86,6 +86,25 @@ async function silentRefresh(): Promise<{ accessToken: string; refreshToken: str
   }
 }
 
+// Per-email memory of the last company (account) the user logged into, so the
+// "Выберите компанию" screen can be skipped on subsequent logins.
+function rememberedAccountKey(email: string) {
+  return `lastAccountId:${email.trim().toLowerCase()}`;
+}
+export function getRememberedAccountId(email: string): number | null {
+  if (typeof window === 'undefined' || !email) return null;
+  const raw = localStorage.getItem(rememberedAccountKey(email));
+  return raw ? Number(raw) : null;
+}
+function rememberAccountId(email: string, accountId: number) {
+  if (typeof window === 'undefined' || !email) return;
+  localStorage.setItem(rememberedAccountKey(email), String(accountId));
+}
+export function clearRememberedAccountId(email: string) {
+  if (typeof window === 'undefined' || !email) return;
+  localStorage.removeItem(rememberedAccountKey(email));
+}
+
 function clearSwApiCache() {
   try {
     if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
@@ -148,6 +167,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         selectedAccountName: localStorage.getItem('selectedAccountName'),
         selectedAccountLogo: localStorage.getItem('selectedAccountLogo'),
       });
+
+      // Remember which company this email logged into, to skip the picker next time
+      if (credentials.accountId) {
+        rememberAccountId(credentials.email, credentials.accountId);
+      } else if (user.accountId) {
+        rememberAccountId(credentials.email, user.accountId);
+      }
 
       console.log('[Auth] Login successful for user:', user.email);
     } catch (err: unknown) {
@@ -249,6 +275,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     user.role = roleFromId(user.roleId ?? null);
     if (user.avatarUrl) user.avatarUrl = normalizeFileUrl(user.avatarUrl) ?? undefined;
     set({ user, isAuthenticated: true });
+
+    // Remember the freshly-selected company so the next login lands here directly
+    if (user.email && user.accountId) rememberAccountId(user.email, user.accountId);
 
     clearSwApiCache();
     clearAllCached().finally(() => navigateToDashboard());

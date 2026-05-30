@@ -2,7 +2,7 @@
 
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/stores/authStore';
+import { useAuthStore, getRememberedAccountId, clearRememberedAccountId } from '@/stores/authStore';
 import api from '@/lib/api';
 import { AxiosError } from 'axios';
 
@@ -46,25 +46,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [accounts, setAccounts] = useState<AccountChoice[] | null>(null);
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setLoginError(null);
-    setLoading(true);
-    try {
-      const { data } = await api.post('/auth/login', { email, password });
-      if (data.accounts?.length > 0) {
-        setAccounts(data.accounts);
-        return;
-      }
-      await login({ email, password });
-      router.push('/dashboard');
-    } catch (err) {
-      setLoginError(getLoginError(err));
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleSelectAccount = async (accountId: number) => {
     setLoginError(null);
     setLoading(true);
@@ -72,7 +53,34 @@ export default function LoginPage() {
       await login({ email, password, accountId });
       router.push('/dashboard');
     } catch (err) {
-      setAccounts(null);
+      // Auto-login into the remembered company failed — forget it and show the picker
+      clearRememberedAccountId(email);
+      setLoginError(getLoginError(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setLoginError(null);
+    setLoading(true);
+    try {
+      const { data } = await api.post('/auth/login', { email, password });
+      if (data.accounts?.length > 0) {
+        // If this email logged into a specific company before, go there directly
+        const remembered = getRememberedAccountId(email);
+        const match = data.accounts.find((a: AccountChoice) => a.id === remembered);
+        if (match) {
+          await handleSelectAccount(match.id);
+          return;
+        }
+        setAccounts(data.accounts);
+        return;
+      }
+      await login({ email, password });
+      router.push('/dashboard');
+    } catch (err) {
       setLoginError(getLoginError(err));
     } finally {
       setLoading(false);
@@ -97,6 +105,12 @@ export default function LoginPage() {
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
           Email <span className="font-medium text-gray-700 dark:text-gray-300">{email}</span> зарегистрирован в нескольких организациях
         </p>
+
+        {loginError && (
+          <div className="bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 px-4 py-3 rounded-lg mb-4 text-sm">
+            {loginError.message}
+          </div>
+        )}
 
         <div className="space-y-2">
           {accounts.map((acc) => (
