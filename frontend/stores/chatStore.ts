@@ -583,6 +583,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const prevId = get().activeChannelId;
     set({ activeChannelId: channelId, messages: [], hasMoreMessages: true });
 
+    // Remember the open channel so it can be restored after a reload
+    try {
+      if (channelId) localStorage.setItem('chat_last_channel', String(channelId));
+      else localStorage.removeItem('chat_last_channel');
+    } catch { /* ignore */ }
+
     if (channelId === null) return;
 
     if (socketRef?.connected) {

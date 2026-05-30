@@ -53,14 +53,31 @@ export default function ChatPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Auto-select channel from URL param (e.g. push notification click)
+  // Auto-select channel from URL param (e.g. push notification click), or
+  // restore the last opened channel after a reload (desktop only).
+  const restoredRef = useRef(false);
   useEffect(() => {
+    if (!channels.length) return;
+
     const channelId = searchParams.get('channelId');
-    if (!channelId || !channels.length) return;
-    const id = Number(channelId);
-    if (channels.find((c) => c.id === id)) {
-      setActiveChannel(id);
-      setShowSidebar(false);
+    if (channelId) {
+      const id = Number(channelId);
+      if (channels.find((c) => c.id === id)) {
+        setActiveChannel(id);
+        setShowSidebar(false);
+      }
+      return;
+    }
+
+    // Restore last opened channel once. On mobile we stay on the list so the
+    // user isn't dropped straight into a chat.
+    if (restoredRef.current) return;
+    restoredRef.current = true;
+    if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
+      const saved = Number(localStorage.getItem('chat_last_channel'));
+      if (saved && channels.find((c) => c.id === saved)) {
+        setActiveChannel(saved);
+      }
     }
   }, [channels, searchParams, setActiveChannel]);
 
@@ -85,7 +102,7 @@ export default function ChatPage() {
       <div
         className={`${
           showSidebar ? 'flex' : 'hidden'
-        } lg:flex w-full lg:w-80 shrink-0 flex-col border-r border-gray-200 dark:border-gray-700 bg-[#e9e9e9] dark:bg-gray-900`}
+        } lg:flex w-full lg:w-80 shrink-0 flex-col border-r border-gray-300 dark:border-gray-700 bg-[#e9e9e9] dark:bg-gray-900`}
       >
         <ChatSidebar onSelectChannel={handleSelectChannel} />
       </div>
