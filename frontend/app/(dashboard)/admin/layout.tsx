@@ -25,8 +25,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="flex gap-6 relative">
       {/* Mobile sidebar toggle */}
       <button
-        className="lg:hidden fixed bottom-4 left-4 z-40 bg-violet-500 hover:bg-violet-600 text-white p-3 rounded-full shadow-lg"
+        className="lg:hidden fixed bottom-24 left-6 z-40 bg-sky-500 hover:bg-sky-600 text-white p-3 rounded-full shadow-lg"
         onClick={() => setSidebarOpen(!sidebarOpen)}
+        title="Меню администрирования"
       >
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           {sidebarOpen ? (

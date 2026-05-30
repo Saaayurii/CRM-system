@@ -20,7 +20,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="relative flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
           <Header />
           <main className="grow">
-            <div className="px-4 sm:px-6 lg:px-8 pt-16 pb-8 lg:py-8 w-full max-w-9xl mx-auto">
+            <div className="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-9xl mx-auto">
               {children}
             </div>
           </main>

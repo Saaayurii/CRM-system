@@ -1257,7 +1257,7 @@ function ExpenseDonut({ title, data }: { title: string; data: { name: string; va
                 </Pie>
                 <Tooltip
                   formatter={(v) => `${formatMoney(Number(v) || 0)} ₽`}
-                  contentStyle={{ fontSize: 12, borderRadius: 8 }}
+                  contentStyle={{ backgroundColor: '#1f2937', border: 'none', borderRadius: 8, color: '#f3f4f6', fontSize: 12 }}
                 />
               </PieChart>
             </ResponsiveContainer>

@@ -307,3 +307,12 @@
 .animate-slide-in-right {
   animation: slide-in-right 0.25s ease-out forwards;
 }
+
+/* Recharts tooltips use a dark background (#1f2937); by default Recharts colors
+   the item text with the series color (e.g. a grey pie slice → grey text on dark
+   → unreadable). Force readable light text for all chart tooltips. */
+.recharts-default-tooltip .recharts-tooltip-label,
+.recharts-default-tooltip .recharts-tooltip-item,
+.recharts-default-tooltip .recharts-tooltip-item * {
+  color: #f3f4f6 !important;
+}
