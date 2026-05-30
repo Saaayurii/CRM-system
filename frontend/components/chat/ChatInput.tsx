@@ -216,6 +216,22 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
   const [showCancelVideoConfirm, setShowCancelVideoConfirm] = useState(false);
   const [recordMode, setRecordMode] = useState<'voice' | 'video'>('voice');
   const [showRecordTooltip, setShowRecordTooltip] = useState(false);
+  // The record hint should appear only once (first visit), not after every message
+  const [recordHintSeen, setRecordHintSeen] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    try { return localStorage.getItem('voiceRecordHintSeen') === '1'; } catch { return false; }
+  });
+  const markRecordHintSeen = useCallback(() => {
+    setShowRecordTooltip(false);
+    setRecordHintSeen(true);
+    try { localStorage.setItem('voiceRecordHintSeen', '1'); } catch { /* ignore */ }
+  }, []);
+  // Auto-dismiss the first-visit hint after a few seconds (touch devices rarely fire mouseleave)
+  useEffect(() => {
+    if (!showRecordTooltip || recordHintSeen) return;
+    const t = setTimeout(markRecordHintSeen, 3500);
+    return () => clearTimeout(t);
+  }, [showRecordTooltip, recordHintSeen, markRecordHintSeen]);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const dragCounterRef = useRef(0);
@@ -1975,7 +1991,7 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
           {/* Send / Record button (single, Telegram-style) */}
           <div className="relative shrink-0">
             {/* Tooltip on hover */}
-            {showRecordTooltip && !canSend && !isRecording && !isRecordingVideo && (
+            {showRecordTooltip && !recordHintSeen && !canSend && !isRecording && !isRecordingVideo && (
               <div className="absolute bottom-full right-0 mb-2 w-64 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded-xl px-3 py-2 text-center pointer-events-none shadow-xl z-50 leading-relaxed">
                 {recordMode === 'video'
                   ? 'Удерживайте для записи видео. Нажмите для переключения на голос.'
@@ -1987,8 +2003,8 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
             <button
               onClick={canSend ? handleSend : undefined}
               onMouseDown={!canSend ? handleRecordBtnMouseDown : undefined}
-              onMouseEnter={() => setShowRecordTooltip(true)}
-              onMouseLeave={() => setShowRecordTooltip(false)}
+              onMouseEnter={() => { if (!recordHintSeen) setShowRecordTooltip(true); }}
+              onMouseLeave={() => { if (showRecordTooltip) markRecordHintSeen(); }}
               disabled={isSending}
               className={`p-2 rounded-xl transition-all duration-150 disabled:opacity-50 ${
                 canSend

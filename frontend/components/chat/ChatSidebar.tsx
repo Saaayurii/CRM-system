@@ -43,6 +43,9 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
   const [archivingId, setArchivingId] = useState<number | null>(null);
   const addToast = useToastStore((s) => s.addToast);
   const [projectNames, setProjectNames] = useState<Map<number, string>>(new Map());
+  // True once the real project list is loaded — lets us hide folders for deleted projects
+  const [projectsLoaded, setProjectsLoaded] = useState(false);
+  const projectsFetchedRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const tabsScrollRef = useRef<HTMLDivElement>(null);
 
@@ -109,14 +112,12 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
     touchStartPos.current = null;
   }, []);
 
-  // Fetch real project names for any projectId that has no name in channel settings
+  // Fetch the real project list once — both to resolve names and to know which
+  // projects still exist (so folders for deleted projects can be hidden).
   useEffect(() => {
-    const missingIds = [...new Set(
-      channels
-        .filter((ch) => ch.projectId != null && !ch.projectName)
-        .map((ch) => ch.projectId as number)
-    )];
-    if (missingIds.length === 0) return;
+    if (projectsFetchedRef.current) return;
+    if (!channels.some((ch) => ch.projectId != null)) return;
+    projectsFetchedRef.current = true;
 
     api.get('/projects', { params: { limit: 200 } })
       .then(({ data }) => {
@@ -124,8 +125,9 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
         const map = new Map<number, string>();
         for (const p of projects) map.set(p.id, p.name);
         setProjectNames(map);
+        setProjectsLoaded(true);
       })
-      .catch(() => {});
+      .catch(() => { projectsFetchedRef.current = false; });
   }, [channels]);
 
   const handleSelect = useCallback(
@@ -188,14 +190,23 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
       .filter((ch) => ch.projectId != null)
       .reduce((map, ch) => {
         const pid = ch.projectId!;
+        // Once the project list is loaded, hide folders for deleted/non-existent projects
+        if (projectsLoaded && !projectNames.has(pid)) return map;
         if (!map.has(pid)) {
-          const name = ch.projectName || projectNames.get(pid) || null;
+          const name = projectNames.get(pid) || ch.projectName || null;
           map.set(pid, name);
         }
         return map;
       }, new Map<number, string | null>())
       .entries()
   );
+
+  // If the active folder points at a project that no longer exists, fall back to "all"
+  useEffect(() => {
+    if (projectsLoaded && activeFolder !== 'all' && !projectNames.has(activeFolder)) {
+      setActiveFolder('all');
+    }
+  }, [projectsLoaded, activeFolder, projectNames]);
 
   // Filter by folder then search
   const folderFiltered = activeFolder === 'all'
@@ -559,7 +570,7 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
           return (
             <div
               key={channel.id}
-              className={`group relative flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors select-none ${
+              className={`group relative flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors select-none border-b border-gray-100 dark:border-gray-700/40 ${
                 isActive ? 'bg-violet-50 dark:bg-violet-500/10' : 'hover:bg-gray-50 dark:hover:bg-gray-800'
               }`}
               onClick={() => {

@@ -232,6 +232,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
   const [showProfile, setShowProfile] = useState(false);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const touchMoved = useRef(false);
+  const lastTapRef = useRef(0);
   const [isDeleting, setIsDeleting] = useState(false);
   const [snapParticles, setSnapParticles] = useState<{
     id: number; left: number; top: number;
@@ -252,17 +253,34 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
     }, 500);
   }, [readOnly]);
 
-  const handleTouchEnd = useCallback(() => {
+  // Double-tap / double-click anywhere on the message → quick ❤️ (Telegram-style)
+  const quickHeart = useCallback((target: EventTarget | null) => {
+    if (readOnly) return;
+    const el = target as HTMLElement | null;
+    // Skip when interacting with media/controls inside the bubble
+    if (el && el.closest('button, a, img, video, input, textarea')) return;
+    onReact(message.id, '❤️');
+  }, [readOnly, onReact, message.id]);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
     if (longPressTimer.current) clearTimeout(longPressTimer.current);
-  }, []);
+    if (touchMoved.current) return;
+    const now = Date.now();
+    if (now - lastTapRef.current < 300) {
+      quickHeart(e.target);
+      lastTapRef.current = 0;
+    } else {
+      lastTapRef.current = now;
+    }
+  }, [quickHeart]);
 
   const handleTouchMove = useCallback(() => {
     touchMoved.current = true;
     if (longPressTimer.current) clearTimeout(longPressTimer.current);
   }, []);
 
-  const handleDeleteWithSnap = useCallback(() => {
-    if (isDeleting) return;
+  // Plays the "disintegrate" particle + fade animation on the bubble.
+  const playDeleteAnimation = useCallback(() => {
     const rect = bubbleRef.current?.getBoundingClientRect();
     if (rect) {
       const pts = Array.from({ length: 130 }, (_, i) => {
@@ -287,12 +305,25 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
       setSnapParticles(pts);
     }
     setIsDeleting(true);
+  }, [isOwn]);
+
+  const handleDeleteWithSnap = useCallback(() => {
+    if (isDeleting) return;
+    playDeleteAnimation();
     setTimeout(() => {
       onDelete(message);
       setConfirmDelete(false);
       setSnapParticles([]);
     }, 820);
-  }, [isDeleting, isOwn, onDelete, message]);
+  }, [isDeleting, playDeleteAnimation, onDelete, message]);
+
+  // Another user deleted their message — play the same animation locally.
+  // The store flags `isDeleting` then removes the message after the animation.
+  const remoteDeleting = (message as { isDeleting?: boolean }).isDeleting === true;
+  useEffect(() => {
+    if (remoteDeleting && !isDeleting) playDeleteAnimation();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [remoteDeleting]);
 
   const handleEditStart = useCallback(() => {
     if (onEdit) setEditingMessage(message);
@@ -377,6 +408,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       onTouchMove={handleTouchMove}
+      onDoubleClick={(e) => quickHeart(e.target)}
       onContextMenu={(e) => {
         if (readOnly) return;
         e.preventDefault();
@@ -455,7 +487,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
           className={`relative rounded-2xl px-3 py-2 w-full ${
             isOwn
               ? 'bg-violet-500 text-white rounded-tr-sm'
-              : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 shadow-xs rounded-tl-sm'
+              : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-transparent shadow-sm rounded-tl-sm'
           }`}
         >
 
@@ -711,7 +743,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
             <div className={`max-w-[75%] rounded-2xl px-3 py-2 shadow-lg ${
               isOwn
                 ? 'bg-violet-500 text-white rounded-tr-sm'
-                : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 rounded-tl-sm'
+                : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-transparent rounded-tl-sm'
             }`}>
               {message.text && (
                 <p className="text-sm whitespace-pre-wrap break-words line-clamp-4">{message.text}</p>

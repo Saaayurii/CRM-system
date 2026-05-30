@@ -400,11 +400,19 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }));
     });
 
-    // Message deleted
+    // Message deleted — flag it so the bubble plays the delete animation
+    // (same as a local delete), then remove it once the animation finishes.
     socket.on('message:deleted', (data: { messageId: number }) => {
       set((state) => ({
-        messages: state.messages.filter((m) => m.id !== data.messageId),
+        messages: state.messages.map((m) =>
+          m.id === data.messageId ? ({ ...m, isDeleting: true } as typeof m) : m
+        ),
       }));
+      setTimeout(() => {
+        set((state) => ({
+          messages: state.messages.filter((m) => m.id !== data.messageId),
+        }));
+      }, 850);
     });
 
     // Reaction updated

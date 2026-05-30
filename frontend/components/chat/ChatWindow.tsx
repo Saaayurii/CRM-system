@@ -368,25 +368,29 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
       initialLoadRef.current = false;
       isInitialLoadingRef.current = false;
       prevMessagesLenRef.current = messages.length;
+      wasAtBottomRef.current = true;
 
+      // Snap to bottom, but stop the moment the user scrolls up. We flag the
+      // scroll as programmatic only briefly (80ms) so a genuine user scroll
+      // between snaps is detected — otherwise media loading keeps yanking the
+      // view back to the bottom while the user is trying to read history.
       const snap = () => {
+        if (!wasAtBottomRef.current) return;
         isProgrammaticScrollRef.current = true;
         messagesEndRef.current?.scrollIntoView();
-        wasAtBottomRef.current = true;
+        if (programmaticScrollTimerRef.current) clearTimeout(programmaticScrollTimerRef.current);
+        programmaticScrollTimerRef.current = setTimeout(() => { isProgrammaticScrollRef.current = false; }, 80);
       };
       snap();
       // Catch layout shifts from media (img/video) loading after first paint.
-      const timers = [50, 200, 500, 1000, 2000].map((ms) => setTimeout(snap, ms));
+      const timers = [60, 150, 300, 600, 1200].map((ms) => setTimeout(snap, ms));
       // Wire onload on every <img> currently inside the messages container.
       const imgs = container.querySelectorAll('img');
       imgs.forEach((img) => {
         if (!img.complete) img.addEventListener('load', snap, { once: true });
       });
-      // Release programmatic flag once shifts settle.
-      const releaseTimer = setTimeout(() => { isProgrammaticScrollRef.current = false; }, 2500);
       return () => {
         timers.forEach(clearTimeout);
-        clearTimeout(releaseTimer);
         imgs.forEach((img) => img.removeEventListener('load', snap));
       };
     }
