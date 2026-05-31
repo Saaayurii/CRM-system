@@ -18,6 +18,7 @@ import { HrGatewayModule } from './modules/hr/hr-gateway.module';
 import { HseGatewayModule } from './modules/hse/hse-gateway.module';
 import { SafetyBriefingsGatewayModule } from './modules/safety-briefings/safety-briefings-gateway.module';
 import { NotificationsGatewayModule } from './modules/notifications/notifications-gateway.module';
+import { NotesGatewayModule } from './modules/notes/notes-gateway.module';
 import { ChatGatewayModule } from './modules/chat/chat-gateway.module';
 import { CalendarGatewayModule } from './modules/calendar/calendar-gateway.module';
 import { EquipmentGatewayModule } from './modules/equipment/equipment-gateway.module';
@@ -87,6 +88,7 @@ import { RequestContextMiddleware } from './common/middleware/request-context.mi
     HseGatewayModule,
     SafetyBriefingsGatewayModule,
     NotificationsGatewayModule,
+    NotesGatewayModule,
     ChatGatewayModule,
     CalendarGatewayModule,
     EquipmentGatewayModule,

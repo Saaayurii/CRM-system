@@ -3092,3 +3092,22 @@ CREATE INDEX IF NOT EXISTS idx_hse_monitoring_status ON hse_monitoring(account_i
 
 ALTER TABLE tasks
     ADD COLUMN IF NOT EXISTS requires_briefing_types JSONB DEFAULT '[]'::jsonb;
+
+-- ============================================================
+-- 9. notes: личные стикер-заметки / напоминания (notifications-service)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS notes (
+    id           SERIAL PRIMARY KEY,
+    account_id   INTEGER NOT NULL,
+    user_id      INTEGER NOT NULL,
+    title        VARCHAR(255),
+    content      TEXT NOT NULL,
+    color        VARCHAR(20) NOT NULL DEFAULT 'yellow',
+    remind_at    TIMESTAMP,
+    dismissed_at TIMESTAMP,
+    created_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS notes_user_id_idx ON notes (user_id);
+CREATE INDEX IF NOT EXISTS notes_remind_at_idx ON notes (remind_at);

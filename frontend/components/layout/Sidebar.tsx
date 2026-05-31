@@ -231,6 +231,15 @@ function IconCalendar() {
   );
 }
 
+function IconNotes() {
+  return (
+    <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 3.75H6A2.25 2.25 0 0 0 3.75 6v12A2.25 2.25 0 0 0 6 20.25h7.5L20.25 13.5V6A2.25 2.25 0 0 0 18 3.75Z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 20.25V15a1.5 1.5 0 0 1 1.5-1.5h5.25M7.5 8.25h7.5M7.5 11.25h4.5" />
+    </svg>
+  );
+}
+
 /* ─── Company switcher (was in Header) ─── */
 interface AccountOption { id: number; name: string; logoUrl?: string; status: number; }
 
@@ -554,6 +563,14 @@ export default function Sidebar() {
                 <NavLink href={calendarHref} className={linkCls(pathname.includes('/calendar'))}>
                   <IconCalendar />
                   <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Календарь</span>
+                </NavLink>
+              </li>
+
+              {/* Notes — Заметки */}
+              <li className="mb-1 last:mb-0">
+                <NavLink href="/dashboard/notes" className={linkCls(pathname.startsWith('/dashboard/notes'))}>
+                  <IconNotes />
+                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Заметки</span>
                 </NavLink>
               </li>
 

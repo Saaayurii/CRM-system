@@ -101,3 +101,20 @@ model PushSubscription {
   @@map("push_subscriptions")
 }
 
+model Note {
+  id          Int       @id @default(autoincrement())
+  accountId   Int       @map("account_id")
+  userId      Int       @map("user_id")
+  title       String?   @db.VarChar(255)
+  content     String    @db.Text
+  color       String    @default("yellow") @db.VarChar(20)
+  remindAt    DateTime? @map("remind_at")
+  dismissedAt DateTime? @map("dismissed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([remindAt])
+  @@map("notes")
+}
+
