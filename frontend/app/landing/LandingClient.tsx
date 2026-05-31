@@ -121,11 +121,12 @@ export default function LandingClient() {
 
   const Logo = (
     <div className="flex items-center gap-2.5">
-      <div className="w-9 h-9 rounded-xl bg-violet-500 flex items-center justify-center shadow-lg shadow-violet-500/30">
-        <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 64 64">
-          <path d="M31.956 14.8C31.372 6.92 25.08.628 17.2.044V5.76a9.04 9.04 0 0 0 9.04 9.04h5.716ZM14.8 26.24v5.716C6.92 31.372.63 25.08.044 17.2H5.76a9.04 9.04 0 0 1 9.04 9.04Zm11.44-9.04h5.716c-.584 7.88-6.876 14.172-14.756 14.756V26.24a9.04 9.04 0 0 1 9.04-9.04ZM.044 14.8C.63 6.92 6.92.628 14.8.044V5.76a9.04 9.04 0 0 1-9.04 9.04H.044Z" />
-        </svg>
-      </div>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/favicon-brand.png"
+        alt="3.15"
+        className="w-9 h-9 rounded-xl object-cover ring-1 ring-gray-200 dark:ring-gray-700"
+      />
       <span className="font-bold text-lg text-gray-900 dark:text-white tracking-tight">
         3.15 <span className="text-violet-500">CRM</span>
       </span>
