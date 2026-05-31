@@ -25,7 +25,7 @@ function inline(raw: string): string {
   s = s.replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<em>$2</em>');
   // links [text](url) — only http(s)/relative
   s = s.replace(/\[([^\]]+)\]\(((?:https?:\/\/|\/)[^)\s]+)\)/g, (_m, t, u) =>
-    `<a href="${u}" target="_blank" rel="noopener noreferrer" class="text-indigo-600 dark:text-indigo-400 hover:underline">${t}</a>`);
+    `<a href="${u}" target="_blank" rel="noopener noreferrer" class="text-violet-600 dark:text-violet-400 hover:underline">${t}</a>`);
   return s;
 }
 
@@ -179,7 +179,7 @@ export default function MarkdownView({ content }: { content?: string | null }) {
             );
           case 'quote':
             return (
-              <blockquote key={idx} className="my-3 pl-4 border-l-4 border-indigo-300 dark:border-indigo-500/50 text-gray-600 dark:text-gray-300 italic" dangerouslySetInnerHTML={{ __html: inline(b.text || '') }} />
+              <blockquote key={idx} className="my-3 pl-4 border-l-4 border-violet-300 dark:border-violet-500/50 text-gray-600 dark:text-gray-300 italic" dangerouslySetInnerHTML={{ __html: inline(b.text || '') }} />
             );
           case 'ul':
             return (

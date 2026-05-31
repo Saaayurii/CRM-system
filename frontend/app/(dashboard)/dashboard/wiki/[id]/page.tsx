@@ -85,7 +85,7 @@ export default function NormDocumentDetailPage() {
     return (
       <div className="px-4 sm:px-6 py-16 text-center text-gray-400">
         <p>Документ не найден.</p>
-        <Link href="/dashboard/wiki" className="text-indigo-600 hover:underline text-sm">← К списку</Link>
+        <Link href="/dashboard/wiki" className="text-violet-600 hover:underline text-sm">← К списку</Link>
       </div>
     );
   }
@@ -93,7 +93,7 @@ export default function NormDocumentDetailPage() {
   return (
     <div className="px-4 sm:px-6 py-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-4">
-        <button onClick={() => router.push('/dashboard/wiki')} className="text-sm text-gray-500 hover:text-indigo-600">
+        <button onClick={() => router.push('/dashboard/wiki')} className="text-sm text-gray-500 hover:text-violet-600">
           ← Строительная ВИКИ
         </button>
         <div className="flex items-center gap-2">
@@ -169,7 +169,7 @@ export default function NormDocumentDetailPage() {
             <ul className="space-y-1">
               {doc.attachments!.map((a, i) => (
                 <li key={i}>
-                  <a href={a.url} target="_blank" rel="noopener noreferrer" className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">
+                  <a href={a.url} target="_blank" rel="noopener noreferrer" className="text-sm text-violet-600 dark:text-violet-400 hover:underline">
                     📎 {a.name || a.url}
                   </a>
                 </li>
@@ -187,7 +187,7 @@ export default function NormDocumentDetailPage() {
               <h3 className="text-sm font-semibold mb-2 text-gray-500">Заменяет документы</h3>
               <div className="flex flex-wrap gap-2">
                 {doc.supersedes!.map((s) => (
-                  <Link key={s.id} href={`/dashboard/wiki/${s.id}`} className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm hover:border-indigo-300">
+                  <Link key={s.id} href={`/dashboard/wiki/${s.id}`} className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm hover:border-violet-300">
                     {s.code || s.title}
                   </Link>
                 ))}
@@ -199,7 +199,7 @@ export default function NormDocumentDetailPage() {
               <h3 className="text-sm font-semibold mb-2 text-gray-500">Связанные нормы</h3>
               <div className="flex flex-wrap gap-2">
                 {doc.related!.map((r) => (
-                  <Link key={r.id} href={`/dashboard/wiki/${r.id}`} className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm hover:border-indigo-300">
+                  <Link key={r.id} href={`/dashboard/wiki/${r.id}`} className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm hover:border-violet-300">
                     <span className="font-mono text-gray-500">{r.code || ''}</span> {r.title}
                   </Link>
                 ))}

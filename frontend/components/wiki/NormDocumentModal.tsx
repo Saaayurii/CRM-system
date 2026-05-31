@@ -122,7 +122,7 @@ export default function NormDocumentModal({ doc, categories, onClose, onSaved }:
   };
 
   const inputCls =
-    'w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500';
+    'w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500';
   const labelCls = 'block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1';
 
   return (
@@ -224,7 +224,7 @@ export default function NormDocumentModal({ doc, categories, onClose, onSaved }:
 
         <div className="flex justify-end gap-2 px-6 py-4 border-t border-gray-100 dark:border-gray-700">
           <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">Отмена</button>
-          <button onClick={save} disabled={saving} className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50">
+          <button onClick={save} disabled={saving} className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-violet-500 hover:bg-violet-600 disabled:opacity-50">
             {saving ? 'Сохранение…' : 'Сохранить'}
           </button>
         </div>

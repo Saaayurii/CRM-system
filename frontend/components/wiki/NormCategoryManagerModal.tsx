@@ -79,7 +79,7 @@ export default function NormCategoryManagerModal({ categories, onClose, onChange
     }
   };
 
-  const inputCls = 'w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500';
+  const inputCls = 'w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500';
   const nameById = new Map(items.map((c) => [c.id, c.name]));
 
   return (
@@ -110,7 +110,7 @@ export default function NormCategoryManagerModal({ categories, onClose, onChange
               </select>
             </div>
             <div className="col-span-2 flex gap-1">
-              <button onClick={submit} disabled={busy} className="flex-1 px-3 py-2 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50">
+              <button onClick={submit} disabled={busy} className="flex-1 px-3 py-2 rounded-lg text-sm font-medium text-white bg-violet-500 hover:bg-violet-600 disabled:opacity-50">
                 {editing ? 'OK' : '+'}
               </button>
               {editing && (
@@ -133,7 +133,7 @@ export default function NormCategoryManagerModal({ categories, onClose, onChange
                     <span className="ml-2 text-xs text-gray-400">({c.documentCount})</span>
                   )}
                 </span>
-                <button onClick={() => startEdit(c)} className="text-indigo-600 hover:underline text-xs">Изм.</button>
+                <button onClick={() => startEdit(c)} className="text-violet-600 hover:underline text-xs">Изм.</button>
                 <button onClick={() => remove(c)} className="text-red-500 hover:underline text-xs">Удал.</button>
               </div>
             ))}

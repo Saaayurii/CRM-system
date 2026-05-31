@@ -172,7 +172,7 @@ export default function ConstructionWikiPage() {
     return (
       <div key={node.id}>
         <div
-          className={`flex items-center gap-1 pr-2 py-1.5 rounded-lg cursor-pointer text-sm ${isActive ? 'bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 font-medium' : 'hover:bg-gray-100 dark:hover:bg-gray-800'}`}
+          className={`flex items-center gap-1 pr-2 py-1.5 rounded-lg cursor-pointer text-sm ${isActive ? 'bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300 font-medium' : 'hover:bg-gray-100 dark:hover:bg-gray-800'}`}
           style={{ paddingLeft: `${8 + depth * 14}px` }}
           onClick={() => { setActiveCat(isActive ? null : node.id); setOnlyBookmarks(false); }}
         >
@@ -211,7 +211,7 @@ export default function ConstructionWikiPage() {
             <button onClick={() => setShowCatModal(true)} className="px-3 py-2 rounded-lg text-sm font-medium border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800">
               Категории
             </button>
-            <button onClick={() => setShowDocModal(true)} className="px-3 py-2 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">
+            <button onClick={() => setShowDocModal(true)} className="px-3 py-2 rounded-lg text-sm font-medium text-white bg-violet-500 hover:bg-violet-600">
               + Документ
             </button>
           </div>
@@ -235,11 +235,11 @@ export default function ConstructionWikiPage() {
             <div className="flex items-center justify-between mb-2 px-1">
               <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Категории</span>
               {(activeCat || docType || status || onlyBookmarks) && (
-                <button onClick={resetFilters} className="text-xs text-indigo-600 hover:underline">Сбросить</button>
+                <button onClick={resetFilters} className="text-xs text-violet-600 hover:underline">Сбросить</button>
               )}
             </div>
             <div
-              className={`flex items-center gap-1 px-2 py-1.5 rounded-lg cursor-pointer text-sm ${!activeCat && !onlyBookmarks ? 'bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 font-medium' : 'hover:bg-gray-100 dark:hover:bg-gray-800'}`}
+              className={`flex items-center gap-1 px-2 py-1.5 rounded-lg cursor-pointer text-sm ${!activeCat && !onlyBookmarks ? 'bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300 font-medium' : 'hover:bg-gray-100 dark:hover:bg-gray-800'}`}
               onClick={() => { setActiveCat(null); setOnlyBookmarks(false); }}
             >
               <span>🗂️</span> <span>Все документы</span>
@@ -267,7 +267,7 @@ export default function ConstructionWikiPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Поиск по названию, коду, тексту…"
-                className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
               />
             </div>
             <select value={docType} onChange={(e) => setDocType(e.target.value as DocType | '')} className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm">
@@ -300,7 +300,7 @@ export default function ConstructionWikiPage() {
                 <div
                   key={doc.id}
                   onClick={() => router.push(`/dashboard/wiki/${doc.id}`)}
-                  className="group bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl p-4 cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-500/50 hover:shadow-sm transition"
+                  className="group bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl p-4 cursor-pointer hover:border-violet-300 dark:hover:border-violet-500/50 hover:shadow-sm transition"
                 >
                   <div className="flex items-start gap-3">
                     <div className="flex-1 min-w-0">
@@ -313,7 +313,7 @@ export default function ConstructionWikiPage() {
                           {DOC_STATUS_LABELS[doc.status]}
                         </span>
                       </div>
-                      <h3 className="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 truncate">
+                      <h3 className="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-violet-600 dark:group-hover:text-violet-400 truncate">
                         {doc.title}
                       </h3>
                       {doc.summary && <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">{doc.summary}</p>}
