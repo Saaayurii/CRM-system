@@ -101,13 +101,12 @@ export default function LoginPage() {
     }
   };
 
-  const handleOtpSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!twoFactor) return;
+  const submitOtp = async (codeValue: string) => {
+    if (!twoFactor || loading) return;
     setLoginError(null);
     setLoading(true);
     try {
-      await complete2fa(twoFactor.token, otpCode.trim());
+      await complete2fa(twoFactor.token, codeValue.trim());
       router.push('/dashboard');
     } catch (err) {
       const msg = (err as AxiosError<{ message?: string }>)?.response?.data?.message;
@@ -116,11 +115,25 @@ export default function LoginPage() {
       if (status === 401 && msg && msg.includes('истекла')) {
         setTwoFactor(null);
         setOtpCode('');
+      } else {
+        setOtpCode(''); // wrong code — clear for a fresh attempt
       }
       setLoginError({ message: msg || 'Неверный код подтверждения', kind: 'error' });
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleOtpSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    submitOtp(otpCode);
+  };
+
+  const handleOtpChange = (raw: string) => {
+    const next = raw.replace(/\D/g, '').slice(0, 6);
+    setOtpCode(next);
+    // Auto-submit as soon as 6 digits are entered/pasted.
+    if (next.length === 6) submitOtp(next);
   };
 
   // ── Two-factor (TOTP) screen ──
@@ -183,7 +196,7 @@ export default function LoginPage() {
             autoComplete="one-time-code"
             maxLength={6}
             value={otpCode}
-            onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+            onChange={(e) => handleOtpChange(e.target.value)}
             placeholder="000000"
             required
           />

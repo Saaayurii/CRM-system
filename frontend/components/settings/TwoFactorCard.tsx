@@ -60,37 +60,60 @@ export default function TwoFactorCard() {
     }
   };
 
-  const confirmSetup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!setup) return;
+  const submitConfirm = async (codeValue: string) => {
+    if (!setup || busy) return;
     setBusy(true);
     try {
-      await api.post('/auth/2fa/confirm', { token: setup.token, code: code.trim() });
+      await api.post('/auth/2fa/confirm', { token: setup.token, code: codeValue.trim() });
       addToast('success', 'Двухфакторная аутентификация включена');
       setSetup(null);
       setCode('');
       await loadStatus();
     } catch (err: any) {
       addToast('error', err?.response?.data?.message || 'Неверный код подтверждения');
+      setCode(''); // wrong code — clear for a fresh attempt
     } finally {
       setBusy(false);
     }
   };
 
-  const confirmDisable = async (e: React.FormEvent) => {
+  const confirmSetup = (e: React.FormEvent) => {
     e.preventDefault();
+    submitConfirm(code);
+  };
+
+  const handleCodeChange = (raw: string) => {
+    const next = raw.replace(/\D/g, '').slice(0, 6);
+    setCode(next);
+    if (next.length === 6) submitConfirm(next);
+  };
+
+  const submitDisable = async (codeValue: string) => {
+    if (busy) return;
     setBusy(true);
     try {
-      await api.post('/auth/2fa/disable', { code: disableCode.trim() });
+      await api.post('/auth/2fa/disable', { code: codeValue.trim() });
       addToast('success', 'Двухфакторная аутентификация отключена');
       setDisabling(false);
       setDisableCode('');
       await loadStatus();
     } catch (err: any) {
       addToast('error', err?.response?.data?.message || 'Не удалось отключить 2FA');
+      setDisableCode(''); // wrong code — clear for a fresh attempt
     } finally {
       setBusy(false);
     }
+  };
+
+  const confirmDisable = (e: React.FormEvent) => {
+    e.preventDefault();
+    submitDisable(disableCode);
+  };
+
+  const handleDisableCodeChange = (raw: string) => {
+    const next = raw.replace(/\D/g, '').slice(0, 6);
+    setDisableCode(next);
+    if (next.length === 6) submitDisable(next);
   };
 
   const inputCls =
@@ -152,7 +175,7 @@ export default function TwoFactorCard() {
                     autoComplete="one-time-code"
                     maxLength={6}
                     value={code}
-                    onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+                    onChange={(e) => handleCodeChange(e.target.value)}
                     placeholder="000000"
                     className={`${inputCls} max-w-[200px]`}
                   />
@@ -187,7 +210,7 @@ export default function TwoFactorCard() {
                 autoComplete="one-time-code"
                 maxLength={6}
                 value={disableCode}
-                onChange={(e) => setDisableCode(e.target.value.replace(/\D/g, ''))}
+                onChange={(e) => handleDisableCodeChange(e.target.value)}
                 placeholder="000000"
                 className={`${inputCls} max-w-[200px]`}
               />
