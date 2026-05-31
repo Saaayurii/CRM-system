@@ -6,8 +6,8 @@
  * - Stale-while-revalidate for synced API routes
  */
 
-const CACHE_NAME = 'crm-v3';
-const API_CACHE_NAME = 'crm-api-v3';
+const CACHE_NAME = 'crm-v4';
+const API_CACHE_NAME = 'crm-api-v4';
 const OFFLINE_URL = '/dashboard';
 
 // Assets to pre-cache on install

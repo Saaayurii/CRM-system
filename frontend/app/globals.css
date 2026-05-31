@@ -308,6 +308,25 @@
   animation: slide-in-right 0.25s ease-out forwards;
 }
 
+/* Long-press context-menu pop-in (chat message actions) */
+@keyframes ctx-pop-in {
+  0%   { transform: scale(0.92); opacity: 0; }
+  100% { transform: scale(1);    opacity: 1; }
+}
+.animate-ctx-pop-in {
+  animation: ctx-pop-in 0.16s cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
+}
+
+/* Brief highlight pulse on the message you long-pressed */
+@keyframes chat-msg-select {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(0.97); }
+  100% { transform: scale(1); }
+}
+.chat-msg-select {
+  animation: chat-msg-select 0.28s ease-out;
+}
+
 /* Recharts tooltips use a dark background (#1f2937); by default Recharts colors
    the item text with the series color (e.g. a grey pie slice → grey text on dark
    → unreadable). Force readable light text for all chart tooltips. */

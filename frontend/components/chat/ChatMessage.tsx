@@ -224,6 +224,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
   const [previewFile, setPreviewFile] = useState<{ url: string; name?: string; mimeType?: string } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [showMobileActions, setShowMobileActions] = useState(false);
+  const [isSelected, setIsSelected] = useState(false);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   // Desktop right-click context menu (compact popover at cursor)
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null);
@@ -249,7 +250,11 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
     if (readOnly) return;
     touchMoved.current = false;
     longPressTimer.current = setTimeout(() => {
-      if (!touchMoved.current) setShowMobileActions(true);
+      if (!touchMoved.current) {
+        navigator.vibrate?.(30); // haptic feedback on long-press
+        setIsSelected(true);      // brief selection pulse on the bubble
+        setShowMobileActions(true);
+      }
     }, 500);
   }, [readOnly]);
 
@@ -335,6 +340,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
     const handler = (e: MouseEvent | TouchEvent) => {
       if (mobileMenuRef.current?.contains(e.target as Node)) return;
       setShowMobileActions(false);
+      setIsSelected(false);
     };
     document.addEventListener('mousedown', handler);
     document.addEventListener('touchstart', handler);
@@ -484,7 +490,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
 
         <div
           ref={bubbleRef}
-          className={`relative rounded-2xl px-3 py-2 w-full ${
+          className={`relative rounded-2xl px-3 py-2 w-full ${isSelected ? 'chat-msg-select ring-2 ring-violet-400/70' : ''} ${
             isOwn
               ? 'bg-violet-500 text-white rounded-tr-sm'
               : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-transparent shadow-sm rounded-tl-sm'
@@ -713,22 +719,22 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
           onTouchStart={(e) => e.stopPropagation()}
           onTouchEnd={(e) => e.stopPropagation()}
           onTouchMove={(e) => e.stopPropagation()}
-          onClick={(e) => { e.stopPropagation(); setShowMobileActions(false); }}
-          onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setShowMobileActions(false); }}
+          onClick={(e) => { e.stopPropagation(); setShowMobileActions(false); setIsSelected(false); }}
+          onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setShowMobileActions(false); setIsSelected(false); }}
         >
           {/* Blurred backdrop */}
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-md" />
 
           {/* Emoji reaction row */}
           <div
-            className="relative z-10 bg-[#1c1c1e]/95 rounded-full px-3 py-2 flex items-center gap-1 shadow-2xl"
+            className="relative z-10 bg-[#1c1c1e]/55 backdrop-blur-2xl rounded-full px-2.5 py-1.5 flex items-center gap-0.5 shadow-2xl animate-ctx-pop-in"
             onClick={(e) => e.stopPropagation()}
           >
             {QUICK_EMOJIS.map((emoji) => (
               <button
                 key={emoji}
-                onClick={() => { onReact(message.id, emoji); setShowMobileActions(false); }}
-                className="text-[26px] w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10 active:scale-90 transition-all"
+                onClick={() => { onReact(message.id, emoji); setShowMobileActions(false); setIsSelected(false); }}
+                className="text-[22px] w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/10 active:scale-90 transition-all"
               >
                 {emoji}
               </button>
@@ -761,16 +767,16 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
 
           {/* Actions card */}
           <div
-            className="relative z-10 w-full max-w-sm bg-[#1c1c1e]/95 rounded-2xl overflow-hidden shadow-2xl"
+            className="relative z-10 w-full max-w-[260px] bg-[#1c1c1e]/55 backdrop-blur-2xl rounded-2xl overflow-hidden shadow-2xl animate-ctx-pop-in"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Reply */}
             <button
-              onClick={() => { onReply(); setShowMobileActions(false); }}
-              className="w-full flex items-center justify-between px-5 py-3.5 text-white hover:bg-white/10 active:bg-white/15 transition-colors border-b border-white/8"
+              onClick={() => { onReply(); setShowMobileActions(false); setIsSelected(false); }}
+              className="w-full flex items-center justify-between px-4 py-2.5 text-white hover:bg-white/10 active:bg-white/15 transition-colors border-b border-white/10"
             >
-              <span className="text-[15px]">Ответить</span>
-              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <span className="text-sm">Ответить</span>
+              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
               </svg>
             </button>
@@ -783,11 +789,12 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
                     addToast('success', 'Текст скопирован');
                   }).catch(() => {});
                   setShowMobileActions(false);
+                  setIsSelected(false);
                 }}
-                className="w-full flex items-center justify-between px-5 py-3.5 text-white hover:bg-white/10 active:bg-white/15 transition-colors border-b border-white/8"
+                className="w-full flex items-center justify-between px-4 py-2.5 text-white hover:bg-white/10 active:bg-white/15 transition-colors border-b border-white/10"
               >
-                <span className="text-[15px]">Копировать текст</span>
-                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <span className="text-sm">Копировать текст</span>
+                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
               </button>
@@ -796,11 +803,11 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
             {/* Edit (own text messages only) */}
             {isOwn && message.text && onEdit && (
               <button
-                onClick={() => { handleEditStart(); setShowMobileActions(false); }}
-                className="w-full flex items-center justify-between px-5 py-3.5 text-white hover:bg-white/10 active:bg-white/15 transition-colors border-b border-white/8"
+                onClick={() => { handleEditStart(); setShowMobileActions(false); setIsSelected(false); }}
+                className="w-full flex items-center justify-between px-4 py-2.5 text-white hover:bg-white/10 active:bg-white/15 transition-colors border-b border-white/10"
               >
-                <span className="text-[15px]">Редактировать</span>
-                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <span className="text-sm">Редактировать</span>
+                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
               </button>
@@ -809,11 +816,11 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
             {/* Pin / Unpin */}
             {canPin && (
               <button
-                onClick={() => { onPin?.(message); setShowMobileActions(false); }}
-                className="w-full flex items-center justify-between px-5 py-3.5 text-white hover:bg-white/10 active:bg-white/15 transition-colors border-b border-white/8"
+                onClick={() => { onPin?.(message); setShowMobileActions(false); setIsSelected(false); }}
+                className="w-full flex items-center justify-between px-4 py-2.5 text-white hover:bg-white/10 active:bg-white/15 transition-colors border-b border-white/10"
               >
-                <span className="text-[15px]">{isPinned ? 'Открепить' : 'Закрепить'}</span>
-                <svg className="w-5 h-5 text-gray-400" viewBox="0 0 24 24" fill={isPinned ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <span className="text-sm">{isPinned ? 'Открепить' : 'Закрепить'}</span>
+                <svg className="w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill={isPinned ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                   <line x1="12" y1="17" x2="12" y2="22" />
                   <path d="M5 17h14v-1.76a2 2 0 00-1.11-1.79l-1.78-.9A2 2 0 0115 10.76V6h1a2 2 0 000-4H8a2 2 0 000 4h1v4.76a2 2 0 01-1.11 1.79l-1.78.9A2 2 0 005 15.24V17z" />
                 </svg>
@@ -823,11 +830,11 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
             {/* Forward */}
             {onForward && (
               <button
-                onClick={() => { onForward(message); setShowMobileActions(false); }}
-                className={`w-full flex items-center justify-between px-5 py-3.5 text-white hover:bg-white/10 active:bg-white/15 transition-colors ${isOwn ? 'border-b border-white/8' : ''}`}
+                onClick={() => { onForward(message); setShowMobileActions(false); setIsSelected(false); }}
+                className={`w-full flex items-center justify-between px-4 py-2.5 text-white hover:bg-white/10 active:bg-white/15 transition-colors ${isOwn ? 'border-b border-white/10' : ''}`}
               >
-                <span className="text-[15px]">Переслать</span>
-                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <span className="text-sm">Переслать</span>
+                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 9l3 3m0 0l-3 3m3-3H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </button>
@@ -836,11 +843,11 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
             {/* Delete (own messages only) */}
             {isOwn && (
               <button
-                onClick={() => { setConfirmDelete(true); setShowMobileActions(false); }}
-                className="w-full flex items-center justify-between px-5 py-3.5 text-red-400 hover:bg-white/10 active:bg-white/15 transition-colors"
+                onClick={() => { setConfirmDelete(true); setShowMobileActions(false); setIsSelected(false); }}
+                className="w-full flex items-center justify-between px-4 py-2.5 text-red-400 hover:bg-white/10 active:bg-white/15 transition-colors"
               >
-                <span className="text-[15px]">Удалить</span>
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <span className="text-sm">Удалить</span>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
               </button>

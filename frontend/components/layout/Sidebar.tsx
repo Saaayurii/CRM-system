@@ -467,6 +467,50 @@ export default function Sidebar() {
     return () => document.removeEventListener('keydown', keyHandler);
   });
 
+  // Touch swipe: open the sidebar by swiping right from the left edge,
+  // close it by swiping left. Mobile only (sidebar is static on lg+).
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.matchMedia('(min-width: 1024px)').matches) return;
+
+    let startX = 0;
+    let startY = 0;
+    let tracking = false;
+
+    const onStart = (e: TouchEvent) => {
+      const t = e.touches[0];
+      if (!t) return;
+      startX = t.clientX;
+      startY = t.clientY;
+      // Track only from the very left edge (to open) or while already open (to close)
+      tracking = sidebarOpen || startX <= 28;
+    };
+
+    const onEnd = (e: TouchEvent) => {
+      if (!tracking) return;
+      tracking = false;
+      const t = e.changedTouches[0];
+      if (!t) return;
+      const dx = t.clientX - startX;
+      const dy = t.clientY - startY;
+      if (Math.abs(dx) < 60 || Math.abs(dy) > 50) return; // mostly-horizontal swipe
+      if (!sidebarOpen && dx > 0) {
+        setSidebarOpen(true);
+        navigator.vibrate?.(15);
+      } else if (sidebarOpen && dx < 0) {
+        setSidebarOpen(false);
+        navigator.vibrate?.(15);
+      }
+    };
+
+    document.addEventListener('touchstart', onStart, { passive: true });
+    document.addEventListener('touchend', onEnd, { passive: true });
+    return () => {
+      document.removeEventListener('touchstart', onStart);
+      document.removeEventListener('touchend', onEnd);
+    };
+  }, [sidebarOpen, setSidebarOpen]);
+
   return (
     <div className="min-w-fit">
       {/* Backdrop */}
