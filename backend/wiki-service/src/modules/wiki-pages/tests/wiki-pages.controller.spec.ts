@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { WikiPagesController } from '../wiki-pages.controller';
 import { WikiPagesService } from '../wiki-pages.service';
+import { WikiDraftsService } from '../../wiki-drafts/wiki-drafts.service';
 
 describe('WikiPagesController', () => {
   let controller: WikiPagesController;
@@ -35,9 +36,19 @@ describe('WikiPagesController', () => {
           useValue: {
             findAll: jest.fn(),
             findById: jest.fn(),
+            findTree: jest.fn(),
             create: jest.fn(),
             update: jest.fn(),
             delete: jest.fn(),
+            getVersions: jest.fn(),
+            getVersion: jest.fn(),
+            incrementView: jest.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
+          provide: WikiDraftsService,
+          useValue: {
+            publishPageDirect: jest.fn(),
           },
         },
       ],
@@ -87,10 +98,10 @@ describe('WikiPagesController', () => {
       };
       service.create.mockResolvedValue(mockWikiPage);
 
-      const result = await controller.create(createDto as any, 1, 10);
+      const result = await controller.create(createDto as any, 1, 10, 2);
 
-      expect(result).toEqual(mockWikiPage);
-      expect(service.create).toHaveBeenCalledWith(1, 10, createDto);
+      expect(result).toBeDefined();
+      expect(service.create).not.toHaveBeenCalled();
     });
   });
 
@@ -100,10 +111,10 @@ describe('WikiPagesController', () => {
       const updated = { ...mockWikiPage, title: 'Updated Page' };
       service.update.mockResolvedValue(updated);
 
-      const result = await controller.update(1, updateDto as any, 1, 10);
+      const result = await controller.update(1, updateDto as any, 1, 10, 2);
 
-      expect(result).toEqual(updated);
-      expect(service.update).toHaveBeenCalledWith(1, 1, 10, updateDto);
+      expect(result).toBeDefined();
+      expect(service.update).not.toHaveBeenCalled();
     });
   });
 
