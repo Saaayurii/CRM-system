@@ -11,6 +11,7 @@ import TaskFormModal from '@/components/dashboard/TaskFormModal';
 import { useToastStore } from '@/stores/toastStore';
 import { useChatStore } from '@/stores/chatStore';
 import { useAuthStore } from '@/stores/authStore';
+import { useIsClient } from '@/hooks/useIsClient';
 import ChatInput from '@/components/chat/ChatInput';
 import ChatMessageComponent from '@/components/chat/ChatMessage';
 import ForwardMessageModal from '@/components/chat/ForwardMessageModal';
@@ -463,7 +464,18 @@ const INV_STATUS: Record<number, { label: string; color: string }> = {
 
 type TabKey = typeof TABS[number]['key'];
 
-function TabsNav({ activeTab, onSelect }: { activeTab: TabKey; onSelect: (k: TabKey) => void }) {
+// Вкладки, доступные клиенту портала (только просмотр + диалог).
+const CLIENT_TAB_KEYS = new Set(['overview', 'documents', 'finance', 'estimates', 'notes', 'objects', 'chat']);
+
+function TabsNav({
+  activeTab,
+  onSelect,
+  tabs = TABS as unknown as typeof TABS[number][],
+}: {
+  activeTab: TabKey;
+  onSelect: (k: TabKey) => void;
+  tabs?: typeof TABS[number][];
+}) {
   const navRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -478,7 +490,7 @@ function TabsNav({ activeTab, onSelect }: { activeTab: TabKey; onSelect: (k: Tab
   return (
     <div className="border-b border-gray-200 dark:border-gray-700 mb-6">
       <nav ref={navRef} className="flex gap-1 overflow-x-auto scrollbar-none">
-        {TABS.map((t) => (
+        {tabs.map((t) => (
           <button
             key={t.key}
             data-active={activeTab === t.key ? 'true' : 'false'}
@@ -680,10 +692,17 @@ function ProjectDetailPage() {
 
   const [project, setProject] = useState<Project | null>(null);
   const [loadingProject, setLoadingProject] = useState(true);
+  const isClient = useIsClient();
+  const visibleTabs = isClient ? TABS.filter((t) => CLIENT_TAB_KEYS.has(t.key)) : (TABS as unknown as typeof TABS[number][]);
   const [activeTab, setActiveTab] = useState<TabKey>(() => {
     const tab = searchParams.get('tab') as TabKey | null;
     return tab && TABS.some((t) => t.key === tab) ? tab : 'overview';
   });
+
+  // Клиент не должен попасть на скрытую вкладку (например, по ?tab= из ссылки).
+  useEffect(() => {
+    if (isClient && !CLIENT_TAB_KEYS.has(activeTab)) setActiveTab('overview');
+  }, [isClient, activeTab]);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showFinancialReport, setShowFinancialReport] = useState(false);
 const [pdfLoading, setPdfLoading] = useState(false);
@@ -2075,14 +2094,16 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
               {pdfLoading ? 'PDF...' : 'PDF'}
             </button>
           )}
-          <button onClick={() => setShowEditModal(true)} className="px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-lg transition-colors">
-            Редактировать
-          </button>
+          {!isClient && (
+            <button onClick={() => setShowEditModal(true)} className="px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-lg transition-colors">
+              Редактировать
+            </button>
+          )}
         </div>
       </div>
 
       {/* Tabs */}
-      <TabsNav activeTab={activeTab} onSelect={setActiveTab} />
+      <TabsNav activeTab={activeTab} onSelect={setActiveTab} tabs={visibleTabs} />
 
 
       {/* ─── Overview ─── */}
@@ -3620,6 +3641,154 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
+
+                    {/* ── Budget Forecast ── */}
+                    {(() => {
+                      const budget = project?.budget ?? 0;
+                      if (budget <= 0) return null;
+                      const today = new Date();
+                      const startD = project?.startDate ? new Date(project.startDate) : null;
+                      const endD = project?.plannedEndDate ? new Date(project.plannedEndDate) : null;
+                      const totalDays = startD && endD
+                        ? Math.max(1, Math.round((endD.getTime() - startD.getTime()) / 86400000))
+                        : null;
+                      const clampedToday = endD && today > endD ? endD : today;
+                      const elapsedDays = startD
+                        ? Math.max(1, Math.round((clampedToday.getTime() - startD.getTime()) / 86400000))
+                        : null;
+                      const timePct = totalDays && elapsedDays ? Math.min(100, Math.round((elapsedDays / totalDays) * 100)) : null;
+                      const burnRate = elapsedDays && elapsedDays > 0 && totalExpense > 0 ? totalExpense / elapsedDays : 0;
+                      const projected = totalDays && burnRate > 0 ? Math.round(burnRate * totalDays) : null;
+                      const overrun = projected != null ? projected - budget : null;
+                      const expensePctForecast = budget > 0 ? Math.round((totalExpense / budget) * 100) : 0;
+                      const cpi = timePct != null && timePct > 0 ? expensePctForecast / timePct : null;
+                      const daysLeft = endD ? Math.max(0, Math.round((endD.getTime() - today.getTime()) / 86400000)) : null;
+                      const projectedPct = projected ? Math.round((projected / budget) * 100) : null;
+                      const isOverrun = overrun != null && overrun > 0;
+                      return (
+                        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-5 space-y-4">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-lg bg-violet-50 dark:bg-violet-900/30 flex items-center justify-center flex-shrink-0">
+                              <svg className="w-4 h-4 text-violet-600 dark:text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                              </svg>
+                            </div>
+                            <h3 className="font-semibold text-gray-900 dark:text-gray-100">Прогнозирование бюджета</h3>
+                            {isOverrun && (
+                              <span className="ml-auto text-xs font-medium px-2 py-0.5 bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 rounded-full">
+                                Риск превышения
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                            <div className="bg-gray-50 dark:bg-gray-700/40 rounded-xl p-3.5">
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Прогноз итоговых затрат</p>
+                              <p className={`text-lg font-bold ${isOverrun ? 'text-red-500' : 'text-green-600 dark:text-green-400'}`}>
+                                {projected != null ? fmtMoney(projected) : '—'}
+                              </p>
+                              {projectedPct != null && (
+                                <p className={`text-xs mt-0.5 ${projectedPct > 100 ? 'text-red-400' : 'text-gray-400'}`}>
+                                  {projectedPct}% от бюджета
+                                </p>
+                              )}
+                            </div>
+                            <div className="bg-gray-50 dark:bg-gray-700/40 rounded-xl p-3.5">
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{isOverrun ? 'Ожидаемый перерасход' : 'Ожидаемая экономия'}</p>
+                              <p className={`text-lg font-bold ${isOverrun ? 'text-red-500' : overrun != null ? 'text-green-600 dark:text-green-400' : 'text-gray-400'}`}>
+                                {overrun != null ? `${isOverrun ? '+' : ''}${fmtMoney(Math.abs(overrun))}` : '—'}
+                              </p>
+                              <p className="text-xs text-gray-400 mt-0.5">
+                                {overrun != null && budget > 0 ? `${Math.abs(Math.round((overrun / budget) * 100))}% от бюджета` : ''}
+                              </p>
+                            </div>
+                            <div className="bg-gray-50 dark:bg-gray-700/40 rounded-xl p-3.5">
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Индекс эффективности (CPI)</p>
+                              <p className={`text-lg font-bold ${cpi == null ? 'text-gray-400' : cpi <= 1 ? 'text-green-600 dark:text-green-400' : 'text-red-500'}`}>
+                                {cpi != null ? cpi.toFixed(2) : '—'}
+                              </p>
+                              <p className="text-xs text-gray-400 mt-0.5">
+                                {cpi == null ? 'Нет данных' : cpi <= 1 ? 'В рамках плана' : 'Опережает план затрат'}
+                              </p>
+                            </div>
+                            <div className="bg-gray-50 dark:bg-gray-700/40 rounded-xl p-3.5">
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Осталось дней</p>
+                              <p className={`text-lg font-bold ${daysLeft == null ? 'text-gray-400' : daysLeft === 0 ? 'text-red-500' : daysLeft <= 7 ? 'text-orange-500' : 'text-gray-700 dark:text-gray-200'}`}>
+                                {daysLeft != null ? daysLeft : '—'}
+                              </p>
+                              <p className="text-xs text-gray-400 mt-0.5">
+                                {timePct != null ? `${timePct}% проекта истекло` : endD ? new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'short' }).format(endD) : 'Дата не задана'}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="space-y-3">
+                            <div>
+                              <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-1.5">
+                                <span>Использование бюджета</span>
+                                <span className="font-medium">{expensePctForecast}%</span>
+                              </div>
+                              <div className="h-2.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full transition-all ${expensePctForecast > 100 ? 'bg-red-500' : expensePctForecast > 80 ? 'bg-orange-400' : 'bg-violet-500'}`}
+                                  style={{ width: `${Math.min(100, expensePctForecast)}%` }}
+                                />
+                              </div>
+                            </div>
+                            {timePct != null && (
+                              <div>
+                                <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-1.5">
+                                  <span>Прошло времени по плану</span>
+                                  <span className="font-medium">{timePct}%</span>
+                                </div>
+                                <div className="h-2.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                                  <div className="h-full rounded-full bg-blue-400 transition-all" style={{ width: `${Math.min(100, timePct)}%` }} />
+                                </div>
+                              </div>
+                            )}
+                            {projectedPct != null && (
+                              <div>
+                                <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-1.5">
+                                  <span>Прогноз к завершению</span>
+                                  <span className={`font-medium ${projectedPct > 100 ? 'text-red-500' : 'text-green-600'}`}>{projectedPct}%</span>
+                                </div>
+                                <div className="h-2.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full transition-all ${projectedPct > 100 ? 'bg-red-400' : 'bg-green-400'}`}
+                                    style={{ width: `${Math.min(100, projectedPct)}%` }}
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {isOverrun && overrun != null && (
+                            <div className="flex items-start gap-3 p-3.5 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-100 dark:border-red-800/30">
+                              <svg className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                              </svg>
+                              <div>
+                                <p className="text-sm font-medium text-red-700 dark:text-red-400">Прогнозируемое превышение бюджета</p>
+                                <p className="text-xs text-red-600 dark:text-red-400 mt-0.5">
+                                  При текущем темпе расходов ({fmtMoney(Math.round(burnRate))} / день) итоговые затраты превысят бюджет на {fmtMoney(overrun)}.
+                                  {daysLeft != null && daysLeft > 0 ? ` Рекомендуется сократить расходы до ${fmtMoney(Math.round((budget - totalExpense) / daysLeft))} / день.` : ''}
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                          {!isOverrun && projected != null && overrun != null && (
+                            <div className="flex items-start gap-3 p-3.5 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-100 dark:border-green-800/30">
+                              <svg className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              <p className="text-sm text-green-700 dark:text-green-400">
+                                Проект укладывается в бюджет. Ожидаемая экономия — <strong>{fmtMoney(Math.abs(overrun))}</strong>.
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </>
                 );
               })()}
