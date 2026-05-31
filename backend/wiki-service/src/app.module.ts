@@ -5,6 +5,7 @@ import { APP_GUARD, APP_FILTER } from '@nestjs/core';
 import configuration from './config/configuration';
 import { DatabaseModule } from './database/database.module';
 import { WikiPagesModule } from './modules/wiki-pages/wiki-pages.module';
+import { WikiDraftsModule } from './modules/wiki-drafts/wiki-drafts.module';
 import { ConstructionNormsModule } from './modules/construction-norms/construction-norms.module';
 import { HealthModule } from './modules/health/health.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
@@ -17,6 +18,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     PassportModule.register({ defaultStrategy: 'jwt' }),
     DatabaseModule,
     WikiPagesModule,
+    WikiDraftsModule,
     ConstructionNormsModule,
     HealthModule,
   ],

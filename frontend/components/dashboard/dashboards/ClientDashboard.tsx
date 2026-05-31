@@ -121,8 +121,7 @@ export default function ClientDashboard({ user }: { user: any }) {
     };
   }, []);
 
-  const fullName =
-    [user?.lastName, user?.firstName].filter(Boolean).join(' ') || user?.name || 'Клиент';
+  const fullName = user?.name || 'Клиент';
 
   return (
     <div className="space-y-8">

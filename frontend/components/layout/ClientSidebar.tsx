@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { useSidebarStore } from '@/stores/sidebarStore';
 import { useChatStore } from '@/stores/chatStore';
@@ -65,10 +65,16 @@ const ITEMS: Item[] = [
   { href: '/dashboard/chat', label: 'Чат с командой', icon: <IconChat /> },
 ];
 
+// Подпись пункта: видна на мобильном (меню всегда раскрыто) и на десктопе,
+// когда сайдбар развёрнут.
+const LABEL_CLS = 'text-sm font-medium flex-1 inline lg:hidden lg:sidebar-expanded:inline';
+
 export default function ClientSidebar() {
   const pathname = usePathname();
-  const { sidebarOpen, setSidebarOpen } = useSidebarStore();
+  const router = useRouter();
+  const { sidebarOpen, setSidebarOpen, sidebarExpanded, setSidebarExpanded } = useSidebarStore();
   const user = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
   const chatUnread = useChatStore((s) => Object.values(s.unreadCounts).reduce((a, b) => a + b, 0));
   const fetchChatUnreadSummary = useChatStore((s) => s.fetchUnreadSummary);
 
@@ -78,6 +84,23 @@ export default function ClientSidebar() {
     const id = setInterval(fetchChatUnreadSummary, 60_000);
     return () => clearInterval(id);
   }, [user, fetchChatUnreadSummary]);
+
+  const fullName = user?.name || 'Клиент';
+  const initials = fullName
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0])
+    .join('')
+    .toUpperCase() || 'К';
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } finally {
+      router.push('/portal/login');
+    }
+  };
 
   return (
     <div className="min-w-fit">
@@ -89,11 +112,12 @@ export default function ClientSidebar() {
         id="sidebar"
         className={`flex lg:flex! flex-col absolute z-40 left-0 top-0 lg:static lg:left-auto lg:top-auto lg:translate-x-0 h-[100dvh] overflow-y-auto lg:overflow-y-auto no-scrollbar w-64 lg:w-20 lg:sidebar-expanded:w-64 shrink-0 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-200 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-64'}`}
       >
+        {/* Brand + mobile close */}
         <div className="flex justify-between items-center px-4 py-5">
           <Link href="/dashboard" className="block">
             <span className="text-lg font-bold text-violet-600 dark:text-violet-400">
               3.15
-              <span className="hidden lg:sidebar-expanded:inline ml-1 text-gray-700 dark:text-gray-200 text-sm font-normal">
+              <span className="ml-1 text-gray-700 dark:text-gray-200 text-sm font-normal inline lg:hidden lg:sidebar-expanded:inline">
                 Портал клиента
               </span>
             </span>
@@ -101,12 +125,13 @@ export default function ClientSidebar() {
           <button
             className="lg:hidden text-gray-500 hover:text-gray-700"
             onClick={() => setSidebarOpen(false)}
-            aria-label="Close sidebar"
+            aria-label="Закрыть меню"
           >
             ✕
           </button>
         </div>
 
+        {/* Nav */}
         <nav className="px-3 mt-2">
           <ul className="space-y-1">
             {ITEMS.map((item) => {
@@ -118,6 +143,7 @@ export default function ClientSidebar() {
                   <Link
                     href={item.href}
                     onClick={() => setSidebarOpen(false)}
+                    title={item.label}
                     className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
                       active
                         ? 'bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300'
@@ -125,11 +151,9 @@ export default function ClientSidebar() {
                     }`}
                   >
                     {item.icon}
-                    <span className="text-sm font-medium hidden lg:sidebar-expanded:inline flex-1">
-                      {item.label}
-                    </span>
+                    <span className={LABEL_CLS}>{item.label}</span>
                     {item.href === '/dashboard/chat' && chatUnread > 0 && (
-                      <span className="hidden lg:sidebar-expanded:inline-block px-2 py-0.5 text-xs rounded-full bg-rose-500 text-white">
+                      <span className="px-2 py-0.5 text-xs rounded-full bg-rose-500 text-white">
                         {chatUnread}
                       </span>
                     )}
@@ -140,8 +164,46 @@ export default function ClientSidebar() {
           </ul>
         </nav>
 
-        <div className="mt-auto px-4 py-4 hidden lg:sidebar-expanded:block text-xs text-gray-400">
-          Режим только просмотра
+        {/* Footer: profile + logout + expand toggle */}
+        <div className="mt-auto border-t border-gray-200 dark:border-gray-700 px-3 py-3 space-y-1">
+          <div className="flex items-center gap-3 px-2 py-2">
+            <div className="shrink-0 w-9 h-9 rounded-full bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-300 flex items-center justify-center text-sm font-semibold">
+              {initials}
+            </div>
+            <div className="min-w-0 flex-1 inline lg:hidden lg:sidebar-expanded:block">
+              <div className="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">{fullName}</div>
+              <div className="text-xs text-gray-400">Клиент · только просмотр</div>
+            </div>
+          </div>
+
+          <button
+            onClick={handleLogout}
+            title="Выйти"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
+          >
+            <svg className="shrink-0 w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M18 15l3-3m0 0-3-3m3 3H9" />
+            </svg>
+            <span className={LABEL_CLS}>Выйти</span>
+          </button>
+
+          {/* Свернуть/развернуть (только десктоп) */}
+          <button
+            onClick={() => setSidebarExpanded(!sidebarExpanded)}
+            title={sidebarExpanded ? 'Свернуть меню' : 'Развернуть меню'}
+            className="hidden lg:flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
+          >
+            <svg
+              className={`shrink-0 w-5 h-5 transition-transform ${sidebarExpanded ? '' : 'rotate-180'}`}
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+            </svg>
+            <span className="text-sm hidden lg:sidebar-expanded:inline flex-1 text-left">Свернуть</span>
+          </button>
         </div>
       </div>
     </div>

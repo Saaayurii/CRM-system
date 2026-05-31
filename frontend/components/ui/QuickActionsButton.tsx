@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import { useChatStore } from '@/stores/chatStore';
+import { useIsClient } from '@/hooks/useIsClient';
 import ProjectFormModal from '@/components/dashboard/ProjectFormModal';
 import TaskFormModal from '@/components/dashboard/TaskFormModal';
 import EmployeeFormModal from '@/components/dashboard/EmployeeFormModal';
@@ -87,6 +88,7 @@ export default function QuickActionsButton() {
   const chatWindowOpen = useChatStore((s) => s.chatWindowOpen);
   const addToast = useToastStore((s) => s.addToast);
   const pageContext = usePageContext();
+  const isClient = useIsClient();
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressFired = useRef(false);
 
@@ -220,7 +222,8 @@ export default function QuickActionsButton() {
     setCreatingEntity(null);
   };
 
-  const showFab = !chatWindowOpen && !hasModalOpen && !creatingEntity;
+  // Клиент портала работает в режиме только чтения — быстрые действия скрыты.
+  const showFab = !isClient && !chatWindowOpen && !hasModalOpen && !creatingEntity;
   const fabTitle = pageContext
     ? `${pageContext.label} (удерживайте для меню)`
     : pageActions.length > 0

@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useChatStore, ChatChannel } from '@/stores/chatStore';
 import { useAuthStore } from '@/stores/authStore';
+import { useIsClient } from '@/hooks/useIsClient';
 import CreateChannelModal from './CreateChannelModal';
 import ChatContextMenu from './ChatContextMenu';
 import ChatPreviewModal from './ChatPreviewModal';
@@ -39,6 +40,7 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
 
   const [search, setSearch] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const isClient = useIsClient();
   const [activeFolder, setActiveFolder] = useState<'all' | number>('all');
   const [archivingId, setArchivingId] = useState<number | null>(null);
   const addToast = useToastStore((s) => s.addToast);
@@ -462,15 +464,17 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
       <div className="p-4 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">Чаты</h2>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="p-2 text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-500/10 rounded-lg transition-colors"
-            title="Новый чат"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-          </button>
+          {!isClient && (
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="p-2 text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-500/10 rounded-lg transition-colors"
+              title="Новый чат"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+            </button>
+          )}
         </div>
         <div className="relative">
           <svg

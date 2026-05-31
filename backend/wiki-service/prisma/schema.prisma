@@ -23,6 +23,7 @@ model WikiPage {
   title String @db.VarChar(255)
   slug String? @unique @db.VarChar(255)
   content String? @db.Text
+  blocks Json @default("[]")
   category String? @db.VarChar(100)
   parentPageId Int? @map("parent_page_id")
   version Int @default(1)
@@ -38,9 +39,68 @@ model WikiPage {
   account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
   parentPage WikiPage? @relation("WikiPageHierarchy", fields: [parentPageId], references: [id])
   childPages WikiPage[] @relation("WikiPageHierarchy")
+  versions WikiPageVersion[]
+  drafts WikiPageDraft[]
+  childDrafts WikiPageDraft[] @relation("DraftParentPage")
   @@index([accountId])
   @@index([category])
   @@map("wiki_pages")
+}
+
+model WikiPageVersion {
+  id               Int      @id @default(autoincrement())
+  wikiPageId       Int      @map("wiki_page_id")
+  versionNum       Int      @default(1) @map("version_num")
+  title            String   @db.VarChar(255)
+  blocks           Json     @default("[]")
+  changeNote       String?  @db.Text @map("change_note")
+  createdByUserId  Int?     @map("created_by_user_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  page WikiPage @relation(fields: [wikiPageId], references: [id], onDelete: Cascade)
+
+  @@unique([wikiPageId, versionNum])
+  @@index([wikiPageId])
+  @@map("wiki_page_versions")
+}
+
+model WikiPageDraft {
+  id            Int      @id @default(autoincrement())
+  wikiPageId    Int?     @map("wiki_page_id")
+  accountId     Int      @map("account_id")
+  title         String   @db.VarChar(255)
+  category      String?  @db.VarChar(100)
+  parentPageId  Int?     @map("parent_page_id")
+  tags          Json     @default("[]")
+  blocks        Json     @default("[]")
+  status        String   @default("draft") @db.VarChar(32)
+  authorId      Int      @map("author_id")
+  reviewerId    Int?     @map("reviewer_id")
+  reviewNote    String?  @db.Text @map("review_note")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at")
+
+  page       WikiPage?  @relation(fields: [wikiPageId], references: [id], onDelete: Cascade)
+  parentPage WikiPage?  @relation("DraftParentPage", fields: [parentPageId], references: [id], onDelete: SetNull)
+  comments   WikiDraftComment[]
+
+  @@index([accountId])
+  @@index([status])
+  @@index([authorId])
+  @@map("wiki_page_drafts")
+}
+
+model WikiDraftComment {
+  id        Int      @id @default(autoincrement())
+  draftId   Int      @map("draft_id")
+  userId    Int      @map("user_id")
+  text      String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+
+  draft WikiPageDraft @relation(fields: [draftId], references: [id], onDelete: Cascade)
+
+  @@index([draftId])
+  @@map("wiki_draft_comments")
 }
 
 // ─── Construction Wiki (Строительная ВИКИ) — global normative base ───

@@ -375,6 +375,17 @@ export default function LoginPage() {
           Зарегистрироваться
         </a>
       </div>
+
+      <div className="mt-5 flex items-center justify-center gap-4 text-sm">
+        <a href="/landing" className="text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400">
+          ← Главная
+        </a>
+        <span className="text-gray-300 dark:text-gray-700">·</span>
+        <a href="/portal/login" className="text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400">
+          Вход для клиентов
+        </a>
+      </div>
+
       <p className="mt-4 text-center text-xs text-gray-400 dark:text-gray-500">
         <a href="/privacy" className="underline hover:text-violet-500 transition-colors">
           Политика конфиденциальности
