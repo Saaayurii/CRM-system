@@ -27,6 +27,127 @@ interface Attachment {
   fileUrl: string;
 }
 
+// Telegram-style album grid for multiple images/videos inside a comment.
+// Mirrors the layout used by the chat (components/chat/ChatMessage.tsx → MediaAlbum).
+function CommentMediaAlbum({ items, onOpen }: { items: Attachment[]; onOpen: (a: Attachment) => void }) {
+  const count = items.length;
+
+  const renderCell = (a: Attachment, key: React.Key, className: string, overflow?: number) => {
+    const url = normalizeFileUrl(a.fileUrl) || '';
+    const isVid = isVideoFile(a);
+    const showOverflow = overflow != null && overflow > 0;
+    return (
+      <button
+        key={key}
+        type="button"
+        onClick={() => onOpen(a)}
+        title={a.fileName}
+        className={`relative overflow-hidden cursor-pointer bg-gray-100 dark:bg-gray-800 ${className}`}
+      >
+        {isVid ? (
+          <video
+            src={url}
+            preload="metadata"
+            muted
+            playsInline
+            onLoadedMetadata={(e) => { e.currentTarget.currentTime = 0.001; }}
+            className="w-full h-full object-cover"
+            style={{ background: '#000' }}
+          />
+        ) : (
+          <img src={url} alt={a.fileName} className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+        )}
+        {isVid && !showOverflow && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/25 pointer-events-none">
+            <div className="w-9 h-9 rounded-full bg-white/90 flex items-center justify-center shadow">
+              <svg className="w-3.5 h-3.5 text-gray-800 ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+            </div>
+          </div>
+        )}
+        {showOverflow && (
+          <div className="absolute inset-0 bg-black/60 flex items-center justify-center pointer-events-none">
+            <span className="text-white text-2xl font-bold">+{overflow}</span>
+          </div>
+        )}
+      </button>
+    );
+  };
+
+  if (count === 1) {
+    const a = items[0];
+    const url = normalizeFileUrl(a.fileUrl) || '';
+    const isVid = isVideoFile(a);
+    return (
+      <button
+        type="button"
+        onClick={() => onOpen(a)}
+        title={a.fileName}
+        className="relative block rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 hover:ring-2 hover:ring-violet-400 transition-all"
+        style={{ maxWidth: 280 }}
+      >
+        {isVid ? (
+          <video
+            src={url}
+            preload="metadata"
+            muted
+            playsInline
+            onLoadedMetadata={(e) => { e.currentTarget.currentTime = 0.001; }}
+            className="max-w-[280px] max-h-[320px] object-cover block"
+            style={{ background: '#000' }}
+          />
+        ) : (
+          <img src={url} alt={a.fileName} className="max-w-[280px] max-h-[320px] object-cover block" />
+        )}
+        {isVid && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/25 pointer-events-none">
+            <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow">
+              <svg className="w-5 h-5 text-gray-800 ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+            </div>
+          </div>
+        )}
+      </button>
+    );
+  }
+
+  const wrap = 'rounded-lg overflow-hidden w-full max-w-[320px]';
+
+  if (count === 2) {
+    return (
+      <div className={`flex gap-0.5 h-44 ${wrap}`}>
+        {renderCell(items[0], 0, 'flex-1')}
+        {renderCell(items[1], 1, 'flex-1')}
+      </div>
+    );
+  }
+
+  if (count === 3) {
+    return (
+      <div className={`flex flex-col gap-0.5 ${wrap}`}>
+        <div className="h-40">{renderCell(items[0], 0, 'w-full h-full')}</div>
+        <div className="flex gap-0.5 h-28">
+          {renderCell(items[1], 1, 'flex-1')}
+          {renderCell(items[2], 2, 'flex-1')}
+        </div>
+      </div>
+    );
+  }
+
+  // 4+ items: 1 large + up to 3 thumbnails, last thumb shows overflow count
+  const thumbs = items.slice(1, 4);
+  const overflow = count - 4;
+  return (
+    <div className={`flex flex-col gap-0.5 ${wrap}`}>
+      <div className="h-44">{renderCell(items[0], 0, 'w-full h-full')}</div>
+      <div className="flex gap-0.5 h-28">
+        {thumbs.map((a, i) => {
+          const isLast = i === thumbs.length - 1 && overflow > 0;
+          return renderCell(a, i + 1, 'flex-1', isLast ? overflow : undefined);
+        })}
+      </div>
+    </div>
+  );
+}
+
 interface ChecklistItem {
   id: string;
   text: string;
@@ -2190,58 +2311,36 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                           ) : (
                             <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap break-words">{text}</p>
                           )}
-                          {att.length > 0 && !isEditing && (
-                            <div className="flex flex-wrap gap-2 mt-2">
-                              {att.map((a, i) => {
-                                const isImg = isImageFile(a);
-                                const isVid = isVideoFile(a);
-                                const thumbUrl = (isImg || isVid) ? normalizeFileUrl(a.fileUrl) : null;
-                                if (isImg && thumbUrl) {
-                                  return (
-                                    <button
-                                      key={i}
-                                      onClick={() => setPreviewFile({ url: a.fileUrl, name: a.fileName })}
-                                      title={a.fileName}
-                                      className="group/img relative block rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 hover:ring-2 hover:ring-violet-400 transition-all"
-                                      style={{ maxWidth: 200, maxHeight: 160 }}
-                                    >
-                                      <img src={thumbUrl} alt={a.fileName} className="max-w-[200px] max-h-[160px] object-cover" />
-                                    </button>
-                                  );
-                                }
-                                if (isVid && thumbUrl) {
-                                  return (
-                                    <button
-                                      key={i}
-                                      onClick={() => setPreviewFile({ url: a.fileUrl, name: a.fileName })}
-                                      title={a.fileName}
-                                      className="group/vid relative block rounded-lg overflow-hidden bg-black hover:ring-2 hover:ring-violet-400 transition-all"
-                                      style={{ maxWidth: 200 }}
-                                    >
-                                      <video src={thumbUrl} className="max-w-[200px] max-h-[160px] object-cover" preload="metadata" />
-                                      <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover/vid:bg-black/10 transition-colors">
-                                        <svg className="w-10 h-10 text-white/90" fill="currentColor" viewBox="0 0 24 24">
-                                          <path d="M8 5v14l11-7z" />
+                          {att.length > 0 && !isEditing && (() => {
+                            const media = att.filter((a) => isImageFile(a) || isVideoFile(a));
+                            const files = att.filter((a) => !isImageFile(a) && !isVideoFile(a));
+                            return (
+                              <div className="mt-2 space-y-2">
+                                {media.length > 0 && (
+                                  <CommentMediaAlbum
+                                    items={media}
+                                    onOpen={(a) => setPreviewFile({ url: a.fileUrl, name: a.fileName })}
+                                  />
+                                )}
+                                {files.length > 0 && (
+                                  <div className="flex flex-wrap gap-2">
+                                    {files.map((a, i) => (
+                                      <button
+                                        key={i}
+                                        onClick={() => setPreviewFile({ url: a.fileUrl, name: a.fileName })}
+                                        className="flex items-center gap-1.5 px-2 py-1 text-xs text-violet-500 hover:underline bg-gray-50 dark:bg-gray-800/60 rounded-md"
+                                      >
+                                        <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                          <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                                         </svg>
-                                      </div>
-                                    </button>
-                                  );
-                                }
-                                return (
-                                  <button
-                                    key={i}
-                                    onClick={() => setPreviewFile({ url: a.fileUrl, name: a.fileName })}
-                                    className="flex items-center gap-1.5 px-2 py-1 text-xs text-violet-500 hover:underline bg-gray-50 dark:bg-gray-800/60 rounded-md"
-                                  >
-                                    <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                                    </svg>
-                                    <span className="truncate max-w-[200px]">{a.fileName}</span>
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          )}
+                                        <span className="truncate max-w-[200px]">{a.fileName}</span>
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
                       </div>
                     );
