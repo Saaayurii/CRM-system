@@ -8,6 +8,7 @@ import { useDownloadPdf } from '@/lib/hooks/useDownloadPdf';
 import FinanceOperationModal from '@/components/finance/FinanceOperationModal';
 import FinanceOperationDrawer from '@/components/finance/FinanceOperationDrawer';
 import DocumentsOverview from '@/components/estimates/DocumentsOverview';
+import { useIsClient } from '@/hooks/useIsClient';
 import FinancialReportModal from '@/components/estimates/FinancialReportModal';
 
 interface Operation {
@@ -196,6 +197,7 @@ const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
 ];
 
 export default function FinancePage() {
+  const isClient = useIsClient();
   const [tab, setTab] = useState<TabKey>('all');
   const [projects, setProjects] = useState<Project[]>([]);
   const [sites, setSites] = useState<Site[]>([]);
@@ -467,15 +469,17 @@ export default function FinancePage() {
         </div>
         {tab !== 'documents' && (
           <div className="flex items-center gap-0.5">
-            <button
-              onClick={() => setModalOpen(true)}
-              title="Добавить операцию"
-              className="p-2 text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
-            </button>
+            {!isClient && (
+              <button
+                onClick={() => setModalOpen(true)}
+                title="Добавить операцию"
+                className="p-2 text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
+            )}
             <div className="relative" ref={settingsRef}>
               <button
                 onClick={() => setShowSettings((v) => !v)}

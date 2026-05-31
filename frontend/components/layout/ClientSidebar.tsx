@@ -55,6 +55,14 @@ function IconCal() {
     </svg>
   );
 }
+function IconUser() {
+  return (
+    <svg className="shrink-0 w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21c0-4 3.5-6 8-6s8 2 8 6" />
+    </svg>
+  );
+}
 
 const ITEMS: Item[] = [
   { href: '/dashboard', label: 'Главная', icon: <IconHome /> },
@@ -63,6 +71,7 @@ const ITEMS: Item[] = [
   { href: '/dashboard/finance', label: 'Финансы', icon: <IconCoin /> },
   { href: '/dashboard/calendar', label: 'Календарь', icon: <IconCal /> },
   { href: '/dashboard/chat', label: 'Чат с командой', icon: <IconChat /> },
+  { href: '/dashboard/profile', label: 'Профиль', icon: <IconUser /> },
 ];
 
 // Подпись пункта: видна на мобильном (меню всегда раскрыто) и на десктопе,

@@ -127,6 +127,22 @@ export class ClientPortalAccessService {
       }).catch(() => null);
       const channelName = `Клиент: ${client.companyName || [client.firstName, client.lastName].filter(Boolean).join(' ') || `#${client.id}`}${project?.name ? ` — ${project.name}` : ''}`;
 
+      // Собеседник клиента: ответственный менеджер, иначе создатель (админ) проекта.
+      let counterpartId: number | undefined = client.assignedManagerId ?? undefined;
+      if (!counterpartId) {
+        try {
+          const rows: any[] = await (this.prisma as any).$queryRaw`
+            SELECT created_by_user_id FROM projects WHERE id = ${projectId} LIMIT 1`;
+          counterpartId = rows?.[0]?.created_by_user_id ?? undefined;
+        } catch {
+          /* проект без создателя — создаём чат хотя бы с клиентом */
+        }
+      }
+
+      const memberIds = [clientUserId, counterpartId].filter(
+        (v): v is number => typeof v === 'number',
+      );
+
       await firstValueFrom(
         this.http.post(
           `${chatUrl}/chat-channels`,
@@ -134,7 +150,7 @@ export class ClientPortalAccessService {
             name: channelName,
             type: 'private',
             projectId,
-            memberIds: clientUserId ? [clientUserId] : [],
+            memberIds,
           },
           { headers: { Authorization: authHeader } },
         ),

@@ -7386,6 +7386,23 @@ interface FinanceField {
   options?: { value: number | string; label: string }[];
 }
 
+function genPaymentNumber(): string {
+  const d = new Date();
+  const date = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+  const rand = String(Math.floor(Math.random() * 900) + 100);
+  return `PAY-${date}-${rand}`;
+}
+
+function formatAmountDisplay(raw: string): string {
+  const digits = raw.replace(/\D/g, '');
+  if (!digits) return '';
+  return Number(digits).toLocaleString('ru-RU').replace(/\s/g, '.');
+}
+
+function parseAmountDisplay(displayed: string): string {
+  return displayed.replace(/\./g, '').replace(/\D/g, '');
+}
+
 function FinanceModal({ title, fields, initialData, saving, onClose, onSave }: {
   title: string;
   fields: FinanceField[];
@@ -7400,9 +7417,13 @@ function FinanceModal({ title, fields, initialData, saving, onClose, onSave }: {
       if (initialData && initialData[f.key] != null) {
         if (f.type === 'date' && typeof initialData[f.key] === 'string') {
           defaults[f.key] = (initialData[f.key] as string).slice(0, 10);
+        } else if (f.key === 'amount' || f.type === 'number') {
+          defaults[f.key] = initialData[f.key];
         } else {
           defaults[f.key] = initialData[f.key];
         }
+      } else if (f.key === 'paymentNumber' && !initialData) {
+        defaults[f.key] = genPaymentNumber();
       } else if (f.type === 'select' && f.options?.length) {
         defaults[f.key] = f.options[0].value;
       } else {
@@ -7412,15 +7433,31 @@ function FinanceModal({ title, fields, initialData, saving, onClose, onSave }: {
     return defaults;
   });
 
+  const [amountDisplay, setAmountDisplay] = useState<Record<string, string>>(() => {
+    const init: Record<string, string> = {};
+    for (const f of fields) {
+      if (f.type === 'number') {
+        const v = initialData?.[f.key];
+        init[f.key] = v != null && v !== '' ? formatAmountDisplay(String(v)) : '';
+      }
+    }
+    return init;
+  });
+
   const set = (key: string, val: unknown) => setForm((p) => ({ ...p, [key]: val }));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const data: Record<string, unknown> = {};
     for (const f of fields) {
-      const v = form[f.key];
-      if (v === '' || v == null) continue;
-      data[f.key] = f.type === 'number' ? Number(v) : v;
+      if (f.type === 'number') {
+        const raw = parseAmountDisplay(String(amountDisplay[f.key] ?? ''));
+        if (raw) data[f.key] = Number(raw);
+      } else {
+        const v = form[f.key];
+        if (v === '' || v == null) continue;
+        data[f.key] = v;
+      }
     }
     onSave(data);
   };
@@ -7447,6 +7484,20 @@ function FinanceModal({ title, fields, initialData, saving, onClose, onSave }: {
                   }}>
                   {f.options?.map((o) => <option key={String(o.value)} value={String(o.value)}>{o.label}</option>)}
                 </select>
+              ) : f.type === 'number' ? (
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  required={f.required}
+                  className={inputCls}
+                  placeholder="0"
+                  value={amountDisplay[f.key] ?? ''}
+                  onChange={(e) => {
+                    const raw = parseAmountDisplay(e.target.value);
+                    const formatted = raw ? formatAmountDisplay(raw) : '';
+                    setAmountDisplay((p) => ({ ...p, [f.key]: formatted }));
+                  }}
+                />
               ) : (
                 <input type={f.type} required={f.required} className={inputCls}
                   value={String(form[f.key] ?? '')}

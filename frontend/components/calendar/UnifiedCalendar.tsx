@@ -73,6 +73,7 @@ export default function UnifiedCalendar({
   const calendarRef = useRef<any>(null);
   const user = useAuthStore((s) => s.user);
   const roleCode = user?.role?.code;
+  const isClient = user?.roleId === 15; // клиент портала — только просмотр
   const isAdminLike =
     roleCode === 'super_admin' || roleCode === 'admin' || user?.isGlobalAdmin;
 
@@ -446,18 +447,20 @@ export default function UnifiedCalendar({
 
         {/* Действия */}
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => {
-              setEditing({ projectId });
-              setEditorOpen(true);
-            }}
-            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2 sm:py-1.5 text-sm rounded-lg bg-violet-500 hover:bg-violet-600 text-white shadow-sm transition"
-          >
-            <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
-            </svg>
-            <span className="truncate">Создать событие</span>
-          </button>
+          {!isClient && (
+            <button
+              onClick={() => {
+                setEditing({ projectId });
+                setEditorOpen(true);
+              }}
+              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2 sm:py-1.5 text-sm rounded-lg bg-violet-500 hover:bg-violet-600 text-white shadow-sm transition"
+            >
+              <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
+              </svg>
+              <span className="truncate">Создать событие</span>
+            </button>
+          )}
 
           <button
             type="button"
@@ -518,9 +521,9 @@ export default function UnifiedCalendar({
             firstDay={1}
             height="78vh"
             nowIndicator
-            selectable
-            editable
-            eventResizableFromStart
+            selectable={!isClient}
+            editable={!isClient}
+            eventResizableFromStart={!isClient}
             dayMaxEvents={3}
             weekNumbers={false}
             fixedWeekCount={false}
@@ -530,7 +533,7 @@ export default function UnifiedCalendar({
             slotDuration="00:30:00"
             slotLabelFormat={{ hour: '2-digit', minute: '2-digit', hour12: false }}
             events={eventsSource}
-            select={handleDateSelect}
+            select={isClient ? undefined : handleDateSelect}
             eventClick={handleEventClick}
             eventDrop={handleEventDrop}
             eventResize={handleEventDrop}

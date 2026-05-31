@@ -20,6 +20,13 @@ const CLIENT_ALLOWED_WRITES: Array<{ method: string; pattern: RegExp }> = [
   { method: 'POST', pattern: /\/notifications\/push-subscribe$/ },
   { method: 'DELETE', pattern: /\/notifications\/push-subscribe$/ },
   { method: 'DELETE', pattern: /\/auth\/sessions\/[^/]+$/ },
+  { method: 'POST', pattern: /\/users\/upload-avatar$/ },
+];
+
+// Редактирование СВОЕГО профиля/пароля — путь должен содержать собственный userId.
+const CLIENT_SELF_WRITES: Array<{ method: string; build: (id: number) => RegExp }> = [
+  { method: 'PUT', build: (id) => new RegExp(`/users/${id}$`) },
+  { method: 'PUT', build: (id) => new RegExp(`/users/${id}/password$`) },
 ];
 
 @Injectable()
@@ -37,6 +44,15 @@ export class ClientReadOnlyGuard implements CanActivate {
       (rule) => rule.method === method && rule.pattern.test(path),
     );
     if (allowed) return true;
+
+    // Разрешаем править только СВОЙ профиль (id в пути == id из токена).
+    const selfId = Number(user.userId ?? user.id ?? user.sub);
+    if (selfId) {
+      const selfAllowed = CLIENT_SELF_WRITES.some(
+        (rule) => rule.method === method && rule.build(selfId).test(path),
+      );
+      if (selfAllowed) return true;
+    }
 
     throw new ForbiddenException(
       'Клиентский портал работает в режиме «только просмотр»',
