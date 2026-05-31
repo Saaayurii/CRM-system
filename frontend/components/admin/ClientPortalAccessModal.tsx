@@ -63,6 +63,10 @@ export default function ClientPortalAccessModal({ clientId, clientName, onClose 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!clientId || !projectId) return;
+    if (password.trim() && !login.trim()) {
+      addToast('error', 'Укажите логин — он обязателен, если задан пароль. Либо очистите пароль для входа по магической ссылке.');
+      return;
+    }
     setSubmitting(true);
     try {
       const { data } = await api.post('/client-portal-access', {
@@ -135,12 +139,13 @@ export default function ClientPortalAccessModal({ clientId, clientName, onClose 
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Логин
+                  Логин {password.trim() && <span className="text-red-500">*</span>}
                 </label>
                 <input
                   type="text"
                   value={login}
                   onChange={(e) => setLogin(e.target.value)}
+                  required={!!password.trim()}
                   placeholder="client@acme.com"
                   className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
                 />
@@ -172,27 +177,34 @@ export default function ClientPortalAccessModal({ clientId, clientName, onClose 
               Логин не обязателен — если оставить пустым, клиент сможет войти только по магической ссылке.
             </p>
 
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                <input type="checkbox" checked={canViewProgress} onChange={(e) => setCanViewProgress(e.target.checked)} />
-                Прогресс работ
-              </label>
-              <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                <input type="checkbox" checked={canViewPhotos} onChange={(e) => setCanViewPhotos(e.target.checked)} />
-                Фотоотчёт
-              </label>
-              <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                <input type="checkbox" checked={canViewDocuments} onChange={(e) => setCanViewDocuments(e.target.checked)} />
-                Документы и акты
-              </label>
-              <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                <input type="checkbox" checked={canViewFinancials} onChange={(e) => setCanViewFinancials(e.target.checked)} />
-                Финансовые отчёты
-              </label>
-              <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                <input type="checkbox" checked={createChat} onChange={(e) => setCreateChat(e.target.checked)} />
-                Создать отдельный чат-канал
-              </label>
+            <div className="space-y-1.5">
+              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Что видит клиент</p>
+              {([
+                ['Прогресс работ', canViewProgress, setCanViewProgress],
+                ['Фотоотчёт', canViewPhotos, setCanViewPhotos],
+                ['Документы и акты', canViewDocuments, setCanViewDocuments],
+                ['Финансовые отчёты', canViewFinancials, setCanViewFinancials],
+                ['Создать отдельный чат-канал', createChat, setCreateChat],
+              ] as [string, boolean, (v: boolean) => void][]).map(([label, checked, set]) => (
+                <label
+                  key={label}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${
+                    checked
+                      ? 'border-violet-300 dark:border-violet-500/40 bg-violet-50 dark:bg-violet-500/10'
+                      : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={(e) => set(e.target.checked)}
+                    className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-violet-600 focus:ring-violet-500 dark:bg-gray-800"
+                  />
+                  <span className={`text-sm ${checked ? 'text-gray-900 dark:text-gray-100 font-medium' : 'text-gray-600 dark:text-gray-300'}`}>
+                    {label}
+                  </span>
+                </label>
+              ))}
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
