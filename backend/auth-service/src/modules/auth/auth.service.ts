@@ -218,7 +218,7 @@ export class AuthService {
 
       // Exactly one match — finish login (with 2FA gate when required)
       const only = validUsers[0];
-      if ((only.account?.settings as any)?.require_2fa) {
+      if (this.shouldRequire2fa(only, only.account)) {
         return this.build2faChallenge(only);
       }
       return this.issueSession(only, only.account, userAgent, ipAddress);
@@ -245,11 +245,25 @@ export class AuthService {
     // Password verified — clear brute-force counters.
     await this.throttle.reset(throttleId);
 
-    if ((account?.settings as any)?.require_2fa) {
+    if (this.shouldRequire2fa(user, account)) {
       return this.build2faChallenge(user);
     }
 
     return this.issueSession(user, account, userAgent, ipAddress);
+  }
+
+  /**
+   * Decide whether a login must pass a 2FA challenge.
+   * Super admins (roleId 1 / global admins) are always exempt — they sign in
+   * with just login + password. Otherwise a challenge is required when the
+   * company enforces 2FA OR the user has personally enabled it.
+   */
+  private shouldRequire2fa(user: any, account: any): boolean {
+    const isSuperAdmin = user?.roleId === 1 || (user?.settings as any)?.isGlobalAdmin === true;
+    if (isSuperAdmin) return false;
+    const companyRequires = Boolean((account?.settings as any)?.require_2fa);
+    const userEnabled = Boolean((user?.settings as any)?.twoFactor?.enabled);
+    return companyRequires || userEnabled;
   }
 
   /** Build the token pair + session for a fully-authenticated user. */
