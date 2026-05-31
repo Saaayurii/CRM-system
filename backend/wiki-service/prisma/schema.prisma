@@ -42,3 +42,72 @@ model WikiPage {
   @@index([category])
   @@map("wiki_pages")
 }
+
+// ─── Construction Wiki (Строительная ВИКИ) — global normative base ───
+// СНИПы / ГОСТы / СП — национальные стандарты, общие для всех аккаунтов.
+// Контент не изолируется по accountId; запись разрешена только super_admin.
+
+model NormCategory {
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(255)
+  slug        String?  @db.VarChar(255)
+  description String?  @db.Text
+  icon        String?  @db.VarChar(64)
+  parentId    Int?     @map("parent_id")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  parent   NormCategory?  @relation("NormCategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children NormCategory[] @relation("NormCategoryTree")
+  documents NormDocument[]
+
+  @@index([parentId])
+  @@map("norm_categories")
+}
+
+model NormDocument {
+  id              Int       @id @default(autoincrement())
+  categoryId      Int?      @map("category_id")
+  docType         String    @default("other") @map("doc_type") @db.VarChar(32) // snip | gost | sp | regional | other
+  code            String?   @db.VarChar(120) // обозначение, напр. "СП 48.13330.2019"
+  title           String    @db.VarChar(500)
+  summary         String?   @db.Text
+  content         String?   @db.Text // структурный текст (Markdown)
+  status          String    @default("active") @db.VarChar(32) // active | superseded | draft
+  effectiveDate   DateTime? @map("effective_date") @db.Date
+  supersededDate  DateTime? @map("superseded_date") @db.Date
+  supersededById  Int?      @map("superseded_by_id")
+  tags            Json      @default("[]")
+  attachments     Json      @default("[]")
+  relatedIds      Json      @default("[]") @map("related_ids")
+  keywords        String?   @db.Text
+  viewCount       Int       @default(0) @map("view_count")
+  createdByUserId Int?      @map("created_by_user_id")
+  updatedByUserId Int?      @map("updated_by_user_id")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  category     NormCategory?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  supersededBy NormDocument?  @relation("NormSupersede", fields: [supersededById], references: [id], onDelete: SetNull)
+  supersedes   NormDocument[] @relation("NormSupersede")
+  bookmarks    NormBookmark[]
+
+  @@index([categoryId])
+  @@index([docType])
+  @@index([status])
+  @@map("norm_documents")
+}
+
+model NormBookmark {
+  id         Int      @id @default(autoincrement())
+  userId     Int      @map("user_id")
+  documentId Int      @map("document_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  document NormDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, documentId])
+  @@index([userId])
+  @@map("norm_bookmarks")
+}

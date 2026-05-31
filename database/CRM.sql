@@ -2093,6 +2093,66 @@ CREATE INDEX idx_wiki_pages_account ON wiki_pages(account_id);
 CREATE INDEX idx_wiki_pages_category ON wiki_pages(category);
 
 -- ==========================================
+-- СТРОИТЕЛЬНАЯ ВИКИ (нормативная база — СНИП/ГОСТ/СП)
+-- Глобальная: контент общий для всех аккаунтов, правит super_admin
+-- ==========================================
+
+CREATE TABLE norm_categories (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    slug VARCHAR(255),
+    description TEXT,
+    icon VARCHAR(64),
+    parent_id INTEGER REFERENCES norm_categories(id) ON DELETE SET NULL,
+    sort_order INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_norm_categories_parent ON norm_categories(parent_id);
+
+CREATE TABLE norm_documents (
+    id SERIAL PRIMARY KEY,
+    category_id INTEGER REFERENCES norm_categories(id) ON DELETE SET NULL,
+
+    doc_type VARCHAR(32) NOT NULL DEFAULT 'other', -- snip | gost | sp | regional | other
+    code VARCHAR(120),                             -- обозначение, напр. "СП 48.13330.2019"
+    title VARCHAR(500) NOT NULL,
+    summary TEXT,
+    content TEXT,                                  -- структурный текст (Markdown)
+
+    status VARCHAR(32) NOT NULL DEFAULT 'active',  -- active | superseded | draft
+    effective_date DATE,                           -- вступление в силу
+    superseded_date DATE,                          -- дата отмены
+    superseded_by_id INTEGER REFERENCES norm_documents(id) ON DELETE SET NULL,
+
+    tags JSONB DEFAULT '[]',
+    attachments JSONB DEFAULT '[]',
+    related_ids JSONB DEFAULT '[]',
+    keywords TEXT,
+
+    view_count INTEGER DEFAULT 0,
+    created_by_user_id INTEGER REFERENCES users(id),
+    updated_by_user_id INTEGER REFERENCES users(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_norm_documents_category ON norm_documents(category_id);
+CREATE INDEX idx_norm_documents_type ON norm_documents(doc_type);
+CREATE INDEX idx_norm_documents_status ON norm_documents(status);
+
+CREATE TABLE norm_bookmarks (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    document_id INTEGER NOT NULL REFERENCES norm_documents(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (user_id, document_id)
+);
+
+CREATE INDEX idx_norm_bookmarks_user ON norm_bookmarks(user_id);
+
+-- ==========================================
 -- КАЛЬКУЛЯТОРЫ МАТЕРИАЛОВ
 -- ==========================================
 
