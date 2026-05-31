@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useToastStore } from '@/stores/toastStore';
 import api from '@/lib/api';
 import { normalizeFileUrl } from '@/lib/utils';
+import TwoFactorCard from '@/components/settings/TwoFactorCard';
 
 async function compressImage(file: File, maxSizeMB = 1, maxDimension = 1024): Promise<File> {
   return new Promise((resolve) => {
@@ -619,6 +620,9 @@ export default function SettingsPage() {
           </button>
         </div>
       </form>
+
+      {/* Two-factor authentication */}
+      <TwoFactorCard />
 
       {/* Active Sessions */}
       {canSeeSessions && (

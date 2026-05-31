@@ -30,9 +30,11 @@ import { MemberInviteRepository } from './repositories/member-invite.repository'
 import { SessionRepository } from './repositories/session.repository';
 import { PasswordService } from './services/password.service';
 import { TokenService } from './services/token.service';
+import { TotpService } from './services/totp.service';
 import { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
 import { ConfigService } from '@nestjs/config';
 import { SessionBlacklistService } from '../../common/services/session-blacklist.service';
+import { LoginThrottleService } from '../../common/services/login-throttle.service';
 
 function parseUserAgent(ua: string): { browser: string; os: string; device: string } {
   const browser =
@@ -80,7 +82,9 @@ export class AuthService {
     private readonly sessionRepository: SessionRepository,
     private readonly passwordService: PasswordService,
     private readonly tokenService: TokenService,
+    private readonly totpService: TotpService,
     private readonly sessionBlacklist: SessionBlacklistService,
+    private readonly throttle: LoginThrottleService,
     private readonly configService: ConfigService,
   ) {}
 
@@ -163,6 +167,9 @@ export class AuthService {
     userAgent = '',
     ipAddress = '',
   ): Promise<AuthResponseDto> {
+    const throttleId = `login:${loginDto.email.trim().toLowerCase()}`;
+    await this.throttle.assertNotLocked(throttleId);
+
     // Multi-account flow: when no accountId, check all users with this email
     if (!loginDto.accountId) {
       const allUsers = await this.userRepository.findAllByEmail(loginDto.email);
@@ -176,6 +183,7 @@ export class AuthService {
             throw new UnauthorizedException(`Ваша заявка отклонена${reason}`);
           }
         }
+        await this.throttle.recordFailure(throttleId);
         throw new UnauthorizedException('Invalid credentials');
       }
 
@@ -187,7 +195,13 @@ export class AuthService {
         if (ok) validUsers.push(u);
       }
 
-      if (validUsers.length === 0) throw new UnauthorizedException('Invalid credentials');
+      if (validUsers.length === 0) {
+        await this.throttle.recordFailure(throttleId);
+        throw new UnauthorizedException('Invalid credentials');
+      }
+
+      // Password verified — clear brute-force counters.
+      await this.throttle.reset(throttleId);
 
       // Multiple valid accounts — ask user to pick one
       if (validUsers.length > 1) {
@@ -202,38 +216,59 @@ export class AuthService {
         };
       }
 
-      // Exactly one match — continue with normal flow using that user
-      loginDto = { ...loginDto, accountId: validUsers[0].accountId };
+      // Exactly one match — finish login (with 2FA gate when required)
+      const only = validUsers[0];
+      if ((only.account?.settings as any)?.require_2fa) {
+        return this.build2faChallenge(only);
+      }
+      return this.issueSession(only, only.account, userAgent, ipAddress);
     }
 
     const user = await this.userRepository.findByEmailAndAccount(loginDto.email, loginDto.accountId!);
-    if (!user) throw new UnauthorizedException('Invalid credentials');
-
+    if (!user || !user.passwordDigest) {
+      await this.throttle.recordFailure(throttleId);
+      throw new UnauthorizedException('Invalid credentials');
+    }
     if (!user.isActive) {
       throw new UnauthorizedException('User account is inactive');
     }
 
-    if (!user.passwordDigest) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
+    const account = await this.accountRepository.findById(user.accountId);
+    const maxAttempts = Number((account?.settings as any)?.max_login_attempts) || undefined;
 
     const isPasswordValid = await this.passwordService.compare(loginDto.password, user.passwordDigest);
     if (!isPasswordValid) {
+      await this.throttle.recordFailure(throttleId, maxAttempts);
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    // Password verified — clear brute-force counters.
+    await this.throttle.reset(throttleId);
+
+    if ((account?.settings as any)?.require_2fa) {
+      return this.build2faChallenge(user);
+    }
+
+    return this.issueSession(user, account, userAgent, ipAddress);
+  }
+
+  /** Build the token pair + session for a fully-authenticated user. */
+  private async issueSession(
+    user: any,
+    account: any,
+    userAgent = '',
+    ipAddress = '',
+  ): Promise<AuthResponseDto> {
     await this.userRepository.updateSignInInfo(user.id);
 
-    const account = await this.accountRepository.findById(user.accountId);
     const isGlobalAdmin = (user.settings as any)?.isGlobalAdmin === true;
-
     const jwtPayload: JwtPayload = {
       sub: user.id,
       email: user.email,
       roleId: user.roleId,
       accountId: user.accountId,
       accountName: account?.name,
-      accountLogoUrl: account?.settings?.logoUrl ?? undefined,
+      accountLogoUrl: (account?.settings as any)?.logoUrl ?? undefined,
       isGlobalAdmin: isGlobalAdmin || undefined,
     };
 
@@ -267,6 +302,169 @@ export class AuthService {
       sessionId: session.id,
       user: this.mapUserToResponse(user),
     };
+  }
+
+  /**
+   * Build the 2FA challenge returned after a correct password when the account
+   * requires 2FA. Already-enrolled users get a 'verify' challenge; users who
+   * have not set up an authenticator yet get a 'setup' challenge with a QR code.
+   */
+  private async build2faChallenge(user: any): Promise<AuthResponseDto> {
+    const tf = (user.settings as any)?.twoFactor;
+
+    if (tf?.enabled && tf?.secret) {
+      const token = this.tokenService.signShortLived(
+        { sub: user.id, accountId: user.accountId, purpose: '2fa-verify' },
+        '5m',
+      );
+      return { accessToken: '', refreshToken: '', twoFactor: { mode: 'verify', token } };
+    }
+
+    // Not enrolled yet — generate a pending secret embedded in the (signed) token.
+    const secret = this.totpService.generateSecret();
+    const otpauthUrl = this.totpService.keyuri(user.email, secret);
+    const qrDataUrl = await this.totpService.qrDataUrl(otpauthUrl);
+    const token = this.tokenService.signShortLived(
+      { sub: user.id, accountId: user.accountId, purpose: '2fa-setup', secret },
+      '10m',
+    );
+    return {
+      accessToken: '',
+      refreshToken: '',
+      twoFactor: { mode: 'setup', token, otpauthUrl, qrDataUrl, secret },
+    };
+  }
+
+  /**
+   * Finish login by validating the OTP code against the challenge token.
+   * For 'setup' the pending secret is persisted on the first successful code.
+   */
+  async complete2fa(
+    token: string,
+    code: string,
+    userAgent = '',
+    ipAddress = '',
+  ): Promise<AuthResponseDto> {
+    let payload: { sub: number; accountId: number; purpose: string; secret?: string };
+    try {
+      payload = this.tokenService.verifyShortLived(token);
+    } catch {
+      throw new UnauthorizedException('Сессия подтверждения истекла — войдите снова');
+    }
+    if (!payload || (payload.purpose !== '2fa-verify' && payload.purpose !== '2fa-setup')) {
+      throw new UnauthorizedException('Недействительный токен подтверждения');
+    }
+
+    const otpThrottleId = `otp:${payload.sub}`;
+    await this.throttle.assertNotLocked(otpThrottleId);
+
+    const user = await this.userRepository.findById(payload.sub);
+    if (!user || !user.isActive) throw new UnauthorizedException('Пользователь не найден');
+
+    const secret =
+      payload.purpose === '2fa-setup'
+        ? payload.secret
+        : (user.settings as any)?.twoFactor?.secret;
+    if (!secret) throw new UnauthorizedException('Двухфакторная аутентификация не настроена');
+
+    if (!this.totpService.verify(code, secret)) {
+      await this.throttle.recordFailure(otpThrottleId);
+      throw new UnauthorizedException('Неверный код подтверждения');
+    }
+    await this.throttle.reset(otpThrottleId);
+
+    if (payload.purpose === '2fa-setup') {
+      const newSettings = {
+        ...((user.settings as any) || {}),
+        twoFactor: { enabled: true, secret, confirmedAt: new Date().toISOString() },
+      };
+      await this.userRepository.updateSettings(user.id, newSettings);
+      (user as any).settings = newSettings;
+      this.logger.log(`2FA enrolled for user: ${user.email}`);
+    }
+
+    const account = await this.accountRepository.findById(user.accountId);
+    return this.issueSession(user, account, userAgent, ipAddress);
+  }
+
+  // ── Self-service 2FA management (from the user's profile) ───────────
+
+  /** Whether the current user has 2FA enrolled, and whether the company enforces it. */
+  async get2faStatus(userId: number, accountId: number) {
+    const user = await this.userRepository.findById(userId);
+    const account = await this.accountRepository.findById(accountId);
+    return {
+      enabled: Boolean((user?.settings as any)?.twoFactor?.enabled),
+      required: Boolean((account?.settings as any)?.require_2fa),
+    };
+  }
+
+  /**
+   * Begin self-service enrollment: generate a fresh secret and a short-lived
+   * enrollment token that carries it. Nothing is persisted until /2fa/confirm.
+   */
+  async setup2fa(userId: number, email: string) {
+    const secret = this.totpService.generateSecret();
+    const otpauthUrl = this.totpService.keyuri(email, secret);
+    const qrDataUrl = await this.totpService.qrDataUrl(otpauthUrl);
+    const token = this.tokenService.signShortLived(
+      { sub: userId, purpose: '2fa-enroll', secret },
+      '10m',
+    );
+    return { token, otpauthUrl, qrDataUrl, secret };
+  }
+
+  /** Confirm self-service enrollment by validating a code against the enrollment token. */
+  async confirm2fa(userId: number, token: string, code: string): Promise<MessageResponseDto> {
+    let payload: { sub: number; purpose: string; secret?: string };
+    try {
+      payload = this.tokenService.verifyShortLived(token);
+    } catch {
+      throw new BadRequestException('Сессия настройки истекла — начните заново');
+    }
+    if (!payload || payload.purpose !== '2fa-enroll' || payload.sub !== userId || !payload.secret) {
+      throw new BadRequestException('Недействительный токен настройки');
+    }
+    if (!this.totpService.verify(code, payload.secret)) {
+      throw new BadRequestException('Неверный код подтверждения');
+    }
+
+    const user = await this.userRepository.findById(userId);
+    if (!user) throw new NotFoundException('Пользователь не найден');
+    const newSettings = {
+      ...((user.settings as any) || {}),
+      twoFactor: { enabled: true, secret: payload.secret, confirmedAt: new Date().toISOString() },
+    };
+    await this.userRepository.updateSettings(userId, newSettings);
+    this.logger.log(`2FA enabled (self-service) for user: ${user.email}`);
+    return { message: 'Двухфакторная аутентификация включена' };
+  }
+
+  /** Disable 2FA for the current user (blocked while the company enforces it). */
+  async disable2fa(userId: number, accountId: number, code: string): Promise<MessageResponseDto> {
+    const account = await this.accountRepository.findById(accountId);
+    if ((account?.settings as any)?.require_2fa) {
+      throw new BadRequestException(
+        'Двухфакторная аутентификация обязательна в вашей компании и не может быть отключена',
+      );
+    }
+
+    const user = await this.userRepository.findById(userId);
+    if (!user) throw new NotFoundException('Пользователь не найден');
+
+    const tf = (user.settings as any)?.twoFactor;
+    if (!tf?.enabled || !tf?.secret) {
+      throw new BadRequestException('Двухфакторная аутентификация не включена');
+    }
+    if (!this.totpService.verify(code, tf.secret)) {
+      throw new BadRequestException('Неверный код подтверждения');
+    }
+
+    const newSettings = { ...((user.settings as any) || {}) };
+    delete newSettings.twoFactor;
+    await this.userRepository.updateSettings(userId, newSettings);
+    this.logger.log(`2FA disabled (self-service) for user: ${user.email}`);
+    return { message: 'Двухфакторная аутентификация отключена' };
   }
 
   async refresh(refreshTokenDto: RefreshTokenDto): Promise<TokenResponseDto> {

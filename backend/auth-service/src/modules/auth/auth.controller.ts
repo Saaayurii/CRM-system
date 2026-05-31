@@ -27,7 +27,7 @@ import { RegisterDto } from './dto/register.dto';
 import { RegisterCompanyDto } from './dto/register-company.dto';
 import { CreateInviteDto } from './dto/create-invite.dto';
 import { CreateMemberInviteDto } from './dto/create-member-invite.dto';
-import { LoginDto } from './dto/login.dto';
+import { LoginDto, TwoFactorLoginDto, Confirm2faDto, Disable2faDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { CreateRegistrationRequestDto } from './dto/create-registration-request.dto';
 import { ApproveRegistrationRequestDto } from './dto/approve-registration-request.dto';
@@ -119,6 +119,62 @@ export class AuthController {
     const userAgent = (req.headers['x-user-agent'] || req.headers['user-agent'] || '') as string;
     const ipAddress = (req.headers['x-real-ip'] || req.headers['x-forwarded-for'] || req.ip || '') as string;
     return this.authService.login(loginDto, userAgent, normalizeIp(ipAddress.split(',')[0].trim()));
+  }
+
+  @Post('2fa/login')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Complete login by confirming a 2FA OTP code' })
+  @ApiResponse({ status: 200, description: 'Login successful', type: AuthResponseDto })
+  @ApiResponse({ status: 401, description: 'Invalid or expired code/token' })
+  async twoFactorLogin(@Body() dto: TwoFactorLoginDto, @Req() req: any): Promise<AuthResponseDto> {
+    const userAgent = (req.headers['x-user-agent'] || req.headers['user-agent'] || '') as string;
+    const ipAddress = (req.headers['x-real-ip'] || req.headers['x-forwarded-for'] || req.ip || '') as string;
+    return this.authService.complete2fa(
+      dto.token,
+      dto.code,
+      userAgent,
+      normalizeIp(ipAddress.split(',')[0].trim()),
+    );
+  }
+
+  // ── Self-service 2FA management (authenticated) ────────────────────
+
+  @Get('2fa/status')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get current user 2FA status' })
+  async get2faStatus(@CurrentUser() user: UserPayload) {
+    return this.authService.get2faStatus(user.sub, user.accountId);
+  }
+
+  @Post('2fa/setup')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Begin 2FA enrollment — returns QR and enrollment token' })
+  async setup2fa(@CurrentUser() user: UserPayload) {
+    return this.authService.setup2fa(user.sub, user.email);
+  }
+
+  @Post('2fa/confirm')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Confirm 2FA enrollment with an OTP code' })
+  async confirm2fa(
+    @Body() dto: Confirm2faDto,
+    @CurrentUser() user: UserPayload,
+  ): Promise<MessageResponseDto> {
+    return this.authService.confirm2fa(user.sub, dto.token, dto.code);
+  }
+
+  @Post('2fa/disable')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Disable 2FA for the current user' })
+  async disable2fa(
+    @Body() dto: Disable2faDto,
+    @CurrentUser() user: UserPayload,
+  ): Promise<MessageResponseDto> {
+    return this.authService.disable2fa(user.sub, user.accountId, dto.code);
   }
 
   @Post('refresh')

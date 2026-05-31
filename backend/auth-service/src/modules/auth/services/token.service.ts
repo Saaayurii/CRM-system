@@ -49,6 +49,21 @@ export class TokenService {
     });
   }
 
+  /** Sign a short-lived, single-purpose token (e.g. a 2FA challenge). */
+  signShortLived(payload: Record<string, unknown>, expiresIn: string): string {
+    return this.jwtService.sign(payload as any, {
+      secret: this.configService.get<string>('jwt.accessSecret'),
+      expiresIn: expiresIn as any,
+    });
+  }
+
+  /** Verify a short-lived token signed with `signShortLived`. Throws if invalid/expired. */
+  verifyShortLived<T = Record<string, unknown>>(token: string): T {
+    return this.jwtService.verify(token, {
+      secret: this.configService.get<string>('jwt.accessSecret'),
+    }) as T;
+  }
+
   generateTokenPair(payload: JwtPayload): TokenPair {
     const accessToken = this.generateAccessToken(payload);
     const { token: refreshToken, expiresAt: refreshTokenExpiresAt } =

@@ -77,6 +77,78 @@ export class AuthGatewayController {
     });
   }
 
+  @Post('2fa/login')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @Throttle(AUTH_THROTTLE)
+  @ApiOperation({ summary: 'Complete login by confirming a 2FA OTP code' })
+  @ApiResponse({ status: 200, description: 'Login successful' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired code/token' })
+  async twoFactorLogin(
+    @Body() body: unknown,
+    @Headers('user-agent') userAgent: string,
+    @Req() req: any,
+  ) {
+    return this.proxyService.forward('auth', {
+      method: 'POST',
+      path: '/auth/2fa/login',
+      data: body,
+      headers: {
+        'X-User-Agent': userAgent || '',
+        'X-Real-IP': req.ip || '',
+      },
+    });
+  }
+
+  @Get('2fa/status')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get current user 2FA status' })
+  async get2faStatus(@Headers('authorization') authorization: string) {
+    return this.proxyService.forward('auth', {
+      method: 'GET',
+      path: '/auth/2fa/status',
+      headers: { Authorization: authorization },
+    });
+  }
+
+  @Post('2fa/setup')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Begin 2FA enrollment — returns QR and enrollment token' })
+  async setup2fa(@Headers('authorization') authorization: string) {
+    return this.proxyService.forward('auth', {
+      method: 'POST',
+      path: '/auth/2fa/setup',
+      headers: { Authorization: authorization },
+    });
+  }
+
+  @Post('2fa/confirm')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Confirm 2FA enrollment with an OTP code' })
+  async confirm2fa(@Body() body: unknown, @Headers('authorization') authorization: string) {
+    return this.proxyService.forward('auth', {
+      method: 'POST',
+      path: '/auth/2fa/confirm',
+      data: body,
+      headers: { Authorization: authorization, 'content-type': 'application/json' },
+    });
+  }
+
+  @Post('2fa/disable')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Disable 2FA for the current user' })
+  async disable2fa(@Body() body: unknown, @Headers('authorization') authorization: string) {
+    return this.proxyService.forward('auth', {
+      method: 'POST',
+      path: '/auth/2fa/disable',
+      data: body,
+      headers: { Authorization: authorization, 'content-type': 'application/json' },
+    });
+  }
+
   @Post('portal/login')
   @Public()
   @HttpCode(HttpStatus.OK)

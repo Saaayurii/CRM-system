@@ -30,4 +30,17 @@ export default () => ({
     ttl: parseInt(process.env.RATE_LIMIT_TTL || '15', 10),
     max: parseInt(process.env.RATE_LIMIT_MAX || '5', 10),
   },
+
+  // Brute-force protection (per-email / per-OTP lockout, stored in Redis).
+  // Account-level `max_login_attempts` (system-settings) overrides the threshold when set.
+  security: {
+    maxLoginAttempts: parseInt(process.env.MAX_LOGIN_ATTEMPTS || '5', 10),
+    lockoutMinutes: parseInt(process.env.LOGIN_LOCKOUT_MINUTES || '15', 10),
+    attemptWindowMinutes: parseInt(process.env.LOGIN_ATTEMPT_WINDOW_MINUTES || '15', 10),
+  },
+
+  // Two-factor authentication (TOTP / authenticator apps)
+  totp: {
+    issuer: process.env.TOTP_ISSUER || 'Construction CRM',
+  },
 });

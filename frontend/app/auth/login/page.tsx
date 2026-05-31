@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore, getRememberedAccountId, clearRememberedAccountId } from '@/stores/authStore';
 import api from '@/lib/api';
 import { AxiosError } from 'axios';
+import type { TwoFactorChallenge } from '@/types/auth';
 
 interface AccountChoice {
   id: number;
@@ -38,6 +39,7 @@ function getLoginError(err: unknown): LoginError {
 export default function LoginPage() {
   const router = useRouter();
   const login = useAuthStore((s) => s.login);
+  const complete2fa = useAuthStore((s) => s.complete2fa);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -45,11 +47,19 @@ export default function LoginPage() {
   const [loginError, setLoginError] = useState<LoginError | null>(null);
   const [loading, setLoading] = useState(false);
   const [accounts, setAccounts] = useState<AccountChoice[] | null>(null);
+  const [twoFactor, setTwoFactor] = useState<TwoFactorChallenge | null>(null);
+  const [otpCode, setOtpCode] = useState('');
 
   const handleSelectAccount = async (accountId: number) => {
     setLoginError(null);
     setLoading(true);
     try {
+      const { data } = await api.post('/auth/login', { email, password, accountId });
+      if (data.twoFactor) {
+        setAccounts(null);
+        setTwoFactor(data.twoFactor);
+        return;
+      }
       await login({ email, password, accountId });
       router.push('/dashboard');
     } catch (err) {
@@ -67,6 +77,10 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const { data } = await api.post('/auth/login', { email, password });
+      if (data.twoFactor) {
+        setTwoFactor(data.twoFactor);
+        return;
+      }
       if (data.accounts?.length > 0) {
         // If this email logged into a specific company before, go there directly
         const remembered = getRememberedAccountId(email);
@@ -86,6 +100,113 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
+
+  const handleOtpSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!twoFactor) return;
+    setLoginError(null);
+    setLoading(true);
+    try {
+      await complete2fa(twoFactor.token, otpCode.trim());
+      router.push('/dashboard');
+    } catch (err) {
+      const msg = (err as AxiosError<{ message?: string }>)?.response?.data?.message;
+      const status = (err as AxiosError)?.response?.status;
+      // Expired challenge token — send the user back to the password form.
+      if (status === 401 && msg && msg.includes('истекла')) {
+        setTwoFactor(null);
+        setOtpCode('');
+      }
+      setLoginError({ message: msg || 'Неверный код подтверждения', kind: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ── Two-factor (TOTP) screen ──
+  if (twoFactor) {
+    const isSetup = twoFactor.mode === 'setup';
+    return (
+      <div className="w-full max-w-sm">
+        <button
+          onClick={() => {
+            setTwoFactor(null);
+            setOtpCode('');
+            setLoginError(null);
+          }}
+          className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 mb-5 transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+          </svg>
+          Назад
+        </button>
+
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-1">
+          {isSetup ? 'Настройка двухфакторной аутентификации' : 'Подтверждение входа'}
+        </h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+          {isSetup
+            ? 'Отсканируйте QR-код в приложении-аутентификаторе (Google Authenticator, 1Password и т.п.), затем введите 6-значный код.'
+            : 'Введите 6-значный код из приложения-аутентификатора.'}
+        </p>
+
+        {loginError && loginError.kind === 'error' && (
+          <div className="bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 px-4 py-3 rounded-lg mb-4 text-sm">
+            {loginError.message}
+          </div>
+        )}
+
+        {isSetup && twoFactor.qrDataUrl && (
+          <div className="flex flex-col items-center mb-5">
+            <div className="bg-white p-3 rounded-xl border border-gray-200 dark:border-gray-700">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={twoFactor.qrDataUrl} alt="QR-код для 2FA" className="w-44 h-44" />
+            </div>
+            {twoFactor.secret && (
+              <p className="mt-3 text-xs text-gray-400 dark:text-gray-500 text-center">
+                Ключ для ручного ввода:{' '}
+                <span className="font-mono text-gray-600 dark:text-gray-300 break-all">
+                  {twoFactor.secret}
+                </span>
+              </p>
+            )}
+          </div>
+        )}
+
+        <form onSubmit={handleOtpSubmit}>
+          <input
+            autoFocus
+            className="form-input w-full text-center tracking-[0.5em] text-lg"
+            type="text"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            maxLength={6}
+            value={otpCode}
+            onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+            placeholder="000000"
+            required
+          />
+          <button
+            type="submit"
+            className="btn bg-violet-500 hover:bg-violet-600 text-white w-full mt-5"
+            disabled={loading || otpCode.length < 6}
+          >
+            {loading ? (
+              <svg className="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+            ) : isSetup ? (
+              'Подтвердить и включить'
+            ) : (
+              'Подтвердить'
+            )}
+          </button>
+        </form>
+      </div>
+    );
+  }
 
   // ── Company selection screen ──
   if (accounts) {

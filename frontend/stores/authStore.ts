@@ -42,6 +42,7 @@ interface AuthState {
   selectedAccountLogo: string | null;
   availableAccounts: AccountChoice[];
   login: (credentials: LoginRequest) => Promise<void>;
+  complete2fa: (token: string, code: string) => Promise<void>;
   logout: () => Promise<void>;
   initialize: () => void;
   refreshRole: () => Promise<void>;
@@ -185,6 +186,47 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
       throw err;
     }
+  },
+
+  // Finish a 2FA-gated login: exchange the challenge token + OTP code for a session.
+  complete2fa: async (token: string, code: string) => {
+    const { data } = await api.post<LoginResponse>('/auth/2fa/login', { token, code });
+
+    localStorage.setItem('accessToken', data.accessToken);
+    localStorage.setItem('refreshToken', data.refreshToken);
+    if (data.sessionId) localStorage.setItem('sessionId', String(data.sessionId));
+    document.cookie = `crm-session=true; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then((reg) => {
+        const sw = reg.active;
+        if (sw) {
+          sw.postMessage({ type: 'SET_TOKEN', token: data.accessToken });
+          sw.postMessage({ type: 'SYNC_NOW' });
+        }
+      }).catch(() => {});
+    }
+
+    const user = data.user;
+    user.role = roleFromId(user.roleId ?? null);
+    if (user.avatarUrl) user.avatarUrl = normalizeFileUrl(user.avatarUrl) ?? undefined;
+
+    const jwtPayload = decodeJwt(data.accessToken);
+    if (jwtPayload?.accountName) user.accountName = jwtPayload.accountName;
+    if (jwtPayload?.accountLogoUrl) user.accountLogoUrl = normalizeFileUrl(jwtPayload.accountLogoUrl) ?? undefined;
+    if (jwtPayload?.isGlobalAdmin) user.isGlobalAdmin = jwtPayload.isGlobalAdmin;
+
+    const storedAccountId = localStorage.getItem('selectedAccountId');
+    set({
+      user,
+      isAuthenticated: true,
+      selectedAccountId: storedAccountId ? Number(storedAccountId) : null,
+      selectedAccountName: localStorage.getItem('selectedAccountName'),
+      selectedAccountLogo: localStorage.getItem('selectedAccountLogo'),
+    });
+
+    if (user.accountId) rememberAccountId(user.email, user.accountId);
+    console.log('[Auth] 2FA login successful for user:', user.email);
   },
 
   logout: async () => {

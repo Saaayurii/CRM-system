@@ -82,6 +82,13 @@ export class UserRepository {
     });
   }
 
+  async updateSettings(userId: number, settings: Record<string, unknown>) {
+    return (this.prisma as any).user.update({
+      where: { id: userId },
+      data: { settings },
+    });
+  }
+
   async updateSignInInfo(userId: number) {
     return (this.prisma as any).user.update({
       where: { id: userId },

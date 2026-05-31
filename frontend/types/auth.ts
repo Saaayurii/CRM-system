@@ -4,11 +4,21 @@ export interface LoginRequest {
   accountId?: number;
 }
 
+export interface TwoFactorChallenge {
+  mode: 'verify' | 'setup';
+  token: string;
+  otpauthUrl?: string;
+  qrDataUrl?: string;
+  secret?: string;
+}
+
 export interface LoginResponse {
   accessToken: string;
   refreshToken: string;
   user: User;
   sessionId?: number;
+  accounts?: Array<{ id: number; name: string; logoUrl?: string }>;
+  twoFactor?: TwoFactorChallenge;
 }
 
 export interface User {

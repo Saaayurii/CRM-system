@@ -58,6 +58,28 @@ export class AccountChoiceDto {
   @ApiPropertyOptional() logoUrl?: string;
 }
 
+export class TwoFactorChallengeDto {
+  /** 'verify' — user already enrolled; 'setup' — user must scan the QR first. */
+  @ApiProperty({ enum: ['verify', 'setup'] })
+  mode: 'verify' | 'setup';
+
+  /** Short-lived challenge token to be sent back with the OTP code. */
+  @ApiProperty()
+  token: string;
+
+  /** otpauth:// URI (setup mode only). */
+  @ApiPropertyOptional()
+  otpauthUrl?: string;
+
+  /** QR code as a data:image/png;base64 URL (setup mode only). */
+  @ApiPropertyOptional()
+  qrDataUrl?: string;
+
+  /** Raw base32 secret for manual entry (setup mode only). */
+  @ApiPropertyOptional()
+  secret?: string;
+}
+
 export class AuthResponseDto extends TokenResponseDto {
   @ApiPropertyOptional({ example: 42 })
   sessionId?: number;
@@ -67,6 +89,13 @@ export class AuthResponseDto extends TokenResponseDto {
 
   @ApiPropertyOptional({ type: [AccountChoiceDto], description: 'Present when email belongs to multiple companies' })
   accounts?: AccountChoiceDto[];
+
+  @ApiPropertyOptional({
+    type: TwoFactorChallengeDto,
+    description:
+      'Present when the account requires 2FA. accessToken/refreshToken are empty until the OTP is confirmed via POST /auth/2fa/login.',
+  })
+  twoFactor?: TwoFactorChallengeDto;
 }
 
 export class MessageResponseDto {

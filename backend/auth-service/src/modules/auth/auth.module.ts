@@ -16,6 +16,8 @@ import { MemberInviteRepository } from './repositories/member-invite.repository'
 import { SessionRepository } from './repositories/session.repository';
 import { JwtStrategy } from '../../common/guards/jwt.strategy';
 import { SessionBlacklistService } from '../../common/services/session-blacklist.service';
+import { TotpService } from './services/totp.service';
+import { LoginThrottleService } from '../../common/services/login-throttle.service';
 
 @Module({
   imports: [
@@ -48,6 +50,8 @@ import { SessionBlacklistService } from '../../common/services/session-blacklist
     SessionRepository,
     JwtStrategy,
     SessionBlacklistService,
+    TotpService,
+    LoginThrottleService,
   ],
   exports: [AuthService, TokenService, PasswordService, SessionBlacklistService],
 })
