@@ -8,6 +8,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useTaskNotifStore } from '@/stores/taskNotifStore';
 import { useChatStore } from '@/stores/chatStore';
 import { useNavHotkeys, type NavHotkey } from '@/hooks/useNavHotkeys';
+import { haptic } from '@/lib/haptics';
 import SidebarLinkGroup from './SidebarLinkGroup';
 import ClientSidebar from './ClientSidebar';
 import NotificationDropdown from './NotificationDropdown';
@@ -496,10 +497,10 @@ export default function Sidebar() {
       if (Math.abs(dx) < 60 || Math.abs(dy) > 50) return; // mostly-horizontal swipe
       if (!sidebarOpen && dx > 0) {
         setSidebarOpen(true);
-        navigator.vibrate?.(15);
+        haptic(15);
       } else if (sidebarOpen && dx < 0) {
         setSidebarOpen(false);
-        navigator.vibrate?.(15);
+        haptic(15);
       }
     };
 

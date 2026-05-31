@@ -317,14 +317,15 @@
   animation: ctx-pop-in 0.16s cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
 }
 
-/* Brief highlight pulse on the message you long-pressed */
+/* Brief highlight glow on the message you long-pressed.
+   Uses box-shadow only (no transform) so the bubble does NOT shift. */
 @keyframes chat-msg-select {
-  0%   { transform: scale(1); }
-  40%  { transform: scale(0.97); }
-  100% { transform: scale(1); }
+  0%   { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
+  35%  { box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.55); }
+  100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
 }
 .chat-msg-select {
-  animation: chat-msg-select 0.28s ease-out;
+  animation: chat-msg-select 0.45s ease-out;
 }
 
 /* Recharts tooltips use a dark background (#1f2937); by default Recharts colors
