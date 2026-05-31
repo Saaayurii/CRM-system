@@ -17,6 +17,17 @@ type Panel = 'search' | 'task' | 'note' | 'timer' | null;
 type PageEntity = 'project' | 'task' | 'employee' | 'document' | 'team';
 
 export const FAB_CREATED_EVENT = 'crm:fab-created';
+// Pages can register contextual "create" actions into the global FAB.
+// Dispatch FAB_REGISTER_EVENT with { actions: [{ id, label }] } on mount and
+// { actions: [] } on unmount; the FAB dispatches FAB_ACTION_EVENT with { id }
+// when the user picks one.
+export const FAB_REGISTER_EVENT = 'crm:fab-register';
+export const FAB_ACTION_EVENT = 'crm:fab-action';
+
+export interface FabAction {
+  id: string;
+  label: string;
+}
 
 interface PageContext {
   entity: PageEntity;
@@ -67,8 +78,10 @@ const ACTIONS = [
 
 export default function QuickActionsButton() {
   const [open, setOpen] = useState(false);
+  const [dialMode, setDialMode] = useState<'page' | 'default'>('default');
   const [panel, setPanel] = useState<Panel>(null);
   const [creatingEntity, setCreatingEntity] = useState<PageEntity | null>(null);
+  const [pageActions, setPageActions] = useState<FabAction[]>([]);
   const [hasModalOpen, setHasModalOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const chatWindowOpen = useChatStore((s) => s.chatWindowOpen);
@@ -88,6 +101,17 @@ export default function QuickActionsButton() {
     const observer = new MutationObserver(checkModals);
     observer.observe(document.body, { childList: true, subtree: true });
     return () => observer.disconnect();
+  }, []);
+
+  // Pages register contextual create actions
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const actions = (e as CustomEvent).detail?.actions;
+      setPageActions(Array.isArray(actions) ? actions : []);
+      setOpen(false);
+    };
+    window.addEventListener(FAB_REGISTER_EVENT, handler);
+    return () => window.removeEventListener(FAB_REGISTER_EVENT, handler);
   }, []);
 
   // Close on outside click
@@ -127,7 +151,8 @@ export default function QuickActionsButton() {
 
   const closePanel = () => setPanel(null);
 
-  const openSpeedDial = () => {
+  const openSpeedDial = (mode: 'page' | 'default') => {
+    setDialMode(mode);
     setOpen((v) => !v);
     setPanel(null);
   };
@@ -141,26 +166,30 @@ export default function QuickActionsButton() {
       setCreatingEntity(pageContext.entity);
       setOpen(false);
       setPanel(null);
+    } else if (pageActions.length > 0) {
+      openSpeedDial('page');
     } else {
-      openSpeedDial();
+      openSpeedDial('default');
     }
   };
 
   const handleFabContextMenu = (e: React.MouseEvent) => {
-    if (!pageContext) return;
+    if (!pageContext && pageActions.length === 0) return;
     e.preventDefault();
     setCreatingEntity(null);
     setPanel(null);
+    setDialMode('default');
     setOpen(true);
   };
 
   const startLongPress = () => {
-    if (!pageContext) return;
+    if (!pageContext && pageActions.length === 0) return;
     longPressFired.current = false;
     longPressTimer.current = setTimeout(() => {
       longPressFired.current = true;
       setCreatingEntity(null);
       setPanel(null);
+      setDialMode('default');
       setOpen(true);
     }, 500);
   };
@@ -174,6 +203,12 @@ export default function QuickActionsButton() {
 
   const closeCreate = () => setCreatingEntity(null);
 
+  const pickPageAction = (id: string) => {
+    setOpen(false);
+    setPanel(null);
+    window.dispatchEvent(new CustomEvent(FAB_ACTION_EVENT, { detail: { id } }));
+  };
+
   const handleCreated = () => {
     const entity = creatingEntity;
     if (pageContext) {
@@ -186,14 +221,45 @@ export default function QuickActionsButton() {
   };
 
   const showFab = !chatWindowOpen && !hasModalOpen && !creatingEntity;
-  const fabTitle = pageContext ? `${pageContext.label} (удерживайте для меню)` : 'Быстрые действия';
+  const fabTitle = pageContext
+    ? `${pageContext.label} (удерживайте для меню)`
+    : pageActions.length > 0
+    ? 'Создать (удерживайте для меню быстрых действий)'
+    : 'Быстрые действия';
+  const showPageDial = open && dialMode === 'page' && pageActions.length > 0;
 
   return (
     <>
       {showFab && (
         <div ref={rootRef} className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
+          {/* Page-registered create actions */}
+          {showPageDial && (
+            <div className="flex flex-col items-end gap-2 mb-1">
+              {pageActions.map((action, i) => (
+                <div
+                  key={action.id}
+                  className="flex items-center gap-2"
+                  style={{ animation: `fabSlideIn 0.15s ease ${i * 0.04}s both` }}
+                >
+                  <span className="text-xs font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 shadow px-2 py-0.5 rounded-full whitespace-nowrap">
+                    {action.label}
+                  </span>
+                  <button
+                    onClick={() => pickPageAction(action.id)}
+                    className="w-10 h-10 rounded-full text-white shadow-lg transition-all bg-violet-500 hover:bg-violet-600 flex items-center justify-center"
+                    title={action.label}
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Speed-dial items */}
-          {open && (
+          {open && !showPageDial && (
             <div className="flex flex-col items-end gap-2 mb-1">
               {ACTIONS.map((action, i) => (
                 <div

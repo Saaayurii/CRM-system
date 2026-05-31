@@ -78,7 +78,7 @@ export default function TrainingStatsPage() {
         api.get('/training-materials', { params: { limit: 500 } }),
         api.get('/training-progress/stats'),
       ]);
-      const uArr: User[] = Array.isArray(uRes.data) ? uRes.data : (uRes.data?.data ?? uRes.data?.items ?? []);
+      const uArr: User[] = Array.isArray(uRes.data) ? uRes.data : (uRes.data?.users ?? uRes.data?.data ?? uRes.data?.items ?? []);
       const mArr: TrainingMaterial[] = Array.isArray(mRes.data) ? mRes.data : (mRes.data?.data ?? mRes.data?.items ?? []);
       setUsers(uArr);
       setMaterials(mArr);
@@ -179,12 +179,12 @@ export default function TrainingStatsPage() {
           onChange={(e) => setSearch(e.target.value)}
           className="px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:outline-none focus:border-violet-400 min-w-[220px]"
         />
-        <label className="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200 cursor-pointer">
+        <label className="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200 cursor-pointer select-none">
           <input
             type="checkbox"
             checked={onlyMandatory}
             onChange={(e) => setOnlyMandatory(e.target.checked)}
-            className="accent-violet-500"
+            className="w-4 h-4 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 accent-violet-500 cursor-pointer focus:outline-none focus:ring-2 focus:ring-violet-400/50"
           />
           Только обязательные материалы
         </label>
