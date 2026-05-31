@@ -28,6 +28,7 @@ export default function NormDocumentDetailPage() {
 
   const [doc, setDoc] = useState<NormDocumentDetail | null>(null);
   const [categories, setCategories] = useState<NormCategory[]>([]);
+  const [relatedPages, setRelatedPages] = useState<{ id: number; title: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
 
@@ -49,6 +50,20 @@ export default function NormDocumentDetailPage() {
     load();
     api.get('/norm-categories').then(({ data }) => setCategories(data?.data || data || [])).catch(() => {});
   }, [id, load]);
+
+  // Load corporate wiki pages that reference this norm via normRef blocks
+  useEffect(() => {
+    if (!doc) return;
+    api.get('/wiki-pages', { params: { limit: 200 } })
+      .then(({ data }) => {
+        const pages: { id: number; title: string }[] = (data?.data || []).filter((p: any) => {
+          const blocks: any[] = p.blocks || [];
+          return blocks.some((b: any) => b.type === 'normRef' && b.attrs?.normId === doc.id);
+        });
+        setRelatedPages(pages);
+      })
+      .catch(() => {});
+  }, [doc]);
 
   const toggleBookmark = async () => {
     if (!doc) return;
@@ -93,8 +108,8 @@ export default function NormDocumentDetailPage() {
   return (
     <div className="px-4 sm:px-6 py-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-4">
-        <button onClick={() => router.push('/dashboard/wiki')} className="text-sm text-gray-500 hover:text-violet-600">
-          ← Строительная ВИКИ
+        <button onClick={() => router.push('/dashboard/wiki?section=norms')} className="text-sm text-gray-500 hover:text-violet-600">
+          ← Строительные нормы
         </button>
         <div className="flex items-center gap-2">
           <button onClick={toggleBookmark} className={`text-xl ${doc.isBookmarked ? 'text-amber-400' : 'text-gray-300 dark:text-gray-600 hover:text-amber-400'}`} title="Избранное">
@@ -208,6 +223,31 @@ export default function NormDocumentDetailPage() {
           )}
         </div>
       )}
+
+      {/* Cross-link: corporate wiki pages that reference this norm */}
+      {relatedPages.length > 0 && (
+        <div className="mt-5 bg-white dark:bg-gray-900 border border-violet-100 dark:border-violet-500/20 rounded-2xl p-5">
+          <h3 className="text-sm font-semibold mb-3 text-violet-700 dark:text-violet-400 flex items-center gap-2">
+            ✏️ Упоминается в корпоративной ВИКИ
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {relatedPages.map((p) => (
+              <Link key={p.id} href={`/dashboard/wiki-pages/${p.id}`}
+                className="px-3 py-1.5 rounded-lg border border-violet-200 dark:border-violet-500/30 text-sm text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-500/10">
+                📄 {p.title}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Cross-link shortcut to wiki */}
+      <div className="mt-4 flex justify-end">
+        <Link href="/dashboard/wiki?section=corporate"
+          className="text-xs text-gray-400 hover:text-violet-600 dark:hover:text-violet-400">
+          ← Перейти в Корпоративную ВИКИ
+        </Link>
+      </div>
 
       {editing && (
         <NormDocumentModal

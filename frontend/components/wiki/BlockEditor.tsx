@@ -1,10 +1,13 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
+import api from '@/lib/api';
+import { DOC_TYPE_LABELS, DOC_TYPE_COLORS, DOC_STATUS_LABELS, DOC_STATUS_COLORS, type DocType, type DocStatus } from '@/lib/wiki/constants';
 
 export type BlockType =
   | 'paragraph' | 'heading' | 'bulletList' | 'numberedList'
-  | 'table' | 'code' | 'image' | 'quote' | 'divider' | 'callout';
+  | 'table' | 'code' | 'image' | 'quote' | 'divider' | 'callout' | 'normRef';
 
 export interface Block {
   id: string;
@@ -28,6 +31,7 @@ const BLOCK_LABELS: Record<BlockType, string> = {
   paragraph: '¶ Текст',
   heading: 'H Заголовок',
   bulletList: '• Список',
+  normRef: '📋 Ссылка на норматив',
   numberedList: '1. Нумер. список',
   table: '⊞ Таблица',
   code: '</> Код',
@@ -39,7 +43,7 @@ const BLOCK_LABELS: Record<BlockType, string> = {
 
 const BLOCK_MENU_TYPES: BlockType[] = [
   'paragraph', 'heading', 'bulletList', 'numberedList',
-  'quote', 'code', 'table', 'image', 'callout', 'divider',
+  'quote', 'code', 'table', 'image', 'callout', 'normRef', 'divider',
 ];
 
 const CALLOUT_VARIANTS: Record<string, string> = {
@@ -110,6 +114,29 @@ function renderBlockPreview(block: Block) {
             </tbody>
           </table>
         </div>
+      );
+    }
+    case 'normRef': {
+      const { normId, normCode, normTitle, normDocType, normStatus } = block.attrs || {};
+      if (!normId) return (
+        <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-sm text-gray-400 text-center">
+          📋 Нажмите, чтобы выбрать нормативный документ…
+        </div>
+      );
+      return (
+        <Link href={`/dashboard/wiki/${normId}`}
+          className="flex items-start gap-3 p-4 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-violet-300 dark:hover:border-violet-500/50 bg-gray-50 dark:bg-gray-800/50 transition group no-underline"
+          onClick={(e) => e.stopPropagation()}>
+          <div className="text-2xl shrink-0">📋</div>
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2 mb-1">
+              {normDocType && <span className={`px-2 py-0.5 rounded text-xs font-semibold ${DOC_TYPE_COLORS[normDocType as DocType] || ''}`}>{DOC_TYPE_LABELS[normDocType as DocType] || normDocType}</span>}
+              {normCode && <span className="font-mono text-sm text-gray-500 dark:text-gray-400">{normCode}</span>}
+              {normStatus && <span className={`px-2 py-0.5 rounded text-xs ${DOC_STATUS_COLORS[normStatus as DocStatus] || ''}`}>{DOC_STATUS_LABELS[normStatus as DocStatus] || normStatus}</span>}
+            </div>
+            <p className="font-medium text-gray-800 dark:text-gray-200 group-hover:text-violet-600 dark:group-hover:text-violet-400 truncate">{normTitle || 'Нормативный документ'}</p>
+          </div>
+        </Link>
       );
     }
     case 'divider':
@@ -346,6 +373,9 @@ function BlockEditForm({ block, onChange, onAddAfter }: { block: Block; onChange
         </div>
       );
 
+    case 'normRef':
+      return <NormRefEditForm block={block} onChange={update} />;
+
     case 'divider':
       return <hr className="border-gray-300 dark:border-gray-600 my-2" />;
 
@@ -363,6 +393,64 @@ function BlockEditForm({ block, onChange, onAddAfter }: { block: Block; onChange
         />
       );
   }
+}
+
+function NormRefEditForm({ block, onChange }: { block: Block; onChange: (b: Block) => void }) {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<any[]>([]);
+  const [searching, setSearching] = useState(false);
+
+  useEffect(() => {
+    if (!query.trim()) { setResults([]); return; }
+    const t = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const { data } = await api.get('/norm-documents', { params: { q: query, limit: 8 } });
+        setResults(data?.data || []);
+      } catch { setResults([]); }
+      finally { setSearching(false); }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  const select = (doc: any) => {
+    onChange({ ...block, attrs: { normId: doc.id, normCode: doc.code, normTitle: doc.title, normDocType: doc.docType, normStatus: doc.status } });
+    setQuery('');
+    setResults([]);
+  };
+
+  return (
+    <div className="space-y-2">
+      {block.attrs?.normId && (
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-gray-50 dark:bg-gray-800 text-sm">
+          <span className="flex-1 font-medium truncate">{block.attrs.normCode && `${block.attrs.normCode} — `}{block.attrs.normTitle}</span>
+          <button onClick={() => onChange({ ...block, attrs: {} })} className="text-red-400 hover:text-red-600 text-xs shrink-0">✕ Сбросить</button>
+        </div>
+      )}
+      <div className="relative">
+        <input
+          autoFocus={!block.attrs?.normId}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Поиск норматива по коду или названию…"
+          className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800 outline-none focus:ring-2 focus:ring-violet-500"
+        />
+        {searching && <span className="absolute right-3 top-2 text-xs text-gray-400">…</span>}
+      </div>
+      {results.length > 0 && (
+        <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden shadow-sm">
+          {results.map((doc) => (
+            <button key={doc.id} onClick={() => select(doc)}
+              className="w-full text-left px-3 py-2 text-sm hover:bg-violet-50 dark:hover:bg-violet-500/10 border-b border-gray-100 dark:border-gray-800 last:border-0 flex items-center gap-2">
+              {doc.code && <span className="font-mono text-gray-500 shrink-0">{doc.code}</span>}
+              <span className="flex-1 truncate">{doc.title}</span>
+              <span className={`shrink-0 px-1.5 py-0.5 rounded text-xs ${DOC_TYPE_COLORS[doc.docType as DocType] || ''}`}>{DOC_TYPE_LABELS[doc.docType as DocType] || doc.docType}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function BlockEditor({ blocks, onChange, readOnly = false }: Props) {

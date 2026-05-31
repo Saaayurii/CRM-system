@@ -73,7 +73,7 @@ export default function WikiPageViewPage() {
       {/* Top nav */}
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-2 text-sm text-gray-500">
-          <Link href="/dashboard/wiki-pages" className="hover:text-violet-600">← Корпоративная ВИКИ</Link>
+          <Link href="/dashboard/wiki?section=corporate" className="hover:text-violet-600">← Корпоративная ВИКИ</Link>
           {page.parentPage && (
             <>
               <span>/</span>
