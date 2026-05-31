@@ -17,6 +17,7 @@ import WarehouseDashboard from '@/components/dashboard/dashboards/WarehouseDashb
 import AccountantDashboard from '@/components/dashboard/dashboards/AccountantDashboard';
 import InspectorDashboard from '@/components/dashboard/dashboards/InspectorDashboard';
 import WorkerDashboard from '@/components/dashboard/dashboards/WorkerDashboard';
+import ClientDashboard from '@/components/dashboard/dashboards/ClientDashboard';
 import RegistrationRequestsPanel from '@/components/dashboard/RegistrationRequestsPanel';
 
 function extractArray(data: any): any[] {
@@ -622,6 +623,10 @@ export default function DashboardPage() {
 
   if (roleId === 1) {
     return <SuperAdminDashboard user={user} />;
+  }
+
+  if (roleId === 15) {
+    return <ClientDashboard user={user} />;
   }
 
   const RoleDashboard = roleId ? ROLE_DASHBOARD[roleId] : undefined;

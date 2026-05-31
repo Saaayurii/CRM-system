@@ -445,10 +445,6 @@ export default function Sidebar() {
   // Close mobile sidebar on route change
   useEffect(() => { setSidebarOpen(false); }, [pathname]);
 
-  if (isClient) {
-    return <ClientSidebar />;
-  }
-
   useEffect(() => {
     const clickHandler = ({ target }: MouseEvent) => {
       if (!sidebar.current || !trigger.current) return;
@@ -511,6 +507,13 @@ export default function Sidebar() {
       document.removeEventListener('touchend', onEnd);
     };
   }, [sidebarOpen, setSidebarOpen]);
+
+  // Client portal gets a dedicated, slimmed-down sidebar.
+  // Must come AFTER all hooks above so the hook count stays stable across
+  // role transitions (otherwise React error #300 on admin→client switch).
+  if (isClient) {
+    return <ClientSidebar />;
+  }
 
   return (
     <div className="min-w-fit">
