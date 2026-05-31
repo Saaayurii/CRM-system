@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-const publicPaths = ['/auth/login', '/auth/register', '/privacy', '/health', '/maintenance'];
+// Публичные разделы — доступны без сессии (cookie `crm-session`).
+// /landing и /portal обязаны открываться неавторизованным пользователям.
+const publicPaths = ['/auth', '/landing', '/portal', '/privacy', '/health', '/maintenance'];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -16,7 +18,8 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const isPublic = publicPaths.some((p) => pathname.startsWith(p));
+  // Корень сам решает, куда вести (клиентский редирект на /landing или /dashboard).
+  const isPublic = pathname === '/' || publicPaths.some((p) => pathname.startsWith(p));
   const session = request.cookies.get('crm-session');
 
   if (!isPublic && !session) {
