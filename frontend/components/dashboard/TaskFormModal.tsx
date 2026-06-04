@@ -717,6 +717,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
   const dragOverItemRef = useRef<{ groupId: string; itemId: string } | null>(null);
   // Inline cell editing for subtask table fields
   const [editingCell, setEditingCell] = useState<{ itemId: string; field: 'status' | 'assignee' | 'dueDate' | 'priority' } | null>(null);
+  const [subtaskViewMode, setSubtaskViewMode] = useState<'table' | 'grid'>('table');
 
   // Assignees
   const [assignees, setAssignees] = useState<Assignee[]>(() =>
@@ -1819,6 +1820,27 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                       Добавить
                     </button>
                     {total > 0 && <span className="text-xs text-gray-400 shrink-0">{done}/{total}</span>}
+                    {/* View toggle */}
+                    <div className="flex items-center gap-0.5 bg-gray-100 dark:bg-gray-700/60 p-0.5 rounded-md shrink-0">
+                      <button
+                        onClick={() => setSubtaskViewMode('table')}
+                        title="Таблица"
+                        className={`p-1 rounded transition-colors ${subtaskViewMode === 'table' ? 'bg-white dark:bg-gray-600 shadow-sm' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`}
+                      >
+                        <svg className="w-3 h-3 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => setSubtaskViewMode('grid')}
+                        title="Карточки"
+                        className={`p-1 rounded transition-colors ${subtaskViewMode === 'grid' ? 'bg-white dark:bg-gray-600 shadow-sm' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`}
+                      >
+                        <svg className="w-3 h-3 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                        </svg>
+                      </button>
+                    </div>
                     {canApproveSubtasks && (
                       <button
                         onClick={() => removeChecklist(group.id)}
@@ -1860,7 +1882,191 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                       </div>
                     </>
                   )}
-                  {!group.collapsed && (
+                  {!group.collapsed && subtaskViewMode === 'grid' && (
+                    <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {group.items.map((item) => {
+                        const itemStatus = getItemStatus(item);
+                        const isDone = itemStatus === SUBTASK_STATUS.DONE;
+                        const isRejected = itemStatus === SUBTASK_STATUS.REJECTED;
+                        const overdue = isItemOverdue(item);
+                        const statusDisplay = overdue
+                          ? { label: 'Просрочена', dotClass: 'bg-red-500', textClass: 'text-red-500 dark:text-red-400' }
+                          : (SUBTASK_STATUS_TABLE[itemStatus] || SUBTASK_STATUS_TABLE[0]);
+                        const priorityInfo = item.priority ? SUBTASK_PRIORITY_TABLE[item.priority] : null;
+                        return (
+                          <div
+                            key={item.id}
+                            id={`checklist-item-${item.id}`}
+                            className={`group/card border rounded-lg p-3 flex flex-col gap-2 transition-shadow hover:shadow-sm ${overdue ? 'bg-red-50/60 dark:bg-red-900/10 border-red-200 dark:border-red-700/50' : 'bg-white dark:bg-gray-800/40 border-gray-200 dark:border-gray-700/50'}`}
+                          >
+                            {/* Status + actions row */}
+                            <div className="flex items-center justify-between gap-1">
+                              {editingCell?.itemId === item.id && editingCell.field === 'status' ? (
+                                <select
+                                  autoFocus
+                                  value={itemStatus}
+                                  onChange={(e) => { setSubtaskStatus(group.id, item.id, Number(e.target.value)); setEditingCell(null); }}
+                                  onBlur={() => setEditingCell(null)}
+                                  className="text-xs border border-gray-200 dark:border-gray-600 rounded px-1 py-0.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 outline-none"
+                                >
+                                  {Object.entries(SUBTASK_STATUS_TABLE).map(([k, v]) => (
+                                    <option key={k} value={k}>{v.label}</option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <button
+                                  onClick={() => setEditingCell({ itemId: item.id, field: 'status' })}
+                                  className="flex items-center gap-1.5 hover:opacity-75 transition-opacity"
+                                  title="Изменить статус"
+                                >
+                                  <span className={`w-2 h-2 rounded-full shrink-0 ${statusDisplay.dotClass}`} />
+                                  <span className={`text-[11px] font-medium ${statusDisplay.textClass}`}>{statusDisplay.label}</span>
+                                </button>
+                              )}
+                              <div className="flex items-center gap-0.5 opacity-0 group-hover/card:opacity-100 transition-opacity">
+                                <div
+                                  draggable
+                                  onDragStart={(e) => { e.stopPropagation(); dragItemRef.current = { groupId: group.id, itemId: item.id }; }}
+                                  onDragEnd={() => { dragItemRef.current = null; dragOverItemRef.current = null; }}
+                                  className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 select-none p-0.5"
+                                  title="Перетащить"
+                                >
+                                  <svg className="w-3 h-3" viewBox="0 0 10 16" fill="currentColor">
+                                    <circle cx="3" cy="2" r="1.5" /><circle cx="3" cy="8" r="1.5" /><circle cx="3" cy="14" r="1.5" />
+                                    <circle cx="7" cy="2" r="1.5" /><circle cx="7" cy="8" r="1.5" /><circle cx="7" cy="14" r="1.5" />
+                                  </svg>
+                                </div>
+                                {canApproveSubtasks && (
+                                  <button
+                                    onClick={() => removeItem(group.id, item.id)}
+                                    className="text-gray-300 hover:text-red-400 transition-colors p-0.5"
+                                    title="Удалить подзадачу"
+                                  >
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                            {/* Title */}
+                            {editingItemId === item.id ? (
+                              <AutoResizeTextarea
+                                value={item.text}
+                                onChange={(v) => updateItemText(group.id, item.id, v)}
+                                className={`w-full text-sm bg-transparent outline-none border-none focus:ring-0 resize-none overflow-hidden leading-normal ${isDone ? 'line-through text-gray-400' : isRejected ? 'text-red-500 dark:text-red-400' : 'text-gray-700 dark:text-gray-300'}`}
+                                placeholder="Введите название подзадачи..."
+                                autoFocus
+                                onBlur={() => { if (!item.text.trim()) removeItem(group.id, item.id); setEditingItemId(null); }}
+                                mentionCandidates={assignees.map((a) => ({
+                                  userId: a.userId,
+                                  userName: a.userName || (userMap[a.userId] ? userName(userMap[a.userId]) : `#${a.userId}`),
+                                  avatarUrl: userMap[a.userId]?.avatarUrl,
+                                }))}
+                              />
+                            ) : (
+                              <div
+                                onClick={() => setEditingItemId(item.id)}
+                                className={`text-sm cursor-text leading-snug line-clamp-3 min-h-[1.25rem] ${isDone ? 'line-through text-gray-400' : isRejected ? 'text-red-500 dark:text-red-400' : 'text-gray-700 dark:text-gray-300'}`}
+                              >
+                                {item.text
+                                  ? renderTextWithLinks(item.text, (uid) => { const u = userMap[uid]; if (u) setEmployeeCard({ user: u }); })
+                                  : <span className="text-gray-300 dark:text-gray-600">Введите название...</span>
+                                }
+                              </div>
+                            )}
+                            {/* Meta */}
+                            <dl className="grid grid-cols-2 gap-x-2 gap-y-1 mt-auto pt-2 border-t border-gray-100 dark:border-gray-700/30">
+                              <div>
+                                <dt className="text-[10px] text-gray-400">Исполнитель</dt>
+                                <dd>
+                                  {editingCell?.itemId === item.id && editingCell.field === 'assignee' ? (
+                                    <select
+                                      autoFocus
+                                      value={item.assigneeId || ''}
+                                      onChange={(e) => {
+                                        const uid = Number(e.target.value) || undefined;
+                                        const asgn = uid ? assignees.find((a) => a.userId === uid) : undefined;
+                                        updateItemField(group.id, item.id, { assigneeId: uid, assigneeName: asgn?.userName || (uid ? `#${uid}` : undefined) });
+                                        setEditingCell(null);
+                                      }}
+                                      onBlur={() => setEditingCell(null)}
+                                      className="text-xs border border-gray-200 dark:border-gray-600 rounded px-1 py-0.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 outline-none max-w-[120px]"
+                                    >
+                                      <option value="">— Не назначен —</option>
+                                      {assignees.map((a) => (
+                                        <option key={a.userId} value={a.userId}>{a.userName || `#${a.userId}`}</option>
+                                      ))}
+                                    </select>
+                                  ) : (
+                                    <span
+                                      onClick={() => setEditingCell({ itemId: item.id, field: 'assignee' })}
+                                      className="text-xs text-gray-600 dark:text-gray-400 truncate cursor-pointer hover:text-violet-500 transition-colors"
+                                      title="Нажмите для выбора исполнителя"
+                                    >
+                                      {item.assigneeName || <span className="text-gray-300 dark:text-gray-600">—</span>}
+                                    </span>
+                                  )}
+                                </dd>
+                              </div>
+                              <div>
+                                <dt className="text-[10px] text-gray-400">Срок</dt>
+                                <dd>
+                                  {editingCell?.itemId === item.id && editingCell.field === 'dueDate' ? (
+                                    <input
+                                      type="date"
+                                      autoFocus
+                                      value={item.dueDate || ''}
+                                      onChange={(e) => updateItemField(group.id, item.id, { dueDate: e.target.value || undefined })}
+                                      onBlur={() => setEditingCell(null)}
+                                      className="text-xs border border-gray-200 dark:border-gray-600 rounded px-1 py-0.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 outline-none"
+                                    />
+                                  ) : (
+                                    <span
+                                      onClick={() => setEditingCell({ itemId: item.id, field: 'dueDate' })}
+                                      className={`text-xs cursor-pointer transition-colors ${overdue ? 'text-red-500 dark:text-red-400 font-medium' : 'text-gray-600 dark:text-gray-400 hover:text-violet-500'}`}
+                                      title="Нажмите для изменения срока"
+                                    >
+                                      {item.dueDate ? new Date(item.dueDate).toLocaleDateString('ru-RU') : <span className="text-gray-300 dark:text-gray-600">—</span>}
+                                    </span>
+                                  )}
+                                </dd>
+                              </div>
+                              <div className="col-span-2">
+                                <dt className="text-[10px] text-gray-400">Приоритет</dt>
+                                <dd>
+                                  {editingCell?.itemId === item.id && editingCell.field === 'priority' ? (
+                                    <select
+                                      autoFocus
+                                      value={item.priority || ''}
+                                      onChange={(e) => { updateItemField(group.id, item.id, { priority: e.target.value ? Number(e.target.value) : undefined }); setEditingCell(null); }}
+                                      onBlur={() => setEditingCell(null)}
+                                      className="text-xs border border-gray-200 dark:border-gray-600 rounded px-1 py-0.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 outline-none"
+                                    >
+                                      <option value="">— Без —</option>
+                                      <option value="1">Низкий</option>
+                                      <option value="2">Средний</option>
+                                      <option value="3">Высокий</option>
+                                      <option value="4">Критический</option>
+                                    </select>
+                                  ) : (
+                                    <span
+                                      onClick={() => setEditingCell({ itemId: item.id, field: 'priority' })}
+                                      className={`text-xs font-medium cursor-pointer hover:opacity-75 transition-opacity ${priorityInfo ? priorityInfo.cls : 'text-gray-300 dark:text-gray-600'}`}
+                                      title="Нажмите для изменения приоритета"
+                                    >
+                                      {priorityInfo ? priorityInfo.label : '—'}
+                                    </span>
+                                  )}
+                                </dd>
+                              </div>
+                            </dl>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {!group.collapsed && subtaskViewMode === 'table' && (
                     <div className="overflow-x-auto scrollbar-none">
                       <table className="w-full text-sm min-w-[600px]">
                         <thead>
