@@ -545,27 +545,50 @@ export default function FinancePage() {
 
       {/* Быстрые периоды */}
       {tab !== 'documents' && (
-        <div className="mb-4 flex items-center gap-1 flex-wrap">
-          {([
-            ['today', 'Сегодня'],
-            ['week', 'Неделя'],
-            ['month', 'Месяц'],
-            ['quarter', 'Квартал'],
-            ['year', 'Год'],
-            ['custom', 'Произвольный'],
-          ] as [QuickPeriod, string][]).map(([k, l]) => (
-            <button
-              key={k}
-              onClick={() => applyQuickPeriod(k)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
-                quickPeriod === k
-                  ? 'bg-violet-500 text-white border-violet-500'
-                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-violet-400'
-              }`}
-            >
-              {l}
-            </button>
-          ))}
+        <div className="mb-4">
+          <div className="flex items-center gap-1 flex-wrap">
+            {([
+              ['today', 'Сегодня'],
+              ['week', 'Неделя'],
+              ['month', 'Месяц'],
+              ['quarter', 'Квартал'],
+              ['year', 'Год'],
+              ['custom', 'Произвольный'],
+            ] as [QuickPeriod, string][]).map(([k, l]) => (
+              <button
+                key={k}
+                onClick={() => applyQuickPeriod(k)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                  quickPeriod === k
+                    ? 'bg-violet-500 text-white border-violet-500'
+                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-violet-400'
+                }`}
+              >
+                {l}
+              </button>
+            ))}
+          </div>
+          {quickPeriod === 'custom' && (
+            <div className="mt-2 flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-violet-300 dark:border-violet-600 rounded-lg px-3 py-1.5 shadow-sm">
+                <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">С</span>
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="text-xs text-gray-800 dark:text-gray-100 bg-transparent border-none outline-none cursor-pointer"
+                />
+                <span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">—</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">по</span>
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="text-xs text-gray-800 dark:text-gray-100 bg-transparent border-none outline-none cursor-pointer"
+                />
+              </div>
+            </div>
+          )}
         </div>
       )}
 
