@@ -1799,7 +1799,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
               return (
                 <div key={group.id} className="border border-gray-200 dark:border-gray-700/60 rounded-xl overflow-visible">
                   {/* Group header */}
-                  <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 dark:bg-gray-800/60 rounded-t-xl">
+                  <div className="relative z-10 flex items-center gap-2 px-4 py-2.5 bg-gray-50 dark:bg-gray-800/60 rounded-t-xl">
                     <button onClick={() => toggleCollapse(group.id)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                       <svg className={`w-4 h-4 transition-transform duration-200 ${group.collapsed ? '-rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -1808,14 +1808,14 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                     <input
                       value={group.title}
                       onChange={(e) => updateGroupTitle(group.id, e.target.value)}
-                      className="flex-1 text-sm font-semibold text-gray-800 dark:text-gray-200 bg-transparent outline-none border-none focus:ring-0"
+                      className="flex-1 min-w-0 text-sm font-semibold text-gray-800 dark:text-gray-200 bg-transparent outline-none border-none focus:ring-0"
                     />
                     <button
                       onClick={() => addItem(group.id)}
                       title="Добавить подзадачу"
-                      className="flex items-center gap-1 text-gray-400 hover:text-violet-500 transition-colors text-xs font-normal shrink-0"
+                      className="flex items-center gap-1 px-2 py-0.5 text-xs text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 bg-white dark:bg-gray-700 hover:bg-violet-50 dark:hover:bg-violet-900/20 border border-gray-200 dark:border-gray-600 rounded-md transition-colors shrink-0"
                     >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                       Добавить
                     </button>
                     {total > 0 && <span className="text-xs text-gray-400 shrink-0">{done}/{total}</span>}
