@@ -374,6 +374,7 @@ model EstimateItem {
   priceItemId  Int?     @map("price_item_id")
   name         String   @db.VarChar(500)
   description  String?  @db.Text
+  selectedOptions Json?  @map("selected_options")
   unit         String?  @db.VarChar(50)
   quantity     Decimal  @default(0) @db.Decimal(14, 4)
   unitPrice    Decimal  @default(0) @map("unit_price") @db.Decimal(14, 2)

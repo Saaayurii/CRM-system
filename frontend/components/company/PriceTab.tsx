@@ -1,9 +1,13 @@
 'use client';
 
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import ImportCsvModal from './ImportCsvModal';
+import ParameterLibraryModal from './price/ParameterLibraryModal';
+import UnitsModal from './price/UnitsModal';
+import CreateServiceWizard from './price/CreateServiceWizard';
 
 interface ProjectCategory {
   id: number;
@@ -32,9 +36,13 @@ interface PriceItem {
   description?: string | null;
   unit?: string | null;
   cost?: number | string | null;
+  basePrice?: number | string | null;
+  status?: string;
+  calcMethod?: string;
   sortOrder?: number;
   prices: PriceItemPrice[];
   modifiers?: PriceItem[];
+  paramGroups?: { id?: number; name: string; options?: unknown[] }[];
 }
 
 interface PriceListResponse {
@@ -64,6 +72,7 @@ function fmtMoney(v: unknown) {
 
 export default function PriceTab() {
   const addToast = useToastStore((st) => st.addToast);
+  const router = useRouter();
 
   const [data, setData] = useState<PriceListResponse>({
     projectCategories: [],
@@ -75,7 +84,12 @@ export default function PriceTab() {
   const [managingProjectCats, setManagingProjectCats] = useState(false);
   const [managingCats, setManagingCats] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [managingParams, setManagingParams] = useState(false);
+  const [managingUnits, setManagingUnits] = useState(false);
+  const [wizard, setWizard] = useState(false);
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
+
+  const openEditor = (id: number | 'new') => router.push(`/dashboard/company/price/${id}`);
 
   const toggleExpand = (id: number) => {
     setExpanded((prev) => {
@@ -172,6 +186,19 @@ export default function PriceTab() {
             Категории ({data.categories.length})
           </button>
           <button
+            onClick={() => setManagingParams(true)}
+            className="px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+            title="Библиотека параметров для параметрических услуг"
+          >
+            Параметры
+          </button>
+          <button
+            onClick={() => setManagingUnits(true)}
+            className="px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+          >
+            Единицы изм.
+          </button>
+          <button
             onClick={() => setImporting(true)}
             className="px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors flex items-center gap-1.5"
             title="Импорт прайса из CSV"
@@ -207,12 +234,26 @@ export default function PriceTab() {
           )}
           <button
             onClick={() => setEditing({ mode: 'create' })}
+            className="px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+            title="Простая позиция с ценами по колонкам"
+          >
+            Простая позиция
+          </button>
+          <button
+            onClick={() => setWizard(true)}
+            className="px-3 py-1.5 text-xs font-medium text-violet-700 dark:text-violet-300 bg-violet-100 dark:bg-violet-500/15 hover:bg-violet-200 dark:hover:bg-violet-500/25 rounded-lg transition-colors"
+            title="Пошаговое создание услуги с параметрами"
+          >
+            Мастер услуги
+          </button>
+          <button
+            onClick={() => openEditor('new')}
             className="px-4 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg flex items-center gap-1.5 transition-colors"
           >
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
             </svg>
-            Добавить позицию
+            Создать услугу
           </button>
         </div>
       </div>
@@ -263,7 +304,11 @@ export default function PriceTab() {
                       projectCategories={data.projectCategories}
                       expanded={expanded}
                       onToggleExpand={toggleExpand}
-                      onEdit={(it) => setEditing({ mode: 'edit', item: it })}
+                      onEdit={(it) =>
+                        it.calcMethod === 'formula'
+                          ? openEditor(it.id)
+                          : setEditing({ mode: 'edit', item: it })
+                      }
                       onAddModifier={(parent) => setEditing({ mode: 'createModifier', parent })}
                       onDelete={handleDelete}
                     />
@@ -309,6 +354,21 @@ export default function PriceTab() {
           projectCategories={data.projectCategories}
           onClose={() => setImporting(false)}
           onImported={load}
+        />
+      )}
+
+      {managingParams && <ParameterLibraryModal onClose={() => setManagingParams(false)} />}
+
+      {managingUnits && <UnitsModal onClose={() => setManagingUnits(false)} />}
+
+      {wizard && (
+        <CreateServiceWizard
+          categories={data.categories}
+          onClose={() => setWizard(false)}
+          onCreated={(id) => {
+            setWizard(false);
+            openEditor(id);
+          }}
         />
       )}
     </div>
@@ -361,7 +421,17 @@ function FragmentRows({
                     </svg>
                   </button>
                   <div>
-                    <div className="font-medium">{it.name}</div>
+                    <div className="font-medium flex items-center gap-2">
+                      {it.name}
+                      {it.calcMethod === 'formula' && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300 font-medium">
+                          параметры: {it.paramGroups?.length ?? 0}
+                        </span>
+                      )}
+                      {it.status === 'draft' && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300">черновик</span>
+                      )}
+                    </div>
                     {it.description && (
                       <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{it.description}</div>
                     )}

@@ -112,19 +112,106 @@ model PriceItem {
   description String?
   unit        String?  @db.VarChar(50)
   cost        Decimal? @db.Decimal(14, 2)
+  basePrice   Decimal? @map("base_price") @db.Decimal(14, 2)
+  status      String   @default("active") @db.VarChar(20)
+  calcMethod  String   @default("columns") @map("calc_method") @db.VarChar(20)
+  rounding    Int      @default(0)
   sortOrder   Int      @default(0) @map("sort_order")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
 
-  category  PriceCategory?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  parent    PriceItem?        @relation("PriceItemModifiers", fields: [parentId], references: [id], onDelete: Cascade)
-  modifiers PriceItem[]       @relation("PriceItemModifiers")
-  prices    PriceItemPrice[]
+  category    PriceCategory?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  parent      PriceItem?             @relation("PriceItemModifiers", fields: [parentId], references: [id], onDelete: Cascade)
+  modifiers   PriceItem[]            @relation("PriceItemModifiers")
+  prices      PriceItemPrice[]
+  paramGroups PriceItemParamGroup[]
 
   @@index([accountId])
   @@index([categoryId])
   @@index([parentId])
   @@map("price_items")
+}
+
+model PriceUnit {
+  id        Int      @id @default(autoincrement())
+  accountId Int      @map("account_id")
+  name      String   @db.VarChar(100)
+  shortName String?  @map("short_name") @db.VarChar(30)
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@unique([accountId, name])
+  @@index([accountId])
+  @@map("price_units")
+}
+
+model PriceParameter {
+  id            Int      @id @default(autoincrement())
+  accountId     Int      @map("account_id")
+  name          String   @db.VarChar(255)
+  selectionType String   @default("single") @map("selection_type") @db.VarChar(10)
+  sortOrder     Int      @default(0) @map("sort_order")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at")
+
+  values PriceParameterValue[]
+
+  @@unique([accountId, name])
+  @@index([accountId])
+  @@map("price_parameters")
+}
+
+model PriceParameterValue {
+  id             Int      @id @default(autoincrement())
+  parameterId    Int      @map("parameter_id")
+  name           String   @db.VarChar(255)
+  influenceType  String   @default("coefficient") @map("influence_type") @db.VarChar(12)
+  influenceValue Decimal  @default(1) @map("influence_value") @db.Decimal(14, 4)
+  sortOrder      Int      @default(0) @map("sort_order")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
+
+  parameter PriceParameter @relation(fields: [parameterId], references: [id], onDelete: Cascade)
+
+  @@index([parameterId])
+  @@map("price_parameter_values")
+}
+
+model PriceItemParamGroup {
+  id                Int      @id @default(autoincrement())
+  itemId            Int      @map("item_id")
+  sourceParameterId Int?     @map("source_parameter_id")
+  name              String   @db.VarChar(255)
+  selectionType     String   @default("single") @map("selection_type") @db.VarChar(10)
+  isRequired        Boolean  @default(true) @map("is_required")
+  affectsPrice      Boolean  @default(true) @map("affects_price")
+  sortOrder         Int      @default(0) @map("sort_order")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at")
+
+  item    PriceItem               @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  options PriceItemParamOption[]
+
+  @@index([itemId])
+  @@index([sourceParameterId])
+  @@map("price_item_param_groups")
+}
+
+model PriceItemParamOption {
+  id             Int      @id @default(autoincrement())
+  groupId        Int      @map("group_id")
+  name           String   @db.VarChar(255)
+  influenceType  String   @default("coefficient") @map("influence_type") @db.VarChar(12)
+  influenceValue Decimal  @default(1) @map("influence_value") @db.Decimal(14, 4)
+  sortOrder      Int      @default(0) @map("sort_order")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
+
+  group PriceItemParamGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@index([groupId])
+  @@map("price_item_param_options")
 }
 
 model PriceItemPrice {

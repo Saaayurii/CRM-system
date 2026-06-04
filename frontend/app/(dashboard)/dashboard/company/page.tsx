@@ -80,7 +80,13 @@ export default function CompanyPage() {
   const router = useRouter();
   const addToast = useToastStore((st) => st.addToast);
 
-  const [activeTab, setActiveTab] = useState<TabKey>('details');
+  const [activeTab, setActiveTab] = useState<TabKey>(() => {
+    if (typeof window !== 'undefined') {
+      const t = new URLSearchParams(window.location.search).get('tab');
+      if (t === 'banks' || t === 'price' || t === 'security' || t === 'details') return t as TabKey;
+    }
+    return 'details';
+  });
 
   // Details state
   const [account, setAccount] = useState<AccountData | null>(null);

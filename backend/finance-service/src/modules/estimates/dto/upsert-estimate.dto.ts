@@ -135,6 +135,10 @@ export class UpsertItemDto {
   @IsOptional() @IsInt()
   priceItemId?: number | null;
 
+  @ApiPropertyOptional({ description: 'Выбранные значения параметров услуги (для параметрической цены)' })
+  @IsOptional()
+  selectedOptions?: any;
+
   @ApiPropertyOptional()
   @IsOptional() @IsString()
   description?: string;

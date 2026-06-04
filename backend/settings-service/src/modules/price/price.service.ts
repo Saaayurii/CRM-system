@@ -12,7 +12,9 @@ import {
   CreatePriceItemDto,
   UpdatePriceItemDto,
   PriceItemPriceInput,
+  PriceItemParamGroupInput,
 } from './dto/upsert-price-item.dto';
+import { CreatePriceUnitDto, UpdatePriceUnitDto } from './dto/upsert-price-unit.dto';
 
 @Injectable()
 export class PriceService {
@@ -88,7 +90,14 @@ export class PriceService {
     if (params.rootOnly) where.parentId = null;
     return (this.prisma as any).priceItem.findMany({
       where,
-      include: { prices: true, modifiers: { include: { prices: true } } },
+      include: {
+        prices: true,
+        modifiers: { include: { prices: true } },
+        paramGroups: {
+          include: { options: { orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }] } },
+          orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+        },
+      },
       orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
     });
   }
@@ -96,7 +105,14 @@ export class PriceService {
   async getItem(accountId: number, id: number) {
     const item = await (this.prisma as any).priceItem.findFirst({
       where: { id, accountId },
-      include: { prices: true, modifiers: { include: { prices: true } } },
+      include: {
+        prices: true,
+        modifiers: { include: { prices: true } },
+        paramGroups: {
+          include: { options: { orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }] } },
+          orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+        },
+      },
     });
     if (!item) throw new NotFoundException('Price item not found');
     return item;
@@ -105,7 +121,7 @@ export class PriceService {
   async createItem(accountId: number, dto: CreatePriceItemDto) {
     if (dto.parentId) await this.ensureItemOwned(accountId, dto.parentId);
     if (dto.categoryId) await this.findOwned('priceCategory', accountId, dto.categoryId);
-    const { prices, ...rest } = dto;
+    const { prices, paramGroups, ...rest } = dto;
     return this.prisma.$transaction(async (tx: any) => {
       const item = await tx.priceItem.create({
         data: { ...this.normalize(rest), accountId },
@@ -113,9 +129,19 @@ export class PriceService {
       if (prices?.length) {
         await this.replacePricesTx(tx, accountId, item.id, prices);
       }
+      if (paramGroups) {
+        await this.replaceParamGroupsTx(tx, item.id, paramGroups);
+      }
       return tx.priceItem.findUnique({
         where: { id: item.id },
-        include: { prices: true, modifiers: { include: { prices: true } } },
+        include: {
+        prices: true,
+        modifiers: { include: { prices: true } },
+        paramGroups: {
+          include: { options: { orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }] } },
+          orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+        },
+      },
       });
     });
   }
@@ -127,7 +153,7 @@ export class PriceService {
       await this.ensureItemOwned(accountId, dto.parentId);
     }
     if (dto.categoryId) await this.findOwned('priceCategory', accountId, dto.categoryId);
-    const { prices, ...rest } = dto;
+    const { prices, paramGroups, ...rest } = dto;
     return this.prisma.$transaction(async (tx: any) => {
       await tx.priceItem.update({
         where: { id },
@@ -136,9 +162,19 @@ export class PriceService {
       if (prices) {
         await this.replacePricesTx(tx, accountId, id, prices);
       }
+      if (paramGroups) {
+        await this.replaceParamGroupsTx(tx, id, paramGroups);
+      }
       return tx.priceItem.findUnique({
         where: { id },
-        include: { prices: true, modifiers: { include: { prices: true } } },
+        include: {
+        prices: true,
+        modifiers: { include: { prices: true } },
+        paramGroups: {
+          include: { options: { orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }] } },
+          orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+        },
+      },
       });
     });
   }
@@ -157,7 +193,14 @@ export class PriceService {
       this.listCategories(accountId),
       (this.prisma as any).priceItem.findMany({
         where: { accountId, parentId: null },
-        include: { prices: true, modifiers: { include: { prices: true } } },
+        include: {
+        prices: true,
+        modifiers: { include: { prices: true } },
+        paramGroups: {
+          include: { options: { orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }] } },
+          orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+        },
+      },
         orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
       }),
     ]);
@@ -196,6 +239,70 @@ export class PriceService {
         })),
       });
     }
+  }
+
+  /** Полностью пересоздаёт группы параметров услуги и их варианты. */
+  private async replaceParamGroupsTx(
+    tx: any,
+    itemId: number,
+    groups: PriceItemParamGroupInput[],
+  ) {
+    // onDelete: Cascade на options → достаточно удалить группы.
+    await tx.priceItemParamGroup.deleteMany({ where: { itemId } });
+    for (const [gi, g] of groups.entries()) {
+      const group = await tx.priceItemParamGroup.create({
+        data: {
+          itemId,
+          sourceParameterId: g.sourceParameterId ?? null,
+          name: g.name,
+          selectionType: g.selectionType ?? 'single',
+          isRequired: g.isRequired ?? true,
+          affectsPrice: g.affectsPrice ?? true,
+          sortOrder: g.sortOrder ?? gi,
+        },
+      });
+      const options = g.options ?? [];
+      if (options.length) {
+        await tx.priceItemParamOption.createMany({
+          data: options.map((o, oi) => ({
+            groupId: group.id,
+            name: o.name,
+            influenceType: o.influenceType ?? 'coefficient',
+            influenceValue: o.influenceValue ?? 1,
+            sortOrder: o.sortOrder ?? oi,
+          })),
+        });
+      }
+    }
+  }
+
+  /* ── Единицы измерения ── */
+
+  listUnits(accountId: number) {
+    return (this.prisma as any).priceUnit.findMany({
+      where: { accountId },
+      orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+    });
+  }
+
+  createUnit(accountId: number, dto: CreatePriceUnitDto) {
+    return (this.prisma as any).priceUnit.create({
+      data: { ...this.normalize(dto), accountId },
+    });
+  }
+
+  async updateUnit(accountId: number, id: number, dto: UpdatePriceUnitDto) {
+    await this.findOwned('priceUnit', accountId, id);
+    return (this.prisma as any).priceUnit.update({
+      where: { id },
+      data: this.normalize(dto),
+    });
+  }
+
+  async removeUnit(accountId: number, id: number) {
+    await this.findOwned('priceUnit', accountId, id);
+    await (this.prisma as any).priceUnit.delete({ where: { id } });
+    return { id };
   }
 
   private async findOwned(model: string, accountId: number, id: number) {

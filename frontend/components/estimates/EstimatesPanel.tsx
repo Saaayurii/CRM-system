@@ -587,6 +587,7 @@ function SectionCard({
                   unit: c.unit ?? undefined,
                   quantity: 1,
                   unitPrice: c.price,
+                  selectedOptions: c.selectedOptions ?? undefined,
                 });
               }
               setPicking(false);

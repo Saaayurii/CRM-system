@@ -394,6 +394,128 @@ export class SettingsGatewayController {
     });
   }
 
+  @Post('price-items/:id/calc')
+  @ApiOperation({ summary: 'Calculate parametric price for selected options' })
+  async calcPriceItem(@Req() req: Request, @Param('id') id: string, @Body() body: any) {
+    return this.proxyService.forward('settings', {
+      method: 'POST',
+      path: `/price-items/${id}/calc`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  // Price — Parameter library
+  @Get('price-parameters')
+  @ApiOperation({ summary: 'List parameter library' })
+  async listPriceParameters(@Req() req: Request) {
+    return this.proxyService.forward('settings', {
+      method: 'GET',
+      path: '/price-parameters',
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  @Get('price-parameters/:id')
+  @ApiOperation({ summary: 'Get parameter' })
+  async getPriceParameter(@Req() req: Request, @Param('id') id: string) {
+    return this.proxyService.forward('settings', {
+      method: 'GET',
+      path: `/price-parameters/${id}`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  @Post('price-parameters')
+  @ApiOperation({ summary: 'Create parameter' })
+  async createPriceParameter(@Req() req: Request, @Body() body: any) {
+    return this.proxyService.forward('settings', {
+      method: 'POST',
+      path: '/price-parameters',
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Put('price-parameters/:id')
+  @ApiOperation({ summary: 'Update parameter' })
+  async updatePriceParameter(@Req() req: Request, @Param('id') id: string, @Body() body: any) {
+    return this.proxyService.forward('settings', {
+      method: 'PUT',
+      path: `/price-parameters/${id}`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Delete('price-parameters/:id')
+  @ApiOperation({ summary: 'Delete parameter' })
+  async deletePriceParameter(@Req() req: Request, @Param('id') id: string) {
+    return this.proxyService.forward('settings', {
+      method: 'DELETE',
+      path: `/price-parameters/${id}`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  // Price — Units of measure
+  @Get('price-units')
+  @ApiOperation({ summary: 'List units' })
+  async listPriceUnits(@Req() req: Request) {
+    return this.proxyService.forward('settings', {
+      method: 'GET',
+      path: '/price-units',
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  @Post('price-units')
+  @ApiOperation({ summary: 'Create unit' })
+  async createPriceUnit(@Req() req: Request, @Body() body: any) {
+    return this.proxyService.forward('settings', {
+      method: 'POST',
+      path: '/price-units',
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Put('price-units/:id')
+  @ApiOperation({ summary: 'Update unit' })
+  async updatePriceUnit(@Req() req: Request, @Param('id') id: string, @Body() body: any) {
+    return this.proxyService.forward('settings', {
+      method: 'PUT',
+      path: `/price-units/${id}`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Delete('price-units/:id')
+  @ApiOperation({ summary: 'Delete unit' })
+  async deletePriceUnit(@Req() req: Request, @Param('id') id: string) {
+    return this.proxyService.forward('settings', {
+      method: 'DELETE',
+      path: `/price-units/${id}`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
   // Price — Aggregate (для UI вкладки «Прайс»)
   @Get('price-list')
   @ApiOperation({ summary: 'Get full price list (categories + items + prices)' })
