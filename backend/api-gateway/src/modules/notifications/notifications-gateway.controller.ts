@@ -205,6 +205,16 @@ export class NotificationsGatewayController {
     });
   }
 
+  @Delete('notifications')
+  @ApiOperation({ summary: 'Delete all notifications for current user' })
+  async clearAllNotifications(@Req() req: Request) {
+    return this.proxyService.forward('notifications', {
+      method: 'DELETE',
+      path: '/notifications',
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
   // Announcements
   @Get('announcements')
   @ApiOperation({ summary: 'Get all announcements' })
