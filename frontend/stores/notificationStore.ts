@@ -40,6 +40,7 @@ interface NotificationState {
   fetchNotifications: () => Promise<void>;
   markAsRead: (id: number) => Promise<void>;
   markAllAsRead: () => Promise<void>;
+  clearAll: () => Promise<void>;
   connectSSE: () => void;
   disconnectSSE: () => void;
 
@@ -177,6 +178,17 @@ export const useNotificationStore = create<NotificationState>()(
             notifications: state.notifications.map((n) => ({ ...n, isRead: true })),
             unreadCount: 0,
           }));
+        } catch {
+          // silent
+        }
+      },
+
+      clearAll: async () => {
+        try {
+          await api.delete('/notifications');
+          await disablePushNotifications();
+          updateBadge(0);
+          set({ notifications: [], unreadCount: 0, pushEnabled: false });
         } catch {
           // silent
         }

@@ -77,6 +77,24 @@ export class NotificationRepository {
     });
   }
 
+  async deleteAllForUser(userId: number, accountId: number): Promise<number[]> {
+    const rows = await (this.prisma as any).notification.findMany({
+      where: { userId, accountId },
+      select: { id: true },
+    });
+    const ids: number[] = rows.map((r: { id: number }) => r.id);
+    if (ids.length > 0) {
+      await (this.prisma as any).notification.deleteMany({
+        where: { userId, accountId },
+      });
+    }
+    return ids;
+  }
+
+  async deleteAllPushSubscriptionsForUser(userId: number): Promise<void> {
+    await (this.prisma as any).pushSubscription.deleteMany({ where: { userId } });
+  }
+
   async countNotifications(
     accountId: number,
     userId: number,

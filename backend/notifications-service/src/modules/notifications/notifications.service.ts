@@ -335,6 +335,15 @@ export class NotificationsService implements OnModuleInit {
     return { sent, recipients: recipientIds.size };
   }
 
+  async clearAllForUser(userId: number, accountId: number) {
+    const ids = await this.notificationRepository.deleteAllForUser(userId, accountId);
+    await this.notificationRepository.deleteAllPushSubscriptionsForUser(userId);
+    if (ids.length > 0) {
+      this.pushSystemEvent(userId, 'notification_deleted', { ids });
+    }
+    return { deleted: ids.length };
+  }
+
   async updateNotification(
     id: number,
     accountId: number,

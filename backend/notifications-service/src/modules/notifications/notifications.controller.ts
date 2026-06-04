@@ -155,6 +155,16 @@ export class NotificationsController {
 
   // ─── Notifications ───────────────────────────────────────────────────────────
 
+  @Delete('notifications')
+  @ApiOperation({ summary: 'Delete all notifications and push subscriptions for current user' })
+  @ApiResponse({ status: 200, description: 'All notifications cleared' })
+  clearAllNotifications(
+    @CurrentUser('id') userId: number,
+    @CurrentUser('accountId') accountId: number,
+  ) {
+    return this.notificationsService.clearAllForUser(userId, accountId);
+  }
+
   @Get('notifications')
   @ApiOperation({ summary: 'Get all notifications for current user' })
   @ApiQuery({ name: 'page', required: false, type: Number })
