@@ -149,6 +149,9 @@ export default function NotificationDropdown({ navItem }: { navItem?: boolean })
   useEffect(() => {
     const clickHandler = ({ target }: MouseEvent) => {
       if (!dropdown.current) return;
+      // If the clicked element was already removed from the DOM (e.g. a button
+      // that unmounted right after click), treat it as an internal action.
+      if (!document.contains(target as Node)) return;
       if (!dropdownOpen || dropdown.current.contains(target as Node) || trigger.current?.contains(target as Node))
         return;
       setDropdownOpen(false);
