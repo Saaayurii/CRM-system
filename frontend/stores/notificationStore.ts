@@ -184,11 +184,10 @@ export const useNotificationStore = create<NotificationState>()(
       },
 
       clearAll: async () => {
+        updateBadge(0);
+        set({ notifications: [], unreadCount: 0 });
         try {
           await api.delete('/notifications');
-          await disablePushNotifications();
-          updateBadge(0);
-          set({ notifications: [], unreadCount: 0, pushEnabled: false });
         } catch {
           // silent
         }
