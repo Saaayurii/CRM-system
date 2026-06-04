@@ -242,14 +242,15 @@ function ColumnUserFilter({ users, selectedIds, onChange, multi = false }: {
 
 async function fetchTasksPageData(): Promise<TasksPageData> {
   const [tasksRes, projectsRes, usersRes] = await Promise.all([
-    api.get('/tasks'),
+    api.get('/tasks', { params: { limit: 500 } }),
     api.get('/projects', { params: { limit: 100 } }),
     api.get('/users', { params: { limit: 100 } }),
   ]);
+  const allUsers: User[] = usersRes.data.data || usersRes.data.users || [];
   return {
     tasks: tasksRes.data.tasks || tasksRes.data.data || [],
     projects: projectsRes.data.projects || projectsRes.data.data || [],
-    users: usersRes.data.data || usersRes.data.users || [],
+    users: allUsers.filter((u) => u.roleId !== 15),
   };
 }
 
@@ -559,7 +560,7 @@ export default function TasksPage() {
           <h1 className="text-2xl md:text-3xl text-gray-800 dark:text-gray-100 font-bold">Задачи</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Управление задачами проекта</p>
         </div>
-        <div className="flex items-center gap-2 mt-3 sm:mt-0">
+        <div className="relative flex items-center gap-2 mt-3 sm:mt-0" ref={settingsRef}>
           {/* Action buttons */}
           <div className="flex items-center gap-0.5">
             <button
@@ -592,8 +593,8 @@ export default function TasksPage() {
                 <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-violet-500" />
               )}
             </button>
-            {/* Settings dropdown */}
-            <div className="relative" ref={settingsRef}>
+            {/* Settings button */}
+            <div>
               <button
                 onClick={() => setShowSettings((v) => !v)}
                 title="Настройки и экспорт"
@@ -604,8 +605,10 @@ export default function TasksPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
               </button>
-              {showSettings && (
-                <div className="absolute right-0 top-full mt-1 w-56 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl py-1.5 z-50">
+            </div>
+          </div>
+          {showSettings && (
+                <div className="absolute right-0 top-full mt-1 w-56 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl py-1.5 z-[200]">
                   <p className="px-4 py-1 text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">Экспорт</p>
                   <button
                     onClick={() => { window.print(); setShowSettings(false); }}
@@ -641,8 +644,6 @@ export default function TasksPage() {
                   )}
                 </div>
               )}
-            </div>
-          </div>
           {/* View toggle */}
           <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
             <button
