@@ -1041,7 +1041,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
       createdAt: new Date().toISOString(),
       createdByUserId: user ? Number(user.id) : undefined,
     };
-    updateChecklists((prev) => prev.map((g) => g.id === gid ? { ...g, collapsed: false, items: [...g.items, newItem] } : g));
+    updateChecklists((prev) => prev.map((g) => g.id === gid ? { ...g, collapsed: false, items: [newItem, ...g.items] } : g));
     setEditingItemId(newId);
   };
 
