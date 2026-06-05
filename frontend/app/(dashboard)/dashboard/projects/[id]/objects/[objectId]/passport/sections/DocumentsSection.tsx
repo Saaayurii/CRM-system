@@ -61,6 +61,27 @@ function fmtDate(d?: string): string {
   return Number.isNaN(date.getTime()) ? '—' : date.toLocaleDateString('ru-RU');
 }
 
+/** Absolute URL (Office viewer & blob download need a fully-qualified URL). */
+function absUrl(url: string): string {
+  if (/^https?:\/\//i.test(url)) return url;
+  if (typeof window === 'undefined') return url;
+  return `${window.location.origin}${url.startsWith('/') ? '' : '/'}${url}`;
+}
+
+type ViewerKind = 'image' | 'pdf' | 'office' | 'text' | 'none';
+function viewerKind(url?: string): ViewerKind {
+  const ext = url ? fileExt(url).toLowerCase() : '';
+  if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'svg', 'bmp'].includes(ext)) return 'image';
+  if (ext === 'pdf') return 'pdf';
+  if (['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(ext)) return 'office';
+  if (['txt', 'csv', 'log', 'json', 'xml'].includes(ext)) return 'text';
+  return 'none';
+}
+
+const EyeIcon = (p: { className?: string }) => <svg className={p.className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}><path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>;
+const DownloadIcon = (p: { className?: string }) => <svg className={p.className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-6L12 15m0 0l4.5-4.5M12 15V3" /></svg>;
+const CloseIcon = (p: { className?: string }) => <svg className={p.className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>;
+
 /* ───────────────────────── component ───────────────────────── */
 
 export default function DocumentsSection({ ctx, onCountChange }: { ctx: PassportCtx; onCountChange: (n: number) => void }) {
@@ -69,6 +90,8 @@ export default function DocumentsSection({ ctx, onCountChange }: { ctx: Passport
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<string>('__all__');
   const [search, setSearch] = useState('');
+  const [preview, setPreview] = useState<DocItem | null>(null);
+  const [downloading, setDownloading] = useState<number | null>(null);
 
   // form
   const [showForm, setShowForm] = useState(false);
@@ -165,6 +188,32 @@ export default function DocumentsSection({ ctx, onCountChange }: { ctx: Passport
       addToast('error', Array.isArray(msg) ? msg.join('; ') : (msg || 'Ошибка при сохранении'));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const download = async (d: DocItem) => {
+    if (!d.fileUrl) return;
+    setDownloading(d.id);
+    const url = absUrl(d.fileUrl);
+    const ext = fileExt(d.fileUrl).toLowerCase();
+    const name = /\.[a-z0-9]{1,6}$/i.test(d.title) ? d.title : `${d.title || 'document'}.${ext}`;
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('fetch failed');
+      const blob = await res.blob();
+      const objUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = objUrl;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(objUrl);
+    } catch {
+      // Cross-origin or network issue — fall back to opening in a new tab.
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } finally {
+      setDownloading(null);
     }
   };
 
@@ -283,9 +332,15 @@ export default function DocumentsSection({ ctx, onCountChange }: { ctx: Passport
                         <td className="py-2 align-top">
                           <div className="flex items-center justify-end gap-1">
                             {d.fileUrl && (
-                              <a href={d.fileUrl} target="_blank" rel="noopener noreferrer" title="Открыть" className="p-1.5 text-gray-400 hover:text-violet-500 transition-colors">
-                                <FileIcon className="w-4 h-4" />
-                              </a>
+                              <IconBtn title="Просмотр" onClick={() => setPreview(d)}><EyeIcon className="w-4 h-4" /></IconBtn>
+                            )}
+                            {d.fileUrl && (
+                              <button type="button" title="Скачать" disabled={downloading === d.id} onClick={() => download(d)}
+                                className="p-1.5 text-gray-400 hover:text-violet-500 transition-colors disabled:opacity-50">
+                                {downloading === d.id
+                                  ? <span className="block w-4 h-4 animate-spin rounded-full border-b-2 border-violet-500" />
+                                  : <DownloadIcon className="w-4 h-4" />}
+                              </button>
                             )}
                             <IconBtn danger title="Удалить" onClick={() => remove(d)}><TrashIcon className="w-4 h-4" /></IconBtn>
                           </div>
@@ -306,6 +361,61 @@ export default function DocumentsSection({ ctx, onCountChange }: { ctx: Passport
               <Donut data={extDistribution} />
             )}
           </Card>
+        </div>
+      )}
+
+      {/* Document preview modal */}
+      {preview && preview.fileUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" onClick={() => setPreview(null)}>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-5xl h-[85vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between gap-3 px-5 py-3 border-b border-gray-100 dark:border-gray-700/60">
+              <div className="min-w-0">
+                <p className="font-semibold text-gray-800 dark:text-gray-100 truncate">{preview.title}</p>
+                <p className="text-xs text-gray-400">{typeLabel(preview.documentType)} · {fileExt(preview.fileUrl)}</p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button type="button" onClick={() => download(preview)} disabled={downloading === preview.id}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-lg disabled:opacity-50">
+                  <DownloadIcon className="w-4 h-4" />Скачать
+                </button>
+                <a href={absUrl(preview.fileUrl)} target="_blank" rel="noopener noreferrer"
+                  className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600 rounded-lg hover:border-violet-400 transition-colors">
+                  Открыть
+                </a>
+                <IconBtn title="Закрыть" onClick={() => setPreview(null)}><CloseIcon className="w-5 h-5" /></IconBtn>
+              </div>
+            </div>
+            <div className="flex-1 min-h-0 bg-gray-50 dark:bg-gray-900/40">
+              {(() => {
+                const kind = viewerKind(preview.fileUrl);
+                const url = absUrl(preview.fileUrl!);
+                if (kind === 'image') {
+                  return (
+                    <div className="w-full h-full overflow-auto flex items-center justify-center p-4">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={url} alt={preview.title} className="max-w-full max-h-full object-contain" />
+                    </div>
+                  );
+                }
+                if (kind === 'pdf' || kind === 'text') {
+                  return <iframe src={url} title={preview.title} className="w-full h-full border-0" />;
+                }
+                if (kind === 'office') {
+                  return <iframe src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`} title={preview.title} className="w-full h-full border-0" />;
+                }
+                return (
+                  <div className="w-full h-full flex flex-col items-center justify-center gap-3 text-gray-400 px-6 text-center">
+                    <FileIcon className="w-12 h-12" />
+                    <p className="text-sm">Предпросмотр недоступен для этого типа файла.</p>
+                    <button type="button" onClick={() => download(preview)}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-lg">
+                      <DownloadIcon className="w-4 h-4" />Скачать файл
+                    </button>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
         </div>
       )}
     </div>
