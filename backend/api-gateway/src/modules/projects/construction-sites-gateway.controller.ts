@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Patch,
   Delete,
   Body,
   Param,
@@ -82,6 +83,24 @@ export class ConstructionSitesGatewayController {
     return this.proxyService.forward('projects', {
       method: 'PUT',
       path: `/construction-sites/${id}`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Patch(':id/passport')
+  @ApiOperation({ summary: 'Update a section of the object technical passport' })
+  async updatePassport(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
+    return this.proxyService.forward('projects', {
+      method: 'PATCH',
+      path: `/construction-sites/${id}/passport`,
       headers: {
         authorization: req.headers.authorization || '',
         'content-type': 'application/json',
