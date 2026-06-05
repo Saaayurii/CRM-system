@@ -237,7 +237,9 @@ CREATE TABLE construction_sites (
     photos JSONB DEFAULT '[]',
     documents JSONB DEFAULT '[]',
     settings JSONB DEFAULT '{}',
-    
+    passport JSONB NOT NULL DEFAULT '{}'::jsonb,
+    passport_history JSONB NOT NULL DEFAULT '[]'::jsonb,
+
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP

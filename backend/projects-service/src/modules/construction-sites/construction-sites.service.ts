@@ -1,6 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConstructionSiteRepository } from './repositories/construction-site.repository';
-import { CreateConstructionSiteDto, UpdateConstructionSiteDto } from './dto';
+import {
+  CreateConstructionSiteDto,
+  UpdateConstructionSiteDto,
+  UpdatePassportDto,
+} from './dto';
 
 @Injectable()
 export class ConstructionSitesService {
@@ -57,5 +61,33 @@ export class ConstructionSitesService {
     await this.findById(id);
     await this.constructionSiteRepository.delete(id);
     return { message: `Construction site with ID ${id} deleted successfully` };
+  }
+
+  async updatePassport(id: number, userId: number, dto: UpdatePassportDto) {
+    const site = await this.findById(id);
+
+    const existingPassport =
+      (site.passport as Record<string, any>) ?? {};
+    const newPassport = { ...existingPassport, [dto.section]: dto.data };
+
+    const existingHistory = Array.isArray(site.passportHistory)
+      ? (site.passportHistory as any[])
+      : [];
+    const historyEntry = {
+      id: Date.now(),
+      userId,
+      userName: dto.userName || null,
+      section: dto.section,
+      changedAt: new Date().toISOString(),
+    };
+    const newHistory = [...existingHistory, historyEntry].slice(-200);
+
+    await this.constructionSiteRepository.updatePassport(
+      id,
+      newPassport,
+      newHistory,
+    );
+
+    return { passport: newPassport, passportHistory: newHistory };
   }
 }

@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Patch,
   Delete,
   Body,
   Param,
@@ -20,7 +21,11 @@ import {
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ConstructionSitesService } from './construction-sites.service';
-import { CreateConstructionSiteDto, UpdateConstructionSiteDto } from './dto';
+import {
+  CreateConstructionSiteDto,
+  UpdateConstructionSiteDto,
+  UpdatePassportDto,
+} from './dto';
 
 interface RequestUser {
   id: number;
@@ -91,6 +96,18 @@ export class ConstructionSitesController {
     @Body() dto: UpdateConstructionSiteDto,
   ) {
     return this.constructionSitesService.update(id, dto);
+  }
+
+  @Patch(':id/passport')
+  @ApiOperation({ summary: 'Update a section of the object technical passport' })
+  @ApiResponse({ status: 200, description: 'Passport section updated' })
+  @ApiResponse({ status: 404, description: 'Construction site not found' })
+  async updatePassport(
+    @CurrentUser('id') userId: number,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdatePassportDto,
+  ) {
+    return this.constructionSitesService.updatePassport(id, userId, dto);
   }
 
   @Delete(':id')

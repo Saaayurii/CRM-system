@@ -15,6 +15,7 @@
 - `GET    /construction-sites` — список строительных объектов
 - `POST   /construction-sites` — создание объекта
 - `PUT    /construction-sites/:id` — обновление объекта
+- `PATCH  /construction-sites/:id/passport` — обновление секции технического паспорта объекта
 
 ## Модели данных (Prisma)
 - `Project` — проект (name, code, status, startDate, endDate, accountId, deletedAt)
@@ -29,3 +30,11 @@
 ## Особенности
 - Код проекта (`code`) уникален в рамках аккаунта
 - Команда проекта отличается от команды HR: это привязка конкретных пользователей к проекту
+- **Технический паспорт объекта** хранится в двух JSONB-колонках `ConstructionSite`:
+  `passport` (структурированный блоб с секциями `general | access | engineering |
+  infrastructure | security | maintenance | contacts`) и `passport_history`
+  (append-only массив записей об изменениях). `PATCH /construction-sites/:id/passport`
+  принимает `{ section, data, userName? }`, целиком заменяет `passport[section]` на
+  `data`, добавляет запись в историю (`{ id, userId, userName, section, changedAt }`)
+  с ограничением последних 200 записей и возвращает `{ passport, passportHistory }`.
+  Нормализованных таблиц нет — всё лежит в JSONB.

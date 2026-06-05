@@ -47,6 +47,13 @@ export class ConstructionSiteRepository {
     });
   }
 
+  async updatePassport(id: number, passport: any, passportHistory: any[]) {
+    return (this.prisma as any).constructionSite.updateMany({
+      where: { id },
+      data: { passport, passportHistory },
+    });
+  }
+
   async delete(id: number) {
     return (this.prisma as any).constructionSite.deleteMany({
       where: { id },
