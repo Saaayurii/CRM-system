@@ -234,9 +234,12 @@ export default function NotificationDropdown({ navItem }: { navItem?: boolean })
           {unreadCount > 0 && (
             <button
               onClick={markAllAsRead}
-              className="text-xs text-violet-500 hover:text-violet-600 dark:hover:text-violet-400 transition-colors"
+              title="Прочитать все"
+              className="text-violet-500 hover:text-violet-600 dark:hover:text-violet-400 transition-colors"
             >
-              Прочитать все
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
             </button>
           )}
           {/* Push toggle */}
