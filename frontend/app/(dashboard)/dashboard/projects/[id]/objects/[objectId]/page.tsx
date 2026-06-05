@@ -117,7 +117,9 @@ export default function ObjectPassportPage() {
             <span>/</span>
             <button onClick={() => router.push(`/dashboard/projects/${projectId}?tab=objects`)} className="hover:text-violet-500 transition-colors truncate max-w-[180px]">{project?.name ?? `Проект #${projectId}`}</button>
             <span>/</span>
-            <span className="text-gray-700 dark:text-gray-200 font-medium truncate max-w-[200px]">{site.name}</span>
+            <button onClick={() => setActive('general')} className="hover:text-violet-500 transition-colors truncate max-w-[180px]">{site.name}</button>
+            <span>/</span>
+            <span className="text-gray-700 dark:text-gray-200 font-medium truncate max-w-[220px]">{activeItem.label}</span>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">{site.name}</h1>
