@@ -27,6 +27,39 @@ export class UserRepository {
     });
   }
 
+  async findAllByEmailWithRole(email: string) {
+    return (this.prisma as any).user.findMany({
+      where: { email, deletedAt: null },
+      include: {
+        account: { select: { id: true, name: true, settings: true } },
+        role: { select: { id: true, name: true, code: true } },
+      },
+    });
+  }
+
+  /**
+   * Find active users whose phone matches the given normalized last-10 digits.
+   * Stored phones are free-form, so we strip non-digits in SQL and compare the
+   * trailing 10 digits (ignores +7 / 8 / spaces / brackets differences).
+   */
+  async findActiveByPhoneDigits(last10: string) {
+    const rows: Array<{ id: number }> = await (this.prisma as any).$queryRaw`
+      SELECT id FROM users
+      WHERE deleted_at IS NULL
+        AND is_active = true
+        AND right(regexp_replace(coalesce(phone, ''), '\\D', '', 'g'), 10) = ${last10}
+    `;
+    const ids = rows.map((r) => Number(r.id));
+    if (ids.length === 0) return [];
+    return (this.prisma as any).user.findMany({
+      where: { id: { in: ids } },
+      include: {
+        account: { select: { id: true, name: true, settings: true } },
+        role: { select: { id: true, name: true, code: true } },
+      },
+    });
+  }
+
   async findByEmailAndAccount(email: string, accountId: number) {
     return (this.prisma as any).user.findFirst({
       where: { email, accountId, deletedAt: null },
@@ -98,6 +131,18 @@ export class UserRepository {
         signInCount: {
           increment: 1,
         },
+      },
+    });
+  }
+
+  async updatePassword(userId: number, passwordDigest: string) {
+    return (this.prisma as any).user.update({
+      where: { id: userId },
+      data: {
+        passwordDigest,
+        mustChangePassword: false,
+        refreshToken: null,
+        refreshTokenExpiresAt: null,
       },
     });
   }

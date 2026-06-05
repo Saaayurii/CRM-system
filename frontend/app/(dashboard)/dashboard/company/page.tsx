@@ -7,6 +7,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useRouter } from 'next/navigation';
 import PriceTab from '@/components/company/PriceTab';
 import SecurityTab from '@/components/company/SecurityTab';
+import RecoveryLogTab from '@/components/company/RecoveryLogTab';
 
 interface AccountData {
   id: number;
@@ -59,7 +60,7 @@ interface EmployeeOption {
   name: string;
 }
 
-type TabKey = 'details' | 'banks' | 'price' | 'security';
+type TabKey = 'details' | 'banks' | 'price' | 'security' | 'recovery';
 
 const LEGAL_FORMS = ['ООО', 'ИП', 'Самозанятый', 'АО', 'ПАО', 'НКО'];
 
@@ -83,7 +84,7 @@ export default function CompanyPage() {
   const [activeTab, setActiveTab] = useState<TabKey>(() => {
     if (typeof window !== 'undefined') {
       const t = new URLSearchParams(window.location.search).get('tab');
-      if (t === 'banks' || t === 'price' || t === 'security' || t === 'details') return t as TabKey;
+      if (t === 'banks' || t === 'price' || t === 'security' || t === 'recovery' || t === 'details') return t as TabKey;
     }
     return 'details';
   });
@@ -423,6 +424,7 @@ export default function CompanyPage() {
             { key: 'banks' as TabKey, label: 'Счета (банки)' },
             { key: 'price' as TabKey, label: 'Прайс' },
             { key: 'security' as TabKey, label: 'Безопасность' },
+            { key: 'recovery' as TabKey, label: 'Восстановления' },
           ].map((t) => (
             <button
               key={t.key}
@@ -782,6 +784,8 @@ export default function CompanyPage() {
       {activeTab === 'price' && <PriceTab />}
 
       {activeTab === 'security' && <SecurityTab />}
+
+      {activeTab === 'recovery' && <RecoveryLogTab />}
 
       {egrulModal.open && (
         <EgrulModal

@@ -3113,3 +3113,46 @@ CREATE TABLE IF NOT EXISTS notes (
 );
 CREATE INDEX IF NOT EXISTS notes_user_id_idx ON notes (user_id);
 CREATE INDEX IF NOT EXISTS notes_remind_at_idx ON notes (remind_at);
+
+-- ===========================================
+-- Account recovery via email (password reset)
+-- ===========================================
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    id          SERIAL PRIMARY KEY,
+    email       VARCHAR(255) NOT NULL,
+    token_hash  VARCHAR(255) NOT NULL,
+    expires_at  TIMESTAMP NOT NULL,
+    used_at     TIMESTAMP,
+    ip_address  VARCHAR(45),
+    created_at  TIMESTAMP NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_prt_token_hash ON password_reset_tokens (token_hash);
+CREATE INDEX IF NOT EXISTS idx_prt_email      ON password_reset_tokens (email);
+
+CREATE TABLE IF NOT EXISTS account_recovery_log (
+    id           SERIAL PRIMARY KEY,
+    account_id   INTEGER NOT NULL,
+    user_id      INTEGER NOT NULL,
+    email        VARCHAR(255) NOT NULL,
+    user_name    VARCHAR(255),
+    role_id      INTEGER,
+    account_name VARCHAR(255),
+    method       VARCHAR(20) NOT NULL DEFAULT 'email',
+    ip_address   VARCHAR(45),
+    user_agent   VARCHAR(500),
+    recovered_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_arl_account ON account_recovery_log (account_id);
+
+-- Account recovery via phone (SMS OTP)
+CREATE TABLE IF NOT EXISTS phone_reset_codes (
+    id          SERIAL PRIMARY KEY,
+    phone       VARCHAR(32) NOT NULL,
+    code_hash   VARCHAR(255) NOT NULL,
+    expires_at  TIMESTAMP NOT NULL,
+    attempts    INTEGER NOT NULL DEFAULT 0,
+    used_at     TIMESTAMP,
+    ip_address  VARCHAR(45),
+    created_at  TIMESTAMP NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_prc_phone ON phone_reset_codes (phone);

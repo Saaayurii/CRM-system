@@ -28,6 +28,12 @@ import { RegisterCompanyDto } from './dto/register-company.dto';
 import { CreateInviteDto } from './dto/create-invite.dto';
 import { CreateMemberInviteDto } from './dto/create-member-invite.dto';
 import { LoginDto, TwoFactorLoginDto, Confirm2faDto, Disable2faDto } from './dto/login.dto';
+import { RequestPasswordResetDto, ConfirmPasswordResetDto } from './dto/password-reset.dto';
+import {
+  RequestPhoneResetDto,
+  VerifyPhoneResetDto,
+  ConfirmPhoneResetDto,
+} from './dto/phone-reset.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { CreateRegistrationRequestDto } from './dto/create-registration-request.dto';
 import { ApproveRegistrationRequestDto } from './dto/approve-registration-request.dto';
@@ -136,6 +142,99 @@ export class AuthController {
       userAgent,
       normalizeIp(ipAddress.split(',')[0].trim()),
     );
+  }
+
+  // ── Password reset / account recovery via email ────────────────────
+
+  @Post('password-reset/request')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Request a password-reset email (always returns 200)' })
+  async requestPasswordReset(
+    @Body() dto: RequestPasswordResetDto,
+    @Req() req: any,
+  ): Promise<MessageResponseDto> {
+    const ipAddress = (req.headers['x-real-ip'] || req.headers['x-forwarded-for'] || req.ip || '') as string;
+    return this.authService.requestPasswordReset(
+      dto.email,
+      normalizeIp(ipAddress.split(',')[0].trim()),
+    );
+  }
+
+  @Get('password-reset/accounts')
+  @Public()
+  @ApiOperation({ summary: 'List accounts recoverable with a reset token (for selection)' })
+  async getResetTokenAccounts(@Query('token') token: string) {
+    return this.authService.getResetTokenAccounts(token || '');
+  }
+
+  @Post('password-reset/confirm')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Confirm recovery: set a new password for the selected accounts' })
+  async confirmPasswordReset(
+    @Body() dto: ConfirmPasswordResetDto,
+    @Req() req: any,
+  ): Promise<MessageResponseDto> {
+    const userAgent = (req.headers['x-user-agent'] || req.headers['user-agent'] || '') as string;
+    const ipAddress = (req.headers['x-real-ip'] || req.headers['x-forwarded-for'] || req.ip || '') as string;
+    return this.authService.confirmPasswordReset(
+      dto.token,
+      dto.userIds,
+      dto.password,
+      normalizeIp(ipAddress.split(',')[0].trim()),
+      userAgent,
+    );
+  }
+
+  @Post('phone-reset/request')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Request a recovery code via SMS (always returns 200)' })
+  async requestPhoneReset(
+    @Body() dto: RequestPhoneResetDto,
+    @Req() req: any,
+  ): Promise<MessageResponseDto> {
+    const ipAddress = (req.headers['x-real-ip'] || req.headers['x-forwarded-for'] || req.ip || '') as string;
+    return this.authService.requestPhoneReset(
+      dto.phone,
+      normalizeIp(ipAddress.split(',')[0].trim()),
+    );
+  }
+
+  @Post('phone-reset/verify')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify SMS code; returns one-time token + recoverable accounts' })
+  async verifyPhoneReset(@Body() dto: VerifyPhoneResetDto) {
+    return this.authService.verifyPhoneResetCode(dto.phone, dto.code);
+  }
+
+  @Post('phone-reset/confirm')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Confirm phone recovery: set a new password for selected accounts' })
+  async confirmPhoneReset(
+    @Body() dto: ConfirmPhoneResetDto,
+    @Req() req: any,
+  ): Promise<MessageResponseDto> {
+    const userAgent = (req.headers['x-user-agent'] || req.headers['user-agent'] || '') as string;
+    const ipAddress = (req.headers['x-real-ip'] || req.headers['x-forwarded-for'] || req.ip || '') as string;
+    return this.authService.confirmPhoneReset(
+      dto.token,
+      dto.userIds,
+      dto.password,
+      normalizeIp(ipAddress.split(',')[0].trim()),
+      userAgent,
+    );
+  }
+
+  @Get('account-recovery-log')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Account recovery audit log for the current company (Admin)' })
+  async getRecoveryLog(@CurrentUser() user: UserPayload) {
+    this.checkAdmin(user);
+    return this.authService.getRecoveryLog(user.accountId);
   }
 
   // ── Self-service 2FA management (authenticated) ────────────────────
@@ -437,6 +536,13 @@ export class AuthController {
 
   private checkAdminOrHR(user: UserPayload) {
     const allowedRoles = [1, 2, 3]; // super_admin, admin, hr_manager
+    if (!user.roleId || !allowedRoles.includes(user.roleId)) {
+      throw new ForbiddenException('Доступ запрещён');
+    }
+  }
+
+  private checkAdmin(user: UserPayload) {
+    const allowedRoles = [1, 2]; // super_admin, admin
     if (!user.roleId || !allowedRoles.includes(user.roleId)) {
       throw new ForbiddenException('Доступ запрещён');
     }

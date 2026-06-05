@@ -100,6 +100,128 @@ export class AuthGatewayController {
     });
   }
 
+  // ── Password reset / account recovery via email ──────────────────────────
+
+  @Post('password-reset/request')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @Throttle(AUTH_THROTTLE)
+  @ApiOperation({ summary: 'Request a password-reset email' })
+  async requestPasswordReset(
+    @Body() body: unknown,
+    @Headers('user-agent') userAgent: string,
+    @Req() req: any,
+  ) {
+    return this.proxyService.forward('auth', {
+      method: 'POST',
+      path: '/auth/password-reset/request',
+      data: body,
+      headers: {
+        'X-User-Agent': userAgent || '',
+        'X-Real-IP': req.ip || '',
+      },
+    });
+  }
+
+  @Get('password-reset/accounts')
+  @Public()
+  @Throttle(AUTH_THROTTLE)
+  @ApiOperation({ summary: 'List accounts recoverable with a reset token' })
+  async getResetTokenAccounts(@Query('token') token: string) {
+    return this.proxyService.forward('auth', {
+      method: 'GET',
+      path: `/auth/password-reset/accounts?token=${encodeURIComponent(token || '')}`,
+      headers: {},
+    });
+  }
+
+  @Post('password-reset/confirm')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @Throttle(AUTH_THROTTLE)
+  @ApiOperation({ summary: 'Confirm recovery and set a new password' })
+  async confirmPasswordReset(
+    @Body() body: unknown,
+    @Headers('user-agent') userAgent: string,
+    @Req() req: any,
+  ) {
+    return this.proxyService.forward('auth', {
+      method: 'POST',
+      path: '/auth/password-reset/confirm',
+      data: body,
+      headers: {
+        'X-User-Agent': userAgent || '',
+        'X-Real-IP': req.ip || '',
+      },
+    });
+  }
+
+  @Post('phone-reset/request')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @Throttle(AUTH_THROTTLE)
+  @ApiOperation({ summary: 'Request a recovery code via SMS' })
+  async requestPhoneReset(
+    @Body() body: unknown,
+    @Headers('user-agent') userAgent: string,
+    @Req() req: any,
+  ) {
+    return this.proxyService.forward('auth', {
+      method: 'POST',
+      path: '/auth/phone-reset/request',
+      data: body,
+      headers: {
+        'X-User-Agent': userAgent || '',
+        'X-Real-IP': req.ip || '',
+      },
+    });
+  }
+
+  @Post('phone-reset/verify')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @Throttle(AUTH_THROTTLE)
+  @ApiOperation({ summary: 'Verify SMS code; returns one-time token + accounts' })
+  async verifyPhoneReset(@Body() body: unknown) {
+    return this.proxyService.forward('auth', {
+      method: 'POST',
+      path: '/auth/phone-reset/verify',
+      data: body,
+    });
+  }
+
+  @Post('phone-reset/confirm')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @Throttle(AUTH_THROTTLE)
+  @ApiOperation({ summary: 'Confirm phone recovery and set a new password' })
+  async confirmPhoneReset(
+    @Body() body: unknown,
+    @Headers('user-agent') userAgent: string,
+    @Req() req: any,
+  ) {
+    return this.proxyService.forward('auth', {
+      method: 'POST',
+      path: '/auth/phone-reset/confirm',
+      data: body,
+      headers: {
+        'X-User-Agent': userAgent || '',
+        'X-Real-IP': req.ip || '',
+      },
+    });
+  }
+
+  @Get('account-recovery-log')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Account recovery audit log for current company (Admin)' })
+  async getRecoveryLog(@Headers('authorization') authorization: string) {
+    return this.proxyService.forward('auth', {
+      method: 'GET',
+      path: '/auth/account-recovery-log',
+      headers: { Authorization: authorization },
+    });
+  }
+
   @Get('2fa/status')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get current user 2FA status' })

@@ -14,9 +14,14 @@ import { RegistrationRequestRepository } from './repositories/registration-reque
 import { CompanyInviteRepository } from './repositories/company-invite.repository';
 import { MemberInviteRepository } from './repositories/member-invite.repository';
 import { SessionRepository } from './repositories/session.repository';
+import { PasswordResetRepository } from './repositories/password-reset.repository';
+import { PhoneResetRepository } from './repositories/phone-reset.repository';
+import { RecoveryLogRepository } from './repositories/recovery-log.repository';
 import { JwtStrategy } from '../../common/guards/jwt.strategy';
 import { SessionBlacklistService } from '../../common/services/session-blacklist.service';
 import { TotpService } from './services/totp.service';
+import { MailService } from './services/mail.service';
+import { SmsService } from './services/sms.service';
 import { LoginThrottleService } from '../../common/services/login-throttle.service';
 
 @Module({
@@ -48,9 +53,14 @@ import { LoginThrottleService } from '../../common/services/login-throttle.servi
     CompanyInviteRepository,
     MemberInviteRepository,
     SessionRepository,
+    PasswordResetRepository,
+    PhoneResetRepository,
+    RecoveryLogRepository,
     JwtStrategy,
     SessionBlacklistService,
     TotpService,
+    MailService,
+    SmsService,
     LoginThrottleService,
   ],
   exports: [AuthService, TokenService, PasswordService, SessionBlacklistService],

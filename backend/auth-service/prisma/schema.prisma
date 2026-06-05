@@ -202,3 +202,62 @@ model ClientPortalAccess {
   @@index([userId])
   @@map("client_portal_access")
 }
+
+// ===========================================
+// Password Reset Token (Email account recovery)
+// Один токен на email — покрывает все аккаунты пользователя
+// (клиент / админ / разные компании). Хранится только хеш.
+// ===========================================
+model PasswordResetToken {
+  id        Int       @id @default(autoincrement())
+  email     String    @db.VarChar(255)
+  tokenHash String    @map("token_hash") @db.VarChar(255)
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  ipAddress String?   @map("ip_address") @db.VarChar(45)
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@index([tokenHash], name: "idx_prt_token_hash")
+  @@index([email], name: "idx_prt_email")
+  @@map("password_reset_tokens")
+}
+
+// ===========================================
+// Account Recovery Log — кто восстановил аккаунт
+// Изолирован по accountId (видят админы своей компании)
+// ===========================================
+model AccountRecoveryLog {
+  id          Int      @id @default(autoincrement())
+  accountId   Int      @map("account_id")
+  userId      Int      @map("user_id")
+  email       String   @db.VarChar(255)
+  userName    String?  @map("user_name") @db.VarChar(255)
+  roleId      Int?     @map("role_id")
+  accountName String?  @map("account_name") @db.VarChar(255)
+  method      String   @default("email") @db.VarChar(20) // email | phone
+  ipAddress   String?  @map("ip_address") @db.VarChar(45)
+  userAgent   String?  @map("user_agent") @db.VarChar(500)
+  recoveredAt DateTime @default(now()) @map("recovered_at")
+
+  @@index([accountId], name: "idx_arl_account")
+  @@map("account_recovery_log")
+}
+
+// ===========================================
+// Phone Reset Code (SMS account recovery, OTP)
+// Один код на нормализованный телефон (последние 10 цифр).
+// Хранится sha256-хеш, лимит попыток, короткий TTL.
+// ===========================================
+model PhoneResetCode {
+  id        Int       @id @default(autoincrement())
+  phone     String    @db.VarChar(32) // нормализованные последние 10 цифр
+  codeHash  String    @map("code_hash") @db.VarChar(255)
+  expiresAt DateTime  @map("expires_at")
+  attempts  Int       @default(0)
+  usedAt    DateTime? @map("used_at")
+  ipAddress String?   @map("ip_address") @db.VarChar(45)
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@index([phone], name: "idx_prc_phone")
+  @@map("phone_reset_codes")
+}
