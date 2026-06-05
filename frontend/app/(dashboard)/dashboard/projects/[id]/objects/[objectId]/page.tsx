@@ -60,6 +60,7 @@ export default function ObjectPassportPage() {
   const ctx = usePassport(projectId, objectId);
 
   const [active, setActive] = useState<SectionKey>('general');
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [project, setProject] = useState<{ id: number; name: string; code?: string } | null>(null);
   const [roomsCount, setRoomsCount] = useState(0);
   const [docsCount, setDocsCount] = useState(0);
@@ -87,6 +88,24 @@ export default function ObjectPassportPage() {
   const site = ctx.site;
   const statusInfo = SITE_STATUS_LABEL[site.status ?? 0] ?? SITE_STATUS_LABEL[0];
   const areaLabel = site.areaSize != null ? `${site.areaSize} м²` : '';
+  const activeItem = NAV.find((n) => n.key === active) ?? NAV[0];
+
+  const navButton = (item: typeof NAV[number], onPick?: () => void) => {
+    const { key, label, subtitle, Icon, chip } = item;
+    const c = chip ? completion[key === 'rooms' ? 'rooms' : key] : undefined;
+    const isActive = active === key;
+    return (
+      <button key={key} onClick={() => { setActive(key); onPick?.(); }}
+        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${isActive ? 'bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900/30'}`}>
+        <Icon className="w-5 h-5 shrink-0" />
+        <span className="flex-1 min-w-0">
+          <span className="block text-sm font-medium truncate">{label}</span>
+          <span className="block text-[11px] text-gray-400 dark:text-gray-500 truncate">{subtitle}</span>
+        </span>
+        {c && <span className="text-[11px] text-gray-400 shrink-0 tabular-nums">{Math.min(c.done, c.total)}/{c.total}</span>}
+      </button>
+    );
+  };
 
   return (
     <div className="space-y-5">
@@ -115,24 +134,10 @@ export default function ObjectPassportPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-5">
-        {/* Section nav */}
-        <aside className="space-y-3 lg:sticky lg:top-4 self-start">
+        {/* Section nav (desktop) */}
+        <aside className="space-y-3 lg:sticky lg:top-4 self-start hidden lg:block">
           <nav className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700/60 p-2">
-            {NAV.map(({ key, label, subtitle, Icon, chip }) => {
-              const c = chip ? completion[key === 'rooms' ? 'rooms' : key] : undefined;
-              const isActive = active === key;
-              return (
-                <button key={key} onClick={() => setActive(key)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${isActive ? 'bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900/30'}`}>
-                  <Icon className="w-5 h-5 shrink-0" />
-                  <span className="flex-1 min-w-0">
-                    <span className="block text-sm font-medium truncate">{label}</span>
-                    <span className="block text-[11px] text-gray-400 dark:text-gray-500 truncate">{subtitle}</span>
-                  </span>
-                  {c && <span className="text-[11px] text-gray-400 shrink-0 tabular-nums">{Math.min(c.done, c.total)}/{c.total}</span>}
-                </button>
-              );
-            })}
+            {NAV.map((item) => navButton(item))}
           </nav>
 
           {/* Completion meter */}
@@ -150,6 +155,31 @@ export default function ObjectPassportPage() {
 
         {/* Section content */}
         <main className="min-w-0">
+          {/* Mobile section picker (burger) */}
+          <div className="lg:hidden relative mb-4 z-30">
+            <button onClick={() => setMobileNavOpen((v) => !v)}
+              className="w-full flex items-center gap-3 px-3 py-2.5 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/60 rounded-xl">
+              <svg className="w-5 h-5 text-violet-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5" /></svg>
+              <span className="flex-1 min-w-0 text-left text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{activeItem.label}</span>
+              <span className="text-xs font-bold text-violet-600 dark:text-violet-400 shrink-0">{overall}%</span>
+              <svg className={`w-4 h-4 text-gray-400 shrink-0 transition-transform ${mobileNavOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+            </button>
+
+            {/* Slim completion bar always visible under the button */}
+            <div className="h-1.5 mt-2 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-violet-500 to-fuchsia-500 rounded-full transition-all" style={{ width: `${overall}%` }} />
+            </div>
+
+            {mobileNavOpen && (
+              <>
+                <div className="fixed inset-0 z-30" onClick={() => setMobileNavOpen(false)} />
+                <div className="absolute left-0 right-0 mt-2 z-40 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/60 rounded-xl p-2 shadow-xl max-h-[70vh] overflow-y-auto">
+                  {NAV.map((item) => navButton(item, () => setMobileNavOpen(false)))}
+                </div>
+              </>
+            )}
+          </div>
+
           {active === 'general' && <GeneralSection ctx={ctx} />}
           {active === 'access' && <AccessSecuritySection ctx={ctx} />}
           {active === 'engineering' && <EngineeringSection ctx={ctx} />}
