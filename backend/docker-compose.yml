@@ -131,6 +131,16 @@ services:
       # Public URL for building absolute file URLs (set to your domain in production)
       APP_PUBLIC_URL: ${APP_PUBLIC_URL:-}
 
+      # File storage: local (default) or s3 (Yandex Object Storage)
+      STORAGE_PROVIDER: ${STORAGE_PROVIDER:-local}
+      AWS_S3_BUCKET_NAME: ${AWS_S3_BUCKET_NAME:-}
+      AWS_S3_ACCESS_KEY_ID: ${AWS_S3_ACCESS_KEY_ID:-}
+      AWS_S3_SECRET_ACCESS_KEY: ${AWS_S3_SECRET_ACCESS_KEY:-}
+      AWS_S3_ENDPOINT: ${AWS_S3_ENDPOINT:-https://storage.yandexcloud.net}
+      AWS_S3_REGION: ${AWS_S3_REGION:-ru-central1}
+      AWS_S3_FORCE_PATH_STYLE: ${AWS_S3_FORCE_PATH_STYLE:-false}
+      AWS_S3_PUBLIC_URL: ${AWS_S3_PUBLIC_URL:-}
+
       # Rate Limiting
       RATE_LIMIT_TTL: 60
       RATE_LIMIT_MAX: 300

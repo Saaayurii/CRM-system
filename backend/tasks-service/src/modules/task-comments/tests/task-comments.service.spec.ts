@@ -2,6 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { TaskCommentsService } from '../task-comments.service';
 import { TaskCommentRepository } from '../repositories/task-comment.repository';
+import { NotificationsClientService } from '../notifications-client.service';
+import { PrismaService } from '../../../database/prisma.service';
 
 describe('TaskCommentsService', () => {
   let service: TaskCommentsService;
@@ -31,6 +33,8 @@ describe('TaskCommentsService', () => {
             delete: jest.fn(),
           },
         },
+        { provide: NotificationsClientService, useValue: { sendToMany: jest.fn(), broadcast: jest.fn() } },
+        { provide: PrismaService, useValue: {} },
       ],
     }).compile();
 

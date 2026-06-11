@@ -2,10 +2,13 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { BudgetsService } from '../budgets.service';
 import { BudgetRepository } from '../repositories/budget.repository';
+import { PrismaService } from '../../../database/prisma.service';
 
 describe('BudgetsService', () => {
   let service: BudgetsService;
   let repository: jest.Mocked<BudgetRepository>;
+
+  const mockUser = { id: 1, roleId: 2, accountId: 1 };
 
   const mockBudget = {
     id: 1,
@@ -41,6 +44,10 @@ describe('BudgetsService', () => {
             createItem: jest.fn(),
           },
         },
+        {
+          provide: PrismaService,
+          useValue: {},
+        },
       ],
     }).compile();
 
@@ -55,9 +62,9 @@ describe('BudgetsService', () => {
   describe('findAll', () => {
     it('should return paginated budgets', async () => {
       repository.findAll.mockResolvedValue(mockPaginatedResult);
-      const result = await service.findAll(1, 1, 20);
+      const result = await service.findAll(mockUser, 1, 20);
       expect(result).toEqual(mockPaginatedResult);
-      expect(repository.findAll).toHaveBeenCalledWith(1, 1, 20);
+      expect(repository.findAll).toHaveBeenCalledWith(1, 1, 20, undefined, undefined);
     });
   });
 

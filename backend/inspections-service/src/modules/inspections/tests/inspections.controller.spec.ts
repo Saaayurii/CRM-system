@@ -61,7 +61,7 @@ describe('InspectionsController', () => {
 
       expect(result).toEqual(expected);
       expect(service.findAll).toHaveBeenCalledWith(
-        1,
+        mockUser,
         1,
         20,
         undefined,
@@ -81,7 +81,7 @@ describe('InspectionsController', () => {
       await controller.findAll(mockUser);
 
       expect(service.findAll).toHaveBeenCalledWith(
-        1,
+        mockUser,
         1,
         20,
         undefined,
@@ -100,7 +100,7 @@ describe('InspectionsController', () => {
 
       await controller.findAll(mockUser, '1', '20', '2', '5');
 
-      expect(service.findAll).toHaveBeenCalledWith(1, 1, 20, 2, 5);
+      expect(service.findAll).toHaveBeenCalledWith(mockUser, 1, 20, 2, 5);
     });
   });
 
@@ -111,7 +111,7 @@ describe('InspectionsController', () => {
       const result = await controller.findById(mockUser, 1);
 
       expect(result).toEqual(mockInspection);
-      expect(service.findById).toHaveBeenCalledWith(1, 1);
+      expect(service.findById).toHaveBeenCalledWith(1, mockUser);
     });
   });
 
@@ -123,7 +123,7 @@ describe('InspectionsController', () => {
       const result = await controller.create(mockUser, dto);
 
       expect(result).toEqual(mockInspection);
-      expect(service.create).toHaveBeenCalledWith(1, dto);
+      expect(service.create).toHaveBeenCalledWith(1, dto, 1);
     });
   });
 
@@ -134,7 +134,7 @@ describe('InspectionsController', () => {
 
       await controller.update(mockUser, 1, dto);
 
-      expect(service.update).toHaveBeenCalledWith(1, 1, dto);
+      expect(service.update).toHaveBeenCalledWith(1, 1, dto, 1);
     });
   });
 

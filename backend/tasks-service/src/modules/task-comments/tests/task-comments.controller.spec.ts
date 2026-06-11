@@ -97,7 +97,7 @@ describe('TaskCommentsController', () => {
       const result = await controller.create(mockUser, createDto);
 
       expect(result).toEqual(mockComment);
-      expect(service.create).toHaveBeenCalledWith(createDto);
+      expect(service.create).toHaveBeenCalledWith({ ...createDto, userId: 1 }, 1);
     });
   });
 

@@ -5,6 +5,16 @@ import type { CSSProperties } from 'react';
 
 export type ThemeMode = 'classic' | 'day' | 'night' | 'system';
 export type NightMode = 'off' | 'system' | 'scheduled';
+export type Density = 'comfortable' | 'compact';
+
+/** Тихие часы уведомлений (настраивает каждый пользователь для себя) */
+export interface QuietHours {
+  enabled: boolean;
+  start: string; // 'HH:MM'
+  end: string;   // 'HH:MM'
+  muteSound: boolean;
+  mutePush: boolean;
+}
 export type AccentId =
   | 'violet'
   | 'blue'
@@ -32,6 +42,8 @@ export interface AppearanceSettings {
   mode: ThemeMode;
   /** Акцентный цвет всего приложения */
   accent: AccentId;
+  /** Пользователь выбирал акцент сам (иначе действует фирменный акцент компании) */
+  accentSetByUser?: boolean;
   /** Базовый размер текста (px на корневом элементе), 16 — по умолчанию */
   fontSize: number;
   /** Размер текста сообщений в чате (px), 14 — по умолчанию */
@@ -48,6 +60,12 @@ export interface AppearanceSettings {
   chatPattern: boolean;
   /** Цветные имена собеседников в чате */
   nameColors: boolean;
+  /** Плотность интерфейса: компактный режим уменьшает отступы таблиц */
+  density: Density;
+  /** Раздел, который открывается после входа */
+  startPage: string;
+  /** Тихие часы уведомлений */
+  quietHours: QuietHours;
   /** Автосмена тёмной темы для светлых пресетов */
   nightMode: NightMode;
   nightStart: string; // 'HH:MM'
@@ -65,10 +83,29 @@ export const DEFAULT_APPEARANCE: AppearanceSettings = {
   customWallpaperUrl: null,
   chatPattern: false,
   nameColors: true,
+  density: 'comfortable',
+  startPage: '/dashboard',
+  quietHours: {
+    enabled: false,
+    start: '22:00',
+    end: '08:00',
+    muteSound: true,
+    mutePush: true,
+  },
   nightMode: 'off',
   nightStart: '22:00',
   nightEnd: '07:00',
 };
+
+/** Варианты стартовой страницы после входа */
+export const START_PAGES: { value: string; name: string }[] = [
+  { value: '/dashboard', name: 'Обзор' },
+  { value: '/dashboard/projects', name: 'Проекты' },
+  { value: '/dashboard/tasks', name: 'Задачи' },
+  { value: '/dashboard/chat', name: 'Чат' },
+  { value: '/dashboard/calendar', name: 'Календарь' },
+  { value: '/dashboard/notes', name: 'Заметки' },
+];
 
 export const FONT_SIZE_MIN = 13;
 export const FONT_SIZE_MAX = 20;
@@ -224,6 +261,12 @@ export function isNightNow(start: string, end: string, now: Date = new Date()): 
   if (s === null || e === null || s === e) return false;
   const cur = now.getHours() * 60 + now.getMinutes();
   return s < e ? cur >= s && cur < e : cur >= s || cur < e;
+}
+
+/** Активны ли тихие часы прямо сейчас */
+export function isQuietNow(q: QuietHours, now: Date = new Date()): boolean {
+  if (!q.enabled) return false;
+  return isNightNow(q.start, q.end, now);
 }
 
 export function systemPrefersDark(): boolean {

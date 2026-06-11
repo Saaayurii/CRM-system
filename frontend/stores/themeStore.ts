@@ -48,11 +48,19 @@ function sanitize(raw: unknown): AppearanceSettings {
   if (merged.chatWallpaper === 'custom' && !merged.customWallpaperUrl) {
     merged.chatWallpaper = 'default';
   }
+  if (merged.density !== 'compact') merged.density = 'comfortable';
+  merged.quietHours = { ...DEFAULT_APPEARANCE.quietHours, ...(merged.quietHours || {}) };
+  if (typeof merged.startPage !== 'string' || !merged.startPage.startsWith('/dashboard')) {
+    merged.startPage = DEFAULT_APPEARANCE.startPage;
+  }
   return merged;
 }
 
 interface ThemeState {
   appearance: AppearanceSettings;
+  /** Фирменный акцент компании (settings.defaultAccent аккаунта) — действует,
+   *  пока пользователь не выбрал акцент сам */
+  companyAccent: string | null;
   /** Разрешённая тема — для обратной совместимости и условного рендера */
   theme: 'light' | 'dark';
   setAppearance: (patch: Partial<AppearanceSettings>) => void;
@@ -67,6 +75,7 @@ interface ThemeState {
 
 export const useThemeStore = create<ThemeState>((set, get) => ({
   appearance: DEFAULT_APPEARANCE,
+  companyAccent: null,
   theme: 'light',
 
   setAppearance: (patch) => {
@@ -112,6 +121,7 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
 
   initialize: () => {
     let appearance = DEFAULT_APPEARANCE;
+    let companyAccent: string | null = null;
     try {
       const raw = localStorage.getItem(LS_KEY);
       if (raw) {
@@ -121,14 +131,29 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
         appearance = { ...DEFAULT_APPEARANCE, mode: 'night' };
         persistLocal(appearance);
       }
+      companyAccent = localStorage.getItem('companyAccent');
     } catch {
       // ignore
     }
-    set({ appearance, theme: resolveTheme(appearance, systemPrefersDark()) });
+    set({ appearance, companyAccent, theme: resolveTheme(appearance, systemPrefersDark()) });
   },
 
   syncFromServer: async () => {
     if (serverSynced) return;
+    // Фирменный акцент компании (доступен всем авторизованным)
+    api
+      .get('/system-settings')
+      .then(({ data }) => {
+        const accent = data?.settings?.defaultAccent || null;
+        set({ companyAccent: accent });
+        try {
+          if (accent) localStorage.setItem('companyAccent', accent);
+          else localStorage.removeItem('companyAccent');
+        } catch {
+          // ignore
+        }
+      })
+      .catch(() => {});
     try {
       const { data } = await api.get('/user-preferences');
       serverSynced = true;

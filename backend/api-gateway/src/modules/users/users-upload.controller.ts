@@ -14,9 +14,9 @@ import { extname, join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import { randomUUID } from 'crypto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { StorageService } from '../../common/services/storage.service';
 
 const UPLOAD_DIR = join(process.cwd(), 'uploads', 'avatars');
-const APP_PUBLIC_URL = (process.env.APP_PUBLIC_URL || '').replace(/\/$/, '');
 
 @SkipThrottle()
 @ApiTags('Users')
@@ -24,6 +24,8 @@ const APP_PUBLIC_URL = (process.env.APP_PUBLIC_URL || '').replace(/\/$/, '');
 @UseGuards(JwtAuthGuard)
 @Controller('api/v1/users')
 export class UsersUploadController {
+  constructor(private readonly storage: StorageService) {}
+
   @Post('avatar/upload')
   @ApiOperation({ summary: 'Upload user avatar' })
   @ApiConsumes('multipart/form-data')
@@ -50,7 +52,7 @@ export class UsersUploadController {
       },
     }),
   )
-  uploadAvatar(
+  async uploadAvatar(
     @UploadedFile() file: Express.Multer.File,
   ) {
     if (!file) {
@@ -58,7 +60,7 @@ export class UsersUploadController {
     }
 
     return {
-      fileUrl: `${APP_PUBLIC_URL}/uploads/avatars/${file.filename}`,
+      fileUrl: await this.storage.finalizeUpload(file, 'avatars'),
     };
   }
 }

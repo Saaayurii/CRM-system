@@ -54,10 +54,11 @@ describe('TasksController', () => {
       const result = await controller.findAll(mockUser, 1, 20, 1, 0, 2);
 
       expect(result).toEqual(mockResult);
-      expect(service.findAll).toHaveBeenCalledWith(1, 1, 20, {
+      expect(service.findAll).toHaveBeenCalledWith(mockUser, 1, 20, {
         projectId: 1,
         status: 0,
         assignedToUserId: 2,
+        constructionSiteId: undefined,
       });
     });
 
@@ -67,10 +68,11 @@ describe('TasksController', () => {
 
       await controller.findAll(mockUser);
 
-      expect(service.findAll).toHaveBeenCalledWith(1, 1, 20, {
+      expect(service.findAll).toHaveBeenCalledWith(mockUser, 1, 20, {
         projectId: undefined,
         status: undefined,
         assignedToUserId: undefined,
+        constructionSiteId: undefined,
       });
     });
   });
@@ -94,7 +96,7 @@ describe('TasksController', () => {
       const result = await controller.findByProject(mockUser, 1);
 
       expect(result).toEqual([mockTask]);
-      expect(service.findByProject).toHaveBeenCalledWith(1, 1);
+      expect(service.findByProject).toHaveBeenCalledWith(1, mockUser);
     });
   });
 
@@ -105,7 +107,7 @@ describe('TasksController', () => {
       const result = await controller.findOne(mockUser, 1);
 
       expect(result).toEqual(mockTask);
-      expect(service.findById).toHaveBeenCalledWith(1, 1);
+      expect(service.findById).toHaveBeenCalledWith(1, mockUser);
     });
   });
 
@@ -129,7 +131,7 @@ describe('TasksController', () => {
       const result = await controller.update(mockUser, 1, updateDto);
 
       expect(result.title).toBe('Updated Task');
-      expect(service.update).toHaveBeenCalledWith(1, updateDto, 1);
+      expect(service.update).toHaveBeenCalledWith(1, updateDto, 1, 1);
     });
   });
 
@@ -139,7 +141,7 @@ describe('TasksController', () => {
 
       await controller.remove(mockUser, 1);
 
-      expect(service.remove).toHaveBeenCalledWith(1, 1);
+      expect(service.remove).toHaveBeenCalledWith(1, 1, 1);
     });
   });
 });

@@ -12,6 +12,7 @@ import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import { randomUUID } from 'crypto';
+import { StorageService } from '../../common/services/storage.service';
 
 const UPLOAD_DIR = join(process.cwd(), 'uploads', 'reports');
 const APP_PUBLIC_URL = (process.env.APP_PUBLIC_URL || '').replace(/\/$/, '');
@@ -21,6 +22,8 @@ const APP_PUBLIC_URL = (process.env.APP_PUBLIC_URL || '').replace(/\/$/, '');
 @ApiBearerAuth()
 @Controller('api/v1/report-templates')
 export class ReportsUploadController {
+  constructor(private readonly storage: StorageService) {}
+
   @Post('upload')
   @ApiOperation({ summary: 'Upload a file for a report template' })
   @ApiConsumes('multipart/form-data')
@@ -41,7 +44,7 @@ export class ReportsUploadController {
       limits: { fileSize: 50 * 1024 * 1024 }, // 50 MB
     }),
   )
-  uploadFile(
+  async uploadFile(
     @UploadedFile() file: Express.Multer.File,
   ) {
     if (!file) {
@@ -52,7 +55,7 @@ export class ReportsUploadController {
       fileName: file.originalname,
       fileSize: file.size,
       mimeType: file.mimetype,
-      fileUrl: `${APP_PUBLIC_URL}/uploads/reports/${file.filename}`,
+      fileUrl: await this.storage.finalizeUpload(file, 'reports'),
     };
   }
 }

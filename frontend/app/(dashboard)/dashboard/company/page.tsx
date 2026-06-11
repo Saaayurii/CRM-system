@@ -9,6 +9,8 @@ import PriceTab from '@/components/company/PriceTab';
 import SecurityTab from '@/components/company/SecurityTab';
 import RecoveryLogTab from '@/components/company/RecoveryLogTab';
 import { useT } from '@/lib/i18n';
+import { useThemeStore } from '@/stores/themeStore';
+import { ACCENTS } from '@/lib/appearance';
 
 interface AccountData {
   id: number;
@@ -95,6 +97,7 @@ export default function CompanyPage() {
   const [account, setAccount] = useState<AccountData | null>(null);
   const [companyName, setCompanyName] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
+  const [defaultAccent, setDefaultAccent] = useState('');
   const [legalForm, setLegalForm] = useState('');
   const [inn, setInn] = useState('');
   const [kpp, setKpp] = useState('');
@@ -149,6 +152,7 @@ export default function CompanyPage() {
       setAccount(data);
       setCompanyName(data.name || '');
       setLogoUrl(data.settings?.logoUrl || '');
+      setDefaultAccent((data.settings as any)?.defaultAccent || '');
       setLegalForm(data.legalForm || '');
       setInn(data.inn || '');
       setKpp(data.kpp || '');
@@ -331,7 +335,8 @@ export default function CompanyPage() {
       setSaving(true);
       await api.put('/system-settings', {
         name: companyName,
-        settings: { logoUrl },
+        // спред — чтобы не затереть другие ключи settings (безопасность и т.п.)
+        settings: { ...(account?.settings || {}), logoUrl, defaultAccent: defaultAccent || undefined },
         legalForm: legalForm || '',
         inn: inn || '',
         kpp: kpp || '',
@@ -350,6 +355,12 @@ export default function CompanyPage() {
         accountantPosition: accountantPosition || '',
       });
       addToast('success', 'Реквизиты сохранены');
+      // применяем фирменный акцент сразу, без перезагрузки
+      useThemeStore.setState({ companyAccent: defaultAccent || null });
+      try {
+        if (defaultAccent) localStorage.setItem('companyAccent', defaultAccent);
+        else localStorage.removeItem('companyAccent');
+      } catch { /* ignore */ }
     } catch {
       addToast('error', 'Не удалось сохранить');
     } finally {
@@ -514,6 +525,49 @@ export default function CompanyPage() {
                   </button>
                 )}
               </div>
+            </div>
+          </div>
+
+          {/* Фирменный акцент */}
+          <div className="border-t border-gray-100 dark:border-gray-700/60 pt-5">
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+              Фирменный акцентный цвет
+            </p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">
+              Применяется по умолчанию для всех сотрудников компании. Каждый может
+              выбрать свой акцент в личных настройках.
+            </p>
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <button
+                type="button"
+                title="Не задан (стандартный фиолетовый)"
+                onClick={() => setDefaultAccent('')}
+                className={`w-9 h-9 rounded-full border-2 flex items-center justify-center transition-transform hover:scale-110 ${
+                  defaultAccent === ''
+                    ? 'border-violet-500'
+                    : 'border-gray-300 dark:border-gray-600'
+                } bg-gray-100 dark:bg-gray-700`}
+              >
+                <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                </svg>
+              </button>
+              {ACCENTS.map((a) => (
+                <button
+                  key={a.id}
+                  type="button"
+                  title={a.name}
+                  onClick={() => setDefaultAccent(a.id)}
+                  className="w-9 h-9 rounded-full flex items-center justify-center transition-transform hover:scale-110"
+                  style={{ background: a.color }}
+                >
+                  {defaultAccent === a.id && (
+                    <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                    </svg>
+                  )}
+                </button>
+              ))}
             </div>
           </div>
 

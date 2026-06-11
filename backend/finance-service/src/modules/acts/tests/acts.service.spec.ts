@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { ActsService } from '../acts.service';
 import { ActRepository } from '../repositories/act.repository';
+import { PrismaService } from '../../../database/prisma.service';
 
 describe('ActsService', () => {
   let service: ActsService;
@@ -25,6 +26,8 @@ describe('ActsService', () => {
     totalPages: 1,
   };
 
+  const mockUser = { id: 1, roleId: 2, accountId: 1 } as any;
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -40,6 +43,7 @@ describe('ActsService', () => {
             createItem: jest.fn(),
           },
         },
+        { provide: PrismaService, useValue: {} },
       ],
     }).compile();
 
@@ -54,23 +58,23 @@ describe('ActsService', () => {
   describe('findAll', () => {
     it('should return paginated acts', async () => {
       repository.findAll.mockResolvedValue(mockPaginatedResult);
-      const result = await service.findAll(1, 1, 20);
+      const result = await service.findAll(mockUser, 1, 20);
       expect(result).toEqual(mockPaginatedResult);
-      expect(repository.findAll).toHaveBeenCalledWith(1, 1, 20);
+      expect(repository.findAll).toHaveBeenCalledWith(1, 1, 20, undefined, undefined);
     });
   });
 
   describe('findById', () => {
     it('should return an act when found', async () => {
       repository.findById.mockResolvedValue(mockAct);
-      const result = await service.findById(1, 1);
+      const result = await service.findById(1, mockUser);
       expect(result).toEqual(mockAct);
       expect(repository.findById).toHaveBeenCalledWith(1, 1);
     });
 
     it('should throw NotFoundException when act not found', async () => {
       repository.findById.mockResolvedValue(null);
-      await expect(service.findById(999, 1)).rejects.toThrow(NotFoundException);
+      await expect(service.findById(999, mockUser)).rejects.toThrow(NotFoundException);
     });
   });
 

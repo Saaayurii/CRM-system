@@ -10,6 +10,7 @@ import {
   CHAT_FONT_SIZE_MIN,
   FONT_SIZE_MAX,
   FONT_SIZE_MIN,
+  START_PAGES,
   THEME_PRESETS,
   WALLPAPERS,
   getChatBackground,
@@ -259,6 +260,10 @@ export default function AppearanceSettings() {
   const setAppearance = useThemeStore((s) => s.setAppearance);
   const toggleTheme = useThemeStore((s) => s.toggleTheme);
   const addToast = useToastStore((s) => s.addToast);
+  const companyAccent = useThemeStore((s) => s.companyAccent);
+  const effectiveAccent = appearance.accentSetByUser
+    ? appearance.accent
+    : companyAccent ?? appearance.accent;
   const [open, setOpen] = useState(false);
   const [wpUploading, setWpUploading] = useState(false);
   const wpInputRef = useRef<HTMLInputElement>(null);
@@ -342,11 +347,11 @@ export default function AppearanceSettings() {
             key={a.id}
             type="button"
             title={a.name}
-            onClick={() => setAppearance({ accent: a.id })}
+            onClick={() => setAppearance({ accent: a.id, accentSetByUser: true })}
             className="w-9 h-9 rounded-full flex items-center justify-center transition-transform hover:scale-110"
             style={{ background: a.color }}
           >
-            {appearance.accent === a.id && (
+            {effectiveAccent === a.id && (
               <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
               </svg>
@@ -354,6 +359,16 @@ export default function AppearanceSettings() {
           </button>
         ))}
       </div>
+
+      {companyAccent && appearance.accentSetByUser && (
+        <button
+          type="button"
+          onClick={() => setAppearance({ accentSetByUser: false })}
+          className="mt-2 text-xs text-violet-500 hover:text-violet-600"
+        >
+          Вернуть фирменный цвет компании
+        </button>
+      )}
 
       {/* Цвет исходящих сообщений */}
       <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mt-5 mb-3">
@@ -402,6 +417,12 @@ export default function AppearanceSettings() {
       <div className="mt-5">
         <SettingRow label="Тёмное оформление">
           <Switch checked={theme === 'dark'} onChange={() => toggleTheme()} />
+        </SettingRow>
+        <SettingRow label="Компактный режим">
+          <Switch
+            checked={appearance.density === 'compact'}
+            onChange={(v) => setAppearance({ density: v ? 'compact' : 'comfortable' })}
+          />
         </SettingRow>
         <SettingRow label="Сообщения блоками">
           <Switch
@@ -633,6 +654,80 @@ export default function AppearanceSettings() {
             ? 'Тёмная тема включится автоматически вместе с тёмной темой системы.'
             : 'Тёмная тема включится автоматически в указанный период.'}
         </p>
+      )}
+
+      {/* Стартовая страница */}
+      <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mt-5 mb-3">
+        Стартовая страница
+      </p>
+      <select
+        value={appearance.startPage}
+        onChange={(e) => setAppearance({ startPage: e.target.value })}
+        className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+      >
+        {START_PAGES.map((p) => (
+          <option key={p.value} value={p.value}>{p.name}</option>
+        ))}
+      </select>
+      <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+        Раздел, который откроется после входа в систему.
+      </p>
+
+      {/* Тихие часы */}
+      <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mt-5 mb-3">
+        Тихие часы уведомлений
+      </p>
+      <SettingRow label="Включить тихие часы" last={!appearance.quietHours.enabled}>
+        <Switch
+          checked={appearance.quietHours.enabled}
+          onChange={(v) =>
+            setAppearance({ quietHours: { ...appearance.quietHours, enabled: v } })
+          }
+        />
+      </SettingRow>
+      {appearance.quietHours.enabled && (
+        <>
+          <div className="flex items-center gap-2 py-3 text-sm text-gray-600 dark:text-gray-300 border-b border-gray-100 dark:border-gray-700/60">
+            <span>с</span>
+            <input
+              type="time"
+              value={appearance.quietHours.start}
+              onChange={(e) =>
+                setAppearance({ quietHours: { ...appearance.quietHours, start: e.target.value } })
+              }
+              className="px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            />
+            <span>до</span>
+            <input
+              type="time"
+              value={appearance.quietHours.end}
+              onChange={(e) =>
+                setAppearance({ quietHours: { ...appearance.quietHours, end: e.target.value } })
+              }
+              className="px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            />
+          </div>
+          <SettingRow label="Глушить звук">
+            <Switch
+              checked={appearance.quietHours.muteSound}
+              onChange={(v) =>
+                setAppearance({ quietHours: { ...appearance.quietHours, muteSound: v } })
+              }
+            />
+          </SettingRow>
+          <SettingRow label="Глушить всплывающие уведомления" last>
+            <Switch
+              checked={appearance.quietHours.mutePush}
+              onChange={(v) =>
+                setAppearance({ quietHours: { ...appearance.quietHours, mutePush: v } })
+              }
+            />
+          </SettingRow>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+            В указанный период новые уведомления приходят в колокольчик без звука и
+            всплывающих окон.
+          </p>
+        </>
       )}
       </div>
       )}

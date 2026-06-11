@@ -996,7 +996,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
                 width: p.size,
                 height: p.size,
                 background: own
-                  ? `rgba(196, 181, 253, ${p.alpha})`
+                  ? `color-mix(in srgb, var(--color-bubble-300) ${Math.round(p.alpha * 100)}%, transparent)`
                   : `rgba(156, 163, 175, ${p.alpha})`,
                 '--tx': `${p.tx}px`,
                 '--ty': `${p.ty}px`,
@@ -1688,7 +1688,7 @@ function VideoNotePlayer({ src, isOwn }: VideoNotePlayerProps) {
         <circle cx={SIZE / 2} cy={SIZE / 2} r={RADIUS} fill="none" stroke="rgba(128,128,128,0.25)" strokeWidth={3} />
         <circle
           cx={SIZE / 2} cy={SIZE / 2} r={RADIUS} fill="none"
-          stroke={isOwn ? '#c4b5fd' : '#7c3aed'} strokeWidth={3} strokeLinecap="round"
+          stroke={isOwn ? 'var(--color-bubble-300)' : 'var(--color-violet-600)'} strokeWidth={3} strokeLinecap="round"
           strokeDasharray={circumference}
           strokeDashoffset={circumference * (1 - progress)}
           style={{ transition: 'stroke-dashoffset 0.1s linear' }}

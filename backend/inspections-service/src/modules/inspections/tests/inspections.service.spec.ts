@@ -2,10 +2,14 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { InspectionsService } from '../inspections.service';
 import { InspectionRepository } from '../repositories/inspection.repository';
+import { PrismaService } from '../../../database/prisma.service';
+import { NotificationsClientService } from '../../../common/notifications/notifications-client.service';
 
 describe('InspectionsService', () => {
   let service: InspectionsService;
   let repository: jest.Mocked<InspectionRepository>;
+
+  const mockUser = { id: 1, roleId: 2, accountId: 1 } as any;
 
   const now = new Date();
   const mockInspection = {
@@ -48,6 +52,8 @@ describe('InspectionsService', () => {
             deleteTemplate: jest.fn(),
           },
         },
+        { provide: PrismaService, useValue: {} },
+        { provide: NotificationsClientService, useValue: { sendToMany: jest.fn(), broadcast: jest.fn() } },
       ],
     }).compile();
 
@@ -70,13 +76,14 @@ describe('InspectionsService', () => {
       };
       repository.findAll.mockResolvedValue(expected);
 
-      const result = await service.findAll(1, 1, 20);
+      const result = await service.findAll(mockUser, 1, 20);
 
       expect(result).toEqual(expected);
       expect(repository.findAll).toHaveBeenCalledWith(
         1,
         1,
         20,
+        undefined,
         undefined,
         undefined,
       );
@@ -91,9 +98,9 @@ describe('InspectionsService', () => {
         totalPages: 0,
       });
 
-      await service.findAll(1, 1, 20, 1, 5);
+      await service.findAll(mockUser, 1, 20, 1, 5);
 
-      expect(repository.findAll).toHaveBeenCalledWith(1, 1, 20, 1, 5);
+      expect(repository.findAll).toHaveBeenCalledWith(1, 1, 20, 1, 5, undefined);
     });
   });
 
@@ -101,7 +108,7 @@ describe('InspectionsService', () => {
     it('should return an inspection by id', async () => {
       repository.findById.mockResolvedValue(mockInspection);
 
-      const result = await service.findById(1, 1);
+      const result = await service.findById(1, mockUser);
 
       expect(result).toEqual(mockInspection);
       expect(repository.findById).toHaveBeenCalledWith(1, 1);
@@ -110,7 +117,7 @@ describe('InspectionsService', () => {
     it('should throw NotFoundException when not found', async () => {
       repository.findById.mockResolvedValue(null);
 
-      await expect(service.findById(999, 1)).rejects.toThrow(NotFoundException);
+      await expect(service.findById(999, mockUser)).rejects.toThrow(NotFoundException);
     });
   });
 

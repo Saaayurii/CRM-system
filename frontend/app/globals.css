@@ -518,6 +518,15 @@ html[data-bubble='pink'] {
   line-height: 1.5715;
 }
 
+/* ── Компактный режим (настройка «Плотность интерфейса») ────────────────────
+   Уменьшает вертикальные отступы ячеек таблиц по всему приложению —
+   больше строк задач/материалов/финансов на экране. */
+html[data-density='compact'] table th,
+html[data-density='compact'] table td {
+  padding-top: 0.3rem !important;
+  padding-bottom: 0.3rem !important;
+}
+
 /* ── Цветные имена собеседников в чате (палитра как в Telegram) ───────────── */
 .chat-name-c0 { color: #cc5049; }
 .chat-name-c1 { color: #d67722; }

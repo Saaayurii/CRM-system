@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { of, throwError } from 'rxjs';
 import { AxiosResponse, AxiosError } from 'axios';
 import { ProxyService, ProxyOptions } from '../proxy.service';
+import { RequestContextService } from '../request-context.service';
 
 describe('ProxyService', () => {
   let service: ProxyService;
@@ -31,6 +32,10 @@ describe('ProxyService', () => {
               return config[key];
             }),
           },
+        },
+        {
+          provide: RequestContextService,
+          useValue: { getAccountIdOverride: jest.fn(() => undefined) },
         },
       ],
     }).compile();

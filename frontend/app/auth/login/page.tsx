@@ -3,6 +3,7 @@
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore, getRememberedAccountId, clearRememberedAccountId } from '@/stores/authStore';
+import { useThemeStore } from '@/stores/themeStore';
 import api from '@/lib/api';
 import { AxiosError } from 'axios';
 import type { TwoFactorChallenge } from '@/types/auth';
@@ -63,7 +64,7 @@ export default function LoginPage() {
         return;
       }
       await login({ email, password, accountId });
-      router.push('/dashboard');
+      router.push(useThemeStore.getState().appearance.startPage || '/dashboard');
     } catch (err) {
       // Auto-login into the remembered company failed — forget it and show the picker
       clearRememberedAccountId(email);
@@ -95,7 +96,7 @@ export default function LoginPage() {
         return;
       }
       await login({ email, password });
-      router.push('/dashboard');
+      router.push(useThemeStore.getState().appearance.startPage || '/dashboard');
     } catch (err) {
       setLoginError(getLoginError(err));
     } finally {
@@ -109,7 +110,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await complete2fa(twoFactor.token, codeValue.trim());
-      router.push('/dashboard');
+      router.push(useThemeStore.getState().appearance.startPage || '/dashboard');
     } catch (err) {
       const msg = (err as AxiosError<{ message?: string }>)?.response?.data?.message;
       const status = (err as AxiosError)?.response?.status;

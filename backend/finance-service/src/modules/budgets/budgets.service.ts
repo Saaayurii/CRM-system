@@ -3,13 +3,41 @@ import { BudgetRepository } from './repositories/budget.repository';
 import { CreateBudgetDto } from './dto/create-budget.dto';
 import { UpdateBudgetDto } from './dto/update-budget.dto';
 import { CreateBudgetItemDto } from './dto/create-budget-item.dto';
+import { PrismaService } from '../../database/prisma.service';
+import {
+  RequestUser,
+  getClientAllowedProjectIds,
+} from '../../common/helpers/client-access.helper';
 
 @Injectable()
 export class BudgetsService {
-  constructor(private readonly budgetRepository: BudgetRepository) {}
+  constructor(
+    private readonly budgetRepository: BudgetRepository,
+    private readonly prisma: PrismaService,
+  ) {}
 
-  async findAll(accountId: number, page: number, limit: number, projectId?: number) {
-    return this.budgetRepository.findAll(accountId, page, limit, projectId);
+  async findAll(user: RequestUser, page: number, limit: number, projectId?: number) {
+    const allowedProjectIds = await getClientAllowedProjectIds(this.prisma, user);
+    return this.budgetRepository.findAll(
+      user.accountId,
+      page,
+      limit,
+      projectId,
+      allowedProjectIds,
+    );
+  }
+
+  async findByIdForUser(id: number, user: RequestUser) {
+    const allowedProjectIds = await getClientAllowedProjectIds(this.prisma, user);
+    const budget = await this.budgetRepository.findById(
+      id,
+      user.accountId,
+      allowedProjectIds,
+    );
+    if (!budget) {
+      throw new NotFoundException(`Budget with ID ${id} not found`);
+    }
+    return budget;
   }
 
   async findById(id: number, accountId: number) {

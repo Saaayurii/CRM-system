@@ -93,8 +93,10 @@ export default function RootLayout({
               }
               dark = a.mode === 'night' || (a.mode === 'system' && sys) ||
                 ((a.mode === 'classic' || a.mode === 'day') && ((a.nightMode === 'system' && sys) || night));
-              if (a.accent && a.accent !== 'violet') document.documentElement.setAttribute('data-accent', a.accent);
+              var accent = a.accentSetByUser ? a.accent : (localStorage.getItem('companyAccent') || a.accent);
+              if (accent && accent !== 'violet') document.documentElement.setAttribute('data-accent', accent);
               if (a.bubbleColor && a.bubbleColor !== 'accent') document.documentElement.setAttribute('data-bubble', a.bubbleColor);
+              if (a.density === 'compact') document.documentElement.setAttribute('data-density', 'compact');
               if (a.fontSize && a.fontSize !== 16) document.documentElement.style.fontSize = a.fontSize + 'px';
               if (a.chatFontSize && a.chatFontSize !== 14) document.documentElement.style.setProperty('--chat-font-size', a.chatFontSize + 'px');
             } else {

@@ -2,10 +2,14 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import { TasksService } from '../tasks.service';
 import { TaskRepository } from '../repositories/task.repository';
+import { PrismaService } from '../../../database/prisma.service';
+import { NotificationsClientService } from '../notifications-client.service';
 
 describe('TasksService', () => {
   let service: TasksService;
   let repository: jest.Mocked<TaskRepository>;
+
+  const mockUser = { id: 1, roleId: 2, accountId: 1 } as any;
 
   const mockTask = {
     id: 1,
@@ -48,6 +52,11 @@ describe('TasksService', () => {
             getStats: jest.fn(),
           },
         },
+        { provide: PrismaService, useValue: {} },
+        {
+          provide: NotificationsClientService,
+          useValue: { sendToMany: jest.fn(), broadcast: jest.fn() },
+        },
       ],
     }).compile();
 
@@ -64,7 +73,7 @@ describe('TasksService', () => {
       repository.findAll.mockResolvedValue([mockTask]);
       repository.count.mockResolvedValue(1);
 
-      const result = await service.findAll(1, 1, 20);
+      const result = await service.findAll(mockUser, 1, 20);
 
       expect(result).toEqual({
         tasks: [mockTask],
@@ -72,14 +81,14 @@ describe('TasksService', () => {
         page: 1,
         limit: 20,
       });
-      expect(repository.findAll).toHaveBeenCalledWith(1, { skip: 0, take: 20 });
+      expect(repository.findAll).toHaveBeenCalledWith(1, { skip: 0, take: 20, allowedProjectIds: undefined });
     });
 
     it('should pass filters when provided', async () => {
       repository.findAll.mockResolvedValue([]);
       repository.count.mockResolvedValue(0);
 
-      await service.findAll(1, 1, 20, {
+      await service.findAll(mockUser, 1, 20, {
         projectId: 1,
         status: 0,
         assignedToUserId: 2,
@@ -91,11 +100,13 @@ describe('TasksService', () => {
         projectId: 1,
         status: 0,
         assignedToUserId: 2,
+        allowedProjectIds: undefined,
       });
       expect(repository.count).toHaveBeenCalledWith(1, {
         projectId: 1,
         status: 0,
         assignedToUserId: 2,
+        allowedProjectIds: undefined,
       });
     });
   });
@@ -104,7 +115,7 @@ describe('TasksService', () => {
     it('should return a task when found and account matches', async () => {
       repository.findById.mockResolvedValue(mockTask);
 
-      const result = await service.findById(1, 1);
+      const result = await service.findById(1, mockUser);
 
       expect(result).toEqual(mockTask);
       expect(repository.findById).toHaveBeenCalledWith(1);
@@ -113,13 +124,13 @@ describe('TasksService', () => {
     it('should throw NotFoundException when task not found', async () => {
       repository.findById.mockResolvedValue(null);
 
-      await expect(service.findById(999, 1)).rejects.toThrow(NotFoundException);
+      await expect(service.findById(999, mockUser)).rejects.toThrow(NotFoundException);
     });
 
     it('should throw ForbiddenException when accountId does not match', async () => {
       repository.findById.mockResolvedValue(mockTask);
 
-      await expect(service.findById(1, 999)).rejects.toThrow(
+      await expect(service.findById(1, { ...mockUser, accountId: 999 })).rejects.toThrow(
         ForbiddenException,
       );
     });
@@ -129,7 +140,7 @@ describe('TasksService', () => {
     it('should return tasks for a project', async () => {
       repository.findByProject.mockResolvedValue([mockTask]);
 
-      const result = await service.findByProject(1, 1);
+      const result = await service.findByProject(1, mockUser);
 
       expect(result).toEqual([mockTask]);
       expect(repository.findByProject).toHaveBeenCalledWith(1, 1);
@@ -152,10 +163,10 @@ describe('TasksService', () => {
       expect(repository.create).toHaveBeenCalledWith(createDto, 1);
     });
 
-    it('should throw ForbiddenException when accountId does not match', async () => {
-      await expect(service.create(createDto, 1, 999)).rejects.toThrow(
-        ForbiddenException,
-      );
+    it('should override accountId from JWT', async () => {
+      repository.create.mockResolvedValue(mockTask);
+      await service.create(createDto, 1, 999);
+      expect(repository.create).toHaveBeenCalledWith({ ...createDto, accountId: 999 }, 1);
     });
   });
 

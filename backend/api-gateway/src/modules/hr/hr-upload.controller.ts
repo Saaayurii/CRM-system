@@ -12,6 +12,7 @@ import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import { randomUUID } from 'crypto';
+import { StorageService } from '../../common/services/storage.service';
 
 const UPLOAD_DIR = join(process.cwd(), 'uploads', 'documents');
 const APP_PUBLIC_URL = (process.env.APP_PUBLIC_URL || '').replace(/\/$/, '');
@@ -21,6 +22,8 @@ const APP_PUBLIC_URL = (process.env.APP_PUBLIC_URL || '').replace(/\/$/, '');
 @ApiBearerAuth()
 @Controller('api/v1/employee-documents')
 export class HrUploadController {
+  constructor(private readonly storage: StorageService) {}
+
   @Post('upload')
   @ApiOperation({ summary: 'Upload a file for an employee document' })
   @ApiConsumes('multipart/form-data')
@@ -41,7 +44,7 @@ export class HrUploadController {
       limits: { fileSize: 20 * 1024 * 1024 }, // 20 MB
     }),
   )
-  uploadFile(
+  async uploadFile(
     @UploadedFile() file: Express.Multer.File,
   ) {
     if (!file) {
@@ -52,7 +55,7 @@ export class HrUploadController {
       fileName: file.originalname,
       fileSize: file.size,
       mimeType: file.mimetype,
-      fileUrl: `${APP_PUBLIC_URL}/uploads/documents/${file.filename}`,
+      fileUrl: await this.storage.finalizeUpload(file, 'documents'),
     };
   }
 }

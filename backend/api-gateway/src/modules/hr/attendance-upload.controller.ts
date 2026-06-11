@@ -12,6 +12,7 @@ import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import { randomUUID } from 'crypto';
+import { StorageService } from '../../common/services/storage.service';
 
 const UPLOAD_DIR = join(process.cwd(), 'uploads', 'attendance');
 const APP_PUBLIC_URL = (process.env.APP_PUBLIC_URL || '').replace(/\/$/, '');
@@ -21,6 +22,8 @@ const APP_PUBLIC_URL = (process.env.APP_PUBLIC_URL || '').replace(/\/$/, '');
 @ApiBearerAuth()
 @Controller('api/v1/attendance')
 export class AttendanceUploadController {
+  constructor(private readonly storage: StorageService) {}
+
   @Post('upload')
   @ApiOperation({ summary: 'Upload a photo for attendance check-in' })
   @ApiConsumes('multipart/form-data')
@@ -47,7 +50,7 @@ export class AttendanceUploadController {
       },
     }),
   )
-  uploadPhoto(
+  async uploadPhoto(
     @UploadedFile() file: Express.Multer.File,
   ) {
     if (!file) {
@@ -58,7 +61,7 @@ export class AttendanceUploadController {
       fileName: file.originalname,
       fileSize: file.size,
       mimeType: file.mimetype,
-      fileUrl: `${APP_PUBLIC_URL}/uploads/attendance/${file.filename}`,
+      fileUrl: await this.storage.finalizeUpload(file, 'attendance'),
     };
   }
 }

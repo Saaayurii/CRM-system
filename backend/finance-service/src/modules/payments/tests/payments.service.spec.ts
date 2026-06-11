@@ -3,6 +3,7 @@ import { NotFoundException } from '@nestjs/common';
 import { PaymentsService } from '../payments.service';
 import { PaymentsRepository } from '../repositories/payments.repository';
 import { PaymentAccountsRepository } from '../repositories/payment-accounts.repository';
+import { PrismaService } from '../../../database/prisma.service';
 
 describe('PaymentsService', () => {
   let service: PaymentsService;
@@ -43,6 +44,8 @@ describe('PaymentsService', () => {
     totalPages: 1,
   };
 
+  const mockUser = { id: 1, roleId: 2, accountId: 1 } as any;
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -67,6 +70,7 @@ describe('PaymentsService', () => {
             delete: jest.fn(),
           },
         },
+        { provide: PrismaService, useValue: {} },
       ],
     }).compile();
 
@@ -138,7 +142,7 @@ describe('PaymentsService', () => {
   describe('findAllPayments', () => {
     it('should return paginated payments', async () => {
       paymentsRepository.findAll.mockResolvedValue(mockPaginatedPayments);
-      const result = await service.findAllPayments(1, { page: 1, limit: 20 });
+      const result = await service.findAllPayments(mockUser, { page: 1, limit: 20 });
       expect(result).toEqual(mockPaginatedPayments);
     });
   });

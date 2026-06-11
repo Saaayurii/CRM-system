@@ -25,6 +25,8 @@ describe('BudgetsController', () => {
     totalPages: 1,
   };
 
+  const mockUser = { id: 1, roleId: 2, accountId: 1 } as any;
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [BudgetsController],
@@ -34,6 +36,7 @@ describe('BudgetsController', () => {
           useValue: {
             findAll: jest.fn(),
             findById: jest.fn(),
+            findByIdForUser: jest.fn(),
             create: jest.fn(),
             update: jest.fn(),
             delete: jest.fn(),
@@ -54,18 +57,18 @@ describe('BudgetsController', () => {
   describe('findAll', () => {
     it('should delegate to service.findAll', async () => {
       service.findAll.mockResolvedValue(mockPaginatedResult);
-      const result = await controller.findAll(1, 1, 20);
+      const result = await controller.findAll(mockUser, 1, 20);
       expect(result).toEqual(mockPaginatedResult);
-      expect(service.findAll).toHaveBeenCalledWith(1, 1, 20);
+      expect(service.findAll).toHaveBeenCalledWith(mockUser, 1, 20, undefined);
     });
   });
 
   describe('findOne', () => {
     it('should delegate to service.findById', async () => {
-      service.findById.mockResolvedValue(mockBudget);
-      const result = await controller.findOne(1, 1);
+      service.findByIdForUser.mockResolvedValue(mockBudget);
+      const result = await controller.findOne(1, mockUser);
       expect(result).toEqual(mockBudget);
-      expect(service.findById).toHaveBeenCalledWith(1, 1);
+      expect(service.findByIdForUser).toHaveBeenCalledWith(1, mockUser);
     });
   });
 

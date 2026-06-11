@@ -7,10 +7,14 @@ import { useAuthStore } from '@/stores/authStore';
 
 export default function ThemeProvider({ children }: { children: React.ReactNode }) {
   const theme = useThemeStore((s) => s.theme);
-  const accent = useThemeStore((s) => s.appearance.accent);
+  // Свой выбор акцента перекрывает фирменный акцент компании
+  const accent = useThemeStore((s) =>
+    s.appearance.accentSetByUser ? s.appearance.accent : (s.companyAccent ?? s.appearance.accent),
+  );
   const fontSize = useThemeStore((s) => s.appearance.fontSize);
   const chatFontSize = useThemeStore((s) => s.appearance.chatFontSize);
   const bubbleColor = useThemeStore((s) => s.appearance.bubbleColor);
+  const density = useThemeStore((s) => s.appearance.density);
   const nightMode = useThemeStore((s) => s.appearance.nightMode);
   const initialize = useThemeStore((s) => s.initialize);
   const refreshResolved = useThemeStore((s) => s.refreshResolved);
@@ -64,6 +68,11 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
     } else {
       root.removeAttribute('data-bubble');
     }
+    if (density === 'compact') {
+      root.setAttribute('data-density', 'compact');
+    } else {
+      root.removeAttribute('data-density');
+    }
     root.style.fontSize = fontSize && fontSize !== 16 ? `${fontSize}px` : '';
     if (chatFontSize && chatFontSize !== 14) {
       root.style.setProperty('--chat-font-size', `${chatFontSize}px`);
@@ -74,7 +83,7 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
       root.classList.remove('**:transition-none!');
     }, 1);
     return () => clearTimeout(timeout);
-  }, [theme, accent, fontSize, chatFontSize, bubbleColor]);
+  }, [theme, accent, fontSize, chatFontSize, bubbleColor, density]);
 
   return <>{children}</>;
 }

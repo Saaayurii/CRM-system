@@ -50,21 +50,23 @@ describe('ActsController', () => {
     expect(controller).toBeDefined();
   });
 
+  const mockUser = { id: 1, roleId: 2, accountId: 1 } as any;
+
   describe('findAll', () => {
     it('should delegate to service.findAll', async () => {
       service.findAll.mockResolvedValue(mockPaginatedResult);
-      const result = await controller.findAll(1, 1, 20);
+      const result = await controller.findAll(mockUser, 1, 20);
       expect(result).toEqual(mockPaginatedResult);
-      expect(service.findAll).toHaveBeenCalledWith(1, 1, 20);
+      expect(service.findAll).toHaveBeenCalledWith(mockUser, 1, 20, undefined);
     });
   });
 
   describe('findOne', () => {
     it('should delegate to service.findById', async () => {
       service.findById.mockResolvedValue(mockAct);
-      const result = await controller.findOne(1, 1);
+      const result = await controller.findOne(1, mockUser);
       expect(result).toEqual(mockAct);
-      expect(service.findById).toHaveBeenCalledWith(1, 1);
+      expect(service.findById).toHaveBeenCalledWith(1, mockUser);
     });
   });
 

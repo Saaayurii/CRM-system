@@ -11,6 +11,8 @@ import {
 } from '@/lib/pushNotifications';
 import { setFaviconBadge, startTitleFlash, stopTitleFlash } from '@/lib/tabBadge';
 import { getFreshAccessToken } from '@/lib/freshToken';
+import { useThemeStore } from '@/stores/themeStore';
+import { isQuietNow } from '@/lib/appearance';
 
 export interface Notification {
   id: number;
@@ -236,10 +238,14 @@ export const useNotificationStore = create<NotificationState>()(
         es.addEventListener('notification', (event) => {
           try {
             const notification: Notification = JSON.parse(event.data);
-            playNotificationSound();
-            showBrowserNotification(notification);
+            // Тихие часы: уведомление попадает в колокольчик, но без
+            // звука/всплывающих окон (настройка в «Оформлении»)
+            const qh = useThemeStore.getState().appearance.quietHours;
+            const quiet = isQuietNow(qh);
+            if (!(quiet && qh.muteSound)) playNotificationSound();
+            if (!(quiet && qh.mutePush)) showBrowserNotification(notification);
             // Flash the tab title while the tab is in the background
-            if (typeof document !== 'undefined' && document.hidden) {
+            if (typeof document !== 'undefined' && document.hidden && !(quiet && qh.mutePush)) {
               startTitleFlash(`🔔 ${notification.title}`);
             }
             set((state) => {

@@ -2,10 +2,13 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { DocumentsService } from '../documents.service';
 import { DocumentRepository } from '../repositories/document.repository';
+import { PrismaService } from '../../../database/prisma.service';
 
 describe('DocumentsService', () => {
   let service: DocumentsService;
   let repository: jest.Mocked<DocumentRepository>;
+
+  const mockUser = { id: 1, roleId: 2, accountId: 1 } as any;
 
   const mockDocument = {
     id: 1,
@@ -41,6 +44,7 @@ describe('DocumentsService', () => {
             delete: jest.fn(),
           },
         },
+        { provide: PrismaService, useValue: {} },
       ],
     }).compile();
 
@@ -55,8 +59,8 @@ describe('DocumentsService', () => {
   describe('findAll', () => {
     it('should return paginated documents', async () => {
       repository.findAll.mockResolvedValue(mockPaginatedResult);
-      const result = await service.findAll(1, 1, 20);
-      expect(repository.findAll).toHaveBeenCalledWith(1, 1, 20, undefined);
+      const result = await service.findAll(mockUser, 1, 20);
+      expect(repository.findAll).toHaveBeenCalledWith(1, 1, 20, { allowedProjectIds: undefined });
       expect(result).toEqual(mockPaginatedResult);
     });
 
@@ -67,22 +71,22 @@ describe('DocumentsService', () => {
         documentType: 'contract',
         status: 'active',
       };
-      await service.findAll(1, 1, 20, filters);
-      expect(repository.findAll).toHaveBeenCalledWith(1, 1, 20, filters);
+      await service.findAll(mockUser, 1, 20, filters);
+      expect(repository.findAll).toHaveBeenCalledWith(1, 1, 20, { ...filters, allowedProjectIds: undefined });
     });
   });
 
   describe('findById', () => {
     it('should return document when found', async () => {
       repository.findById.mockResolvedValue(mockDocument);
-      const result = await service.findById(1, 1);
+      const result = await service.findById(1, mockUser);
       expect(repository.findById).toHaveBeenCalledWith(1, 1);
       expect(result).toEqual(mockDocument);
     });
 
     it('should throw NotFoundException when document not found', async () => {
       repository.findById.mockResolvedValue(null);
-      await expect(service.findById(999, 1)).rejects.toThrow(NotFoundException);
+      await expect(service.findById(999, mockUser)).rejects.toThrow(NotFoundException);
     });
   });
 

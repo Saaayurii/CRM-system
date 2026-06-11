@@ -2,10 +2,14 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { DefectsService } from '../defects.service';
 import { DefectRepository } from '../repositories/defect.repository';
+import { PrismaService } from '../../../database/prisma.service';
+import { NotificationsClientService } from '../../../common/notifications/notifications-client.service';
 
 describe('DefectsService', () => {
   let service: DefectsService;
   let repository: jest.Mocked<DefectRepository>;
+
+  const mockUser = { id: 1, roleId: 2, accountId: 1 } as any;
 
   const now = new Date();
   const mockDefect = {
@@ -49,6 +53,8 @@ describe('DefectsService', () => {
             deleteTemplate: jest.fn(),
           },
         },
+        { provide: PrismaService, useValue: {} },
+        { provide: NotificationsClientService, useValue: { sendToMany: jest.fn(), broadcast: jest.fn() } },
       ],
     }).compile();
 
@@ -71,13 +77,14 @@ describe('DefectsService', () => {
       };
       repository.findAll.mockResolvedValue(expected);
 
-      const result = await service.findAll(1, 1, 20);
+      const result = await service.findAll(mockUser, 1, 20);
 
       expect(result).toEqual(expected);
       expect(repository.findAll).toHaveBeenCalledWith(
         1,
         1,
         20,
+        undefined,
         undefined,
         undefined,
       );
@@ -92,9 +99,9 @@ describe('DefectsService', () => {
         totalPages: 0,
       });
 
-      await service.findAll(1, 1, 20, 1, 3);
+      await service.findAll(mockUser, 1, 20, 1, 3);
 
-      expect(repository.findAll).toHaveBeenCalledWith(1, 1, 20, 1, 3);
+      expect(repository.findAll).toHaveBeenCalledWith(1, 1, 20, 1, 3, undefined);
     });
   });
 
@@ -102,7 +109,7 @@ describe('DefectsService', () => {
     it('should return a defect by id', async () => {
       repository.findById.mockResolvedValue(mockDefect);
 
-      const result = await service.findById(1, 1);
+      const result = await service.findById(1, mockUser);
 
       expect(result).toEqual(mockDefect);
       expect(repository.findById).toHaveBeenCalledWith(1, 1);
@@ -111,7 +118,7 @@ describe('DefectsService', () => {
     it('should throw NotFoundException when not found', async () => {
       repository.findById.mockResolvedValue(null);
 
-      await expect(service.findById(999, 1)).rejects.toThrow(NotFoundException);
+      await expect(service.findById(999, mockUser)).rejects.toThrow(NotFoundException);
     });
   });
 

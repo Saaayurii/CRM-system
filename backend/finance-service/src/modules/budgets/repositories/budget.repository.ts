@@ -8,10 +8,25 @@ import { CreateBudgetItemDto } from '../dto/create-budget-item.dto';
 export class BudgetRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(accountId: number, page: number = 1, limit: number = 20, projectId?: number) {
+  async findAll(
+    accountId: number,
+    page: number = 1,
+    limit: number = 20,
+    projectId?: number,
+    allowedProjectIds?: number[],
+  ) {
     const skip = (page - 1) * limit;
     const where: any = { accountId };
-    if (projectId) where.projectId = projectId;
+    if (allowedProjectIds) {
+      // клиент портала: только бюджеты доступных ему проектов
+      where.projectId = projectId
+        ? allowedProjectIds.includes(Number(projectId))
+          ? Number(projectId)
+          : -1
+        : { in: allowedProjectIds };
+    } else if (projectId) {
+      where.projectId = projectId;
+    }
     const [data, total] = await Promise.all([
       (this.prisma as any).budget.findMany({
         where,
@@ -25,9 +40,11 @@ export class BudgetRepository {
     return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
-  async findById(id: number, accountId: number) {
+  async findById(id: number, accountId: number, allowedProjectIds?: number[]) {
+    const where: any = { id, accountId };
+    if (allowedProjectIds) where.projectId = { in: allowedProjectIds };
     return (this.prisma as any).budget.findFirst({
-      where: { id, accountId },
+      where,
       include: { items: true },
     });
   }

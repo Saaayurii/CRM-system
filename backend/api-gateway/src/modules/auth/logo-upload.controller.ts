@@ -12,6 +12,7 @@ import { extname, join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import { randomUUID } from 'crypto';
 import { Public } from '../../common/decorators/public.decorator';
+import { StorageService } from '../../common/services/storage.service';
 
 const UPLOAD_DIR = join(process.cwd(), 'uploads', 'logos');
 const APP_PUBLIC_URL = (process.env.APP_PUBLIC_URL || '').replace(/\/$/, '');
@@ -20,6 +21,8 @@ const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'im
 @ApiTags('Auth')
 @Controller('api/v1/auth')
 export class LogoUploadController {
+  constructor(private readonly storage: StorageService) {}
+
   @Post('upload-logo')
   @Public()
   @ApiOperation({ summary: 'Upload company logo during registration (public, images only, 2MB max)' })
@@ -48,11 +51,12 @@ export class LogoUploadController {
       },
     }),
   )
-  uploadLogo(@UploadedFile() file: Express.Multer.File) {
+  async uploadLogo(@UploadedFile() file: Express.Multer.File) {
     if (!file) throw new BadRequestException('Файл не передан');
+    const fileUrl = await this.storage.finalizeUpload(file, 'logos');
     return {
-      url: `${APP_PUBLIC_URL}/uploads/logos/${file.filename}`,
-      fileUrl: `${APP_PUBLIC_URL}/uploads/logos/${file.filename}`,
+      url: fileUrl,
+      fileUrl,
     };
   }
 }

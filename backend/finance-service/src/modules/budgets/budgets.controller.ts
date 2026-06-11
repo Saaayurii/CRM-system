@@ -20,6 +20,7 @@ import { CreateBudgetDto } from './dto/create-budget.dto';
 import { UpdateBudgetDto } from './dto/update-budget.dto';
 import { CreateBudgetItemDto } from './dto/create-budget-item.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { RequestUser } from '../../common/helpers/client-access.helper';
 
 @ApiTags('Budgets')
 @ApiBearerAuth()
@@ -33,21 +34,21 @@ export class BudgetsController {
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'projectId', required: false, type: Number })
   findAll(
-    @CurrentUser('accountId') accountId: number,
+    @CurrentUser() user: RequestUser,
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 20,
     @Query('projectId') projectId?: number,
   ) {
-    return this.budgetsService.findAll(accountId, page, limit, projectId ? Number(projectId) : undefined);
+    return this.budgetsService.findAll(user, page, limit, projectId ? Number(projectId) : undefined);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get budget by ID' })
   findOne(
     @Param('id', ParseIntPipe) id: number,
-    @CurrentUser('accountId') accountId: number,
+    @CurrentUser() user: RequestUser,
   ) {
-    return this.budgetsService.findById(id, accountId);
+    return this.budgetsService.findByIdForUser(id, user);
   }
 
   @Post()
