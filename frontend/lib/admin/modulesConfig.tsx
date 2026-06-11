@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import api from '@/lib/api';
 import type { CrudModuleConfig, ModuleCategory } from '@/types/admin';
 import { useToastStore } from '@/stores/toastStore';
@@ -279,9 +280,17 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
         header: 'Проект',
         render: (v, row) => {
           const name = (row as Record<string, any>).project?.name;
-          if (name) return <span className="text-sm text-gray-700 dark:text-gray-300">{name}</span>;
           if (!v) return <span className="text-gray-400">—</span>;
-          return <span className="text-sm text-gray-500">#{String(v)}</span>;
+          const label = name || `#${String(v)}`;
+          return (
+            <Link
+              href={`/dashboard/projects/${v}`}
+              onClick={(e) => e.stopPropagation()}
+              className="text-sm text-violet-600 dark:text-violet-400 hover:underline"
+            >
+              {label}
+            </Link>
+          );
         },
       },
     ],

@@ -22,6 +22,7 @@ export class ConstructionSiteRepository {
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
+        include: { project: true },
       }),
       (this.prisma as any).constructionSite.count({ where }),
     ]);
