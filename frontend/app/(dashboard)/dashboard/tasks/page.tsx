@@ -372,19 +372,54 @@ function TableSettingsModal({ settings, onChange, onClose }: {
   const t = useT();
   const toggle = (key: keyof DisplaySettings) => onChange({ ...settings, [key]: !settings[key] });
   const isDefault = JSON.stringify(settings) === JSON.stringify(DEFAULT_DISPLAY_SETTINGS);
+
+  // Перетаскиваемая панель без затемнения — таблица видна, изменения сразу заметны
+  const [pos, setPos] = useState<{ x: number; y: number }>(() => ({
+    x: typeof window !== 'undefined' ? Math.max(16, window.innerWidth - 480) : 100,
+    y: 88,
+  }));
+  const dragOffset = useRef<{ dx: number; dy: number } | null>(null);
+
+  useEffect(() => {
+    const move = (e: PointerEvent) => {
+      if (!dragOffset.current) return;
+      e.preventDefault();
+      setPos({
+        x: Math.min(Math.max(8, e.clientX - dragOffset.current.dx), window.innerWidth - 80),
+        y: Math.min(Math.max(8, e.clientY - dragOffset.current.dy), window.innerHeight - 60),
+      });
+    };
+    const up = () => { dragOffset.current = null; };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+    return () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+  }, []);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
   return (
-    <div className="fixed inset-0 z-[180] flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div
-        className="w-full max-w-md bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col max-h-[85vh]"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700 flex items-start justify-between gap-3 shrink-0">
+    <div
+      className="fixed z-[180] w-[26rem] max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col"
+      style={{ left: pos.x, top: pos.y, maxHeight: 'calc(100vh - 24px)' }}
+    >
+        <div
+          onPointerDown={(e) => { dragOffset.current = { dx: e.clientX - pos.x, dy: e.clientY - pos.y }; }}
+          className="px-5 py-4 border-b border-gray-200 dark:border-gray-700 flex items-start justify-between gap-3 shrink-0 cursor-grab active:cursor-grabbing select-none touch-none"
+        >
           <div>
             <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('Настройки отображения')}</h2>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{t('Изменения применяются сразу и сохраняются')}</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{t('Изменения применяются сразу • потяните за шапку, чтобы передвинуть')}</p>
           </div>
           <button
             onClick={onClose}
+            onPointerDown={(e) => e.stopPropagation()}
             className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg transition-colors shrink-0"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -439,7 +474,6 @@ function TableSettingsModal({ settings, onChange, onClose }: {
             Готово
           </button>
         </div>
-      </div>
     </div>
   );
 }
