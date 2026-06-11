@@ -9,6 +9,7 @@ import { formatLastSeen } from '@/lib/chat/channelDisplay';
 import api from '@/lib/api';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
+import VoicePlayerBar from './VoicePlayerBar';
 import ForwardMessageModal from './ForwardMessageModal';
 import { useT } from '@/lib/i18n';
 
@@ -427,11 +428,15 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
     if (isNewMessage) {
       const isNearBottom =
         container.scrollHeight - container.scrollTop - container.clientHeight < 150;
-      if (isNearBottom) {
+      // Своё сообщение всегда уводит вниз, даже если читали историю выше
+      const lastMsg = messages[messages.length - 1];
+      const isOwnNew = lastMsg && lastMsg.senderId === user?.id;
+      if (isNearBottom || isOwnNew) {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
         wasAtBottomRef.current = true;
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages.length]);
 
   // Programmatic scroll helper — prevents handleScroll from falsely resetting wasAtBottomRef
@@ -682,8 +687,6 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
                 ? 'В сети'
                 : partnerLastSeenText
                 ? `был(а) в сети ${partnerLastSeenText}`
-                : partner?.email
-                ? partner.email
                 : 'Не в сети'}
             </p>
           </div>
@@ -839,11 +842,14 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
           </div>
         )}
 
+        {/* Глобальный плеер голосового (играет и при навигации) */}
+        <VoicePlayerBar />
+
         {/* Messages */}
         <div
           ref={messagesContainerRef}
-          className={`flex-1 overflow-y-auto px-4 py-3 space-y-1 ${wallpaperStyle ? '' : 'bg-[#e9e9e9] dark:bg-gray-900'}`}
-          style={wallpaperStyle ?? undefined}
+          className={`flex-1 overflow-y-auto overscroll-contain px-4 py-3 space-y-1 ${wallpaperStyle ? '' : 'bg-[#e9e9e9] dark:bg-gray-900'}`}
+          style={{ ...(wallpaperStyle ?? {}), WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
         >
           {/* Initial loading — full area spinner */}
           {isLoadingMessages && messages.length === 0 && (

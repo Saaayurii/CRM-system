@@ -4,6 +4,7 @@ import { getSocket, disconnectSocket } from '@/lib/socket';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import { useAuthStore } from '@/stores/authStore';
+import { previewFromMessage } from '@/lib/chat/messagePreview';
 
 /* ───────── Types ───────── */
 
@@ -214,7 +215,11 @@ function mapRawChannel(raw: any, currentUserId?: number): ChatChannel {
     projectName: raw.project?.name ?? raw.projectName ?? raw.settings?.projectName ?? null,
     lastMessage: rawLastMsg
       ? {
-          text: rawLastMsg.text ?? rawLastMsg.messageText ?? '',
+          text: previewFromMessage(
+            rawLastMsg.text ?? rawLastMsg.messageText ?? '',
+            rawLastMsg.messageType,
+            rawLastMsg.attachments ?? [],
+          ),
           senderName: rawLastMsg.senderName ?? getFullName(lastMsgUser ?? {}),
           createdAt: rawLastMsg.createdAt,
         }
@@ -324,6 +329,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
     if (socketRef?.connected) return;
 
     const socket = getSocket();
+    // Повторный connect() во время рукопожатия (страница чата + мини-чат) не
+    // должен навешивать слушатели второй раз — иначе дубли сообщений/тостов
+    socket.removeAllListeners();
     socketRef = socket;
 
     socket.on('connect', () => {
@@ -352,17 +360,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const message = mapRawMessage(raw);
       const { activeChannelId, channels, unreadCounts } = get();
 
-      // Preview text: task_card messages have empty .text, so derive from attachment snapshot
-      const previewText = (() => {
-        if (message.messageType === 'task_card') {
-          const card = (message.attachments as any[] ?? []).find((a: any) => a.type === 'task_card');
-          if (card?.title) return `📋 Задача: ${card.title}`;
-          return '📋 Новая задача';
-        }
-        return message.text;
-      })();
+      // Превью для списка чатов: сообщения без текста описываем по вложению
+      // («📷 Фотография», «🎤 Голосовое сообщение» и т.д. — как в Telegram)
+      const previewText = previewFromMessage(message.text, message.messageType, message.attachments as any[]);
 
       const updatedChannel = channels.find((ch) => ch.id === message.channelId);
+      // Канала нет в списке (новый чат / за пределами пагинации) —
+      // перезагружаем список, иначе сообщение не отобразится слева вовсе
+      if (!updatedChannel) {
+        get().fetchChannels(1);
+      }
       const updatedChannels = updatedChannel
         ? [
             ...channels.filter((ch) => ch.id !== message.channelId),

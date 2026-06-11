@@ -9,6 +9,7 @@ import MediaViewer, { MediaItem } from './MediaViewer';
 import FilePreviewModal from '@/components/ui/FilePreviewModal';
 import UserProfileModal from './UserProfileModal';
 import { haptic } from '@/lib/haptics';
+import { useVoicePlayerStore } from '@/stores/voicePlayerStore';
 import { useThemeStore } from '@/stores/themeStore';
 import { nameColorClass } from '@/lib/appearance';
 import { useT } from '@/lib/i18n';
@@ -525,7 +526,13 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
           {isVideoNote && message.attachments && message.attachments.length > 0 ? (
             <VideoNotePlayer src={message.attachments[0].fileUrl} isOwn={own} />
           ) : isVoice && message.attachments && message.attachments.length > 0 ? (
-            <VoicePlayer src={message.attachments[0].fileUrl} isOwn={own} />
+            <VoicePlayer
+              src={message.attachments[0].fileUrl}
+              isOwn={own}
+              senderName={message.senderName}
+              channelId={message.channelId}
+              messageId={message.id}
+            />
           ) : (
             <>
               {/* Media album — full-width at top (Telegram style), rendered before text */}
@@ -1523,69 +1530,53 @@ const WAVEFORM = [3, 5, 8, 6, 4, 9, 7, 5, 8, 6, 10, 8, 5, 7, 9, 6, 8, 5, 7, 4, 6
 interface VoicePlayerProps {
   src: string;
   isOwn: boolean;
+  senderName?: string;
+  channelId?: number;
+  messageId?: number;
 }
 
-function VoicePlayer({ src, isOwn }: VoicePlayerProps) {
+// Воспроизведение идёт через глобальный voicePlayerStore (единый <audio>
+// вне React-дерева): продолжается при навигации, бар управления — вверху чата.
+function VoicePlayer({ src, isOwn, senderName, channelId, messageId }: VoicePlayerProps) {
   const t = useT();
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
+  const metaAudioRef = useRef<HTMLAudioElement>(null);
+  // Длительность до первого запуска — из локального metadata-объекта
+  const [metaDuration, setMetaDuration] = useState(0);
+
+  const track = useVoicePlayerStore((s) => s.track);
+  const storePlaying = useVoicePlayerStore((s) => s.isPlaying);
+  const storeTime = useVoicePlayerStore((s) => s.currentTime);
+  const storeDuration = useVoicePlayerStore((s) => s.duration);
+  const play = useVoicePlayerStore((s) => s.play);
+  const toggle = useVoicePlayerStore((s) => s.toggle);
+  const storeSeek = useVoicePlayerStore((s) => s.seek);
+
+  const isActive = track?.src === src;
+  const isPlaying = isActive && storePlaying;
+  const currentTime = isActive ? storeTime : 0;
+  const duration = isActive && storeDuration > 0 ? storeDuration : metaDuration;
 
   useEffect(() => {
-    const audio = audioRef.current;
+    const audio = metaAudioRef.current;
     if (!audio) return;
-
-    const onTimeUpdate = () => setCurrentTime(audio.currentTime);
-    const onDurationChange = () => {
-      if (isFinite(audio.duration)) setDuration(audio.duration);
-    };
-    const onEnded = () => {
-      setIsPlaying(false);
-      setCurrentTime(0);
-    };
-    const onPlay = () => setIsPlaying(true);
-    const onPause = () => setIsPlaying(false);
-
-    audio.addEventListener('timeupdate', onTimeUpdate);
-    audio.addEventListener('durationchange', onDurationChange);
-    audio.addEventListener('loadedmetadata', onDurationChange);
-    audio.addEventListener('ended', onEnded);
-    audio.addEventListener('play', onPlay);
-    audio.addEventListener('pause', onPause);
-
+    const onMeta = () => { if (isFinite(audio.duration)) setMetaDuration(audio.duration); };
+    audio.addEventListener('loadedmetadata', onMeta);
+    audio.addEventListener('durationchange', onMeta);
     return () => {
-      audio.removeEventListener('timeupdate', onTimeUpdate);
-      audio.removeEventListener('durationchange', onDurationChange);
-      audio.removeEventListener('loadedmetadata', onDurationChange);
-      audio.removeEventListener('ended', onEnded);
-      audio.removeEventListener('play', onPlay);
-      audio.removeEventListener('pause', onPause);
+      audio.removeEventListener('loadedmetadata', onMeta);
+      audio.removeEventListener('durationchange', onMeta);
     };
   }, []);
 
   const togglePlay = () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    if (isPlaying) {
-      audio.pause();
-    } else {
-      audio.play().catch(() => {});
-    }
+    if (isActive) toggle();
+    else play({ src, senderName: senderName || '', channelId, messageId });
   };
 
-  const handleBarClick = (index: number) => {
-    const audio = audioRef.current;
-    if (!audio || !duration) return;
-    audio.currentTime = (index / WAVEFORM.length) * duration;
-  };
-
-  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    const audio = audioRef.current;
-    if (!audio || !duration) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const ratio = (e.clientX - rect.left) / rect.width;
-    audio.currentTime = ratio * duration;
+  const seekRatio = (ratio: number) => {
+    if (!duration) return;
+    if (!isActive) play({ src, senderName: senderName || '', channelId, messageId });
+    storeSeek(ratio * duration);
   };
 
   const progress = duration > 0 ? currentTime / duration : 0;
@@ -1593,7 +1584,7 @@ function VoicePlayer({ src, isOwn }: VoicePlayerProps) {
 
   return (
     <div className="flex items-center gap-2.5 py-0.5" style={{ minWidth: 200 }}>
-      <audio ref={audioRef} src={src} preload="metadata" />
+      <audio ref={metaAudioRef} src={src} preload="metadata" />
 
       {/* Play/Pause button */}
       <button
@@ -1623,9 +1614,7 @@ function VoicePlayer({ src, isOwn }: VoicePlayerProps) {
           style={{ height: 24 }}
           onClick={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();
-            const ratio = (e.clientX - rect.left) / rect.width;
-            const audio = audioRef.current;
-            if (audio && duration) audio.currentTime = ratio * duration;
+            seekRatio((e.clientX - rect.left) / rect.width);
           }}
         >
           {WAVEFORM.map((h, i) => {

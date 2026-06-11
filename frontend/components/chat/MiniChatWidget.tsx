@@ -19,6 +19,7 @@ import {
 } from '@/lib/chat/channelDisplay';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
+import VoicePlayerBar from './VoicePlayerBar';
 import ForwardMessageModal from './ForwardMessageModal';
 import api from '@/lib/api';
 import { useT } from '@/lib/i18n';
@@ -550,6 +551,9 @@ function MiniChatView() {
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
+      {/* Глобальный плеер голосового */}
+      <VoicePlayerBar />
+
       {/* Закреплённое сообщение */}
       {lastPinned && (
         <button

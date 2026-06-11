@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, KeyboardEvent, useEffect, useMemo } from
 import { createPortal } from 'react-dom';
 import dynamic from 'next/dynamic';
 import { useChatStore, UploadedAttachment } from '@/stores/chatStore';
+import { useVoiceRecorderStore } from '@/stores/voiceRecorderStore';
 import { useToastStore } from '@/stores/toastStore';
 import api from '@/lib/api';
 import { useT } from '@/lib/i18n';
@@ -17,6 +18,23 @@ const NEW_TASK_TRIGGER_RE = /^\s*#(?:new|нов\w*)\s*$/i;
 
 const MAX_FILE_SIZE = 1 * 1024 * 1024 * 1024;
 const CHUNK_SIZE = 4 * 1024 * 1024;
+
+const HEIC_RE = /\.(heic|heif)$/i;
+
+// HEIC (iPhone) не декодируется в Chromium — конвертируем в JPEG на клиенте
+// при прикреплении, чтобы превью работало у всех получателей.
+async function normalizeHeic(file: File): Promise<File> {
+  if (!HEIC_RE.test(file.name) && !/hei[cf]/i.test(file.type)) return file;
+  try {
+    const heic2any = (await import('heic2any')).default;
+    const out = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 });
+    const blob = Array.isArray(out) ? out[0] : out;
+    const name = HEIC_RE.test(file.name) ? file.name.replace(HEIC_RE, '.jpg') : `${file.name}.jpg`;
+    return new File([blob], name, { type: 'image/jpeg' });
+  } catch {
+    return file;
+  }
+}
 
 const EMOJI_CATEGORIES = [
   {
@@ -211,8 +229,26 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
   const [userQuery, setUserQuery] = useState('');
   const [atMentionStart, setAtMentionStart] = useState(-1);
   const [selectedUserIndex, setSelectedUserIndex] = useState(0);
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordingTime, setRecordingTime] = useState(0);
+  // Голосовая запись живёт в глобальном сторе (переживает навигацию);
+  // инпут показывает её UI только для своего канала.
+  const recorderChannelId = useVoiceRecorderStore((s) => s.channelId);
+  const recorderIsRecording = useVoiceRecorderStore((s) => s.isRecording);
+  const recorderIsSending = useVoiceRecorderStore((s) => s.isSending);
+  const recordingTime = useVoiceRecorderStore((s) => s.recordingTime);
+  const startVoiceRecording = useVoiceRecorderStore((s) => s.start);
+  const stopVoiceAndSend = useVoiceRecorderStore((s) => s.stopAndSend);
+  const cancelVoiceRecording = useVoiceRecorderStore((s) => s.cancel);
+  const registerInline = useVoiceRecorderStore((s) => s.registerInline);
+  const unregisterInline = useVoiceRecorderStore((s) => s.unregisterInline);
+  const isRecording = recorderIsRecording && recorderChannelId === channelId;
+
+  // Пока этот инпут показывает запись своего канала — плавающая плашка не нужна
+  useEffect(() => {
+    if (!isRecording) return;
+    registerInline();
+    return () => unregisterInline();
+  }, [isRecording, registerInline, unregisterInline]);
+
   const [isRecordingVideo, setIsRecordingVideo] = useState(false);
   const [videoRecordingTime, setVideoRecordingTime] = useState(0);
   const [showCancelVideoConfirm, setShowCancelVideoConfirm] = useState(false);
@@ -258,12 +294,6 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
   const showUserPickerRef = useRef(false);
   const filteredUserMentionsRef = useRef<{ id: number; name: string; avatarUrl?: string }[]>([]);
   const selectedUserIndexRef = useRef(0);
-
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
-  const streamRef = useRef<MediaStream | null>(null);
-  const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const cancelledRef = useRef(false);
 
   const videoRecorderRef = useRef<MediaRecorder | null>(null);
   const videoStreamRef = useRef<MediaStream | null>(null);
@@ -348,11 +378,10 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
     }
   }, [editingMessage]);
 
-  // Cleanup timers on unmount
+  // Cleanup timers on unmount. Голосовую запись НЕ трогаем — она глобальная
+  // и продолжается после ухода со страницы (плавающая плашка в layout).
   useEffect(() => {
     return () => {
-      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
-      streamRef.current?.getTracks().forEach((t) => t.stop());
       if (videoRecordingTimerRef.current) clearInterval(videoRecordingTimerRef.current);
       videoStreamRef.current?.getTracks().forEach((t) => t.stop());
     };
@@ -424,11 +453,14 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
       return;
     }
     setUploadError(null);
-    const newPending: PendingFile[] = fileList.map((file) => ({
-      file, id: `${file.name}-${Date.now()}-${Math.random()}`, progress: 0,
-      compressed: file.type.startsWith('image/'),
-    }));
-    setPendingFiles((prev) => [...prev, ...newPending]);
+    void (async () => {
+      const normalized = await Promise.all(fileList.map(normalizeHeic));
+      const newPending: PendingFile[] = normalized.map((file) => ({
+        file, id: `${file.name}-${Date.now()}-${Math.random()}`, progress: 0,
+        compressed: file.type.startsWith('image/'),
+      }));
+      setPendingFiles((prev) => [...prev, ...newPending]);
+    })();
   }, [MAX_FILE_SIZE]);
 
   // Document-level drag-and-drop support
@@ -1169,76 +1201,19 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
     });
   };
 
-  // ── Voice recording ──────────────────────────────────────
+  // ── Voice recording — глобальный стор (useVoiceRecorderStore) ────────────
 
-  const sendVoiceMessage = useCallback(async (audioFile: File) => {
-    setIsSending(true);
-    try {
-      const uploadId = crypto.randomUUID();
-      let token = '';
-      try { token = localStorage.getItem('accessToken') ?? ''; } catch { /* ignore */ }
-      const res = await fetch('/api/chat/upload', {
-        method: 'POST',
-        headers: {
-          'x-upload-id': uploadId, 'x-chunk-index': '0', 'x-chunk-total': '1',
-          'x-file-name': encodeURIComponent(audioFile.name), 'x-file-size': String(audioFile.size),
-          'x-file-type': audioFile.type || 'audio/webm', 'Content-Type': 'application/octet-stream',
-          ...(token ? { authorization: `Bearer ${token}` } : {}),
-        },
-        body: audioFile,
-      });
-      if (res.ok) {
-        const attachment: UploadedAttachment = await res.json();
-        if (attachment.fileUrl) {
-          const [decorated] = decorateAttachments([attachment]);
-          sendMessage(channelId, '', [decorated], replyToMessage?.id, 'voice');
-        }
-      }
-    } catch { /* discard */ } finally { setIsSending(false); }
-  }, [channelId, sendMessage, replyToMessage, decorateAttachments]);
-
-  const startRecording = useCallback(async () => {
-    if (isRecording || mediaRecorderRef.current?.state === 'recording') return;
-    if (!navigator.mediaDevices?.getUserMedia) return;
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
-      cancelledRef.current = false;
-      audioChunksRef.current = [];
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
-      mediaRecorder.onstop = async () => {
-        stream.getTracks().forEach((t) => t.stop());
-        streamRef.current = null;
-        if (cancelledRef.current) return;
-        const mimeType = mediaRecorder.mimeType || 'audio/webm';
-        const ext = mimeType.includes('ogg') ? 'ogg' : mimeType.includes('mp4') ? 'mp4' : 'webm';
-        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
-        await sendVoiceMessage(new File([audioBlob], `voice-${Date.now()}.${ext}`, { type: mimeType }));
-      };
-      mediaRecorder.start();
-      setIsRecording(true);
-      setRecordingTime(0);
-      recordingTimerRef.current = setInterval(() => setRecordingTime((p) => p + 1), 1000);
-    } catch { /* permission denied */ }
-  }, [sendVoiceMessage]);
+  const startRecording = useCallback(() => {
+    startVoiceRecording(channelId);
+  }, [startVoiceRecording, channelId]);
 
   const stopRecording = useCallback(() => {
-    if (recordingTimerRef.current) { clearInterval(recordingTimerRef.current); recordingTimerRef.current = null; }
-    cancelledRef.current = false;
-    mediaRecorderRef.current?.stop();
-    setIsRecording(false);
-    setRecordingTime(0);
-  }, []);
+    stopVoiceAndSend();
+  }, [stopVoiceAndSend]);
 
   const cancelRecording = useCallback(() => {
-    if (recordingTimerRef.current) { clearInterval(recordingTimerRef.current); recordingTimerRef.current = null; }
-    cancelledRef.current = true;
-    mediaRecorderRef.current?.stop();
-    setIsRecording(false);
-    setRecordingTime(0);
-  }, []);
+    cancelVoiceRecording();
+  }, [cancelVoiceRecording]);
 
   // ── Video note recording ──────────────────────────────────
 
@@ -1855,9 +1830,9 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
             <RecordingWaveform />
             <span className="text-sm font-mono text-gray-600 dark:text-gray-300 shrink-0 tabular-nums">{formatDuration(recordingTime)}</span>
           </div>
-          <button onClick={stopRecording} disabled={isSending}
+          <button onClick={stopRecording} disabled={recorderIsSending}
             className="shrink-0 p-2 text-white bg-violet-500 hover:bg-violet-600 disabled:opacity-50 rounded-xl transition-colors" title={t('Остановить и отправить')}>
-            {isSending ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            {recorderIsSending ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
               : <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h12v12H6z" /></svg>}
           </button>
         </div>
