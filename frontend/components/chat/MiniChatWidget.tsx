@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { useChatStore, ChatChannel, ChatMessage } from '@/stores/chatStore';
+import { useChatStore, ChatChannel, ChatMessage as ChatMessageType } from '@/stores/chatStore';
 import { useMiniChatStore } from '@/stores/miniChatStore';
 import { useAuthStore } from '@/stores/authStore';
+import { useThemeStore } from '@/stores/themeStore';
+import { getChatBackground } from '@/lib/appearance';
 import { previewMessageText } from '@/lib/chat/messagePreview';
 import {
   isSelfChat,
@@ -14,11 +16,15 @@ import {
   getInitials,
   formatChannelTime,
 } from '@/lib/chat/channelDisplay';
+import ChatMessage from './ChatMessage';
+import ChatInput from './ChatInput';
+import ForwardMessageModal from './ForwardMessageModal';
+import api from '@/lib/api';
 import { useT } from '@/lib/i18n';
 
 // Габариты виджета — используются для клампа позиции в пределах экрана
-const EXPANDED_W = 380;
-const EXPANDED_H = 560;
+const EXPANDED_W = 400;
+const EXPANDED_H = 600;
 const MINIMIZED_W = 300;
 const HEADER_H = 48;
 const MARGIN = 8;
@@ -28,6 +34,10 @@ const MARGIN = 8;
  * переписки, перетаскивание за шапку, свернуть/развернуть. Монтируется в
  * layout дашборда, поэтому не закрывается при навигации между страницами.
  * На полной странице чата (/dashboard/chat) скрывается.
+ *
+ * Переписка и инпут — те же компоненты, что в полном чате (ChatMessage,
+ * ChatInput): смайлики, вложения, голосовые/видео, ответы, закрепление,
+ * пересылка, реакции и настройки оформления работают одинаково.
  */
 export default function MiniChatWidget() {
   const t = useT();
@@ -378,7 +388,10 @@ function MiniChannelList() {
   );
 }
 
-/* ───────── Окно переписки ───────── */
+/* ───────── Окно переписки ─────────
+   Переиспользует ChatMessage и ChatInput из полного чата: контекстное меню
+   (ответить, копировать, закрепить, переслать, реакции, редактировать,
+   удалить), смайлики, вложения, голосовые/видео и настройки оформления. */
 
 function MiniChatView() {
   const t = useT();
@@ -387,19 +400,47 @@ function MiniChatView() {
   const isLoadingMessages = useChatStore((s) => s.isLoadingMessages);
   const hasMoreMessages = useChatStore((s) => s.hasMoreMessages);
   const fetchMessages = useChatStore((s) => s.fetchMessages);
-  const sendMessage = useChatStore((s) => s.sendMessage);
-  const startTyping = useChatStore((s) => s.startTyping);
-  const stopTyping = useChatStore((s) => s.stopTyping);
+  const setReplyToMessage = useChatStore((s) => s.setReplyToMessage);
+  const setEditingMessage = useChatStore((s) => s.setEditingMessage);
+  const deleteMessageSocket = useChatStore((s) => s.deleteMessage);
+  const editMessageSocket = useChatStore((s) => s.editMessage);
+  const reactToMessage = useChatStore((s) => s.reactToMessage);
+  const pinMessageSocket = useChatStore((s) => s.pinMessage);
+  const unpinMessageSocket = useChatStore((s) => s.unpinMessage);
   const typingUsers = useChatStore((s) => s.typingUsers);
+  const channelReadAts = useChatStore((s) => s.channelReadAts);
   const channels = useChatStore((s) => s.channels);
+  const setActiveChannel = useChatStore((s) => s.setActiveChannel);
   const user = useAuthStore((s) => s.user);
 
-  const [text, setText] = useState('');
-  const listRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  // Оформление: те же обои чата, что и в полном мессенджере
+  const chatWallpaper = useThemeStore((s) => s.appearance.chatWallpaper);
+  const customWallpaperUrl = useThemeStore((s) => s.appearance.customWallpaperUrl);
+  const chatPattern = useThemeStore((s) => s.appearance.chatPattern);
+  const resolvedTheme = useThemeStore((s) => s.theme);
+  const wallpaperStyle = getChatBackground({ chatWallpaper, customWallpaperUrl, chatPattern }, resolvedTheme);
 
-  const channel = channels.find((c) => c.id === activeChannelId) ?? null;
-  const isGroup = channel?.channelType === 'group';
+  const [forwardingMessage, setForwardingMessage] = useState<ChatMessageType | null>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  const channel = useMemo(
+    () => channels.find((c) => c.id === activeChannelId) ?? null,
+    [channels, activeChannelId]
+  );
+  const channelMembers = useMemo(() => channel?.members ?? [], [channel]);
+  const pinnedMessages = useMemo(() => channel?.pinnedMessages ?? [], [channel]);
+  const isSelf = channel ? isSelfChat(channel, user?.id) : false;
+  const currentMember = channelMembers.find((m) => m.id === user?.id);
+  const isCurrentUserMuted = currentMember?.isMuted ?? false;
+  const isCurrentUserAdmin = currentMember?.role === 'admin';
+  const canPin = channel?.channelType === 'direct' || isCurrentUserAdmin;
+  const lastPinned = pinnedMessages.length > 0 ? pinnedMessages[pinnedMessages.length - 1] : null;
+
+  // Сброс режимов ответа/редактирования при смене канала
+  useEffect(() => {
+    setEditingMessage(null);
+    setReplyToMessage(null);
+  }, [activeChannelId, setEditingMessage, setReplyToMessage]);
 
   // Автоскролл вниз при новом сообщении / смене канала (но не при подгрузке истории)
   const lastMsgId = messages.length > 0 ? messages[messages.length - 1].id : null;
@@ -407,8 +448,6 @@ function MiniChatView() {
     const el = listRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [lastMsgId, activeChannelId]);
-
-  useEffect(() => { inputRef.current?.focus(); }, [activeChannelId]);
 
   // Подгрузка истории при прокрутке вверх с сохранением позиции
   const handleScroll = useCallback(() => {
@@ -423,146 +462,217 @@ function MiniChatView() {
     });
   }, [isLoadingMessages, hasMoreMessages, activeChannelId, messages, fetchMessages]);
 
-  const send = () => {
-    const value = text.trim();
-    if (!value || !activeChannelId) return;
-    sendMessage(activeChannelId, value);
-    setText('');
-    stopTyping(activeChannelId);
-  };
+  const scrollToMessage = useCallback((id: number) => {
+    const el = listRef.current?.querySelector(`[data-msgid="${id}"]`);
+    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, []);
+
+  // Прочитано ли своё сообщение собеседником
+  const isMessageRead = useCallback(
+    (msg: ChatMessageType): boolean => {
+      if (!activeChannelId || msg.senderId !== user?.id) return false;
+      const reads = channelReadAts[activeChannelId] || {};
+      return Object.entries(reads).some(
+        ([uid, readAt]) =>
+          Number(uid) !== user?.id && new Date(readAt) >= new Date(msg.createdAt)
+      );
+    },
+    [activeChannelId, channelReadAts, user?.id]
+  );
+
+  const getMessageReaders = useCallback(
+    (msg: ChatMessageType): { id: number; name: string; avatarUrl?: string }[] => {
+      if (!activeChannelId || msg.senderId !== user?.id) return [];
+      const reads = channelReadAts[activeChannelId] || {};
+      return Object.entries(reads)
+        .filter(([uid, readAt]) => Number(uid) !== user?.id && new Date(readAt) >= new Date(msg.createdAt))
+        .map(([uid]) => {
+          const m = channelMembers.find((m) => m.id === Number(uid));
+          return m ? { id: m.id, name: m.name || m.email || 'Пользователь', avatarUrl: m.avatarUrl } : null;
+        })
+        .filter(Boolean) as { id: number; name: string; avatarUrl?: string }[];
+    },
+    [activeChannelId, channelReadAts, user?.id, channelMembers]
+  );
+
+  // Удаление сообщения вместе с загруженными файлами
+  const handleDeleteMessage = useCallback(async (msg: ChatMessageType) => {
+    if (msg.attachments && msg.attachments.length > 0) {
+      await Promise.allSettled(
+        msg.attachments.map((att) => {
+          const filename = att.fileUrl?.split('/').pop();
+          if (!filename) return Promise.resolve();
+          return api.delete(`/chat-channels/upload/${filename}`).catch(() => {});
+        })
+      );
+    }
+    deleteMessageSocket(msg.id);
+  }, [deleteMessageSocket]);
+
+  const handlePin = useCallback((msg: ChatMessageType) => {
+    if (!activeChannelId) return;
+    const alreadyPinned = pinnedMessages.some((p) => p.id === msg.id);
+    if (alreadyPinned) {
+      unpinMessageSocket(activeChannelId, msg.id);
+    } else {
+      pinMessageSocket(activeChannelId, msg.id, msg.text, msg.senderName);
+    }
+  }, [activeChannelId, pinnedMessages, pinMessageSocket, unpinMessageSocket]);
+
+  const handleGoToOriginalChannel = useCallback((channelId: number) => {
+    setActiveChannel(channelId);
+  }, [setActiveChannel]);
 
   const typing = (typingUsers[activeChannelId ?? -1] || []).filter((u) => u.userId !== user?.id);
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 bg-gray-50 dark:bg-gray-900/40">
-      {/* Сообщения */}
-      <div ref={listRef} onScroll={handleScroll} className="flex-1 overflow-y-auto overscroll-contain px-3 py-2 flex flex-col gap-1">
+    <div className="flex flex-col flex-1 min-h-0">
+      {/* Закреплённое сообщение */}
+      {lastPinned && (
+        <button
+          onClick={() => scrollToMessage(lastPinned.id)}
+          className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 text-left shrink-0 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+        >
+          <svg className="w-3.5 h-3.5 text-violet-500 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14 3l7 7-4.5 4.5L19 17l-2 2-2.5-2.5L10 21l-1-6-6-1 4.5-4.5L5 7l2-2 2.5 2.5L14 3z" />
+          </svg>
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-medium text-violet-500 leading-tight">{t('Закреплённое сообщение')}</p>
+            <p className="text-xs text-gray-600 dark:text-gray-300 truncate leading-tight">{previewMessageText(lastPinned.text)}</p>
+          </div>
+        </button>
+      )}
+
+      {/* Сообщения — обои как в полном чате */}
+      <div
+        ref={listRef}
+        onScroll={handleScroll}
+        className={`flex-1 overflow-y-auto overscroll-contain px-3 py-2 space-y-1 ${wallpaperStyle ? '' : 'bg-[#e9e9e9] dark:bg-gray-900'}`}
+        style={wallpaperStyle ?? undefined}
+      >
         {isLoadingMessages && messages.length === 0 && (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="w-5 h-5 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+          <div className="flex justify-center items-center h-full">
+            <div className="w-6 h-6 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+        )}
+        {isLoadingMessages && messages.length > 0 && (
+          <div className="flex justify-center py-2">
+            <div className="w-4 h-4 border-2 border-violet-400 border-t-transparent rounded-full animate-spin" />
+          </div>
+        )}
+        {!hasMoreMessages && messages.length > 0 && (
+          <div className="flex justify-center py-2">
+            <span className="text-xs text-gray-300 dark:text-gray-600">{t('Начало переписки')}</span>
           </div>
         )}
         {!isLoadingMessages && messages.length === 0 && (
-          <div className="flex-1 flex items-center justify-center text-sm text-gray-400 dark:text-gray-500">
+          <div className="flex items-center justify-center h-full text-sm text-gray-400 dark:text-gray-500">
             Нет сообщений
           </div>
         )}
-        {messages.map((msg, i) => (
-          <MiniMessageBubble
-            key={msg.id}
-            message={msg}
-            isMine={msg.senderId === user?.id}
-            showSender={isGroup && msg.senderId !== user?.id && messages[i - 1]?.senderId !== msg.senderId}
-          />
-        ))}
-        {typing.length > 0 && (
-          <p className="text-xs text-gray-400 dark:text-gray-500 px-1 py-0.5">
-            {typing.map((u) => u.name).join(', ')} печатает…
-          </p>
-        )}
+
+        {messages.map((msg, idx) => {
+          // В «Избранном» пересланные чужие сообщения показываются слева
+          const isOwn = isSelf && msg.forwardMeta
+            ? msg.forwardMeta.originalSenderId === user?.id
+            : msg.senderId === user?.id;
+          const prevMsg = messages[idx - 1];
+          const prevIsOwn = isSelf && prevMsg?.forwardMeta
+            ? prevMsg.forwardMeta.originalSenderId === user?.id
+            : prevMsg?.senderId === user?.id;
+          const showAvatar = idx === 0 || prevIsOwn !== isOwn || (
+            isSelf && msg.forwardMeta
+              ? prevMsg?.forwardMeta?.originalSenderId !== msg.forwardMeta.originalSenderId
+              : prevMsg?.senderId !== msg.senderId
+          );
+          const read = isOwn ? isMessageRead(msg) : false;
+          const readers = isOwn ? getMessageReaders(msg) : [];
+          const isMsgPinned = pinnedMessages.some((p) => p.id === msg.id);
+          const showDateSep = idx === 0 || toDateKey(prevMsg.createdAt) !== toDateKey(msg.createdAt);
+
+          return (
+            <div key={msg.id}>
+              {showDateSep && (
+                <div className="flex justify-center py-2">
+                  <span className="text-xs text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-800/80 px-3 py-1 rounded-full select-none">
+                    {formatDateSep(msg.createdAt)}
+                  </span>
+                </div>
+              )}
+              <div data-msgid={msg.id}>
+                <ChatMessage
+                  message={msg}
+                  isOwn={isOwn}
+                  showAvatar={showAvatar}
+                  isRead={read}
+                  readers={readers}
+                  onReply={() => setReplyToMessage(msg)}
+                  onScrollToReply={msg.replyToMessage?.id ? () => scrollToMessage(msg.replyToMessage!.id) : undefined}
+                  onReact={reactToMessage}
+                  onDelete={handleDeleteMessage}
+                  onEdit={isOwn ? (newText: string) => editMessageSocket(msg.id, newText) : undefined}
+                  onPin={canPin ? handlePin : undefined}
+                  onForward={setForwardingMessage}
+                  onGoToOriginalChannel={msg.forwardMeta ? handleGoToOriginalChannel : undefined}
+                  isPinned={isMsgPinned}
+                  canPin={canPin}
+                />
+              </div>
+            </div>
+          );
+        })}
       </div>
 
-      {/* Ввод */}
-      <div className="flex items-center gap-2 p-2 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shrink-0">
-        <input
-          ref={inputRef}
-          type="text"
-          value={text}
-          onChange={(e) => {
-            setText(e.target.value);
-            if (activeChannelId && e.target.value) startTyping(activeChannelId);
-          }}
-          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
-          placeholder={t('Сообщение...')}
-          className="flex-1 px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 border-0 rounded-full text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-violet-500 focus:outline-none"
+      {/* Индикатор набора */}
+      {typing.length > 0 && (
+        <div className="px-3 py-1 text-xs text-gray-400 dark:text-gray-500 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 shrink-0">
+          {typing.length === 1
+            ? `${typing[0].name} печатает...`
+            : `${typing.map((u) => u.name).join(', ')} печатают...`}
+        </div>
+      )}
+
+      {/* Инпут — тот же, что в полном чате (смайлики, вложения, голосовые/видео) */}
+      {activeChannelId != null && (
+        isCurrentUserMuted ? (
+          <div className="px-3 py-2.5 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shrink-0">
+            <p className="text-xs text-red-500 dark:text-red-400 text-center">
+              {t('Администратор ограничил возможность отправки сообщений')}
+            </p>
+          </div>
+        ) : (
+          <ChatInput
+            channelId={activeChannelId}
+            projectId={channel?.projectId ?? undefined}
+            channelType={channel?.channelType}
+          />
+        )
+      )}
+
+      {/* Пересылка сообщения */}
+      {forwardingMessage && (
+        <ForwardMessageModal
+          message={forwardingMessage}
+          onClose={() => setForwardingMessage(null)}
         />
-        <button
-          onClick={send}
-          disabled={!text.trim()}
-          className="w-8 h-8 shrink-0 rounded-full bg-violet-500 hover:bg-violet-600 disabled:opacity-40 text-white flex items-center justify-center transition-colors"
-          title={t('Отправить')}
-        >
-          <svg className="w-4 h-4 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-          </svg>
-        </button>
-      </div>
+      )}
     </div>
   );
 }
 
-/* ───────── Пузырь сообщения ───────── */
+/* ───────── Хелперы дат ───────── */
 
-// Вложения с бэка могут содержать служебные записи (forward_meta, task_card) с полем type
-type RawAttachment = ChatMessage['attachments'][number] & { type?: string; title?: string };
+function toDateKey(dateStr: string): string {
+  const d = new Date(dateStr);
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
 
-function MiniMessageBubble({ message, isMine, showSender }: { message: ChatMessage; isMine: boolean; showSender: boolean }) {
-  const time = new Date(message.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-
-  // task_card хранит текст в снапшоте вложения
-  const displayText = (() => {
-    if (message.messageType === 'task_card') {
-      const card = (message.attachments as RawAttachment[]).find((a) => a.type === 'task_card');
-      return card?.title ? `📋 Задача: ${card.title}` : '📋 Задача';
-    }
-    return previewMessageText(message.text);
-  })();
-
-  const fileAttachments = (message.attachments as RawAttachment[]).filter((a) => a.fileUrl && !a.type);
-  const images = fileAttachments.filter((a) => a.mimeType?.startsWith('image/'));
-  const files = fileAttachments.filter((a) => !a.mimeType?.startsWith('image/'));
-
-  return (
-    <div className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
-      <div
-        className={`max-w-[80%] rounded-2xl px-3 py-1.5 text-sm break-words ${
-          isMine
-            ? 'bg-violet-500 text-white rounded-br-md'
-            : 'bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-bl-md shadow-sm'
-        }`}
-      >
-        {showSender && (
-          <p className="text-[11px] font-semibold text-violet-500 dark:text-violet-300 mb-0.5">{message.senderName}</p>
-        )}
-        {message.forwardMeta && (
-          <p className={`text-[11px] mb-0.5 ${isMine ? 'text-violet-100' : 'text-gray-400 dark:text-gray-400'}`}>
-            ↪ Переслано от {message.forwardMeta.originalSenderName}
-          </p>
-        )}
-        {message.replyToMessage && (
-          <div className={`text-[11px] border-l-2 pl-2 mb-1 ${isMine ? 'border-violet-200 text-violet-100' : 'border-violet-400 text-gray-500 dark:text-gray-300'}`}>
-            <span className="font-semibold">{message.replyToMessage.senderName}</span>
-            <p className="truncate">{previewMessageText(message.replyToMessage.text)}</p>
-          </div>
-        )}
-        {images.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-1">
-            {images.map((img) => (
-              <a key={img.id ?? img.fileUrl} href={img.fileUrl} target="_blank" rel="noopener noreferrer">
-                <img src={img.fileUrl} alt={img.fileName} className="max-w-[180px] max-h-[140px] rounded-lg object-cover" />
-              </a>
-            ))}
-          </div>
-        )}
-        {files.map((f) => (
-          <a
-            key={f.id ?? f.fileUrl}
-            href={f.fileUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`flex items-center gap-1.5 text-xs underline mb-0.5 ${isMine ? 'text-violet-100' : 'text-violet-500 dark:text-violet-300'}`}
-          >
-            <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-            </svg>
-            <span className="truncate max-w-[180px]">{f.fileName}</span>
-          </a>
-        ))}
-        {displayText && <span className="whitespace-pre-wrap">{displayText}</span>}
-        <span className={`text-[10px] ml-1.5 align-bottom ${isMine ? 'text-violet-200' : 'text-gray-400 dark:text-gray-500'}`}>
-          {time}{message.isEdited ? ' · ред.' : ''}
-        </span>
-      </div>
-    </div>
-  );
+function formatDateSep(dateStr: string): string {
+  const d = new Date(dateStr);
+  const now = new Date();
+  return d.toLocaleDateString('ru-RU', {
+    day: 'numeric',
+    month: 'long',
+    ...(d.getFullYear() !== now.getFullYear() ? { year: 'numeric' } : {}),
+  });
 }
