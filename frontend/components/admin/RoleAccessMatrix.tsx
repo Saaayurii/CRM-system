@@ -2,8 +2,6 @@
 
 import { useT } from '@/lib/i18n';
 
-import { useT } from '@/lib/i18n';
-
 const modules = ['Проекты', 'Задачи', 'Материалы', 'Склад', 'Финансы', 'HR', 'Инспекции', 'Отчёты'];
 
 const ROLE_CODE_TO_NAME: Record<string, string> = {
