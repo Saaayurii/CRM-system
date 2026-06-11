@@ -26,12 +26,16 @@ import {
   EditMessageDto,
 } from './dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { PresenceService } from '../presence/presence.service';
 
 @ApiTags('Chat')
 @ApiBearerAuth()
 @Controller('chat-channels')
 export class ChatController {
-  constructor(private readonly chatService: ChatService) {}
+  constructor(
+    private readonly chatService: ChatService,
+    private readonly presenceService: PresenceService,
+  ) {}
 
   // --- Channels ---
 
@@ -72,6 +76,24 @@ export class ChatController {
   @ApiResponse({ status: 200, description: 'Unread summary retrieved' })
   getUnreadSummary(@CurrentUser('id') userId: number) {
     return this.chatService.getUnreadSummary(userId);
+  }
+
+  @Get('last-seen')
+  @ApiOperation({ summary: 'When the given users were last online' })
+  @ApiQuery({ name: 'userIds', required: true, description: 'Comma-separated user ids' })
+  @ApiResponse({ status: 200, description: 'Map userId → ISO date | null' })
+  async getLastSeen(@Query('userIds') userIdsRaw?: string) {
+    const userIds = (userIdsRaw || '')
+      .split(',')
+      .map((s) => parseInt(s.trim(), 10))
+      .filter((n) => Number.isFinite(n) && n > 0)
+      .slice(0, 100);
+    const lastSeen = await this.presenceService.getLastSeen(userIds);
+    const result: Record<number, string | null> = {};
+    for (const id of userIds) {
+      result[id] = lastSeen[id] ? new Date(lastSeen[id]!).toISOString() : null;
+    }
+    return result;
   }
 
   @Get('media')

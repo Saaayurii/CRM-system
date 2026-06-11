@@ -15,6 +15,7 @@ import {
   isDirectChannelOnline,
   getInitials,
   formatChannelTime,
+  formatLastSeen,
 } from '@/lib/chat/channelDisplay';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
@@ -110,6 +111,21 @@ export default function MiniChatWidget() {
     window.addEventListener('pointerup', onUp);
   };
 
+  // «был(а) в сети…» для офлайн-собеседника в шапке (хуки — до раннего return)
+  const lastSeenAt = useChatStore((s) => s.lastSeenAt);
+  const fetchLastSeen = useChatStore((s) => s.fetchLastSeen);
+  const headerChannel = activeChannelId != null
+    ? channels.find((c) => c.id === activeChannelId) ?? null
+    : null;
+  const headerPartnerId = (headerChannel && headerChannel.channelType === 'direct' && !isSelfChat(headerChannel, user?.id))
+    ? headerChannel.members?.find((m) => m.id !== user?.id)?.id
+    : undefined;
+  const headerPartnerOnline = headerPartnerId ? onlineUsers.has(headerPartnerId) : false;
+  useEffect(() => {
+    if (visible && headerPartnerId && !headerPartnerOnline) fetchLastSeen([headerPartnerId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, headerPartnerId, headerPartnerOnline]);
+
   if (!visible) return null;
 
   const width = isMinimized ? MINIMIZED_W : EXPANDED_W;
@@ -140,6 +156,9 @@ export default function MiniChatWidget() {
   const headerOnline = activeChannel
     && !isSelfChat(activeChannel, user?.id)
     && isDirectChannelOnline(activeChannel, user?.id, onlineUsers);
+  const headerLastSeen = headerPartnerId && !headerOnline
+    ? formatLastSeen(lastSeenAt[headerPartnerId])
+    : null;
 
   const openFullChat = () => {
     router.push(activeChannelId ? `/dashboard/chat?channelId=${activeChannelId}` : '/dashboard/chat');
@@ -174,7 +193,11 @@ export default function MiniChatWidget() {
               <MiniAvatar channel={activeChannel} currentUserId={user?.id} size="sm" />
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate leading-tight">{headerTitle}</p>
-                {headerOnline && <p className="text-[10px] text-green-500 leading-tight">онлайн</p>}
+                {headerOnline ? (
+                  <p className="text-[10px] text-green-500 leading-tight">онлайн</p>
+                ) : headerLastSeen ? (
+                  <p className="text-[10px] text-gray-400 dark:text-gray-500 truncate leading-tight">был(а) в сети {headerLastSeen}</p>
+                ) : null}
               </div>
             </>
           ) : (

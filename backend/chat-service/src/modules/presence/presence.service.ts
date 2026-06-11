@@ -32,6 +32,7 @@ export class PresenceService implements OnModuleInit, OnModuleDestroy {
     await Promise.all([
       this.redis.sadd(`presence:user:${userId}`, socketId),
       this.redis.zadd('presence:online', now.toString(), userId.toString()),
+      this.redis.hset('presence:lastseen', userId.toString(), now.toString()),
     ]);
     this.logger.debug(`User ${userId} online (socket: ${socketId})`);
   }
@@ -52,6 +53,7 @@ export class PresenceService implements OnModuleInit, OnModuleDestroy {
     await Promise.all([
       this.redis.del(`presence:user:${userId}`),
       this.redis.zrem('presence:online', userId.toString()),
+      this.redis.hset('presence:lastseen', userId.toString(), Date.now().toString()),
     ]);
     this.logger.debug(`User ${userId} offline`);
   }
@@ -94,10 +96,17 @@ export class PresenceService implements OnModuleInit, OnModuleDestroy {
     if (userIds.length === 0) return;
     const now = Date.now();
     const args: (string | number)[] = [];
+    const lastSeenArgs: string[] = [];
     for (const id of userIds) {
       args.push(now, id.toString());
+      lastSeenArgs.push(id.toString(), now.toString());
     }
-    await this.redis.zadd('presence:online', ...args);
+    await Promise.all([
+      this.redis.zadd('presence:online', ...args),
+      // Онлайн-пользователи тоже обновляют lastSeen: при жёстком падении
+      // сервиса «был(а) в сети» будет точен до последнего heartbeat
+      this.redis.hset('presence:lastseen', ...lastSeenArgs),
+    ]);
   }
 
   /**
@@ -117,6 +126,21 @@ export class PresenceService implements OnModuleInit, OnModuleDestroy {
       await pipeline.exec();
     }
     return stale.map((id) => parseInt(id, 10));
+  }
+
+  /** Когда пользователи были в сети последний раз (ms epoch), null — неизвестно. */
+  async getLastSeen(userIds: number[]): Promise<Record<number, number | null>> {
+    if (userIds.length === 0) return {};
+    const values = await this.redis.hmget(
+      'presence:lastseen',
+      ...userIds.map((id) => id.toString()),
+    );
+    const result: Record<number, number | null> = {};
+    userIds.forEach((id, i) => {
+      const raw = values[i];
+      result[id] = raw ? parseInt(raw, 10) : null;
+    });
+    return result;
   }
 
   getRedisClient(): Redis {

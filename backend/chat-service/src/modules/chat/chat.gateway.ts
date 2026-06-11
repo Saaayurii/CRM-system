@@ -74,9 +74,15 @@ export class ChatGateway
     await this.presenceService.refreshUsers(userIds);
 
     const staleUserIds = await this.presenceService.sweepStale(PRESENCE_STALE_MS);
-    for (const userId of staleUserIds) {
-      this.server.emit('presence:offline', { userId });
-      this.logger.debug(`Presence sweep: user ${userId} marked offline (stale)`);
+    if (staleUserIds.length > 0) {
+      const lastSeen = await this.presenceService.getLastSeen(staleUserIds);
+      for (const userId of staleUserIds) {
+        this.server.emit('presence:offline', {
+          userId,
+          lastSeenAt: lastSeen[userId] ? new Date(lastSeen[userId]!).toISOString() : null,
+        });
+        this.logger.debug(`Presence sweep: user ${userId} marked offline (stale)`);
+      }
     }
   }
 
@@ -148,6 +154,7 @@ export class ChatGateway
     if (!stillOnline) {
       client.broadcast.emit('presence:offline', {
         userId: client.user.id,
+        lastSeenAt: new Date().toISOString(),
       });
     }
 

@@ -56,6 +56,35 @@ export function getInitials(name: string | undefined | null): string {
     .toUpperCase();
 }
 
+/** «был(а) в сети 5 минут назад» — для шапки чата, когда собеседник офлайн. */
+export function formatLastSeen(iso: string | undefined | null): string | null {
+  if (!iso) return null;
+  const date = new Date(iso);
+  if (isNaN(date.getTime())) return null;
+  const diffMs = Date.now() - date.getTime();
+  if (diffMs < 0) return 'недавно';
+  const mins = Math.floor(diffMs / 60_000);
+  if (mins < 1) return 'только что';
+  if (mins < 60) return `${mins} ${pluralRu(mins, 'минуту', 'минуты', 'минут')} назад`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours} ${pluralRu(hours, 'час', 'часа', 'часов')} назад`;
+
+  const time = date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const startOfYesterday = new Date(startOfToday.getTime() - 86_400_000);
+  if (date >= startOfYesterday) return `вчера в ${time}`;
+  return `${date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })} в ${time}`;
+}
+
+function pluralRu(n: number, one: string, few: string, many: string): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return one;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
+  return many;
+}
+
 export function formatChannelTime(dateStr: string): string {
   const date = new Date(dateStr);
   const now = new Date();

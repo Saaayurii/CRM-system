@@ -240,6 +240,8 @@ interface ChatState {
   messages: ChatMessage[];
   typingUsers: Record<number, { userId: number; name: string }[]>;
   onlineUsers: Set<number>;
+  // userId → ISO-время, когда пользователь был в сети последний раз
+  lastSeenAt: Record<number, string>;
   unreadCounts: Record<number, number>;
   // channelId → userId → lastReadAt ISO string
   channelReadAts: Record<number, Record<number, string>>;
@@ -279,6 +281,7 @@ interface ChatState {
   muteChannel: (channelId: number, mutedUntil: Date | null) => Promise<void>;
   markChannelUnread: (channelId: number) => Promise<void>;
   clearChannelHistory: (channelId: number) => Promise<void>;
+  fetchLastSeen: (userIds: number[]) => Promise<void>;
   fetchProjectChannels: (projectId: number) => Promise<ChatChannel[]>;
   fetchMessages: (channelId: number, cursor?: number) => Promise<void>;
   createChannel: (dto: CreateChannelDto) => Promise<ChatChannel | null>;
@@ -304,6 +307,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   messages: [],
   typingUsers: {},
   onlineUsers: new Set(),
+  lastSeenAt: {},
   unreadCounts: {},
   channelReadAts: {},
   isConnected: false,
@@ -470,11 +474,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
       });
     });
 
-    socket.on('presence:offline', (data: { userId: number }) => {
+    socket.on('presence:offline', (data: { userId: number; lastSeenAt?: string | null }) => {
       set((state) => {
         const next = new Set(state.onlineUsers);
         next.delete(data.userId);
-        return { onlineUsers: next };
+        return {
+          onlineUsers: next,
+          lastSeenAt: data.lastSeenAt
+            ? { ...state.lastSeenAt, [data.userId]: data.lastSeenAt }
+            : state.lastSeenAt,
+        };
       });
     });
 
@@ -728,6 +737,27 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }
     } catch {
       set({ isLoadingChannels: false });
+    }
+  },
+
+  fetchLastSeen: async (userIds) => {
+    const ids = userIds.filter((id) => id > 0);
+    if (ids.length === 0) return;
+    try {
+      const { data } = await api.get('/chat-channels/last-seen', {
+        params: { userIds: ids.join(',') },
+      });
+      if (data && typeof data === 'object') {
+        set((state) => {
+          const merged = { ...state.lastSeenAt };
+          for (const [uid, iso] of Object.entries(data as Record<string, string | null>)) {
+            if (iso) merged[Number(uid)] = iso;
+          }
+          return { lastSeenAt: merged };
+        });
+      }
+    } catch {
+      // ignore — статус «не в сети» останется без времени
     }
   },
 

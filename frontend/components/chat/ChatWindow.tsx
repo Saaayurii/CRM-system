@@ -5,6 +5,7 @@ import { useChatStore, ChatChannel, ChatMessage as ChatMessageType } from '@/sto
 import { useAuthStore } from '@/stores/authStore';
 import { useThemeStore } from '@/stores/themeStore';
 import { getChatBackground } from '@/lib/appearance';
+import { formatLastSeen } from '@/lib/chat/channelDisplay';
 import api from '@/lib/api';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
@@ -290,6 +291,22 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
       : null;
 
   const isPartnerOnline = partner ? onlineUsers.has(partner.id) : false;
+
+  // «был(а) в сети N минут назад» для офлайн-собеседника
+  const lastSeenAt = useChatStore((s) => s.lastSeenAt);
+  const fetchLastSeen = useChatStore((s) => s.fetchLastSeen);
+  const partnerId = partner?.id;
+  useEffect(() => {
+    if (partnerId && !isPartnerOnline) fetchLastSeen([partnerId]);
+  }, [partnerId, isPartnerOnline, fetchLastSeen]);
+  // Тикер раз в минуту, чтобы «N минут назад» не застывало
+  const [, setLastSeenTick] = useState(0);
+  useEffect(() => {
+    if (!partnerId || isPartnerOnline) return;
+    const timer = setInterval(() => setLastSeenTick((v) => v + 1), 60_000);
+    return () => clearInterval(timer);
+  }, [partnerId, isPartnerOnline]);
+  const partnerLastSeenText = partnerId ? formatLastSeen(lastSeenAt[partnerId]) : null;
 
   const channelDisplayName = isSelf
     ? 'Избранное'
@@ -663,6 +680,8 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
                 ? `${activeChannel.membersCount} участник${pluralize(activeChannel.membersCount)}`
                 : isPartnerOnline
                 ? 'В сети'
+                : partnerLastSeenText
+                ? `был(а) в сети ${partnerLastSeenText}`
                 : partner?.email
                 ? partner.email
                 : 'Не в сети'}

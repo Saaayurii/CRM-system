@@ -71,6 +71,17 @@ export class ChatGatewayController {
     });
   }
 
+  @Get('chat-channels/last-seen')
+  @ApiOperation({ summary: 'When the given users were last online' })
+  async getLastSeen(@Req() req: Request, @Query('userIds') userIds?: string) {
+    return this.proxyService.forward('chat', {
+      method: 'GET',
+      path: '/chat-channels/last-seen',
+      params: { userIds: userIds || '' },
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
   @Get('chat-channels/media')
   @ApiOperation({ summary: 'Get all chat attachments accessible to the current user' })
   @ApiQuery({ name: 'page', required: false })
