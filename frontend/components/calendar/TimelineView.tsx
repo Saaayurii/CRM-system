@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import { FeedEvent, cleanTitle, isoDateKey, resolveTypeMeta } from './types';
+import { useT } from '@/lib/i18n';
 
 interface Props {
   rangeStart: Date;
@@ -115,6 +116,7 @@ export default function TimelineView({
   projectNameById = {},
   onEventClick,
 }: Props) {
+  const t = useT();
   const startDay = useMemo(() => startOfDay(rangeStart), [rangeStart]);
   const endDay = useMemo(() => startOfDay(rangeEnd), [rangeEnd]);
   const days = useMemo(() => {
@@ -214,7 +216,7 @@ export default function TimelineView({
         {/* Header */}
         <div className="tl-grid" style={{ gridTemplateColumns: `220px repeat(${days.length}, ${DAY_WIDTH}px)` }}>
           <div className="tl-corner">
-            <div className="tl-corner-title">Сотрудники / Проекты</div>
+            <div className="tl-corner-title">{t('Сотрудники / Проекты')}</div>
             <div className="tl-corner-sub">
               {startDay.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })}
             </div>
@@ -237,7 +239,7 @@ export default function TimelineView({
             <div className="tl-today-line" style={{ left: `${220 + todayOffset}px` }} aria-hidden />
           )}
           {rows.length === 0 && (
-            <div className="tl-empty">Нет событий в выбранном периоде</div>
+            <div className="tl-empty">{t('Нет событий в выбранном периоде')}</div>
           )}
           {rows.map((row) => {
             const lanes = rowLanes.get(row.key)!;

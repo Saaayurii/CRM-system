@@ -8,6 +8,7 @@ import { useToastStore } from '@/stores/toastStore';
 import {
   WikiPageItem, WikiDraft, fmtDate, DRAFT_STATUS_LABELS, DRAFT_STATUS_COLORS,
 } from '@/lib/wiki/pages-constants';
+import { useT } from '@/lib/i18n';
 
 interface TreeNode extends WikiPageItem {
   children: TreeNode[];
@@ -30,6 +31,7 @@ function buildTree(pages: WikiPageItem[]): TreeNode[] {
 const ADMIN_ROLES = [1, 2, 3];
 
 export default function WikiPagesListPage() {
+  const t = useT();
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const addToast = useToastStore((s) => s.addToast);
@@ -119,9 +121,9 @@ export default function WikiPagesListPage() {
           {/* Sidebar tree */}
           <aside className="lg:w-64 shrink-0">
             <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl p-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 px-2 mb-2">Структура</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 px-2 mb-2">{t('Структура')}</p>
               {tree.length === 0 && !loading && (
-                <p className="px-2 py-3 text-xs text-gray-400">Страниц пока нет.</p>
+                <p className="px-2 py-3 text-xs text-gray-400">{t('Страниц пока нет.')}</p>
               )}
               {tree.map((node) => <TreeNode key={node.id} node={node} depth={0} onNavigate={(id) => router.push(`/dashboard/wiki-pages/${id}`)} />)}
             </div>
@@ -134,7 +136,7 @@ export default function WikiPagesListPage() {
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Поиск страниц по названию…"
+                placeholder={t('Поиск страниц по названию…')}
                 className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
               />
             </div>
@@ -144,7 +146,7 @@ export default function WikiPagesListPage() {
             ) : pages.length === 0 ? (
               <div className="text-center py-16 text-gray-400">
                 <div className="text-4xl mb-2">📝</div>
-                <p>Страниц пока нет.</p>
+                <p>{t('Страниц пока нет.')}</p>
                 <button onClick={() => router.push('/dashboard/wiki-pages/new')} className="mt-3 text-sm text-violet-600 hover:underline">
                   Создать первую страницу
                 </button>
@@ -202,6 +204,7 @@ export default function WikiPagesListPage() {
 }
 
 function TreeNode({ node, depth, onNavigate }: { node: TreeNode; depth: number; onNavigate: (id: number) => void }) {
+  const t = useT();
   const [open, setOpen] = useState(depth < 1);
   return (
     <div>
@@ -231,6 +234,7 @@ function ModerationTab({
   onRefresh: () => void;
   onEdit: (d: WikiDraft) => void;
 }) {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [reviewNote, setReviewNote] = useState<Record<number, string>>({});
@@ -301,7 +305,7 @@ function ModerationTab({
 
       {filtered.length === 0 && (
         <div className="text-center py-12 text-gray-400">
-          <p>Нет черновиков в этом статусе.</p>
+          <p>{t('Нет черновиков в этом статусе.')}</p>
         </div>
       )}
 
@@ -316,7 +320,7 @@ function ModerationTab({
                     {DRAFT_STATUS_LABELS[draft.status]}
                   </span>
                   {draft.page && <span>→ страница «{draft.page.title}»</span>}
-                  {!draft.page && <span className="text-violet-500">Новая страница</span>}
+                  {!draft.page && <span className="text-violet-500">{t('Новая страница')}</span>}
                   <span>Обновлён: {fmtDate(draft.updatedAt)}</span>
                 </div>
               </div>
@@ -353,7 +357,7 @@ function ModerationTab({
                 <textarea
                   value={reviewNote[draft.id] || ''}
                   onChange={(e) => setReviewNote((p) => ({ ...p, [draft.id]: e.target.value }))}
-                  placeholder="Комментарий к решению (необязательно)…"
+                  placeholder={t('Комментарий к решению (необязательно)…')}
                   rows={2}
                   className="w-full text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-transparent outline-none focus:ring-1 focus:ring-violet-500 resize-none"
                 />
@@ -363,7 +367,7 @@ function ModerationTab({
             {/* Existing review note */}
             {draft.reviewNote && (
               <div className="mb-3 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 text-sm text-gray-600 dark:text-gray-300">
-                <span className="font-medium text-gray-500 dark:text-gray-400">Комментарий: </span>
+                <span className="font-medium text-gray-500 dark:text-gray-400">{t('Комментарий:')}</span>
                 {draft.reviewNote}
               </div>
             )}
@@ -384,7 +388,7 @@ function ModerationTab({
                 value={commentText[draft.id] || ''}
                 onChange={(e) => setCommentText((p) => ({ ...p, [draft.id]: e.target.value }))}
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addComment(draft.id); } }}
-                placeholder="Оставить комментарий…"
+                placeholder={t('Оставить комментарий…')}
                 className="flex-1 text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 bg-transparent outline-none focus:ring-1 focus:ring-violet-500"
               />
               <button onClick={() => addComment(draft.id)} className="px-3 py-1.5 text-sm rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700">

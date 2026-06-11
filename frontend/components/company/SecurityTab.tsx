@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
+import { useT } from '@/lib/i18n';
 
 interface SecuritySettings {
   require_2fa: boolean;
@@ -12,6 +13,7 @@ interface SecuritySettings {
 const ATTEMPT_OPTIONS = [3, 5, 10];
 
 export default function SecurityTab() {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
 
   const [loading, setLoading] = useState(true);

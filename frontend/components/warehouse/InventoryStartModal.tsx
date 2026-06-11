@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
+import { useT } from '@/lib/i18n';
 
 interface Equipment {
   id: number;
@@ -24,6 +25,7 @@ interface Props {
 }
 
 export default function InventoryStartModal({ warehouse, onClose, onCreated }: Props) {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -106,13 +108,13 @@ export default function InventoryStartModal({ warehouse, onClose, onCreated }: P
             value={name}
             onChange={(e) => setName(e.target.value)}
             className="mt-2 w-full px-3 py-1.5 text-sm bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg"
-            placeholder="Название сессии"
+            placeholder={t('Название сессии')}
           />
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-4">
           {loading ? (
-            <div className="text-center text-gray-500 py-8">Загрузка...</div>
+            <div className="text-center text-gray-500 py-8">{t('Загрузка...')}</div>
           ) : equipment.length === 0 ? (
             <div className="text-center text-gray-500 py-8">
               На складе нет оборудования. Сначала добавьте оборудование на этот склад.
@@ -152,7 +154,7 @@ export default function InventoryStartModal({ warehouse, onClose, onCreated }: P
                         <input
                           value={mark.notes}
                           onChange={(ev) => setNote(e.id, ev.target.value)}
-                          placeholder="Комментарий"
+                          placeholder={t('Комментарий')}
                           className="mt-2 w-full px-2 py-1 text-xs bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded"
                         />
                       )}

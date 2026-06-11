@@ -12,6 +12,7 @@ import type { PassportCtx } from '../usePassport';
 import {
   Card, SectionHeader, GhostBtn, EmptyState, FileIcon, TrashIcon,
 } from '../primitives';
+import { useT } from '@/lib/i18n';
 
 function isImageUrl(url: string): boolean {
   const clean = url.split('?')[0].split('#')[0].toLowerCase();
@@ -25,6 +26,7 @@ function fileName(url: string): string {
 }
 
 export default function PhotosSection({ ctx }: { ctx: PassportCtx }) {
+  const t = useT();
   const photos: string[] = Array.isArray(ctx.site?.photos) ? ctx.site!.photos! : [];
   const [busy, setBusy] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -65,8 +67,8 @@ export default function PhotosSection({ ctx }: { ctx: PassportCtx }) {
   return (
     <div className="space-y-5">
       <SectionHeader
-        title="Фото узлов и оборудования"
-        subtitle="Счётчики, щиты, котёл, роутер и др."
+        title={t('Фото узлов и оборудования')}
+        subtitle={t('Счётчики, щиты, котёл, роутер и др.')}
         right={
           <GhostBtn onClick={() => inputRef.current?.click()} disabled={busy}>
             {busy ? 'Загрузка...' : 'Загрузить'}
@@ -105,7 +107,7 @@ export default function PhotosSection({ ctx }: { ctx: PassportCtx }) {
                   type="button"
                   onClick={() => removePhoto(url)}
                   disabled={busy}
-                  title="Удалить"
+                  title={t('Удалить')}
                   className="absolute top-1.5 right-1.5 p-1.5 rounded-lg bg-black/40 text-white opacity-0 group-hover:opacity-100 hover:bg-red-500 transition-all disabled:opacity-50"
                 >
                   <TrashIcon className="w-4 h-4" />

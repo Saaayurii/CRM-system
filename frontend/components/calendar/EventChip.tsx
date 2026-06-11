@@ -1,6 +1,7 @@
 'use client';
 
 import { cleanTitle, normalizePriority, PRIORITY_COLOR, resolveTypeMeta } from './types';
+import { useT } from '@/lib/i18n';
 
 interface Props {
   title: string;
@@ -15,6 +16,7 @@ interface Props {
 }
 
 function Icon({ name, className }: { name: string; className?: string }) {
+  const t = useT();
   switch (name) {
     case 'task':
       return (
@@ -56,6 +58,7 @@ function Icon({ name, className }: { name: string; className?: string }) {
 }
 
 export default function EventChip({ title, sourceType, priority, timeText, filled = true, compact = true }: Props) {
+  const t = useT();
   const meta = resolveTypeMeta(sourceType);
   const prio = normalizePriority(priority);
   const clean = cleanTitle(title);

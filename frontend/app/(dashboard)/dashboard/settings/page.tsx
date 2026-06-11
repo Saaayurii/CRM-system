@@ -7,6 +7,7 @@ import api from '@/lib/api';
 import { normalizeFileUrl } from '@/lib/utils';
 import TwoFactorCard from '@/components/settings/TwoFactorCard';
 import AppearanceSettings from '@/components/settings/AppearanceSettings';
+import { useT } from '@/lib/i18n';
 
 async function compressImage(file: File, maxSizeMB = 1, maxDimension = 1024): Promise<File> {
   return new Promise((resolve) => {
@@ -61,6 +62,7 @@ interface DeviceSession {
 }
 
 function DeviceIcon({ device, browser }: { device: string; browser: string }) {
+  const t = useT();
   if (device === 'mobile') {
     return (
       <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -114,6 +116,7 @@ interface PasswordForm {
 }
 
 export default function SettingsPage() {
+  const t = useT();
   const user = useAuthStore((s) => s.user);
   const updateUser = useAuthStore((s) => s.updateUser);
   const addToast = useToastStore((s) => s.addToast);
@@ -421,7 +424,7 @@ export default function SettingsPage() {
   if (fetching) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-gray-500 dark:text-gray-400">Загрузка...</p>
+        <p className="text-gray-500 dark:text-gray-400">{t('Загрузка...')}</p>
       </div>
     );
   }
@@ -442,7 +445,7 @@ export default function SettingsPage() {
               </svg>
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">Установить как приложение</p>
+              <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{t('Установить как приложение')}</p>
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
                 {pwaInstalled
                   ? 'Приложение уже установлено на вашем устройстве'
@@ -492,7 +495,7 @@ export default function SettingsPage() {
 
       {/* Avatar section */}
       <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-6 mb-6">
-        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">Аватар</h2>
+        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">{t('Аватар')}</h2>
         <div className="flex items-center gap-4">
           <div className="relative w-20 h-20 rounded-full bg-violet-500 flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
             {avatarPreview ? (
@@ -520,17 +523,17 @@ export default function SettingsPage() {
                 onChange={handleAvatarChange}
               />
             </label>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">JPG, PNG. Большие фото сжимаются автоматически.</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{t('JPG, PNG. Большие фото сжимаются автоматически.')}</p>
           </div>
         </div>
       </div>
 
       {/* Profile form */}
       <form onSubmit={handleProfileSubmit} className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-6 mb-6">
-        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">Профиль</h2>
+        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">{t('Профиль')}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Имя</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('Имя')}</label>
             <input
               type="text"
               value={profile.name}
@@ -548,7 +551,7 @@ export default function SettingsPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Телефон</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('Телефон')}</label>
             <input
               type="tel"
               value={profile.phone}
@@ -558,7 +561,7 @@ export default function SettingsPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Должность</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('Должность')}</label>
             <input
               type="text"
               value={profile.position}
@@ -580,10 +583,10 @@ export default function SettingsPage() {
 
       {/* Password change */}
       <form onSubmit={handlePasswordSubmit} className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-6 mb-6">
-        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">Смена пароля</h2>
+        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">{t('Смена пароля')}</h2>
         <div className="space-y-4 max-w-md">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Текущий пароль</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('Текущий пароль')}</label>
             <input
               type="password"
               value={password.currentPassword}
@@ -593,7 +596,7 @@ export default function SettingsPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Новый пароль</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('Новый пароль')}</label>
             <input
               type="password"
               value={password.newPassword}
@@ -604,7 +607,7 @@ export default function SettingsPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Подтверждение пароля</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('Подтверждение пароля')}</label>
             <input
               type="password"
               value={password.confirmPassword}
@@ -633,14 +636,14 @@ export default function SettingsPage() {
         <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Активные сессии</h2>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Устройства, с которых выполнен вход в аккаунт</p>
+              <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">{t('Активные сессии')}</h2>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{t('Устройства, с которых выполнен вход в аккаунт')}</p>
             </div>
             <button
               onClick={fetchSessions}
               disabled={sessionsLoading}
               className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-40 transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
-              title="Обновить"
+              title={t('Обновить')}
             >
               <svg className={`w-4 h-4 ${sessionsLoading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
@@ -649,9 +652,9 @@ export default function SettingsPage() {
           </div>
 
           {sessionsLoading && sessions.length === 0 ? (
-            <p className="text-sm text-gray-400 py-4 text-center">Загрузка...</p>
+            <p className="text-sm text-gray-400 py-4 text-center">{t('Загрузка...')}</p>
           ) : sessions.length === 0 ? (
-            <p className="text-sm text-gray-400 dark:text-gray-500 py-6 text-center">Нет активных сессий</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500 py-6 text-center">{t('Нет активных сессий')}</p>
           ) : (
             <div className="space-y-3">
               {sessions.map((session) => (
@@ -706,7 +709,7 @@ export default function SettingsPage() {
                       onClick={() => handleRevokeSession(session.id)}
                       disabled={revokingSessionId === session.id}
                       className="shrink-0 px-3 py-1.5 text-xs font-medium text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg disabled:opacity-40 transition-colors"
-                      title="Завершить сессию"
+                      title={t('Завершить сессию')}
                     >
                       {revokingSessionId === session.id ? (
                         <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -727,7 +730,7 @@ export default function SettingsPage() {
       {canManageDocs && (
         <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Мои документы</h2>
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">{t('Мои документы')}</h2>
             <button
               onClick={() => setShowAddDoc((v) => !v)}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-lg transition-colors"
@@ -744,18 +747,18 @@ export default function SettingsPage() {
             <form onSubmit={handleAddDoc} className="mb-6 p-4 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-900/50">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Тип документа</label>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{t('Тип документа')}</label>
                   <select
                     value={docForm.documentType}
                     onChange={(e) => setDocForm((f) => ({ ...f, documentType: e.target.value }))}
                     className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                   >
-                    <option value="">— Выберите —</option>
+                    <option value="">{t('— Выберите —')}</option>
                     {DOC_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Серия / Номер</label>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{t('Серия / Номер')}</label>
                   <input
                     type="text"
                     value={docForm.documentNumber}
@@ -765,7 +768,7 @@ export default function SettingsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Дата выдачи</label>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{t('Дата выдачи')}</label>
                   <input
                     type="date"
                     value={docForm.issueDate}
@@ -774,7 +777,7 @@ export default function SettingsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Действителен до</label>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{t('Действителен до')}</label>
                   <input
                     type="date"
                     value={docForm.expiryDate}
@@ -783,7 +786,7 @@ export default function SettingsPage() {
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Кем выдан</label>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{t('Кем выдан')}</label>
                   <input
                     type="text"
                     value={docForm.issuingAuthority}
@@ -792,7 +795,7 @@ export default function SettingsPage() {
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Файл документа</label>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{t('Файл документа')}</label>
                   <div className="flex items-center gap-3">
                     <label className={`cursor-pointer inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${docFileUploading ? 'opacity-50 pointer-events-none' : ''}`}>
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
@@ -822,19 +825,19 @@ export default function SettingsPage() {
 
           {/* Documents table */}
           {docsLoading ? (
-            <p className="text-sm text-gray-400 py-4 text-center">Загрузка...</p>
+            <p className="text-sm text-gray-400 py-4 text-center">{t('Загрузка...')}</p>
           ) : myDocs.length === 0 ? (
-            <p className="text-sm text-gray-400 dark:text-gray-500 py-6 text-center">Документы не добавлены</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500 py-6 text-center">{t('Документы не добавлены')}</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-gray-700">
-                    <th className="text-left py-2 px-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Тип</th>
-                    <th className="text-left py-2 px-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Номер</th>
-                    <th className="text-left py-2 px-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Дата выдачи</th>
-                    <th className="text-left py-2 px-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">До</th>
-                    <th className="text-left py-2 px-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Файл</th>
+                    <th className="text-left py-2 px-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('Тип')}</th>
+                    <th className="text-left py-2 px-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('Номер')}</th>
+                    <th className="text-left py-2 px-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('Дата выдачи')}</th>
+                    <th className="text-left py-2 px-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('До')}</th>
+                    <th className="text-left py-2 px-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('Файл')}</th>
                     <th className="py-2 px-3 w-10"></th>
                   </tr>
                 </thead>
@@ -860,7 +863,7 @@ export default function SettingsPage() {
                           onClick={() => handleDeleteDoc(doc.id)}
                           disabled={deletingDocId === doc.id}
                           className="p-1 text-gray-400 hover:text-red-500 dark:hover:text-red-400 disabled:opacity-40 transition-colors"
-                          title="Удалить"
+                          title={t('Удалить')}
                         >
                           {deletingDocId === doc.id ? (
                             <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">

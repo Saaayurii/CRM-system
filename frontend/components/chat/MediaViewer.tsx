@@ -4,6 +4,7 @@ import { useEffect, useCallback, useState } from 'react';
 import { createPortal } from 'react-dom';
 import VideoPlayer, { VideoQuality } from './VideoPlayer';
 import api from '@/lib/api';
+import { useT } from '@/lib/i18n';
 
 export interface MediaItem {
   url: string;
@@ -18,6 +19,7 @@ interface MediaViewerProps {
 }
 
 export default function MediaViewer({ items, initialIndex, onClose }: MediaViewerProps) {
+  const t = useT();
   const [index, setIndex] = useState(initialIndex);
   const [imageScale, setImageScale] = useState(1);
   const [loaded, setLoaded] = useState(false);
@@ -93,7 +95,7 @@ export default function MediaViewer({ items, initialIndex, onClose }: MediaViewe
             target="_blank"
             rel="noopener noreferrer"
             className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-            title="Скачать"
+            title={t('Скачать')}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
@@ -103,7 +105,7 @@ export default function MediaViewer({ items, initialIndex, onClose }: MediaViewe
           <button
             onClick={onClose}
             className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-            title="Закрыть (Esc)"
+            title={t('Закрыть (Esc)')}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -117,7 +119,7 @@ export default function MediaViewer({ items, initialIndex, onClose }: MediaViewe
         <button
           className="absolute left-3 top-1/2 -translate-y-1/2 z-10 p-2 text-white/70 hover:text-white bg-black/30 hover:bg-black/60 rounded-full transition-colors"
           onClick={(e) => { e.stopPropagation(); prev(); }}
-          title="Назад (←)"
+          title={t('Назад (←)')}
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -170,7 +172,7 @@ export default function MediaViewer({ items, initialIndex, onClose }: MediaViewe
         <button
           className="absolute right-3 top-1/2 -translate-y-1/2 z-10 p-2 text-white/70 hover:text-white bg-black/30 hover:bg-black/60 rounded-full transition-colors"
           onClick={(e) => { e.stopPropagation(); next(); }}
-          title="Вперёд (→)"
+          title={t('Вперёд (→)')}
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

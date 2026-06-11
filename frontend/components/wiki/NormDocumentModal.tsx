@@ -9,6 +9,7 @@ import {
   type NormCategory,
   type NormDocumentDetail,
 } from '@/lib/wiki/constants';
+import { useT } from '@/lib/i18n';
 
 interface Props {
   doc?: NormDocumentDetail | null; // undefined/null → create
@@ -48,6 +49,7 @@ function toDateInput(v?: string | null): string {
 }
 
 export default function NormDocumentModal({ doc, categories, onClose, onSaved }: Props) {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
   const isEdit = !!doc?.id;
 
@@ -138,17 +140,17 @@ export default function NormDocumentModal({ doc, categories, onClose, onSaved }:
 
         <div className="px-6 py-4 space-y-4">
           <div>
-            <label className={labelCls}>Название *</label>
-            <input className={inputCls} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Организация строительного производства" />
+            <label className={labelCls}>{t('Название *')}</label>
+            <input className={inputCls} value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t('Организация строительного производства')} />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className={labelCls}>Обозначение (код)</label>
-              <input className={inputCls} value={code} onChange={(e) => setCode(e.target.value)} placeholder="СП 48.13330.2019" />
+              <label className={labelCls}>{t('Обозначение (код)')}</label>
+              <input className={inputCls} value={code} onChange={(e) => setCode(e.target.value)} placeholder={t('СП 48.13330.2019')} />
             </div>
             <div>
-              <label className={labelCls}>Тип</label>
+              <label className={labelCls}>{t('Тип')}</label>
               <select className={inputCls} value={docType} onChange={(e) => setDocType(e.target.value)}>
                 {DOC_TYPES.map((t) => (
                   <option key={t.value} value={t.value}>{t.label}</option>
@@ -159,16 +161,16 @@ export default function NormDocumentModal({ doc, categories, onClose, onSaved }:
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className={labelCls}>Категория</label>
+              <label className={labelCls}>{t('Категория')}</label>
               <select className={inputCls} value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
-                <option value="">— без категории —</option>
+                <option value="">{t('— без категории —')}</option>
                 {catOptions.map((o) => (
                   <option key={o.id} value={o.id}>{o.label}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className={labelCls}>Статус актуальности</label>
+              <label className={labelCls}>{t('Статус актуальности')}</label>
               <select className={inputCls} value={status} onChange={(e) => setStatus(e.target.value)}>
                 {DOC_STATUSES.map((s) => (
                   <option key={s.value} value={s.value}>{s.label}</option>
@@ -179,27 +181,27 @@ export default function NormDocumentModal({ doc, categories, onClose, onSaved }:
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className={labelCls}>Дата вступления в силу</label>
+              <label className={labelCls}>{t('Дата вступления в силу')}</label>
               <input type="date" className={inputCls} value={effectiveDate} onChange={(e) => setEffectiveDate(e.target.value)} />
             </div>
             <div>
-              <label className={labelCls}>Дата отмены (если устарел)</label>
+              <label className={labelCls}>{t('Дата отмены (если устарел)')}</label>
               <input type="date" className={inputCls} value={supersededDate} onChange={(e) => setSupersededDate(e.target.value)} />
             </div>
           </div>
 
           <div>
-            <label className={labelCls}>Теги (через запятую)</label>
-            <input className={inputCls} value={tags} onChange={(e) => setTags(e.target.value)} placeholder="бетон, фундамент, СМР" />
+            <label className={labelCls}>{t('Теги (через запятую)')}</label>
+            <input className={inputCls} value={tags} onChange={(e) => setTags(e.target.value)} placeholder={t('бетон, фундамент, СМР')} />
           </div>
 
           <div>
-            <label className={labelCls}>Краткое описание</label>
-            <textarea className={inputCls} rows={2} value={summary} onChange={(e) => setSummary(e.target.value)} placeholder="О чём документ в одну-две строки" />
+            <label className={labelCls}>{t('Краткое описание')}</label>
+            <textarea className={inputCls} rows={2} value={summary} onChange={(e) => setSummary(e.target.value)} placeholder={t('О чём документ в одну-две строки')} />
           </div>
 
           <div>
-            <label className={labelCls}>Содержание (Markdown)</label>
+            <label className={labelCls}>{t('Содержание (Markdown)')}</label>
             <textarea
               className={`${inputCls} font-mono text-[13px]`}
               rows={12}
@@ -207,23 +209,23 @@ export default function NormDocumentModal({ doc, categories, onClose, onSaved }:
               onChange={(e) => setContent(e.target.value)}
               placeholder={'## Раздел 1. Общие положения\n\n- Пункт 1\n- Пункт 2\n\n**Важно:** ...'}
             />
-            <p className="mt-1 text-xs text-gray-400">Поддерживаются заголовки #, списки, таблицы, **жирный**, *курсив*, `код`, ссылки.</p>
+            <p className="mt-1 text-xs text-gray-400">{t('Поддерживаются заголовки #, списки, таблицы, **жирный**, *курсив*, `код`, ссылки.')}</p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className={labelCls}>Ключевые слова (для поиска)</label>
-              <input className={inputCls} value={keywords} onChange={(e) => setKeywords(e.target.value)} placeholder="дополнительные термины" />
+              <label className={labelCls}>{t('Ключевые слова (для поиска)')}</label>
+              <input className={inputCls} value={keywords} onChange={(e) => setKeywords(e.target.value)} placeholder={t('дополнительные термины')} />
             </div>
             <div>
-              <label className={labelCls}>Вложения (URL, по одному в строке)</label>
+              <label className={labelCls}>{t('Вложения (URL, по одному в строке)')}</label>
               <textarea className={inputCls} rows={2} value={attachments} onChange={(e) => setAttachments(e.target.value)} placeholder="/uploads/sp-48.pdf" />
             </div>
           </div>
         </div>
 
         <div className="flex justify-end gap-2 px-6 py-4 border-t border-gray-100 dark:border-gray-700">
-          <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">Отмена</button>
+          <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">{t('Отмена')}</button>
           <button onClick={save} disabled={saving} className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-violet-500 hover:bg-violet-600 disabled:opacity-50">
             {saving ? 'Сохранение…' : 'Сохранить'}
           </button>

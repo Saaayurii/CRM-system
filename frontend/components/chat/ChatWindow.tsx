@@ -9,6 +9,7 @@ import api from '@/lib/api';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
 import ForwardMessageModal from './ForwardMessageModal';
+import { useT } from '@/lib/i18n';
 
 /* ───────── Date helpers ───────── */
 
@@ -138,6 +139,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
   const chatPattern = useThemeStore((s) => s.appearance.chatPattern);
   const resolvedTheme = useThemeStore((s) => s.theme);
   const wallpaperStyle = getChatBackground({ chatWallpaper, customWallpaperUrl, chatPattern }, resolvedTheme);
+  const t = useT();
   const activeChannelId = useChatStore((s) => s.activeChannelId);
   const messages = useChatStore((s) => s.messages);
   const channels = useChatStore((s) => s.channels);
@@ -587,7 +589,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
               d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
             />
           </svg>
-          <p className="text-gray-400 dark:text-gray-500 text-lg">Выберите чат для начала общения</p>
+          <p className="text-gray-400 dark:text-gray-500 text-lg">{t('Выберите чат для начала общения')}</p>
         </div>
       </div>
     );
@@ -674,7 +676,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
                 ? 'bg-violet-100 text-violet-600 dark:bg-violet-500/20 dark:text-violet-400'
                 : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-200 dark:hover:bg-gray-700'
             }`}
-            title="Перейти к дате"
+            title={t('Перейти к дате')}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -689,7 +691,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
                 ? 'bg-violet-100 text-violet-600 dark:bg-violet-500/20 dark:text-violet-400'
                 : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-200 dark:hover:bg-gray-700'
             }`}
-            title="Поиск по сообщениям (Ctrl+F)"
+            title={t('Поиск по сообщениям (Ctrl+F)')}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -704,7 +706,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
                 ? 'bg-violet-100 text-violet-600 dark:bg-violet-500/20 dark:text-violet-400'
                 : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-200 dark:hover:bg-gray-700'
             }`}
-            title="Информация"
+            title={t('Информация')}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -726,7 +728,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
                 if (e.key === 'Enter') stepMatch(e.shiftKey ? -1 : 1);
                 if (e.key === 'Escape') setShowSearch(false);
               }}
-              placeholder="Поиск в переписке…"
+              placeholder={t('Поиск в переписке…')}
               className="flex-1 bg-transparent text-sm outline-none text-gray-800 dark:text-gray-100 placeholder:text-gray-400"
             />
             {searchQuery.trim().length >= 2 && (
@@ -738,7 +740,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
               onClick={() => stepMatch(-1)}
               disabled={searchMatches.length === 0}
               className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 disabled:opacity-30 transition-colors"
-              title="Предыдущее"
+              title={t('Предыдущее')}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
@@ -748,7 +750,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
               onClick={() => stepMatch(1)}
               disabled={searchMatches.length === 0}
               className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 disabled:opacity-30 transition-colors"
-              title="Следующее"
+              title={t('Следующее')}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -807,7 +809,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
                   if (activeChannelId && currentPinned) unpinMessageSocket(activeChannelId, currentPinned.id);
                 }}
                 className="shrink-0 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded transition-colors"
-                title="Открепить"
+                title={t('Открепить')}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -841,7 +843,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
           {/* No more messages indicator */}
           {!hasMoreMessages && messages.length > 0 && (
             <div className="flex justify-center py-2">
-              <span className="text-xs text-gray-300 dark:text-gray-600">Начало переписки</span>
+              <span className="text-xs text-gray-300 dark:text-gray-600">{t('Начало переписки')}</span>
             </div>
           )}
 
@@ -943,7 +945,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
                   transform: isSnapping ? 'scale(0.4)' : 'scale(1)',
                 }}
                 className="w-9 h-9 rounded-full bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-600 flex items-center justify-center text-violet-500 hover:text-violet-600 hover:shadow-xl transition-shadow"
-                title="Вниз"
+                title={t('Вниз')}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
@@ -976,7 +978,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
               <svg className="w-4 h-4 text-red-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
               </svg>
-              <span className="text-sm text-red-500 dark:text-red-400">Администратор ограничил возможность отправки сообщений</span>
+              <span className="text-sm text-red-500 dark:text-red-400">{t('Администратор ограничил возможность отправки сообщений')}</span>
             </div>
           </div>
         ) : (
@@ -1047,6 +1049,7 @@ interface InfoPanelProps {
 }
 
 function InfoPanel({ channel, partner, isSelf, isPartnerOnline, isAdmin, currentUserId, onClose }: InfoPanelProps) {
+  const t = useT();
   const [userDetails, setUserDetails] = useState<any>(null);
   const [members, setMembers] = useState(channel.members ?? []);
   const [mutingId, setMutingId] = useState<number | null>(null);
@@ -1156,13 +1159,13 @@ function InfoPanel({ channel, partner, isSelf, isPartnerOnline, isAdmin, current
         {!isSelf && channel.channelType === 'direct' && (
           <div className="space-y-3">
             <InfoRow icon="email" label="Email" value={details?.email || partner?.email} />
-            <InfoRow icon="phone" label="Телефон" value={details?.phone} />
-            <InfoRow icon="role" label="Роль" value={details?.role?.name} />
-            <InfoRow icon="position" label="Должность" value={details?.position} />
-            <InfoRow icon="team" label="Команда" value={details?.team?.name} />
+            <InfoRow icon="phone" label={t('Телефон')} value={details?.phone} />
+            <InfoRow icon="role" label={t('Роль')} value={details?.role?.name} />
+            <InfoRow icon="position" label={t('Должность')} value={details?.position} />
+            <InfoRow icon="team" label={t('Команда')} value={details?.team?.name} />
             <InfoRow
               icon="calendar"
-              label="В компании с"
+              label={t('В компании с')}
               value={details?.hireDate ? new Date(details.hireDate).toLocaleDateString('ru-RU') : undefined}
             />
           </div>
@@ -1206,7 +1209,7 @@ function InfoPanel({ channel, partner, isSelf, isPartnerOnline, isAdmin, current
                         )}
                       </p>
                       {!isDeleted && m.isMuted && (
-                        <p className="text-xs text-red-400">Ограничен</p>
+                        <p className="text-xs text-red-400">{t('Ограничен')}</p>
                       )}
                     </div>
                     {isAdmin && !isSelf && !isDeleted && (
@@ -1284,6 +1287,7 @@ const INFO_ICONS: Record<string, React.ReactNode> = {
 };
 
 function InfoRow({ icon, label, value }: { icon: string; label: string; value?: string | null }) {
+  const t = useT();
   if (!value) return null;
   return (
     <div className="flex items-start gap-3 py-2 border-b border-gray-100 dark:border-gray-700/50 last:border-0">

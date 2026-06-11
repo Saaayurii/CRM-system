@@ -3,6 +3,7 @@
 import { useState, FormEvent, useRef, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import api from '@/lib/api';
+import { useT } from '@/lib/i18n';
 
 const COUNTRIES = [
   { name: 'Россия', flag: '🇷🇺', code: '+7', iso: 'RU' },
@@ -30,6 +31,7 @@ const COUNTRIES = [
 ];
 
 function RegisterForm() {
+  const t = useT();
   const searchParams = useSearchParams();
   const inviteRef = searchParams.get('ref') ?? '';
   const prefilledName = searchParams.get('name') ?? '';
@@ -141,7 +143,7 @@ function RegisterForm() {
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
         </svg>
-        <p className="text-sm text-gray-500">Проверка инвайт-ссылки...</p>
+        <p className="text-sm text-gray-500">{t('Проверка инвайт-ссылки...')}</p>
       </div>
     );
   }
@@ -154,7 +156,7 @@ function RegisterForm() {
           <svg className="w-10 h-10 text-red-500 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
           </svg>
-          <h2 className="font-semibold text-gray-800 dark:text-gray-100 mb-2">Недействительная ссылка</h2>
+          <h2 className="font-semibold text-gray-800 dark:text-gray-100 mb-2">{t('Недействительная ссылка')}</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400">{inviteError}</p>
           <a href="/auth/login" className="mt-4 inline-block text-sm text-violet-500 hover:text-violet-600">
             Войти в существующий аккаунт
@@ -171,8 +173,8 @@ function RegisterForm() {
           <svg className="w-10 h-10 mx-auto mb-3 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <p className="font-semibold text-base mb-1">Заявка отправлена!</p>
-          <p>Ваша заявка на регистрацию отправлена. Ожидайте одобрения администратора.</p>
+          <p className="font-semibold text-base mb-1">{t('Заявка отправлена!')}</p>
+          <p>{t('Ваша заявка на регистрацию отправлена. Ожидайте одобрения администратора.')}</p>
         </div>
         <div className="mt-6 text-center">
           <a
@@ -188,7 +190,7 @@ function RegisterForm() {
 
   return (
     <div className="w-full max-w-sm">
-      <h1 className="text-3xl text-gray-800 dark:text-gray-100 font-bold mb-2">Регистрация</h1>
+      <h1 className="text-3xl text-gray-800 dark:text-gray-100 font-bold mb-2">{t('Регистрация')}</h1>
       {inviteState === 'valid' && inviteCompanyName && (
         <div className="flex items-center gap-2 mb-5 px-3 py-2 rounded-lg bg-violet-500/10 border border-violet-200 dark:border-violet-800/40">
           <svg className="w-4 h-4 text-violet-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -220,7 +222,7 @@ function RegisterForm() {
                 type="text"
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
-                placeholder="ООО «Ромашка»"
+                placeholder={t('ООО «Ромашка»')}
                 required
               />
             </div>
@@ -236,7 +238,7 @@ function RegisterForm() {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Иванов Иван Иванович"
+              placeholder={t('Иванов Иван Иванович')}
               required
             />
           </div>
@@ -281,7 +283,7 @@ function RegisterForm() {
                         autoFocus
                         type="text"
                         className="w-full text-sm px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 outline-none placeholder-gray-400"
-                        placeholder="Поиск страны..."
+                        placeholder={t('Поиск страны...')}
                         value={countrySearch}
                         onChange={e => setCountrySearch(e.target.value)}
                       />
@@ -301,7 +303,7 @@ function RegisterForm() {
                         </li>
                       ))}
                       {filteredCountries.length === 0 && (
-                        <li className="px-4 py-3 text-sm text-gray-400 text-center">Ничего не найдено</li>
+                        <li className="px-4 py-3 text-sm text-gray-400 text-center">{t('Ничего не найдено')}</li>
                       )}
                     </ul>
                   </div>
@@ -343,7 +345,7 @@ function RegisterForm() {
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Минимум 8 символов"
+                placeholder={t('Минимум 8 символов')}
                 required
                 minLength={8}
               />
@@ -378,7 +380,7 @@ function RegisterForm() {
                 type={showConfirmPassword ? 'text' : 'password'}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Повторите пароль"
+                placeholder={t('Повторите пароль')}
                 required
                 minLength={8}
               />
@@ -422,7 +424,7 @@ function RegisterForm() {
       </form>
 
       <div className="mt-4 text-center">
-        <span className="text-sm text-gray-500 dark:text-gray-400">Уже есть аккаунт? </span>
+        <span className="text-sm text-gray-500 dark:text-gray-400">{t('Уже есть аккаунт?')}</span>
         <a href="/auth/login" className="text-sm font-medium text-violet-500 hover:text-violet-600 dark:hover:text-violet-400">
           Войти
         </a>
@@ -430,7 +432,7 @@ function RegisterForm() {
 
       {!inviteRef && (
         <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 text-center">
-          <span className="text-sm text-gray-500 dark:text-gray-400">Хотите зарегистрировать свою компанию? </span>
+          <span className="text-sm text-gray-500 dark:text-gray-400">{t('Хотите зарегистрировать свою компанию?')}</span>
           <a href="/auth/register-company" className="text-sm font-medium text-violet-500 hover:text-violet-600 dark:hover:text-violet-400">
             Создать аккаунт →
           </a>
@@ -447,8 +449,9 @@ function RegisterForm() {
 }
 
 export default function RegisterPage() {
+  const t = useT();
   return (
-    <Suspense fallback={<div className="w-full max-w-sm text-center py-12 text-sm text-gray-400">Загрузка...</div>}>
+    <Suspense fallback={<div className="w-full max-w-sm text-center py-12 text-sm text-gray-400">{t('Загрузка...')}</div>}>
       <RegisterForm />
     </Suspense>
   );

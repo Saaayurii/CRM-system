@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import EstimateImportFromPriceModal from './EstimateImportFromPriceModal';
+import { useT } from '@/lib/i18n';
 
 interface EstimateItem {
   id: number;
@@ -77,6 +78,7 @@ function fmtDate(s: string | null | undefined): string {
 }
 
 export default function EstimatesPanel({ projectId }: { projectId: number }) {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
   const [estimates, setEstimates] = useState<Estimate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -222,6 +224,7 @@ function EstimateEditor({
   onChanged: () => void;
   onDelete: () => void;
 }) {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
   const [editingMeta, setEditingMeta] = useState(false);
   const [addingSection, setAddingSection] = useState(false);
@@ -281,20 +284,20 @@ function EstimateEditor({
             <ExportButton
               onClick={() => handleExport('summary')}
               loading={exportingFormat === 'summary'}
-              label="Сводный расчёт"
-              title="Сводный сметный расчёт (PDF)"
+              label={t('Сводный расчёт')}
+              title={t('Сводный сметный расчёт (PDF)')}
             />
             <ExportButton
               onClick={() => handleExport('ks2')}
               loading={exportingFormat === 'ks2'}
-              label="КС-2"
-              title="Унифицированная форма КС-2 (PDF)"
+              label={t('КС-2')}
+              title={t('Унифицированная форма КС-2 (PDF)')}
             />
             <ExportButton
               onClick={() => handleExport('act')}
               loading={exportingFormat === 'act'}
-              label="Акт приёмки"
-              title="Акт приёмки выполненных работ (PDF)"
+              label={t('Акт приёмки')}
+              title={t('Акт приёмки выполненных работ (PDF)')}
             />
             <button
               onClick={() => setEditingMeta(true)}
@@ -305,7 +308,7 @@ function EstimateEditor({
             <button
               onClick={onDelete}
               className="p-1.5 text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg"
-              title="Удалить смету"
+              title={t('Удалить смету')}
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3" />
@@ -316,7 +319,7 @@ function EstimateEditor({
 
         <div className="grid grid-cols-3 gap-3 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700/60 text-sm">
           <div>
-            <p className="text-xs text-gray-400 dark:text-gray-500">Сумма по позициям</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500">{t('Сумма по позициям')}</p>
             <p className="font-semibold text-gray-700 dark:text-gray-200">{fmtMoney(subtotal)} ₽</p>
           </div>
           <div>
@@ -324,7 +327,7 @@ function EstimateEditor({
             <p className="font-semibold text-gray-700 dark:text-gray-200">{fmtMoney(markup)} ₽</p>
           </div>
           <div>
-            <p className="text-xs text-gray-400 dark:text-gray-500">Итого</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500">{t('Итого')}</p>
             <p className="font-semibold text-violet-700 dark:text-violet-300">{fmtMoney(total)} ₽</p>
           </div>
         </div>
@@ -394,6 +397,7 @@ function SectionCard({
   section: EstimateSection;
   onChanged: () => void;
 }) {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
   const [expanded, setExpanded] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -477,7 +481,7 @@ function SectionCard({
           <button
             onClick={() => setEditing(true)}
             className="p-1.5 text-gray-500 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-500/10 rounded transition-colors"
-            title="Редактировать"
+            title={t('Редактировать')}
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.4-9.6a2 2 0 012.8 2.8L11.8 15 8 16l1-3.8 9.6-9.8z" />
@@ -486,7 +490,7 @@ function SectionCard({
           <button
             onClick={handleDelete}
             className="p-1.5 text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded transition-colors"
-            title="Удалить раздел"
+            title={t('Удалить раздел')}
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3" />
@@ -502,11 +506,11 @@ function SectionCard({
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 dark:bg-gray-700/50">
                   <tr>
-                    <th className="text-left px-3 py-2 font-medium text-gray-500 dark:text-gray-400">Наименование</th>
-                    <th className="text-right px-3 py-2 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">Кол-во</th>
-                    <th className="text-left px-3 py-2 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">Ед.</th>
-                    <th className="text-right px-3 py-2 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">Цена</th>
-                    <th className="text-right px-3 py-2 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">Сумма</th>
+                    <th className="text-left px-3 py-2 font-medium text-gray-500 dark:text-gray-400">{t('Наименование')}</th>
+                    <th className="text-right px-3 py-2 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">{t('Кол-во')}</th>
+                    <th className="text-left px-3 py-2 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">{t('Ед.')}</th>
+                    <th className="text-right px-3 py-2 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">{t('Цена')}</th>
+                    <th className="text-right px-3 py-2 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">{t('Сумма')}</th>
                     <th className="w-1 px-2 py-2" />
                   </tr>
                 </thead>
@@ -618,6 +622,7 @@ function ItemRow({
   item: EstimateItem;
   onChanged: () => void;
 }) {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
   const [editing, setEditing] = useState(false);
   const [qty, setQty] = useState(String(item.quantity));
@@ -704,7 +709,7 @@ function ItemRow({
             <button
               onClick={() => setEditing(true)}
               className="p-1 text-gray-400 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-500/10 rounded transition-colors"
-              title="Подробно"
+              title={t('Подробно')}
             >
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.4-9.6a2 2 0 012.8 2.8L11.8 15 8 16l1-3.8 9.6-9.8z" />
@@ -713,7 +718,7 @@ function ItemRow({
             <button
               onClick={handleDelete}
               className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded transition-colors"
-              title="Удалить"
+              title={t('Удалить')}
             >
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3" />
@@ -749,6 +754,7 @@ function ItemFormInline({
   onCancel: () => void;
   onSave: (payload: { name: string; quantity: number; unitPrice: number; unit?: string }) => Promise<void>;
 }) {
+  const t = useT();
   const [name, setName] = useState('');
   const [unit, setUnit] = useState('');
   const [qty, setQty] = useState('1');
@@ -759,12 +765,12 @@ function ItemFormInline({
       <input
         value={name}
         onChange={(e) => setName(e.target.value)}
-        placeholder="Наименование"
+        placeholder={t('Наименование')}
         className={`${TINY_CLS} flex-1 min-w-[200px]`}
       />
-      <input value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="ед." className={`${TINY_CLS} w-20`} />
-      <input value={qty} onChange={(e) => setQty(e.target.value)} placeholder="кол-во" className={`${TINY_CLS} w-20`} inputMode="decimal" />
-      <input value={price} onChange={(e) => setPrice(e.target.value)} placeholder="цена" className={`${TINY_CLS} w-24`} inputMode="decimal" />
+      <input value={unit} onChange={(e) => setUnit(e.target.value)} placeholder={t('ед.')} className={`${TINY_CLS} w-20`} />
+      <input value={qty} onChange={(e) => setQty(e.target.value)} placeholder={t('кол-во')} className={`${TINY_CLS} w-20`} inputMode="decimal" />
+      <input value={price} onChange={(e) => setPrice(e.target.value)} placeholder={t('цена')} className={`${TINY_CLS} w-24`} inputMode="decimal" />
       <button
         onClick={() => {
           if (!name.trim()) return;
@@ -793,6 +799,7 @@ function SectionFormInline({
   onCancel: () => void;
   onSave: (payload: { name: string; sectionDate?: string }) => Promise<void>;
 }) {
+  const t = useT();
   const [name, setName] = useState('');
   const [date, setDate] = useState('');
   return (
@@ -800,7 +807,7 @@ function SectionFormInline({
       <input
         value={name}
         onChange={(e) => setName(e.target.value)}
-        placeholder="Название раздела"
+        placeholder={t('Название раздела')}
         className={`${INPUT_CLS} flex-1 min-w-[260px]`}
       />
       <input
@@ -838,6 +845,7 @@ function CreateEstimateModal({
   onClose: () => void;
   onCreated: (id: number) => void;
 }) {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
   const [name, setName] = useState('');
   const [article, setArticle] = useState('Работа');
@@ -849,34 +857,34 @@ function CreateEstimateModal({
   const [saving, setSaving] = useState(false);
 
   return (
-    <ModalShell title="Новая смета" onClose={onClose}>
+    <ModalShell title={t('Новая смета')} onClose={onClose}>
       <div className="space-y-3">
-        <Field label="Название">
-          <input value={name} onChange={(e) => setName(e.target.value)} className={INPUT_CLS} placeholder="Например: Смета по работам Мэдисон" />
+        <Field label={t('Название')}>
+          <input value={name} onChange={(e) => setName(e.target.value)} className={INPUT_CLS} placeholder={t('Например: Смета по работам Мэдисон')} />
         </Field>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <Field label="Статья расходов">
+          <Field label={t('Статья расходов')}>
             <select value={article} onChange={(e) => setArticle(e.target.value)} className={INPUT_CLS}>
-              <option>Работа</option>
-              <option>Черновые материалы</option>
-              <option>Чистовые материалы</option>
-              <option>Услуги</option>
-              <option>Прочее</option>
+              <option>{t('Работа')}</option>
+              <option>{t('Черновые материалы')}</option>
+              <option>{t('Чистовые материалы')}</option>
+              <option>{t('Услуги')}</option>
+              <option>{t('Прочее')}</option>
             </select>
           </Field>
-          <Field label="Номер документа">
+          <Field label={t('Номер документа')}>
             <input value={docNumber} onChange={(e) => setDocNumber(e.target.value)} className={INPUT_CLS} placeholder="71" />
           </Field>
-          <Field label="Дата документа">
+          <Field label={t('Дата документа')}>
             <input type="date" value={docDate} onChange={(e) => setDocDate(e.target.value)} className={INPUT_CLS} />
           </Field>
-          <Field label="Наценка, %">
+          <Field label={t('Наценка, %')}>
             <input value={markupPercent} onChange={(e) => setMarkupPercent(e.target.value)} className={INPUT_CLS} inputMode="decimal" />
           </Field>
-          <Field label="Период с">
+          <Field label={t('Период с')}>
             <input type="date" value={periodFrom} onChange={(e) => setPeriodFrom(e.target.value)} className={INPUT_CLS} />
           </Field>
-          <Field label="Период по">
+          <Field label={t('Период по')}>
             <input type="date" value={periodTo} onChange={(e) => setPeriodTo(e.target.value)} className={INPUT_CLS} />
           </Field>
         </div>
@@ -923,6 +931,7 @@ function EditEstimateModal({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
   const [name, setName] = useState(estimate.name);
   const [article, setArticle] = useState(estimate.article);
@@ -935,42 +944,42 @@ function EditEstimateModal({
   const [saving, setSaving] = useState(false);
 
   return (
-    <ModalShell title="Реквизиты сметы" onClose={onClose}>
+    <ModalShell title={t('Реквизиты сметы')} onClose={onClose}>
       <div className="space-y-3">
-        <Field label="Название">
+        <Field label={t('Название')}>
           <input value={name} onChange={(e) => setName(e.target.value)} className={INPUT_CLS} />
         </Field>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <Field label="Статья">
+          <Field label={t('Статья')}>
             <select value={article} onChange={(e) => setArticle(e.target.value)} className={INPUT_CLS}>
-              <option>Работа</option>
-              <option>Черновые материалы</option>
-              <option>Чистовые материалы</option>
-              <option>Услуги</option>
-              <option>Прочее</option>
+              <option>{t('Работа')}</option>
+              <option>{t('Черновые материалы')}</option>
+              <option>{t('Чистовые материалы')}</option>
+              <option>{t('Услуги')}</option>
+              <option>{t('Прочее')}</option>
             </select>
           </Field>
-          <Field label="Статус">
+          <Field label={t('Статус')}>
             <select value={status} onChange={(e) => setStatus(Number(e.target.value))} className={INPUT_CLS}>
-              <option value={0}>Черновик</option>
-              <option value={1}>Активная</option>
-              <option value={2}>Подписана</option>
-              <option value={3}>Отменена</option>
+              <option value={0}>{t('Черновик')}</option>
+              <option value={1}>{t('Активная')}</option>
+              <option value={2}>{t('Подписана')}</option>
+              <option value={3}>{t('Отменена')}</option>
             </select>
           </Field>
-          <Field label="Номер документа">
+          <Field label={t('Номер документа')}>
             <input value={docNumber} onChange={(e) => setDocNumber(e.target.value)} className={INPUT_CLS} />
           </Field>
-          <Field label="Дата документа">
+          <Field label={t('Дата документа')}>
             <input type="date" value={docDate} onChange={(e) => setDocDate(e.target.value)} className={INPUT_CLS} />
           </Field>
-          <Field label="Период с">
+          <Field label={t('Период с')}>
             <input type="date" value={periodFrom} onChange={(e) => setPeriodFrom(e.target.value)} className={INPUT_CLS} />
           </Field>
-          <Field label="Период по">
+          <Field label={t('Период по')}>
             <input type="date" value={periodTo} onChange={(e) => setPeriodTo(e.target.value)} className={INPUT_CLS} />
           </Field>
-          <Field label="Наценка, %">
+          <Field label={t('Наценка, %')}>
             <input value={markupPercent} onChange={(e) => setMarkupPercent(e.target.value)} className={INPUT_CLS} inputMode="decimal" />
           </Field>
         </div>
@@ -1015,6 +1024,7 @@ function EditSectionModal({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
   const [name, setName] = useState(section.name);
   const [description, setDescription] = useState(section.description ?? '');
@@ -1022,15 +1032,15 @@ function EditSectionModal({
   const [saving, setSaving] = useState(false);
 
   return (
-    <ModalShell title="Раздел сметы" onClose={onClose}>
+    <ModalShell title={t('Раздел сметы')} onClose={onClose}>
       <div className="space-y-3">
-        <Field label="Название">
+        <Field label={t('Название')}>
           <input value={name} onChange={(e) => setName(e.target.value)} className={INPUT_CLS} />
         </Field>
-        <Field label="Описание">
+        <Field label={t('Описание')}>
           <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className={INPUT_CLS} />
         </Field>
-        <Field label="Дата этапа">
+        <Field label={t('Дата этапа')}>
           <input type="date" value={sectionDate} onChange={(e) => setSectionDate(e.target.value)} className={INPUT_CLS} />
         </Field>
       </div>
@@ -1071,6 +1081,7 @@ function EditItemModal({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
   const [name, setName] = useState(item.name);
   const [description, setDescription] = useState(item.description ?? '');
@@ -1080,22 +1091,22 @@ function EditItemModal({
   const [saving, setSaving] = useState(false);
 
   return (
-    <ModalShell title="Позиция сметы" onClose={onClose}>
+    <ModalShell title={t('Позиция сметы')} onClose={onClose}>
       <div className="space-y-3">
-        <Field label="Наименование">
+        <Field label={t('Наименование')}>
           <input value={name} onChange={(e) => setName(e.target.value)} className={INPUT_CLS} />
         </Field>
-        <Field label="Описание">
+        <Field label={t('Описание')}>
           <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className={INPUT_CLS} />
         </Field>
         <div className="grid grid-cols-3 gap-3">
-          <Field label="Ед. изм.">
+          <Field label={t('Ед. изм.')}>
             <input value={unit} onChange={(e) => setUnit(e.target.value)} className={INPUT_CLS} />
           </Field>
-          <Field label="Количество">
+          <Field label={t('Количество')}>
             <input value={quantity} onChange={(e) => setQuantity(e.target.value)} className={INPUT_CLS} inputMode="decimal" />
           </Field>
-          <Field label="Цена">
+          <Field label={t('Цена')}>
             <input value={unitPrice} onChange={(e) => setUnitPrice(e.target.value)} className={INPUT_CLS} inputMode="decimal" />
           </Field>
         </div>
@@ -1141,6 +1152,7 @@ function ExportButton({
   label: string;
   title: string;
 }) {
+  const t = useT();
   return (
     <button
       onClick={onClick}
@@ -1161,6 +1173,7 @@ function ExportButton({
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  const t = useT();
   return (
     <div>
       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{label}</label>
@@ -1178,6 +1191,7 @@ function ModalShell({
   onClose: () => void;
   children: React.ReactNode;
 }) {
+  const t = useT();
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
@@ -1213,6 +1227,7 @@ function ModalFooter({
   onSave: () => void;
   saving: boolean;
 }) {
+  const t = useT();
   return (
     <div className="-mx-6 -mb-5 mt-5 px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-2">
       <button

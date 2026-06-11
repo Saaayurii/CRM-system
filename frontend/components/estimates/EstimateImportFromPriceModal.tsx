@@ -5,6 +5,7 @@ import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import { calcPrice, type Selections } from '@/lib/price/calcPrice';
 import type { ParamGroup } from '@/lib/price/types';
+import { useT } from '@/lib/i18n';
 
 interface PriceItem {
   id: number;
@@ -60,6 +61,7 @@ export default function EstimateImportFromPriceModal({
   onClose: () => void;
   onPick: (chosen: Chosen[]) => void | Promise<void>;
 }) {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
   const [data, setData] = useState<PriceList | null>(null);
   const [loading, setLoading] = useState(true);
@@ -196,7 +198,7 @@ export default function EstimateImportFromPriceModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={onClose}>
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between gap-3">
-          <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100">Добавить позиции из Прайса</h3>
+          <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100">{t('Добавить позиции из Прайса')}</h3>
           <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -208,7 +210,7 @@ export default function EstimateImportFromPriceModal({
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Поиск по названию…"
+            placeholder={t('Поиск по названию…')}
             className="flex-1 min-w-[200px] px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
             autoFocus
           />
@@ -217,7 +219,7 @@ export default function EstimateImportFromPriceModal({
               value={pcId ?? ''}
               onChange={(e) => setPcId(e.target.value === '' ? null : Number(e.target.value))}
               className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-              title="Колонка цены для простых позиций"
+              title={t('Колонка цены для простых позиций')}
             >
               {data.projectCategories.map((pc) => <option key={pc.id} value={pc.id}>{pc.name}</option>)}
             </select>
@@ -263,14 +265,14 @@ export default function EstimateImportFromPriceModal({
                         <div className="text-sm text-gray-800 dark:text-gray-100 flex items-center gap-2">
                           {it.parentId && <span className="text-violet-400 mr-1">└</span>}
                           {it.name}
-                          {formula && <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300">параметры</span>}
+                          {formula && <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300">{t('параметры')}</span>}
                         </div>
                         <div className="text-xs text-gray-400 dark:text-gray-500 truncate">
                           {cat && <>{cat} · </>}{it.unit || ''}
                         </div>
                       </div>
                       <div className="text-sm font-semibold text-gray-700 dark:text-gray-200 whitespace-nowrap">
-                        {priceFrom && <span className="text-xs text-gray-400 font-normal">от </span>}
+                        {priceFrom && <span className="text-xs text-gray-400 font-normal">{t('от')}</span>}
                         {displayPrice.toLocaleString('ru-RU')} ₽
                       </div>
                     </div>
@@ -323,7 +325,7 @@ export default function EstimateImportFromPriceModal({
         <div className="px-6 py-3 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
           <span className="text-sm text-gray-500 dark:text-gray-400">Выбрано: {selected.size}</span>
           <div className="flex gap-2">
-            <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">Отмена</button>
+            <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">{t('Отмена')}</button>
             <button onClick={handleSubmit} disabled={selected.size === 0 || submitting} className="px-5 py-2 text-sm font-medium bg-violet-500 hover:bg-violet-600 disabled:opacity-50 text-white rounded-lg flex items-center gap-2">
               {submitting && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
               Добавить{selected.size > 0 && ` (${selected.size})`}

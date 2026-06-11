@@ -6,6 +6,7 @@ import { useAuthStore, getRememberedAccountId, clearRememberedAccountId } from '
 import api from '@/lib/api';
 import { AxiosError } from 'axios';
 import type { TwoFactorChallenge } from '@/types/auth';
+import { useT } from '@/lib/i18n';
 
 interface AccountChoice {
   id: number;
@@ -37,6 +38,7 @@ function getLoginError(err: unknown): LoginError {
 }
 
 export default function LoginPage() {
+  const t = useT();
   const router = useRouter();
   const login = useAuthStore((s) => s.login);
   const complete2fa = useAuthStore((s) => s.complete2fa);
@@ -174,7 +176,7 @@ export default function LoginPage() {
           <div className="flex flex-col items-center mb-5">
             <div className="bg-white p-3 rounded-xl border border-gray-200 dark:border-gray-700">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={twoFactor.qrDataUrl} alt="QR-код для 2FA" className="w-44 h-44" />
+              <img src={twoFactor.qrDataUrl} alt={t('QR-код для 2FA')} className="w-44 h-44" />
             </div>
             {twoFactor.secret && (
               <p className="mt-3 text-xs text-gray-400 dark:text-gray-500 text-center">
@@ -235,7 +237,7 @@ export default function LoginPage() {
           Назад
         </button>
 
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-1">Выберите компанию</h1>
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-1">{t('Выберите компанию')}</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
           Email <span className="font-medium text-gray-700 dark:text-gray-300">{email}</span> зарегистрирован в нескольких организациях
         </p>
@@ -282,7 +284,7 @@ export default function LoginPage() {
   // ── Login form ──
   return (
     <div className="w-full max-w-sm">
-      <h1 className="text-3xl text-gray-800 dark:text-gray-100 font-bold mb-6">Вход в систему</h1>
+      <h1 className="text-3xl text-gray-800 dark:text-gray-100 font-bold mb-6">{t('Вход в систему')}</h1>
 
       {loginError && loginError.kind === 'warning' && (
         <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-300 dark:border-amber-500/30 text-amber-800 dark:text-amber-300 px-4 py-3 rounded-lg mb-4 text-sm flex items-start gap-2">
@@ -378,7 +380,7 @@ export default function LoginPage() {
       </form>
 
       <div className="mt-6 text-center">
-        <span className="text-sm text-gray-500 dark:text-gray-400">Нет аккаунта? </span>
+        <span className="text-sm text-gray-500 dark:text-gray-400">{t('Нет аккаунта?')}</span>
         <a href="/auth/register" className="text-sm font-medium text-violet-500 hover:text-violet-600 dark:hover:text-violet-400">
           Зарегистрироваться
         </a>

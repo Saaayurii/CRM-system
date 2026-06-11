@@ -11,6 +11,7 @@ import EmployeeEditModal from '@/components/employee/EmployeeEditModal';
 import EmployeeFullProfileModal from '@/components/employee/EmployeeFullProfileModal';
 import { useDownloadPdf } from '@/lib/hooks/useDownloadPdf';
 import { FAB_CREATED_EVENT } from '@/components/ui/QuickActionsButton';
+import { useT } from '@/lib/i18n';
 
 interface Employee {
   id: number;
@@ -53,6 +54,7 @@ const ROLE_NAMES: Record<number, string> = {
 type ViewMode = 'table' | 'grid';
 
 export default function EmployeesPage() {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
   const currentUser = useAuthStore((s) => s.user);
   const { download: downloadPdf, loading: pdfLoading } = useDownloadPdf();
@@ -146,14 +148,14 @@ export default function EmployeesPage() {
     <div>
       <div className="sm:flex sm:justify-between sm:items-center mb-4">
         <div>
-          <h1 className="text-2xl md:text-3xl text-gray-800 dark:text-gray-100 font-bold">Сотрудники</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Список всех сотрудников</p>
+          <h1 className="text-2xl md:text-3xl text-gray-800 dark:text-gray-100 font-bold">{t('Сотрудники')}</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('Список всех сотрудников')}</p>
         </div>
         <div className="flex items-center gap-2 mt-3 sm:mt-0">
           <div className="flex items-center gap-0.5">
             <button
               onClick={() => { setShowSearch((v) => !v); setShowFilter(false); }}
-              title="Поиск"
+              title={t('Поиск')}
               className={`p-2 rounded-lg transition-colors ${showSearch || searchQuery ? 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20' : 'text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20'}`}
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -163,7 +165,7 @@ export default function EmployeesPage() {
             {canEdit && (
               <button
                 onClick={() => setCreating(true)}
-                title="Создать сотрудника"
+                title={t('Создать сотрудника')}
                 className="p-2 text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -173,7 +175,7 @@ export default function EmployeesPage() {
             )}
             <button
               onClick={() => { setShowFilter((v) => !v); setShowSearch(false); }}
-              title="Фильтры"
+              title={t('Фильтры')}
               className={`relative p-2 rounded-lg transition-colors ${showFilter || filterRole ? 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20' : 'text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20'}`}
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -184,7 +186,7 @@ export default function EmployeesPage() {
             <div className="relative" ref={settingsRef}>
               <button
                 onClick={() => setShowSettings((v) => !v)}
-                title="Экспорт и настройки"
+                title={t('Экспорт и настройки')}
                 className={`p-2 rounded-lg transition-colors ${showSettings ? 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20' : 'text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20'}`}
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -238,7 +240,7 @@ export default function EmployeesPage() {
             <button
               onClick={() => handleViewMode('table')}
               className={`p-1.5 rounded transition-colors ${viewMode === 'table' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}
-              title="Таблица"
+              title={t('Таблица')}
             >
               <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -247,7 +249,7 @@ export default function EmployeesPage() {
             <button
               onClick={() => handleViewMode('grid')}
               className={`p-1.5 rounded transition-colors ${viewMode === 'grid' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}
-              title="Карточки"
+              title={t('Карточки')}
             >
               <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
@@ -265,7 +267,7 @@ export default function EmployeesPage() {
           <input
             autoFocus
             type="text"
-            placeholder="Поиск по имени или email..."
+            placeholder={t('Поиск по имени или email...')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="flex-1 text-sm bg-transparent text-gray-800 dark:text-gray-100 placeholder-gray-400 outline-none"
@@ -287,7 +289,7 @@ export default function EmployeesPage() {
             onChange={(e) => setFilterRole(e.target.value)}
             className="text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none"
           >
-            <option value="">Все роли</option>
+            <option value="">{t('Все роли')}</option>
             {Object.entries(ROLE_NAMES).filter(([k]) => k !== '1').map(([v, label]) => (
               <option key={v} value={v}>{label}</option>
             ))}
@@ -301,7 +303,7 @@ export default function EmployeesPage() {
       )}
 
       {loading ? (
-        <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-8 text-center text-gray-500 dark:text-gray-400">Загрузка...</div>
+        <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-8 text-center text-gray-500 dark:text-gray-400">{t('Загрузка...')}</div>
       ) : error ? (
         <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-8 text-center text-red-500">{error}</div>
       ) : filteredEmployees.length === 0 ? (
@@ -314,11 +316,11 @@ export default function EmployeesPage() {
             <table className="table-auto w-full text-sm">
               <thead>
                 <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
-                  <th className="py-3 px-4 text-left font-semibold">Имя</th>
+                  <th className="py-3 px-4 text-left font-semibold">{t('Имя')}</th>
                   <th className="py-3 px-4 text-left font-semibold">Email</th>
-                  <th className="py-3 px-4 text-left font-semibold">Роль</th>
-                  <th className="py-3 px-4 text-left font-semibold">Статус</th>
-                  {canEdit && <th className="py-3 px-4 text-center font-semibold">Действия</th>}
+                  <th className="py-3 px-4 text-left font-semibold">{t('Роль')}</th>
+                  <th className="py-3 px-4 text-left font-semibold">{t('Статус')}</th>
+                  {canEdit && <th className="py-3 px-4 text-center font-semibold">{t('Действия')}</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
@@ -348,7 +350,7 @@ export default function EmployeesPage() {
                             <button
                               onClick={() => setEditingEmployee(e)}
                               className="p-1.5 text-gray-400 hover:text-violet-500 transition-colors"
-                              title="Редактировать"
+                              title={t('Редактировать')}
                             >
                               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -358,7 +360,7 @@ export default function EmployeesPage() {
                               onClick={() => handleDelete(e.id)}
                               disabled={deletingId === e.id}
                               className="p-1.5 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
-                              title="Удалить"
+                              title={t('Удалить')}
                             >
                               {deletingId === e.id ? (
                                 <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -411,12 +413,12 @@ export default function EmployeesPage() {
                   </div>
                   {e.phone && (
                     <div>
-                      <dt className="text-xs text-gray-400 dark:text-gray-500">Телефон</dt>
+                      <dt className="text-xs text-gray-400 dark:text-gray-500">{t('Телефон')}</dt>
                       <dd className="text-xs text-violet-600 dark:text-violet-400 truncate">{e.phone}</dd>
                     </div>
                   )}
                   <div>
-                    <dt className="text-xs text-gray-400 dark:text-gray-500">Роль</dt>
+                    <dt className="text-xs text-gray-400 dark:text-gray-500">{t('Роль')}</dt>
                     <dd className="text-xs text-gray-700 dark:text-gray-300">{roleName}</dd>
                   </div>
                 </dl>

@@ -8,6 +8,7 @@ import { useTaskNotifStore } from '@/stores/taskNotifStore';
 import FilePreviewModal from '@/components/ui/FilePreviewModal';
 import { normalizeFileUrl } from '@/lib/utils';
 import { uploadFileChunked } from '@/lib/chunkedUpload';
+import { useT } from '@/lib/i18n';
 
 const IMAGE_EXTS = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'avif']);
 const VIDEO_EXTS = new Set(['mp4', 'webm', 'mov', 'avi', 'mkv', 'ogv', 'm4v']);
@@ -336,6 +337,7 @@ function EmployeeCard({ user, assignedAt, onClose, onRemove }: {
   onClose: () => void;
   onRemove?: () => void;
 }) {
+  const t = useT();
   const [tasks, setTasks] = useState<any[]>([]);
   const [loadingTasks, setLoadingTasks] = useState(true);
   const [confirmRemove, setConfirmRemove] = useState(false);
@@ -354,7 +356,7 @@ function EmployeeCard({ user, assignedAt, onClose, onRemove }: {
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-3">
-          <h3 className="font-semibold text-gray-800 dark:text-gray-100">Сотрудник</h3>
+          <h3 className="font-semibold text-gray-800 dark:text-gray-100">{t('Сотрудник')}</h3>
           <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded transition-colors">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -379,16 +381,16 @@ function EmployeeCard({ user, assignedAt, onClose, onRemove }: {
         {/* Info rows */}
         <div className="px-5 space-y-3 mb-4">
           <div className="flex justify-between text-sm">
-            <span className="text-gray-500 dark:text-gray-400">Роль</span>
+            <span className="text-gray-500 dark:text-gray-400">{t('Роль')}</span>
             <span className="text-gray-800 dark:text-gray-100 text-right">{user.roleId ? (ROLE_LABELS[user.roleId] || `#${user.roleId}`) : '—'}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-gray-500 dark:text-gray-400">Статус</span>
-            <span className="text-green-600 dark:text-green-400 font-medium">Активен</span>
+            <span className="text-gray-500 dark:text-gray-400">{t('Статус')}</span>
+            <span className="text-green-600 dark:text-green-400 font-medium">{t('Активен')}</span>
           </div>
           {assignedAt && (
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500 dark:text-gray-400">Назначен</span>
+              <span className="text-gray-500 dark:text-gray-400">{t('Назначен')}</span>
               <span className="text-gray-800 dark:text-gray-100">{new Date(assignedAt).toLocaleDateString('ru-RU')}</span>
             </div>
           )}
@@ -396,11 +398,11 @@ function EmployeeCard({ user, assignedAt, onClose, onRemove }: {
 
         {/* Tasks */}
         <div className="px-5 pb-3 border-t border-gray-100 dark:border-gray-700 pt-3">
-          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Задачи сотрудника</p>
+          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">{t('Задачи сотрудника')}</p>
           {loadingTasks ? (
-            <p className="text-xs text-gray-400 py-2">Загрузка...</p>
+            <p className="text-xs text-gray-400 py-2">{t('Загрузка...')}</p>
           ) : tasks.length === 0 ? (
-            <p className="text-xs text-gray-400 py-2">Нет задач</p>
+            <p className="text-xs text-gray-400 py-2">{t('Нет задач')}</p>
           ) : (
             <ul className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
               {tasks.map((t) => {
@@ -425,9 +427,9 @@ function EmployeeCard({ user, assignedAt, onClose, onRemove }: {
           {onRemove ? (
             confirmRemove ? (
               <div className="flex items-center gap-2">
-                <span className="text-xs text-red-500">Убрать из задачи?</span>
-                <button onClick={onRemove} className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded-lg">Да</button>
-                <button onClick={() => setConfirmRemove(false)} className="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">Нет</button>
+                <span className="text-xs text-red-500">{t('Убрать из задачи?')}</span>
+                <button onClick={onRemove} className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded-lg">{t('Да')}</button>
+                <button onClick={() => setConfirmRemove(false)} className="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">{t('Нет')}</button>
               </div>
             ) : (
               <button onClick={() => setConfirmRemove(true)} className="text-sm text-red-500 hover:text-red-600 transition-colors">
@@ -525,6 +527,7 @@ function AutoResizeTextarea({ value, onChange, className, placeholder, autoFocus
   onBlur?: () => void;
   mentionCandidates?: MentionCandidate[];
 }) {
+  const t = useT();
   const ref = useRef<HTMLTextAreaElement>(null);
   const [mention, setMention] = useState<{ start: number; query: string } | null>(null);
   const [mentionIndex, setMentionIndex] = useState(0);
@@ -673,6 +676,7 @@ function AutoResizeTextarea({ value, onChange, className, placeholder, autoFocus
 }
 
 export default function TaskFormModal({ task, onClose, onSaved, initialProjectId, initialTitle, lockProjectId, onSavedTask }: TaskFormModalProps) {
+  const t = useT();
   const { user } = useAuthStore();
   const addToast = useToastStore((s) => s.addToast);
   const { lastSeenAt, setUnreadCount } = useTaskNotifStore();
@@ -1419,7 +1423,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
 
       {/* Deadline */}
       <div>
-        <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">Дедлайн</p>
+        <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">{t('Дедлайн')}</p>
         <input
           type="date"
           value={dueDate}
@@ -1441,43 +1445,43 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
             !projectId ? 'border-amber-300 dark:border-amber-600' : 'border-gray-200 dark:border-gray-700'
           }`}
         >
-          <option value="">— выберите проект —</option>
+          <option value="">{t('— выберите проект —')}</option>
           {projects.map((p) => (
             <option key={p.id} value={p.id}>{p.name}</option>
           ))}
         </select>
         {!canEditProjectObject && !isNew && (
-          <p className="text-[10px] text-gray-400 mt-1">Менять проект может только администратор или PM</p>
+          <p className="text-[10px] text-gray-400 mt-1">{t('Менять проект может только администратор или PM')}</p>
         )}
       </div>
 
       {/* Construction site */}
       <div>
-        <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">Объект</p>
+        <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">{t('Объект')}</p>
         <select
           value={constructionSiteId}
           onChange={(e) => setConstructionSiteId(e.target.value)}
           disabled={!projectId || !canEditProjectObject}
           className="w-full text-sm px-3 py-1.5 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-violet-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <option value="">Не выбрано</option>
+          <option value="">{t('Не выбрано')}</option>
           {sites.map((s) => (
             <option key={s.id} value={s.id}>{s.name}</option>
           ))}
         </select>
         {!projectId && (
-          <p className="text-[10px] text-gray-400 mt-1">Сначала выберите проект</p>
+          <p className="text-[10px] text-gray-400 mt-1">{t('Сначала выберите проект')}</p>
         )}
       </div>
 
       {/* Created by */}
       {(createdByUser || task?.createdByUserId) && (
         <div>
-          <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">Поставил задачу</p>
+          <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">{t('Поставил задачу')}</p>
           {createdByUser?.roleId === 1 ? (
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 rounded-full bg-gray-500 flex items-center justify-center text-white text-xs font-semibold shrink-0">С</div>
-              <span className="text-sm text-gray-600 dark:text-gray-400">Система</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">{t('Система')}</span>
             </div>
           ) : createdByUser ? (
             <div className="flex items-center gap-2">
@@ -1495,7 +1499,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
 
       {/* Created at */}
       <div>
-        <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">Создана</p>
+        <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">{t('Создана')}</p>
         <p className="text-sm text-gray-600 dark:text-gray-400">
           {task?.createdAt ? fmtDateTime(task.createdAt) : fmtDateTime(new Date().toISOString())}
         </p>
@@ -1504,7 +1508,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
       {/* Closed / completed at */}
       {(task?.actualEndDate || task?.actual_end_date) && (
         <div>
-          <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">Закрыта</p>
+          <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">{t('Закрыта')}</p>
           <p className="text-sm text-gray-600 dark:text-gray-400">{fmtDateTime(task.actualEndDate || task.actual_end_date)}</p>
         </div>
       )}
@@ -1512,14 +1516,14 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
       {/* Status changed at — show updatedAt when task exists and status is not new */}
       {!isNew && task?.updatedAt && status !== 0 && (
         <div>
-          <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">Статус изменён</p>
+          <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">{t('Статус изменён')}</p>
           <p className="text-sm text-gray-600 dark:text-gray-400">{fmtDateTime(task.updatedAt)}</p>
         </div>
       )}
 
       {/* Estimated hours */}
       <div>
-        <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">Оценка (ч)</p>
+        <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">{t('Оценка (ч)')}</p>
         <input
           type="number"
           value={estimatedHours}
@@ -1588,12 +1592,12 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
       {/* Attachments */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Документы</p>
+          <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">{t('Документы')}</p>
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
             className="flex items-center gap-1 text-gray-400 hover:text-violet-500 disabled:opacity-50 transition-colors"
-            title="Прикрепить файл"
+            title={t('Прикрепить файл')}
           >
             {uploading ? (
               <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1607,8 +1611,8 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
             )}
           </button>
         </div>
-        {uploading && <p className="text-xs text-violet-500">Загрузка...</p>}
-        {!uploading && attachments.length === 0 && commentAttachmentsFlat.length === 0 && <p className="text-xs text-gray-400">Нет файлов</p>}
+        {uploading && <p className="text-xs text-violet-500">{t('Загрузка...')}</p>}
+        {!uploading && attachments.length === 0 && commentAttachmentsFlat.length === 0 && <p className="text-xs text-gray-400">{t('Нет файлов')}</p>}
         <div className="space-y-1.5">
           {attachments.map((a, i) => {
             const isImg = isImageFile(a);
@@ -1646,7 +1650,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
           })}
           {commentAttachmentsFlat.length > 0 && (
             <>
-              <div className="mt-2 mb-1 text-[9px] uppercase tracking-wider text-gray-400">Из комментариев</div>
+              <div className="mt-2 mb-1 text-[9px] uppercase tracking-wider text-gray-400">{t('Из комментариев')}</div>
               {commentAttachmentsFlat.map(({ att: a, commentId }, i) => {
                 const isImg = isImageFile(a);
                 const thumbUrl = isImg ? normalizeFileUrl(a.fileUrl) : null;
@@ -1667,7 +1671,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                     <button
                       onClick={() => setPreviewFile({ url: a.fileUrl, name: a.fileName })}
                       className="flex-1 text-left text-xs text-gray-500 dark:text-gray-400 hover:text-violet-500 hover:underline truncate"
-                      title="Файл из комментария"
+                      title={t('Файл из комментария')}
                     >
                       {a.fileName}
                     </button>
@@ -1717,7 +1721,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className={`w-full text-lg sm:text-xl font-semibold bg-transparent text-gray-900 dark:text-gray-100 placeholder-gray-400 border-none outline-none focus:ring-0 ${!title.trim() ? 'placeholder-red-400 dark:placeholder-red-500/60' : ''}`}
-              placeholder="Название задачи *"
+              placeholder={t('Название задачи *')}
               required
             />
           </div>
@@ -1726,7 +1730,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
             <button
               className="sm:hidden p-1.5 text-gray-400 hover:text-violet-500 rounded-lg transition-colors"
               onClick={() => setShowMobileSettings(true)}
-              title="Настройки задачи"
+              title={t('Настройки задачи')}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
@@ -1759,7 +1763,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
 
             {/* Description */}
             <div>
-              <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1.5">Описание</p>
+              <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1.5">{t('Описание')}</p>
               {descExpanded || !description ? (
                 <textarea
                   ref={descRef}
@@ -1775,13 +1779,13 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                   autoFocus={descExpanded}
                   rows={3}
                   className="w-full bg-transparent text-sm text-gray-700 dark:text-gray-300 border-none outline-none focus:ring-0 resize-none overflow-hidden placeholder-gray-400"
-                  placeholder="Добавить описание задачи..."
+                  placeholder={t('Добавить описание задачи...')}
                 />
               ) : (
                 <div
                   onClick={() => setDescExpanded(true)}
                   className="w-full text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words line-clamp-3 cursor-text"
-                  title="Нажмите, чтобы развернуть"
+                  title={t('Нажмите, чтобы развернуть')}
                 >
                   {description}
                 </div>
@@ -1813,7 +1817,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                     />
                     <button
                       onClick={() => addItem(group.id)}
-                      title="Добавить подзадачу"
+                      title={t('Добавить подзадачу')}
                       className="flex items-center gap-1 px-2 py-0.5 text-xs text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 bg-white dark:bg-gray-700 hover:bg-violet-50 dark:hover:bg-violet-900/20 border border-gray-200 dark:border-gray-600 rounded-md transition-colors shrink-0"
                     >
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
@@ -1824,7 +1828,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                     <div className="flex items-center gap-0.5 bg-gray-100 dark:bg-gray-700/60 p-0.5 rounded-md shrink-0">
                       <button
                         onClick={() => setSubtaskViewMode('table')}
-                        title="Таблица"
+                        title={t('Таблица')}
                         className={`p-1 rounded transition-colors ${subtaskViewMode === 'table' ? 'bg-white dark:bg-gray-600 shadow-sm' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`}
                       >
                         <svg className="w-3 h-3 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -1833,7 +1837,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                       </button>
                       <button
                         onClick={() => setSubtaskViewMode('grid')}
-                        title="Карточки"
+                        title={t('Карточки')}
                         className={`p-1 rounded transition-colors ${subtaskViewMode === 'grid' ? 'bg-white dark:bg-gray-600 shadow-sm' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`}
                       >
                         <svg className="w-3 h-3 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -1917,7 +1921,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                                 <button
                                   onClick={() => setEditingCell({ itemId: item.id, field: 'status' })}
                                   className="flex items-center gap-1.5 hover:opacity-75 transition-opacity"
-                                  title="Изменить статус"
+                                  title={t('Изменить статус')}
                                 >
                                   <span className={`w-2 h-2 rounded-full shrink-0 ${statusDisplay.dotClass}`} />
                                   <span className={`text-[11px] font-medium ${statusDisplay.textClass}`}>{statusDisplay.label}</span>
@@ -1929,7 +1933,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                                   onDragStart={(e) => { e.stopPropagation(); dragItemRef.current = { groupId: group.id, itemId: item.id }; }}
                                   onDragEnd={() => { dragItemRef.current = null; dragOverItemRef.current = null; }}
                                   className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 select-none p-0.5"
-                                  title="Перетащить"
+                                  title={t('Перетащить')}
                                 >
                                   <svg className="w-3 h-3" viewBox="0 0 10 16" fill="currentColor">
                                     <circle cx="3" cy="2" r="1.5" /><circle cx="3" cy="8" r="1.5" /><circle cx="3" cy="14" r="1.5" />
@@ -1940,7 +1944,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                                   <button
                                     onClick={() => removeItem(group.id, item.id)}
                                     className="text-gray-300 hover:text-red-400 transition-colors p-0.5"
-                                    title="Удалить подзадачу"
+                                    title={t('Удалить подзадачу')}
                                   >
                                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1955,7 +1959,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                                 value={item.text}
                                 onChange={(v) => updateItemText(group.id, item.id, v)}
                                 className={`w-full text-sm bg-transparent outline-none border-none focus:ring-0 resize-none overflow-hidden leading-normal ${isDone ? 'line-through text-gray-400' : isRejected ? 'text-red-500 dark:text-red-400' : 'text-gray-700 dark:text-gray-300'}`}
-                                placeholder="Введите название подзадачи..."
+                                placeholder={t('Введите название подзадачи...')}
                                 autoFocus
                                 onBlur={() => { if (!item.text.trim()) removeItem(group.id, item.id); setEditingItemId(null); }}
                                 mentionCandidates={assignees.map((a) => ({
@@ -1971,14 +1975,14 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                               >
                                 {item.text
                                   ? renderTextWithLinks(item.text, (uid) => { const u = userMap[uid]; if (u) setEmployeeCard({ user: u }); })
-                                  : <span className="text-gray-300 dark:text-gray-600">Введите название...</span>
+                                  : <span className="text-gray-300 dark:text-gray-600">{t('Введите название...')}</span>
                                 }
                               </div>
                             )}
                             {/* Meta */}
                             <dl className="grid grid-cols-2 gap-x-2 gap-y-1 mt-auto pt-2 border-t border-gray-100 dark:border-gray-700/30">
                               <div>
-                                <dt className="text-[10px] text-gray-400">Исполнитель</dt>
+                                <dt className="text-[10px] text-gray-400">{t('Исполнитель')}</dt>
                                 <dd>
                                   {editingCell?.itemId === item.id && editingCell.field === 'assignee' ? (
                                     <select
@@ -1993,7 +1997,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                                       onBlur={() => setEditingCell(null)}
                                       className="text-xs border border-gray-200 dark:border-gray-600 rounded px-1 py-0.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 outline-none max-w-[120px]"
                                     >
-                                      <option value="">— Не назначен —</option>
+                                      <option value="">{t('— Не назначен —')}</option>
                                       {assignees.map((a) => (
                                         <option key={a.userId} value={a.userId}>{a.userName || `#${a.userId}`}</option>
                                       ))}
@@ -2002,7 +2006,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                                     <span
                                       onClick={() => setEditingCell({ itemId: item.id, field: 'assignee' })}
                                       className="text-xs text-gray-600 dark:text-gray-400 truncate cursor-pointer hover:text-violet-500 transition-colors"
-                                      title="Нажмите для выбора исполнителя"
+                                      title={t('Нажмите для выбора исполнителя')}
                                     >
                                       {item.assigneeName || <span className="text-gray-300 dark:text-gray-600">—</span>}
                                     </span>
@@ -2010,7 +2014,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                                 </dd>
                               </div>
                               <div>
-                                <dt className="text-[10px] text-gray-400">Срок</dt>
+                                <dt className="text-[10px] text-gray-400">{t('Срок')}</dt>
                                 <dd>
                                   {editingCell?.itemId === item.id && editingCell.field === 'dueDate' ? (
                                     <input
@@ -2025,7 +2029,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                                     <span
                                       onClick={() => setEditingCell({ itemId: item.id, field: 'dueDate' })}
                                       className={`text-xs cursor-pointer transition-colors ${overdue ? 'text-red-500 dark:text-red-400 font-medium' : 'text-gray-600 dark:text-gray-400 hover:text-violet-500'}`}
-                                      title="Нажмите для изменения срока"
+                                      title={t('Нажмите для изменения срока')}
                                     >
                                       {item.dueDate ? new Date(item.dueDate).toLocaleDateString('ru-RU') : <span className="text-gray-300 dark:text-gray-600">—</span>}
                                     </span>
@@ -2033,7 +2037,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                                 </dd>
                               </div>
                               <div className="col-span-2">
-                                <dt className="text-[10px] text-gray-400">Приоритет</dt>
+                                <dt className="text-[10px] text-gray-400">{t('Приоритет')}</dt>
                                 <dd>
                                   {editingCell?.itemId === item.id && editingCell.field === 'priority' ? (
                                     <select
@@ -2043,17 +2047,17 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                                       onBlur={() => setEditingCell(null)}
                                       className="text-xs border border-gray-200 dark:border-gray-600 rounded px-1 py-0.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 outline-none"
                                     >
-                                      <option value="">— Без —</option>
-                                      <option value="1">Низкий</option>
-                                      <option value="2">Средний</option>
-                                      <option value="3">Высокий</option>
-                                      <option value="4">Критический</option>
+                                      <option value="">{t('— Без —')}</option>
+                                      <option value="1">{t('Низкий')}</option>
+                                      <option value="2">{t('Средний')}</option>
+                                      <option value="3">{t('Высокий')}</option>
+                                      <option value="4">{t('Критический')}</option>
                                     </select>
                                   ) : (
                                     <span
                                       onClick={() => setEditingCell({ itemId: item.id, field: 'priority' })}
                                       className={`text-xs font-medium cursor-pointer hover:opacity-75 transition-opacity ${priorityInfo ? priorityInfo.cls : 'text-gray-300 dark:text-gray-600'}`}
-                                      title="Нажмите для изменения приоритета"
+                                      title={t('Нажмите для изменения приоритета')}
                                     >
                                       {priorityInfo ? priorityInfo.label : '—'}
                                     </span>
@@ -2071,12 +2075,12 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                       <table className="w-full text-sm min-w-[600px]">
                         <thead>
                           <tr className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider border-b border-gray-100 dark:border-gray-700/40 bg-gray-50/60 dark:bg-gray-800/30">
-                            <th className="px-3 py-2 text-left font-semibold">Статус</th>
-                            <th className="px-3 py-2 text-left font-semibold">Название подзадачи</th>
-                            <th className="px-3 py-2 text-left font-semibold whitespace-nowrap">Исполнитель</th>
-                            <th className="px-3 py-2 text-left font-semibold">Срок</th>
-                            <th className="px-3 py-2 text-left font-semibold">Приоритет</th>
-                            <th className="px-3 py-2 text-left font-semibold">Создано</th>
+                            <th className="px-3 py-2 text-left font-semibold">{t('Статус')}</th>
+                            <th className="px-3 py-2 text-left font-semibold">{t('Название подзадачи')}</th>
+                            <th className="px-3 py-2 text-left font-semibold whitespace-nowrap">{t('Исполнитель')}</th>
+                            <th className="px-3 py-2 text-left font-semibold">{t('Срок')}</th>
+                            <th className="px-3 py-2 text-left font-semibold">{t('Приоритет')}</th>
+                            <th className="px-3 py-2 text-left font-semibold">{t('Создано')}</th>
                             <th className="px-2 py-2 w-14" aria-hidden />
                           </tr>
                         </thead>
@@ -2122,7 +2126,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                                       <button
                                         onClick={() => setEditingCell({ itemId: item.id, field: 'status' })}
                                         className="flex items-center gap-1.5 hover:opacity-75 transition-opacity"
-                                        title="Изменить статус"
+                                        title={t('Изменить статус')}
                                       >
                                         <span className={`w-2 h-2 rounded-full shrink-0 ${statusDisplay.dotClass}`} />
                                         <span className={`text-xs font-medium ${statusDisplay.textClass}`}>{statusDisplay.label}</span>
@@ -2132,7 +2136,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                                     {item.text && !isNew && (
                                       <button
                                         className="opacity-0 group-hover/item:opacity-50 hover:!opacity-100 p-0.5 text-gray-400 hover:text-violet-500 shrink-0 transition-all ml-0.5"
-                                        title="История подзадачи"
+                                        title={t('История подзадачи')}
                                         onMouseEnter={(e) => showHistoryTooltip(e, item.id)}
                                         onMouseLeave={hideHistoryTooltip}
                                         onClick={(e) => { e.stopPropagation(); setHistoryPanelItemId(item.id); setSidebarCollapsed(false); setHistoryTooltip(null); }}
@@ -2145,10 +2149,10 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                                     {/* Approve/Reject for pending */}
                                     {isPending && canApproveSubtasks && (
                                       <div className="flex items-center gap-0.5 opacity-0 group-hover/item:opacity-100 transition-opacity ml-0.5">
-                                        <button onClick={() => setSubtaskStatus(group.id, item.id, SUBTASK_STATUS.DONE)} title="Утвердить" className="p-0.5 text-green-500 hover:bg-green-50 dark:hover:bg-green-900/30 rounded">
+                                        <button onClick={() => setSubtaskStatus(group.id, item.id, SUBTASK_STATUS.DONE)} title={t('Утвердить')} className="p-0.5 text-green-500 hover:bg-green-50 dark:hover:bg-green-900/30 rounded">
                                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
                                         </button>
-                                        <button onClick={() => setSubtaskStatus(group.id, item.id, SUBTASK_STATUS.REJECTED)} title="Отклонить" className="p-0.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded">
+                                        <button onClick={() => setSubtaskStatus(group.id, item.id, SUBTASK_STATUS.REJECTED)} title={t('Отклонить')} className="p-0.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded">
                                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
                                         </button>
                                       </div>
@@ -2162,7 +2166,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                                       value={item.text}
                                       onChange={(v) => updateItemText(group.id, item.id, v)}
                                       className={`w-full text-sm bg-transparent outline-none border-none focus:ring-0 resize-none overflow-hidden leading-normal ${isDone ? 'line-through text-gray-400' : isRejected ? 'text-red-500 dark:text-red-400' : 'text-gray-700 dark:text-gray-300'}`}
-                                      placeholder="Введите название подзадачи..."
+                                      placeholder={t('Введите название подзадачи...')}
                                       autoFocus
                                       onBlur={() => { if (!item.text.trim()) removeItem(group.id, item.id); setEditingItemId(null); }}
                                       mentionCandidates={assignees.map((a) => ({
@@ -2174,12 +2178,12 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                                   ) : (
                                     <div
                                       onClick={() => setEditingItemId(item.id)}
-                                      title="Нажмите, чтобы развернуть"
+                                      title={t('Нажмите, чтобы развернуть')}
                                       className={`text-sm cursor-text leading-normal whitespace-pre-wrap break-words line-clamp-2 min-h-[1.25rem] ${isDone ? 'line-through text-gray-400' : isRejected ? 'text-red-500 dark:text-red-400' : 'text-gray-700 dark:text-gray-300'}`}
                                     >
                                       {item.text
                                         ? renderTextWithLinks(item.text, (uid) => { const u = userMap[uid]; if (u) setEmployeeCard({ user: u }); })
-                                        : <span className="text-gray-400 dark:text-gray-600">Введите название...</span>
+                                        : <span className="text-gray-400 dark:text-gray-600">{t('Введите название...')}</span>
                                       }
                                     </div>
                                   )}
@@ -2199,7 +2203,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                                       onBlur={() => setEditingCell(null)}
                                       className="text-xs border border-gray-200 dark:border-gray-600 rounded px-1 py-0.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 outline-none max-w-[130px]"
                                     >
-                                      <option value="">— Не назначен —</option>
+                                      <option value="">{t('— Не назначен —')}</option>
                                       {assignees.map((a) => (
                                         <option key={a.userId} value={a.userId}>{a.userName || `#${a.userId}`}</option>
                                       ))}
@@ -2208,7 +2212,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                                     <span
                                       onClick={() => setEditingCell({ itemId: item.id, field: 'assignee' })}
                                       className="text-sm text-gray-600 dark:text-gray-400 cursor-pointer hover:text-violet-500 transition-colors"
-                                      title="Нажмите для выбора исполнителя"
+                                      title={t('Нажмите для выбора исполнителя')}
                                     >
                                       {item.assigneeName || <span className="text-gray-300 dark:text-gray-600">—</span>}
                                     </span>
@@ -2229,7 +2233,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                                     <span
                                       onClick={() => setEditingCell({ itemId: item.id, field: 'dueDate' })}
                                       className={`text-sm cursor-pointer transition-colors ${overdue ? 'text-red-500 dark:text-red-400 font-medium' : 'text-gray-600 dark:text-gray-400 hover:text-violet-500'}`}
-                                      title="Нажмите для изменения срока"
+                                      title={t('Нажмите для изменения срока')}
                                     >
                                       {item.dueDate ? new Date(item.dueDate).toLocaleDateString('ru-RU') : <span className="text-gray-300 dark:text-gray-600">—</span>}
                                     </span>
@@ -2245,17 +2249,17 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                                       onBlur={() => setEditingCell(null)}
                                       className="text-xs border border-gray-200 dark:border-gray-600 rounded px-1 py-0.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 outline-none"
                                     >
-                                      <option value="">— Без —</option>
-                                      <option value="1">Низкий</option>
-                                      <option value="2">Средний</option>
-                                      <option value="3">Высокий</option>
-                                      <option value="4">Критический</option>
+                                      <option value="">{t('— Без —')}</option>
+                                      <option value="1">{t('Низкий')}</option>
+                                      <option value="2">{t('Средний')}</option>
+                                      <option value="3">{t('Высокий')}</option>
+                                      <option value="4">{t('Критический')}</option>
                                     </select>
                                   ) : (
                                     <span
                                       onClick={() => setEditingCell({ itemId: item.id, field: 'priority' })}
                                       className={`text-xs font-medium px-2 py-0.5 rounded cursor-pointer hover:opacity-75 transition-opacity ${priorityInfo ? priorityInfo.cls : 'text-gray-300 dark:text-gray-600'}`}
-                                      title="Нажмите для изменения приоритета"
+                                      title={t('Нажмите для изменения приоритета')}
                                     >
                                       {priorityInfo ? priorityInfo.label : '—'}
                                     </span>
@@ -2273,7 +2277,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                                       onDragStart={(e) => { e.stopPropagation(); dragItemRef.current = { groupId: group.id, itemId: item.id }; }}
                                       onDragEnd={() => { dragItemRef.current = null; dragOverItemRef.current = null; }}
                                       className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 select-none p-0.5"
-                                      title="Перетащить"
+                                      title={t('Перетащить')}
                                     >
                                       <svg className="w-3 h-3" viewBox="0 0 10 16" fill="currentColor">
                                         <circle cx="3" cy="2" r="1.5" /><circle cx="3" cy="8" r="1.5" /><circle cx="3" cy="14" r="1.5" />
@@ -2284,7 +2288,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                                       <button
                                         onClick={() => removeItem(group.id, item.id)}
                                         className="text-gray-300 hover:text-red-400 transition-colors p-0.5"
-                                        title="Удалить подзадачу"
+                                        title={t('Удалить подзадачу')}
                                       >
                                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -2324,7 +2328,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                   onKeyDown={(e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleSendComment(); }}
                   rows={2}
                   className="w-full px-4 py-3 text-sm text-gray-700 dark:text-gray-300 bg-transparent outline-none border-none resize-none placeholder-gray-400 focus:ring-0"
-                  placeholder="Комментировать..."
+                  placeholder={t('Комментировать...')}
                 />
                 {commentAttachments.length > 0 && (
                   <div className="px-4 pb-2 flex flex-wrap gap-1.5">
@@ -2343,7 +2347,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                   <button
                     onClick={() => commentFileInputRef.current?.click()}
                     className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                    title="Прикрепить файл"
+                    title={t('Прикрепить файл')}
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
@@ -2353,7 +2357,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                     onClick={handleSendComment}
                     disabled={sendingComment || (!commentText.trim() && commentAttachments.length === 0) || uploading}
                     className="p-1.5 text-violet-500 hover:text-violet-600 disabled:opacity-30 transition-colors"
-                    title="Отправить (Ctrl+Enter)"
+                    title={t('Отправить (Ctrl+Enter)')}
                   >
                     {sendingComment ? (
                       <span className="w-4 h-4 border-2 border-violet-400 border-t-transparent rounded-full animate-spin block" />
@@ -2388,7 +2392,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                           ? 'border-violet-300 text-violet-600 dark:text-violet-400 dark:border-violet-700 bg-violet-50 dark:bg-violet-900/20'
                           : 'border-gray-200 text-gray-500 dark:text-gray-400 dark:border-gray-700 hover:border-gray-300'
                       }`}
-                      title="Скрыть/показать системные уведомления"
+                      title={t('Скрыть/показать системные уведомления')}
                     >
                       {hideSystemMessages ? 'Показать тех. уведомления' : 'Скрыть тех. уведомления'}
                     </button>
@@ -2465,7 +2469,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                                 <button
                                   onClick={() => startEditComment(c)}
                                   className="p-0.5 text-gray-400 hover:text-violet-500 transition-colors"
-                                  title="Редактировать комментарий"
+                                  title={t('Редактировать комментарий')}
                                 >
                                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -2476,7 +2480,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                                 <button
                                   onClick={() => handleDeleteComment(c.id)}
                                   className="p-0.5 text-gray-400 hover:text-red-500 transition-colors"
-                                  title="Удалить комментарий"
+                                  title={t('Удалить комментарий')}
                                 >
                                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -2582,13 +2586,13 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                         <button
                           onClick={() => setHistoryPanelItemId(null)}
                           className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded transition-colors"
-                          title="Назад"
+                          title={t('Назад')}
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                           </svg>
                         </button>
-                        <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">История подзадачи</p>
+                        <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">{t('История подзадачи')}</p>
                       </div>
                       {hItem && (
                         <p className="text-xs text-gray-600 dark:text-gray-300 mb-4 bg-gray-50 dark:bg-gray-800/50 px-3 py-2 rounded-lg leading-relaxed">
@@ -2596,7 +2600,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                         </p>
                       )}
                       {hEvents.length === 0 ? (
-                        <p className="text-sm text-gray-400 text-center py-8">Нет событий</p>
+                        <p className="text-sm text-gray-400 text-center py-8">{t('Нет событий')}</p>
                       ) : (
                         <div className="space-y-3">
                           {hEvents.map((ev, i) => (
@@ -2635,9 +2639,9 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
             onMouseLeave={hideHistoryTooltip}
             onClick={(e) => e.stopPropagation()}
           >
-            <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">История (последние события)</p>
+            <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">{t('История (последние события)')}</p>
             {tEvents.length === 0 ? (
-              <p className="text-xs text-gray-400">Событий пока нет</p>
+              <p className="text-xs text-gray-400">{t('Событий пока нет')}</p>
             ) : (
               <ul className="space-y-1.5">
                 {tEvents.slice(0, 3).map((ev, i) => (
@@ -2669,7 +2673,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
-              <span className="font-semibold text-gray-800 dark:text-gray-100">Параметры задачи</span>
+              <span className="font-semibold text-gray-800 dark:text-gray-100">{t('Параметры задачи')}</span>
               <button onClick={() => setShowMobileSettings(false)} className="p-1 text-gray-400 hover:text-gray-600 rounded">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

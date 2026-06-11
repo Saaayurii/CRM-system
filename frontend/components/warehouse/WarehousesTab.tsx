@@ -7,6 +7,7 @@ import { useDownloadPdf } from '@/lib/hooks/useDownloadPdf';
 import { FAB_REGISTER_EVENT, FAB_ACTION_EVENT } from '@/components/ui/QuickActionsButton';
 import DeleteConfirmModal from '@/components/admin/DeleteConfirmModal';
 import InventoryStartModal from './InventoryStartModal';
+import { useT } from '@/lib/i18n';
 
 interface EqWarehouse {
   id: number;
@@ -37,6 +38,7 @@ const emptyForm = { name: '', address: '', code: '', warehouseType: '' };
 const VIEW_STORAGE_KEY = 'warehouseViewMode';
 
 export default function WarehousesTab() {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
   const [eq, setEq] = useState<EqWarehouse[]>([]);
   const [mat, setMat] = useState<MatWarehouse[]>([]);
@@ -241,8 +243,8 @@ export default function WarehousesTab() {
           <button
             onClick={() => setSettingsOpen((v) => !v)}
             className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:border-violet-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors"
-            title="Настройки и экспорт"
-            aria-label="Настройки и экспорт"
+            title={t('Настройки и экспорт')}
+            aria-label={t('Настройки и экспорт')}
           >
             <svg className="w-4.5 h-4.5" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -251,7 +253,7 @@ export default function WarehousesTab() {
           </button>
           {settingsOpen && (
             <div className="absolute right-0 mt-1 w-60 z-30 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 py-1">
-              <div className="px-3 py-1.5 text-[11px] uppercase tracking-wide text-gray-400">Экспорт в PDF</div>
+              <div className="px-3 py-1.5 text-[11px] uppercase tracking-wide text-gray-400">{t('Экспорт в PDF')}</div>
               <button
                 onClick={exportEqPdf}
                 disabled={pdfLoading || eq.length === 0}
@@ -279,23 +281,23 @@ export default function WarehousesTab() {
 
       <section>
         <div className="mb-3">
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Склады оборудования</h2>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Места хранения инструмента и оборудования</p>
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">{t('Склады оборудования')}</h2>
+          <p className="text-xs text-gray-500 dark:text-gray-400">{t('Места хранения инструмента и оборудования')}</p>
         </div>
         {loading ? (
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 text-center text-gray-500">Загрузка...</div>
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 text-center text-gray-500">{t('Загрузка...')}</div>
         ) : eq.length === 0 ? (
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 text-center text-gray-500">Складов оборудования нет</div>
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 text-center text-gray-500">{t('Складов оборудования нет')}</div>
         ) : viewMode === 'table' ? (
           <div className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-xs">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="text-xs uppercase text-gray-400 bg-gray-50 dark:bg-gray-900/20">
                   <tr>
-                    <th className="text-left px-4 py-2.5">Название</th>
-                    <th className="text-left px-4 py-2.5">Адрес</th>
-                    <th className="text-right px-4 py-2.5">Единиц</th>
-                    <th className="text-right px-4 py-2.5 w-56">Действия</th>
+                    <th className="text-left px-4 py-2.5">{t('Название')}</th>
+                    <th className="text-left px-4 py-2.5">{t('Адрес')}</th>
+                    <th className="text-right px-4 py-2.5">{t('Единиц')}</th>
+                    <th className="text-right px-4 py-2.5 w-56">{t('Действия')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
@@ -311,21 +313,21 @@ export default function WarehousesTab() {
                           <button
                             onClick={() => setInventoryFor(w)}
                             className="px-2 py-1 text-xs rounded bg-violet-100 text-violet-700 hover:bg-violet-200 dark:bg-violet-900/30 dark:text-violet-300 dark:hover:bg-violet-900/50 transition-colors"
-                            title="Запустить инвентаризацию"
+                            title={t('Запустить инвентаризацию')}
                           >
                             Инвентаризация
                           </button>
                           <button
                             onClick={() => openEditEq(w)}
                             className="p-1.5 text-gray-400 hover:text-violet-500 transition-colors"
-                            title="Редактировать"
+                            title={t('Редактировать')}
                           >
                             {EditIcon}
                           </button>
                           <button
                             onClick={() => setDeleteState({ kind: 'eq', id: w.id, name: w.name })}
                             className="p-1.5 text-gray-400 hover:text-red-500 transition-colors"
-                            title="Удалить"
+                            title={t('Удалить')}
                           >
                             {DeleteIcon}
                           </button>
@@ -344,17 +346,17 @@ export default function WarehousesTab() {
                 <div className="flex items-start justify-between gap-2">
                   <div className="font-medium text-gray-800 dark:text-gray-100 truncate min-w-0">{w.name}</div>
                   <div className="flex items-center gap-1 shrink-0">
-                    <button onClick={() => openEditEq(w)} className="p-1.5 text-gray-400 hover:text-violet-500 transition-colors" title="Редактировать">{EditIcon}</button>
-                    <button onClick={() => setDeleteState({ kind: 'eq', id: w.id, name: w.name })} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors" title="Удалить">{DeleteIcon}</button>
+                    <button onClick={() => openEditEq(w)} className="p-1.5 text-gray-400 hover:text-violet-500 transition-colors" title={t('Редактировать')}>{EditIcon}</button>
+                    <button onClick={() => setDeleteState({ kind: 'eq', id: w.id, name: w.name })} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors" title={t('Удалить')}>{DeleteIcon}</button>
                   </div>
                 </div>
                 <dl className="text-sm space-y-1">
                   <div className="flex justify-between gap-2">
-                    <dt className="text-gray-400 dark:text-gray-500">Адрес</dt>
+                    <dt className="text-gray-400 dark:text-gray-500">{t('Адрес')}</dt>
                     <dd className="text-gray-700 dark:text-gray-300 text-right truncate">{w.address || '—'}</dd>
                   </div>
                   <div className="flex justify-between gap-2">
-                    <dt className="text-gray-400 dark:text-gray-500">Единиц</dt>
+                    <dt className="text-gray-400 dark:text-gray-500">{t('Единиц')}</dt>
                     <dd className="text-gray-700 dark:text-gray-300">{Array.isArray(w.equipment) ? w.equipment.length : 0}</dd>
                   </div>
                 </dl>
@@ -372,23 +374,23 @@ export default function WarehousesTab() {
 
       <section>
         <div className="mb-3">
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Склады материалов</h2>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Места хранения расходных материалов и комплектующих</p>
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">{t('Склады материалов')}</h2>
+          <p className="text-xs text-gray-500 dark:text-gray-400">{t('Места хранения расходных материалов и комплектующих')}</p>
         </div>
         {loading ? null : mat.length === 0 ? (
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 text-center text-gray-500">Складов материалов нет</div>
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 text-center text-gray-500">{t('Складов материалов нет')}</div>
         ) : viewMode === 'table' ? (
           <div className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-xs">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="text-xs uppercase text-gray-400 bg-gray-50 dark:bg-gray-900/20">
                   <tr>
-                    <th className="text-left px-4 py-2.5">Название</th>
-                    <th className="text-left px-4 py-2.5">Код</th>
-                    <th className="text-left px-4 py-2.5">Тип</th>
-                    <th className="text-left px-4 py-2.5">Адрес</th>
-                    <th className="text-left px-4 py-2.5">Кладовщик</th>
-                    <th className="text-right px-4 py-2.5 w-px">Действия</th>
+                    <th className="text-left px-4 py-2.5">{t('Название')}</th>
+                    <th className="text-left px-4 py-2.5">{t('Код')}</th>
+                    <th className="text-left px-4 py-2.5">{t('Тип')}</th>
+                    <th className="text-left px-4 py-2.5">{t('Адрес')}</th>
+                    <th className="text-left px-4 py-2.5">{t('Кладовщик')}</th>
+                    <th className="text-right px-4 py-2.5 w-px">{t('Действия')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
@@ -404,14 +406,14 @@ export default function WarehousesTab() {
                           <button
                             onClick={() => openEditMat(w)}
                             className="p-1.5 text-gray-400 hover:text-violet-500 transition-colors"
-                            title="Редактировать"
+                            title={t('Редактировать')}
                           >
                             {EditIcon}
                           </button>
                           <button
                             onClick={() => setDeleteState({ kind: 'mat', id: w.id, name: w.name })}
                             className="p-1.5 text-gray-400 hover:text-red-500 transition-colors"
-                            title="Удалить"
+                            title={t('Удалить')}
                           >
                             {DeleteIcon}
                           </button>
@@ -433,21 +435,21 @@ export default function WarehousesTab() {
                     {w.code && <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{w.code}</div>}
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    <button onClick={() => openEditMat(w)} className="p-1.5 text-gray-400 hover:text-violet-500 transition-colors" title="Редактировать">{EditIcon}</button>
-                    <button onClick={() => setDeleteState({ kind: 'mat', id: w.id, name: w.name })} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors" title="Удалить">{DeleteIcon}</button>
+                    <button onClick={() => openEditMat(w)} className="p-1.5 text-gray-400 hover:text-violet-500 transition-colors" title={t('Редактировать')}>{EditIcon}</button>
+                    <button onClick={() => setDeleteState({ kind: 'mat', id: w.id, name: w.name })} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors" title={t('Удалить')}>{DeleteIcon}</button>
                   </div>
                 </div>
                 <dl className="text-sm space-y-1">
                   <div className="flex justify-between gap-2">
-                    <dt className="text-gray-400 dark:text-gray-500">Тип</dt>
+                    <dt className="text-gray-400 dark:text-gray-500">{t('Тип')}</dt>
                     <dd className="text-gray-700 dark:text-gray-300 text-right truncate">{w.warehouseType || '—'}</dd>
                   </div>
                   <div className="flex justify-between gap-2">
-                    <dt className="text-gray-400 dark:text-gray-500">Адрес</dt>
+                    <dt className="text-gray-400 dark:text-gray-500">{t('Адрес')}</dt>
                     <dd className="text-gray-700 dark:text-gray-300 text-right truncate">{w.address || '—'}</dd>
                   </div>
                   <div className="flex justify-between gap-2">
-                    <dt className="text-gray-400 dark:text-gray-500">Кладовщик</dt>
+                    <dt className="text-gray-400 dark:text-gray-500">{t('Кладовщик')}</dt>
                     <dd className="text-gray-700 dark:text-gray-300 text-right truncate">{w.warehouseKeeper?.name || '—'}</dd>
                   </div>
                 </dl>
@@ -490,18 +492,18 @@ export default function WarehousesTab() {
             </h3>
             <div className="space-y-3">
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Название *</label>
+                <label className="block text-xs text-gray-500 mb-1">{t('Название *')}</label>
                 <input
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg"
-                  placeholder="Например, Главный склад"
+                  placeholder={t('Например, Главный склад')}
                 />
               </div>
               {editState.kind === 'mat' && (
                 <>
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1">Код</label>
+                    <label className="block text-xs text-gray-500 mb-1">{t('Код')}</label>
                     <input
                       value={form.code}
                       onChange={(e) => setForm({ ...form, code: e.target.value })}
@@ -510,18 +512,18 @@ export default function WarehousesTab() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1">Тип</label>
+                    <label className="block text-xs text-gray-500 mb-1">{t('Тип')}</label>
                     <input
                       value={form.warehouseType}
                       onChange={(e) => setForm({ ...form, warehouseType: e.target.value })}
                       className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg"
-                      placeholder="общий / расходники / опасные"
+                      placeholder={t('общий / расходники / опасные')}
                     />
                   </div>
                 </>
               )}
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Адрес</label>
+                <label className="block text-xs text-gray-500 mb-1">{t('Адрес')}</label>
                 <textarea
                   value={form.address}
                   onChange={(e) => setForm({ ...form, address: e.target.value })}
@@ -554,13 +556,14 @@ export default function WarehousesTab() {
 }
 
 function ViewToggle({ value, onChange }: { value: ViewMode; onChange: (v: ViewMode) => void }) {
+  const t = useT();
   return (
     <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg shrink-0">
       <button
         onClick={() => onChange('table')}
         className={`p-1.5 rounded transition-colors ${value === 'table' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}
-        title="Таблица"
-        aria-label="Таблица"
+        title={t('Таблица')}
+        aria-label={t('Таблица')}
       >
         <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -569,8 +572,8 @@ function ViewToggle({ value, onChange }: { value: ViewMode; onChange: (v: ViewMo
       <button
         onClick={() => onChange('cards')}
         className={`p-1.5 rounded transition-colors ${value === 'cards' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}
-        title="Карточки"
-        aria-label="Карточки"
+        title={t('Карточки')}
+        aria-label={t('Карточки')}
       >
         <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />

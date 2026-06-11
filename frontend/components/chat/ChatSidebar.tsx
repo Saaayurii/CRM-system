@@ -10,12 +10,14 @@ import ChatPreviewModal from './ChatPreviewModal';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import { previewMessageText } from '@/lib/chat/messagePreview';
+import { useT } from '@/lib/i18n';
 
 interface ChatSidebarProps {
   onSelectChannel: () => void;
 }
 
 export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
+  const t = useT();
   const channels = useChatStore((s) => s.channels);
   const archivedChannels = useChatStore((s) => s.archivedChannels);
   const archivedCount = useChatStore((s) => s.archivedCount);
@@ -352,7 +354,7 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
-            <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">Архив</h2>
+            <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">{t('Архив')}</h2>
           </div>
           <div className="relative">
             <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -362,7 +364,7 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Поиск..."
+              placeholder={t('Поиск...')}
               className="w-full pl-10 pr-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 border-0 rounded-lg text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-violet-500 focus:outline-none"
             />
           </div>
@@ -439,7 +441,7 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
                   onClick={(e) => handleArchiveChannel(channel, false, e)}
                   disabled={archivingId === channel.id}
                   className="opacity-0 group-hover:opacity-100 shrink-0 p-1.5 text-gray-400 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-all disabled:opacity-30"
-                  title="Извлечь из архива"
+                  title={t('Извлечь из архива')}
                 >
                   {archivingId === channel.id ? (
                     <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
@@ -463,12 +465,12 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
       {/* Header */}
       <div className="p-4 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">Чаты</h2>
+          <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">{t('Чаты')}</h2>
           {!isClient && (
             <button
               onClick={() => setShowCreateModal(true)}
               className="p-2 text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-500/10 rounded-lg transition-colors"
-              title="Новый чат"
+              title={t('Новый чат')}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -489,7 +491,7 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Поиск..."
+            placeholder={t('Поиск...')}
             className="w-full pl-10 pr-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 border-0 rounded-lg text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-violet-500 focus:outline-none"
           />
         </div>
@@ -547,7 +549,7 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
               </svg>
             </div>
             <div className="flex-1 min-w-0">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Архив</span>
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{t('Архив')}</span>
             </div>
             <span className="text-xs text-gray-400 dark:text-gray-500">{archivedCount}</span>
             <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -639,14 +641,14 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
                   </p>
                   <span className="ml-2 flex items-center gap-1 shrink-0">
                     {channel.isMutedForMe && (
-                      <span title="Уведомления выключены" className="flex">
+                      <span title={t('Уведомления выключены')} className="flex">
                         <svg className="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M3 3l18 18M13.73 21a2 2 0 01-3.46 0M18.63 13A17.9 17.9 0 0118 8a6 6 0 00-9.33-5M6.26 6.26A6 6 0 006 8c0 7-3 9-3 9h14" />
                         </svg>
                       </span>
                     )}
                     {channel.isPinned && (
-                      <span title="Закреплён" className="flex">
+                      <span title={t('Закреплён')} className="flex">
                         <svg className="w-3.5 h-3.5 text-violet-500" fill="currentColor" viewBox="0 0 24 24">
                           <path d="M14 3l7 7-4.5 4.5L19 17l-2 2-2.5-2.5L10 21l-1-6-6-1 4.5-4.5L5 7l2-2 2.5 2.5L14 3z"/>
                         </svg>

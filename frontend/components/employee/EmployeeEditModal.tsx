@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import { EmployeeAvatar, EmployeeData, ModalShell, OnlineBadge } from './shared';
+import { useT } from '@/lib/i18n';
 
 interface Props {
   employee: EmployeeData;
@@ -31,6 +32,7 @@ const inputCls =
   'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent';
 
 export default function EmployeeEditModal({ employee, onClose, onSaved }: Props) {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
@@ -118,7 +120,7 @@ export default function EmployeeEditModal({ employee, onClose, onSaved }: Props)
               onChange={(e) => set('roleId', e.target.value)}
               className={inputCls}
             >
-              <option value="">— не изменять —</option>
+              <option value="">{t('— не изменять —')}</option>
               {ROLE_OPTIONS.map((r) => (
                 <option key={r.value} value={r.value}>
                   {r.label}
@@ -135,7 +137,7 @@ export default function EmployeeEditModal({ employee, onClose, onSaved }: Props)
               value={form.position}
               onChange={(e) => set('position', e.target.value)}
               className={inputCls}
-              placeholder="Директор, PM…"
+              placeholder={t('Директор, PM…')}
             />
           </div>
           <div>

@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { useToastStore } from '@/stores/toastStore';
+import { useT } from '@/lib/i18n';
 
 /**
  * Registers /sw.js and sets up Periodic Background Sync.
@@ -14,6 +15,7 @@ import { useToastStore } from '@/stores/toastStore';
  *  4. Listen for SYNC_COMPLETE messages from SW
  */
 export default function ServiceWorkerInit() {
+  const t = useT();
   useEffect(() => {
     if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
 

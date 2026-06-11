@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useToastStore } from '@/stores/toastStore';
+import { useT } from '@/lib/i18n';
 
 export interface EmployeeData {
   id: number;
@@ -119,6 +120,7 @@ export function EmployeeAvatar({
 }
 
 export function OnlineBadge({ employee }: { employee: EmployeeData }) {
+  const t = useT();
   const online = isOnline(employee);
   return (
     <span
@@ -134,6 +136,7 @@ export function OnlineBadge({ employee }: { employee: EmployeeData }) {
 }
 
 export function CopyButton({ value, title }: { value: string; title?: string }) {
+  const t = useT();
   const [copied, setCopied] = useState(false);
   const addToast = useToastStore((s) => s.addToast);
 

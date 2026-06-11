@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useT } from '@/lib/i18n';
 
 /**
  * Минималистичный безопасный рендер Markdown без внешних зависимостей.
@@ -155,8 +156,9 @@ const H_CLS: Record<number, string> = {
 };
 
 export default function MarkdownView({ content }: { content?: string | null }) {
+  const t = useT();
   if (!content || !content.trim()) {
-    return <p className="text-gray-400 italic">Содержание не заполнено.</p>;
+    return <p className="text-gray-400 italic">{t('Содержание не заполнено.')}</p>;
   }
   const blocks = parse(content);
   return (

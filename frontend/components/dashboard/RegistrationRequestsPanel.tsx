@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import { useAuthStore } from '@/stores/authStore';
+import { useT } from '@/lib/i18n';
 
 const ROLE_OPTIONS: { value: number; label: string }[] = [
   { value: 10, label: 'Рабочий' },
@@ -61,6 +62,7 @@ function getInviteStatus(inv: MemberInvite): { label: string; color: string } {
 }
 
 export default function RegistrationRequestsPanel() {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
   const user = useAuthStore((s) => s.user);
   const canManageInvites = user?.roleId === 1 || user?.roleId === 2 || user?.roleId === 3;
@@ -219,7 +221,7 @@ export default function RegistrationRequestsPanel() {
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-violet-500" />
             </div>
           ) : requests.length === 0 ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Нет ожидающих заявок</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">{t('Нет ожидающих заявок')}</p>
           ) : (
             <div className="space-y-3">
               {requests.map((req) => (
@@ -289,7 +291,7 @@ export default function RegistrationRequestsPanel() {
                       <input
                         type="text"
                         className="form-input text-xs py-1.5 rounded-lg flex-1 min-w-[150px]"
-                        placeholder="Причина отказа (необязательно)"
+                        placeholder={t('Причина отказа (необязательно)')}
                         value={rejectState.reason}
                         onChange={(e) => setRejectState({ ...rejectState, reason: e.target.value })}
                       />
@@ -321,26 +323,26 @@ export default function RegistrationRequestsPanel() {
           {/* Create form */}
           <div className="flex flex-wrap gap-2 items-end">
             <div className="flex-1 min-w-36">
-              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Заметка</label>
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{t('Заметка')}</label>
               <input
                 className="form-input w-full text-sm py-1.5"
-                placeholder="Для кого / зачем"
+                placeholder={t('Для кого / зачем')}
                 value={inviteNote}
                 onChange={(e) => setInviteNote(e.target.value)}
               />
             </div>
             <div className="w-36">
-              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Срок действия</label>
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{t('Срок действия')}</label>
               <select
                 className="form-select w-full text-sm py-1.5"
                 value={expiresInHours}
                 onChange={(e) => setExpiresInHours(Number(e.target.value))}
               >
-                <option value={24}>24 часа</option>
-                <option value={72}>3 дня</option>
-                <option value={168}>7 дней</option>
-                <option value={720}>30 дней</option>
-                <option value={0}>Без ограничений</option>
+                <option value={24}>{t('24 часа')}</option>
+                <option value={72}>{t('3 дня')}</option>
+                <option value={168}>{t('7 дней')}</option>
+                <option value={720}>{t('30 дней')}</option>
+                <option value={0}>{t('Без ограничений')}</option>
               </select>
             </div>
             <button
@@ -356,7 +358,7 @@ export default function RegistrationRequestsPanel() {
           {newlyCreatedLink && (
             <div className="p-3 rounded-lg bg-violet-50 dark:bg-violet-500/10 border border-violet-200 dark:border-violet-500/30">
               <div className="flex items-center justify-between gap-2 mb-1.5">
-                <span className="text-xs font-semibold text-violet-700 dark:text-violet-300">Ссылка создана — скопируйте и отправьте сотруднику</span>
+                <span className="text-xs font-semibold text-violet-700 dark:text-violet-300">{t('Ссылка создана — скопируйте и отправьте сотруднику')}</span>
                 <button onClick={() => setNewlyCreatedLink(null)} className="text-violet-400 hover:text-violet-600 transition-colors">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>

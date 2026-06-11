@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
+import { useT } from '@/lib/i18n';
 
 interface ProjectCategory {
   id: number;
@@ -58,6 +59,7 @@ export default function ImportFromCompanyPriceModal({
   onClose: () => void;
   onImported: () => void;
 }) {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
 
   const [data, setData] = useState<PriceListResponse | null>(null);
@@ -249,7 +251,7 @@ export default function ImportFromCompanyPriceModal({
                 <input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Поиск по названию..."
+                  placeholder={t('Поиск по названию...')}
                   className="w-full pl-9 pr-4 py-2 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 text-gray-700 dark:text-gray-200"
                 />
               </div>
@@ -265,7 +267,7 @@ export default function ImportFromCompanyPriceModal({
 
             <div className="flex-1 overflow-y-auto px-6 py-4">
               {filtered.length === 0 ? (
-                <p className="text-center text-sm text-gray-400 dark:text-gray-500 py-10">Ничего не найдено</p>
+                <p className="text-center text-sm text-gray-400 dark:text-gray-500 py-10">{t('Ничего не найдено')}</p>
               ) : (
                 <div className="space-y-4">
                   {grouped.map(([cat, list]) => (

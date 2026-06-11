@@ -20,6 +20,7 @@ import {
   Card, Grid, Stat, Donut, TextInput, EditToggle, GhostBtn, EmptyState,
   FileChip, EditableTable, DataTable, EditableColumn, Pill,
 } from '../primitives';
+import { useT } from '@/lib/i18n';
 
 /* ───────────────────────── helpers ───────────────────────── */
 
@@ -54,6 +55,7 @@ function parseDate(v: string | undefined | null): Date | null {
 const OVERDUE_STATUS_HINTS = ['просроч', 'overdue'];
 
 export default function MaintenanceSection({ ctx }: { ctx: PassportCtx }) {
+  const t = useT();
   const maintenance: MaintenanceSectionData = ctx.passport.maintenance || {};
 
   const equipment = maintenance.equipment || [];
@@ -83,10 +85,10 @@ export default function MaintenanceSection({ ctx }: { ctx: PassportCtx }) {
   return (
     <div className="space-y-5">
       <Grid cols={4}>
-        <Stat label="Всего оборудования" value={totalEquipment} />
-        <Stat label="На обслуживании" value={onService} accent="text-blue-500" />
-        <Stat label="Истекает в ближайшие 30 дней" value={expiringSoon} accent="text-orange-500" />
-        <Stat label="Просрочено" value={overdue} accent="text-red-500" />
+        <Stat label={t('Всего оборудования')} value={totalEquipment} />
+        <Stat label={t('На обслуживании')} value={onService} accent="text-blue-500" />
+        <Stat label={t('Истекает в ближайшие 30 дней')} value={expiringSoon} accent="text-orange-500" />
+        <Stat label={t('Просрочено')} value={overdue} accent="text-red-500" />
       </Grid>
 
       <EquipmentCard ctx={ctx} maintenance={maintenance} />
@@ -103,6 +105,7 @@ export default function MaintenanceSection({ ctx }: { ctx: PassportCtx }) {
 /* ───────────────────── Оборудование и системы ───────────────────── */
 
 function EquipmentCard({ ctx, maintenance }: { ctx: PassportCtx; maintenance: MaintenanceSectionData }) {
+  const t = useT();
   const items = maintenance.equipment || [];
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -138,7 +141,7 @@ function EquipmentCard({ ctx, maintenance }: { ctx: PassportCtx; maintenance: Ma
 
   return (
     <Card
-      title="Оборудование и системы"
+      title={t('Оборудование и системы')}
       actions={<EditToggle editing={editing} onEdit={start} onCancel={cancel} onSave={save} saving={saving} />}
     >
       {!editing ? (
@@ -174,6 +177,7 @@ function EquipmentCard({ ctx, maintenance }: { ctx: PassportCtx; maintenance: Ma
 /* ───────────────────── Плановое обслуживание ───────────────────── */
 
 function ScheduleCard({ ctx, maintenance }: { ctx: PassportCtx; maintenance: MaintenanceSectionData }) {
+  const t = useT();
   const items = maintenance.schedule || [];
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -209,7 +213,7 @@ function ScheduleCard({ ctx, maintenance }: { ctx: PassportCtx; maintenance: Mai
 
   return (
     <Card
-      title="Плановое обслуживание"
+      title={t('Плановое обслуживание')}
       actions={<EditToggle editing={editing} onEdit={start} onCancel={cancel} onSave={save} saving={saving} />}
     >
       {!editing ? (
@@ -240,6 +244,7 @@ function ScheduleCard({ ctx, maintenance }: { ctx: PassportCtx; maintenance: Mai
 /* ───────────────────── Подрядчики и контакты ───────────────────── */
 
 function ContractorsCard({ ctx, maintenance }: { ctx: PassportCtx; maintenance: MaintenanceSectionData }) {
+  const t = useT();
   const items = maintenance.contractors || [];
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -274,7 +279,7 @@ function ContractorsCard({ ctx, maintenance }: { ctx: PassportCtx; maintenance: 
 
   return (
     <Card
-      title="Подрядчики и контакты"
+      title={t('Подрядчики и контакты')}
       actions={<EditToggle editing={editing} onEdit={start} onCancel={cancel} onSave={save} saving={saving} />}
     >
       {!editing ? (
@@ -304,6 +309,7 @@ function ContractorsCard({ ctx, maintenance }: { ctx: PassportCtx; maintenance: 
 /* ───────────────────── Гарантии ───────────────────── */
 
 function WarrantiesCard({ ctx, maintenance }: { ctx: PassportCtx; maintenance: MaintenanceSectionData }) {
+  const t = useT();
   const items = maintenance.warranties || [];
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -353,7 +359,7 @@ function WarrantiesCard({ ctx, maintenance }: { ctx: PassportCtx; maintenance: M
 
   return (
     <Card
-      title="Гарантии"
+      title={t('Гарантии')}
       actions={<EditToggle editing={editing} onEdit={start} onCancel={cancel} onSave={save} saving={saving} />}
     >
       {!editing ? (
@@ -377,11 +383,11 @@ function WarrantiesCard({ ctx, maintenance }: { ctx: PassportCtx; maintenance: M
           {rows.length === 0 && <EmptyState text="Гарантии не добавлены" />}
           {rows.map((r) => (
             <div key={r.id} className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 items-end border-b border-gray-100 dark:border-gray-700/40 pb-3">
-              <TextInput label="Оборудование" value={r.equipment || ''} onChange={(v) => update(r.id, { equipment: v })} />
-              <TextInput label="Производитель" value={r.manufacturer || ''} onChange={(v) => update(r.id, { manufacturer: v })} />
-              <TextInput label="Гарантия до" value={r.warrantyUntil || ''} onChange={(v) => update(r.id, { warrantyUntil: v })} placeholder="31.12.2026" />
+              <TextInput label={t('Оборудование')} value={r.equipment || ''} onChange={(v) => update(r.id, { equipment: v })} />
+              <TextInput label={t('Производитель')} value={r.manufacturer || ''} onChange={(v) => update(r.id, { manufacturer: v })} />
+              <TextInput label={t('Гарантия до')} value={r.warrantyUntil || ''} onChange={(v) => update(r.id, { warrantyUntil: v })} placeholder="31.12.2026" />
               <div className="flex items-end gap-2">
-                <TextInput label="Документ" value={r.fileTitle || ''} onChange={(v) => update(r.id, { fileTitle: v })} className="flex-1" />
+                <TextInput label={t('Документ')} value={r.fileTitle || ''} onChange={(v) => update(r.id, { fileTitle: v })} className="flex-1" />
                 <input
                   ref={(el) => { fileInputs.current[r.id] = el; }}
                   type="file"
@@ -411,6 +417,7 @@ function WarrantiesCard({ ctx, maintenance }: { ctx: PassportCtx; maintenance: M
 /* ───────────────────── История работ ───────────────────── */
 
 function WorkHistoryCard({ ctx, maintenance }: { ctx: PassportCtx; maintenance: MaintenanceSectionData }) {
+  const t = useT();
   const items = maintenance.workHistory || [];
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -446,7 +453,7 @@ function WorkHistoryCard({ ctx, maintenance }: { ctx: PassportCtx; maintenance: 
 
   return (
     <Card
-      title="История работ"
+      title={t('История работ')}
       actions={<EditToggle editing={editing} onEdit={start} onCancel={cancel} onSave={save} saving={saving} />}
     >
       {!editing ? (
@@ -482,6 +489,7 @@ function WorkHistoryCard({ ctx, maintenance }: { ctx: PassportCtx; maintenance: 
 /* ───────────────────── Статус обслуживания (Donut) ───────────────────── */
 
 function StatusDonutCard({ equipment }: { equipment: EquipmentItem[] }) {
+  const t = useT();
   const counts = { service: 0, warranty: 0, overdue: 0, ok: 0 };
   for (const e of equipment) {
     if (e.status && e.status in counts) counts[e.status as keyof typeof counts]++;
@@ -494,7 +502,7 @@ function StatusDonutCard({ equipment }: { equipment: EquipmentItem[] }) {
   ].filter((d) => d.value > 0);
 
   return (
-    <Card title="Статус обслуживания">
+    <Card title={t('Статус обслуживания')}>
       {data.length > 0 ? <Donut data={data} /> : <EmptyState text="Нет данных по оборудованию" />}
     </Card>
   );
@@ -503,6 +511,7 @@ function StatusDonutCard({ equipment }: { equipment: EquipmentItem[] }) {
 /* ───────────────────── Документы и шаблоны ───────────────────── */
 
 function DocumentsCard({ ctx, maintenance }: { ctx: PassportCtx; maintenance: MaintenanceSectionData }) {
+  const t = useT();
   const docs = maintenance.documents || [];
   const [busy, setBusy] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -541,7 +550,7 @@ function DocumentsCard({ ctx, maintenance }: { ctx: PassportCtx; maintenance: Ma
 
   return (
     <Card
-      title="Документы и шаблоны"
+      title={t('Документы и шаблоны')}
       actions={
         <GhostBtn onClick={() => inputRef.current?.click()} disabled={busy}>
           {busy ? 'Загрузка...' : 'Добавить документ'}

@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { useChatStore, ChatMessage, ChatChannel } from '@/stores/chatStore';
 import { useAuthStore } from '@/stores/authStore';
 import api from '@/lib/api';
+import { useT } from '@/lib/i18n';
 
 interface ForwardMessageModalProps {
   message: ChatMessage;
@@ -22,6 +23,7 @@ function getChannelDisplay(ch: ChatChannel, currentUserId?: number) {
 }
 
 function ChannelAvatar({ ch, currentUserId }: { ch: ChatChannel; currentUserId?: number }) {
+  const t = useT();
   const display = getChannelDisplay(ch, currentUserId);
   const initials = display.name.split(' ').map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || '?';
 
@@ -60,6 +62,7 @@ function ChannelAvatar({ ch, currentUserId }: { ch: ChatChannel; currentUserId?:
 }
 
 export default function ForwardMessageModal({ message, onClose }: ForwardMessageModalProps) {
+  const t = useT();
   const storeChannels = useChatStore((s) => s.channels);
   const archivedChannels = useChatStore((s) => s.archivedChannels);
   const activeChannelId = useChatStore((s) => s.activeChannelId);
@@ -182,7 +185,7 @@ export default function ForwardMessageModal({ message, onClose }: ForwardMessage
 
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-4 pb-3 sm:pt-5 border-b border-gray-100 dark:border-gray-700 shrink-0">
-          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Переслать сообщение</h2>
+          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('Переслать сообщение')}</h2>
           <button
             onClick={onClose}
             className="p-1.5 rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
@@ -206,7 +209,7 @@ export default function ForwardMessageModal({ message, onClose }: ForwardMessage
               {message.attachments[0].fileName}
             </p>
           ) : (
-            <p className="text-xs text-gray-400 italic">Пустое сообщение</p>
+            <p className="text-xs text-gray-400 italic">{t('Пустое сообщение')}</p>
           )}
         </div>
 
@@ -219,7 +222,7 @@ export default function ForwardMessageModal({ message, onClose }: ForwardMessage
             <input
               ref={searchRef}
               type="text"
-              placeholder="Поиск чата..."
+              placeholder={t('Поиск чата...')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-9 pr-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-xl text-sm text-gray-800 dark:text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
@@ -234,7 +237,7 @@ export default function ForwardMessageModal({ message, onClose }: ForwardMessage
               <svg className="w-10 h-10 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
               </svg>
-              <p className="text-sm">Чаты не найдены</p>
+              <p className="text-sm">{t('Чаты не найдены')}</p>
             </div>
           ) : (
             filtered.map((ch) => {
@@ -303,7 +306,7 @@ export default function ForwardMessageModal({ message, onClose }: ForwardMessage
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-              <span className="text-sm font-medium">Сообщение переслано!</span>
+              <span className="text-sm font-medium">{t('Сообщение переслано!')}</span>
             </div>
           ) : (
             <button

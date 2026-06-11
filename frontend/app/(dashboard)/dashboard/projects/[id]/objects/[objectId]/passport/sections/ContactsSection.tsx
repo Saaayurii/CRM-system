@@ -15,8 +15,10 @@ import { newId } from '../types';
 import {
   Card, EditableTable, EditableColumn, EditToggle, EmptyState, PhoneIcon,
 } from '../primitives';
+import { useT } from '@/lib/i18n';
 
 export default function ContactsSection({ ctx }: { ctx: PassportCtx }) {
+  const t = useT();
   const contacts: ContactItem[] = ctx.passport.contacts || [];
 
   const [editing, setEditing] = useState(false);
@@ -75,6 +77,7 @@ export default function ContactsSection({ ctx }: { ctx: PassportCtx }) {
 }
 
 function ContactCardItem({ contact }: { contact: ContactItem }) {
+  const t = useT();
   return (
     <div className="rounded-lg border border-gray-100 dark:border-gray-700/60 bg-gray-50 dark:bg-gray-900/30 p-4">
       <div className="flex items-start justify-between gap-2">

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
+import { useT } from '@/lib/i18n';
 
 interface Project {
   id: number;
@@ -36,6 +37,7 @@ function randomPassword(len = 14): string {
 }
 
 export default function ClientPortalAccessModal({ clientId, clientName, onClose }: Props) {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectId, setProjectId] = useState<number | ''>('');
@@ -109,7 +111,7 @@ export default function ClientPortalAccessModal({ clientId, clientName, onClose 
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-            aria-label="Закрыть"
+            aria-label={t('Закрыть')}
           >
             ✕
           </button>
@@ -127,7 +129,7 @@ export default function ClientPortalAccessModal({ clientId, clientName, onClose 
                 required
                 className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
               >
-                <option value="">— Выберите проект —</option>
+                <option value="">{t('— Выберите проект —')}</option>
                 {projects.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
@@ -166,7 +168,7 @@ export default function ClientPortalAccessModal({ clientId, clientName, onClose 
                     type="button"
                     onClick={() => setPassword(randomPassword())}
                     className="px-2 py-2 rounded-lg border border-gray-300 dark:border-gray-700 text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-                    title="Сгенерировать"
+                    title={t('Сгенерировать')}
                   >
                     🎲
                   </button>
@@ -178,7 +180,7 @@ export default function ClientPortalAccessModal({ clientId, clientName, onClose 
             </p>
 
             <div className="space-y-1.5">
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Что видит клиент</p>
+              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{t('Что видит клиент')}</p>
               {([
                 ['Прогресс работ', canViewProgress, setCanViewProgress],
                 ['Фотоотчёт', canViewPhotos, setCanViewPhotos],
@@ -232,19 +234,19 @@ export default function ClientPortalAccessModal({ clientId, clientName, onClose 
 
             {created.login && (
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Логин</label>
+                <label className="block text-xs font-medium text-gray-500 mb-1">{t('Логин')}</label>
                 <code className="block px-3 py-2 rounded bg-gray-100 dark:bg-gray-800 text-sm">{created.login}</code>
               </div>
             )}
             {password && (
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Пароль (не покажется снова)</label>
+                <label className="block text-xs font-medium text-gray-500 mb-1">{t('Пароль (не покажется снова)')}</label>
                 <code className="block px-3 py-2 rounded bg-gray-100 dark:bg-gray-800 text-sm font-mono">{password}</code>
               </div>
             )}
             {magicLink && (
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Magic-ссылка для входа</label>
+                <label className="block text-xs font-medium text-gray-500 mb-1">{t('Magic-ссылка для входа')}</label>
                 <div className="flex gap-1">
                   <code className="flex-1 px-3 py-2 rounded bg-gray-100 dark:bg-gray-800 text-xs break-all">
                     {magicLink}

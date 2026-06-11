@@ -4,11 +4,13 @@ import { useCallback, useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import type { PriceUnit } from '@/lib/price/types';
+import { useT } from '@/lib/i18n';
 
 const INPUT =
   'w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-violet-500';
 
 export default function UnitsModal({ onClose, onChanged }: { onClose: () => void; onChanged?: () => void }) {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
   const [items, setItems] = useState<PriceUnit[]>([]);
   const [name, setName] = useState('');
@@ -60,17 +62,17 @@ export default function UnitsModal({ onClose, onChanged }: { onClose: () => void
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={onClose}>
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full max-h-[85vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-          <h3 className="font-semibold text-gray-800 dark:text-gray-100">Единицы измерения</h3>
+          <h3 className="font-semibold text-gray-800 dark:text-gray-100">{t('Единицы измерения')}</h3>
           <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg">✕</button>
         </div>
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
           <div className="flex gap-2">
-            <input value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && create()} className={INPUT} placeholder="Название (отверстие)" />
-            <input value={shortName} onChange={(e) => setShortName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && create()} className={`${INPUT} w-28`} placeholder="шт." />
+            <input value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && create()} className={INPUT} placeholder={t('Название (отверстие)')} />
+            <input value={shortName} onChange={(e) => setShortName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && create()} className={`${INPUT} w-28`} placeholder={t('шт.')} />
             <button onClick={create} disabled={saving || !name.trim()} className="px-3 py-2 bg-violet-500 hover:bg-violet-600 disabled:opacity-50 text-white text-sm font-medium rounded-lg whitespace-nowrap">+</button>
           </div>
           {items.length === 0 ? (
-            <p className="text-center text-sm text-gray-400 py-6">Пока пусто</p>
+            <p className="text-center text-sm text-gray-400 py-6">{t('Пока пусто')}</p>
           ) : (
             <ul className="space-y-1.5">
               {items.map((u) => (

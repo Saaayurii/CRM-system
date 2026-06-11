@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
+import { useT } from '@/lib/i18n';
 
 interface Task {
   id: number;
@@ -31,6 +32,7 @@ const statusLabels: Record<number, string> = {
 };
 
 export default function TodoWidget() {
+  const t = useT();
   const user = useAuthStore((s) => s.user);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
@@ -85,7 +87,7 @@ export default function TodoWidget() {
   return (
     <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-5">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Мои задачи</h3>
+        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">{t('Мои задачи')}</h3>
         <Link
           href="/dashboard/tasks"
           className="text-sm text-violet-500 hover:text-violet-600 font-medium transition-colors"
@@ -94,9 +96,9 @@ export default function TodoWidget() {
         </Link>
       </div>
       {loading ? (
-        <p className="text-sm text-gray-400 dark:text-gray-500">Загрузка...</p>
+        <p className="text-sm text-gray-400 dark:text-gray-500">{t('Загрузка...')}</p>
       ) : tasks.length === 0 ? (
-        <p className="text-sm text-gray-400 dark:text-gray-500">Нет активных задач</p>
+        <p className="text-sm text-gray-400 dark:text-gray-500">{t('Нет активных задач')}</p>
       ) : (
         <ul className="space-y-2">
           {tasks.map((task) => {

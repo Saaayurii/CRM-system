@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
+import { useT } from '@/lib/i18n';
 
 interface SystemSettings {
   // Notifications
@@ -98,6 +99,7 @@ function Toggle({
 }
 
 function SectionHeader({ icon, title }: { icon: React.ReactNode; title: string }) {
+  const t = useT();
   return (
     <div className="flex items-center gap-2 mb-5">
       <span className="text-violet-500">{icon}</span>
@@ -159,6 +161,7 @@ function Select<T extends string | number>({
 }
 
 export default function SettingsPage() {
+  const t = useT();
   const [account, setAccount] = useState<AccountData | null>(null);
   const [s, setS] = useState<SystemSettings>(defaults);
   const [companyName, setCompanyName] = useState('');
@@ -254,7 +257,7 @@ export default function SettingsPage() {
         {/* ── Общие ── */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-5">
           <SectionHeader
-            title="Общие"
+            title={t('Общие')}
             icon={
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
@@ -272,7 +275,7 @@ export default function SettingsPage() {
               className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
             />
           </div>
-          <Row label="Язык интерфейса" description="Язык по умолчанию для всех пользователей">
+          <Row label={t('Язык интерфейса')} description={t('Язык по умолчанию для всех пользователей')}>
             <Select
               value={s.language}
               onChange={(v) => upd('language', v)}
@@ -282,7 +285,7 @@ export default function SettingsPage() {
               ]}
             />
           </Row>
-          <Row label="Формат даты">
+          <Row label={t('Формат даты')}>
             <Select
               value={s.date_format}
               onChange={(v) => upd('date_format', v)}
@@ -293,7 +296,7 @@ export default function SettingsPage() {
               ]}
             />
           </Row>
-          <Row label="Формат времени">
+          <Row label={t('Формат времени')}>
             <Select
               value={s.time_format}
               onChange={(v) => upd('time_format', v)}
@@ -303,7 +306,7 @@ export default function SettingsPage() {
               ]}
             />
           </Row>
-          <Row label="Часовой пояс">
+          <Row label={t('Часовой пояс')}>
             <Select
               value={s.timezone}
               onChange={(v) => upd('timezone', v)}
@@ -322,7 +325,7 @@ export default function SettingsPage() {
               ]}
             />
           </Row>
-          <Row label="Валюта">
+          <Row label={t('Валюта')}>
             <Select
               value={s.currency}
               onChange={(v) => upd('currency', v)}
@@ -340,15 +343,15 @@ export default function SettingsPage() {
           {account && (
             <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700/60 grid grid-cols-3 gap-3 text-xs">
               <div>
-                <p className="text-gray-400 dark:text-gray-500">ID аккаунта</p>
+                <p className="text-gray-400 dark:text-gray-500">{t('ID аккаунта')}</p>
                 <p className="font-semibold text-gray-700 dark:text-gray-300 mt-0.5">{account.id}</p>
               </div>
               <div>
-                <p className="text-gray-400 dark:text-gray-500">Поддомен</p>
+                <p className="text-gray-400 dark:text-gray-500">{t('Поддомен')}</p>
                 <p className="font-semibold text-gray-700 dark:text-gray-300 mt-0.5">{account.subdomain || '—'}</p>
               </div>
               <div>
-                <p className="text-gray-400 dark:text-gray-500">Статус</p>
+                <p className="text-gray-400 dark:text-gray-500">{t('Статус')}</p>
                 <p className="font-semibold text-gray-700 dark:text-gray-300 mt-0.5">{account.status}</p>
               </div>
             </div>
@@ -358,7 +361,7 @@ export default function SettingsPage() {
         {/* ── Оформление ── */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-5">
           <SectionHeader
-            title="Оформление"
+            title={t('Оформление')}
             icon={
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4.098 19.902a3.75 3.75 0 0 0 5.304 0l6.401-6.402M6.75 21A3.75 3.75 0 0 1 3 17.25V4.125C3 3.504 3.504 3 4.125 3h5.25c.621 0 1.125.504 1.125 1.125v4.072M6.75 21a3.75 3.75 0 0 0 3.75-3.75V8.197M6.75 21h13.125c.621 0 1.125-.504 1.125-1.125v-5.25c0-.621-.504-1.125-1.125-1.125h-4.072M10.5 8.197l2.88-2.88c.438-.439 1.15-.439 1.59 0l3.712 3.713c.44.44.44 1.152 0 1.59l-2.879 2.88M6.75 17.25h.008v.008H6.75v-.008Z" />
@@ -408,23 +411,23 @@ export default function SettingsPage() {
         {/* ── Уведомления ── */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-5">
           <SectionHeader
-            title="Уведомления"
+            title={t('Уведомления')}
             icon={
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
               </svg>
             }
           />
-          <Row label="Все уведомления" description="Глобальное отключение всех уведомлений">
+          <Row label={t('Все уведомления')} description={t('Глобальное отключение всех уведомлений')}>
             <Toggle enabled={s.notifications_enabled} onChange={(v) => upd('notifications_enabled', v)} />
           </Row>
-          <Row label="Email-уведомления">
+          <Row label={t('Email-уведомления')}>
             <Toggle enabled={s.email_notifications} onChange={(v) => upd('email_notifications', v)} />
           </Row>
-          <Row label="SMS-уведомления">
+          <Row label={t('SMS-уведомления')}>
             <Toggle enabled={s.sms_notifications} onChange={(v) => upd('sms_notifications', v)} />
           </Row>
-          <Row label="Push-уведомления">
+          <Row label={t('Push-уведомления')}>
             <Toggle enabled={s.push_notifications} onChange={(v) => upd('push_notifications', v)} />
           </Row>
         </div>
@@ -432,20 +435,20 @@ export default function SettingsPage() {
         {/* ── Доступ ── */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-5">
           <SectionHeader
-            title="Доступ и регистрация"
+            title={t('Доступ и регистрация')}
             icon={
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z" />
               </svg>
             }
           />
-          <Row label="Самостоятельная регистрация" description="Новые пользователи могут регистрироваться без приглашения">
+          <Row label={t('Самостоятельная регистрация')} description={t('Новые пользователи могут регистрироваться без приглашения')}>
             <Toggle enabled={s.allow_registration} onChange={(v) => upd('allow_registration', v)} />
           </Row>
-          <Row label="Только по приглашению" description="Вход возможен только для приглашённых пользователей">
+          <Row label={t('Только по приглашению')} description={t('Вход возможен только для приглашённых пользователей')}>
             <Toggle enabled={s.require_invite} onChange={(v) => upd('require_invite', v)} />
           </Row>
-          <Row label="Автоподтверждение новых пользователей">
+          <Row label={t('Автоподтверждение новых пользователей')}>
             <Toggle enabled={s.auto_approve_users} onChange={(v) => upd('auto_approve_users', v)} />
           </Row>
         </div>
@@ -453,14 +456,14 @@ export default function SettingsPage() {
         {/* ── Безопасность ── */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-5">
           <SectionHeader
-            title="Безопасность"
+            title={t('Безопасность')}
             icon={
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
               </svg>
             }
           />
-          <Row label="Таймаут сессии">
+          <Row label={t('Таймаут сессии')}>
             <Select
               value={s.session_timeout_minutes}
               onChange={(v) => upd('session_timeout_minutes', v)}
@@ -473,7 +476,7 @@ export default function SettingsPage() {
               ]}
             />
           </Row>
-          <Row label="Макс. попыток входа">
+          <Row label={t('Макс. попыток входа')}>
             <Select
               value={s.max_login_attempts}
               onChange={(v) => upd('max_login_attempts', v)}
@@ -484,7 +487,7 @@ export default function SettingsPage() {
               ]}
             />
           </Row>
-          <Row label="Мин. длина пароля">
+          <Row label={t('Мин. длина пароля')}>
             <Select
               value={s.password_min_length}
               onChange={(v) => upd('password_min_length', v)}
@@ -496,7 +499,7 @@ export default function SettingsPage() {
               ]}
             />
           </Row>
-          <Row label="Двухфакторная аутентификация" description="Обязательная 2FA для всех пользователей">
+          <Row label={t('Двухфакторная аутентификация')} description={t('Обязательная 2FA для всех пользователей')}>
             <Toggle enabled={s.require_2fa} onChange={(v) => upd('require_2fa', v)} />
           </Row>
         </div>
@@ -504,14 +507,14 @@ export default function SettingsPage() {
         {/* ── Файлы ── */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-5">
           <SectionHeader
-            title="Файлы и хранилище"
+            title={t('Файлы и хранилище')}
             icon={
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
               </svg>
             }
           />
-          <Row label="Макс. размер файла" description="Максимальный размер одного загружаемого файла">
+          <Row label={t('Макс. размер файла')} description={t('Максимальный размер одного загружаемого файла')}>
             <Select
               value={s.max_file_size_mb}
               onChange={(v) => upd('max_file_size_mb', v)}
@@ -529,7 +532,7 @@ export default function SettingsPage() {
         {/* ── Технические работы ── */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-5 xl:col-span-2">
           <SectionHeader
-            title="Технические работы"
+            title={t('Технические работы')}
             icon={
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17 17.25 21A2.652 2.652 0 0 0 21 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 1 1-3.586-3.586l5.654-4.654m5.96-4.66 1.23-1.23c.546-.546.546-1.432 0-1.978L15.5 3.11a1.4 1.4 0 0 0-1.978 0l-1.23 1.23" />
@@ -540,8 +543,8 @@ export default function SettingsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             <div className="sm:col-span-1 space-y-1">
               <Row
-                label="Режим обслуживания"
-                description="Все пользователи (кроме супер-админа) видят страницу «Технические работы»"
+                label={t('Режим обслуживания')}
+                description={t('Все пользователи (кроме супер-админа) видят страницу «Технические работы»')}
               >
                 <Toggle enabled={s.maintenance_mode} onChange={(v) => upd('maintenance_mode', v)} />
               </Row>
@@ -556,7 +559,7 @@ export default function SettingsPage() {
                   type="text"
                   value={s.maintenance_title}
                   onChange={(e) => upd('maintenance_title', e.target.value)}
-                  placeholder="Технические работы"
+                  placeholder={t('Технические работы')}
                   maxLength={100}
                   className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
                 />
@@ -569,7 +572,7 @@ export default function SettingsPage() {
                   rows={2}
                   value={s.maintenance_message}
                   onChange={(e) => upd('maintenance_message', e.target.value)}
-                  placeholder="Ведутся технические работы. Пожалуйста, зайдите позже."
+                  placeholder={t('Ведутся технические работы. Пожалуйста, зайдите позже.')}
                   className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 resize-none focus:outline-none focus:ring-2 focus:ring-violet-500"
                 />
               </div>

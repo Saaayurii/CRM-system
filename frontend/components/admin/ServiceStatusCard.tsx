@@ -3,6 +3,7 @@
 import Badge from '@/components/ui/Badge';
 import type { ContainerInfo } from '@/types/docker';
 import ContainerActions from './ContainerActions';
+import { useT } from '@/lib/i18n';
 
 interface ServiceStatusCardProps {
   container: ContainerInfo;
@@ -15,18 +16,18 @@ interface ServiceStatusCardProps {
   isStarting: boolean;
 }
 
-function getStateBadge(state: string) {
+function getStateBadge(state: string, t: (key: string) => string) {
   switch (state) {
     case 'running':
-      return <Badge variant="success">Работает</Badge>;
+      return <Badge variant="success">{t('Работает')}</Badge>;
     case 'exited':
-      return <Badge variant="danger">Остановлен</Badge>;
+      return <Badge variant="danger">{t('Остановлен')}</Badge>;
     case 'restarting':
-      return <Badge variant="warning">Перезапуск</Badge>;
+      return <Badge variant="warning">{t('Перезапуск')}</Badge>;
     case 'paused':
-      return <Badge variant="warning">Пауза</Badge>;
+      return <Badge variant="warning">{t('Пауза')}</Badge>;
     case 'dead':
-      return <Badge variant="danger">Ошибка</Badge>;
+      return <Badge variant="danger">{t('Ошибка')}</Badge>;
     default:
       return <Badge variant="default">{state}</Badge>;
   }
@@ -42,6 +43,7 @@ export default function ServiceStatusCard({
   isStopping,
   isStarting,
 }: ServiceStatusCardProps) {
+  const t = useT();
   const displayName = container.name.replace(/^crm-/, '').replace(/-/g, ' ');
 
   return (
@@ -53,7 +55,7 @@ export default function ServiceStatusCard({
           </h3>
           <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">{container.image}</p>
         </div>
-        {getStateBadge(container.state)}
+        {getStateBadge(container.state, t)}
       </div>
 
       {container.ports && (

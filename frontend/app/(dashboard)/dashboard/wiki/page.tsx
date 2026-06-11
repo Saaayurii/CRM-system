@@ -16,6 +16,7 @@ import {
 import {
   WikiPageItem, WikiDraft, DRAFT_STATUS_LABELS, DRAFT_STATUS_COLORS,
 } from '@/lib/wiki/pages-constants';
+import { useT } from '@/lib/i18n';
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -56,6 +57,7 @@ const ADMIN_ROLES = [1, 2, 3];
 // ─── Main page ──────────────────────────────────────────────────────────────
 
 function WikiPageInner() {
+  const t = useT();
   const router = useRouter();
   const searchParams = useSearchParams();
   const user = useAuthStore((s) => s.user);
@@ -71,7 +73,7 @@ function WikiPageInner() {
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
         <div>
-          <h1 className="text-2xl font-bold">📖 ВИКИ</h1>
+          <h1 className="text-2xl font-bold">{t('📖 ВИКИ')}</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
             {mainTab === 'corporate' ? 'База знаний компании' : 'Нормативная база — СНиПы, ГОСТы, СП'}
           </p>
@@ -109,8 +111,9 @@ function WikiPageInner() {
 }
 
 export default function WikiPage() {
+  const t = useT();
   return (
-    <Suspense fallback={<div className="p-8 text-gray-400">Загрузка…</div>}>
+    <Suspense fallback={<div className="p-8 text-gray-400">{t('Загрузка…')}</div>}>
       <WikiPageInner />
     </Suspense>
   );
@@ -119,6 +122,7 @@ export default function WikiPage() {
 // ─── Corporate Wiki Section ─────────────────────────────────────────────────
 
 function CorporateWikiSection({ isAdmin }: { isAdmin: boolean }) {
+  const t = useT();
   const router = useRouter();
   const addToast = useToastStore((s) => s.addToast);
 
@@ -177,23 +181,23 @@ function CorporateWikiSection({ isAdmin }: { isAdmin: boolean }) {
         <div className="flex flex-col lg:flex-row gap-6">
           <aside className="lg:w-56 shrink-0">
             <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl p-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 px-2 mb-2">Структура</p>
-              {tree.length === 0 && !loading && <p className="px-2 py-3 text-xs text-gray-400">Страниц пока нет.</p>}
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 px-2 mb-2">{t('Структура')}</p>
+              {tree.length === 0 && !loading && <p className="px-2 py-3 text-xs text-gray-400">{t('Страниц пока нет.')}</p>}
               {tree.map((node) => <PageTreeNode key={node.id} node={node} depth={0} onNavigate={(id) => router.push(`/dashboard/wiki-pages/${id}`)} />)}
             </div>
           </aside>
           <div className="flex-1 min-w-0">
             <div className="relative mb-4">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
-              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Поиск по названию…"
+              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('Поиск по названию…')}
                 className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
             </div>
             {loading ? (
               <div className="space-y-3">{[...Array(3)].map((_, i) => <div key={i} className="h-18 bg-gray-100 dark:bg-gray-800 animate-pulse rounded-xl h-20" />)}</div>
             ) : pages.length === 0 ? (
               <div className="text-center py-14 text-gray-400">
-                <div className="text-4xl mb-2">📝</div><p>Страниц пока нет.</p>
-                <button onClick={() => router.push('/dashboard/wiki-pages/new')} className="mt-3 text-sm text-violet-600 hover:underline">Создать первую</button>
+                <div className="text-4xl mb-2">📝</div><p>{t('Страниц пока нет.')}</p>
+                <button onClick={() => router.push('/dashboard/wiki-pages/new')} className="mt-3 text-sm text-violet-600 hover:underline">{t('Создать первую')}</button>
               </div>
             ) : (
               <div className="space-y-3">
@@ -238,6 +242,7 @@ function CorporateWikiSection({ isAdmin }: { isAdmin: boolean }) {
 // ─── Construction Norms Section ─────────────────────────────────────────────
 
 function ConstructionNormsSection({ isSuperAdmin }: { isSuperAdmin: boolean }) {
+  const t = useT();
   const router = useRouter();
   const addToast = useToastStore((s) => s.addToast);
 
@@ -347,10 +352,10 @@ function ConstructionNormsSection({ isSuperAdmin }: { isSuperAdmin: boolean }) {
       {/* Stats */}
       {stats && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
-          <StatCard label="Всего документов" value={stats.total} />
-          <StatCard label="Действующих" value={stats.active} accent="text-emerald-600" />
-          <StatCard label="Устаревших" value={stats.superseded} accent="text-red-500" />
-          <StatCard label="Категорий" value={categories.length} />
+          <StatCard label={t('Всего документов')} value={stats.total} />
+          <StatCard label={t('Действующих')} value={stats.active} accent="text-emerald-600" />
+          <StatCard label={t('Устаревших')} value={stats.superseded} accent="text-red-500" />
+          <StatCard label={t('Категорий')} value={categories.length} />
         </div>
       )}
 
@@ -358,22 +363,22 @@ function ConstructionNormsSection({ isSuperAdmin }: { isSuperAdmin: boolean }) {
         <aside className="lg:w-56 shrink-0">
           <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl p-3">
             <div className="flex items-center justify-between mb-2 px-1">
-              <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Категории</span>
+              <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">{t('Категории')}</span>
               {(activeCat || docType || status || onlyBookmarks) && (
-                <button onClick={resetFilters} className="text-xs text-violet-600 hover:underline">Сбросить</button>
+                <button onClick={resetFilters} className="text-xs text-violet-600 hover:underline">{t('Сбросить')}</button>
               )}
             </div>
             <div className={`flex items-center gap-1 px-2 py-1.5 rounded-lg cursor-pointer text-sm ${!activeCat && !onlyBookmarks ? 'bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300 font-medium' : 'hover:bg-gray-100 dark:hover:bg-gray-800'}`}
               onClick={() => { setActiveCat(null); setOnlyBookmarks(false); }}>
-              <span>🗂️</span><span>Все документы</span>
+              <span>🗂️</span><span>{t('Все документы')}</span>
             </div>
             <div className={`flex items-center gap-1 px-2 py-1.5 rounded-lg cursor-pointer text-sm ${onlyBookmarks ? 'bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 font-medium' : 'hover:bg-gray-100 dark:hover:bg-gray-800'}`}
               onClick={() => { setOnlyBookmarks(true); setActiveCat(null); }}>
-              <span>⭐</span><span>Избранное</span>
+              <span>⭐</span><span>{t('Избранное')}</span>
             </div>
             <div className="mt-1 border-t border-gray-100 dark:border-gray-800 pt-1">
               {tree.map((n) => renderCatNode(n))}
-              {tree.length === 0 && <p className="px-2 py-3 text-xs text-gray-400">Категории не созданы.</p>}
+              {tree.length === 0 && <p className="px-2 py-3 text-xs text-gray-400">{t('Категории не созданы.')}</p>}
             </div>
           </div>
         </aside>
@@ -382,15 +387,15 @@ function ConstructionNormsSection({ isSuperAdmin }: { isSuperAdmin: boolean }) {
           <div className="flex flex-wrap gap-2 mb-4">
             <div className="relative flex-1 min-w-[200px]">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
-              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Поиск по названию, коду…"
+              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('Поиск по названию, коду…')}
                 className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
             </div>
             <select value={docType} onChange={(e) => setDocType(e.target.value as DocType | '')} className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm">
-              <option value="">Все типы</option>
+              <option value="">{t('Все типы')}</option>
               {DOC_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
             <select value={status} onChange={(e) => setStatus(e.target.value as DocStatus | '')} className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm">
-              <option value="">Любой статус</option>
+              <option value="">{t('Любой статус')}</option>
               {DOC_STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
             </select>
           </div>
@@ -400,8 +405,8 @@ function ConstructionNormsSection({ isSuperAdmin }: { isSuperAdmin: boolean }) {
             <div className="space-y-3">{[...Array(4)].map((_, i) => <div key={i} className="h-24 rounded-xl bg-gray-100 dark:bg-gray-800 animate-pulse" />)}</div>
           ) : docs.length === 0 ? (
             <div className="text-center py-16 text-gray-400">
-              <div className="text-4xl mb-2">📭</div><p>Документы не найдены.</p>
-              {isSuperAdmin && <p className="text-sm mt-1">Добавьте первый документ кнопкой «+ Документ».</p>}
+              <div className="text-4xl mb-2">📭</div><p>{t('Документы не найдены.')}</p>
+              {isSuperAdmin && <p className="text-sm mt-1">{t('Добавьте первый документ кнопкой «+ Документ».')}</p>}
             </div>
           ) : (
             <div className="space-y-3">
@@ -451,6 +456,7 @@ function ConstructionNormsSection({ isSuperAdmin }: { isSuperAdmin: boolean }) {
 // ─── Shared helpers ──────────────────────────────────────────────────────────
 
 function StatCard({ label, value, accent }: { label: string; value: number; accent?: string }) {
+  const t = useT();
   return (
     <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl p-4">
       <div className={`text-2xl font-bold ${accent || 'text-gray-900 dark:text-gray-100'}`}>{value}</div>
@@ -460,6 +466,7 @@ function StatCard({ label, value, accent }: { label: string; value: number; acce
 }
 
 function PageTreeNode({ node, depth, onNavigate }: { node: TreeNode; depth: number; onNavigate: (id: number) => void }) {
+  const t = useT();
   const [open, setOpen] = useState(depth < 1);
   return (
     <div>
@@ -479,6 +486,7 @@ function PageTreeNode({ node, depth, onNavigate }: { node: TreeNode; depth: numb
 function ModerationPanel({ drafts, isAdmin, onRefresh, onEdit }: {
   drafts: WikiDraft[]; isAdmin: boolean; onRefresh: () => void; onEdit: (d: WikiDraft) => void;
 }) {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
   const [statusFilter, setStatusFilter] = useState('');
   const [reviewNote, setReviewNote] = useState<Record<number, string>>({});
@@ -517,7 +525,7 @@ function ModerationPanel({ drafts, isAdmin, onRefresh, onEdit }: {
           </button>
         ))}
       </div>
-      {filtered.length === 0 && <div className="text-center py-12 text-gray-400"><p>Нет черновиков.</p></div>}
+      {filtered.length === 0 && <div className="text-center py-12 text-gray-400"><p>{t('Нет черновиков.')}</p></div>}
       <div className="space-y-4">
         {filtered.map((draft) => (
           <div key={draft.id} className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl p-5">
@@ -526,28 +534,28 @@ function ModerationPanel({ drafts, isAdmin, onRefresh, onEdit }: {
                 <h3 className="font-semibold">{draft.title}</h3>
                 <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-gray-400">
                   <span className={`px-2 py-0.5 rounded font-medium ${DRAFT_STATUS_COLORS[draft.status]}`}>{DRAFT_STATUS_LABELS[draft.status]}</span>
-                  {draft.page ? <span>→ «{draft.page.title}»</span> : <span className="text-violet-500">Новая страница</span>}
+                  {draft.page ? <span>→ «{draft.page.title}»</span> : <span className="text-violet-500">{t('Новая страница')}</span>}
                   <span>{fmtDate(draft.updatedAt)}</span>
                 </div>
               </div>
               <div className="flex gap-2 shrink-0 flex-wrap justify-end">
-                <button onClick={() => onEdit(draft)} className="px-3 py-1 text-xs rounded border border-gray-200 dark:border-gray-700 hover:border-violet-300">Открыть</button>
-                {draft.status === 'draft' && <button onClick={() => submit(draft.id)} className="px-3 py-1 text-xs rounded bg-violet-500 text-white hover:bg-violet-600">На проверку</button>}
+                <button onClick={() => onEdit(draft)} className="px-3 py-1 text-xs rounded border border-gray-200 dark:border-gray-700 hover:border-violet-300">{t('Открыть')}</button>
+                {draft.status === 'draft' && <button onClick={() => submit(draft.id)} className="px-3 py-1 text-xs rounded bg-violet-500 text-white hover:bg-violet-600">{t('На проверку')}</button>}
                 {isAdmin && draft.status === 'pending' && <>
-                  <button onClick={() => review(draft.id, 'approved')} className="px-3 py-1 text-xs rounded bg-emerald-500 text-white hover:bg-emerald-600">Одобрить</button>
-                  <button onClick={() => review(draft.id, 'rejected')} className="px-3 py-1 text-xs rounded bg-red-500 text-white hover:bg-red-600">Отклонить</button>
+                  <button onClick={() => review(draft.id, 'approved')} className="px-3 py-1 text-xs rounded bg-emerald-500 text-white hover:bg-emerald-600">{t('Одобрить')}</button>
+                  <button onClick={() => review(draft.id, 'rejected')} className="px-3 py-1 text-xs rounded bg-red-500 text-white hover:bg-red-600">{t('Отклонить')}</button>
                 </>}
-                {draft.status === 'draft' && <button onClick={() => removeDraft(draft.id)} className="px-3 py-1 text-xs rounded border border-red-200 dark:border-red-500/30 text-red-500 hover:bg-red-50">Удалить</button>}
+                {draft.status === 'draft' && <button onClick={() => removeDraft(draft.id)} className="px-3 py-1 text-xs rounded border border-red-200 dark:border-red-500/30 text-red-500 hover:bg-red-50">{t('Удалить')}</button>}
               </div>
             </div>
             {isAdmin && draft.status === 'pending' && (
               <textarea value={reviewNote[draft.id] || ''} onChange={(e) => setReviewNote((p) => ({ ...p, [draft.id]: e.target.value }))}
-                placeholder="Комментарий к решению…" rows={2}
+                placeholder={t('Комментарий к решению…')} rows={2}
                 className="w-full mb-3 text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-transparent outline-none focus:ring-1 focus:ring-violet-500 resize-none" />
             )}
             {draft.reviewNote && (
               <div className="mb-3 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 text-sm">
-                <span className="font-medium text-gray-500">Комментарий: </span>{draft.reviewNote}
+                <span className="font-medium text-gray-500">{t('Комментарий:')}</span>{draft.reviewNote}
               </div>
             )}
             {(draft.comments || []).length > 0 && (
@@ -563,9 +571,9 @@ function ModerationPanel({ drafts, isAdmin, onRefresh, onEdit }: {
             <div className="flex gap-2">
               <input value={commentText[draft.id] || ''} onChange={(e) => setCommentText((p) => ({ ...p, [draft.id]: e.target.value }))}
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addComment(draft.id); } }}
-                placeholder="Комментарий…"
+                placeholder={t('Комментарий…')}
                 className="flex-1 text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 bg-transparent outline-none focus:ring-1 focus:ring-violet-500" />
-              <button onClick={() => addComment(draft.id)} className="px-3 py-1.5 text-sm rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700">Ответить</button>
+              <button onClick={() => addComment(draft.id)} className="px-3 py-1.5 text-sm rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700">{t('Ответить')}</button>
             </div>
           </div>
         ))}

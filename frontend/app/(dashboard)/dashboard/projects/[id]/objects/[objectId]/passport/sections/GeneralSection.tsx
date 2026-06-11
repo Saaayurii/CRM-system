@@ -15,6 +15,7 @@ import {
   Card, FieldGroup, Field, TextInput, TextArea, Select, EditToggle,
   GhostBtn, IconBtn, TrashIcon, EmptyState,
 } from '../primitives';
+import { useT } from '@/lib/i18n';
 
 /* ───────────────────────── helpers ───────────────────────── */
 
@@ -47,6 +48,7 @@ function str(v: number | undefined | null): string {
 }
 
 export default function GeneralSection({ ctx }: { ctx: PassportCtx }) {
+  const t = useT();
   const general: GeneralSectionData = ctx.passport.general || {};
 
   return (
@@ -62,6 +64,7 @@ export default function GeneralSection({ ctx }: { ctx: PassportCtx }) {
 /* ───────────────────── Общая информация ───────────────────── */
 
 function MainInfoCard({ ctx, general }: { ctx: PassportCtx; general: GeneralSectionData }) {
+  const t = useT();
   const site = ctx.site;
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -124,34 +127,34 @@ function MainInfoCard({ ctx, general }: { ctx: PassportCtx; general: GeneralSect
 
   return (
     <Card
-      title="Общая информация"
+      title={t('Общая информация')}
       actions={<EditToggle editing={editing} onEdit={start} onCancel={cancel} onSave={save} saving={saving} />}
     >
       {!editing ? (
         <FieldGroup>
-          <Field label="Название объекта" value={site?.name} />
-          <Field label="Тип объекта" value={general.objectType} />
-          <Field label="Назначение" value={general.purpose} />
-          <Field label="Адрес" value={site?.address} />
-          <Field label="Этаж" value={general.floor} />
-          <Field label="Этажность" value={general.totalFloors} />
-          <Field label="Площадь, м²" value={site?.areaSize} />
-          <Field label="Год постройки" value={general.yearBuilt} />
-          <Field label="Высота потолков, м" value={general.ceilingHeight} />
-          <Field label="Количество комнат" value={general.roomCount} />
+          <Field label={t('Название объекта')} value={site?.name} />
+          <Field label={t('Тип объекта')} value={general.objectType} />
+          <Field label={t('Назначение')} value={general.purpose} />
+          <Field label={t('Адрес')} value={site?.address} />
+          <Field label={t('Этаж')} value={general.floor} />
+          <Field label={t('Этажность')} value={general.totalFloors} />
+          <Field label={t('Площадь, м²')} value={site?.areaSize} />
+          <Field label={t('Год постройки')} value={general.yearBuilt} />
+          <Field label={t('Высота потолков, м')} value={general.ceilingHeight} />
+          <Field label={t('Количество комнат')} value={general.roomCount} />
         </FieldGroup>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-          <TextInput label="Название объекта *" value={name} onChange={setName} placeholder="Название объекта" />
-          <Select label="Тип объекта" value={objectType} onChange={setObjectType} options={OBJECT_TYPE_OPTIONS} />
-          <Select label="Назначение" value={purpose} onChange={setPurpose} options={PURPOSE_OPTIONS} />
-          <TextInput label="Адрес *" value={address} onChange={setAddress} placeholder="Адрес объекта" className="sm:col-span-2 xl:col-span-1" />
-          <TextInput label="Этаж" value={floor} onChange={setFloor} type="number" />
-          <TextInput label="Этажность" value={totalFloors} onChange={setTotalFloors} type="number" />
-          <TextInput label="Площадь, м²" value={areaSize} onChange={setAreaSize} type="number" />
-          <TextInput label="Год постройки" value={yearBuilt} onChange={setYearBuilt} type="number" />
-          <TextInput label="Высота потолков, м" value={ceilingHeight} onChange={setCeilingHeight} type="number" />
-          <TextInput label="Количество комнат" value={roomCount} onChange={setRoomCount} type="number" />
+          <TextInput label={t('Название объекта *')} value={name} onChange={setName} placeholder={t('Название объекта')} />
+          <Select label={t('Тип объекта')} value={objectType} onChange={setObjectType} options={OBJECT_TYPE_OPTIONS} />
+          <Select label={t('Назначение')} value={purpose} onChange={setPurpose} options={PURPOSE_OPTIONS} />
+          <TextInput label={t('Адрес *')} value={address} onChange={setAddress} placeholder={t('Адрес объекта')} className="sm:col-span-2 xl:col-span-1" />
+          <TextInput label={t('Этаж')} value={floor} onChange={setFloor} type="number" />
+          <TextInput label={t('Этажность')} value={totalFloors} onChange={setTotalFloors} type="number" />
+          <TextInput label={t('Площадь, м²')} value={areaSize} onChange={setAreaSize} type="number" />
+          <TextInput label={t('Год постройки')} value={yearBuilt} onChange={setYearBuilt} type="number" />
+          <TextInput label={t('Высота потолков, м')} value={ceilingHeight} onChange={setCeilingHeight} type="number" />
+          <TextInput label={t('Количество комнат')} value={roomCount} onChange={setRoomCount} type="number" />
         </div>
       )}
     </Card>
@@ -161,6 +164,7 @@ function MainInfoCard({ ctx, general }: { ctx: PassportCtx; general: GeneralSect
 /* ───────────────────── Собственник + УК ───────────────────── */
 
 function OwnerUkCard({ ctx, general }: { ctx: PassportCtx; general: GeneralSectionData }) {
+  const t = useT();
   const owner: PartyContact = general.owner || {};
   const uk: PartyContact = general.managementCompany || {};
 
@@ -212,41 +216,41 @@ function OwnerUkCard({ ctx, general }: { ctx: PassportCtx; general: GeneralSecti
 
   return (
     <Card
-      title="Собственник и управляющая компания"
+      title={t('Собственник и управляющая компания')}
       actions={<EditToggle editing={editing} onEdit={start} onCancel={cancel} onSave={save} saving={saving} />}
     >
       {!editing ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div>
-            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Собственник</p>
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">{t('Собственник')}</p>
             <FieldGroup>
-              <Field label="ФИО / Организация" value={owner.name} />
-              <Field label="Телефон" value={owner.phone} />
+              <Field label={t('ФИО / Организация')} value={owner.name} />
+              <Field label={t('Телефон')} value={owner.phone} />
               <Field label="E-mail" value={owner.email} />
             </FieldGroup>
           </div>
           <div>
-            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Управляющая компания</p>
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">{t('Управляющая компания')}</p>
             <FieldGroup>
-              <Field label="Название" value={uk.name} />
-              <Field label="Телефон" value={uk.phone} />
-              <Field label="Аварийная служба" value={uk.emergencyPhone} />
+              <Field label={t('Название')} value={uk.name} />
+              <Field label={t('Телефон')} value={uk.phone} />
+              <Field label={t('Аварийная служба')} value={uk.emergencyPhone} />
             </FieldGroup>
           </div>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="space-y-3">
-            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Собственник</p>
-            <TextInput label="ФИО / Организация" value={ownerName} onChange={setOwnerName} />
-            <TextInput label="Телефон" value={ownerPhone} onChange={setOwnerPhone} />
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">{t('Собственник')}</p>
+            <TextInput label={t('ФИО / Организация')} value={ownerName} onChange={setOwnerName} />
+            <TextInput label={t('Телефон')} value={ownerPhone} onChange={setOwnerPhone} />
             <TextInput label="E-mail" value={ownerEmail} onChange={setOwnerEmail} type="email" />
           </div>
           <div className="space-y-3">
-            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Управляющая компания</p>
-            <TextInput label="Название" value={ukName} onChange={setUkName} />
-            <TextInput label="Телефон" value={ukPhone} onChange={setUkPhone} />
-            <TextInput label="Аварийная служба" value={ukEmergency} onChange={setUkEmergency} />
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">{t('Управляющая компания')}</p>
+            <TextInput label={t('Название')} value={ukName} onChange={setUkName} />
+            <TextInput label={t('Телефон')} value={ukPhone} onChange={setUkPhone} />
+            <TextInput label={t('Аварийная служба')} value={ukEmergency} onChange={setUkEmergency} />
           </div>
         </div>
       )}
@@ -259,6 +263,7 @@ function OwnerUkCard({ ctx, general }: { ctx: PassportCtx; general: GeneralSecti
 const DESC_MAX = 1000;
 
 function DescriptionCard({ ctx }: { ctx: PassportCtx }) {
+  const t = useT();
   const site = ctx.site;
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -282,7 +287,7 @@ function DescriptionCard({ ctx }: { ctx: PassportCtx }) {
 
   return (
     <Card
-      title="Описание объекта"
+      title={t('Описание объекта')}
       actions={<EditToggle editing={editing} onEdit={start} onCancel={cancel} onSave={save} saving={saving} />}
     >
       {!editing ? (
@@ -295,7 +300,7 @@ function DescriptionCard({ ctx }: { ctx: PassportCtx }) {
             value={description.slice(0, DESC_MAX)}
             onChange={(v) => setDescription(v.slice(0, DESC_MAX))}
             rows={5}
-            placeholder="Описание объекта..."
+            placeholder={t('Описание объекта...')}
           />
           <div className="text-right text-xs text-gray-400">{description.length}/{DESC_MAX}</div>
         </div>
@@ -307,6 +312,7 @@ function DescriptionCard({ ctx }: { ctx: PassportCtx }) {
 /* ───────────────────── Фото объекта ───────────────────── */
 
 function PhotoCard({ ctx, general }: { ctx: PassportCtx; general: GeneralSectionData }) {
+  const t = useT();
   const [busy, setBusy] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -341,11 +347,11 @@ function PhotoCard({ ctx, general }: { ctx: PassportCtx; general: GeneralSection
 
   return (
     <Card
-      title="Фото объекта"
+      title={t('Фото объекта')}
       actions={
         <div className="flex items-center gap-2">
           {general.photoUrl && (
-            <IconBtn danger title="Удалить фото" onClick={removePhoto}><TrashIcon className="w-4 h-4" /></IconBtn>
+            <IconBtn danger title={t('Удалить фото')} onClick={removePhoto}><TrashIcon className="w-4 h-4" /></IconBtn>
           )}
           <GhostBtn onClick={() => inputRef.current?.click()} disabled={busy}>
             {busy ? 'Загрузка...' : general.photoUrl ? 'Заменить фото' : 'Добавить фото'}
@@ -365,7 +371,7 @@ function PhotoCard({ ctx, general }: { ctx: PassportCtx; general: GeneralSection
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={general.photoUrl}
-            alt="Фото объекта"
+            alt={t('Фото объекта')}
             className="max-h-80 w-auto rounded-lg border border-gray-100 dark:border-gray-700/60 object-contain"
           />
         </a>

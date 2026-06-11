@@ -9,6 +9,7 @@ import { normalizeFileUrl } from '@/lib/utils';
 import { useDownloadPdf } from '@/lib/hooks/useDownloadPdf';
 import { FAB_CREATED_EVENT } from '@/components/ui/QuickActionsButton';
 import { useIsClient } from '@/hooks/useIsClient';
+import { useT } from '@/lib/i18n';
 
 interface Document {
   id: number;
@@ -92,6 +93,7 @@ function formatFileSize(bytes?: number): string {
 }
 
 export default function DocumentsPage() {
+  const t = useT();
   const isClient = useIsClient();
   const addToast = useToastStore((s) => s.addToast);
   const { download: downloadPdf, loading: pdfLoading } = useDownloadPdf();
@@ -196,7 +198,7 @@ export default function DocumentsPage() {
         <div className="flex items-center gap-0.5 mt-3 sm:mt-0">
           <button
             onClick={() => { setShowSearch((v) => !v); setShowFilter(false); }}
-            title="Поиск"
+            title={t('Поиск')}
             className={`p-2 rounded-lg transition-colors ${showSearch || search ? 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20' : 'text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20'}`}
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -206,7 +208,7 @@ export default function DocumentsPage() {
           {!isClient && (
             <button
               onClick={handleCreate}
-              title="Загрузить документ"
+              title={t('Загрузить документ')}
               className="p-2 text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -216,7 +218,7 @@ export default function DocumentsPage() {
           )}
           <button
             onClick={() => { setShowFilter((v) => !v); setShowSearch(false); }}
-            title="Фильтры"
+            title={t('Фильтры')}
             className={`relative p-2 rounded-lg transition-colors ${showFilter || typeFilter || statusFilter || projectFilter ? 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20' : 'text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20'}`}
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -245,7 +247,7 @@ export default function DocumentsPage() {
             <button
               onClick={() => setViewMode('table')}
               className={`p-1.5 rounded ${viewMode === 'table' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''} transition-colors`}
-              title="Таблица"
+              title={t('Таблица')}
             >
               <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -254,7 +256,7 @@ export default function DocumentsPage() {
             <button
               onClick={() => setViewMode('grid')}
               className={`p-1.5 rounded ${viewMode === 'grid' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''} transition-colors`}
-              title="Сетка"
+              title={t('Сетка')}
             >
               <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
@@ -273,7 +275,7 @@ export default function DocumentsPage() {
           <input
             autoFocus
             type="text"
-            placeholder="Поиск по названию..."
+            placeholder={t('Поиск по названию...')}
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="flex-1 text-sm bg-transparent text-gray-800 dark:text-gray-100 placeholder-gray-400 outline-none"
@@ -291,15 +293,15 @@ export default function DocumentsPage() {
       {showFilter && (
         <div className="mb-4 flex flex-wrap items-center gap-3 bg-white dark:bg-gray-800 rounded-xl px-4 py-3 shadow-xs border border-gray-100 dark:border-gray-700">
           <select value={typeFilter} onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }} className="text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none">
-            <option value="">Все типы</option>
+            <option value="">{t('Все типы')}</option>
             {Object.entries(typeLabels).map(([k, label]) => <option key={k} value={k}>{label}</option>)}
           </select>
           <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }} className="text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none">
-            <option value="">Все статусы</option>
+            <option value="">{t('Все статусы')}</option>
             {Object.entries(statusLabels).map(([k, label]) => <option key={k} value={k}>{label}</option>)}
           </select>
           <select value={projectFilter} onChange={(e) => { setProjectFilter(e.target.value); setPage(1); }} className="text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none">
-            <option value="">Все проекты</option>
+            <option value="">{t('Все проекты')}</option>
             {projects.map((p) => <option key={p.id} value={String(p.id)}>{p.name}</option>)}
           </select>
           {(typeFilter || statusFilter || projectFilter) && (
@@ -313,19 +315,19 @@ export default function DocumentsPage() {
       {/* Content */}
       <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl overflow-hidden">
         {loading ? (
-          <div className="p-8 text-center text-gray-400">Загрузка...</div>
+          <div className="p-8 text-center text-gray-400">{t('Загрузка...')}</div>
         ) : documents.length === 0 ? (
-          <div className="p-8 text-center text-gray-400">Документы не найдены</div>
+          <div className="p-8 text-center text-gray-400">{t('Документы не найдены')}</div>
         ) : viewMode === 'table' ? (
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
               <thead className="text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/50">
                 <tr>
-                  <th className="px-4 py-3">Название</th>
-                  <th className="px-4 py-3">Тип</th>
-                  <th className="px-4 py-3">Статус</th>
-                  <th className="px-4 py-3">Дата создания</th>
-                  <th className="px-4 py-3 text-center">Действия</th>
+                  <th className="px-4 py-3">{t('Название')}</th>
+                  <th className="px-4 py-3">{t('Тип')}</th>
+                  <th className="px-4 py-3">{t('Статус')}</th>
+                  <th className="px-4 py-3">{t('Дата создания')}</th>
+                  <th className="px-4 py-3 text-center">{t('Действия')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
@@ -358,7 +360,7 @@ export default function DocumentsPage() {
                         <button
                           onClick={() => setPreviewDoc(doc)}
                           className="p-1.5 text-violet-500 hover:text-violet-600 hover:bg-violet-50 dark:hover:bg-violet-500/10 rounded transition-colors"
-                          title="Просмотр"
+                          title={t('Просмотр')}
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -370,7 +372,7 @@ export default function DocumentsPage() {
                             <button
                               onClick={() => handleEdit(doc)}
                               className="p-1.5 text-sky-500 hover:text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-500/10 rounded transition-colors"
-                              title="Редактировать"
+                              title={t('Редактировать')}
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -380,7 +382,7 @@ export default function DocumentsPage() {
                               onClick={() => handleDelete(doc.id)}
                               disabled={deletingId === doc.id}
                               className="p-1.5 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 rounded transition-colors disabled:opacity-50"
-                              title="Удалить"
+                              title={t('Удалить')}
                             >
                               {deletingId === doc.id
                                 ? <span className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin inline-block" />
@@ -397,7 +399,7 @@ export default function DocumentsPage() {
                             target="_blank"
                             rel="noopener noreferrer"
                             className="p-1.5 text-green-500 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-500/10 rounded transition-colors"
-                            title="Скачать"
+                            title={t('Скачать')}
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -443,7 +445,7 @@ export default function DocumentsPage() {
                   <button
                     onClick={() => setPreviewDoc(doc)}
                     className="p-2 text-violet-500 hover:text-violet-600 hover:bg-violet-50 dark:hover:bg-violet-500/10 rounded transition-colors"
-                    title="Просмотр"
+                    title={t('Просмотр')}
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -453,7 +455,7 @@ export default function DocumentsPage() {
                   <button
                     onClick={() => handleEdit(doc)}
                     className="p-2 text-sky-500 hover:text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-500/10 rounded transition-colors"
-                    title="Редактировать"
+                    title={t('Редактировать')}
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -463,7 +465,7 @@ export default function DocumentsPage() {
                     onClick={() => handleDelete(doc.id)}
                     disabled={deletingId === doc.id}
                     className="p-2 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 rounded transition-colors disabled:opacity-50"
-                    title="Удалить"
+                    title={t('Удалить')}
                   >
                     {deletingId === doc.id
                       ? <span className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin inline-block" />
@@ -526,7 +528,7 @@ export default function DocumentsPage() {
             <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-1">{previewDoc.title}</h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{typeLabels[previewDoc.documentType || ''] || 'Документ'}</p>
             {previewDoc.description && <p className="text-sm text-gray-700 dark:text-gray-300 mb-4">{previewDoc.description}</p>}
-            <p className="text-sm text-gray-400">Файл не прикреплён к этому документу.</p>
+            <p className="text-sm text-gray-400">{t('Файл не прикреплён к этому документу.')}</p>
             <div className="mt-4 flex gap-2">
               <button onClick={() => { setPreviewDoc(null); handleEdit(previewDoc); }} className="px-4 py-2 bg-sky-500 hover:bg-sky-600 text-white text-sm font-medium rounded-lg transition-colors">
                 Редактировать

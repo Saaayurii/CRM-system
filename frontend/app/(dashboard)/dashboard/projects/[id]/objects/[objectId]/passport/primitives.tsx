@@ -8,10 +8,12 @@
 
 import React, { useState } from 'react';
 import { SYSTEM_STATUS_LABEL, SYSTEM_STATUS_COLOR } from './types';
+import { useT } from '@/lib/i18n';
 
 /* ───────────────────────── Layout ───────────────────────── */
 
 export function SectionHeader({ title, subtitle, right }: { title: string; subtitle?: string; right?: React.ReactNode }) {
+  const t = useT();
   return (
     <div className="flex items-start justify-between gap-4 flex-wrap">
       <div>
@@ -27,6 +29,7 @@ export function Card({ title, icon, status, actions, children, className = '' }:
   title?: React.ReactNode; icon?: React.ReactNode; status?: React.ReactNode;
   actions?: React.ReactNode; children: React.ReactNode; className?: string;
 }) {
+  const t = useT();
   return (
     <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-100 dark:border-gray-700/60 overflow-hidden ${className}`}>
       {(title || actions || status) && (
@@ -47,6 +50,7 @@ export function Card({ title, icon, status, actions, children, className = '' }:
 }
 
 export function Grid({ cols = 3, children, className = '' }: { cols?: 1 | 2 | 3 | 4; children: React.ReactNode; className?: string }) {
+  const t = useT();
   const map: Record<number, string> = {
     1: 'grid-cols-1', 2: 'grid-cols-1 sm:grid-cols-2',
     3: 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3', 4: 'grid-cols-2 md:grid-cols-4',
@@ -57,6 +61,7 @@ export function Grid({ cols = 3, children, className = '' }: { cols?: 1 | 2 | 3 
 /* ───────────────────────── Read-only fields ───────────────────────── */
 
 export function Field({ label, value }: { label: string; value?: React.ReactNode }) {
+  const t = useT();
   return (
     <div className="min-w-0">
       <dt className="text-xs text-gray-400 dark:text-gray-500">{label}</dt>
@@ -66,6 +71,7 @@ export function Field({ label, value }: { label: string; value?: React.ReactNode
 }
 
 export function InfoRow({ label, value }: { label: string; value?: React.ReactNode }) {
+  const t = useT();
   return (
     <div className="flex items-start justify-between gap-4 py-1.5">
       <dt className="text-sm text-gray-500 dark:text-gray-400 shrink-0">{label}</dt>
@@ -75,6 +81,7 @@ export function InfoRow({ label, value }: { label: string; value?: React.ReactNo
 }
 
 export function FieldGroup({ title, children }: { title?: string; children: React.ReactNode }) {
+  const t = useT();
   return (
     <div>
       {title && <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">{title}</p>}
@@ -86,6 +93,7 @@ export function FieldGroup({ title, children }: { title?: string; children: Reac
 /* ───────────────────────── Status ───────────────────────── */
 
 export function StatusDot({ status, label }: { status?: string; label?: string }) {
+  const t = useT();
   const color = SYSTEM_STATUS_COLOR[status || ''] || 'text-gray-400';
   const text = label || SYSTEM_STATUS_LABEL[status || ''] || status || '—';
   return (
@@ -97,12 +105,14 @@ export function StatusDot({ status, label }: { status?: string; label?: string }
 }
 
 export function Pill({ label, color = 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300' }: { label: string; color?: string }) {
+  const t = useT();
   return <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${color}`}>{label}</span>;
 }
 
 /* ───────────────────────── Stat tiles ───────────────────────── */
 
 export function Stat({ label, value, icon, accent = 'text-violet-500' }: { label: string; value: React.ReactNode; icon?: React.ReactNode; accent?: string }) {
+  const t = useT();
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700/60 p-4 flex items-center gap-3">
       {icon && <span className={`shrink-0 ${accent}`}>{icon}</span>}
@@ -154,6 +164,7 @@ export function IconBtn({ onClick, title, danger, children }: { onClick?: () => 
 export function TextInput({ label, value, onChange, placeholder, type = 'text', className = '' }: {
   label?: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string; className?: string;
 }) {
+  const t = useT();
   return (
     <div className={className}>
       {label && <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{label}</label>}
@@ -164,6 +175,7 @@ export function TextInput({ label, value, onChange, placeholder, type = 'text', 
 export function TextArea({ label, value, onChange, placeholder, rows = 3, className = '' }: {
   label?: string; value: string; onChange: (v: string) => void; placeholder?: string; rows?: number; className?: string;
 }) {
+  const t = useT();
   return (
     <div className={className}>
       {label && <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{label}</label>}
@@ -174,6 +186,7 @@ export function TextArea({ label, value, onChange, placeholder, rows = 3, classN
 export function Select({ label, value, onChange, options, className = '' }: {
   label?: string; value: string; onChange: (v: string) => void; options: { value: string; label: string }[]; className?: string;
 }) {
+  const t = useT();
   return (
     <div className={className}>
       {label && <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{label}</label>}
@@ -204,6 +217,7 @@ export function EditableTable<T extends { id: string | number }>({ rows, columns
   makeEmpty: () => T;
   addLabel?: string;
 }) {
+  const t = useT();
   const update = (id: string | number, key: keyof T, value: any) => onChange(rows.map((r) => r.id === id ? { ...r, [key]: value } : r));
   const remove = (id: string | number) => onChange(rows.filter((r) => r.id !== id));
   const add = () => onChange([...rows, makeEmpty()]);
@@ -220,7 +234,7 @@ export function EditableTable<T extends { id: string | number }>({ rows, columns
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-gray-700/40">
             {rows.length === 0 && (
-              <tr><td colSpan={columns.length + 1} className="py-4 text-center text-xs text-gray-400">Нет записей</td></tr>
+              <tr><td colSpan={columns.length + 1} className="py-4 text-center text-xs text-gray-400">{t('Нет записей')}</td></tr>
             )}
             {rows.map((r) => (
               <tr key={r.id}>
@@ -243,7 +257,7 @@ export function EditableTable<T extends { id: string | number }>({ rows, columns
                   </td>
                 ))}
                 <td className="py-1.5 align-top">
-                  <IconBtn danger title="Удалить" onClick={() => remove(r.id)}><TrashIcon className="w-4 h-4" /></IconBtn>
+                  <IconBtn danger title={t('Удалить')} onClick={() => remove(r.id)}><TrashIcon className="w-4 h-4" /></IconBtn>
                 </td>
               </tr>
             ))}
@@ -261,6 +275,7 @@ export function DataTable<T extends { id: string | number }>({ rows, columns, em
   columns: { key?: keyof T; label: string; render?: (r: T) => React.ReactNode; width?: string }[];
   empty?: string;
 }) {
+  const t = useT();
   if (!rows.length) return <EmptyState text={empty} />;
   return (
     <div className="overflow-x-auto">
@@ -289,6 +304,7 @@ export function DataTable<T extends { id: string | number }>({ rows, columns, em
 /* ───────────────────────── Misc ───────────────────────── */
 
 export function EmptyState({ text }: { text: string }) {
+  const t = useT();
   return <div className="py-8 text-center text-sm text-gray-400 dark:text-gray-500">{text}</div>;
 }
 
@@ -310,6 +326,7 @@ export function FileChip({ title, fileType, size, fileUrl, onDelete }: { title: 
 
 /** Simple SVG donut for distribution charts. */
 export function Donut({ data, size = 120, thickness = 16 }: { data: { label: string; value: number; color: string }[]; size?: number; thickness?: number }) {
+  const t = useT();
   const total = data.reduce((s, d) => s + d.value, 0) || 1;
   const r = (size - thickness) / 2;
   const c = 2 * Math.PI * r;
@@ -343,12 +360,13 @@ export function Donut({ data, size = 120, thickness = 16 }: { data: { label: str
 
 /* Toggle between view & edit for a card. */
 export function EditToggle({ editing, onEdit, onCancel, onSave, saving }: { editing: boolean; onEdit: () => void; onCancel: () => void; onSave: () => void; saving?: boolean }) {
+  const t = useT();
   if (!editing) {
-    return <IconBtn title="Редактировать" onClick={onEdit}><PencilIcon className="w-4 h-4" /></IconBtn>;
+    return <IconBtn title={t('Редактировать')} onClick={onEdit}><PencilIcon className="w-4 h-4" /></IconBtn>;
   }
   return (
     <div className="flex items-center gap-1.5">
-      <button type="button" onClick={onCancel} className="px-2.5 py-1 text-xs text-gray-500 hover:text-gray-700">Отмена</button>
+      <button type="button" onClick={onCancel} className="px-2.5 py-1 text-xs text-gray-500 hover:text-gray-700">{t('Отмена')}</button>
       <button type="button" onClick={onSave} disabled={saving} className="px-3 py-1 text-xs font-medium bg-violet-500 hover:bg-violet-600 text-white rounded-lg disabled:opacity-50">{saving ? '...' : 'Сохранить'}</button>
     </div>
   );

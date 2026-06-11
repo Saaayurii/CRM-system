@@ -7,8 +7,10 @@ import ServiceSummaryBar from './ServiceSummaryBar';
 import ContainerLogs from './ContainerLogs';
 import { CardSkeleton } from '@/components/ui/Skeleton';
 import { useToastStore } from '@/stores/toastStore';
+import { useT } from '@/lib/i18n';
 
 export default function ServiceGrid() {
+  const t = useT();
   const [containers, setContainers] = useState<ContainerInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');

@@ -8,10 +8,12 @@ import { useAuthStore } from '@/stores/authStore';
 import { useToastStore } from '@/stores/toastStore';
 import BlockEditor from '@/components/wiki/BlockEditor';
 import { WikiPageDetail, fmtDate, fmtDateTime } from '@/lib/wiki/pages-constants';
+import { useT } from '@/lib/i18n';
 
 const ADMIN_ROLES = [1, 2, 3];
 
 export default function WikiPageViewPage() {
+  const t = useT();
   const params = useParams();
   const router = useRouter();
   const id = Number(params?.id);
@@ -62,8 +64,8 @@ export default function WikiPageViewPage() {
   if (!page) {
     return (
       <div className="px-4 sm:px-6 py-16 text-center text-gray-400">
-        <p>Страница не найдена.</p>
-        <Link href="/dashboard/wiki-pages" className="text-violet-600 hover:underline text-sm">← К списку</Link>
+        <p>{t('Страница не найдена.')}</p>
+        <Link href="/dashboard/wiki-pages" className="text-violet-600 hover:underline text-sm">{t('← К списку')}</Link>
       </div>
     );
   }
@@ -73,7 +75,7 @@ export default function WikiPageViewPage() {
       {/* Top nav */}
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-2 text-sm text-gray-500">
-          <Link href="/dashboard/wiki?section=corporate" className="hover:text-violet-600">← Корпоративная ВИКИ</Link>
+          <Link href="/dashboard/wiki?section=corporate" className="hover:text-violet-600">{t('← Корпоративная ВИКИ')}</Link>
           {page.parentPage && (
             <>
               <span>/</span>
@@ -120,7 +122,7 @@ export default function WikiPageViewPage() {
           ) : page.content ? (
             <div className="prose dark:prose-invert max-w-none whitespace-pre-wrap">{page.content}</div>
           ) : (
-            <p className="text-gray-400 italic">Страница пуста.</p>
+            <p className="text-gray-400 italic">{t('Страница пуста.')}</p>
           )}
         </div>
       </div>
@@ -128,7 +130,7 @@ export default function WikiPageViewPage() {
       {/* Child pages */}
       {(page.childPages || []).length > 0 && (
         <div className="mt-5 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-5">
-          <h3 className="text-sm font-semibold mb-3 text-gray-500">Подстраницы</h3>
+          <h3 className="text-sm font-semibold mb-3 text-gray-500">{t('Подстраницы')}</h3>
           <div className="flex flex-wrap gap-2">
             {page.childPages!.map((child) => (
               <Link

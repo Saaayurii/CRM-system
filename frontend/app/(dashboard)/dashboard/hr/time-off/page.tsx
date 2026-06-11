@@ -8,8 +8,10 @@ import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import EntityFormModal from '@/components/admin/EntityFormModal';
 import DeleteConfirmModal from '@/components/admin/DeleteConfirmModal';
+import { useT } from '@/lib/i18n';
 
 function StatusBadge({ label, color }: { label: string; color: string }) {
+  const t = useT();
   const colors: Record<string, string> = {
     gray: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300',
     yellow: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300',
@@ -54,6 +56,7 @@ const config = ADMIN_MODULES.leaves;
 type ViewMode = 'table' | 'grid';
 
 export default function HRTimeOffPage() {
+  const t = useT();
   const crud = useCrudData<Record<string, unknown>>({ apiEndpoint: config.apiEndpoint });
   const addToast = useToastStore((s) => s.addToast);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
@@ -96,13 +99,13 @@ export default function HRTimeOffPage() {
       </div>
 
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Отпуска и отсутствия</h1>
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">{t('Отпуска и отсутствия')}</h1>
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
             <button
               onClick={() => handleViewMode('table')}
               className={`p-1.5 rounded transition-colors ${viewMode === 'table' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}
-              title="Таблица"
+              title={t('Таблица')}
             >
               <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -111,7 +114,7 @@ export default function HRTimeOffPage() {
             <button
               onClick={() => handleViewMode('grid')}
               className={`p-1.5 rounded transition-colors ${viewMode === 'grid' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}
-              title="Карточки"
+              title={t('Карточки')}
             >
               <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
@@ -131,7 +134,7 @@ export default function HRTimeOffPage() {
       <div className="mb-4">
         <input
           type="text"
-          placeholder="Поиск по сотруднику..."
+          placeholder={t('Поиск по сотруднику...')}
           value={crud.search}
           onChange={(e) => crud.setSearch(e.target.value)}
           className="w-full max-w-sm px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-violet-500 focus:border-transparent"
@@ -144,7 +147,7 @@ export default function HRTimeOffPage() {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-500" />
         </div>
       ) : crud.data.length === 0 ? (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center py-12 text-gray-500 dark:text-gray-400">Нет заявок</div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 text-center py-12 text-gray-500 dark:text-gray-400">{t('Нет заявок')}</div>
       ) : viewMode === 'table' ? (
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
           <div className="overflow-x-auto">
@@ -152,13 +155,13 @@ export default function HRTimeOffPage() {
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
                   <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">ID</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Сотрудник</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Тип</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Начало</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Окончание</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Дней</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Статус</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Действия</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('Сотрудник')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('Тип')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('Начало')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('Окончание')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('Дней')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('Статус')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">{t('Действия')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -236,21 +239,21 @@ export default function HRTimeOffPage() {
                 </div>
                 <dl className="grid grid-cols-2 gap-x-3 gap-y-2">
                   <div>
-                    <dt className="text-xs text-gray-400 dark:text-gray-500">Тип</dt>
+                    <dt className="text-xs text-gray-400 dark:text-gray-500">{t('Тип')}</dt>
                     <dd className="text-xs text-gray-700 dark:text-gray-300">
                       {REQUEST_TYPE_MAP[String(row.requestType ?? '')] || String(row.requestType ?? '—')}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-xs text-gray-400 dark:text-gray-500">Дней</dt>
+                    <dt className="text-xs text-gray-400 dark:text-gray-500">{t('Дней')}</dt>
                     <dd className="text-xs text-gray-700 dark:text-gray-300">{String(row.daysCount ?? '—')}</dd>
                   </div>
                   <div>
-                    <dt className="text-xs text-gray-400 dark:text-gray-500">Начало</dt>
+                    <dt className="text-xs text-gray-400 dark:text-gray-500">{t('Начало')}</dt>
                     <dd className="text-xs text-gray-700 dark:text-gray-300">{fmtDate(row.startDate)}</dd>
                   </div>
                   <div>
-                    <dt className="text-xs text-gray-400 dark:text-gray-500">Окончание</dt>
+                    <dt className="text-xs text-gray-400 dark:text-gray-500">{t('Окончание')}</dt>
                     <dd className="text-xs text-gray-700 dark:text-gray-300">{fmtDate(row.endDate)}</dd>
                   </div>
                 </dl>
@@ -317,7 +320,7 @@ export default function HRTimeOffPage() {
       {/* Create modal */}
       <EntityFormModal
         open={showCreate}
-        title="Новая заявка на отпуск"
+        title={t('Новая заявка на отпуск')}
         fields={config.formFields}
         onSubmit={async (data) => {
           const result = await crud.createItem(data);

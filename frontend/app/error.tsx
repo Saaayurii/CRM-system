@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useT } from '@/lib/i18n';
 
 const CrmLogo = () => (
   <svg className="fill-violet-500 shrink-0" xmlns="http://www.w3.org/2000/svg" width={20} height={20} viewBox="0 0 32 32">

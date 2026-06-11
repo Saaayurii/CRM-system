@@ -20,10 +20,12 @@ import {
   Card, Grid, InfoRow, EditableTable, DataTable, EditToggle, EditableColumn,
   TextInput, TextArea, Select, GhostBtn, IconBtn, AddBtn, TrashIcon, EmptyState,
 } from '../primitives';
+import { useT } from '@/lib/i18n';
 
 const ADD_INFO_MAX = 1000;
 
 export default function AccessSecuritySection({ ctx }: { ctx: PassportCtx }) {
+  const t = useT();
   const access: AccessSectionData = ctx.passport.access || {};
 
   /** Merge a partial patch into the full access object and persist it. */
@@ -113,6 +115,7 @@ function KeysCard({ access, saveAccess, totalKeys, count }: {
   totalKeys: number;
   count: number;
 }) {
+  const t = useT();
   const rows = access.keys || [];
   const columns: EditableColumn<AccessKey>[] = [
     { key: 'description', label: 'Описание', placeholder: 'Основной комплект' },
@@ -123,7 +126,7 @@ function KeysCard({ access, saveAccess, totalKeys, count }: {
   ];
   return (
     <ListCard<AccessKey>
-      title="Ключи"
+      title={t('Ключи')}
       rows={rows}
       columns={columns}
       makeEmpty={() => ({ id: newId() })}
@@ -152,6 +155,7 @@ function CodesCard({ access, saveAccess }: {
   access: AccessSectionData;
   saveAccess: (patch: Partial<AccessSectionData>) => Promise<void>;
 }) {
+  const t = useT();
   const rows = access.codes || [];
   const columns: EditableColumn<AccessCode>[] = [
     { key: 'type', label: 'Тип доступа', placeholder: 'Домофон (подъезд)' },
@@ -160,7 +164,7 @@ function CodesCard({ access, saveAccess }: {
   ];
   return (
     <ListCard<AccessCode>
-      title="Коды доступа"
+      title={t('Коды доступа')}
       rows={rows}
       columns={columns}
       makeEmpty={() => ({ id: newId() })}
@@ -182,6 +186,7 @@ function PassesCard({ access, saveAccess }: {
   access: AccessSectionData;
   saveAccess: (patch: Partial<AccessSectionData>) => Promise<void>;
 }) {
+  const t = useT();
   const rows = access.passes || [];
   const columns: EditableColumn<AccessPass>[] = [
     { key: 'type', label: 'Тип', placeholder: 'Пропуск в паркинг' },
@@ -191,7 +196,7 @@ function PassesCard({ access, saveAccess }: {
   ];
   return (
     <ListCard<AccessPass>
-      title="Пропуски и брелоки"
+      title={t('Пропуски и брелоки')}
       rows={rows}
       columns={columns}
       makeEmpty={() => ({ id: newId() })}
@@ -219,6 +224,7 @@ function ContactsCard({ access, saveAccess }: {
   access: AccessSectionData;
   saveAccess: (patch: Partial<AccessSectionData>) => Promise<void>;
 }) {
+  const t = useT();
   const rows = access.contacts || [];
   const columns: EditableColumn<AccessContact>[] = [
     { key: 'type', label: 'Тип контакта', placeholder: 'Аварийная служба' },
@@ -228,7 +234,7 @@ function ContactsCard({ access, saveAccess }: {
   ];
   return (
     <ListCard<AccessContact>
-      title="Контакты для доступа и аварийные службы"
+      title={t('Контакты для доступа и аварийные службы')}
       rows={rows}
       columns={columns}
       makeEmpty={() => ({ id: newId() })}
@@ -262,6 +268,7 @@ function RestrictionsCard({ access, saveAccess }: {
   access: AccessSectionData;
   saveAccess: (patch: Partial<AccessSectionData>) => Promise<void>;
 }) {
+  const t = useT();
   const r: AccessRestrictions = access.restrictions || {};
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -305,29 +312,29 @@ function RestrictionsCard({ access, saveAccess }: {
 
   return (
     <Card
-      title="Ограничения доступа"
+      title={t('Ограничения доступа')}
       actions={<EditToggle editing={editing} onEdit={start} onCancel={cancel} onSave={save} saving={saving} />}
     >
       {!editing ? (
         <dl>
-          <InfoRow label="Время доступа" value={r.accessTime} />
-          <InfoRow label="Работа в выходные" value={r.weekendWork} />
-          <InfoRow label="Шумные работы" value={r.noisyWork} />
-          <InfoRow label="Требуется согласование" value={r.approvalNeeded ? 'Да' : 'Нет'} />
-          <InfoRow label="Ответственный за согласование" value={r.approver} />
-          <InfoRow label="Особые условия" value={r.specialConditions} />
+          <InfoRow label={t('Время доступа')} value={r.accessTime} />
+          <InfoRow label={t('Работа в выходные')} value={r.weekendWork} />
+          <InfoRow label={t('Шумные работы')} value={r.noisyWork} />
+          <InfoRow label={t('Требуется согласование')} value={r.approvalNeeded ? 'Да' : 'Нет'} />
+          <InfoRow label={t('Ответственный за согласование')} value={r.approver} />
+          <InfoRow label={t('Особые условия')} value={r.specialConditions} />
         </dl>
       ) : (
         <div className="space-y-3">
-          <TextInput label="Время доступа" value={accessTime} onChange={setAccessTime} placeholder="08:00 – 21:00" />
-          <Select label="Работа в выходные" value={weekendWork} onChange={setWeekendWork} options={WEEKEND_OPTIONS} />
-          <Select label="Шумные работы" value={noisyWork} onChange={setNoisyWork} options={NOISY_OPTIONS} />
+          <TextInput label={t('Время доступа')} value={accessTime} onChange={setAccessTime} placeholder="08:00 – 21:00" />
+          <Select label={t('Работа в выходные')} value={weekendWork} onChange={setWeekendWork} options={WEEKEND_OPTIONS} />
+          <Select label={t('Шумные работы')} value={noisyWork} onChange={setNoisyWork} options={NOISY_OPTIONS} />
           <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
             <input type="checkbox" className="form-checkbox" checked={approvalNeeded} onChange={(e) => setApprovalNeeded(e.target.checked)} />
             Требуется согласование
           </label>
-          <TextInput label="Ответственный за согласование" value={approver} onChange={setApprover} />
-          <TextArea label="Особые условия" value={specialConditions} onChange={setSpecialConditions} rows={3} />
+          <TextInput label={t('Ответственный за согласование')} value={approver} onChange={setApprover} />
+          <TextArea label={t('Особые условия')} value={specialConditions} onChange={setSpecialConditions} rows={3} />
         </div>
       )}
     </Card>
@@ -341,6 +348,7 @@ function SchemeCard({ ctx, access, saveAccess }: {
   access: AccessSectionData;
   saveAccess: (patch: Partial<AccessSectionData>) => Promise<void>;
 }) {
+  const t = useT();
   const steps = access.scheme || [];
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -396,7 +404,7 @@ function SchemeCard({ ctx, access, saveAccess }: {
 
   return (
     <Card
-      title="Схема доступа на объект"
+      title={t('Схема доступа на объект')}
       actions={<EditToggle editing={editing} onEdit={start} onCancel={cancel} onSave={save} saving={saving} />}
     >
       {!editing ? (
@@ -421,13 +429,13 @@ function SchemeCard({ ctx, access, saveAccess }: {
             <div key={s.id} className="flex items-start gap-2">
               <span className="shrink-0 w-6 h-6 mt-2 rounded-full bg-violet-100 dark:bg-violet-900/40 text-violet-600 dark:text-violet-300 text-xs font-semibold flex items-center justify-center">{i + 1}</span>
               <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <TextInput value={s.title} onChange={(v) => updateStep(s.id, { title: v })} placeholder="Этап" />
-                <TextInput value={s.detail || ''} onChange={(v) => updateStep(s.id, { detail: v })} placeholder="Описание" />
+                <TextInput value={s.title} onChange={(v) => updateStep(s.id, { title: v })} placeholder={t('Этап')} />
+                <TextInput value={s.detail || ''} onChange={(v) => updateStep(s.id, { detail: v })} placeholder={t('Описание')} />
               </div>
-              <IconBtn danger title="Удалить" onClick={() => removeStep(s.id)}><TrashIcon className="w-4 h-4" /></IconBtn>
+              <IconBtn danger title={t('Удалить')} onClick={() => removeStep(s.id)}><TrashIcon className="w-4 h-4" /></IconBtn>
             </div>
           ))}
-          <AddBtn onClick={addStep}>Добавить этап</AddBtn>
+          <AddBtn onClick={addStep}>{t('Добавить этап')}</AddBtn>
         </div>
       )}
 
@@ -441,7 +449,7 @@ function SchemeCard({ ctx, access, saveAccess }: {
             <a href={access.schemeUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-violet-600 dark:text-violet-400 hover:underline truncate">
               Открыть схему
             </a>
-            <IconBtn danger title="Удалить схему" onClick={removeScheme}><TrashIcon className="w-4 h-4" /></IconBtn>
+            <IconBtn danger title={t('Удалить схему')} onClick={removeScheme}><TrashIcon className="w-4 h-4" /></IconBtn>
           </>
         )}
       </div>
@@ -455,6 +463,7 @@ function AdditionalInfoCard({ access, saveAccess }: {
   access: AccessSectionData;
   saveAccess: (patch: Partial<AccessSectionData>) => Promise<void>;
 }) {
+  const t = useT();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [text, setText] = useState(access.additionalInfo || '');
@@ -476,7 +485,7 @@ function AdditionalInfoCard({ access, saveAccess }: {
 
   return (
     <Card
-      title="Дополнительная информация"
+      title={t('Дополнительная информация')}
       actions={<EditToggle editing={editing} onEdit={start} onCancel={cancel} onSave={save} saving={saving} />}
     >
       {!editing ? (
@@ -489,7 +498,7 @@ function AdditionalInfoCard({ access, saveAccess }: {
             value={text.slice(0, ADD_INFO_MAX)}
             onChange={(v) => setText(v.slice(0, ADD_INFO_MAX))}
             rows={4}
-            placeholder="Дополнительная информация..."
+            placeholder={t('Дополнительная информация...')}
           />
           <div className="text-right text-xs text-gray-400">{text.length}/{ADD_INFO_MAX}</div>
         </div>

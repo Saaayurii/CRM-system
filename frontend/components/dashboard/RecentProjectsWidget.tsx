@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import api from '@/lib/api';
+import { useT } from '@/lib/i18n';
 
 interface Project {
   id: number;
@@ -30,6 +31,7 @@ const statusLabels: Record<string, string> = {
 };
 
 export default function RecentProjectsWidget() {
+  const t = useT();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -57,15 +59,15 @@ export default function RecentProjectsWidget() {
   return (
     <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-5">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Последние проекты</h3>
+        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">{t('Последние проекты')}</h3>
         <Link href="/dashboard/projects" className="text-sm text-violet-500 hover:text-violet-600">
           Все
         </Link>
       </div>
       {loading ? (
-        <p className="text-sm text-gray-400 dark:text-gray-500">Загрузка...</p>
+        <p className="text-sm text-gray-400 dark:text-gray-500">{t('Загрузка...')}</p>
       ) : projects.length === 0 ? (
-        <p className="text-sm text-gray-400 dark:text-gray-500">Нет проектов</p>
+        <p className="text-sm text-gray-400 dark:text-gray-500">{t('Нет проектов')}</p>
       ) : (
         <ul className="space-y-3">
           {projects.map((project) => {

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import api from '@/lib/api';
 import { useDraft } from '@/hooks/useDraft';
 import DraftBanner from '@/components/ui/DraftBanner';
+import { useT } from '@/lib/i18n';
 
 function formatThousands(s: string): string {
   const [intPart, ...rest] = s.replace(/\s/g, '').split(/[.,]/);
@@ -89,6 +90,7 @@ const INPUT_CLS = 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 
 const LABEL_CLS = 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1';
 
 export default function ProjectFormModal({ project, onClose, onSaved }: ProjectFormModalProps) {
+  const t = useT();
   const isEdit = !!project?.id;
 
   const initialDraft = {
@@ -262,24 +264,24 @@ export default function ProjectFormModal({ project, onClose, onSaved }: ProjectF
               onChange={(e) => setName(e.target.value)}
               required
               className={INPUT_CLS}
-              placeholder="Название проекта"
+              placeholder={t('Название проекта')}
             />
           </div>
 
           <div>
-            <label className={LABEL_CLS}>Описание</label>
+            <label className={LABEL_CLS}>{t('Описание')}</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
               className={`${INPUT_CLS} resize-none`}
-              placeholder="Описание проекта"
+              placeholder={t('Описание проекта')}
             />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className={LABEL_CLS}>Статус</label>
+              <label className={LABEL_CLS}>{t('Статус')}</label>
               <select
                 value={status}
                 onChange={(e) => {
@@ -297,7 +299,7 @@ export default function ProjectFormModal({ project, onClose, onSaved }: ProjectF
               </select>
             </div>
             <div>
-              <label className={LABEL_CLS}>Приоритет</label>
+              <label className={LABEL_CLS}>{t('Приоритет')}</label>
               <select value={priority} onChange={(e) => setPriority(Number(e.target.value))} className={INPUT_CLS}>
                 {PRIORITY_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -308,16 +310,16 @@ export default function ProjectFormModal({ project, onClose, onSaved }: ProjectF
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className={LABEL_CLS}>Руководитель</label>
+              <label className={LABEL_CLS}>{t('Руководитель')}</label>
               <select value={managerId} onChange={(e) => setManagerId(e.target.value ? Number(e.target.value) : '')} className={INPUT_CLS}>
-                <option value="">Не выбран</option>
+                <option value="">{t('Не выбран')}</option>
                 {users.map((u) => (
                   <option key={u.id} value={u.id}>{u.name}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className={LABEL_CLS}>Клиент</label>
+              <label className={LABEL_CLS}>{t('Клиент')}</label>
               <select
                 value={clientId === '' ? '' : String(clientId)}
                 onChange={(e) => {
@@ -333,7 +335,7 @@ export default function ProjectFormModal({ project, onClose, onSaved }: ProjectF
                 }}
                 className={INPUT_CLS}
               >
-                <option value="">— не выбран —</option>
+                <option value="">{t('— не выбран —')}</option>
                 {clientOptions.map((c) => (
                   <option key={c.id} value={c.id}>{c.label}</option>
                 ))}
@@ -343,25 +345,25 @@ export default function ProjectFormModal({ project, onClose, onSaved }: ProjectF
                 value={clientName}
                 onChange={(e) => setClientName(e.target.value)}
                 className={`${INPUT_CLS} mt-1.5`}
-                placeholder="Или введите вручную (если клиента ещё нет в базе)"
+                placeholder={t('Или введите вручную (если клиента ещё нет в базе)')}
               />
             </div>
           </div>
 
           <div>
-            <label className={LABEL_CLS}>Адрес</label>
+            <label className={LABEL_CLS}>{t('Адрес')}</label>
             <input
               type="text"
               value={address}
               onChange={(e) => setAddress(e.target.value)}
               className={INPUT_CLS}
-              placeholder="Адрес объекта"
+              placeholder={t('Адрес объекта')}
             />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className={LABEL_CLS}>Бюджет</label>
+              <label className={LABEL_CLS}>{t('Бюджет')}</label>
               <input
                 type="text"
                 inputMode="numeric"
@@ -372,7 +374,7 @@ export default function ProjectFormModal({ project, onClose, onSaved }: ProjectF
               />
             </div>
             <div>
-              <label className={LABEL_CLS}>Фактические затраты</label>
+              <label className={LABEL_CLS}>{t('Фактические затраты')}</label>
               <input
                 type="text"
                 inputMode="numeric"
@@ -386,23 +388,23 @@ export default function ProjectFormModal({ project, onClose, onSaved }: ProjectF
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className={LABEL_CLS}>Дата начала</label>
+              <label className={LABEL_CLS}>{t('Дата начала')}</label>
               <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={INPUT_CLS} />
             </div>
             <div>
-              <label className={LABEL_CLS}>Плановое окончание</label>
+              <label className={LABEL_CLS}>{t('Плановое окончание')}</label>
               <input type="date" value={plannedEndDate} onChange={(e) => setPlannedEndDate(e.target.value)} className={INPUT_CLS} />
             </div>
             <div>
-              <label className={LABEL_CLS}>Фактическое окончание</label>
+              <label className={LABEL_CLS}>{t('Фактическое окончание')}</label>
               <input type="date" value={actualEndDate} onChange={(e) => setActualEndDate(e.target.value)} className={INPUT_CLS} />
             </div>
           </div>
 
           <div>
-            <label className={LABEL_CLS}>Команда</label>
+            <label className={LABEL_CLS}>{t('Команда')}</label>
             <select value={teamId} onChange={(e) => setTeamId(e.target.value ? Number(e.target.value) : '')} className={INPUT_CLS}>
-              <option value="">Не выбрана</option>
+              <option value="">{t('Не выбрана')}</option>
               {teams.map((t) => (
                 <option key={t.id} value={t.id}>{t.name}</option>
               ))}
@@ -410,13 +412,13 @@ export default function ProjectFormModal({ project, onClose, onSaved }: ProjectF
           </div>
 
           <div>
-            <label className={LABEL_CLS}>Заметки</label>
+            <label className={LABEL_CLS}>{t('Заметки')}</label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
               className={`${INPUT_CLS} resize-none`}
-              placeholder="Дополнительные заметки..."
+              placeholder={t('Дополнительные заметки...')}
             />
           </div>
 

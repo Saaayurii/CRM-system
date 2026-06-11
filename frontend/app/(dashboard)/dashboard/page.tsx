@@ -19,6 +19,7 @@ import InspectorDashboard from '@/components/dashboard/dashboards/InspectorDashb
 import WorkerDashboard from '@/components/dashboard/dashboards/WorkerDashboard';
 import ClientDashboard from '@/components/dashboard/dashboards/ClientDashboard';
 import RegistrationRequestsPanel from '@/components/dashboard/RegistrationRequestsPanel';
+import { useT } from '@/lib/i18n';
 
 function extractArray(data: any): any[] {
   if (Array.isArray(data)) return data;
@@ -42,6 +43,7 @@ function fmtDate(v: string | null | undefined): string {
 }
 
 function StatusBadge({ label, color }: { label: string; color: string }) {
+  const t = useT();
   const colors: Record<string, string> = {
     gray:   'bg-gray-500/20 text-gray-600 dark:text-gray-300',
     blue:   'bg-sky-500/20 text-sky-700 dark:text-sky-400',
@@ -103,15 +105,16 @@ const TASK_STATUS_COLORS: Record<string, string> = {
 
 /* ─── SuperAdmin Dashboard (roleId=1) ────────────────────────────────────── */
 function ViewToggle({ mode, onChange }: { mode: 'table' | 'grid'; onChange: (m: 'table' | 'grid') => void }) {
+  const t = useT();
   return (
     <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
-      <button onClick={() => onChange('table')} title="Таблица"
+      <button onClick={() => onChange('table')} title={t('Таблица')}
         className={`p-1.5 rounded transition-colors ${mode === 'table' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}>
         <svg className="w-3.5 h-3.5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
         </svg>
       </button>
-      <button onClick={() => onChange('grid')} title="Карточки"
+      <button onClick={() => onChange('grid')} title={t('Карточки')}
         className={`p-1.5 rounded transition-colors ${mode === 'grid' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}>
         <svg className="w-3.5 h-3.5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
@@ -122,6 +125,7 @@ function ViewToggle({ mode, onChange }: { mode: 'table' | 'grid'; onChange: (m: 
 }
 
 function SuperAdminDashboard({ user }: { user: any }) {
+  const t = useT();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [projects, setProjects] = useState<any[]>([]);
@@ -198,7 +202,7 @@ function SuperAdminDashboard({ user }: { user: any }) {
     <div>
       <div className="sm:flex sm:justify-between sm:items-center mb-8">
         <div className="mb-4 sm:mb-0">
-          <h1 className="text-2xl md:text-3xl text-gray-800 dark:text-gray-100 font-bold">Панель управления</h1>
+          <h1 className="text-2xl md:text-3xl text-gray-800 dark:text-gray-100 font-bold">{t('Панель управления')}</h1>
           {user && <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Добро пожаловать, {user.email}</p>}
         </div>
       </div>
@@ -228,7 +232,7 @@ function SuperAdminDashboard({ user }: { user: any }) {
               <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 010 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 010-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28z" />
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Настройки приложения</span>
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{t('Настройки приложения')}</span>
           </div>
         </button>
       </div>
@@ -236,26 +240,26 @@ function SuperAdminDashboard({ user }: { user: any }) {
       {/* Recent projects */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs mb-6">
         <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center justify-between gap-3">
-          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Последние проекты</h3>
+          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">{t('Последние проекты')}</h3>
           <div className="flex items-center gap-3">
             <ViewToggle mode={recentViewMode} onChange={(m) => { setRecentViewMode(m); localStorage.setItem('dashRecentViewMode', m); }} />
-            <Link href="/dashboard/projects" className="text-xs text-violet-500 hover:text-violet-600 font-medium">Все проекты</Link>
+            <Link href="/dashboard/projects" className="text-xs text-violet-500 hover:text-violet-600 font-medium">{t('Все проекты')}</Link>
           </div>
         </div>
         <div className="p-5">
           {loading ? (
             <div className="flex justify-center py-4"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-violet-500" /></div>
           ) : projects.length === 0 ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Нет проектов</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">{t('Нет проектов')}</p>
           ) : recentViewMode === 'table' ? (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700/60">
-                    <th className="pb-2 font-medium">Название</th>
-                    <th className="pb-2 font-medium">Статус</th>
-                    <th className="pb-2 font-medium text-right">Бюджет</th>
-                    <th className="pb-2 font-medium text-right">Начало</th>
+                    <th className="pb-2 font-medium">{t('Название')}</th>
+                    <th className="pb-2 font-medium">{t('Статус')}</th>
+                    <th className="pb-2 font-medium text-right">{t('Бюджет')}</th>
+                    <th className="pb-2 font-medium text-right">{t('Начало')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -286,16 +290,16 @@ function SuperAdminDashboard({ user }: { user: any }) {
                     </div>
                     <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 mt-1">
                       <div>
-                        <dt className="text-xs text-gray-400 dark:text-gray-500">Бюджет</dt>
+                        <dt className="text-xs text-gray-400 dark:text-gray-500">{t('Бюджет')}</dt>
                         <dd className="text-xs font-medium text-gray-700 dark:text-gray-300">{p.budget != null ? `${Number(p.budget).toLocaleString('ru-RU')} ₽` : '—'}</dd>
                       </div>
                       <div>
-                        <dt className="text-xs text-gray-400 dark:text-gray-500">Начало</dt>
+                        <dt className="text-xs text-gray-400 dark:text-gray-500">{t('Начало')}</dt>
                         <dd className="text-xs font-medium text-gray-700 dark:text-gray-300">{fmtDate(p.startDate)}</dd>
                       </div>
                       {p.plannedEndDate && (
                         <div className="col-span-2">
-                          <dt className="text-xs text-gray-400 dark:text-gray-500">Окончание</dt>
+                          <dt className="text-xs text-gray-400 dark:text-gray-500">{t('Окончание')}</dt>
                           <dd className="text-xs font-medium text-gray-700 dark:text-gray-300">{fmtDate(p.plannedEndDate)}</dd>
                         </div>
                       )}
@@ -311,10 +315,10 @@ function SuperAdminDashboard({ user }: { user: any }) {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-5">
-          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-4">Проекты по статусам</h3>
+          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-4">{t('Проекты по статусам')}</h3>
           <div className="h-64">
             {projectsByStatus.length === 0 ? (
-              <div className="flex items-center justify-center h-full text-sm text-gray-400">Нет данных</div>
+              <div className="flex items-center justify-center h-full text-sm text-gray-400">{t('Нет данных')}</div>
             ) : (
               <ResponsiveContainer width="100%" height={256}>
                 <BarChart data={projectsByStatus} barCategoryGap="20%">
@@ -332,10 +336,10 @@ function SuperAdminDashboard({ user }: { user: any }) {
         </div>
 
         <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-5">
-          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-4">Задачи по приоритетам</h3>
+          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-4">{t('Задачи по приоритетам')}</h3>
           <div className="h-64">
             {tasksByPriority.length === 0 ? (
-              <div className="flex items-center justify-center h-full text-sm text-gray-400">Нет данных</div>
+              <div className="flex items-center justify-center h-full text-sm text-gray-400">{t('Нет данных')}</div>
             ) : (
               <ResponsiveContainer width="100%" height={256}>
                 <PieChart>
@@ -359,6 +363,7 @@ function SuperAdminDashboard({ user }: { user: any }) {
 
 /* ─── Admin Dashboard (roleId=2) ─────────────────────────────────────────── */
 function AdminDashboard({ user }: { user: any }) {
+  const t = useT();
   const router = useRouter();
   const now = new Date();
   const greeting = now.getHours() < 12 ? 'Доброе утро' : now.getHours() < 18 ? 'Добрый день' : 'Добрый вечер';
@@ -475,26 +480,26 @@ function AdminDashboard({ user }: { user: any }) {
       {/* Recent tasks table */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs mb-6">
         <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center justify-between gap-3">
-          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Последние задачи</h3>
+          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">{t('Последние задачи')}</h3>
           <div className="flex items-center gap-3">
             <ViewToggle mode={recentTasksViewMode} onChange={(m) => { setRecentTasksViewMode(m); localStorage.setItem('dashRecentTasksViewMode', m); }} />
-            <Link href="/dashboard/tasks" className="text-xs text-violet-500 hover:text-violet-600 font-medium">Все задачи</Link>
+            <Link href="/dashboard/tasks" className="text-xs text-violet-500 hover:text-violet-600 font-medium">{t('Все задачи')}</Link>
           </div>
         </div>
         <div className="p-5">
           {loading ? (
             <div className="flex justify-center py-4"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-violet-500" /></div>
           ) : tasks.length === 0 ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Нет задач</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">{t('Нет задач')}</p>
           ) : recentTasksViewMode === 'table' ? (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700/60">
-                    <th className="pb-2 font-medium">Название</th>
-                    <th className="pb-2 font-medium">Статус</th>
-                    <th className="pb-2 font-medium">Приоритет</th>
-                    <th className="pb-2 font-medium text-right">Срок</th>
+                    <th className="pb-2 font-medium">{t('Название')}</th>
+                    <th className="pb-2 font-medium">{t('Статус')}</th>
+                    <th className="pb-2 font-medium">{t('Приоритет')}</th>
+                    <th className="pb-2 font-medium text-right">{t('Срок')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -543,11 +548,11 @@ function AdminDashboard({ user }: { user: any }) {
                       </div>
                       <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 mt-1">
                         <div>
-                          <dt className="text-xs text-gray-400 dark:text-gray-500">Приоритет</dt>
+                          <dt className="text-xs text-gray-400 dark:text-gray-500">{t('Приоритет')}</dt>
                           <dd className="text-xs font-medium text-gray-700 dark:text-gray-300">{pr ? <StatusBadge label={pr.label} color={pr.color} /> : '—'}</dd>
                         </div>
                         <div>
-                          <dt className="text-xs text-gray-400 dark:text-gray-500">Срок</dt>
+                          <dt className="text-xs text-gray-400 dark:text-gray-500">{t('Срок')}</dt>
                           <dd className="text-xs font-medium text-gray-700 dark:text-gray-300">{fmtDate(t.dueDate)}</dd>
                         </div>
                       </dl>
@@ -562,10 +567,10 @@ function AdminDashboard({ user }: { user: any }) {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-5">
-          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-4">Задачи по статусам</h3>
+          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-4">{t('Задачи по статусам')}</h3>
           <div className="h-64">
             {tasksByStatus.length === 0 ? (
-              <div className="flex items-center justify-center h-full text-sm text-gray-400">Нет данных</div>
+              <div className="flex items-center justify-center h-full text-sm text-gray-400">{t('Нет данных')}</div>
             ) : (
               <ResponsiveContainer width="100%" height={256}>
                 <BarChart data={tasksByStatus} barCategoryGap="20%">
@@ -583,10 +588,10 @@ function AdminDashboard({ user }: { user: any }) {
         </div>
 
         <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-5">
-          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-4">Проекты по статусам</h3>
+          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-4">{t('Проекты по статусам')}</h3>
           <div className="h-64">
             {projectsByStatus.length === 0 ? (
-              <div className="flex items-center justify-center h-full text-sm text-gray-400">Нет данных</div>
+              <div className="flex items-center justify-center h-full text-sm text-gray-400">{t('Нет данных')}</div>
             ) : (
               <ResponsiveContainer width="100%" height={256}>
                 <PieChart>
@@ -618,6 +623,7 @@ const ROLE_DASHBOARD: Record<number, React.ComponentType<{ user: any }>> = {
 };
 
 export default function DashboardPage() {
+  const t = useT();
   const user = useAuthStore((s) => s.user);
   const roleId = user?.roleId;
 

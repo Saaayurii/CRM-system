@@ -7,6 +7,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
 } from 'recharts';
+import { useT } from '@/lib/i18n';
 
 function getGreeting(): string {
   const h = new Date().getHours();
@@ -43,6 +44,7 @@ function fmtDate(v: string | null | undefined): string {
 }
 
 function StatusBadge({ label, color }: { label: string; color: string }) {
+  const t = useT();
   const colors: Record<string, string> = {
     gray: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300',
     blue: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
@@ -86,6 +88,7 @@ const EQUIP_STATUS_COLORS: Record<string, string> = {
 };
 
 export default function WarehouseDashboard({ user }: { user: any }) {
+  const t = useT();
   const [loading, setLoading] = useState(true);
   const [materials, setMaterials] = useState<any[]>([]);
   const [requests, setRequests] = useState<any[]>([]);
@@ -240,21 +243,21 @@ export default function WarehouseDashboard({ user }: { user: any }) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs">
           <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Последние заявки</h3>
-            <Link href="/dashboard/warehouse/requests" className="text-xs text-violet-500 hover:text-violet-600 font-medium">Все заявки</Link>
+            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">{t('Последние заявки')}</h3>
+            <Link href="/dashboard/warehouse/requests" className="text-xs text-violet-500 hover:text-violet-600 font-medium">{t('Все заявки')}</Link>
           </div>
           <div className="p-5">
             {requests.length === 0 ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Нет заявок</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">{t('Нет заявок')}</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-left text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700/60">
-                      <th className="pb-2 font-medium">Материал</th>
-                      <th className="pb-2 font-medium">Кол-во</th>
-                      <th className="pb-2 font-medium">Статус</th>
-                      <th className="pb-2 font-medium text-right">Дата</th>
+                      <th className="pb-2 font-medium">{t('Материал')}</th>
+                      <th className="pb-2 font-medium">{t('Кол-во')}</th>
+                      <th className="pb-2 font-medium">{t('Статус')}</th>
+                      <th className="pb-2 font-medium text-right">{t('Дата')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -278,12 +281,12 @@ export default function WarehouseDashboard({ user }: { user: any }) {
 
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs">
           <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Оборудование</h3>
-            <Link href="/dashboard/warehouse/equipment" className="text-xs text-violet-500 hover:text-violet-600 font-medium">Всё оборудование</Link>
+            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">{t('Оборудование')}</h3>
+            <Link href="/dashboard/warehouse/equipment" className="text-xs text-violet-500 hover:text-violet-600 font-medium">{t('Всё оборудование')}</Link>
           </div>
           <div className="p-5">
             {equipment.length === 0 ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Нет оборудования</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">{t('Нет оборудования')}</p>
             ) : (
               <div className="space-y-3">
                 {equipment.slice(0, 8).map((e: any) => {
@@ -307,10 +310,10 @@ export default function WarehouseDashboard({ user }: { user: any }) {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <div className="lg:col-span-2 bg-white dark:bg-gray-800 shadow-xs rounded-xl p-5">
-          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-4">Заявки по статусам</h3>
+          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-4">{t('Заявки по статусам')}</h3>
           <div className="h-64">
             {requestsByStatus.length === 0 ? (
-              <div className="flex items-center justify-center h-full text-sm text-gray-400">Нет данных</div>
+              <div className="flex items-center justify-center h-full text-sm text-gray-400">{t('Нет данных')}</div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={requestsByStatus} barCategoryGap="20%">
@@ -328,10 +331,10 @@ export default function WarehouseDashboard({ user }: { user: any }) {
         </div>
 
         <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-5">
-          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-4">Оборудование по статусам</h3>
+          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-4">{t('Оборудование по статусам')}</h3>
           <div className="h-64">
             {equipByStatus.length === 0 ? (
-              <div className="flex items-center justify-center h-full text-sm text-gray-400">Нет данных</div>
+              <div className="flex items-center justify-center h-full text-sm text-gray-400">{t('Нет данных')}</div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>

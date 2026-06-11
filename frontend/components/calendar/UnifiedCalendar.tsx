@@ -23,6 +23,7 @@ import EventPopover from './EventPopover';
 import FiltersDrawer from './FiltersDrawer';
 import TimelineView from './TimelineView';
 import './calendar.css';
+import { useT } from '@/lib/i18n';
 
 interface Props {
   defaultSources?: CalendarSource[];
@@ -70,6 +71,7 @@ export default function UnifiedCalendar({
   subtitle,
   defaultView = 'week',
 }: Props) {
+  const t = useT();
   const calendarRef = useRef<any>(null);
   const user = useAuthStore((s) => s.user);
   const roleCode = user?.role?.code;
@@ -425,7 +427,7 @@ export default function UnifiedCalendar({
               type="button"
               onClick={goPrev}
               className="px-2.5 py-1.5 text-sm bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200"
-              aria-label="Назад"
+              aria-label={t('Назад')}
             >
               ‹
             </button>
@@ -433,7 +435,7 @@ export default function UnifiedCalendar({
               type="button"
               onClick={goNext}
               className="px-2.5 py-1.5 text-sm bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 border-l border-gray-200 dark:border-gray-700"
-              aria-label="Вперёд"
+              aria-label={t('Вперёд')}
             >
               ›
             </button>
@@ -458,7 +460,7 @@ export default function UnifiedCalendar({
               <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
               </svg>
-              <span className="truncate">Создать событие</span>
+              <span className="truncate">{t('Создать событие')}</span>
             </button>
           )}
 
@@ -466,12 +468,12 @@ export default function UnifiedCalendar({
             type="button"
             onClick={() => setFiltersOpen(true)}
             className="shrink-0 inline-flex items-center justify-center gap-1.5 px-3 py-2 sm:py-1.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
-            aria-label="Фильтры"
+            aria-label={t('Фильтры')}
           >
             <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 5.25h16.5M6.75 12h10.5M10.5 18.75h3" />
             </svg>
-            <span className="hidden sm:inline">Фильтры</span>
+            <span className="hidden sm:inline">{t('Фильтры')}</span>
           </button>
         </div>
 

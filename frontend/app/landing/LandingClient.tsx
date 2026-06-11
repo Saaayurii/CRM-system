@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useThemeStore } from '@/stores/themeStore';
+import { useT } from '@/lib/i18n';
 
 /* ────────────────────────────────────────────────────────────────────────
    Иконки (inline SVG — в проекте нет icon-библиотеки)
@@ -10,6 +11,7 @@ import { useThemeStore } from '@/stores/themeStore';
 type IconProps = { className?: string };
 const I = (path: React.ReactNode) =>
   function Icon({ className = 'w-6 h-6' }: IconProps) {
+    const t = useT();
     return (
       <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}>
         {path}
@@ -113,6 +115,7 @@ const SUPPORT_EMAIL = 'support@3stroy15.pro';
    Компонент
    ──────────────────────────────────────────────────────────────────────── */
 export default function LandingClient() {
+  const t = useT();
   const { theme, toggleTheme } = useThemeStore();
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeCat, setActiveCat] = useState<'Все' | Cat>('Все');
@@ -159,7 +162,7 @@ export default function LandingClient() {
             <div className="flex items-center gap-2">
               <button
                 onClick={toggleTheme}
-                aria-label="Переключить тему"
+                aria-label={t('Переключить тему')}
                 className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               >
                 {theme === 'dark' ? <icons.sun className="w-5 h-5" /> : <icons.moon className="w-5 h-5" />}
@@ -170,7 +173,7 @@ export default function LandingClient() {
               <Link href="/auth/login" className="hidden sm:inline-flex items-center px-4 py-2 text-sm font-semibold text-white bg-gray-900 dark:bg-violet-500 hover:bg-gray-800 dark:hover:bg-violet-600 rounded-lg transition-colors">
                 Войти
               </Link>
-              <button onClick={() => setMenuOpen((v) => !v)} aria-label="Меню" className="lg:hidden p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">
+              <button onClick={() => setMenuOpen((v) => !v)} aria-label={t('Меню')} className="lg:hidden p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">
                 {menuOpen ? <icons.close className="w-6 h-6" /> : <icons.menu className="w-6 h-6" />}
               </button>
             </div>
@@ -186,8 +189,8 @@ export default function LandingClient() {
               </a>
             ))}
             <div className="pt-2 grid grid-cols-2 gap-2">
-              <Link href="/portal/login" className="text-center px-4 py-2.5 text-sm font-medium border border-gray-200 dark:border-gray-700 rounded-lg">Портал</Link>
-              <Link href="/auth/login" className="text-center px-4 py-2.5 text-sm font-semibold text-white bg-violet-500 rounded-lg">Войти</Link>
+              <Link href="/portal/login" className="text-center px-4 py-2.5 text-sm font-medium border border-gray-200 dark:border-gray-700 rounded-lg">{t('Портал')}</Link>
+              <Link href="/auth/login" className="text-center px-4 py-2.5 text-sm font-semibold text-white bg-violet-500 rounded-lg">{t('Войти')}</Link>
             </div>
           </div>
         )}
@@ -203,7 +206,7 @@ export default function LandingClient() {
                 <icons.bolt className="w-3.5 h-3.5" /> 23 модуля · одна система
               </span>
               <h1 className="mt-5 text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-gray-900 dark:text-white leading-[1.05]">
-                Управляйте <span className="text-violet-500">стройкой</span> целиком
+                Управляйте <span className="text-violet-500">{t('стройкой')}</span> целиком
               </h1>
               <p className="mt-5 text-lg text-gray-600 dark:text-gray-300 max-w-xl leading-relaxed">
                 3.15 CRM объединяет проекты, задачи, материалы, финансы, контроль качества, кадры и общение команды в едином рабочем пространстве — от сметы до сдачи объекта.
@@ -217,7 +220,7 @@ export default function LandingClient() {
                 </Link>
               </div>
               <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
-                Заказчик? Войдите в <a href="/portal/login" className="text-violet-600 dark:text-violet-400 font-medium hover:underline">портал клиента</a>, чтобы следить за своим объектом.
+                Заказчик? Войдите в <a href="/portal/login" className="text-violet-600 dark:text-violet-400 font-medium hover:underline">{t('портал клиента')}</a>, чтобы следить за своим объектом.
               </p>
             </div>
 
@@ -228,7 +231,7 @@ export default function LandingClient() {
                   <span className="w-3 h-3 rounded-full bg-red-400" />
                   <span className="w-3 h-3 rounded-full bg-yellow-400" />
                   <span className="w-3 h-3 rounded-full bg-green-400" />
-                  <span className="ml-3 text-xs text-gray-400">3.15 CRM · Дашборд</span>
+                  <span className="ml-3 text-xs text-gray-400">{t('3.15 CRM · Дашборд')}</span>
                 </div>
                 <div className="p-5 space-y-4">
                   <div className="grid grid-cols-3 gap-3">
@@ -261,8 +264,8 @@ export default function LandingClient() {
                   <icons.check className="w-5 h-5" />
                 </div>
                 <div>
-                  <div className="text-xs text-gray-400">Объект сдан в срок</div>
-                  <div className="text-sm font-semibold text-gray-900 dark:text-white">ЖК «Северный», 4 корпуса</div>
+                  <div className="text-xs text-gray-400">{t('Объект сдан в срок')}</div>
+                  <div className="text-sm font-semibold text-gray-900 dark:text-white">{t('ЖК «Северный», 4 корпуса')}</div>
                 </div>
               </div>
             </div>
@@ -284,8 +287,8 @@ export default function LandingClient() {
       <section id="modules" className="max-w-7xl mx-auto px-5 sm:px-8 py-16 lg:py-24">
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-10">
           <div>
-            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900 dark:text-white">Что есть в 3.15 CRM</h2>
-            <p className="mt-3 text-gray-600 dark:text-gray-400 max-w-2xl">Все процессы строительной компании в одном месте — выбирайте категорию, чтобы посмотреть нужные модули.</p>
+            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900 dark:text-white">{t('Что есть в 3.15 CRM')}</h2>
+            <p className="mt-3 text-gray-600 dark:text-gray-400 max-w-2xl">{t('Все процессы строительной компании в одном месте — выбирайте категорию, чтобы посмотреть нужные модули.')}</p>
           </div>
         </div>
 
@@ -325,8 +328,8 @@ export default function LandingClient() {
       {/* ── How it works / features ────────────────────────────────────── */}
       <section id="features" className="bg-gray-50 dark:bg-gray-900/50 border-y border-gray-200 dark:border-gray-800">
         <div className="max-w-7xl mx-auto px-5 sm:px-8 py-16 lg:py-24">
-          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900 dark:text-white text-center">Почему выбирают 3.15 CRM</h2>
-          <p className="mt-3 text-center text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">Создана для строительной отрасли, а не «универсальная коробка».</p>
+          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900 dark:text-white text-center">{t('Почему выбирают 3.15 CRM')}</h2>
+          <p className="mt-3 text-center text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">{t('Создана для строительной отрасли, а не «универсальная коробка».')}</p>
 
           <div className="mt-12 grid md:grid-cols-3 gap-6">
             {[
@@ -357,8 +360,8 @@ export default function LandingClient() {
       {/* ── Pricing (прайс) ────────────────────────────────────────────── */}
       <section id="pricing" className="max-w-7xl mx-auto px-5 sm:px-8 py-16 lg:py-24">
         <div className="text-center">
-          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900 dark:text-white">Тарифы</h2>
-          <p className="mt-3 text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">Прозрачные цены без скрытых платежей. Месяц бесплатно на любом тарифе.</p>
+          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900 dark:text-white">{t('Тарифы')}</h2>
+          <p className="mt-3 text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">{t('Прозрачные цены без скрытых платежей. Месяц бесплатно на любом тарифе.')}</p>
         </div>
 
         <div className="mt-12 grid lg:grid-cols-3 gap-6 items-start">
@@ -419,7 +422,7 @@ export default function LandingClient() {
               <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-violet-500/15 text-violet-300 ring-1 ring-violet-500/20">
                 <icons.bolt className="w-3.5 h-3.5" /> Мы развиваемся вместе с вами
               </span>
-              <h2 className="mt-4 text-3xl sm:text-4xl font-extrabold tracking-tight text-white">Заявки на улучшения</h2>
+              <h2 className="mt-4 text-3xl sm:text-4xl font-extrabold tracking-tight text-white">{t('Заявки на улучшения')}</h2>
               <p className="mt-4 text-gray-300 leading-relaxed max-w-xl">
                 Не хватает функции? Расскажите, что улучшить в 3.15 CRM. Мы читаем каждую заявку и приоритизируем доработки по вашим запросам.
               </p>
@@ -433,8 +436,8 @@ export default function LandingClient() {
             </div>
 
             <div className="rounded-2xl bg-white dark:bg-gray-950 p-6 sm:p-8 border border-gray-200 dark:border-gray-800">
-              <h3 className="font-semibold text-gray-900 dark:text-white">Оставить заявку</h3>
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Отправим в нашу команду продукта.</p>
+              <h3 className="font-semibold text-gray-900 dark:text-white">{t('Оставить заявку')}</h3>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{t('Отправим в нашу команду продукта.')}</p>
               <form
                 className="mt-5 space-y-4"
                 action={`mailto:${SUPPORT_EMAIL}`}
@@ -442,12 +445,12 @@ export default function LandingClient() {
                 encType="text/plain"
               >
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Ваш email</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t('Ваш email')}</label>
                   <input type="email" name="email" required placeholder="you@company.ru" className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-violet-500 focus:border-violet-500 outline-none" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Что улучшить?</label>
-                  <textarea name="idea" required rows={4} placeholder="Опишите идею или проблему…" className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-violet-500 focus:border-violet-500 outline-none resize-none" />
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t('Что улучшить?')}</label>
+                  <textarea name="idea" required rows={4} placeholder={t('Опишите идею или проблему…')} className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-violet-500 focus:border-violet-500 outline-none resize-none" />
                 </div>
                 <button type="submit" className="w-full flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-white bg-violet-500 hover:bg-violet-600 rounded-xl transition-colors">
                   Отправить заявку <icons.arrow className="w-4 h-4" />
@@ -464,8 +467,8 @@ export default function LandingClient() {
       {/* ── Final CTA ──────────────────────────────────────────────────── */}
       <section className="max-w-7xl mx-auto px-5 sm:px-8 py-16 lg:py-24">
         <div className="rounded-3xl bg-gradient-to-br from-violet-500 to-violet-700 px-8 py-14 sm:px-14 text-center">
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">Готовы навести порядок на стройке?</h2>
-          <p className="mt-4 text-violet-100 max-w-2xl mx-auto">Войдите в систему или попробуйте 3.15 CRM бесплатно в течение месяца.</p>
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">{t('Готовы навести порядок на стройке?')}</h2>
+          <p className="mt-4 text-violet-100 max-w-2xl mx-auto">{t('Войдите в систему или попробуйте 3.15 CRM бесплатно в течение месяца.')}</p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Link href="/auth/login" className="inline-flex items-center gap-2 px-6 py-3.5 text-sm font-semibold text-violet-700 bg-white hover:bg-violet-50 rounded-xl transition-colors">
               Войти в CRM <icons.arrow className="w-4 h-4" />
@@ -488,32 +491,32 @@ export default function LandingClient() {
               </p>
             </div>
             <div>
-              <h4 className="text-sm font-semibold text-gray-900 dark:text-white">Продукт</h4>
+              <h4 className="text-sm font-semibold text-gray-900 dark:text-white">{t('Продукт')}</h4>
               <ul className="mt-4 space-y-2.5 text-sm">
-                <li><a href="#modules" className="text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400">Возможности</a></li>
-                <li><a href="#pricing" className="text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400">Тарифы</a></li>
-                <li><a href="#requests" className="text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400">Заявки на улучшения</a></li>
+                <li><a href="#modules" className="text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400">{t('Возможности')}</a></li>
+                <li><a href="#pricing" className="text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400">{t('Тарифы')}</a></li>
+                <li><a href="#requests" className="text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400">{t('Заявки на улучшения')}</a></li>
               </ul>
             </div>
             <div>
-              <h4 className="text-sm font-semibold text-gray-900 dark:text-white">Вход</h4>
+              <h4 className="text-sm font-semibold text-gray-900 dark:text-white">{t('Вход')}</h4>
               <ul className="mt-4 space-y-2.5 text-sm">
-                <li><Link href="/auth/login" className="text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400">Войти в CRM</Link></li>
-                <li><Link href="/portal/login" className="text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400">Клиентский портал</Link></li>
-                <li><Link href="/auth/register-company" className="text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400">Регистрация компании</Link></li>
+                <li><Link href="/auth/login" className="text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400">{t('Войти в CRM')}</Link></li>
+                <li><Link href="/portal/login" className="text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400">{t('Клиентский портал')}</Link></li>
+                <li><Link href="/auth/register-company" className="text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400">{t('Регистрация компании')}</Link></li>
               </ul>
             </div>
             <div>
-              <h4 className="text-sm font-semibold text-gray-900 dark:text-white">Контакты</h4>
+              <h4 className="text-sm font-semibold text-gray-900 dark:text-white">{t('Контакты')}</h4>
               <ul className="mt-4 space-y-2.5 text-sm">
                 <li><a href={`mailto:${SUPPORT_EMAIL}`} className="text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400">{SUPPORT_EMAIL}</a></li>
-                <li><Link href="/privacy" className="text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400">Политика конфиденциальности</Link></li>
+                <li><Link href="/privacy" className="text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400">{t('Политика конфиденциальности')}</Link></li>
               </ul>
             </div>
           </div>
           <div className="mt-10 pt-6 border-t border-gray-200 dark:border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-3">
             <p className="text-xs text-gray-400">© {2026} 3.15 CRM. Все права защищены.</p>
-            <p className="text-xs text-gray-400">Сделано для строителей 🏗️</p>
+            <p className="text-xs text-gray-400">{t('Сделано для строителей 🏗️')}</p>
           </div>
         </div>
       </footer>

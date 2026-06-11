@@ -2,6 +2,7 @@
 
 import { ChangeEvent } from 'react';
 import type { CalculatorType } from './calculators';
+import { useT } from '@/lib/i18n';
 
 interface FieldProps {
   label: string;
@@ -10,6 +11,7 @@ interface FieldProps {
 }
 
 function Field({ label, hint, children }: FieldProps) {
+  const t = useT();
   return (
     <label className="block">
       <span className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{label}</span>
@@ -35,6 +37,7 @@ function NumInput({
   min?: string;
   placeholder?: string;
 }) {
+  const t = useT();
   return (
     <input
       type="number"
@@ -61,6 +64,7 @@ function SelectInput<T extends string>({
   onChange: (v: T) => void;
   options: Array<{ value: T; label: string }>;
 }) {
+  const t = useT();
   return (
     <select
       value={value}
@@ -91,15 +95,16 @@ export function ScreedForm({
   state: ScreedFormState;
   onChange: (s: ScreedFormState) => void;
 }) {
+  const t = useT();
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-      <Field label="Площадь, м²">
-        <NumInput value={state.area} onChange={(v) => onChange({ ...state, area: v })} placeholder="например, 50" />
+      <Field label={t('Площадь, м²')}>
+        <NumInput value={state.area} onChange={(v) => onChange({ ...state, area: v })} placeholder={t('например, 50')} />
       </Field>
-      <Field label="Толщина, см" hint="Мин. 3 см (обычная) или 5 см (под тёплый пол)">
+      <Field label={t('Толщина, см')} hint="Мин. 3 см (обычная) или 5 см (под тёплый пол)">
         <NumInput value={state.thickness} onChange={(v) => onChange({ ...state, thickness: v })} placeholder="5" />
       </Field>
-      <Field label="Тип смеси">
+      <Field label={t('Тип смеси')}>
         <SelectInput
           value={state.mixType}
           onChange={(v) => onChange({ ...state, mixType: v })}
@@ -110,7 +115,7 @@ export function ScreedForm({
           ]}
         />
       </Field>
-      <Field label="Под тёплый пол">
+      <Field label={t('Под тёплый пол')}>
         <label className="flex items-center gap-2 mt-1.5">
           <input
             type="checkbox"
@@ -118,7 +123,7 @@ export function ScreedForm({
             onChange={(e) => onChange({ ...state, forWarmFloor: e.target.checked })}
             className="rounded border-gray-300"
           />
-          <span className="text-sm text-gray-700 dark:text-gray-300">Да, с теплоизоляцией</span>
+          <span className="text-sm text-gray-700 dark:text-gray-300">{t('Да, с теплоизоляцией')}</span>
         </label>
       </Field>
     </div>
@@ -140,9 +145,10 @@ export function WarmFloorForm({
   state: WarmFloorFormState;
   onChange: (s: WarmFloorFormState) => void;
 }) {
+  const t = useT();
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-      <Field label="Тип системы">
+      <Field label={t('Тип системы')}>
         <SelectInput
           value={state.systemType}
           onChange={(v) => onChange({ ...state, systemType: v })}
@@ -153,15 +159,15 @@ export function WarmFloorForm({
           ]}
         />
       </Field>
-      <Field label="Площадь, м²">
+      <Field label={t('Площадь, м²')}>
         <NumInput value={state.area} onChange={(v) => onChange({ ...state, area: v })} placeholder="20" />
       </Field>
       {state.systemType !== 'electric_mat' && (
-        <Field label="Шаг укладки, см" hint="Обычно 10–30 см">
+        <Field label={t('Шаг укладки, см')} hint="Обычно 10–30 см">
           <NumInput value={state.pitchCm} onChange={(v) => onChange({ ...state, pitchCm: v })} placeholder="15" />
         </Field>
       )}
-      <Field label="Толщина стяжки над контуром, см" hint="Мин. 5 см для воды">
+      <Field label={t('Толщина стяжки над контуром, см')} hint="Мин. 5 см для воды">
         <NumInput
           value={state.screedThicknessCm}
           onChange={(v) => onChange({ ...state, screedThicknessCm: v })}
@@ -187,9 +193,10 @@ export function ElectricsForm({
   state: ElectricsFormState;
   onChange: (s: ElectricsFormState) => void;
 }) {
+  const t = useT();
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-      <Field label="Тип группы">
+      <Field label={t('Тип группы')}>
         <SelectInput
           value={state.circuitType}
           onChange={(v) => onChange({ ...state, circuitType: v })}
@@ -201,7 +208,7 @@ export function ElectricsForm({
           ]}
         />
       </Field>
-      <Field label="Напряжение, В">
+      <Field label={t('Напряжение, В')}>
         <SelectInput
           value={String(state.voltageV) as '220' | '380'}
           onChange={(v) => onChange({ ...state, voltageV: Number(v) as 220 | 380 })}
@@ -211,10 +218,10 @@ export function ElectricsForm({
           ]}
         />
       </Field>
-      <Field label="Суммарная мощность, кВт">
+      <Field label={t('Суммарная мощность, кВт')}>
         <NumInput value={state.powerKw} onChange={(v) => onChange({ ...state, powerKw: v })} placeholder="3.5" />
       </Field>
-      <Field label="Длина кабеля от щита, м">
+      <Field label={t('Длина кабеля от щита, м')}>
         <NumInput value={state.lengthM} onChange={(v) => onChange({ ...state, lengthM: v })} placeholder="20" />
       </Field>
     </div>
@@ -235,15 +242,16 @@ export function PlasterForm({
   state: PlasterFormState;
   onChange: (s: PlasterFormState) => void;
 }) {
+  const t = useT();
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-      <Field label="Площадь стен/потолка, м²">
+      <Field label={t('Площадь стен/потолка, м²')}>
         <NumInput value={state.area} onChange={(v) => onChange({ ...state, area: v })} placeholder="80" />
       </Field>
-      <Field label="Толщина слоя, мм" hint="Мин. 5 мм">
+      <Field label={t('Толщина слоя, мм')} hint="Мин. 5 мм">
         <NumInput value={state.thicknessMm} onChange={(v) => onChange({ ...state, thicknessMm: v })} placeholder="15" />
       </Field>
-      <Field label="Тип штукатурки">
+      <Field label={t('Тип штукатурки')}>
         <SelectInput
           value={state.plasterType}
           onChange={(v) => onChange({ ...state, plasterType: v })}
@@ -273,21 +281,22 @@ export function TileForm({
   state: TileFormState;
   onChange: (s: TileFormState) => void;
 }) {
+  const t = useT();
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-      <Field label="Площадь, м²">
+      <Field label={t('Площадь, м²')}>
         <NumInput value={state.area} onChange={(v) => onChange({ ...state, area: v })} placeholder="12" />
       </Field>
-      <Field label="Запас на подрезку, %" hint="Обычно 10%, для диагонали — 15%">
+      <Field label={t('Запас на подрезку, %')} hint="Обычно 10%, для диагонали — 15%">
         <NumInput value={state.wastePercent} onChange={(v) => onChange({ ...state, wastePercent: v })} placeholder="10" />
       </Field>
-      <Field label="Ширина плитки, см">
+      <Field label={t('Ширина плитки, см')}>
         <NumInput value={state.tileWidthCm} onChange={(v) => onChange({ ...state, tileWidthCm: v })} placeholder="30" />
       </Field>
-      <Field label="Длина плитки, см">
+      <Field label={t('Длина плитки, см')}>
         <NumInput value={state.tileLengthCm} onChange={(v) => onChange({ ...state, tileLengthCm: v })} placeholder="60" />
       </Field>
-      <Field label="Ширина шва, мм">
+      <Field label={t('Ширина шва, мм')}>
         <NumInput value={state.jointMm} onChange={(v) => onChange({ ...state, jointMm: v })} placeholder="2" />
       </Field>
     </div>

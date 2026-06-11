@@ -21,6 +21,7 @@ import {
   EditToggle, GhostBtn, AddBtn, IconBtn, TrashIcon, EmptyState, FileChip,
   EditableTable, DataTable, EditableColumn,
 } from '../primitives';
+import { useT } from '@/lib/i18n';
 
 /* ───────────────────────── helpers ───────────────────────── */
 
@@ -64,6 +65,7 @@ function KeyValEditor({ fields, onChange, title = 'Параметры' }: { fiel
 function FileSlot({ ctx, label, url, onChange }: {
   ctx: PassportCtx; label: string; url?: string; onChange: (url: string | undefined) => void;
 }) {
+  const t = useT();
   const [busy, setBusy] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const handle = async (file: File | undefined) => {
@@ -85,8 +87,8 @@ function FileSlot({ ctx, label, url, onChange }: {
       <GhostBtn onClick={() => inputRef.current?.click()} disabled={busy}>{busy ? 'Загрузка...' : label}</GhostBtn>
       {url && (
         <>
-          <a href={url} target="_blank" rel="noopener noreferrer" className="text-xs text-violet-500 hover:underline truncate max-w-[140px]">Открыть</a>
-          <IconBtn danger title="Удалить" onClick={() => onChange(undefined)}><TrashIcon className="w-4 h-4" /></IconBtn>
+          <a href={url} target="_blank" rel="noopener noreferrer" className="text-xs text-violet-500 hover:underline truncate max-w-[140px]">{t('Открыть')}</a>
+          <IconBtn danger title={t('Удалить')} onClick={() => onChange(undefined)}><TrashIcon className="w-4 h-4" /></IconBtn>
         </>
       )}
     </div>
@@ -126,6 +128,7 @@ const SUB_DEFAULT_FIELDS: Record<SubKey, string[]> = {
 };
 
 export default function EngineeringSection({ ctx }: { ctx: PassportCtx }) {
+  const t = useT();
   const engineering: EngineeringSectionData = ctx.passport.engineering || {};
   const [tab, setTab] = useState<SubKey | 'nodes'>('electrical');
 
@@ -170,6 +173,7 @@ export default function EngineeringSection({ ctx }: { ctx: PassportCtx }) {
 function SubsystemCard({ ctx, engineering, subKey, title, defaultLabels }: {
   ctx: PassportCtx; engineering: EngineeringSectionData; subKey: SubKey; title: string; defaultLabels: string[];
 }) {
+  const t = useT();
   const sub: EngineeringSubsystem = engineering[subKey] || {};
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -234,45 +238,45 @@ function SubsystemCard({ ctx, engineering, subKey, title, defaultLabels }: {
       {!editing ? (
         <div className="space-y-4">
           <div>
-            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Характеристики</p>
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">{t('Характеристики')}</p>
             {visibleFields.length > 0 ? (
               <dl>{visibleFields.map((f) => <InfoRow key={f.id} label={f.label} value={f.value} />)}</dl>
             ) : <EmptyState text="Нет данных" />}
           </div>
           <div>
-            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Поставщик / Обслуживание</p>
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">{t('Поставщик / Обслуживание')}</p>
             <FieldGroup>
-              <Field label="Поставщик / Организация" value={sub.supplierName} />
-              <Field label="Договор №" value={sub.supplierContract} />
-              <Field label="Телефон" value={sub.supplierPhone} />
+              <Field label={t('Поставщик / Организация')} value={sub.supplierName} />
+              <Field label={t('Договор №')} value={sub.supplierContract} />
+              <Field label={t('Телефон')} value={sub.supplierPhone} />
             </FieldGroup>
           </div>
           <div className="flex flex-wrap items-center gap-4">
             {sub.schemeUrl ? (
-              <a href={sub.schemeUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-violet-500 hover:underline">Схема →</a>
-            ) : <span className="text-xs text-gray-400">Схема не загружена</span>}
+              <a href={sub.schemeUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-violet-500 hover:underline">{t('Схема →')}</a>
+            ) : <span className="text-xs text-gray-400">{t('Схема не загружена')}</span>}
             {sub.photoUrl ? (
-              <a href={sub.photoUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-violet-500 hover:underline">Фото узла →</a>
-            ) : <span className="text-xs text-gray-400">Фото узла не загружено</span>}
+              <a href={sub.photoUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-violet-500 hover:underline">{t('Фото узла →')}</a>
+            ) : <span className="text-xs text-gray-400">{t('Фото узла не загружено')}</span>}
           </div>
         </div>
       ) : (
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-            <Select label="Статус" value={status} onChange={setStatus} options={STATUS_OPTIONS} />
+            <Select label={t('Статус')} value={status} onChange={setStatus} options={STATUS_OPTIONS} />
           </div>
-          <KeyValEditor fields={fields} onChange={setFields} title="Характеристики" />
+          <KeyValEditor fields={fields} onChange={setFields} title={t('Характеристики')} />
           <div>
-            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Поставщик / Обслуживание</p>
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">{t('Поставщик / Обслуживание')}</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-              <TextInput label="Поставщик / Организация" value={supplierName} onChange={setSupplierName} />
-              <TextInput label="Договор №" value={supplierContract} onChange={setSupplierContract} />
-              <TextInput label="Телефон" value={supplierPhone} onChange={setSupplierPhone} />
+              <TextInput label={t('Поставщик / Организация')} value={supplierName} onChange={setSupplierName} />
+              <TextInput label={t('Договор №')} value={supplierContract} onChange={setSupplierContract} />
+              <TextInput label={t('Телефон')} value={supplierPhone} onChange={setSupplierPhone} />
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-6">
-            <FileSlot ctx={ctx} label="Схема" url={schemeUrl} onChange={setSchemeUrl} />
-            <FileSlot ctx={ctx} label="Фото узла" url={photoUrl} onChange={setPhotoUrl} />
+            <FileSlot ctx={ctx} label={t('Схема')} url={schemeUrl} onChange={setSchemeUrl} />
+            <FileSlot ctx={ctx} label={t('Фото узла')} url={photoUrl} onChange={setPhotoUrl} />
           </div>
         </div>
       )}
@@ -283,6 +287,7 @@ function SubsystemCard({ ctx, engineering, subKey, title, defaultLabels }: {
 /* ───────────────────── Узлы и оборудование ───────────────────── */
 
 function NodesCard({ ctx, engineering }: { ctx: PassportCtx; engineering: EngineeringSectionData }) {
+  const t = useT();
   const nodes = engineering.nodes || [];
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -319,7 +324,7 @@ function NodesCard({ ctx, engineering }: { ctx: PassportCtx; engineering: Engine
 
   return (
     <Card
-      title="Узлы и оборудование"
+      title={t('Узлы и оборудование')}
       actions={<EditToggle editing={editing} onEdit={start} onCancel={cancel} onSave={save} saving={saving} />}
     >
       {!editing ? (
@@ -351,6 +356,7 @@ function NodesCard({ ctx, engineering }: { ctx: PassportCtx; engineering: Engine
 /* ───────────────────── Документы по инженерным системам ───────────────────── */
 
 function DocumentsCard({ ctx, engineering }: { ctx: PassportCtx; engineering: EngineeringSectionData }) {
+  const t = useT();
   const docs = engineering.documents || [];
   const [busy, setBusy] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -389,7 +395,7 @@ function DocumentsCard({ ctx, engineering }: { ctx: PassportCtx; engineering: En
 
   return (
     <Card
-      title="Документы по инженерным системам"
+      title={t('Документы по инженерным системам')}
       actions={
         <GhostBtn onClick={() => inputRef.current?.click()} disabled={busy}>
           {busy ? 'Загрузка...' : 'Добавить документ'}

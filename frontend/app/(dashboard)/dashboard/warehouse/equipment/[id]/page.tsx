@@ -8,6 +8,7 @@ import { useToastStore } from '@/stores/toastStore';
 import EntityFormModal from '@/components/admin/EntityFormModal';
 import EquipmentMoveModal from '@/components/warehouse/EquipmentMoveModal';
 import { ADMIN_MODULES } from '@/lib/admin/modulesConfig';
+import { useT } from '@/lib/i18n';
 
 interface Equipment {
   id: number;
@@ -48,6 +49,7 @@ const EQUIPMENT_TYPE_LABELS: Record<string, string> = {
 };
 
 export default function EquipmentDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const t = useT();
   const { id } = use(params);
   const equipmentId = Number(id);
   const addToast = useToastStore((s) => s.addToast);
@@ -125,7 +127,7 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
       </div>
 
       {loading || !eq ? (
-        <div className="py-20 text-center text-sm text-gray-400">Загрузка карточки…</div>
+        <div className="py-20 text-center text-sm text-gray-400">{t('Загрузка карточки…')}</div>
       ) : (
         <div className="space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
@@ -165,7 +167,7 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
                     </>
                   ) : (
                     <div className="w-28 h-28 bg-gray-100 dark:bg-gray-900/40 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-200 dark:border-gray-700">
-                      <span className="text-xs text-gray-300 dark:text-gray-600">QR код</span>
+                      <span className="text-xs text-gray-300 dark:text-gray-600">{t('QR код')}</span>
                     </div>
                   )}
                 </div>
@@ -184,7 +186,7 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
                     </div>
                   ))}
                   <div>
-                    <dt className="text-xs text-gray-400 dark:text-gray-500">Текущий склад</dt>
+                    <dt className="text-xs text-gray-400 dark:text-gray-500">{t('Текущий склад')}</dt>
                     <dd className="mt-0.5">
                       {eq.currentLocation || eq.warehouse?.name ? (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300">
@@ -194,7 +196,7 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-xs text-gray-400 dark:text-gray-500">Статус</dt>
+                    <dt className="text-xs text-gray-400 dark:text-gray-500">{t('Статус')}</dt>
                     <dd className="mt-0.5">
                       {eq.status != null ? (
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${EQUIPMENT_STATUS[eq.status]?.color ?? 'bg-gray-100 text-gray-600'}`}>
@@ -207,7 +209,7 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
               </div>
               {eq.notes && (
                 <div className="px-5 pb-5">
-                  <dt className="text-xs text-gray-400 dark:text-gray-500 mb-1">Примечания</dt>
+                  <dt className="text-xs text-gray-400 dark:text-gray-500 mb-1">{t('Примечания')}</dt>
                   <dd className="text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/30 rounded-lg p-3">{eq.notes}</dd>
                 </div>
               )}
@@ -216,10 +218,10 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
             {/* Правая карточка — история */}
             <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
               <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60">
-                <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm">История обслуживания</h3>
+                <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{t('История обслуживания')}</h3>
               </div>
               {history.length === 0 ? (
-                <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">Нет записей истории</div>
+                <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">{t('Нет записей истории')}</div>
               ) : (
                 <div className="px-5 py-4 overflow-y-auto max-h-[480px]">
                   <div className="relative">

@@ -26,6 +26,7 @@ import MaintenanceSection from './passport/sections/MaintenanceSection';
 import ContactsSection from './passport/sections/ContactsSection';
 import PhotosSection from './passport/sections/PhotosSection';
 import HistorySection from './passport/sections/HistorySection';
+import { useT } from '@/lib/i18n';
 
 type SectionKey =
   | 'general' | 'access' | 'engineering' | 'infrastructure' | 'security'
@@ -53,6 +54,7 @@ const NAV: { key: SectionKey; label: string; subtitle: string; Icon: (p: { class
 ];
 
 export default function ObjectPassportPage() {
+  const t = useT();
   const params = useParams();
   const router = useRouter();
   const projectId = Number(params.id);
@@ -113,7 +115,7 @@ export default function ObjectPassportPage() {
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-2 flex-wrap">
-            <button onClick={() => router.push('/dashboard/projects')} className="hover:text-violet-500 transition-colors">Проекты</button>
+            <button onClick={() => router.push('/dashboard/projects')} className="hover:text-violet-500 transition-colors">{t('Проекты')}</button>
             <span>/</span>
             <button onClick={() => router.push(`/dashboard/projects/${projectId}?tab=objects`)} className="hover:text-violet-500 transition-colors truncate max-w-[180px]">{project?.name ?? `Проект #${projectId}`}</button>
             <span>/</span>
@@ -145,7 +147,7 @@ export default function ObjectPassportPage() {
           {/* Completion meter */}
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700/60 p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Заполненность паспорта</span>
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{t('Заполненность паспорта')}</span>
               <span className="text-sm font-bold text-violet-600 dark:text-violet-400">{overall}%</span>
             </div>
             <div className="h-2 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
@@ -193,7 +195,7 @@ export default function ObjectPassportPage() {
           {active === 'contacts' && <ContactsSection ctx={ctx} />}
           {active === 'photos' && <PhotosSection ctx={ctx} />}
           {active === 'history' && <HistorySection ctx={ctx} />}
-          {active === 'tasks' && <TasksPanel constructionSiteId={objectId} projectId={site.projectId} title="Задачи объекта" />}
+          {active === 'tasks' && <TasksPanel constructionSiteId={objectId} projectId={site.projectId} title={t('Задачи объекта')} />}
         </main>
       </div>
     </div>

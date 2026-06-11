@@ -18,6 +18,7 @@ import {
   TileForm,
   WarmFloorForm,
 } from './calculators/CalculatorForms';
+import { useT } from '@/lib/i18n';
 
 interface ProjectOption {
   id: number;
@@ -46,6 +47,7 @@ interface SavedCalculation {
 const TYPES: CalculatorType[] = ['screed', 'warm_floor', 'electrics', 'plaster', 'tile'];
 
 export default function CalculatorsTab() {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
   const [type, setType] = useState<CalculatorType>('screed');
   const [formState, setFormState] = useState<AnyCalcState>(() => defaultStateFor('screed'));
@@ -313,22 +315,22 @@ export default function CalculatorsTab() {
 
           <div className="border-t border-gray-100 dark:border-gray-700 pt-3 space-y-3">
             <label className="block">
-              <span className="block text-xs text-gray-500 mb-1">Название расчёта (необязательно)</span>
+              <span className="block text-xs text-gray-500 mb-1">{t('Название расчёта (необязательно)')}</span>
               <input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Например, «Спальня 18 м²»"
+                placeholder={t('Например, «Спальня 18 м²»')}
                 className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg"
               />
             </label>
             <label className="block">
-              <span className="block text-xs text-gray-500 mb-1">Проект</span>
+              <span className="block text-xs text-gray-500 mb-1">{t('Проект')}</span>
               <select
                 value={projectId ?? ''}
                 onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : null)}
                 className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg"
               >
-                <option value="">— не привязан —</option>
+                <option value="">{t('— не привязан —')}</option>
                 {projects.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
@@ -360,7 +362,7 @@ export default function CalculatorsTab() {
           )}
 
           <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-xs">
-            <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-3">Сводка</h3>
+            <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-3">{t('Сводка')}</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {result.summary.map((s, i) => (
                 <div
@@ -377,18 +379,18 @@ export default function CalculatorsTab() {
           </div>
 
           <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-xs">
-            <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-3">Материалы</h3>
+            <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-3">{t('Материалы')}</h3>
             {result.materials.length === 0 ? (
-              <div className="text-sm text-gray-500">Введите параметры выше — список материалов появится автоматически.</div>
+              <div className="text-sm text-gray-500">{t('Введите параметры выше — список материалов появится автоматически.')}</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="text-xs uppercase text-gray-400">
                     <tr>
-                      <th className="text-left py-2">Материал</th>
-                      <th className="text-right py-2">Кол-во</th>
-                      <th className="text-left py-2 pl-3">Ед.</th>
-                      <th className="text-left py-2 pl-3">Примечание</th>
+                      <th className="text-left py-2">{t('Материал')}</th>
+                      <th className="text-right py-2">{t('Кол-во')}</th>
+                      <th className="text-left py-2 pl-3">{t('Ед.')}</th>
+                      <th className="text-left py-2 pl-3">{t('Примечание')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
@@ -409,7 +411,7 @@ export default function CalculatorsTab() {
           </div>
 
           <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-xs">
-            <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-3">Доставка</h3>
+            <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-3">{t('Доставка')}</h3>
             <div className="text-sm text-gray-700 dark:text-gray-300">
               <div>
                 Расчётный вес:{' '}
@@ -502,7 +504,7 @@ export default function CalculatorsTab() {
         {showHistory && (
           <div className="p-5">
             {loadingHistory ? (
-              <div className="text-sm text-gray-500 text-center py-2">Загрузка...</div>
+              <div className="text-sm text-gray-500 text-center py-2">{t('Загрузка...')}</div>
             ) : history.length === 0 ? (
               <div className="text-sm text-gray-500 text-center py-2">
                 Сохранённых расчётов пока нет.
@@ -511,11 +513,11 @@ export default function CalculatorsTab() {
               <table className="w-full text-sm">
                 <thead className="text-xs uppercase text-gray-400">
                   <tr>
-                    <th className="text-left py-2">Название</th>
-                    <th className="text-left py-2">Проект</th>
-                    <th className="text-left py-2">Сводка</th>
-                    <th className="text-left py-2">Дата</th>
-                    <th className="text-right py-2 w-32">Действия</th>
+                    <th className="text-left py-2">{t('Название')}</th>
+                    <th className="text-left py-2">{t('Проект')}</th>
+                    <th className="text-left py-2">{t('Сводка')}</th>
+                    <th className="text-left py-2">{t('Дата')}</th>
+                    <th className="text-right py-2 w-32">{t('Действия')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">

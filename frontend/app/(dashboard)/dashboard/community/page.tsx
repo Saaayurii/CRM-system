@@ -7,6 +7,7 @@ import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import EmployeesPage from '../employees/page';
 import ClientsPage from '../clients/page';
 import TeamsPage from '../teams/page';
+import { useT } from '@/lib/i18n';
 
 const ALL_TABS = [
   { id: 'employees', label: 'Сотрудники' },
@@ -15,6 +16,7 @@ const ALL_TABS = [
 ];
 
 function CommunityContent() {
+  const t = useT();
   const searchParams = useSearchParams();
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
@@ -69,6 +71,7 @@ function CommunityContent() {
 }
 
 export default function CommunityPage() {
+  const t = useT();
   return (
     <Suspense>
       <CommunityContent />

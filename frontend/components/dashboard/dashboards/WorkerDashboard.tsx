@@ -7,6 +7,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
 } from 'recharts';
+import { useT } from '@/lib/i18n';
 
 function getGreeting(): string {
   const h = new Date().getHours();
@@ -59,6 +60,7 @@ function fmtTime(v: string | null | undefined): string {
 }
 
 function StatusBadge({ label, color }: { label: string; color: string }) {
+  const t = useT();
   const colors: Record<string, string> = {
     gray: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300',
     blue: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
@@ -132,6 +134,7 @@ const BONUS_TYPE_MAP: Record<string, string> = {
 };
 
 export default function WorkerDashboard({ user }: { user: any }) {
+  const t = useT();
   const [loading, setLoading] = useState(true);
   const [tasks, setTasks] = useState<any[]>([]);
   const [attendance, setAttendance] = useState<any[]>([]);
@@ -330,8 +333,8 @@ export default function WorkerDashboard({ user }: { user: any }) {
             </svg>
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-medium text-gray-800 dark:text-gray-100">Задачи</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">Мои задачи</p>
+            <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{t('Задачи')}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{t('Мои задачи')}</p>
           </div>
         </Link>
         <Link href="/dashboard/worker/attendance" className="flex items-center gap-3 bg-white dark:bg-gray-800 rounded-xl shadow-xs p-4 hover:ring-1 hover:ring-violet-500/20 transition-all">
@@ -341,8 +344,8 @@ export default function WorkerDashboard({ user }: { user: any }) {
             </svg>
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-medium text-gray-800 dark:text-gray-100">Посещаемость</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">Рабочее время</p>
+            <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{t('Посещаемость')}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{t('Рабочее время')}</p>
           </div>
         </Link>
         <Link href="/dashboard/worker/time-off" className="flex items-center gap-3 bg-white dark:bg-gray-800 rounded-xl shadow-xs p-4 hover:ring-1 hover:ring-violet-500/20 transition-all">
@@ -352,8 +355,8 @@ export default function WorkerDashboard({ user }: { user: any }) {
             </svg>
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-medium text-gray-800 dark:text-gray-100">Отпуска</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">Заявки на отпуск</p>
+            <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{t('Отпуска')}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{t('Заявки на отпуск')}</p>
           </div>
         </Link>
         <Link href="/dashboard/worker/construction-sites" className="flex items-center gap-3 bg-white dark:bg-gray-800 rounded-xl shadow-xs p-4 hover:ring-1 hover:ring-violet-500/20 transition-all">
@@ -364,8 +367,8 @@ export default function WorkerDashboard({ user }: { user: any }) {
             </svg>
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-medium text-gray-800 dark:text-gray-100">Стройплощадки</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">Объекты</p>
+            <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{t('Стройплощадки')}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{t('Объекты')}</p>
           </div>
         </Link>
       </div>
@@ -395,7 +398,7 @@ export default function WorkerDashboard({ user }: { user: any }) {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Нет задач на сегодня</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{t('Нет задач на сегодня')}</p>
                 {myTasks.length > 0 && (
                   <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Всего задач: {myTasks.length}</p>
                 )}
@@ -405,9 +408,9 @@ export default function WorkerDashboard({ user }: { user: any }) {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-left text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700/60">
-                      <th className="pb-2 font-medium">Название</th>
-                      <th className="pb-2 font-medium">Статус</th>
-                      <th className="pb-2 font-medium">Приоритет</th>
+                      <th className="pb-2 font-medium">{t('Название')}</th>
+                      <th className="pb-2 font-medium">{t('Статус')}</th>
+                      <th className="pb-2 font-medium">{t('Приоритет')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -436,14 +439,14 @@ export default function WorkerDashboard({ user }: { user: any }) {
         {/* Recent attendance */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs">
           <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Последняя посещаемость</h3>
+            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">{t('Последняя посещаемость')}</h3>
             <Link href="/dashboard/worker/attendance" className="text-xs text-violet-500 hover:text-violet-600 font-medium">
               Вся история
             </Link>
           </div>
           <div className="p-5">
             {attendance.length === 0 ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Нет записей</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">{t('Нет записей')}</p>
             ) : (
               <div className="space-y-3">
                 {attendance.slice(0, 7).map((a: any, idx: number) => {
@@ -476,10 +479,10 @@ export default function WorkerDashboard({ user }: { user: any }) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         {/* Payroll bar chart */}
         <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-5">
-          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-4">Зарплата по периодам</h3>
+          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-4">{t('Зарплата по периодам')}</h3>
           <div className="h-64">
             {payrollChartData.length === 0 ? (
-              <div className="flex items-center justify-center h-full text-sm text-gray-400">Нет данных о зарплате</div>
+              <div className="flex items-center justify-center h-full text-sm text-gray-400">{t('Нет данных о зарплате')}</div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={payrollChartData} barCategoryGap="20%">
@@ -497,20 +500,20 @@ export default function WorkerDashboard({ user }: { user: any }) {
             )}
           </div>
           <div className="flex items-center gap-4 mt-3 text-xs text-gray-500 dark:text-gray-400">
-            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-green-500" /> Выплачен</span>
-            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-yellow-500" /> Ожидает</span>
-            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-gray-400" /> Черновик</span>
+            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-green-500" />{t('Выплачен')}</span>
+            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-yellow-500" />{t('Ожидает')}</span>
+            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-gray-400" />{t('Черновик')}</span>
           </div>
         </div>
 
         {/* Bonuses list */}
         <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl">
           <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60">
-            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Бонусы</h3>
+            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">{t('Бонусы')}</h3>
           </div>
           <div className="p-5">
             {bonuses.length === 0 ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Нет бонусов</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">{t('Нет бонусов')}</p>
             ) : (
               <div className="space-y-3">
                 {bonuses.slice(0, 7).map((b: any, idx: number) => (
@@ -541,7 +544,7 @@ export default function WorkerDashboard({ user }: { user: any }) {
           </h3>
           <div className="h-64">
             {tasksByStatus.length === 0 ? (
-              <div className="flex items-center justify-center h-full text-sm text-gray-400">Нет данных</div>
+              <div className="flex items-center justify-center h-full text-sm text-gray-400">{t('Нет данных')}</div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={tasksByStatus} barCategoryGap="20%">
@@ -567,7 +570,7 @@ export default function WorkerDashboard({ user }: { user: any }) {
           </h3>
           <div className="h-64">
             {tasksByPriority.length === 0 ? (
-              <div className="flex items-center justify-center h-full text-sm text-gray-400">Нет данных</div>
+              <div className="flex items-center justify-center h-full text-sm text-gray-400">{t('Нет данных')}</div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
+import { useT } from '@/lib/i18n';
 
 interface Equipment {
   id: number;
@@ -22,6 +23,7 @@ export default function EquipmentMoveModal({
   onClose: () => void;
   onMoved?: () => void;
 }) {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [targetId, setTargetId] = useState<string>('');
@@ -74,7 +76,7 @@ export default function EquipmentMoveModal({
 
         <div className="space-y-3">
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Целевой склад *</label>
+            <label className="block text-xs text-gray-500 mb-1">{t('Целевой склад *')}</label>
             <select
               value={targetId}
               onChange={(e) => setTargetId(e.target.value)}
@@ -87,13 +89,13 @@ export default function EquipmentMoveModal({
             </select>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Комментарий</label>
+            <label className="block text-xs text-gray-500 mb-1">{t('Комментарий')}</label>
             <textarea
               value={notes}
               rows={2}
               onChange={(e) => setNotes(e.target.value)}
               className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg"
-              placeholder="Причина перемещения, акт-приёмка и т.п."
+              placeholder={t('Причина перемещения, акт-приёмка и т.п.')}
             />
           </div>
         </div>

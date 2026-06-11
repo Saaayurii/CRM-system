@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import api from '@/lib/api';
+import { useT } from '@/lib/i18n';
 
 interface Stats {
   projects: number | null;
@@ -19,6 +20,7 @@ const cards = [
 ];
 
 export default function StatsCards() {
+  const t = useT();
   const [stats, setStats] = useState<Stats>({ projects: null, tasks: null, employees: null, teams: null });
 
   useEffect(() => {

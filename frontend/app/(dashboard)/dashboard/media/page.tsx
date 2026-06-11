@@ -6,6 +6,7 @@ import { useToastStore } from '@/stores/toastStore';
 import { normalizeFileUrl } from '@/lib/utils';
 import MediaViewer, { MediaItem as ViewerItem } from '@/components/chat/MediaViewer';
 import FilePreviewModal, { FileIcon } from '@/components/ui/FilePreviewModal';
+import { useT } from '@/lib/i18n';
 
 type MediaSource = 'chat' | 'document' | 'defect' | 'site';
 type MediaKind = 'image' | 'video' | 'audio' | 'document';
@@ -92,6 +93,7 @@ const KIND_LABEL: Record<MediaKind, string> = {
 };
 
 export default function MediaPage() {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [items, setItems] = useState<MediaItem[]>([]);
@@ -304,7 +306,7 @@ export default function MediaPage() {
     <div>
       <div className="sm:flex sm:justify-between sm:items-center mb-6">
         <div>
-          <h1 className="text-2xl md:text-3xl text-gray-800 dark:text-gray-100 font-bold">Медиа</h1>
+          <h1 className="text-2xl md:text-3xl text-gray-800 dark:text-gray-100 font-bold">{t('Медиа')}</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             Все файлы из чатов, документов, дефектов и объектов
           </p>
@@ -312,7 +314,7 @@ export default function MediaPage() {
         <div className="flex items-center gap-0.5 mt-3 sm:mt-0">
           <button
             onClick={() => { setShowSearch((v) => !v); setShowFilter(false); }}
-            title="Поиск"
+            title={t('Поиск')}
             className={`p-2 rounded-lg transition-colors ${showSearch || search ? 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20' : 'text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20'}`}
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -335,7 +337,7 @@ export default function MediaPage() {
           </button>
           <button
             onClick={() => { setShowFilter((v) => !v); setShowSearch(false); }}
-            title="Фильтры"
+            title={t('Фильтры')}
             className={`relative p-2 rounded-lg transition-colors ${showFilter || kindFilter || sourceFilter ? 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20' : 'text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20'}`}
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -344,12 +346,12 @@ export default function MediaPage() {
             {(kindFilter || sourceFilter) && <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-violet-500" />}
           </button>
           <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg ml-1">
-            <button onClick={() => setViewMode('grid')} className={`p-1.5 rounded ${viewMode === 'grid' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''} transition-colors`} title="Сетка">
+            <button onClick={() => setViewMode('grid')} className={`p-1.5 rounded ${viewMode === 'grid' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''} transition-colors`} title={t('Сетка')}>
               <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
               </svg>
             </button>
-            <button onClick={() => setViewMode('list')} className={`p-1.5 rounded ${viewMode === 'list' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''} transition-colors`} title="Список">
+            <button onClick={() => setViewMode('list')} className={`p-1.5 rounded ${viewMode === 'list' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''} transition-colors`} title={t('Список')}>
               <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
               </svg>
@@ -367,7 +369,7 @@ export default function MediaPage() {
           <input
             autoFocus
             type="text"
-            placeholder="Поиск по названию..."
+            placeholder={t('Поиск по названию...')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="flex-1 text-sm bg-transparent text-gray-800 dark:text-gray-100 placeholder-gray-400 outline-none"
@@ -385,11 +387,11 @@ export default function MediaPage() {
       {showFilter && (
         <div className="mb-4 flex flex-wrap items-center gap-3 bg-white dark:bg-gray-800 rounded-xl px-4 py-3 shadow-xs border border-gray-100 dark:border-gray-700">
           <select value={kindFilter} onChange={(e) => setKindFilter((e.target.value as MediaKind) || '')} className="text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none">
-            <option value="">Все типы</option>
+            <option value="">{t('Все типы')}</option>
             {(Object.keys(KIND_LABEL) as MediaKind[]).map((k) => <option key={k} value={k}>{KIND_LABEL[k]} ({counts.byKind[k]})</option>)}
           </select>
           <select value={sourceFilter} onChange={(e) => setSourceFilter((e.target.value as MediaSource) || '')} className="text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none">
-            <option value="">Все источники</option>
+            <option value="">{t('Все источники')}</option>
             {(Object.keys(SOURCE_LABEL) as MediaSource[]).map((s) => <option key={s} value={s}>{SOURCE_LABEL[s]} ({counts.bySource[s as MediaSource]})</option>)}
           </select>
           {(kindFilter || sourceFilter) && (
@@ -403,7 +405,7 @@ export default function MediaPage() {
       {/* Content */}
       <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-gray-400">Загрузка...</div>
+          <div className="p-12 text-center text-gray-400">{t('Загрузка...')}</div>
         ) : filtered.length === 0 ? (
           <div className="p-12 text-center text-gray-400">
             {items.length === 0 ? 'У вас пока нет доступных медиа' : 'Ничего не найдено'}
@@ -419,11 +421,11 @@ export default function MediaPage() {
             <table className="w-full text-sm text-left">
               <thead className="text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/50">
                 <tr>
-                  <th className="px-4 py-3">Файл</th>
-                  <th className="px-4 py-3">Источник</th>
-                  <th className="px-4 py-3">Размер</th>
-                  <th className="px-4 py-3">Дата</th>
-                  <th className="px-4 py-3 text-center">Действия</th>
+                  <th className="px-4 py-3">{t('Файл')}</th>
+                  <th className="px-4 py-3">{t('Источник')}</th>
+                  <th className="px-4 py-3">{t('Размер')}</th>
+                  <th className="px-4 py-3">{t('Дата')}</th>
+                  <th className="px-4 py-3 text-center">{t('Действия')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
@@ -468,7 +470,7 @@ export default function MediaPage() {
                         <button
                           onClick={() => openItem(item)}
                           className="p-1.5 text-violet-500 hover:text-violet-600 hover:bg-violet-50 dark:hover:bg-violet-500/10 rounded transition-colors"
-                          title="Просмотр"
+                          title={t('Просмотр')}
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -481,7 +483,7 @@ export default function MediaPage() {
                           target="_blank"
                           rel="noopener noreferrer"
                           className="p-1.5 text-green-500 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-500/10 rounded transition-colors"
-                          title="Скачать"
+                          title={t('Скачать')}
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -520,6 +522,7 @@ export default function MediaPage() {
 }
 
 function MediaTile({ item, onOpen }: { item: MediaItem; onOpen: () => void }) {
+  const t = useT();
   const dateTime = formatDateTime(item.createdAt);
   return (
     <div className="group relative rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40">
@@ -585,7 +588,7 @@ function MediaTile({ item, onOpen }: { item: MediaItem; onOpen: () => void }) {
           rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}
           className="opacity-0 group-hover:opacity-100 pointer-events-auto p-1.5 rounded bg-black/60 hover:bg-black/80 text-white transition-opacity"
-          title="Скачать"
+          title={t('Скачать')}
         >
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />

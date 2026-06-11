@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import api from '@/lib/api';
+import { useT } from '@/lib/i18n';
 
 interface HseSummary {
   counters: {
@@ -51,6 +52,7 @@ const SECTIONS: Array<{ title: string; href: string; description: string; icon: 
 ];
 
 export default function HsePage() {
+  const t = useT();
   const [summary, setSummary] = useState<HseSummary | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -117,7 +119,7 @@ export default function HsePage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-8">
           {summary.lastIncidents?.length > 0 && (
             <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
-              <div className="font-semibold mb-3">Последние инциденты</div>
+              <div className="font-semibold mb-3">{t('Последние инциденты')}</div>
               <ul className="space-y-2">
                 {summary.lastIncidents.map((i) => (
                   <li key={i.id} className="text-sm border-b border-gray-100 dark:border-gray-700 pb-2 last:border-0">
@@ -132,7 +134,7 @@ export default function HsePage() {
           )}
           {summary.lastViolations?.length > 0 && (
             <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
-              <div className="font-semibold mb-3">Последние нарушения</div>
+              <div className="font-semibold mb-3">{t('Последние нарушения')}</div>
               <ul className="space-y-2">
                 {summary.lastViolations.map((v) => (
                   <li key={v.id} className="text-sm border-b border-gray-100 dark:border-gray-700 pb-2 last:border-0">

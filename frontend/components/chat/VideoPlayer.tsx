@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState, useEffect, useCallback } from 'react';
+import { useT } from '@/lib/i18n';
 
 export interface VideoQuality {
   label: string;
@@ -29,6 +30,7 @@ function fmtTime(s: number): string {
 }
 
 export default function VideoPlayer({ src, qualities, className, style }: VideoPlayerProps) {
+  const t = useT();
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
@@ -249,7 +251,7 @@ export default function VideoPlayer({ src, qualities, className, style }: VideoP
             <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
             </svg>
-            <span className="text-sm">Не удалось загрузить видео</span>
+            <span className="text-sm">{t('Не удалось загрузить видео')}</span>
           </div>
         </div>
       )}
@@ -350,7 +352,7 @@ export default function VideoPlayer({ src, qualities, className, style }: VideoP
               value={muted ? 0 : volume}
               onChange={changeVolume}
               className="w-0 group-hover/vol:w-16 overflow-hidden transition-all duration-200 accent-violet-500 cursor-pointer"
-              title="Громкость"
+              title={t('Громкость')}
             />
           </div>
 
@@ -366,7 +368,7 @@ export default function VideoPlayer({ src, qualities, className, style }: VideoP
             <button
               onClick={(e) => { e.stopPropagation(); setShowSpeedMenu((v) => !v); setShowQualityMenu(false); }}
               className="text-white/80 hover:text-white text-xs px-2 py-1 rounded hover:bg-white/10 transition-colors font-medium"
-              title="Скорость воспроизведения"
+              title={t('Скорость воспроизведения')}
             >
               {speed === 1 ? '1×' : `${speed}×`}
             </button>
@@ -375,7 +377,7 @@ export default function VideoPlayer({ src, qualities, className, style }: VideoP
                 className="absolute bottom-full mb-2 right-0 bg-zinc-900/95 border border-white/10 rounded-xl py-1.5 shadow-2xl min-w-[72px] z-10"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="px-3 py-1 text-white/40 text-[10px] uppercase tracking-wider">Скорость</div>
+                <div className="px-3 py-1 text-white/40 text-[10px] uppercase tracking-wider">{t('Скорость')}</div>
                 {SPEEDS.map((s) => (
                   <button
                     key={s}
@@ -395,7 +397,7 @@ export default function VideoPlayer({ src, qualities, className, style }: VideoP
               <button
                 onClick={(e) => { e.stopPropagation(); setShowQualityMenu((v) => !v); setShowSpeedMenu(false); }}
                 className="text-white/80 hover:text-white text-xs px-2 py-1 rounded hover:bg-white/10 transition-colors font-medium flex items-center gap-1"
-                title="Качество"
+                title={t('Качество')}
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -407,7 +409,7 @@ export default function VideoPlayer({ src, qualities, className, style }: VideoP
                   className="absolute bottom-full mb-2 right-0 bg-zinc-900/95 border border-white/10 rounded-xl py-1.5 shadow-2xl min-w-[100px] z-10"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <div className="px-3 py-1 text-white/40 text-[10px] uppercase tracking-wider">Качество</div>
+                  <div className="px-3 py-1 text-white/40 text-[10px] uppercase tracking-wider">{t('Качество')}</div>
                   {allQualities.map((q) => (
                     <button
                       key={q.label}

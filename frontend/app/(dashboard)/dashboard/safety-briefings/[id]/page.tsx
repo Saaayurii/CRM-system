@@ -7,6 +7,7 @@ import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { useToastStore } from '@/stores/toastStore';
 import SignaturePad from '@/components/safety/SignaturePad';
+import { useT } from '@/lib/i18n';
 
 interface Topic {
   id: number;
@@ -94,6 +95,7 @@ function fmtDate(v?: string | null): string {
 }
 
 export default function BriefingDetailPage() {
+  const t = useT();
   const params = useParams();
   const router = useRouter();
   const id = Number(Array.isArray(params.id) ? params.id[0] : params.id);
@@ -151,7 +153,7 @@ export default function BriefingDetailPage() {
   if (loading || !briefing) {
     return (
       <div className="px-4 py-8 max-w-9xl mx-auto">
-        <div className="text-sm text-gray-500">Загрузка…</div>
+        <div className="text-sm text-gray-500">{t('Загрузка…')}</div>
       </div>
     );
   }
@@ -303,26 +305,26 @@ export default function BriefingDetailPage() {
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-4">
           <div>
-            <div className="text-xs text-gray-400 uppercase mb-0.5">Запланирован</div>
+            <div className="text-xs text-gray-400 uppercase mb-0.5">{t('Запланирован')}</div>
             <div className="font-medium">{fmtDate(briefing.scheduledAt)}</div>
           </div>
           <div>
-            <div className="text-xs text-gray-400 uppercase mb-0.5">Проведён</div>
+            <div className="text-xs text-gray-400 uppercase mb-0.5">{t('Проведён')}</div>
             <div className="font-medium">{fmtDate(briefing.conductedAt)}</div>
           </div>
           <div>
-            <div className="text-xs text-gray-400 uppercase mb-0.5">Место</div>
+            <div className="text-xs text-gray-400 uppercase mb-0.5">{t('Место')}</div>
             <div className="font-medium">{briefing.location || '—'}</div>
           </div>
           <div>
-            <div className="text-xs text-gray-400 uppercase mb-0.5">Инструктор</div>
+            <div className="text-xs text-gray-400 uppercase mb-0.5">{t('Инструктор')}</div>
             <div className="font-medium">{briefing.instructorName || (briefing.instructorId ? `#${briefing.instructorId}` : '—')}</div>
           </div>
         </div>
 
         {briefing.description && (
           <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
-            <div className="text-xs text-gray-400 uppercase mb-1">Описание / программа</div>
+            <div className="text-xs text-gray-400 uppercase mb-1">{t('Описание / программа')}</div>
             <div className="whitespace-pre-wrap text-sm">{briefing.description}</div>
           </div>
         )}
@@ -359,7 +361,7 @@ export default function BriefingDetailPage() {
         </h2>
 
         {briefing.topics.length === 0 && !canManage ? (
-          <div className="text-sm text-gray-500">Темы не заданы</div>
+          <div className="text-sm text-gray-500">{t('Темы не заданы')}</div>
         ) : (
           <ol className="space-y-2 list-decimal list-inside mb-4">
             {briefing.topics.map((t) => (
@@ -374,7 +376,7 @@ export default function BriefingDetailPage() {
                   <button
                     onClick={() => handleRemoveTopic(t.id)}
                     className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 text-xs mt-0.5 shrink-0"
-                    title="Удалить тему"
+                    title={t('Удалить тему')}
                   >
                     ✕
                   </button>
@@ -386,16 +388,16 @@ export default function BriefingDetailPage() {
 
         {canManage && !isCompleted && (
           <div className="border-t border-gray-100 dark:border-gray-700 pt-4 space-y-2">
-            <div className="text-xs text-gray-500 font-medium mb-2">Добавить тему</div>
+            <div className="text-xs text-gray-500 font-medium mb-2">{t('Добавить тему')}</div>
             <input
               type="text"
-              placeholder="Название темы *"
+              placeholder={t('Название темы *')}
               value={newTopicText}
               onChange={(e) => setNewTopicText(e.target.value)}
               className="w-full px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-violet-500"
             />
             <textarea
-              placeholder="Описание / содержание (опционально)"
+              placeholder={t('Описание / содержание (опционально)')}
               value={newTopicDesc}
               onChange={(e) => setNewTopicDesc(e.target.value)}
               rows={2}
@@ -429,12 +431,12 @@ export default function BriefingDetailPage() {
         {/* Participant picker */}
         {canManage && !isCompleted && (
           <div className="mb-4 p-3 rounded-lg bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700">
-            <div className="text-xs text-gray-500 font-medium mb-2">Добавить участника</div>
+            <div className="text-xs text-gray-500 font-medium mb-2">{t('Добавить участника')}</div>
             <div className="flex gap-2 items-start">
               <div className="relative flex-1">
                 <input
                   type="text"
-                  placeholder="Поиск по имени или email…"
+                  placeholder={t('Поиск по имени или email…')}
                   value={selectedUser ? `${selectedUser.firstName} ${selectedUser.lastName}` : userSearch}
                   onChange={(e) => {
                     setUserSearch(e.target.value);
@@ -474,18 +476,18 @@ export default function BriefingDetailPage() {
         )}
 
         {briefing.participants.length === 0 ? (
-          <div className="text-sm text-gray-500">Участники не добавлены</div>
+          <div className="text-sm text-gray-500">{t('Участники не добавлены')}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="text-xs text-gray-500 uppercase border-b border-gray-200 dark:border-gray-700">
                 <tr>
-                  <th className="text-left py-2 px-2">Сотрудник</th>
-                  <th className="text-left py-2 px-2">Статус</th>
-                  <th className="text-left py-2 px-2">Подписано</th>
-                  <th className="text-left py-2 px-2">Действует до</th>
-                  <th className="text-left py-2 px-2">Подпись</th>
-                  <th className="text-right py-2 px-2">Действия</th>
+                  <th className="text-left py-2 px-2">{t('Сотрудник')}</th>
+                  <th className="text-left py-2 px-2">{t('Статус')}</th>
+                  <th className="text-left py-2 px-2">{t('Подписано')}</th>
+                  <th className="text-left py-2 px-2">{t('Действует до')}</th>
+                  <th className="text-left py-2 px-2">{t('Подпись')}</th>
+                  <th className="text-right py-2 px-2">{t('Действия')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -500,13 +502,13 @@ export default function BriefingDetailPage() {
                       </td>
                       <td className="py-2.5 px-2">
                         {p.status === 'signed' ? (
-                          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">Подписал</span>
+                          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">{t('Подписал')}</span>
                         ) : p.status === 'absent' ? (
-                          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">Отсутствовал</span>
+                          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">{t('Отсутствовал')}</span>
                         ) : p.status === 'refused' ? (
-                          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">Отказался</span>
+                          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">{t('Отказался')}</span>
                         ) : (
-                          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">Приглашён</span>
+                          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{t('Приглашён')}</span>
                         )}
                       </td>
                       <td className="py-2.5 px-2 text-sm">
@@ -522,7 +524,7 @@ export default function BriefingDetailPage() {
                       <td className="py-2.5 px-2">
                         {p.signatureData ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={p.signatureData} alt="подпись" className="h-8 border border-gray-200 dark:border-gray-700 rounded bg-white" />
+                          <img src={p.signatureData} alt={t('подпись')} className="h-8 border border-gray-200 dark:border-gray-700 rounded bg-white" />
                         ) : (
                           <span className="text-gray-400 text-xs">—</span>
                         )}
@@ -541,7 +543,7 @@ export default function BriefingDetailPage() {
                             <button
                               onClick={() => handleRemoveParticipant(p.id)}
                               className="text-red-400 hover:text-red-600"
-                              title="Удалить"
+                              title={t('Удалить')}
                             >
                               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />

@@ -15,6 +15,7 @@ import {
   Card, SectionHeader, PrimaryBtn, GhostBtn, IconBtn, DataTable, EmptyState,
   TextInput, TextArea, Select, Pill, PencilIcon, TrashIcon, PlusIcon,
 } from '../primitives';
+import { useT } from '@/lib/i18n';
 
 /* ───────────────────────── types & helpers ───────────────────────── */
 
@@ -84,6 +85,7 @@ function toForm(o: BuildingObject): FormState {
 /* ───────────────────────── component ───────────────────────── */
 
 export default function RoomsSection({ ctx, onCountChange }: { ctx: PassportCtx; onCountChange: (n: number) => void }) {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
   const [rooms, setRooms] = useState<BuildingObject[]>([]);
   const [loading, setLoading] = useState(true);
@@ -185,11 +187,11 @@ export default function RoomsSection({ ctx, onCountChange }: { ctx: PassportCtx;
   return (
     <div className="space-y-5">
       <SectionHeader
-        title="Помещения"
-        subtitle="Комнаты, этажи, секции и их параметры"
+        title={t('Помещения')}
+        subtitle={t('Комнаты, этажи, секции и их параметры')}
         right={
           !showForm
-            ? <PrimaryBtn onClick={openCreate}><PlusIcon className="w-4 h-4" />Добавить помещение</PrimaryBtn>
+            ? <PrimaryBtn onClick={openCreate}><PlusIcon className="w-4 h-4" />{t('Добавить помещение')}</PrimaryBtn>
             : undefined
         }
       />
@@ -197,17 +199,17 @@ export default function RoomsSection({ ctx, onCountChange }: { ctx: PassportCtx;
       {showForm && (
         <Card title={editingId != null ? 'Редактирование помещения' : 'Новое помещение'}>
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-            <TextInput label="Название *" value={form.name} onChange={(v) => set('name', v)} placeholder="Напр. Спальня" />
-            <Select label="Тип" value={form.objectType} onChange={(v) => set('objectType', v)} options={OBJECT_TYPE_OPTIONS} />
-            <TextInput label="Классификация" value={form.classification} onChange={(v) => set('classification', v)} placeholder="спальня / кухня / санузел" />
-            <Select label="Родитель" value={form.parentId} onChange={(v) => set('parentId', v)} options={parentOptions} />
-            <TextInput label="Этаж" value={form.floorNumber} onChange={(v) => set('floorNumber', v)} type="number" />
-            <TextInput label="Площадь, м²" value={form.area} onChange={(v) => set('area', v)} type="number" />
-            <TextInput label="Высота потолка, м" value={form.ceilingHeight} onChange={(v) => set('ceilingHeight', v)} type="number" />
-            <TextArea label="Описание" value={form.description} onChange={(v) => set('description', v)} rows={2} className="sm:col-span-2 xl:col-span-3" />
+            <TextInput label={t('Название *')} value={form.name} onChange={(v) => set('name', v)} placeholder={t('Напр. Спальня')} />
+            <Select label={t('Тип')} value={form.objectType} onChange={(v) => set('objectType', v)} options={OBJECT_TYPE_OPTIONS} />
+            <TextInput label={t('Классификация')} value={form.classification} onChange={(v) => set('classification', v)} placeholder={t('спальня / кухня / санузел')} />
+            <Select label={t('Родитель')} value={form.parentId} onChange={(v) => set('parentId', v)} options={parentOptions} />
+            <TextInput label={t('Этаж')} value={form.floorNumber} onChange={(v) => set('floorNumber', v)} type="number" />
+            <TextInput label={t('Площадь, м²')} value={form.area} onChange={(v) => set('area', v)} type="number" />
+            <TextInput label={t('Высота потолка, м')} value={form.ceilingHeight} onChange={(v) => set('ceilingHeight', v)} type="number" />
+            <TextArea label={t('Описание')} value={form.description} onChange={(v) => set('description', v)} rows={2} className="sm:col-span-2 xl:col-span-3" />
           </div>
           <div className="flex items-center justify-end gap-2 mt-4">
-            <GhostBtn onClick={cancel} disabled={saving}>Отмена</GhostBtn>
+            <GhostBtn onClick={cancel} disabled={saving}>{t('Отмена')}</GhostBtn>
             <PrimaryBtn onClick={save} disabled={saving}>{saving ? 'Сохранение...' : 'Сохранить'}</PrimaryBtn>
           </div>
         </Card>
@@ -234,8 +236,8 @@ export default function RoomsSection({ ctx, onCountChange }: { ctx: PassportCtx;
               {
                 label: '', width: '80px', render: (r) => (
                   <div className="flex items-center justify-end gap-1">
-                    <IconBtn title="Редактировать" onClick={() => openEdit(r)}><PencilIcon className="w-4 h-4" /></IconBtn>
-                    <IconBtn danger title="Удалить" onClick={() => remove(r)}><TrashIcon className="w-4 h-4" /></IconBtn>
+                    <IconBtn title={t('Редактировать')} onClick={() => openEdit(r)}><PencilIcon className="w-4 h-4" /></IconBtn>
+                    <IconBtn danger title={t('Удалить')} onClick={() => remove(r)}><TrashIcon className="w-4 h-4" /></IconBtn>
                   </div>
                 ),
               },

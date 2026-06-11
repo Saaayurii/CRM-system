@@ -7,6 +7,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useIsClient } from '@/hooks/useIsClient';
 import ClientFormModal, { ClientDTO } from '@/components/clients/ClientFormModal';
 import ClientPortalAccessModal from '@/components/admin/ClientPortalAccessModal';
+import { useT } from '@/lib/i18n';
 
 type Tab = 'clients' | 'accesses' | 'invites';
 type ViewMode = 'table' | 'grid';
@@ -98,11 +99,12 @@ function inviteStatus(inv: ClientInvite): { label: string; cls: string } {
 // ──────────────────────────────────────────────────────────────────────────
 
 export default function ClientsPage() {
+  const t = useT();
   const [tab, setTab] = useState<Tab>('clients');
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-gray-100">Клиенты</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-gray-100">{t('Клиенты')}</h1>
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
           База заказчиков, доступы к клиентскому порталу и инвайт-ссылки
         </p>
@@ -140,6 +142,7 @@ export default function ClientsPage() {
 // ──────────────────────────────────────────────────────────────────────────
 
 function ClientsListPanel() {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
   const isReadOnly = useIsClient();
   const [clients, setClients] = useState<ClientRow[]>([]);
@@ -203,7 +206,7 @@ function ClientsListPanel() {
         <div className="flex items-center gap-0.5">
           <button
             onClick={() => setShowSearch((v) => !v)}
-            title="Поиск"
+            title={t('Поиск')}
             className={`p-2 rounded-lg transition-colors ${showSearch || search ? 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20' : 'text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20'}`}
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -216,7 +219,7 @@ function ClientsListPanel() {
                 setEditing(null);
                 setFormOpen(true);
               }}
-              title="Создать клиента"
+              title={t('Создать клиента')}
               className="p-2 text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -229,7 +232,7 @@ function ClientsListPanel() {
           <button
             onClick={() => setView('table')}
             className={`p-1.5 rounded transition-colors ${view === 'table' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}
-            title="Таблица"
+            title={t('Таблица')}
           >
             <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -238,7 +241,7 @@ function ClientsListPanel() {
           <button
             onClick={() => setView('grid')}
             className={`p-1.5 rounded transition-colors ${view === 'grid' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}
-            title="Карточки"
+            title={t('Карточки')}
           >
             <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
@@ -256,7 +259,7 @@ function ClientsListPanel() {
             autoFocus
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Поиск по названию, email, телефону, ИНН..."
+            placeholder={t('Поиск по названию, email, телефону, ИНН...')}
             className="flex-1 bg-transparent text-sm text-gray-800 dark:text-gray-100 placeholder-gray-400 focus:outline-none"
           />
           {search && (
@@ -272,7 +275,7 @@ function ClientsListPanel() {
       {/* Content */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
         {loading ? (
-          <div className="p-10 text-center text-sm text-gray-400">Загрузка...</div>
+          <div className="p-10 text-center text-sm text-gray-400">{t('Загрузка...')}</div>
         ) : filtered.length === 0 ? (
           <div className="p-10 text-center text-sm text-gray-400">
             {search ? 'Ничего не найдено' : 'Клиентов пока нет. Создайте первого или отправьте инвайт-ссылку.'}
@@ -323,7 +326,7 @@ function ClientsListPanel() {
       {deleting && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-xl p-5 max-w-sm w-full">
-            <h3 className="font-semibold text-gray-900 dark:text-gray-100">Удалить клиента?</h3>
+            <h3 className="font-semibold text-gray-900 dark:text-gray-100">{t('Удалить клиента?')}</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               {clientName(deleting)} — это действие нельзя отменить.
             </p>
@@ -361,15 +364,16 @@ function ClientsTable({
   onDelete: (r: ClientRow) => void;
   onPortal: (r: ClientRow) => void;
 }) {
+  const t = useT();
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead className="bg-gray-50 dark:bg-gray-700/30 text-xs uppercase">
           <tr>
-            <th className="py-3 px-4 text-left font-semibold text-gray-500 dark:text-gray-400">Клиент</th>
-            <th className="py-3 px-4 text-left font-semibold text-gray-500 dark:text-gray-400">Контакты</th>
-            <th className="py-3 px-4 text-left font-semibold text-gray-500 dark:text-gray-400">Статус</th>
-            <th className="py-3 px-4 text-right font-semibold text-gray-500 dark:text-gray-400">Действия</th>
+            <th className="py-3 px-4 text-left font-semibold text-gray-500 dark:text-gray-400">{t('Клиент')}</th>
+            <th className="py-3 px-4 text-left font-semibold text-gray-500 dark:text-gray-400">{t('Контакты')}</th>
+            <th className="py-3 px-4 text-left font-semibold text-gray-500 dark:text-gray-400">{t('Статус')}</th>
+            <th className="py-3 px-4 text-right font-semibold text-gray-500 dark:text-gray-400">{t('Действия')}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
@@ -418,7 +422,7 @@ function ClientsTable({
                       <button
                         onClick={() => onPortal(c)}
                         className="text-xs px-2.5 py-1 rounded-lg border border-violet-200 dark:border-violet-500/30 text-violet-600 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-500/10"
-                        title="Доступ к порталу"
+                        title={t('Доступ к порталу')}
                       >
                         Доступ
                       </button>
@@ -427,7 +431,7 @@ function ClientsTable({
                       <button
                         onClick={() => onEdit(c)}
                         className="p-1.5 rounded-lg text-gray-500 hover:text-violet-600 hover:bg-gray-100 dark:hover:bg-gray-700"
-                        title="Редактировать"
+                        title={t('Редактировать')}
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -438,7 +442,7 @@ function ClientsTable({
                       <button
                         onClick={() => onDelete(c)}
                         className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10"
-                        title="Удалить"
+                        title={t('Удалить')}
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3" />
@@ -469,6 +473,7 @@ function ClientsGrid({
   onDelete: (r: ClientRow) => void;
   onPortal: (r: ClientRow) => void;
 }) {
+  const t = useT();
   return (
     <div className="p-4 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
       {rows.map((c) => {
@@ -517,7 +522,7 @@ function ClientsGrid({
               ) : null}
               {c.inn ? (
                 <div className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
-                  <span className="text-gray-400">ИНН</span>
+                  <span className="text-gray-400">{t('ИНН')}</span>
                   <span className="font-mono">{c.inn}</span>
                 </div>
               ) : null}
@@ -557,6 +562,7 @@ function ClientsGrid({
 // ──────────────────────────────────────────────────────────────────────────
 
 function PortalAccessesPanel() {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
   const [accesses, setAccesses] = useState<PortalAccess[]>([]);
   const [clients, setClients] = useState<Record<number, ClientRow>>({});
@@ -614,14 +620,14 @@ function PortalAccessesPanel() {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs">
       <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60">
-        <h2 className="font-semibold text-gray-800 dark:text-gray-100">Выданные доступы</h2>
+        <h2 className="font-semibold text-gray-800 dark:text-gray-100">{t('Выданные доступы')}</h2>
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
           Все клиенты, у которых уже есть учётная запись в портале (логин/пароль или magic-ссылка)
         </p>
       </div>
 
       {loading ? (
-        <div className="p-10 text-center text-sm text-gray-400">Загрузка...</div>
+        <div className="p-10 text-center text-sm text-gray-400">{t('Загрузка...')}</div>
       ) : accesses.length === 0 ? (
         <div className="p-10 text-center text-sm text-gray-400">
           Нет выданных доступов. Откройте карточку клиента и нажмите «Доступ».
@@ -699,6 +705,7 @@ function PortalAccessesPanel() {
 // ──────────────────────────────────────────────────────────────────────────
 
 function ClientInvitesPanel() {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
   const user = useAuthStore((s) => s.user);
   const canManage = user?.roleId !== 15;
@@ -800,7 +807,7 @@ function ClientInvitesPanel() {
     <div className="space-y-4">
       {/* Create form */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-5">
-        <h2 className="font-semibold text-gray-800 dark:text-gray-100">Новый инвайт для клиента</h2>
+        <h2 className="font-semibold text-gray-800 dark:text-gray-100">{t('Новый инвайт для клиента')}</h2>
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
           Клиент сам заполнит данные при первом входе. После регистрации получит роль «Клиент» и доступ к выбранному проекту.
         </p>
@@ -815,7 +822,7 @@ function ClientInvitesPanel() {
               onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : '')}
               className="form-select w-full"
             >
-              <option value="">— Выберите проект —</option>
+              <option value="">{t('— Выберите проект —')}</option>
               {projects.map((p) => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
@@ -830,11 +837,11 @@ function ClientInvitesPanel() {
               onChange={(e) => setExpiresInHours(Number(e.target.value))}
               className="form-select w-full"
             >
-              <option value={24}>24 часа</option>
-              <option value={72}>3 дня</option>
-              <option value={168}>7 дней</option>
-              <option value={720}>30 дней</option>
-              <option value={0}>Без ограничений</option>
+              <option value={24}>{t('24 часа')}</option>
+              <option value={72}>{t('3 дня')}</option>
+              <option value={168}>{t('7 дней')}</option>
+              <option value={720}>{t('30 дней')}</option>
+              <option value={0}>{t('Без ограничений')}</option>
             </select>
           </div>
         </div>
@@ -852,7 +859,7 @@ function ClientInvitesPanel() {
         </div>
 
         <div className="mt-4">
-          <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Что увидит клиент:</div>
+          <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">{t('Что увидит клиент:')}</div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
             {[
               ['Прогресс работ', canViewProgress, setCanViewProgress],
@@ -916,12 +923,12 @@ function ClientInvitesPanel() {
       {/* List */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs">
         <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60">
-          <h2 className="font-semibold text-gray-800 dark:text-gray-100">Все инвайт-ссылки</h2>
+          <h2 className="font-semibold text-gray-800 dark:text-gray-100">{t('Все инвайт-ссылки')}</h2>
         </div>
         {loading ? (
-          <div className="p-10 text-center text-sm text-gray-400">Загрузка...</div>
+          <div className="p-10 text-center text-sm text-gray-400">{t('Загрузка...')}</div>
         ) : invites.length === 0 ? (
-          <div className="p-10 text-center text-sm text-gray-400">Инвайтов пока нет</div>
+          <div className="p-10 text-center text-sm text-gray-400">{t('Инвайтов пока нет')}</div>
         ) : (
           <div className="divide-y divide-gray-100 dark:divide-gray-700/60">
             {invites.map((inv) => {

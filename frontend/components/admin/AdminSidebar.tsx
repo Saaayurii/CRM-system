@@ -7,6 +7,7 @@ import { MODULE_CATEGORIES } from '@/lib/admin/modules';
 import type { ModuleCategory } from '@/types/admin';
 import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
+import { useT } from '@/lib/i18n';
 
 interface AdminSidebarProps {
   onNavigate?: () => void;
@@ -67,6 +68,7 @@ function CategoryGroup({ category, pathname, onNavigate, open, onToggle }: {
 }
 
 export default function AdminSidebar({ onNavigate }: AdminSidebarProps) {
+  const t = useT();
   const pathname = usePathname();
   const [pendingCount, setPendingCount] = useState(0);
   const isGlobalAdmin = useAuthStore((s) => s.user?.isGlobalAdmin);

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import type { NormCategory } from '@/lib/wiki/constants';
+import { useT } from '@/lib/i18n';
 
 interface Props {
   categories: NormCategory[];
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export default function NormCategoryManagerModal({ categories, onClose, onChanged }: Props) {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
   const [items, setItems] = useState<NormCategory[]>(categories);
   const [name, setName] = useState('');
@@ -86,24 +88,24 @@ export default function NormCategoryManagerModal({ categories, onClose, onChange
     <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 p-4 overflow-y-auto" onMouseDown={onClose}>
       <div className="w-full max-w-2xl my-8 bg-white dark:bg-gray-900 rounded-2xl shadow-xl" onMouseDown={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
-          <h2 className="text-lg font-bold">Категории нормативной базы</h2>
+          <h2 className="text-lg font-bold">{t('Категории нормативной базы')}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">✕</button>
         </div>
 
         <div className="px-6 py-4 space-y-4">
           <div className="grid grid-cols-12 gap-2 items-end">
             <div className="col-span-2">
-              <label className="block text-xs text-gray-500 mb-1">Иконка</label>
+              <label className="block text-xs text-gray-500 mb-1">{t('Иконка')}</label>
               <input className={inputCls} value={icon} onChange={(e) => setIcon(e.target.value)} placeholder="📐" />
             </div>
             <div className="col-span-5">
-              <label className="block text-xs text-gray-500 mb-1">Название</label>
-              <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} placeholder="Бетонные работы" />
+              <label className="block text-xs text-gray-500 mb-1">{t('Название')}</label>
+              <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} placeholder={t('Бетонные работы')} />
             </div>
             <div className="col-span-3">
-              <label className="block text-xs text-gray-500 mb-1">Родитель</label>
+              <label className="block text-xs text-gray-500 mb-1">{t('Родитель')}</label>
               <select className={inputCls} value={parentId} onChange={(e) => setParentId(e.target.value)}>
-                <option value="">— корень —</option>
+                <option value="">{t('— корень —')}</option>
                 {items.filter((c) => c.id !== editing?.id).map((c) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
@@ -120,7 +122,7 @@ export default function NormCategoryManagerModal({ categories, onClose, onChange
           </div>
 
           <div className="max-h-80 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-800 border border-gray-100 dark:border-gray-800 rounded-lg">
-            {items.length === 0 && <p className="p-4 text-sm text-gray-400">Категорий пока нет.</p>}
+            {items.length === 0 && <p className="p-4 text-sm text-gray-400">{t('Категорий пока нет.')}</p>}
             {items.map((c) => (
               <div key={c.id} className="flex items-center gap-2 px-3 py-2 text-sm">
                 <span className="w-6 text-center">{c.icon || '📁'}</span>
@@ -133,15 +135,15 @@ export default function NormCategoryManagerModal({ categories, onClose, onChange
                     <span className="ml-2 text-xs text-gray-400">({c.documentCount})</span>
                   )}
                 </span>
-                <button onClick={() => startEdit(c)} className="text-violet-600 hover:underline text-xs">Изм.</button>
-                <button onClick={() => remove(c)} className="text-red-500 hover:underline text-xs">Удал.</button>
+                <button onClick={() => startEdit(c)} className="text-violet-600 hover:underline text-xs">{t('Изм.')}</button>
+                <button onClick={() => remove(c)} className="text-red-500 hover:underline text-xs">{t('Удал.')}</button>
               </div>
             ))}
           </div>
         </div>
 
         <div className="flex justify-end px-6 py-4 border-t border-gray-100 dark:border-gray-700">
-          <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">Закрыть</button>
+          <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">{t('Закрыть')}</button>
         </div>
       </div>
     </div>

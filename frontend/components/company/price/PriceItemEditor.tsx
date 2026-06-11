@@ -18,6 +18,7 @@ import {
   type SelectionType,
 } from '@/lib/price/types';
 import AddParameterPicker from './AddParameterPicker';
+import { useT } from '@/lib/i18n';
 
 interface PriceCategory {
   id: number;
@@ -37,6 +38,7 @@ function emptyGroup(): ParamGroup {
 }
 
 export default function PriceItemEditor({ itemId }: { itemId: number | null }) {
+  const t = useT();
   const router = useRouter();
   const addToast = useToastStore((s) => s.addToast);
 
@@ -301,8 +303,8 @@ export default function PriceItemEditor({ itemId }: { itemId: number | null }) {
             onChange={(e) => setStatus(e.target.value as PriceStatus)}
             className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700"
           >
-            <option value="draft">Черновик</option>
-            <option value="active">Активна</option>
+            <option value="draft">{t('Черновик')}</option>
+            <option value="active">{t('Активна')}</option>
           </select>
           <button
             onClick={handleSave}
@@ -319,26 +321,26 @@ export default function PriceItemEditor({ itemId }: { itemId: number | null }) {
         {/* Левая колонка */}
         <div className="lg:col-span-4 space-y-5">
           <section className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-5 space-y-4">
-            <h2 className="font-semibold text-gray-800 dark:text-gray-100">Основная информация</h2>
+            <h2 className="font-semibold text-gray-800 dark:text-gray-100">{t('Основная информация')}</h2>
             <div>
-              <label className={LABEL}>Название позиции *</label>
-              <input value={name} onChange={(e) => setName(e.target.value)} className={INPUT} placeholder="Например: Сверление стены" />
+              <label className={LABEL}>{t('Название позиции *')}</label>
+              <input value={name} onChange={(e) => setName(e.target.value)} className={INPUT} placeholder={t('Например: Сверление стены')} />
             </div>
             <div>
-              <label className={LABEL}>Категория</label>
+              <label className={LABEL}>{t('Категория')}</label>
               <select value={categoryId === '' ? '' : String(categoryId)} onChange={(e) => setCategoryId(e.target.value === '' ? '' : Number(e.target.value))} className={INPUT}>
-                <option value="">— без категории —</option>
+                <option value="">{t('— без категории —')}</option>
                 {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
             <div>
-              <label className={LABEL}>Единица измерения</label>
+              <label className={LABEL}>{t('Единица измерения')}</label>
               <input
                 value={unit}
                 onChange={(e) => setUnit(e.target.value)}
                 className={INPUT}
                 list="price-units-list"
-                placeholder="отверстие (шт.)"
+                placeholder={t('отверстие (шт.)')}
               />
               <datalist id="price-units-list">
                 {units.map((u) => <option key={u.id} value={u.shortName ? `${u.name} (${u.shortName})` : u.name} />)}
@@ -346,37 +348,37 @@ export default function PriceItemEditor({ itemId }: { itemId: number | null }) {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className={LABEL}>Базовая цена, ₽</label>
+                <label className={LABEL}>{t('Базовая цена, ₽')}</label>
                 <input value={basePrice} onChange={(e) => setBasePrice(e.target.value)} className={INPUT} inputMode="decimal" placeholder="1000" />
               </div>
               <div>
-                <label className={LABEL}>Себестоимость, ₽</label>
+                <label className={LABEL}>{t('Себестоимость, ₽')}</label>
                 <input value={cost} onChange={(e) => setCost(e.target.value)} className={INPUT} inputMode="decimal" placeholder="600" />
               </div>
             </div>
             <div>
-              <label className={LABEL}>Описание</label>
+              <label className={LABEL}>{t('Описание')}</label>
               <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className={INPUT} />
             </div>
           </section>
 
           <section className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-5 space-y-4">
-            <h2 className="font-semibold text-gray-800 dark:text-gray-100">Настройки расчёта цены</h2>
+            <h2 className="font-semibold text-gray-800 dark:text-gray-100">{t('Настройки расчёта цены')}</h2>
             <div>
-              <label className={LABEL}>Способ расчёта</label>
+              <label className={LABEL}>{t('Способ расчёта')}</label>
               <select value={calcMethod} onChange={(e) => setCalcMethod(e.target.value as CalcMethod)} className={INPUT}>
-                <option value="formula">По формуле (база + коэффициенты + доплаты)</option>
-                <option value="columns">По колонкам категорий проектов</option>
+                <option value="formula">{t('По формуле (база + коэффициенты + доплаты)')}</option>
+                <option value="columns">{t('По колонкам категорий проектов')}</option>
               </select>
             </div>
             <div>
-              <label className={LABEL}>Округление</label>
+              <label className={LABEL}>{t('Округление')}</label>
               <select value={rounding} onChange={(e) => setRounding(Number(e.target.value))} className={INPUT}>
                 {ROUNDING_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
             <div className="bg-violet-50 dark:bg-violet-500/10 border border-violet-200 dark:border-violet-500/30 rounded-lg p-3 text-xs text-violet-800 dark:text-violet-300">
-              <p className="font-medium mb-1">Как считается цена</p>
+              <p className="font-medium mb-1">{t('Как считается цена')}</p>
               Итоговая цена = (Базовая цена × Коэффициенты) + Доплаты. Коэффициенты и доплаты задаются в вариантах параметров.
             </div>
           </section>
@@ -384,7 +386,7 @@ export default function PriceItemEditor({ itemId }: { itemId: number | null }) {
           {/* Предпросмотр цены */}
           {calcMethod === 'formula' && groups.length > 0 && (
             <section className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-5 space-y-3">
-              <h2 className="font-semibold text-gray-800 dark:text-gray-100">Предпросмотр цены</h2>
+              <h2 className="font-semibold text-gray-800 dark:text-gray-100">{t('Предпросмотр цены')}</h2>
               {groups.map((g, gi) => (
                 <div key={gi}>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{g.name || 'Параметр'}</p>
@@ -406,7 +408,7 @@ export default function PriceItemEditor({ itemId }: { itemId: number | null }) {
                 </div>
               ))}
               <div className="pt-2 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
-                <span className="text-sm text-gray-500 dark:text-gray-400">Итоговая цена</span>
+                <span className="text-sm text-gray-500 dark:text-gray-400">{t('Итоговая цена')}</span>
                 <span className="text-lg font-bold text-green-600 dark:text-green-400">{fmtMoney(preview.price)} ₽</span>
               </div>
               {preview.missingRequired.length > 0 && (
@@ -430,8 +432,8 @@ export default function PriceItemEditor({ itemId }: { itemId: number | null }) {
               <section className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-5">
                 <div className="flex items-center justify-between mb-3">
                   <div>
-                    <h2 className="font-semibold text-gray-800 dark:text-gray-100">Параметры (группы модификаторов)</h2>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Параметры определяют варианты услуги и влияют на итоговую цену.</p>
+                    <h2 className="font-semibold text-gray-800 dark:text-gray-100">{t('Параметры (группы модификаторов)')}</h2>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{t('Параметры определяют варианты услуги и влияют на итоговую цену.')}</p>
                   </div>
                   <button
                     onClick={() => setPicking(true)}
@@ -467,7 +469,7 @@ export default function PriceItemEditor({ itemId }: { itemId: number | null }) {
                         <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
                           <button onClick={() => moveGroup(gi, -1)} className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30" disabled={gi === 0}>↑</button>
                           <button onClick={() => moveGroup(gi, 1)} className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30" disabled={gi === groups.length - 1}>↓</button>
-                          <button onClick={() => removeGroup(gi)} className="p-1 text-gray-400 hover:text-red-500" title="Удалить">✕</button>
+                          <button onClick={() => removeGroup(gi)} className="p-1 text-gray-400 hover:text-red-500" title={t('Удалить')}>✕</button>
                         </div>
                       </li>
                     ))}
@@ -477,24 +479,24 @@ export default function PriceItemEditor({ itemId }: { itemId: number | null }) {
 
               {active && activeGroupIdx != null && (
                 <section className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-5 space-y-4">
-                  <h2 className="font-semibold text-gray-800 dark:text-gray-100">Редактирование группы параметров</h2>
+                  <h2 className="font-semibold text-gray-800 dark:text-gray-100">{t('Редактирование группы параметров')}</h2>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
-                      <label className={LABEL}>Название группы *</label>
+                      <label className={LABEL}>{t('Название группы *')}</label>
                       <input value={active.name} onChange={(e) => updateGroup(activeGroupIdx, { name: e.target.value })} className={INPUT} />
                     </div>
                     <div>
-                      <label className={LABEL}>Тип выбора</label>
+                      <label className={LABEL}>{t('Тип выбора')}</label>
                       <select value={active.selectionType} onChange={(e) => updateGroup(activeGroupIdx, { selectionType: e.target.value as SelectionType })} className={INPUT}>
-                        <option value="single">Один вариант</option>
-                        <option value="multi">Несколько вариантов</option>
+                        <option value="single">{t('Один вариант')}</option>
+                        <option value="multi">{t('Несколько вариантов')}</option>
                       </select>
                     </div>
                     <div>
-                      <label className={LABEL}>Обязательность</label>
+                      <label className={LABEL}>{t('Обязательность')}</label>
                       <select value={active.isRequired ? '1' : '0'} onChange={(e) => updateGroup(activeGroupIdx, { isRequired: e.target.value === '1' })} className={INPUT}>
-                        <option value="1">Обязательно</option>
-                        <option value="0">Необязательно</option>
+                        <option value="1">{t('Обязательно')}</option>
+                        <option value="0">{t('Необязательно')}</option>
                       </select>
                     </div>
                   </div>
@@ -504,22 +506,22 @@ export default function PriceItemEditor({ itemId }: { itemId: number | null }) {
                   </label>
 
                   <div className="flex items-center justify-between pt-2">
-                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200">Варианты параметра</h3>
-                    <button onClick={addOption} className="text-xs font-medium text-violet-600 dark:text-violet-400 hover:text-violet-700">+ Добавить вариант</button>
+                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200">{t('Варианты параметра')}</h3>
+                    <button onClick={addOption} className="text-xs font-medium text-violet-600 dark:text-violet-400 hover:text-violet-700">{t('+ Добавить вариант')}</button>
                   </div>
                   {active.options.length === 0 ? (
-                    <p className="text-xs text-gray-400 py-2">Добавьте хотя бы один вариант.</p>
+                    <p className="text-xs text-gray-400 py-2">{t('Добавьте хотя бы один вариант.')}</p>
                   ) : (
                     <div className="space-y-2">
                       <div className="hidden sm:grid grid-cols-12 gap-2 text-xs text-gray-400 px-1">
-                        <span className="col-span-6">Название варианта</span>
-                        <span className="col-span-3">Тип влияния</span>
-                        <span className="col-span-2">Значение</span>
+                        <span className="col-span-6">{t('Название варианта')}</span>
+                        <span className="col-span-3">{t('Тип влияния')}</span>
+                        <span className="col-span-2">{t('Значение')}</span>
                         <span className="col-span-1" />
                       </div>
                       {active.options.map((o, oi) => (
                         <div key={oi} className="grid grid-cols-12 gap-2 items-center">
-                          <input value={o.name} onChange={(e) => updateOption(oi, { name: e.target.value })} className={`${INPUT} col-span-12 sm:col-span-6`} placeholder="Например: Бетон" />
+                          <input value={o.name} onChange={(e) => updateOption(oi, { name: e.target.value })} className={`${INPUT} col-span-12 sm:col-span-6`} placeholder={t('Например: Бетон')} />
                           <select value={o.influenceType} onChange={(e) => updateOption(oi, { influenceType: e.target.value as InfluenceType })} className={`${INPUT} col-span-7 sm:col-span-3`}>
                             {(Object.keys(INFLUENCE_LABELS) as InfluenceType[]).map((t) => <option key={t} value={t}>{INFLUENCE_LABELS[t]}</option>)}
                           </select>
@@ -530,7 +532,7 @@ export default function PriceItemEditor({ itemId }: { itemId: number | null }) {
                             className={`${INPUT} col-span-4 sm:col-span-2 disabled:opacity-40`}
                             inputMode="decimal"
                           />
-                          <button onClick={() => removeOption(oi)} className="col-span-1 p-1.5 text-gray-400 hover:text-red-500" title="Удалить вариант">✕</button>
+                          <button onClick={() => removeOption(oi)} className="col-span-1 p-1.5 text-gray-400 hover:text-red-500" title={t('Удалить вариант')}>✕</button>
                         </div>
                       ))}
                     </div>

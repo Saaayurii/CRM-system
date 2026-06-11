@@ -11,6 +11,7 @@ import UserProfileModal from './UserProfileModal';
 import { haptic } from '@/lib/haptics';
 import { useThemeStore } from '@/stores/themeStore';
 import { nameColorClass } from '@/lib/appearance';
+import { useT } from '@/lib/i18n';
 
 const QUICK_EMOJIS = ['❤️', '🤗', '👍', '😄', '👎', '🔥', '👏'];
 
@@ -83,6 +84,7 @@ const TG_SENDER_RE = /^\*\*(.+?):\*\* ?([\s\S]*)$/;
 
 /* ─── Readers tooltip ─── */
 function ReaderAvatar({ reader, size = 'sm' }: { reader: Reader; size?: 'sm' | 'xs' }) {
+  const t = useT();
   const sz = size === 'xs' ? 'w-4 h-4 text-[8px]' : 'w-6 h-6 text-[10px]';
   const initials = (reader.name || '').split(' ').map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || '?';
   return (
@@ -101,6 +103,7 @@ function ReaderAvatar({ reader, size = 'sm' }: { reader: Reader; size?: 'sm' | '
 }
 
 function ReadersTooltip({ readers }: { readers: Reader[] }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const MAX_VISIBLE = 3;
   const visible = readers.slice(0, MAX_VISIBLE);
@@ -172,6 +175,7 @@ const isVideoAtt = (a: any): boolean =>
   (!a.mimeType && /\.(mp4|mov|avi|webm|mkv|m4v|3gp)$/i.test(a.fileName || ''));
 
 export default function ChatMessage({ message, isOwn, showAvatar, isRead, readers = [], onReply, onScrollToReply, onReact, onDelete, onEdit, onPin, onForward, onGoToOriginalChannel, isPinned, canPin, highlightQuery, readOnly = false }: ChatMessageProps) {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
   const setEditingMessage = useChatStore((s) => s.setEditingMessage);
   const isVoice = message.messageType === 'voice';
@@ -554,7 +558,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
                     <button
                       onClick={(e) => { e.stopPropagation(); onGoToOriginalChannel(forwardChannelId); }}
                       className={`ml-auto shrink-0 p-0.5 rounded transition-colors ${own ? 'text-white/50 hover:text-white/90' : 'text-violet-400 hover:text-violet-600'}`}
-                      title="Перейти к оригиналу"
+                      title={t('Перейти к оригиналу')}
                     >
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -718,7 +722,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
         {/* Delete confirmation */}
         {confirmDelete && (
           <div className="mt-1 flex items-center gap-2 text-xs bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-3 py-1.5">
-            <span className="text-red-600 dark:text-red-400">Удалить сообщение?</span>
+            <span className="text-red-600 dark:text-red-400">{t('Удалить сообщение?')}</span>
             <button
               onClick={handleDeleteWithSnap}
               className="px-2 py-0.5 bg-red-500 hover:bg-red-600 text-white rounded font-medium"
@@ -799,7 +803,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
               onClick={() => { onReply(); setShowMobileActions(false); setIsSelected(false); }}
               className="w-full flex items-center justify-between px-3.5 py-2 text-white hover:bg-white/10 active:bg-white/15 transition-colors border-b border-white/10"
             >
-              <span className="text-[13px]">Ответить</span>
+              <span className="text-[13px]">{t('Ответить')}</span>
               <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
               </svg>
@@ -817,7 +821,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
                 }}
                 className="w-full flex items-center justify-between px-3.5 py-2 text-white hover:bg-white/10 active:bg-white/15 transition-colors border-b border-white/10"
               >
-                <span className="text-[13px]">Копировать текст</span>
+                <span className="text-[13px]">{t('Копировать текст')}</span>
                 <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
@@ -830,7 +834,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
                 onClick={() => { handleEditStart(); setShowMobileActions(false); setIsSelected(false); }}
                 className="w-full flex items-center justify-between px-3.5 py-2 text-white hover:bg-white/10 active:bg-white/15 transition-colors border-b border-white/10"
               >
-                <span className="text-[13px]">Редактировать</span>
+                <span className="text-[13px]">{t('Редактировать')}</span>
                 <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
@@ -857,7 +861,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
                 onClick={() => { onForward(message); setShowMobileActions(false); setIsSelected(false); }}
                 className={`w-full flex items-center justify-between px-3.5 py-2 text-white hover:bg-white/10 active:bg-white/15 transition-colors ${isOwn ? 'border-b border-white/10' : ''}`}
               >
-                <span className="text-[13px]">Переслать</span>
+                <span className="text-[13px]">{t('Переслать')}</span>
                 <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 9l3 3m0 0l-3 3m3-3H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
@@ -870,7 +874,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
                 onClick={() => { setConfirmDelete(true); setShowMobileActions(false); setIsSelected(false); }}
                 className="w-full flex items-center justify-between px-3.5 py-2 text-red-400 hover:bg-white/10 active:bg-white/15 transition-colors"
               >
-                <span className="text-[13px]">Удалить</span>
+                <span className="text-[13px]">{t('Удалить')}</span>
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
@@ -916,7 +920,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
             <div className="min-w-[210px] py-1 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-xl overflow-hidden">
               <button onClick={() => { onReply(); setCtxMenu(null); }} className={CTX_ITEM}>
                 <span className={CTX_ICON}>{ICON_REPLY}</span>
-                <span className="flex-1">Ответить</span>
+                <span className="flex-1">{t('Ответить')}</span>
               </button>
 
               {message.text && (
@@ -930,14 +934,14 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
                   className={CTX_ITEM}
                 >
                   <span className={CTX_ICON}>{ICON_COPY}</span>
-                  <span className="flex-1">Копировать текст</span>
+                  <span className="flex-1">{t('Копировать текст')}</span>
                 </button>
               )}
 
               {isOwn && message.text && onEdit && (
                 <button onClick={() => { handleEditStart(); setCtxMenu(null); }} className={CTX_ITEM}>
                   <span className={CTX_ICON}>{ICON_EDIT}</span>
-                  <span className="flex-1">Редактировать</span>
+                  <span className="flex-1">{t('Редактировать')}</span>
                 </button>
               )}
 
@@ -951,7 +955,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
               {onForward && (
                 <button onClick={() => { onForward(message); setCtxMenu(null); }} className={CTX_ITEM}>
                   <span className={CTX_ICON}>{ICON_FORWARD}</span>
-                  <span className="flex-1">Переслать</span>
+                  <span className="flex-1">{t('Переслать')}</span>
                 </button>
               )}
 
@@ -963,7 +967,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
                     className={CTX_ITEM_DANGER}
                   >
                     <span className="shrink-0 w-5 h-5 flex items-center justify-center text-red-500">{ICON_TRASH}</span>
-                    <span className="flex-1">Удалить</span>
+                    <span className="flex-1">{t('Удалить')}</span>
                   </button>
                 </>
               )}
@@ -1061,6 +1065,7 @@ function fmtDate(d: string): string {
 function TaskCard({ id, title, status, priority, dueDate, isOwn }: {
   id: string; title: string; status: number; priority: number; dueDate: string; isOwn: boolean;
 }) {
+  const t = useT();
   const st = TASK_STATUS_LABELS[status];
   const pr = TASK_PRIORITY_LABELS[priority];
   const due = fmtDate(dueDate);
@@ -1144,6 +1149,7 @@ function TaskCardMessage({ card, isOwn, senderName, createdAt, messageId }: {
   createdAt: string;
   messageId: number;
 }) {
+  const t = useT();
   const st = TASK_STATUS_LABELS[card.status];
   const pr = TASK_PRIORITY_LABELS[card.priority];
   const due = card.dueDate ? fmtDate(card.dueDate) : '';
@@ -1234,7 +1240,7 @@ function TaskCardMessage({ card, isOwn, senderName, createdAt, messageId }: {
                 </span>
               </>
             ) : (
-              <span className="text-[11px] text-gray-400 dark:text-gray-500">Без исполнителей</span>
+              <span className="text-[11px] text-gray-400 dark:text-gray-500">{t('Без исполнителей')}</span>
             )}
           </div>
           <span className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
@@ -1496,6 +1502,7 @@ function MediaAlbum({
 // in browsers that otherwise show a blank frame.
 
 function VideoThumbnail({ src, className }: { src: string; className?: string }) {
+  const t = useT();
   return (
     <video
       src={src}
@@ -1519,6 +1526,7 @@ interface VoicePlayerProps {
 }
 
 function VoicePlayer({ src, isOwn }: VoicePlayerProps) {
+  const t = useT();
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -1653,6 +1661,7 @@ interface VideoNotePlayerProps {
 }
 
 function VideoNotePlayer({ src, isOwn }: VideoNotePlayerProps) {
+  const t = useT();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
@@ -1730,6 +1739,7 @@ function formatAudioDuration(seconds: number): string {
 }
 
 function DownloadIcon() {
+  const t = useT();
   return (
     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
@@ -1738,6 +1748,7 @@ function DownloadIcon() {
 }
 
 function FileIcon({ mimeType }: { mimeType: string }) {
+  const t = useT();
   const mime = mimeType ?? '';
 
   if (mime === 'application/pdf') {

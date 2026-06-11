@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { Note, notesApi } from '@/lib/notes';
+import { useT } from '@/lib/i18n';
 
 // Module-level guard so the reminder is fetched once per full app load,
 // not on every client-side route change (layout stays mounted).
@@ -20,6 +21,7 @@ const PAPER: Record<string, { base: string; fold: string }> = {
 };
 
 function Paperclip() {
+  const t = useT();
   return (
     <svg
       viewBox="0 0 50 140"
@@ -36,6 +38,7 @@ function Paperclip() {
 }
 
 export default function NoteReminder() {
+  const t = useT();
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const [queue, setQueue] = useState<Note[]>([]);

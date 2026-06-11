@@ -1,6 +1,7 @@
 'use client';
 
 import type { ContainerInfo } from '@/types/docker';
+import { useT } from '@/lib/i18n';
 
 interface ServiceSummaryBarProps {
   containers: ContainerInfo[];
@@ -32,6 +33,7 @@ function getTimeSince(status: string): string {
 }
 
 export default function ServiceSummaryBar({ containers }: ServiceSummaryBarProps) {
+  const t = useT();
   const total = containers.length;
   const running = containers.filter((c) => c.state === 'running').length;
   const stopped = containers.filter((c) => c.state !== 'running');

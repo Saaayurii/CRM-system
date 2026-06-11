@@ -7,6 +7,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useToastStore } from '@/stores/toastStore';
 import BlockEditor, { Block, newBlock } from '@/components/wiki/BlockEditor';
 import { WikiPageDetail, WikiDraft, WikiVersion, fmtDateTime } from '@/lib/wiki/pages-constants';
+import { useT } from '@/lib/i18n';
 
 interface Props {
   pageId: number | null;
@@ -16,6 +17,7 @@ const ADMIN_ROLES = [1, 2, 3];
 const AUTOSAVE_INTERVAL = 30_000;
 
 export default function WikiEditorPage({ pageId }: Props) {
+  const t = useT();
   const router = useRouter();
   const searchParams = useSearchParams();
   const draftIdParam = searchParams?.get('draft') ? Number(searchParams.get('draft')) : null;
@@ -261,20 +263,20 @@ export default function WikiEditorPage({ pageId }: Props) {
               <input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Заголовок страницы…"
+                placeholder={t('Заголовок страницы…')}
                 className="w-full text-2xl font-bold bg-transparent outline-none placeholder-gray-300 dark:placeholder-gray-600"
               />
               <div className="flex gap-3 flex-wrap">
                 <input
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  placeholder="Категория…"
+                  placeholder={t('Категория…')}
                   className="flex-1 min-w-[140px] text-sm bg-transparent border-b border-gray-200 dark:border-gray-700 outline-none py-1 text-gray-600 dark:text-gray-300"
                 />
                 <input
                   value={tags}
                   onChange={(e) => setTags(e.target.value)}
-                  placeholder="Теги (через запятую)…"
+                  placeholder={t('Теги (через запятую)…')}
                   className="flex-1 min-w-[200px] text-sm bg-transparent border-b border-gray-200 dark:border-gray-700 outline-none py-1 text-gray-600 dark:text-gray-300"
                 />
               </div>
@@ -283,7 +285,7 @@ export default function WikiEditorPage({ pageId }: Props) {
 
           {preview ? (
             <div className="space-y-2">
-              <h1 className="text-3xl font-bold mb-4">{title || <span className="text-gray-400">Без заголовка</span>}</h1>
+              <h1 className="text-3xl font-bold mb-4">{title || <span className="text-gray-400">{t('Без заголовка')}</span>}</h1>
               <BlockEditor blocks={blocks} onChange={() => {}} readOnly />
             </div>
           ) : (
@@ -300,7 +302,7 @@ export default function WikiEditorPage({ pageId }: Props) {
                 <button onClick={() => setShowVersions(false)} className="text-gray-400 hover:text-gray-600 text-sm">✕</button>
               </h3>
               {versions.length === 0 ? (
-                <p className="text-sm text-gray-400">Предыдущих версий нет.</p>
+                <p className="text-sm text-gray-400">{t('Предыдущих версий нет.')}</p>
               ) : (
                 <div className="space-y-2">
                   <div className="px-3 py-2 rounded-lg bg-violet-50 dark:bg-violet-500/10 text-sm">

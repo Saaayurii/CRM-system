@@ -8,6 +8,7 @@ import ImportCsvModal from './ImportCsvModal';
 import ParameterLibraryModal from './price/ParameterLibraryModal';
 import UnitsModal from './price/UnitsModal';
 import CreateServiceWizard from './price/CreateServiceWizard';
+import { useT } from '@/lib/i18n';
 
 interface ProjectCategory {
   id: number;
@@ -71,6 +72,7 @@ function fmtMoney(v: unknown) {
 }
 
 export default function PriceTab() {
+  const t = useT();
   const addToast = useToastStore((st) => st.addToast);
   const router = useRouter();
 
@@ -188,7 +190,7 @@ export default function PriceTab() {
           <button
             onClick={() => setManagingParams(true)}
             className="px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
-            title="Библиотека параметров для параметрических услуг"
+            title={t('Библиотека параметров для параметрических услуг')}
           >
             Параметры
           </button>
@@ -201,7 +203,7 @@ export default function PriceTab() {
           <button
             onClick={() => setImporting(true)}
             className="px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors flex items-center gap-1.5"
-            title="Импорт прайса из CSV"
+            title={t('Импорт прайса из CSV')}
           >
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 16V4m0 12l-3-3m3 3l3-3m6 6.5V19a2 2 0 01-2 2H6a2 2 0 01-2-2v-2.5" />
@@ -213,7 +215,7 @@ export default function PriceTab() {
               <button
                 onClick={() => handleExport('pdf')}
                 className="px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors flex items-center gap-1.5"
-                title="Скачать прайс PDF"
+                title={t('Скачать прайс PDF')}
               >
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3M4 6h16M5 6v13a2 2 0 002 2h10a2 2 0 002-2V6" />
@@ -223,7 +225,7 @@ export default function PriceTab() {
               <button
                 onClick={() => handleExport('xlsx')}
                 className="px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors flex items-center gap-1.5"
-                title="Скачать прайс Excel"
+                title={t('Скачать прайс Excel')}
               >
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3M4 6h16M5 6v13a2 2 0 002 2h10a2 2 0 002-2V6" />
@@ -235,14 +237,14 @@ export default function PriceTab() {
           <button
             onClick={() => setEditing({ mode: 'create' })}
             className="px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
-            title="Простая позиция с ценами по колонкам"
+            title={t('Простая позиция с ценами по колонкам')}
           >
             Простая позиция
           </button>
           <button
             onClick={() => setWizard(true)}
             className="px-3 py-1.5 text-xs font-medium text-violet-700 dark:text-violet-300 bg-violet-100 dark:bg-violet-500/15 hover:bg-violet-200 dark:hover:bg-violet-500/25 rounded-lg transition-colors"
-            title="Пошаговое создание услуги с параметрами"
+            title={t('Пошаговое создание услуги с параметрами')}
           >
             Мастер услуги
           </button>
@@ -276,9 +278,9 @@ export default function PriceTab() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
                 <tr>
-                  <th className="text-left px-3 py-2 font-medium text-gray-600 dark:text-gray-300">Название</th>
-                  <th className="text-left px-3 py-2 font-medium text-gray-600 dark:text-gray-300 whitespace-nowrap">Ед.</th>
-                  <th className="text-right px-3 py-2 font-medium text-gray-600 dark:text-gray-300 whitespace-nowrap">Себест.</th>
+                  <th className="text-left px-3 py-2 font-medium text-gray-600 dark:text-gray-300">{t('Название')}</th>
+                  <th className="text-left px-3 py-2 font-medium text-gray-600 dark:text-gray-300 whitespace-nowrap">{t('Ед.')}</th>
+                  <th className="text-right px-3 py-2 font-medium text-gray-600 dark:text-gray-300 whitespace-nowrap">{t('Себест.')}</th>
                   {data.projectCategories.map((pc) => (
                     <th
                       key={pc.id}
@@ -396,6 +398,7 @@ function FragmentRows({
   onAddModifier: (parent: PriceItem) => void;
   onDelete: (id: number) => void;
 }) {
+  const t = useT();
   return (
     <>
       <tr className="bg-gray-50/50 dark:bg-gray-700/30">
@@ -429,7 +432,7 @@ function FragmentRows({
                         </span>
                       )}
                       {it.status === 'draft' && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300">черновик</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{t('черновик')}</span>
                       )}
                     </div>
                     {it.description && (
@@ -461,7 +464,7 @@ function FragmentRows({
                   <button
                     onClick={() => onEdit(it)}
                     className="p-1.5 text-gray-500 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-500/10 rounded transition-colors"
-                    title="Редактировать"
+                    title={t('Редактировать')}
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-5m-1.4-9.6a2 2 0 0 1 2.8 2.8L11.8 15 8 16l1-3.8 9.6-9.8z" />
@@ -470,7 +473,7 @@ function FragmentRows({
                   <button
                     onClick={() => onDelete(it.id)}
                     className="p-1.5 text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded transition-colors"
-                    title="Удалить"
+                    title={t('Удалить')}
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3" />
@@ -512,7 +515,7 @@ function FragmentRows({
                         <button
                           onClick={() => onEdit(mod)}
                           className="p-1 text-gray-500 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-500/10 rounded transition-colors"
-                          title="Редактировать"
+                          title={t('Редактировать')}
                         >
                           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-5m-1.4-9.6a2 2 0 0 1 2.8 2.8L11.8 15 8 16l1-3.8 9.6-9.8z" />
@@ -521,7 +524,7 @@ function FragmentRows({
                         <button
                           onClick={() => onDelete(mod.id)}
                           className="p-1 text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded transition-colors"
-                          title="Удалить"
+                          title={t('Удалить')}
                         >
                           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3" />
@@ -566,6 +569,7 @@ function PriceItemModal({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const t = useT();
   const addToast = useToastStore((st) => st.addToast);
   const editingItem = state.mode === 'edit' ? state.item : null;
   const parentItem = state.mode === 'createModifier' ? state.parent : null;
@@ -668,7 +672,7 @@ function PriceItemModal({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Описание</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t('Описание')}</label>
             <textarea
               value={description ?? ''}
               onChange={(e) => setDescription(e.target.value)}
@@ -679,13 +683,13 @@ function PriceItemModal({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {!isModifier && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Категория</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t('Категория')}</label>
                 <select
                   value={categoryId === '' ? '' : String(categoryId)}
                   onChange={(e) => setCategoryId(e.target.value === '' ? '' : Number(e.target.value))}
                   className={INPUT_CLS}
                 >
-                  <option value="">— без категории —</option>
+                  <option value="">{t('— без категории —')}</option>
                   {categories.map((c) => (
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
@@ -693,11 +697,11 @@ function PriceItemModal({
               </div>
             )}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Ед. изм.</label>
-              <input value={unit ?? ''} onChange={(e) => setUnit(e.target.value)} className={INPUT_CLS} placeholder="м², м³, шт..." />
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t('Ед. изм.')}</label>
+              <input value={unit ?? ''} onChange={(e) => setUnit(e.target.value)} className={INPUT_CLS} placeholder={t('м², м³, шт...')} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Себестоимость</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t('Себестоимость')}</label>
               <input
                 value={cost}
                 onChange={(e) => setCost(e.target.value)}
@@ -709,9 +713,9 @@ function PriceItemModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Цены по категориям проектов</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('Цены по категориям проектов')}</label>
             {projectCategories.length === 0 ? (
-              <p className="text-xs text-gray-500 dark:text-gray-400">Сначала добавьте хотя бы одну категорию проектов в управлении колонками цен.</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t('Сначала добавьте хотя бы одну категорию проектов в управлении колонками цен.')}</p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {projectCategories.map((pc) => (
@@ -761,13 +765,14 @@ function ProjectCategoriesModal({
   onClose: () => void;
   onChanged: () => void;
 }) {
+  const t = useT();
   return (
     <SimpleListModal<ProjectCategory>
-      title="Колонки цен (категории проектов)"
-      description="Каждая категория проекта формирует отдельную колонку цены в прайсе. Например: Квартира, Офис, Коммерческий объект."
+      title={t('Колонки цен (категории проектов)')}
+      description={t('Каждая категория проекта формирует отдельную колонку цены в прайсе. Например: Квартира, Офис, Коммерческий объект.')}
       items={items}
       endpoint="/price-project-categories"
-      placeholder="Например: Квартира"
+      placeholder={t('Например: Квартира')}
       onClose={onClose}
       onChanged={onChanged}
     />
@@ -783,13 +788,14 @@ function CategoriesModal({
   onClose: () => void;
   onChanged: () => void;
 }) {
+  const t = useT();
   return (
     <SimpleListModal<PriceCategory>
-      title="Категории прайс-листа"
-      description="Группировка позиций внутри прайса. Например: Демонтаж, Электрика, Бурение."
+      title={t('Категории прайс-листа')}
+      description={t('Группировка позиций внутри прайса. Например: Демонтаж, Электрика, Бурение.')}
       items={items}
       endpoint="/price-categories"
-      placeholder="Например: Демонтаж"
+      placeholder={t('Например: Демонтаж')}
       onClose={onClose}
       onChanged={onChanged}
     />
@@ -813,6 +819,7 @@ function SimpleListModal<T extends { id: number; name: string }>({
   onClose: () => void;
   onChanged: () => void;
 }) {
+  const t = useT();
   const addToast = useToastStore((st) => st.addToast);
   const [newName, setNewName] = useState('');
   const [saving, setSaving] = useState(false);
@@ -894,7 +901,7 @@ function SimpleListModal<T extends { id: number; name: string }>({
           </div>
 
           {items.length === 0 ? (
-            <p className="text-center text-sm text-gray-400 dark:text-gray-500 py-6">Пока пусто</p>
+            <p className="text-center text-sm text-gray-400 dark:text-gray-500 py-6">{t('Пока пусто')}</p>
           ) : (
             <ul className="space-y-1.5">
               {items.map((it) => (
@@ -931,6 +938,7 @@ function SimpleListRow<T extends { id: number; name: string }>({
   onSave: (name: string) => void | Promise<void>;
   onDelete: () => void | Promise<void>;
 }) {
+  const t = useT();
   const [name, setName] = useState(item.name);
   const dirty = name !== item.name;
   return (
@@ -944,7 +952,7 @@ function SimpleListRow<T extends { id: number; name: string }>({
       <button
         onClick={onDelete}
         className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded transition-colors"
-        title="Удалить"
+        title={t('Удалить')}
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3" />

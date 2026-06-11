@@ -6,6 +6,7 @@ import { useToastStore } from '@/stores/toastStore';
 import CreateTeamModal from '@/components/dashboard/CreateTeamModal';
 import { useDownloadPdf } from '@/lib/hooks/useDownloadPdf';
 import { FAB_CREATED_EVENT } from '@/components/ui/QuickActionsButton';
+import { useT } from '@/lib/i18n';
 
 interface TeamMember {
   id: number;        // teamMember record ID
@@ -124,6 +125,7 @@ function UserDetailModal({ user, onClose }: { user: UserDetail; onClose: () => v
 }
 
 export default function TeamsPage() {
+  const t = useT();
   const { download: downloadPdf, loading: pdfLoading } = useDownloadPdf();
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
@@ -273,13 +275,13 @@ export default function TeamsPage() {
     <div>
       <div className="sm:flex sm:justify-between sm:items-center mb-4">
         <div>
-          <h1 className="text-2xl md:text-3xl text-gray-800 dark:text-gray-100 font-bold">Команды</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Управление командами проектов</p>
+          <h1 className="text-2xl md:text-3xl text-gray-800 dark:text-gray-100 font-bold">{t('Команды')}</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('Управление командами проектов')}</p>
         </div>
         <div className="flex items-center gap-0.5 mt-3 sm:mt-0">
           <button
             onClick={() => setShowSearch((v) => !v)}
-            title="Поиск"
+            title={t('Поиск')}
             className={`p-2 rounded-lg transition-colors ${showSearch || teamSearch ? 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20' : 'text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20'}`}
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -288,7 +290,7 @@ export default function TeamsPage() {
           </button>
           <button
             onClick={() => setShowCreateModal(true)}
-            title="Создать команду"
+            title={t('Создать команду')}
             className="p-2 text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -298,7 +300,7 @@ export default function TeamsPage() {
           <div className="relative" ref={settingsRef}>
             <button
               onClick={() => setShowSettings((v) => !v)}
-              title="Экспорт"
+              title={t('Экспорт')}
               className={`p-2 rounded-lg transition-colors ${showSettings ? 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20' : 'text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20'}`}
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -332,7 +334,7 @@ export default function TeamsPage() {
           <input
             autoFocus
             type="text"
-            placeholder="Поиск по названию команды..."
+            placeholder={t('Поиск по названию команды...')}
             value={teamSearch}
             onChange={(e) => setTeamSearch(e.target.value)}
             className="flex-1 text-sm bg-transparent text-gray-800 dark:text-gray-100 placeholder-gray-400 outline-none"
@@ -348,7 +350,7 @@ export default function TeamsPage() {
       )}
 
       {loading ? (
-        <div className="p-8 text-center text-gray-500 dark:text-gray-400">Загрузка...</div>
+        <div className="p-8 text-center text-gray-500 dark:text-gray-400">{t('Загрузка...')}</div>
       ) : error ? (
         <div className="p-8 text-center text-red-500">{error}</div>
       ) : filteredTeams.length === 0 ? (
@@ -371,7 +373,7 @@ export default function TeamsPage() {
                   <button
                     onClick={() => openEditTeam(team)}
                     className="p-1.5 text-gray-400 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-500/10 rounded-lg transition-colors"
-                    title="Редактировать"
+                    title={t('Редактировать')}
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -380,7 +382,7 @@ export default function TeamsPage() {
                   <button
                     onClick={() => setConfirmDeleteTeam(team)}
                     className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
-                    title="Удалить"
+                    title={t('Удалить')}
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -447,7 +449,7 @@ export default function TeamsPage() {
                     </div>
                   </div>
                 ) : (
-                  <p className="text-xs text-gray-400 dark:text-gray-500">Нет участников</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500">{t('Нет участников')}</p>
                 )}
               </div>
 
@@ -458,11 +460,11 @@ export default function TeamsPage() {
                     type="text"
                     value={userSearch}
                     onChange={(e) => searchUsers(e.target.value)}
-                    placeholder="Поиск пользователя..."
+                    placeholder={t('Поиск пользователя...')}
                     autoFocus
                     className="w-full px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                   />
-                  {usersLoading && <p className="text-xs text-gray-400">Поиск...</p>}
+                  {usersLoading && <p className="text-xs text-gray-400">{t('Поиск...')}</p>}
                   {searchResults.length > 0 && (
                     <ul className="max-h-32 overflow-y-auto space-y-1">
                       {searchResults.map((u) => (
@@ -518,7 +520,7 @@ export default function TeamsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} onClick={() => setEditTeam(null)}>
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-semibold text-gray-800 dark:text-gray-100">Редактировать команду</h2>
+              <h2 className="text-base font-semibold text-gray-800 dark:text-gray-100">{t('Редактировать команду')}</h2>
               <button onClick={() => setEditTeam(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -527,7 +529,7 @@ export default function TeamsPage() {
             </div>
             <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Название</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('Название')}</label>
                 <input
                   type="text"
                   value={editName}
@@ -537,7 +539,7 @@ export default function TeamsPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Описание</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('Описание')}</label>
                 <textarea
                   value={editDescription}
                   onChange={(e) => setEditDescription(e.target.value)}
@@ -571,7 +573,7 @@ export default function TeamsPage() {
       {confirmDeleteTeam && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} onClick={() => setConfirmDeleteTeam(null)}>
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-2">Удалить команду?</h3>
+            <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-2">{t('Удалить команду?')}</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
               Команда <span className="font-medium text-gray-700 dark:text-gray-300">{confirmDeleteTeam.name}</span> будет удалена без возможности восстановления.
             </p>

@@ -4,8 +4,10 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import AdminSidebar from '@/components/admin/AdminSidebar';
+import { useT } from '@/lib/i18n';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  const t = useT();
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const isLoading = useAuthStore((s) => s.isLoading);
@@ -27,7 +29,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <button
         className="lg:hidden fixed bottom-24 left-6 z-40 bg-sky-500 hover:bg-sky-600 text-white p-3 rounded-full shadow-lg"
         onClick={() => setSidebarOpen(!sidebarOpen)}
-        title="Меню администрирования"
+        title={t('Меню администрирования')}
       >
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           {sidebarOpen ? (

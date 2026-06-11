@@ -20,6 +20,7 @@ import {
   EditToggle, GhostBtn, AddBtn, IconBtn, TrashIcon, EmptyState, FileChip,
   EditableTable, DataTable, EditableColumn,
 } from '../primitives';
+import { useT } from '@/lib/i18n';
 
 /* ───────────────────────── helpers ───────────────────────── */
 
@@ -46,6 +47,7 @@ function str(v: number | undefined | null): string {
 }
 
 export default function SecuritySection({ ctx }: { ctx: PassportCtx }) {
+  const t = useT();
   const security: SecuritySectionData = ctx.passport.security || {};
 
   return (
@@ -64,6 +66,7 @@ export default function SecuritySection({ ctx }: { ctx: PassportCtx }) {
 /* ───────────────────── Охранная сигнализация ───────────────────── */
 
 function AlarmCard({ ctx, security }: { ctx: PassportCtx; security: SecuritySectionData }) {
+  const t = useT();
   const alarm = security.alarm || {};
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -123,24 +126,24 @@ function AlarmCard({ ctx, security }: { ctx: PassportCtx; security: SecuritySect
 
   return (
     <Card
-      title="Охранная сигнализация"
+      title={t('Охранная сигнализация')}
       status={!editing && alarm.status ? <StatusDot status={alarm.status} /> : undefined}
       actions={<EditToggle editing={editing} onEdit={start} onCancel={cancel} onSave={save} saving={saving} />}
     >
       {!editing ? (
         <div className="space-y-4">
           <FieldGroup>
-            <Field label="Система" value={alarm.system} />
-            <Field label="Серийный номер" value={alarm.serial} />
-            <Field label="Дата установки" value={alarm.installDate} />
-            <Field label="Обслуживающая компания" value={alarm.serviceCompany} />
-            <Field label="Контакт" value={alarm.contact} />
-            <Field label="Договор" value={alarm.contract} />
-            <Field label="Последнее обслуживание" value={alarm.lastService} />
-            <Field label="Следующее ТО" value={alarm.nextService} />
+            <Field label={t('Система')} value={alarm.system} />
+            <Field label={t('Серийный номер')} value={alarm.serial} />
+            <Field label={t('Дата установки')} value={alarm.installDate} />
+            <Field label={t('Обслуживающая компания')} value={alarm.serviceCompany} />
+            <Field label={t('Контакт')} value={alarm.contact} />
+            <Field label={t('Договор')} value={alarm.contract} />
+            <Field label={t('Последнее обслуживание')} value={alarm.lastService} />
+            <Field label={t('Следующее ТО')} value={alarm.nextService} />
           </FieldGroup>
           <div>
-            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Разделы / Зоны</p>
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">{t('Разделы / Зоны')}</p>
             {alarm.zones && alarm.zones.length > 0 ? (
               <div className="flex flex-wrap gap-2">
                 {alarm.zones.map((z) => <Pill key={z.id} label={z.name} />)}
@@ -151,15 +154,15 @@ function AlarmCard({ ctx, security }: { ctx: PassportCtx; security: SecuritySect
       ) : (
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-            <Select label="Статус" value={status} onChange={setStatus} options={STATUS_OPTIONS} />
-            <TextInput label="Система" value={system} onChange={setSystem} placeholder="Ajax Hub 2 Plus" />
-            <TextInput label="Серийный номер" value={serial} onChange={setSerial} />
-            <TextInput label="Дата установки" value={installDate} onChange={setInstallDate} placeholder="01.01.2024" />
-            <TextInput label="Обслуживающая компания" value={serviceCompany} onChange={setServiceCompany} />
-            <TextInput label="Контакт" value={contact} onChange={setContact} />
-            <TextInput label="Договор" value={contract} onChange={setContract} />
-            <TextInput label="Последнее обслуживание" value={lastService} onChange={setLastService} />
-            <TextInput label="Следующее ТО" value={nextService} onChange={setNextService} />
+            <Select label={t('Статус')} value={status} onChange={setStatus} options={STATUS_OPTIONS} />
+            <TextInput label={t('Система')} value={system} onChange={setSystem} placeholder="Ajax Hub 2 Plus" />
+            <TextInput label={t('Серийный номер')} value={serial} onChange={setSerial} />
+            <TextInput label={t('Дата установки')} value={installDate} onChange={setInstallDate} placeholder="01.01.2024" />
+            <TextInput label={t('Обслуживающая компания')} value={serviceCompany} onChange={setServiceCompany} />
+            <TextInput label={t('Контакт')} value={contact} onChange={setContact} />
+            <TextInput label={t('Договор')} value={contract} onChange={setContract} />
+            <TextInput label={t('Последнее обслуживание')} value={lastService} onChange={setLastService} />
+            <TextInput label={t('Следующее ТО')} value={nextService} onChange={setNextService} />
           </div>
           <ZoneEditor zones={zones} onChange={setZones} />
         </div>
@@ -169,6 +172,7 @@ function AlarmCard({ ctx, security }: { ctx: PassportCtx; security: SecuritySect
 }
 
 function ZoneEditor({ zones, onChange }: { zones: SecurityZone[]; onChange: (z: SecurityZone[]) => void }) {
+  const t = useT();
   const [draft, setDraft] = useState('');
   const add = () => {
     const name = draft.trim();
@@ -178,7 +182,7 @@ function ZoneEditor({ zones, onChange }: { zones: SecurityZone[]; onChange: (z: 
   };
   return (
     <div>
-      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Разделы / Зоны</p>
+      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">{t('Разделы / Зоны')}</p>
       <div className="flex flex-wrap gap-2 mb-2">
         {zones.map((z) => (
           <span key={z.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
@@ -186,17 +190,17 @@ function ZoneEditor({ zones, onChange }: { zones: SecurityZone[]; onChange: (z: 
             <button type="button" onClick={() => onChange(zones.filter((x) => x.id !== z.id))} className="text-gray-400 hover:text-red-500">×</button>
           </span>
         ))}
-        {zones.length === 0 && <span className="text-xs text-gray-400">Зоны не указаны</span>}
+        {zones.length === 0 && <span className="text-xs text-gray-400">{t('Зоны не указаны')}</span>}
       </div>
       <div className="flex items-center gap-2">
         <input
           className="form-input text-sm flex-1 max-w-xs"
           value={draft}
-          placeholder="Название зоны"
+          placeholder={t('Название зоны')}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add(); } }}
         />
-        <AddBtn onClick={add}>Добавить зону</AddBtn>
+        <AddBtn onClick={add}>{t('Добавить зону')}</AddBtn>
       </div>
     </div>
   );
@@ -207,6 +211,7 @@ function ZoneEditor({ zones, onChange }: { zones: SecurityZone[]; onChange: (z: 
 const FIRE_DEFAULT_LABELS = ['Датчики дыма', 'Извещатели', 'Оповещатели', 'Ручные извещатели'];
 
 function FireSafetyCard({ ctx, security }: { ctx: PassportCtx; security: SecuritySectionData }) {
+  const t = useT();
   const fire = security.fireSafety || {};
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -274,24 +279,24 @@ function FireSafetyCard({ ctx, security }: { ctx: PassportCtx; security: Securit
 
   return (
     <Card
-      title="Пожарная безопасность"
+      title={t('Пожарная безопасность')}
       status={!editing && fire.status ? <StatusDot status={fire.status} /> : undefined}
       actions={<EditToggle editing={editing} onEdit={start} onCancel={cancel} onSave={save} saving={saving} />}
     >
       {!editing ? (
         <div className="space-y-4">
           <FieldGroup>
-            <Field label="Система" value={fire.system} />
-            <Field label="Серийный номер" value={fire.serial} />
-            <Field label="Дата установки" value={fire.installDate} />
-            <Field label="Обслуживающая компания" value={fire.serviceCompany} />
-            <Field label="Контакт" value={fire.contact} />
-            <Field label="Договор" value={fire.contract} />
-            <Field label="Последняя проверка" value={fire.lastService} />
-            <Field label="Следующая проверка" value={fire.nextService} />
+            <Field label={t('Система')} value={fire.system} />
+            <Field label={t('Серийный номер')} value={fire.serial} />
+            <Field label={t('Дата установки')} value={fire.installDate} />
+            <Field label={t('Обслуживающая компания')} value={fire.serviceCompany} />
+            <Field label={t('Контакт')} value={fire.contact} />
+            <Field label={t('Договор')} value={fire.contract} />
+            <Field label={t('Последняя проверка')} value={fire.lastService} />
+            <Field label={t('Следующая проверка')} value={fire.nextService} />
           </FieldGroup>
           <div>
-            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Оборудование</p>
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">{t('Оборудование')}</p>
             {visibleFields.length > 0 ? (
               <dl>{visibleFields.map((f) => <InfoRow key={f.id} label={f.label} value={f.value} />)}</dl>
             ) : <EmptyState text="Нет данных" />}
@@ -300,15 +305,15 @@ function FireSafetyCard({ ctx, security }: { ctx: PassportCtx; security: Securit
       ) : (
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-            <Select label="Статус" value={status} onChange={setStatus} options={STATUS_OPTIONS} />
-            <TextInput label="Система" value={system} onChange={setSystem} />
-            <TextInput label="Серийный номер" value={serial} onChange={setSerial} />
-            <TextInput label="Дата установки" value={installDate} onChange={setInstallDate} />
-            <TextInput label="Обслуживающая компания" value={serviceCompany} onChange={setServiceCompany} />
-            <TextInput label="Контакт" value={contact} onChange={setContact} />
-            <TextInput label="Договор" value={contract} onChange={setContract} />
-            <TextInput label="Последняя проверка" value={lastService} onChange={setLastService} />
-            <TextInput label="Следующая проверка" value={nextService} onChange={setNextService} />
+            <Select label={t('Статус')} value={status} onChange={setStatus} options={STATUS_OPTIONS} />
+            <TextInput label={t('Система')} value={system} onChange={setSystem} />
+            <TextInput label={t('Серийный номер')} value={serial} onChange={setSerial} />
+            <TextInput label={t('Дата установки')} value={installDate} onChange={setInstallDate} />
+            <TextInput label={t('Обслуживающая компания')} value={serviceCompany} onChange={setServiceCompany} />
+            <TextInput label={t('Контакт')} value={contact} onChange={setContact} />
+            <TextInput label={t('Договор')} value={contract} onChange={setContract} />
+            <TextInput label={t('Последняя проверка')} value={lastService} onChange={setLastService} />
+            <TextInput label={t('Следующая проверка')} value={nextService} onChange={setNextService} />
           </div>
           <KeyValEditor fields={fields} onChange={setFields} />
         </div>
@@ -318,23 +323,24 @@ function FireSafetyCard({ ctx, security }: { ctx: PassportCtx; security: Securit
 }
 
 function KeyValEditor({ fields, onChange }: { fields: KeyVal[]; onChange: (f: KeyVal[]) => void }) {
+  const t = useT();
   const update = (id: string, key: 'label' | 'value', value: string) =>
     onChange(fields.map((f) => f.id === id ? { ...f, [key]: value } : f));
   const remove = (id: string) => onChange(fields.filter((f) => f.id !== id));
   const add = () => onChange([...fields, { id: newId(), label: '', value: '' }]);
   return (
     <div>
-      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Оборудование</p>
+      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">{t('Оборудование')}</p>
       <div className="space-y-2">
         {fields.map((f) => (
           <div key={f.id} className="flex items-center gap-2">
-            <input className="form-input text-sm flex-1" value={f.label} placeholder="Название" onChange={(e) => update(f.id, 'label', e.target.value)} />
-            <input className="form-input text-sm w-32" value={f.value} placeholder="Значение" onChange={(e) => update(f.id, 'value', e.target.value)} />
-            <IconBtn danger title="Удалить" onClick={() => remove(f.id)}><TrashIcon className="w-4 h-4" /></IconBtn>
+            <input className="form-input text-sm flex-1" value={f.label} placeholder={t('Название')} onChange={(e) => update(f.id, 'label', e.target.value)} />
+            <input className="form-input text-sm w-32" value={f.value} placeholder={t('Значение')} onChange={(e) => update(f.id, 'value', e.target.value)} />
+            <IconBtn danger title={t('Удалить')} onClick={() => remove(f.id)}><TrashIcon className="w-4 h-4" /></IconBtn>
           </div>
         ))}
       </div>
-      <div className="mt-2"><AddBtn onClick={add}>Добавить строку</AddBtn></div>
+      <div className="mt-2"><AddBtn onClick={add}>{t('Добавить строку')}</AddBtn></div>
     </div>
   );
 }
@@ -342,6 +348,7 @@ function KeyValEditor({ fields, onChange }: { fields: KeyVal[]; onChange: (f: Ke
 /* ───────────────────── Видеонаблюдение ───────────────────── */
 
 function VideoCard({ ctx, security }: { ctx: PassportCtx; security: SecuritySectionData }) {
+  const t = useT();
   const video = security.video || {};
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -402,22 +409,22 @@ function VideoCard({ ctx, security }: { ctx: PassportCtx; security: SecuritySect
 
   return (
     <Card
-      title="Видеонаблюдение"
+      title={t('Видеонаблюдение')}
       status={!editing && video.status ? <StatusDot status={video.status} /> : undefined}
       actions={<EditToggle editing={editing} onEdit={start} onCancel={cancel} onSave={save} saving={saving} />}
     >
       {!editing ? (
         <div className="space-y-4">
           <FieldGroup>
-            <Field label="Система" value={video.system} />
-            <Field label="Серийный номер" value={video.serial} />
-            <Field label="Дата установки" value={video.installDate} />
-            <Field label="Обслуживающая компания" value={video.serviceCompany} />
-            <Field label="Контакт" value={video.contact} />
-            <Field label="Хранение архива (дней)" value={video.archiveDays} />
+            <Field label={t('Система')} value={video.system} />
+            <Field label={t('Серийный номер')} value={video.serial} />
+            <Field label={t('Дата установки')} value={video.installDate} />
+            <Field label={t('Обслуживающая компания')} value={video.serviceCompany} />
+            <Field label={t('Контакт')} value={video.contact} />
+            <Field label={t('Хранение архива (дней)')} value={video.archiveDays} />
           </FieldGroup>
           <div>
-            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Камеры</p>
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">{t('Камеры')}</p>
             <DataTable
               rows={video.cameras || []}
               empty="Камеры не добавлены"
@@ -434,16 +441,16 @@ function VideoCard({ ctx, security }: { ctx: PassportCtx; security: SecuritySect
       ) : (
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-            <Select label="Статус" value={status} onChange={setStatus} options={STATUS_OPTIONS} />
-            <TextInput label="Система" value={system} onChange={setSystem} />
-            <TextInput label="Серийный номер" value={serial} onChange={setSerial} />
-            <TextInput label="Дата установки" value={installDate} onChange={setInstallDate} />
-            <TextInput label="Обслуживающая компания" value={serviceCompany} onChange={setServiceCompany} />
-            <TextInput label="Контакт" value={contact} onChange={setContact} />
-            <TextInput label="Хранение архива (дней)" value={archiveDays} onChange={setArchiveDays} type="number" />
+            <Select label={t('Статус')} value={status} onChange={setStatus} options={STATUS_OPTIONS} />
+            <TextInput label={t('Система')} value={system} onChange={setSystem} />
+            <TextInput label={t('Серийный номер')} value={serial} onChange={setSerial} />
+            <TextInput label={t('Дата установки')} value={installDate} onChange={setInstallDate} />
+            <TextInput label={t('Обслуживающая компания')} value={serviceCompany} onChange={setServiceCompany} />
+            <TextInput label={t('Контакт')} value={contact} onChange={setContact} />
+            <TextInput label={t('Хранение архива (дней)')} value={archiveDays} onChange={setArchiveDays} type="number" />
           </div>
           <div>
-            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Камеры</p>
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">{t('Камеры')}</p>
             <EditableTable
               rows={cameras}
               columns={cameraColumns}
@@ -461,6 +468,7 @@ function VideoCard({ ctx, security }: { ctx: PassportCtx; security: SecuritySect
 /* ───────────────────── СКУД и контроль доступа ───────────────────── */
 
 function AccessControlCard({ ctx, security }: { ctx: PassportCtx; security: SecuritySectionData }) {
+  const t = useT();
   const ac = security.accessControl || {};
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -520,22 +528,22 @@ function AccessControlCard({ ctx, security }: { ctx: PassportCtx; security: Secu
 
   return (
     <Card
-      title="СКУД и контроль доступа"
+      title={t('СКУД и контроль доступа')}
       status={!editing && ac.status ? <StatusDot status={ac.status} /> : undefined}
       actions={<EditToggle editing={editing} onEdit={start} onCancel={cancel} onSave={save} saving={saving} />}
     >
       {!editing ? (
         <div className="space-y-4">
           <FieldGroup>
-            <Field label="Система" value={ac.system} />
-            <Field label="Контроллер" value={ac.controller} />
-            <Field label="Серийный номер" value={ac.serial} />
-            <Field label="Дата установки" value={ac.installDate} />
-            <Field label="Обслуживающая компания" value={ac.serviceCompany} />
-            <Field label="Контакт" value={ac.contact} />
+            <Field label={t('Система')} value={ac.system} />
+            <Field label={t('Контроллер')} value={ac.controller} />
+            <Field label={t('Серийный номер')} value={ac.serial} />
+            <Field label={t('Дата установки')} value={ac.installDate} />
+            <Field label={t('Обслуживающая компания')} value={ac.serviceCompany} />
+            <Field label={t('Контакт')} value={ac.contact} />
           </FieldGroup>
           <div>
-            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Точки доступа</p>
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">{t('Точки доступа')}</p>
             <DataTable
               rows={ac.points || []}
               empty="Точки доступа не добавлены"
@@ -551,16 +559,16 @@ function AccessControlCard({ ctx, security }: { ctx: PassportCtx; security: Secu
       ) : (
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-            <Select label="Статус" value={status} onChange={setStatus} options={STATUS_OPTIONS} />
-            <TextInput label="Система" value={system} onChange={setSystem} />
-            <TextInput label="Контроллер" value={controller} onChange={setController} />
-            <TextInput label="Серийный номер" value={serial} onChange={setSerial} />
-            <TextInput label="Дата установки" value={installDate} onChange={setInstallDate} />
-            <TextInput label="Обслуживающая компания" value={serviceCompany} onChange={setServiceCompany} />
-            <TextInput label="Контакт" value={contact} onChange={setContact} />
+            <Select label={t('Статус')} value={status} onChange={setStatus} options={STATUS_OPTIONS} />
+            <TextInput label={t('Система')} value={system} onChange={setSystem} />
+            <TextInput label={t('Контроллер')} value={controller} onChange={setController} />
+            <TextInput label={t('Серийный номер')} value={serial} onChange={setSerial} />
+            <TextInput label={t('Дата установки')} value={installDate} onChange={setInstallDate} />
+            <TextInput label={t('Обслуживающая компания')} value={serviceCompany} onChange={setServiceCompany} />
+            <TextInput label={t('Контакт')} value={contact} onChange={setContact} />
           </div>
           <div>
-            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Точки доступа</p>
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">{t('Точки доступа')}</p>
             <EditableTable
               rows={points}
               columns={pointColumns}
@@ -578,6 +586,7 @@ function AccessControlCard({ ctx, security }: { ctx: PassportCtx; security: Secu
 /* ───────────────────── Физическая охрана ───────────────────── */
 
 function PhysicalSecurityCard({ ctx, security }: { ctx: PassportCtx; security: SecuritySectionData }) {
+  const t = useT();
   const ps = security.physicalSecurity || {};
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -634,32 +643,32 @@ function PhysicalSecurityCard({ ctx, security }: { ctx: PassportCtx; security: S
 
   return (
     <Card
-      title="Физическая охрана"
+      title={t('Физическая охрана')}
       status={!editing && ps.status ? <StatusDot status={ps.status} /> : undefined}
       actions={<EditToggle editing={editing} onEdit={start} onCancel={cancel} onSave={save} saving={saving} />}
     >
       {!editing ? (
         <FieldGroup>
-          <Field label="Охранная организация" value={ps.org} />
-          <Field label="Форма охраны" value={ps.form} />
-          <Field label="Номер договора" value={ps.contract} />
-          <Field label="Ответственный менеджер" value={ps.manager} />
-          <Field label="Телефон" value={ps.phone} />
-          <Field label="Режим охраны" value={ps.mode} />
-          <Field label="Пост охраны" value={ps.postName} />
-          <Field label="График работы" value={ps.postSchedule} />
+          <Field label={t('Охранная организация')} value={ps.org} />
+          <Field label={t('Форма охраны')} value={ps.form} />
+          <Field label={t('Номер договора')} value={ps.contract} />
+          <Field label={t('Ответственный менеджер')} value={ps.manager} />
+          <Field label={t('Телефон')} value={ps.phone} />
+          <Field label={t('Режим охраны')} value={ps.mode} />
+          <Field label={t('Пост охраны')} value={ps.postName} />
+          <Field label={t('График работы')} value={ps.postSchedule} />
         </FieldGroup>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-          <Select label="Статус" value={status} onChange={setStatus} options={STATUS_OPTIONS} />
-          <TextInput label="Охранная организация" value={org} onChange={setOrg} />
-          <TextInput label="Форма охраны" value={form} onChange={setForm} placeholder="Пультовая охрана" />
-          <TextInput label="Номер договора" value={contract} onChange={setContract} />
-          <TextInput label="Ответственный менеджер" value={manager} onChange={setManager} />
-          <TextInput label="Телефон" value={phone} onChange={setPhone} />
-          <TextInput label="Режим охраны" value={mode} onChange={setMode} placeholder="Круглосуточно" />
-          <TextInput label="Пост охраны" value={postName} onChange={setPostName} />
-          <TextInput label="График работы" value={postSchedule} onChange={setPostSchedule} />
+          <Select label={t('Статус')} value={status} onChange={setStatus} options={STATUS_OPTIONS} />
+          <TextInput label={t('Охранная организация')} value={org} onChange={setOrg} />
+          <TextInput label={t('Форма охраны')} value={form} onChange={setForm} placeholder={t('Пультовая охрана')} />
+          <TextInput label={t('Номер договора')} value={contract} onChange={setContract} />
+          <TextInput label={t('Ответственный менеджер')} value={manager} onChange={setManager} />
+          <TextInput label={t('Телефон')} value={phone} onChange={setPhone} />
+          <TextInput label={t('Режим охраны')} value={mode} onChange={setMode} placeholder={t('Круглосуточно')} />
+          <TextInput label={t('Пост охраны')} value={postName} onChange={setPostName} />
+          <TextInput label={t('График работы')} value={postSchedule} onChange={setPostSchedule} />
         </div>
       )}
     </Card>
@@ -669,6 +678,7 @@ function PhysicalSecurityCard({ ctx, security }: { ctx: PassportCtx; security: S
 /* ───────────────────── Аварийные контакты ───────────────────── */
 
 function EmergencyContactsCard({ ctx, security }: { ctx: PassportCtx; security: SecuritySectionData }) {
+  const t = useT();
   const contacts = security.emergencyContacts || [];
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -703,7 +713,7 @@ function EmergencyContactsCard({ ctx, security }: { ctx: PassportCtx; security: 
 
   return (
     <Card
-      title="Аварийные контакты"
+      title={t('Аварийные контакты')}
       actions={<EditToggle editing={editing} onEdit={start} onCancel={cancel} onSave={save} saving={saving} />}
     >
       {!editing ? (
@@ -733,6 +743,7 @@ function EmergencyContactsCard({ ctx, security }: { ctx: PassportCtx; security: 
 /* ───────────────────── Документы и акты ───────────────────── */
 
 function DocumentsCard({ ctx, security }: { ctx: PassportCtx; security: SecuritySectionData }) {
+  const t = useT();
   const docs = security.documents || [];
   const [busy, setBusy] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -771,7 +782,7 @@ function DocumentsCard({ ctx, security }: { ctx: PassportCtx; security: Security
 
   return (
     <Card
-      title="Документы и акты"
+      title={t('Документы и акты')}
       actions={
         <GhostBtn onClick={() => inputRef.current?.click()} disabled={busy}>
           {busy ? 'Загрузка...' : 'Добавить документ'}

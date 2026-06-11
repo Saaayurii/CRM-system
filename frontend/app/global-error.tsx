@@ -1,5 +1,7 @@
 'use client';
 
+import { useT } from '@/lib/i18n';
+
 export default function GlobalError({
   error,
   reset,
@@ -7,6 +9,7 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const t = useT();
   return (
     <html lang="ru">
       <body style={{ margin: 0, fontFamily: 'Inter, sans-serif', backgroundColor: '#f3f4f6', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
@@ -35,7 +38,7 @@ export default function GlobalError({
             </div>
 
             <p style={{ fontSize: 72, fontWeight: 800, color: '#ef4444', margin: '16px 0 4px', letterSpacing: '-2px', lineHeight: 1 }}>500</p>
-            <h1 style={{ fontSize: 24, fontWeight: 700, color: '#31323e', margin: '0 0 12px' }}>Критическая ошибка</h1>
+            <h1 style={{ fontSize: 24, fontWeight: 700, color: '#31323e', margin: '0 0 12px' }}>{t('Критическая ошибка')}</h1>
             <p style={{ fontSize: 14, color: '#6b6c80', lineHeight: 1.6, margin: '0 0 24px' }}>
               {error.message || 'Произошла непредвиденная ошибка приложения.'}
               {error.digest && (

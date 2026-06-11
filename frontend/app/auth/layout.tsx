@@ -2,8 +2,10 @@
 
 import CookieBanner from '@/components/ui/CookieBanner';
 import { useFormEnterNav } from '@/hooks/useFormEnterNav';
+import { useT } from '@/lib/i18n';
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
+  const t = useT();
   useFormEnterNav();
   return (
     <main className="bg-gradient-to-b from-white to-gray-100 dark:from-gray-900 dark:to-gray-800 min-h-screen">

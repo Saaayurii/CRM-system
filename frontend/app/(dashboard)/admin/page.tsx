@@ -5,6 +5,7 @@ import ServiceGrid from '@/components/admin/ServiceGrid';
 import ErrorBoundary from '@/components/admin/ErrorBoundary';
 import ErrorDiagnosticsPanel from '@/components/admin/ErrorDiagnosticsPanel';
 import type { DiagnosticError, Severity } from '@/types/admin';
+import { useT } from '@/lib/i18n';
 
 interface DiagnosticsService {
   name: string;
@@ -29,6 +30,7 @@ interface DiagnosticsResponse {
 }
 
 export default function AdminPage() {
+  const t = useT();
   const [errors, setErrors] = useState<DiagnosticError[]>([]);
   const [isChecking, setIsChecking] = useState(false);
   const [gatewayDown, setGatewayDown] = useState(false);

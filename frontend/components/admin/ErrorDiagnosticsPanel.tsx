@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type { DiagnosticError, ErrorCategory, Severity } from '@/types/admin';
 import { getCategoryLabel } from '@/lib/errors';
+import { useT } from '@/lib/i18n';
 
 interface FixStep {
   service: string;
@@ -47,6 +48,7 @@ const SEVERITY_ORDER: Record<Severity, number> = {
 };
 
 function SpinnerIcon({ className = 'h-3 w-3' }: { className?: string }) {
+  const t = useT();
   return (
     <svg className={`animate-spin ${className}`} fill="none" viewBox="0 0 24 24">
       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
@@ -56,6 +58,7 @@ function SpinnerIcon({ className = 'h-3 w-3' }: { className?: string }) {
 }
 
 export default function ErrorDiagnosticsPanel({ errors, onCheckAll, isChecking }: ErrorDiagnosticsPanelProps) {
+  const t = useT();
   const [isOpen, setIsOpen] = useState(errors.length > 0);
   const [isFixingAll, setIsFixingAll] = useState(false);
   const [fixAllSteps, setFixAllSteps] = useState<FixStep[]>([]);

@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback } from 'react';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
+import { useT } from '@/lib/i18n';
 
 /* ─── Telegram JSON export types ─── */
 interface TgMessage {
@@ -88,6 +89,7 @@ function getInitials(name: string) {
 
 /* ─── Page ─── */
 export default function TelegramImportPage() {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
@@ -209,7 +211,7 @@ export default function TelegramImportPage() {
     return (
       <div className="max-w-2xl mx-auto">
         <div className="mb-6">
-          <h1 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Импорт из Telegram</h1>
+          <h1 className="text-xl font-semibold text-gray-800 dark:text-gray-100">{t('Импорт из Telegram')}</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             Загрузите JSON-экспорт из Telegram Desktop — диалоги появятся в системе чатов CRM
           </p>
@@ -217,13 +219,13 @@ export default function TelegramImportPage() {
 
         {/* Instructions */}
         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/40 rounded-xl p-4 mb-6">
-          <p className="text-sm font-medium text-blue-800 dark:text-blue-300 mb-2">Как получить файл экспорта:</p>
+          <p className="text-sm font-medium text-blue-800 dark:text-blue-300 mb-2">{t('Как получить файл экспорта:')}</p>
           <ol className="text-sm text-blue-700 dark:text-blue-400 space-y-1 list-decimal list-inside">
-            <li>Откройте Telegram Desktop</li>
-            <li>Зайдите в нужный чат или в меню <strong>☰ → Настройки → Экспорт данных Telegram</strong></li>
-            <li>Выберите «Формат: JSON» и нужные чаты</li>
+            <li>{t('Откройте Telegram Desktop')}</li>
+            <li>Зайдите в нужный чат или в меню <strong>{t('☰ → Настройки → Экспорт данных Telegram')}</strong></li>
+            <li>{t('Выберите «Формат: JSON» и нужные чаты')}</li>
             <li>Нажмите «Экспорт» — получите папку с <strong>result.json</strong></li>
-            <li>Загрузите этот файл сюда</li>
+            <li>{t('Загрузите этот файл сюда')}</li>
           </ol>
         </div>
 
@@ -248,7 +250,7 @@ export default function TelegramImportPage() {
             <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
               {dragging ? 'Отпустите файл' : 'Перетащите result.json или нажмите для выбора'}
             </p>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Поддерживается: JSON-экспорт Telegram Desktop</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{t('Поддерживается: JSON-экспорт Telegram Desktop')}</p>
           </div>
           <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) parseFile(f); }} />
         </div>
@@ -263,7 +265,7 @@ export default function TelegramImportPage() {
       <div className="max-w-2xl mx-auto flex flex-col items-center justify-center py-20 gap-6">
         <div className="w-20 h-20 rounded-full border-4 border-violet-200 dark:border-violet-900 border-t-violet-500 animate-spin" />
         <div className="text-center">
-          <p className="text-lg font-semibold text-gray-800 dark:text-gray-100">Импортируем диалоги...</p>
+          <p className="text-lg font-semibold text-gray-800 dark:text-gray-100">{t('Импортируем диалоги...')}</p>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{importProgress.name}</p>
         </div>
         <div className="w-full max-w-xs">
@@ -292,7 +294,7 @@ export default function TelegramImportPage() {
             </svg>
           </div>
           <div>
-            <h1 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Импорт завершён</h1>
+            <h1 className="text-xl font-semibold text-gray-800 dark:text-gray-100">{t('Импорт завершён')}</h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">Успешно: {ok.length}, ошибок: {fail.length}</p>
           </div>
         </div>
@@ -309,7 +311,7 @@ export default function TelegramImportPage() {
               <div className="flex-1 min-w-0">
                 <p className={`text-sm font-medium truncate ${r.ok ? 'text-green-800 dark:text-green-300' : 'text-red-800 dark:text-red-300'}`}>{r.name}</p>
                 {r.ok && <p className="text-xs text-gray-500 dark:text-gray-400">{r.messages.toLocaleString('ru')} сообщений → канал #{r.channelId}</p>}
-                {!r.ok && <p className="text-xs text-red-500">Ошибка при импорте</p>}
+                {!r.ok && <p className="text-xs text-red-500">{t('Ошибка при импорте')}</p>}
               </div>
             </div>
           ))}
@@ -338,7 +340,7 @@ export default function TelegramImportPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Выберите диалоги для импорта</h1>
+          <h1 className="text-xl font-semibold text-gray-800 dark:text-gray-100">{t('Выберите диалоги для импорта')}</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
             Файл: <span className="font-mono text-xs">{fileName}</span> · {chats.length} чатов найдено
           </p>
@@ -361,7 +363,7 @@ export default function TelegramImportPage() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Поиск по названию..."
+            placeholder={t('Поиск по названию...')}
             className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-violet-500 focus:border-transparent"
           />
         </div>
@@ -429,7 +431,7 @@ export default function TelegramImportPage() {
                 <button
                   onClick={() => setExpandedChat(isExpanded ? null : chat.id)}
                   className="shrink-0 p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                  title="Предпросмотр"
+                  title={t('Предпросмотр')}
                 >
                   <svg className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />

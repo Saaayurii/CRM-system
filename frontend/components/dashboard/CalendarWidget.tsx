@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import api from '@/lib/api';
+import { useT } from '@/lib/i18n';
 
 interface CalendarEvent {
   id: number;
@@ -58,6 +59,7 @@ function dateKey(d: Date) {
 }
 
 export default function CalendarWidget() {
+  const t = useT();
   const today = new Date();
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
@@ -211,7 +213,7 @@ export default function CalendarWidget() {
           События на {selectedDate.split('-').reverse().join('.')}
         </h4>
         {selectedEvents.length === 0 ? (
-          <p className="text-xs text-gray-400 dark:text-gray-500">Нет событий</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500">{t('Нет событий')}</p>
         ) : (
           <ul className="space-y-1.5">
             {selectedEvents.map((e) => (

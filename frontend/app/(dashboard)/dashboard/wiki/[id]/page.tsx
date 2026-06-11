@@ -17,8 +17,10 @@ import {
   type NormCategory,
   type NormDocumentDetail,
 } from '@/lib/wiki/constants';
+import { useT } from '@/lib/i18n';
 
 export default function NormDocumentDetailPage() {
+  const t = useT();
   const params = useParams();
   const router = useRouter();
   const id = Number(params?.id);
@@ -99,8 +101,8 @@ export default function NormDocumentDetailPage() {
   if (!doc) {
     return (
       <div className="px-4 sm:px-6 py-16 text-center text-gray-400">
-        <p>Документ не найден.</p>
-        <Link href="/dashboard/wiki" className="text-violet-600 hover:underline text-sm">← К списку</Link>
+        <p>{t('Документ не найден.')}</p>
+        <Link href="/dashboard/wiki" className="text-violet-600 hover:underline text-sm">{t('← К списку')}</Link>
       </div>
     );
   }
@@ -112,7 +114,7 @@ export default function NormDocumentDetailPage() {
           ← Строительные нормы
         </button>
         <div className="flex items-center gap-2">
-          <button onClick={toggleBookmark} className={`text-xl ${doc.isBookmarked ? 'text-amber-400' : 'text-gray-300 dark:text-gray-600 hover:text-amber-400'}`} title="Избранное">
+          <button onClick={toggleBookmark} className={`text-xl ${doc.isBookmarked ? 'text-amber-400' : 'text-gray-300 dark:text-gray-600 hover:text-amber-400'}`} title={t('Избранное')}>
             {doc.isBookmarked ? '★' : '☆'}
           </button>
           {isSuperAdmin && (
@@ -158,10 +160,10 @@ export default function NormDocumentDetailPage() {
 
         {/* Meta */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4 text-sm">
-          <Meta label="Категория" value={doc.category?.name || '—'} />
-          <Meta label="Вступление в силу" value={fmtDate(doc.effectiveDate)} />
-          <Meta label="Дата отмены" value={fmtDate(doc.supersededDate)} />
-          <Meta label="Просмотров" value={String(doc.viewCount ?? 0)} />
+          <Meta label={t('Категория')} value={doc.category?.name || '—'} />
+          <Meta label={t('Вступление в силу')} value={fmtDate(doc.effectiveDate)} />
+          <Meta label={t('Дата отмены')} value={fmtDate(doc.supersededDate)} />
+          <Meta label={t('Просмотров')} value={String(doc.viewCount ?? 0)} />
         </div>
 
         {/* Tags */}
@@ -180,7 +182,7 @@ export default function NormDocumentDetailPage() {
         {/* Attachments */}
         {(doc.attachments || []).length > 0 && (
           <div className="mt-6 border-t border-gray-100 dark:border-gray-800 pt-4">
-            <h3 className="text-sm font-semibold mb-2 text-gray-500">Вложения</h3>
+            <h3 className="text-sm font-semibold mb-2 text-gray-500">{t('Вложения')}</h3>
             <ul className="space-y-1">
               {doc.attachments!.map((a, i) => (
                 <li key={i}>
@@ -199,7 +201,7 @@ export default function NormDocumentDetailPage() {
         <div className="mt-5 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-5">
           {(doc.supersedes || []).length > 0 && (
             <div className="mb-4">
-              <h3 className="text-sm font-semibold mb-2 text-gray-500">Заменяет документы</h3>
+              <h3 className="text-sm font-semibold mb-2 text-gray-500">{t('Заменяет документы')}</h3>
               <div className="flex flex-wrap gap-2">
                 {doc.supersedes!.map((s) => (
                   <Link key={s.id} href={`/dashboard/wiki/${s.id}`} className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm hover:border-violet-300">
@@ -211,7 +213,7 @@ export default function NormDocumentDetailPage() {
           )}
           {(doc.related || []).length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold mb-2 text-gray-500">Связанные нормы</h3>
+              <h3 className="text-sm font-semibold mb-2 text-gray-500">{t('Связанные нормы')}</h3>
               <div className="flex flex-wrap gap-2">
                 {doc.related!.map((r) => (
                   <Link key={r.id} href={`/dashboard/wiki/${r.id}`} className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm hover:border-violet-300">
@@ -262,6 +264,7 @@ export default function NormDocumentDetailPage() {
 }
 
 function Meta({ label, value }: { label: string; value: string }) {
+  const t = useT();
   return (
     <div>
       <div className="text-xs text-gray-400">{label}</div>

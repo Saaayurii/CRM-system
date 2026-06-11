@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ChatChannel } from '@/stores/chatStore';
+import { useT } from '@/lib/i18n';
 
 export interface ChatContextMenuActions {
   onOpenInNewWindow: () => void;

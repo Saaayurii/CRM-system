@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import api from '@/lib/api';
+import { useT } from '@/lib/i18n';
 
 interface UserProfile {
   id: number;
@@ -64,6 +65,7 @@ interface Props {
 
 /** Read-only employee card opened by clicking a sender avatar/name in chat. */
 export default function UserProfileModal({ userId, onClose }: Props) {
+  const t = useT();
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -167,7 +169,7 @@ export default function UserProfileModal({ userId, onClose }: Props) {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
                 <div>
-                  <dt className="text-xs text-gray-400">Роль</dt>
+                  <dt className="text-xs text-gray-400">{t('Роль')}</dt>
                   <dd className="text-sm text-gray-800 dark:text-gray-100">{roleName}</dd>
                 </div>
               </div>
@@ -178,7 +180,7 @@ export default function UserProfileModal({ userId, onClose }: Props) {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                   </svg>
                   <div>
-                    <dt className="text-xs text-gray-400">Телефон</dt>
+                    <dt className="text-xs text-gray-400">{t('Телефон')}</dt>
                     <dd>
                       <a href={`tel:${user.phone}`} className="text-sm text-violet-600 dark:text-violet-400 hover:underline">
                         {user.phone}
@@ -205,7 +207,7 @@ export default function UserProfileModal({ userId, onClose }: Props) {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5.636 18.364a9 9 0 010-12.728m12.728 0a9 9 0 010 12.728M9 10a3 3 0 106 0 3 3 0 00-6 0z" />
                 </svg>
                 <div>
-                  <dt className="text-xs text-gray-400">Доступность</dt>
+                  <dt className="text-xs text-gray-400">{t('Доступность')}</dt>
                   <dd className="text-sm text-gray-800 dark:text-gray-100">{availLabel}</dd>
                 </div>
               </div>
@@ -216,7 +218,7 @@ export default function UserProfileModal({ userId, onClose }: Props) {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                   <div>
-                    <dt className="text-xs text-gray-400">Дата найма</dt>
+                    <dt className="text-xs text-gray-400">{t('Дата найма')}</dt>
                     <dd className="text-sm text-gray-800 dark:text-gray-100">{hireDate}</dd>
                   </div>
                 </div>
@@ -228,7 +230,7 @@ export default function UserProfileModal({ userId, onClose }: Props) {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M21 15.546c-.523 0-1.046.151-1.5.454a2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-1.5-.454M9 6v2m3-2v2m3-2v2M9 3h.01M12 3h.01M15 3h.01M21 21v-7a2 2 0 00-2-2H5a2 2 0 00-2 2v7h18z" />
                   </svg>
                   <div>
-                    <dt className="text-xs text-gray-400">Дата рождения</dt>
+                    <dt className="text-xs text-gray-400">{t('Дата рождения')}</dt>
                     <dd className="text-sm text-gray-800 dark:text-gray-100">{birthDate}</dd>
                   </div>
                 </div>
@@ -241,7 +243,7 @@ export default function UserProfileModal({ userId, onClose }: Props) {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
                   <div>
-                    <dt className="text-xs text-gray-400">Адрес</dt>
+                    <dt className="text-xs text-gray-400">{t('Адрес')}</dt>
                     <dd className="text-sm text-gray-800 dark:text-gray-100">{user.address}</dd>
                   </div>
                 </div>

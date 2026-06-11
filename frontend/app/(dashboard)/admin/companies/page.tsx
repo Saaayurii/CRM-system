@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useToastStore } from '@/stores/toastStore';
 import { useDownloadPdf } from '@/lib/hooks/useDownloadPdf';
 import api from '@/lib/api';
+import { useT } from '@/lib/i18n';
 
 interface Company {
   id: number;
@@ -36,6 +37,7 @@ function EditCompanyModal({ company, onClose, onSaved }: {
   onClose: () => void;
   onSaved: (updated: Company) => void;
 }) {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
   const [form, setForm] = useState({ name: company.name, subdomain: company.subdomain ?? '', status: company.status });
   const [loading, setLoading] = useState(false);
@@ -79,26 +81,26 @@ function EditCompanyModal({ company, onClose, onSaved }: {
               : <span className="text-sm font-bold text-gray-500 dark:text-gray-300">{company.name[0]?.toUpperCase()}</span>}
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Редактировать компанию</h2>
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">{t('Редактировать компанию')}</h2>
             <p className="text-xs text-gray-400">ID: {company.id}</p>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Название</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('Название')}</label>
             <input type="text" required value={form.name} onChange={(e) => set('name', e.target.value)} className={inputCls} />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Поддомен</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('Поддомен')}</label>
             <input type="text" value={form.subdomain} onChange={(e) => set('subdomain', e.target.value)} className={inputCls} placeholder="example" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Статус</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('Статус')}</label>
             <select value={form.status} onChange={(e) => set('status', Number(e.target.value))} className={inputCls}>
-              <option value={1}>Активна</option>
-              <option value={0}>Неактивна</option>
-              <option value={2}>Заблокирована</option>
+              <option value={1}>{t('Активна')}</option>
+              <option value={0}>{t('Неактивна')}</option>
+              <option value={2}>{t('Заблокирована')}</option>
             </select>
           </div>
 
@@ -120,6 +122,7 @@ function EditCompanyModal({ company, onClose, onSaved }: {
 
 // ── Page ──────────────────────────────────────────────────────
 export default function CompaniesPage() {
+  const t = useT();
   const user = useAuthStore((s) => s.user);
   const router = useRouter();
   const { download: downloadPdf, loading: pdfLoading } = useDownloadPdf();
@@ -205,20 +208,20 @@ export default function CompaniesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Компании</h1>
+          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">{t('Компании')}</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{companies.length} зарегистрировано</p>
         </div>
         <div className="flex items-center gap-2">
           {/* View toggle */}
           <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
             <button onClick={() => handleViewMode('table')}
-              className={`p-1.5 rounded transition-colors ${viewMode === 'table' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`} title="Таблица">
+              className={`p-1.5 rounded transition-colors ${viewMode === 'table' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`} title={t('Таблица')}>
               <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
               </svg>
             </button>
             <button onClick={() => handleViewMode('grid')}
-              className={`p-1.5 rounded transition-colors ${viewMode === 'grid' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`} title="Карточки">
+              className={`p-1.5 rounded transition-colors ${viewMode === 'grid' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`} title={t('Карточки')}>
               <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
               </svg>
@@ -242,7 +245,7 @@ export default function CompaniesPage() {
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
         <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
-          placeholder="Поиск по названию..." className="form-input flex-1 max-w-xs" />
+          placeholder={t('Поиск по названию...')} className="form-input flex-1 max-w-xs" />
         <div className="flex gap-2">
           {([null, 1, 0, 2] as (number | null)[]).map((s) => (
             <button key={String(s)} onClick={() => setStatusFilter(s)}
@@ -266,7 +269,7 @@ export default function CompaniesPage() {
           </svg>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs py-16 text-center text-sm text-gray-400">Компании не найдены</div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs py-16 text-center text-sm text-gray-400">{t('Компании не найдены')}</div>
       ) : viewMode === 'table' ? (
         /* ── Table view ── */
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
@@ -274,12 +277,12 @@ export default function CompaniesPage() {
             <table className="table-auto w-full text-sm">
               <thead>
                 <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
-                  <th className="py-3 px-4 text-left font-semibold">Компания</th>
-                  <th className="py-3 px-4 text-left font-semibold">Поддомен</th>
-                  <th className="py-3 px-4 text-left font-semibold">Пользователи</th>
-                  <th className="py-3 px-4 text-left font-semibold">Статус</th>
-                  <th className="py-3 px-4 text-left font-semibold">Создана</th>
-                  <th className="py-3 px-4 text-center font-semibold w-28">Действия</th>
+                  <th className="py-3 px-4 text-left font-semibold">{t('Компания')}</th>
+                  <th className="py-3 px-4 text-left font-semibold">{t('Поддомен')}</th>
+                  <th className="py-3 px-4 text-left font-semibold">{t('Пользователи')}</th>
+                  <th className="py-3 px-4 text-left font-semibold">{t('Статус')}</th>
+                  <th className="py-3 px-4 text-left font-semibold">{t('Создана')}</th>
+                  <th className="py-3 px-4 text-center font-semibold w-28">{t('Действия')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
@@ -345,15 +348,15 @@ export default function CompaniesPage() {
                 </div>
                 <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
                   <div>
-                    <dt className="text-gray-400">Поддомен</dt>
+                    <dt className="text-gray-400">{t('Поддомен')}</dt>
                     <dd className="text-gray-700 dark:text-gray-300 truncate">{company.subdomain || '—'}</dd>
                   </div>
                   <div>
-                    <dt className="text-gray-400">Пользователи</dt>
+                    <dt className="text-gray-400">{t('Пользователи')}</dt>
                     <dd className="text-gray-700 dark:text-gray-300">{company.userCount ?? '—'}</dd>
                   </div>
                   <div className="col-span-2">
-                    <dt className="text-gray-400">Создана</dt>
+                    <dt className="text-gray-400">{t('Создана')}</dt>
                     <dd className="text-gray-700 dark:text-gray-300">{fmt(company.createdAt)}</dd>
                   </div>
                 </dl>

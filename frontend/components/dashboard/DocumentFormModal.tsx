@@ -5,6 +5,7 @@ import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import { useDraft } from '@/hooks/useDraft';
 import DraftBanner from '@/components/ui/DraftBanner';
+import { useT } from '@/lib/i18n';
 
 interface DocumentFormModalProps {
   document?: any | null;
@@ -46,6 +47,7 @@ const ACCESS_LEVELS = [
 ];
 
 export default function DocumentFormModal({ document, onClose, onSaved }: DocumentFormModalProps) {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
   const [loading, setLoading] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -187,7 +189,7 @@ export default function DocumentFormModal({ document, onClose, onSaved }: Docume
               value={formData.title}
               onChange={(e) => handleChange('title', e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-              placeholder="Название документа"
+              placeholder={t('Название документа')}
               required
             />
           </div>
@@ -235,7 +237,7 @@ export default function DocumentFormModal({ document, onClose, onSaved }: Docume
               onChange={(e) => handleChange('description', e.target.value)}
               rows={3}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-              placeholder="Описание документа"
+              placeholder={t('Описание документа')}
             />
           </div>
 
@@ -250,7 +252,7 @@ export default function DocumentFormModal({ document, onClose, onSaved }: Docume
                 onChange={(e) => handleChange('projectId', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-violet-500 focus:border-transparent"
               >
-                <option value="">Не выбрано</option>
+                <option value="">{t('Не выбрано')}</option>
                 {projects.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
@@ -290,7 +292,7 @@ export default function DocumentFormModal({ document, onClose, onSaved }: Docume
               type="url"
               value={formData.fileUrl}
               onChange={(e) => handleChange('fileUrl', e.target.value)}
-              placeholder="или введите URL файла"
+              placeholder={t('или введите URL файла')}
               className="w-full px-3 py-2 mt-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent"
             />
           </div>
@@ -369,7 +371,7 @@ export default function DocumentFormModal({ document, onClose, onSaved }: Docume
               value={formData.tags}
               onChange={(e) => handleChange('tags', e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-              placeholder="строительство, договор, важное (через запятую)"
+              placeholder={t('строительство, договор, важное (через запятую)')}
             />
           </div>
 

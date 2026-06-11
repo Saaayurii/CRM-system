@@ -6,6 +6,7 @@ import { useChatStore } from '@/stores/chatStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useDraft } from '@/hooks/useDraft';
 import DraftBanner from '@/components/ui/DraftBanner';
+import { useT } from '@/lib/i18n';
 
 interface CreateChannelModalProps {
   onClose: () => void;
@@ -19,6 +20,7 @@ interface UserOption {
 }
 
 export default function CreateChannelModal({ onClose }: CreateChannelModalProps) {
+  const t = useT();
   const draft = useDraft('channel:new', { channelType: 'direct' as 'direct' | 'group', channelName: '' });
   const [channelType, setChannelTypeRaw] = useState<'direct' | 'group'>('direct');
   const [channelName, setChannelNameRaw] = useState('');
@@ -114,7 +116,7 @@ export default function CreateChannelModal({ onClose }: CreateChannelModalProps)
       <div className="fixed inset-0 bg-black/50" onClick={onClose} />
       <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full overflow-hidden">
         <div className="px-6 pt-6 pb-0 flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Новый чат</h2>
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">{t('Новый чат')}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -162,7 +164,7 @@ export default function CreateChannelModal({ onClose }: CreateChannelModalProps)
                 type="button"
                 onClick={() => fileRef.current?.click()}
                 className="relative w-14 h-14 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center shrink-0 overflow-hidden border-2 border-dashed border-violet-300 dark:border-violet-700 hover:border-violet-500 transition-colors"
-                title="Загрузить аватар"
+                title={t('Загрузить аватар')}
               >
                 {avatarPreview ? (
                   <img src={avatarPreview} alt="" className="w-full h-full object-cover" />
@@ -183,7 +185,7 @@ export default function CreateChannelModal({ onClose }: CreateChannelModalProps)
                 type="text"
                 value={channelName}
                 onChange={(e) => setChannelName(e.target.value)}
-                placeholder="Название группы"
+                placeholder={t('Название группы')}
                 className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent"
               />
             </div>
@@ -223,14 +225,14 @@ export default function CreateChannelModal({ onClose }: CreateChannelModalProps)
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Найти пользователя..."
+          placeholder={t('Найти пользователя...')}
           className="w-full px-3 py-2 mb-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent"
         />
 
         {/* User list */}
         <div className="max-h-48 overflow-y-auto mb-4 border border-gray-200 dark:border-gray-600 rounded-lg">
           {!showSelf && filteredUsers.length === 0 ? (
-            <p className="p-3 text-sm text-gray-400 text-center">Пользователи не найдены</p>
+            <p className="p-3 text-sm text-gray-400 text-center">{t('Пользователи не найдены')}</p>
           ) : (
             <>
               {channelType === 'direct' && showSelf && selfUser && (
@@ -244,7 +246,7 @@ export default function CreateChannelModal({ onClose }: CreateChannelModalProps)
                 >
                   <div className="w-8 h-8 rounded-full bg-violet-500 flex items-center justify-center text-white text-sm shrink-0">★</div>
                   <div className="min-w-0">
-                    <p className="font-medium text-gray-800 dark:text-gray-100">Избранное</p>
+                    <p className="font-medium text-gray-800 dark:text-gray-100">{t('Избранное')}</p>
                     <p className="text-xs text-gray-400 truncate">{selfUser.email}</p>
                   </div>
                   {selectedUsers.some((u) => u.id === selfUser.id) && (

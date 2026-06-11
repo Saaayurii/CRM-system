@@ -1,5 +1,9 @@
 'use client';
 
+import { useT } from '@/lib/i18n';
+
+import { useT } from '@/lib/i18n';
+
 const modules = ['Проекты', 'Задачи', 'Материалы', 'Склад', 'Финансы', 'HR', 'Инспекции', 'Отчёты'];
 
 const ROLE_CODE_TO_NAME: Record<string, string> = {
@@ -40,6 +44,7 @@ const roles: RoleAccess[] = [
 ];
 
 function AccessIcon({ level }: { level: 'full' | 'read' | 'none' }) {
+  const t = useT();
   switch (level) {
     case 'full':
       return (
@@ -66,29 +71,30 @@ function AccessIcon({ level }: { level: 'full' | 'read' | 'none' }) {
 }
 
 export default function RoleAccessMatrix() {
+  const t = useT();
   return (
     <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl overflow-hidden">
       {/* Legend */}
       <div className="flex items-center gap-6 px-4 py-3 border-b border-gray-100 dark:border-gray-700/60 bg-gray-50/50 dark:bg-gray-900/20">
-        <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Обозначения:</span>
+        <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{t('Обозначения:')}</span>
         <div className="flex items-center gap-1.5">
           <AccessIcon level="full" />
-          <span className="text-xs text-gray-600 dark:text-gray-300">Полный доступ</span>
+          <span className="text-xs text-gray-600 dark:text-gray-300">{t('Полный доступ')}</span>
         </div>
         <div className="flex items-center gap-1.5">
           <AccessIcon level="read" />
-          <span className="text-xs text-gray-600 dark:text-gray-300">Только чтение</span>
+          <span className="text-xs text-gray-600 dark:text-gray-300">{t('Только чтение')}</span>
         </div>
         <div className="flex items-center gap-1.5">
           <AccessIcon level="none" />
-          <span className="text-xs text-gray-600 dark:text-gray-300">Нет доступа</span>
+          <span className="text-xs text-gray-600 dark:text-gray-300">{t('Нет доступа')}</span>
         </div>
       </div>
       <div className="overflow-x-auto">
         <table className="table-auto w-full text-sm">
           <thead>
             <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
-              <th className="py-3 px-4 text-left font-semibold whitespace-nowrap">Роль</th>
+              <th className="py-3 px-4 text-left font-semibold whitespace-nowrap">{t('Роль')}</th>
               {modules.map((m) => (
                 <th key={m} className="py-3 px-3 text-center font-semibold whitespace-nowrap">
                   {m}

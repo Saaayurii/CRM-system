@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
+import { useT } from '@/lib/i18n';
 
 export interface ClientDTO {
   id?: number;
@@ -54,6 +55,7 @@ const STATUSES = [
 ];
 
 export default function ClientFormModal({ open, initial, onClose, onSaved }: Props) {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
   const [data, setData] = useState<ClientDTO>({ clientType: 'individual', status: 'active' });
   const [managers, setManagers] = useState<Manager[]>([]);
@@ -119,7 +121,7 @@ export default function ClientFormModal({ open, initial, onClose, onSaved }: Pro
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-            aria-label="Закрыть"
+            aria-label={t('Закрыть')}
           >
             ✕
           </button>
@@ -161,7 +163,7 @@ export default function ClientFormModal({ open, initial, onClose, onSaved }: Pro
                   className="form-input w-full"
                   value={data.lastName ?? ''}
                   onChange={(e) => handleField('lastName', e.target.value)}
-                  placeholder="Иванов"
+                  placeholder={t('Иванов')}
                 />
               </div>
               <div>
@@ -173,7 +175,7 @@ export default function ClientFormModal({ open, initial, onClose, onSaved }: Pro
                   className="form-input w-full"
                   value={data.firstName ?? ''}
                   onChange={(e) => handleField('firstName', e.target.value)}
-                  placeholder="Иван"
+                  placeholder={t('Иван')}
                 />
               </div>
               <div>
@@ -184,7 +186,7 @@ export default function ClientFormModal({ open, initial, onClose, onSaved }: Pro
                   className="form-input w-full"
                   value={data.middleName ?? ''}
                   onChange={(e) => handleField('middleName', e.target.value)}
-                  placeholder="Иванович"
+                  placeholder={t('Иванович')}
                 />
               </div>
             </div>
@@ -235,7 +237,7 @@ export default function ClientFormModal({ open, initial, onClose, onSaved }: Pro
                     className="form-input w-full"
                     value={data.signatoryName ?? ''}
                     onChange={(e) => handleField('signatoryName', e.target.value)}
-                    placeholder="Иванов И. И."
+                    placeholder={t('Иванов И. И.')}
                   />
                 </div>
                 <div>
@@ -246,7 +248,7 @@ export default function ClientFormModal({ open, initial, onClose, onSaved }: Pro
                     className="form-input w-full"
                     value={data.signatoryPosition ?? ''}
                     onChange={(e) => handleField('signatoryPosition', e.target.value)}
-                    placeholder="Генеральный директор"
+                    placeholder={t('Генеральный директор')}
                   />
                 </div>
               </div>
@@ -354,7 +356,7 @@ export default function ClientFormModal({ open, initial, onClose, onSaved }: Pro
                   handleField('assignedManagerId', e.target.value ? Number(e.target.value) : undefined)
                 }
               >
-                <option value="">— не назначен —</option>
+                <option value="">{t('— не назначен —')}</option>
                 {managers.map((m) => (
                   <option key={m.id} value={m.id}>
                     {m.name ||
@@ -376,7 +378,7 @@ export default function ClientFormModal({ open, initial, onClose, onSaved }: Pro
               className="form-textarea w-full"
               value={data.notes ?? ''}
               onChange={(e) => handleField('notes', e.target.value)}
-              placeholder="Дополнительная информация..."
+              placeholder={t('Дополнительная информация...')}
             />
           </div>
 

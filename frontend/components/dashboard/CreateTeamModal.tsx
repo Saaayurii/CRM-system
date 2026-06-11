@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import api from '@/lib/api';
 import { useChatStore } from '@/stores/chatStore';
+import { useT } from '@/lib/i18n';
 
 interface User {
   id: number;
@@ -22,6 +23,7 @@ function getInitials(name?: string, email?: string): string {
 }
 
 export default function CreateTeamModal({ onClose, onCreated }: CreateTeamModalProps) {
+  const t = useT();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [selectedMembers, setSelectedMembers] = useState<User[]>([]);
@@ -107,7 +109,7 @@ export default function CreateTeamModal({ onClose, onCreated }: CreateTeamModalP
       <div className="absolute inset-0 bg-gray-900/50" onClick={onClose} />
       <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-lg w-full max-w-md mx-4 p-6 max-h-[90dvh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Создать команду</h2>
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">{t('Создать команду')}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -131,19 +133,19 @@ export default function CreateTeamModal({ onClose, onCreated }: CreateTeamModalP
               onChange={(e) => setName(e.target.value)}
               required
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-              placeholder="Название команды"
+              placeholder={t('Название команды')}
             />
           </div>
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Описание</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('Описание')}</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none"
-              placeholder="Описание команды"
+              placeholder={t('Описание команды')}
             />
           </div>
 
@@ -192,7 +194,7 @@ export default function CreateTeamModal({ onClose, onCreated }: CreateTeamModalP
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-violet-500 focus:border-transparent text-sm"
-                placeholder="Поиск пользователей..."
+                placeholder={t('Поиск пользователей...')}
               />
               {searching && (
                 <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -238,8 +240,8 @@ export default function CreateTeamModal({ onClose, onCreated }: CreateTeamModalP
               <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${createChat ? 'translate-x-5' : ''}`} />
             </div>
             <div>
-              <div className="text-sm font-medium text-gray-700 dark:text-gray-300">Создать групповой чат</div>
-              <div className="text-xs text-gray-400">Чат с выбранными участниками команды</div>
+              <div className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('Создать групповой чат')}</div>
+              <div className="text-xs text-gray-400">{t('Чат с выбранными участниками команды')}</div>
             </div>
           </label>
 

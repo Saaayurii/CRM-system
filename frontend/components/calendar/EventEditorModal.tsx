@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { CustomEventType } from './types';
+import { useT } from '@/lib/i18n';
 
 interface EventDraft {
   id?: number;
@@ -55,6 +56,7 @@ const RECURRENCE_PRESETS: { rule?: string; label: string }[] = [
 ];
 
 export default function EventEditorModal({ initial, onClose, onSaved, onDeleted }: Props) {
+  const t = useT();
   const [form, setForm] = useState<EventDraft>(initial || {});
   const [customTypes, setCustomTypes] = useState<CustomEventType[]>([]);
   const [loading, setLoading] = useState(false);
@@ -129,19 +131,19 @@ export default function EventEditorModal({ initial, onClose, onSaved, onDeleted 
         </div>
         <div className="p-5 space-y-4">
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Название</label>
+            <label className="block text-xs font-medium text-gray-500 mb-1">{t('Название')}</label>
             <input
               type="text"
               value={form.title || ''}
               onChange={(e) => update({ title: e.target.value })}
               className="w-full rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-700 px-3 py-2 text-sm"
-              placeholder="Например: Совещание с заказчиком"
+              placeholder={t('Например: Совещание с заказчиком')}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Начало</label>
+              <label className="block text-xs font-medium text-gray-500 mb-1">{t('Начало')}</label>
               <input
                 type={form.isAllDay ? 'date' : 'datetime-local'}
                 value={toLocalInput(form.startDatetime, form.isAllDay)}
@@ -150,7 +152,7 @@ export default function EventEditorModal({ initial, onClose, onSaved, onDeleted 
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Окончание</label>
+              <label className="block text-xs font-medium text-gray-500 mb-1">{t('Окончание')}</label>
               <input
                 type={form.isAllDay ? 'date' : 'datetime-local'}
                 value={toLocalInput(form.endDatetime, form.isAllDay)}
@@ -166,7 +168,7 @@ export default function EventEditorModal({ initial, onClose, onSaved, onDeleted 
           </label>
 
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Тип события</label>
+            <label className="block text-xs font-medium text-gray-500 mb-1">{t('Тип события')}</label>
             <select
               value={form.customTypeId ? `custom:${form.customTypeId}` : form.eventType || ''}
               onChange={(e) => {
@@ -179,14 +181,14 @@ export default function EventEditorModal({ initial, onClose, onSaved, onDeleted 
               }}
               className="w-full rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-700 px-3 py-2 text-sm"
             >
-              <option value="">— Без типа —</option>
-              <optgroup label="Системные">
+              <option value="">{t('— Без типа —')}</option>
+              <optgroup label={t('Системные')}>
                 {SYSTEM_TYPES.map((t) => (
                   <option key={t.code} value={t.code}>{t.label}</option>
                 ))}
               </optgroup>
               {customTypes.length > 0 && (
-                <optgroup label="Кастомные">
+                <optgroup label={t('Кастомные')}>
                   {customTypes.filter((c) => c.isActive).map((t) => (
                     <option key={t.id} value={`custom:${t.id}`}>{t.name}</option>
                   ))}
@@ -196,7 +198,7 @@ export default function EventEditorModal({ initial, onClose, onSaved, onDeleted 
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Повторение</label>
+            <label className="block text-xs font-medium text-gray-500 mb-1">{t('Повторение')}</label>
             <select
               value={form.recurrenceRule || ''}
               onChange={(e) => update({ recurrenceRule: e.target.value || undefined })}
@@ -209,7 +211,7 @@ export default function EventEditorModal({ initial, onClose, onSaved, onDeleted 
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Место</label>
+            <label className="block text-xs font-medium text-gray-500 mb-1">{t('Место')}</label>
             <input
               type="text"
               value={form.location || ''}
@@ -219,7 +221,7 @@ export default function EventEditorModal({ initial, onClose, onSaved, onDeleted 
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Описание</label>
+            <label className="block text-xs font-medium text-gray-500 mb-1">{t('Описание')}</label>
             <textarea
               rows={3}
               value={form.description || ''}

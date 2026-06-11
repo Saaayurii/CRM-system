@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
+import { useT } from '@/lib/i18n';
 
 type Format = 'expense-statement' | 'balance-detail';
 
@@ -13,6 +14,7 @@ export default function FinancialReportModal({
   projectId: number;
   onClose: () => void;
 }) {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
   const [format, setFormat] = useState<Format>('balance-detail');
   const [articles, setArticles] = useState<string[]>([]);
@@ -77,7 +79,7 @@ export default function FinancialReportModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-          <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100">Финансовый отчёт</h3>
+          <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100">{t('Финансовый отчёт')}</h3>
           <button
             onClick={onClose}
             className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -99,7 +101,7 @@ export default function FinancialReportModal({
                   : 'border-gray-200 dark:border-gray-700 hover:border-violet-300'
               }`}
             >
-              <p className="text-sm font-medium text-gray-800 dark:text-gray-100">Детализация баланса</p>
+              <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{t('Детализация баланса')}</p>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 Все приходы и расходы проекта с разбивкой по статьям
               </p>
@@ -113,7 +115,7 @@ export default function FinancialReportModal({
                   : 'border-gray-200 dark:border-gray-700 hover:border-violet-300'
               }`}
             >
-              <p className="text-sm font-medium text-gray-800 dark:text-gray-100">Ведомость по статье</p>
+              <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{t('Ведомость по статье')}</p>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 Платежи по конкретной статье расходов
               </p>
@@ -122,7 +124,7 @@ export default function FinancialReportModal({
 
           {format === 'expense-statement' && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Статья расходов</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t('Статья расходов')}</label>
               {articles.length === 0 ? (
                 <p className="text-xs text-amber-600 dark:text-amber-400">
                   В проекте ещё нет расходных платежей со статьёй. Заведите платёж на вкладке «Финансы».
@@ -139,11 +141,11 @@ export default function FinancialReportModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Период с</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t('Период с')}</label>
               <input type="date" value={periodFrom} onChange={(e) => setPeriodFrom(e.target.value)} className={inputCls} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Период по</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t('Период по')}</label>
               <input type="date" value={periodTo} onChange={(e) => setPeriodTo(e.target.value)} className={inputCls} />
             </div>
           </div>

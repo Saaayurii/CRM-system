@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { CalendarSource, SOURCE_COLORS, SOURCE_LABELS } from './types';
+import { useT } from '@/lib/i18n';
 
 interface Props {
   open: boolean;
@@ -24,6 +25,7 @@ export default function FiltersDrawer({
   mine,
   setMine,
 }: Props) {
+  const t = useT();
   useEffect(() => {
     if (!open) return;
     const onEsc = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -49,7 +51,7 @@ export default function FiltersDrawer({
         } flex flex-col`}
       >
         <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-          <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100">Фильтры</h3>
+          <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100">{t('Фильтры')}</h3>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-800 dark:hover:text-gray-100">✕</button>
         </div>
 

@@ -7,6 +7,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
   PieChart, Pie, Cell,
 } from 'recharts';
+import { useT } from '@/lib/i18n';
 
 function getGreeting(): string {
   const h = new Date().getHours();
@@ -48,6 +49,7 @@ function fmtDate(v: string | null | undefined): string {
 }
 
 function StatusBadge({ label, color }: { label: string; color: string }) {
+  const t = useT();
   const colors: Record<string, string> = {
     gray: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300',
     blue: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
@@ -108,6 +110,7 @@ const PROJECT_STATUS_COLORS: Record<string, string> = {
 };
 
 export default function PMDashboard({ user }: { user: any }) {
+  const t = useT();
   const [loading, setLoading] = useState(true);
   const [projects, setProjects] = useState<any[]>([]);
   const [tasks, setTasks] = useState<any[]>([]);
@@ -272,8 +275,8 @@ export default function PMDashboard({ user }: { user: any }) {
             </svg>
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-800 dark:text-gray-100">Проекты</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Управление проектами</p>
+            <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{t('Проекты')}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{t('Управление проектами')}</p>
           </div>
         </Link>
         <Link href="/dashboard/pm/tasks" className="flex items-center gap-3 bg-white dark:bg-gray-800 rounded-xl shadow-xs p-4 hover:ring-1 hover:ring-violet-500/20 transition-all">
@@ -283,8 +286,8 @@ export default function PMDashboard({ user }: { user: any }) {
             </svg>
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-800 dark:text-gray-100">Задачи</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Управление задачами</p>
+            <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{t('Задачи')}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{t('Управление задачами')}</p>
           </div>
         </Link>
         <Link href="/dashboard/pm/construction-sites" className="flex items-center gap-3 bg-white dark:bg-gray-800 rounded-xl shadow-xs p-4 hover:ring-1 hover:ring-violet-500/20 transition-all">
@@ -295,8 +298,8 @@ export default function PMDashboard({ user }: { user: any }) {
             </svg>
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-800 dark:text-gray-100">Стройплощадки</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Строительные площадки</p>
+            <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{t('Стройплощадки')}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{t('Строительные площадки')}</p>
           </div>
         </Link>
       </div>
@@ -306,22 +309,22 @@ export default function PMDashboard({ user }: { user: any }) {
         {/* My projects */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs">
           <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Мои проекты</h3>
+            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">{t('Мои проекты')}</h3>
             <Link href="/dashboard/pm/projects" className="text-xs text-violet-500 hover:text-violet-600 font-medium">
               Все проекты
             </Link>
           </div>
           <div className="p-5">
             {myProjects.length === 0 ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Нет назначенных проектов</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">{t('Нет назначенных проектов')}</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-left text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700/60">
-                      <th className="pb-2 font-medium">Название</th>
-                      <th className="pb-2 font-medium">Статус</th>
-                      <th className="pb-2 font-medium text-right">Бюджет</th>
+                      <th className="pb-2 font-medium">{t('Название')}</th>
+                      <th className="pb-2 font-medium">{t('Статус')}</th>
+                      <th className="pb-2 font-medium text-right">{t('Бюджет')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -349,14 +352,14 @@ export default function PMDashboard({ user }: { user: any }) {
         {/* Overdue tasks */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs">
           <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Просроченные задачи</h3>
+            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">{t('Просроченные задачи')}</h3>
             <Link href="/dashboard/pm/tasks" className="text-xs text-violet-500 hover:text-violet-600 font-medium">
               Все задачи
             </Link>
           </div>
           <div className="p-5">
             {overdueTasks.length === 0 ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Нет просроченных задач</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">{t('Нет просроченных задач')}</p>
             ) : (
               <div className="space-y-3">
                 {overdueTasks.slice(0, 8).map((t: any) => {
@@ -391,7 +394,7 @@ export default function PMDashboard({ user }: { user: any }) {
           </h3>
           <div className="h-64">
             {tasksByStatus.length === 0 ? (
-              <div className="flex items-center justify-center h-full text-sm text-gray-400">Нет данных</div>
+              <div className="flex items-center justify-center h-full text-sm text-gray-400">{t('Нет данных')}</div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={tasksByStatus} barCategoryGap="20%">
@@ -417,7 +420,7 @@ export default function PMDashboard({ user }: { user: any }) {
           </h3>
           <div className="h-64">
             {projectsByStatus.length === 0 ? (
-              <div className="flex items-center justify-center h-full text-sm text-gray-400">Нет данных</div>
+              <div className="flex items-center justify-center h-full text-sm text-gray-400">{t('Нет данных')}</div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>

@@ -2,6 +2,7 @@
 
 import { Fragment, useEffect, useState } from 'react';
 import api from '@/lib/api';
+import { useT } from '@/lib/i18n';
 
 interface InventoryItem {
   id: number;
@@ -36,6 +37,7 @@ function fmt(d?: string | null) {
 }
 
 export default function InventoryTab() {
+  const t = useT();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [opened, setOpened] = useState<number | null>(null);
@@ -55,27 +57,27 @@ export default function InventoryTab() {
     <div>
       <div className="flex items-center justify-between mb-3">
         <div>
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Журнал инвентаризаций</h2>
-          <p className="text-xs text-gray-500">Сессии инвентаризации оборудования. Чтобы запустить новую — откройте вкладку «Склады»</p>
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">{t('Журнал инвентаризаций')}</h2>
+          <p className="text-xs text-gray-500">{t('Сессии инвентаризации оборудования. Чтобы запустить новую — откройте вкладку «Склады»')}</p>
         </div>
       </div>
 
       {loading ? (
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 text-center text-gray-500">Загрузка...</div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 text-center text-gray-500">{t('Загрузка...')}</div>
       ) : sessions.length === 0 ? (
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 text-center text-gray-500">Инвентаризаций пока нет</div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 text-center text-gray-500">{t('Инвентаризаций пока нет')}</div>
       ) : (
         <div className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-xs">
           <table className="w-full text-sm">
             <thead className="text-xs uppercase text-gray-400 bg-gray-50 dark:bg-gray-900/20">
               <tr>
-                <th className="px-4 py-2.5 text-left">Название</th>
-                <th className="px-4 py-2.5 text-left">Статус</th>
-                <th className="px-4 py-2.5 text-left">Дата</th>
-                <th className="px-4 py-2.5 text-right">Найдено</th>
-                <th className="px-4 py-2.5 text-right">Не найдено</th>
-                <th className="px-4 py-2.5 text-right">Всего</th>
-                <th className="px-4 py-2.5 text-center w-32">Действие</th>
+                <th className="px-4 py-2.5 text-left">{t('Название')}</th>
+                <th className="px-4 py-2.5 text-left">{t('Статус')}</th>
+                <th className="px-4 py-2.5 text-left">{t('Дата')}</th>
+                <th className="px-4 py-2.5 text-right">{t('Найдено')}</th>
+                <th className="px-4 py-2.5 text-right">{t('Не найдено')}</th>
+                <th className="px-4 py-2.5 text-right">{t('Всего')}</th>
+                <th className="px-4 py-2.5 text-center w-32">{t('Действие')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
@@ -109,16 +111,16 @@ export default function InventoryTab() {
                       <tr key={`${s.id}-detail`}>
                         <td colSpan={7} className="px-4 py-3 bg-gray-50 dark:bg-gray-900/20">
                           {items.length === 0 ? (
-                            <div className="text-sm text-gray-500 text-center py-2">Позиций нет</div>
+                            <div className="text-sm text-gray-500 text-center py-2">{t('Позиций нет')}</div>
                           ) : (
                             <table className="w-full text-xs">
                               <thead className="text-gray-400">
                                 <tr>
-                                  <th className="px-2 py-1 text-left">Оборудование</th>
+                                  <th className="px-2 py-1 text-left">{t('Оборудование')}</th>
                                   <th className="px-2 py-1 text-left">S/N</th>
-                                  <th className="px-2 py-1 text-left">Склад</th>
-                                  <th className="px-2 py-1 text-left">Найдено</th>
-                                  <th className="px-2 py-1 text-left">Комментарий</th>
+                                  <th className="px-2 py-1 text-left">{t('Склад')}</th>
+                                  <th className="px-2 py-1 text-left">{t('Найдено')}</th>
+                                  <th className="px-2 py-1 text-left">{t('Комментарий')}</th>
                                 </tr>
                               </thead>
                               <tbody>

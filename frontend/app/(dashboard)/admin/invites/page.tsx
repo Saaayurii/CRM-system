@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import { useAuthStore } from '@/stores/authStore';
+import { useT } from '@/lib/i18n';
 
 interface Invite {
   id: number;
@@ -29,6 +30,7 @@ function getStatus(inv: Invite): { label: string; color: string } {
 }
 
 export default function InvitesPage() {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
   const user = useAuthStore((s) => s.user);
   const [invites, setInvites] = useState<Invite[]>([]);
@@ -89,7 +91,7 @@ export default function InvitesPage() {
   if (user?.roleId !== 1) {
     return (
       <div className="flex items-center justify-center min-h-64">
-        <p className="text-gray-500">Доступ только для суперадмина</p>
+        <p className="text-gray-500">{t('Доступ только для суперадмина')}</p>
       </div>
     );
   }
@@ -97,7 +99,7 @@ export default function InvitesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Инвайт-ссылки</h1>
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">{t('Инвайт-ссылки')}</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
           Регистрация компании доступна только по одноразовой инвайт-ссылке
         </p>
@@ -105,29 +107,29 @@ export default function InvitesPage() {
 
       {/* Create form */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-5">
-        <h2 className="font-semibold text-gray-800 dark:text-gray-100 mb-4">Создать инвайт</h2>
+        <h2 className="font-semibold text-gray-800 dark:text-gray-100 mb-4">{t('Создать инвайт')}</h2>
         <div className="flex flex-wrap gap-3 items-end">
           <div className="flex-1 min-w-48">
-            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Заметка (необязательно)</label>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{t('Заметка (необязательно)')}</label>
             <input
               className="form-input w-full"
-              placeholder="Для кого / зачем"
+              placeholder={t('Для кого / зачем')}
               value={note}
               onChange={(e) => setNote(e.target.value)}
             />
           </div>
           <div className="w-44">
-            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Срок действия</label>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{t('Срок действия')}</label>
             <select
               className="form-select w-full"
               value={expiresInHours}
               onChange={(e) => setExpiresInHours(Number(e.target.value))}
             >
-              <option value={24}>24 часа</option>
-              <option value={72}>3 дня</option>
-              <option value={168}>7 дней</option>
-              <option value={720}>30 дней</option>
-              <option value={0}>Без ограничений</option>
+              <option value={24}>{t('24 часа')}</option>
+              <option value={72}>{t('3 дня')}</option>
+              <option value={168}>{t('7 дней')}</option>
+              <option value={720}>{t('30 дней')}</option>
+              <option value={0}>{t('Без ограничений')}</option>
             </select>
           </div>
           <button
@@ -143,24 +145,24 @@ export default function InvitesPage() {
       {/* List */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60">
-          <h2 className="font-semibold text-gray-800 dark:text-gray-100">Все инвайты</h2>
+          <h2 className="font-semibold text-gray-800 dark:text-gray-100">{t('Все инвайты')}</h2>
         </div>
 
         {loading ? (
-          <div className="px-5 py-8 text-center text-gray-400 text-sm">Загрузка...</div>
+          <div className="px-5 py-8 text-center text-gray-400 text-sm">{t('Загрузка...')}</div>
         ) : invites.length === 0 ? (
-          <div className="px-5 py-8 text-center text-gray-400 text-sm">Инвайтов пока нет</div>
+          <div className="px-5 py-8 text-center text-gray-400 text-sm">{t('Инвайтов пока нет')}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 dark:bg-gray-700/30">
-                  <th className="py-3 px-4 text-left font-semibold text-gray-600 dark:text-gray-400">Заметка</th>
-                  <th className="py-3 px-4 text-left font-semibold text-gray-600 dark:text-gray-400">Статус</th>
-                  <th className="py-3 px-4 text-left font-semibold text-gray-600 dark:text-gray-400">Создан</th>
-                  <th className="py-3 px-4 text-left font-semibold text-gray-600 dark:text-gray-400">Истекает</th>
-                  <th className="py-3 px-4 text-left font-semibold text-gray-600 dark:text-gray-400">Использован / Кем</th>
-                  <th className="py-3 px-4 text-right font-semibold text-gray-600 dark:text-gray-400">Действия</th>
+                  <th className="py-3 px-4 text-left font-semibold text-gray-600 dark:text-gray-400">{t('Заметка')}</th>
+                  <th className="py-3 px-4 text-left font-semibold text-gray-600 dark:text-gray-400">{t('Статус')}</th>
+                  <th className="py-3 px-4 text-left font-semibold text-gray-600 dark:text-gray-400">{t('Создан')}</th>
+                  <th className="py-3 px-4 text-left font-semibold text-gray-600 dark:text-gray-400">{t('Истекает')}</th>
+                  <th className="py-3 px-4 text-left font-semibold text-gray-600 dark:text-gray-400">{t('Использован / Кем')}</th>
+                  <th className="py-3 px-4 text-right font-semibold text-gray-600 dark:text-gray-400">{t('Действия')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">

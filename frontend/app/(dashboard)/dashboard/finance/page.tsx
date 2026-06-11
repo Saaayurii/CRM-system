@@ -10,6 +10,7 @@ import FinanceOperationDrawer from '@/components/finance/FinanceOperationDrawer'
 import DocumentsOverview from '@/components/estimates/DocumentsOverview';
 import { useIsClient } from '@/hooks/useIsClient';
 import FinancialReportModal from '@/components/estimates/FinancialReportModal';
+import { useT } from '@/lib/i18n';
 
 interface Operation {
   id: number;
@@ -197,6 +198,7 @@ const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
 ];
 
 export default function FinancePage() {
+  const t = useT();
   const isClient = useIsClient();
   const [tab, setTab] = useState<TabKey>('all');
   const [projects, setProjects] = useState<Project[]>([]);
@@ -472,7 +474,7 @@ export default function FinancePage() {
             {!isClient && (
               <button
                 onClick={() => setModalOpen(true)}
-                title="Добавить операцию"
+                title={t('Добавить операцию')}
                 className="p-2 text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -483,7 +485,7 @@ export default function FinancePage() {
             <div className="relative" ref={settingsRef}>
               <button
                 onClick={() => setShowSettings((v) => !v)}
-                title="Экспорт"
+                title={t('Экспорт')}
                 className={`p-2 rounded-lg transition-colors ${showSettings ? 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20' : 'text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20'}`}
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -523,7 +525,7 @@ export default function FinancePage() {
               <button
                 onClick={() => handleViewMode('table')}
                 className={`p-1.5 rounded transition-colors ${viewMode === 'table' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}
-                title="Таблица"
+                title={t('Таблица')}
               >
                 <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -532,7 +534,7 @@ export default function FinancePage() {
               <button
                 onClick={() => handleViewMode('grid')}
                 className={`p-1.5 rounded transition-colors ${viewMode === 'grid' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}
-                title="Карточки"
+                title={t('Карточки')}
               >
                 <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
@@ -579,7 +581,7 @@ export default function FinancePage() {
                   className="text-xs text-gray-800 dark:text-gray-100 bg-transparent border-none outline-none cursor-pointer"
                 />
                 <span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">—</span>
-                <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">по</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">{t('по')}</span>
                 <input
                   type="date"
                   value={dateTo}
@@ -596,21 +598,21 @@ export default function FinancePage() {
       {tab !== 'documents' && (
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
           <SummaryCard
-            label="Денежный поток"
+            label={t('Денежный поток')}
             value={stats.cashFlow}
             color={stats.cashFlow >= 0 ? 'emerald' : 'red'}
             hint="Приход − Расход"
             sign
           />
-          <SummaryCard label="Приход" value={stats.income} color="emerald" sign="+" />
-          <SummaryCard label="Расход" value={stats.expense} color="red" sign="−" />
+          <SummaryCard label={t('Приход')} value={stats.income} color="emerald" sign="+" />
+          <SummaryCard label={t('Расход')} value={stats.expense} color="red" sign="−" />
           <SummaryCard
-            label="Баланс по счетам"
+            label={t('Баланс по счетам')}
             value={accountBalances.reduce((s, a) => s + a.total, 0)}
             color={accountBalances.reduce((s, a) => s + a.total, 0) >= 0 ? 'emerald' : 'red'}
           />
           <SummaryCard
-            label="Авансовый остаток"
+            label={t('Авансовый остаток')}
             value={stats.advanceBalance}
             color="violet"
             hint="Авансы получено − выдано"
@@ -624,11 +626,11 @@ export default function FinancePage() {
           {/* Счета / кассы */}
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-4">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold text-gray-800 dark:text-gray-100">Счета / кассы</h3>
+              <h3 className="font-semibold text-gray-800 dark:text-gray-100">{t('Счета / кассы')}</h3>
               <span className="text-xs text-gray-400">{accountBalances.length}</span>
             </div>
             {accountBalances.length === 0 ? (
-              <div className="text-sm text-gray-400 py-6 text-center">Нет операций</div>
+              <div className="text-sm text-gray-400 py-6 text-center">{t('Нет операций')}</div>
             ) : (
               <ul className="divide-y divide-gray-100 dark:divide-gray-700">
                 {accountBalances.map((a) => (
@@ -664,10 +666,10 @@ export default function FinancePage() {
           </div>
 
           {/* Расходы по категориям */}
-          <ExpenseDonut title="Расходы по категориям" data={expenseByCategory} />
+          <ExpenseDonut title={t('Расходы по категориям')} data={expenseByCategory} />
 
           {/* Расходы по проектам */}
-          <ExpenseDonut title="Расходы по проектам" data={expenseByProject} />
+          <ExpenseDonut title={t('Расходы по проектам')} data={expenseByProject} />
         </div>
       )}
 
@@ -711,13 +713,13 @@ export default function FinancePage() {
                   </p>
                 </div>
                 <div className="min-w-[260px]">
-                  <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Проект</label>
+                  <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">{t('Проект')}</label>
                   <select
                     value={docFlowProjectId}
                     onChange={(e) => setDocFlowProjectId(e.target.value ? Number(e.target.value) : '')}
                     className="form-select w-full text-sm"
                   >
-                    <option value="">— выберите проект —</option>
+                    <option value="">{t('— выберите проект —')}</option>
                     {projects.map((p) => (
                       <option key={p.id} value={p.id}>{p.name}</option>
                     ))}
@@ -781,13 +783,13 @@ export default function FinancePage() {
         <>
         <div className="p-4 border-b border-gray-100 dark:border-gray-700 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div>
-            <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Проект</label>
+            <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">{t('Проект')}</label>
             <select
               value={projectFilter}
               onChange={(e) => setProjectFilter(e.target.value ? Number(e.target.value) : '')}
               className="form-select w-full text-sm"
             >
-              <option value="">Все проекты</option>
+              <option value="">{t('Все проекты')}</option>
               {projects.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
@@ -796,7 +798,7 @@ export default function FinancePage() {
             </select>
           </div>
           <div>
-            <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Объект</label>
+            <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">{t('Объект')}</label>
             <select
               value={siteFilter}
               onChange={(e) => setSiteFilter(e.target.value ? Number(e.target.value) : '')}
@@ -812,7 +814,7 @@ export default function FinancePage() {
             </select>
           </div>
           <div>
-            <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Период с</label>
+            <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">{t('Период с')}</label>
             <input
               type="date"
               value={dateFrom}
@@ -821,7 +823,7 @@ export default function FinancePage() {
             />
           </div>
           <div>
-            <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">по</label>
+            <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">{t('по')}</label>
             <input
               type="date"
               value={dateTo}
@@ -834,7 +836,7 @@ export default function FinancePage() {
         {/* Мобильная лента — история операций (как в банке) */}
         <div className="sm:hidden">
           {loading ? (
-            <div className="px-4 py-6 text-center text-gray-500">Загрузка…</div>
+            <div className="px-4 py-6 text-center text-gray-500">{t('Загрузка…')}</div>
           ) : filteredOps.length === 0 ? (
             <div className="px-4 py-6 text-center text-gray-500">
               Нет операций по выбранным фильтрам
@@ -920,16 +922,16 @@ export default function FinancePage() {
           <table className="table-auto w-full text-sm">
             <thead className="text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/30 border-b border-gray-100 dark:border-gray-700">
               <tr>
-                <th className="px-4 py-2 text-left whitespace-nowrap">№ документа</th>
-                <th className="px-4 py-2 text-left">Тип</th>
-                <th className="px-4 py-2 text-left">Категория</th>
-                <th className="px-4 py-2 text-left">Назначение</th>
-                <th className="px-4 py-2 text-right">Сумма</th>
-                <th className="px-4 py-2 text-left whitespace-nowrap">Дата/время</th>
-                <th className="px-4 py-2 text-left">Проект / Объект</th>
-                <th className="px-4 py-2 text-left">Счёт / Способ</th>
-                <th className="px-4 py-2 text-center">Док.</th>
-                <th className="px-4 py-2 text-left">Статус</th>
+                <th className="px-4 py-2 text-left whitespace-nowrap">{t('№ документа')}</th>
+                <th className="px-4 py-2 text-left">{t('Тип')}</th>
+                <th className="px-4 py-2 text-left">{t('Категория')}</th>
+                <th className="px-4 py-2 text-left">{t('Назначение')}</th>
+                <th className="px-4 py-2 text-right">{t('Сумма')}</th>
+                <th className="px-4 py-2 text-left whitespace-nowrap">{t('Дата/время')}</th>
+                <th className="px-4 py-2 text-left">{t('Проект / Объект')}</th>
+                <th className="px-4 py-2 text-left">{t('Счёт / Способ')}</th>
+                <th className="px-4 py-2 text-center">{t('Док.')}</th>
+                <th className="px-4 py-2 text-left">{t('Статус')}</th>
                 <th className="px-4 py-2 text-center w-12"></th>
               </tr>
             </thead>
@@ -1002,7 +1004,7 @@ export default function FinancePage() {
                       </td>
                       <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
                         {op.cashLocation === 'hand' ? (
-                          <span className="text-xs">На руки</span>
+                          <span className="text-xs">{t('На руки')}</span>
                         ) : op.paymentAccount ? (
                           <div>
                             <div className="text-sm">{op.paymentAccount.name}</div>
@@ -1038,7 +1040,7 @@ export default function FinancePage() {
                         <button
                           onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === op.id ? null : op.id); }}
                           className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500"
-                          aria-label="Действия"
+                          aria-label={t('Действия')}
                         >
                           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                             <circle cx="5" cy="12" r="2" />
@@ -1100,9 +1102,9 @@ export default function FinancePage() {
         ) : (
         <div className="hidden sm:block p-4">
           {loading ? (
-            <div className="py-6 text-center text-gray-500">Загрузка…</div>
+            <div className="py-6 text-center text-gray-500">{t('Загрузка…')}</div>
           ) : filteredOps.length === 0 ? (
-            <div className="py-6 text-center text-gray-500">Нет операций по выбранным фильтрам</div>
+            <div className="py-6 text-center text-gray-500">{t('Нет операций по выбранным фильтрам')}</div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {filteredOps.map((op) => {
@@ -1151,21 +1153,21 @@ export default function FinancePage() {
                     </div>
                     <dl className="grid grid-cols-1 gap-1.5 text-xs">
                       <div>
-                        <dt className="text-gray-400 dark:text-gray-500">Дата</dt>
+                        <dt className="text-gray-400 dark:text-gray-500">{t('Дата')}</dt>
                         <dd className="text-gray-700 dark:text-gray-300">
                           {formatDateTime(op.paymentDatetime ?? op.paymentDate)}
                         </dd>
                       </div>
                       {(proj || site) && (
                         <div>
-                          <dt className="text-gray-400 dark:text-gray-500">Проект / Объект</dt>
+                          <dt className="text-gray-400 dark:text-gray-500">{t('Проект / Объект')}</dt>
                           <dd className="text-gray-700 dark:text-gray-300 truncate">
                             {proj || '—'}{site ? ` · ${site}` : ''}
                           </dd>
                         </div>
                       )}
                       <div>
-                        <dt className="text-gray-400 dark:text-gray-500">Счёт / Способ</dt>
+                        <dt className="text-gray-400 dark:text-gray-500">{t('Счёт / Способ')}</dt>
                         <dd className="text-gray-700 dark:text-gray-300 truncate">
                           {op.cashLocation === 'hand'
                             ? 'На руки'
@@ -1263,6 +1265,7 @@ function SummaryCard({
 }
 
 function ExpenseDonut({ title, data }: { title: string; data: { name: string; value: number }[] }) {
+  const t = useT();
   const total = data.reduce((s, d) => s + d.value, 0);
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-4 flex flex-col">
@@ -1271,7 +1274,7 @@ function ExpenseDonut({ title, data }: { title: string; data: { name: string; va
         <span className="text-xs text-gray-400">{formatMoney(total)} ₽</span>
       </div>
       {data.length === 0 ? (
-        <div className="text-sm text-gray-400 py-10 text-center flex-1">Нет расходов</div>
+        <div className="text-sm text-gray-400 py-10 text-center flex-1">{t('Нет расходов')}</div>
       ) : (
         <div className="flex items-center gap-3 flex-1">
           <div className="w-32 h-32 flex-shrink-0">

@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import PriceTab from '@/components/company/PriceTab';
 import SecurityTab from '@/components/company/SecurityTab';
 import RecoveryLogTab from '@/components/company/RecoveryLogTab';
+import { useT } from '@/lib/i18n';
 
 interface AccountData {
   id: number;
@@ -77,6 +78,7 @@ const BLANK_BANK: Omit<BankAccount, 'id'> = {
 };
 
 export default function CompanyPage() {
+  const t = useT();
   const user = useAuthStore((s) => s.user);
   const router = useRouter();
   const addToast = useToastStore((st) => st.addToast);
@@ -447,7 +449,7 @@ export default function CompanyPage() {
           <div className="flex items-start gap-5">
             <div className="w-20 h-20 rounded-xl bg-gray-100 dark:bg-gray-700 border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center overflow-hidden shrink-0">
               {logoUrl ? (
-                <img src={logoUrl} alt="Логотип" className="w-full h-full object-contain" />
+                <img src={logoUrl} alt={t('Логотип')} className="w-full h-full object-contain" />
               ) : (
                 <svg
                   className="w-9 h-9 text-gray-300 dark:text-gray-600"
@@ -526,7 +528,7 @@ export default function CompanyPage() {
                   onChange={(e) => setLegalForm(e.target.value)}
                   className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
                 >
-                  <option value="">Форма…</option>
+                  <option value="">{t('Форма…')}</option>
                   {LEGAL_FORMS.map((f) => (
                     <option key={f} value={f}>
                       {f}
@@ -537,26 +539,26 @@ export default function CompanyPage() {
                   type="text"
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
-                  placeholder="Название организации"
+                  placeholder={t('Название организации')}
                   className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
                 />
               </div>
             </div>
 
-            <Field label="ИНН">
+            <Field label={t('ИНН')}>
               <div className="flex gap-2">
                 <input
                   value={inn}
                   onChange={(e) => setInn(e.target.value)}
                   className={`${INPUT_CLS} flex-1`}
                   inputMode="numeric"
-                  placeholder="10 или 12 цифр"
+                  placeholder={t('10 или 12 цифр')}
                 />
                 <button
                   type="button"
                   onClick={handleEgrulLookup}
                   disabled={egrulModal.loading || (!inn && !ogrn)}
-                  title="Подтянуть данные из ЕГРЮЛ"
+                  title={t('Подтянуть данные из ЕГРЮЛ')}
                   className="px-4 py-2 text-sm font-medium bg-violet-500 hover:bg-violet-600 text-white rounded-lg whitespace-nowrap disabled:opacity-50 transition-colors flex items-center gap-2 shadow-sm"
                 >
                   {egrulModal.loading ? (
@@ -580,7 +582,7 @@ export default function CompanyPage() {
                 </button>
               </div>
             </Field>
-            <Field label="КПП">
+            <Field label={t('КПП')}>
               <input
                 value={kpp}
                 onChange={(e) => setKpp(e.target.value)}
@@ -588,7 +590,7 @@ export default function CompanyPage() {
                 inputMode="numeric"
               />
             </Field>
-            <Field label="ОГРН">
+            <Field label={t('ОГРН')}>
               <input
                 value={ogrn}
                 onChange={(e) => setOgrn(e.target.value)}
@@ -596,7 +598,7 @@ export default function CompanyPage() {
                 inputMode="numeric"
               />
             </Field>
-            <Field label="Электронная почта">
+            <Field label={t('Электронная почта')}>
               <input
                 type="email"
                 value={email}
@@ -605,14 +607,14 @@ export default function CompanyPage() {
               />
             </Field>
 
-            <Field label="Юридический адрес" className="md:col-span-2">
+            <Field label={t('Юридический адрес')} className="md:col-span-2">
               <input
                 value={legalAddress}
                 onChange={(e) => setLegalAddress(e.target.value)}
                 className={INPUT_CLS}
               />
             </Field>
-            <Field label="Фактический адрес" className="md:col-span-2">
+            <Field label={t('Фактический адрес')} className="md:col-span-2">
               <input
                 value={actualAddress}
                 onChange={(e) => setActualAddress(e.target.value)}
@@ -620,7 +622,7 @@ export default function CompanyPage() {
               />
             </Field>
 
-            <Field label="Телефон">
+            <Field label={t('Телефон')}>
               <input
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
@@ -628,7 +630,7 @@ export default function CompanyPage() {
                 className={INPUT_CLS}
               />
             </Field>
-            <Field label="Добавочный">
+            <Field label={t('Добавочный')}>
               <input
                 value={phoneExt}
                 onChange={(e) => setPhoneExt(e.target.value)}
@@ -636,7 +638,7 @@ export default function CompanyPage() {
               />
             </Field>
 
-            <Field label="Генеральный директор">
+            <Field label={t('Генеральный директор')}>
               <select
                 value={directorUserId === '' ? '' : String(directorUserId)}
                 onChange={(e) =>
@@ -644,7 +646,7 @@ export default function CompanyPage() {
                 }
                 className={INPUT_CLS}
               >
-                <option value="">— не назначен —</option>
+                <option value="">{t('— не назначен —')}</option>
                 {employees.map((e) => (
                   <option key={e.id} value={e.id}>
                     {e.name}
@@ -666,7 +668,7 @@ export default function CompanyPage() {
                 </p>
               )}
             </Field>
-            <Field label="Главный бухгалтер">
+            <Field label={t('Главный бухгалтер')}>
               <select
                 value={accountantUserId === '' ? '' : String(accountantUserId)}
                 onChange={(e) =>
@@ -674,7 +676,7 @@ export default function CompanyPage() {
                 }
                 className={INPUT_CLS}
               >
-                <option value="">— не назначен —</option>
+                <option value="">{t('— не назначен —')}</option>
                 {employees.map((e) => (
                   <option key={e.id} value={e.id}>
                     {e.name}
@@ -700,9 +702,9 @@ export default function CompanyPage() {
 
           {account && (
             <div className="border-t border-gray-100 dark:border-gray-700/60 pt-4 grid grid-cols-3 gap-4">
-              <Info label="ID аккаунта" value={String(account.id)} />
-              <Info label="Поддомен" value={account.subdomain || '—'} />
-              <Info label="Статус" value={String(account.status)} />
+              <Info label={t('ID аккаунта')} value={String(account.id)} />
+              <Info label={t('Поддомен')} value={account.subdomain || '—'} />
+              <Info label={t('Статус')} value={String(account.status)} />
             </div>
           )}
 
@@ -818,6 +820,7 @@ function Field({
   children: React.ReactNode;
   className?: string;
 }) {
+  const t = useT();
   return (
     <div className={className}>
       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
@@ -829,6 +832,7 @@ function Field({
 }
 
 function Info({ label, value }: { label: string; value: string }) {
+  const t = useT();
   return (
     <div>
       <p className="text-xs text-gray-400 dark:text-gray-500 mb-0.5">{label}</p>
@@ -856,6 +860,7 @@ function BankCard({
   saving?: boolean;
   isNew?: boolean;
 }) {
+  const t = useT();
   const [draft, setDraft] = useState(value);
   const [dirty, setDirty] = useState(false);
 
@@ -906,7 +911,7 @@ function BankCard({
             <button
               onClick={onDelete}
               className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
-              title="Удалить"
+              title={t('Удалить')}
             >
               <svg
                 className="w-4 h-4"
@@ -927,14 +932,14 @@ function BankCard({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <Field label="Наименование банка">
+        <Field label={t('Наименование банка')}>
           <input
             value={draft.bankName || ''}
             onChange={(e) => update({ bankName: e.target.value })}
             className={INPUT_CLS}
           />
         </Field>
-        <Field label="БИК">
+        <Field label={t('БИК')}>
           <input
             value={draft.bik || ''}
             onChange={(e) => update({ bik: e.target.value })}
@@ -942,7 +947,7 @@ function BankCard({
             inputMode="numeric"
           />
         </Field>
-        <Field label="Расчётный счёт">
+        <Field label={t('Расчётный счёт')}>
           <input
             value={draft.settlementAccount || ''}
             onChange={(e) => update({ settlementAccount: e.target.value })}
@@ -950,7 +955,7 @@ function BankCard({
             inputMode="numeric"
           />
         </Field>
-        <Field label="Корреспондентский счёт">
+        <Field label={t('Корреспондентский счёт')}>
           <input
             value={draft.correspondentAccount || ''}
             onChange={(e) => update({ correspondentAccount: e.target.value })}
@@ -958,7 +963,7 @@ function BankCard({
             inputMode="numeric"
           />
         </Field>
-        <Field label="ИНН банка">
+        <Field label={t('ИНН банка')}>
           <input
             value={draft.bankInn || ''}
             onChange={(e) => update({ bankInn: e.target.value })}
@@ -966,7 +971,7 @@ function BankCard({
             inputMode="numeric"
           />
         </Field>
-        <Field label="Юр. адрес банка">
+        <Field label={t('Юр. адрес банка')}>
           <input
             value={draft.bankAddress || ''}
             onChange={(e) => update({ bankAddress: e.target.value })}
@@ -1027,6 +1032,7 @@ function EgrulModal({
   onApply: () => void;
   onRetry: () => void;
 }) {
+  const t = useT();
   const { loading, data, error, matchedEmployeeId } = state;
   const matchedEmployee = matchedEmployeeId
     ? employees.find((e) => e.id === matchedEmployeeId)

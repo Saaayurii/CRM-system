@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useT } from '@/lib/i18n';
 
 export interface RecoverableAccount {
   userId: number;
@@ -23,6 +24,7 @@ interface Props {
  * pick which accounts to recover (when there are several) and set a new password.
  */
 export default function RecoverySetPasswordForm({ accounts, submitting, error, onSubmit }: Props) {
+  const t = useT();
   const [selected, setSelected] = useState<number[]>(accounts.map((a) => a.userId));
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -110,7 +112,7 @@ export default function RecoverySetPasswordForm({ accounts, submitting, error, o
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Минимум 8 символов"
+              placeholder={t('Минимум 8 символов')}
               required
             />
             <button

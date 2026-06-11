@@ -9,6 +9,7 @@ import TaskFormModal from '@/components/dashboard/TaskFormModal';
 import { useOfflineData } from '@/hooks/useOfflineData';
 import { useTaskNotifStore } from '@/stores/taskNotifStore';
 import { FAB_CREATED_EVENT } from '@/components/ui/QuickActionsButton';
+import { useT } from '@/lib/i18n';
 
 interface Assignee {
   userId: number;
@@ -124,6 +125,7 @@ function AssigneeTextCell({ task, users, onNameClick }: {
   users: User[];
   onNameClick: (userId: number) => void;
 }) {
+  const t = useT();
   const displayAssignees = task.assignees || [];
   if (displayAssignees.length === 0) return <span className="text-gray-400 dark:text-gray-500 text-xs">—</span>;
   return (
@@ -153,6 +155,7 @@ function ColumnUserFilter({ users, selectedIds, onChange, multi = false }: {
   onChange: (ids: number[]) => void;
   multi?: boolean;
 }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const ref = useRef<HTMLDivElement>(null);
@@ -186,7 +189,7 @@ function ColumnUserFilter({ users, selectedIds, onChange, multi = false }: {
       <button
         onClick={() => setOpen((v) => !v)}
         className={`inline-flex items-center gap-0.5 ml-1 rounded px-0.5 transition-colors ${active ? 'text-violet-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
-        title="Фильтр"
+        title={t('Фильтр')}
       >
         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -199,7 +202,7 @@ function ColumnUserFilter({ users, selectedIds, onChange, multi = false }: {
             <input
               autoFocus
               type="text"
-              placeholder="Поиск..."
+              placeholder={t('Поиск...')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full text-xs bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-2.5 py-1.5 outline-none focus:border-violet-400 text-gray-800 dark:text-gray-100 placeholder-gray-400"
@@ -207,7 +210,7 @@ function ColumnUserFilter({ users, selectedIds, onChange, multi = false }: {
           </div>
           <div className="max-h-52 overflow-y-auto">
             {filtered.length === 0 ? (
-              <div className="px-3 py-3 text-xs text-gray-400 text-center">Не найдено</div>
+              <div className="px-3 py-3 text-xs text-gray-400 text-center">{t('Не найдено')}</div>
             ) : filtered.map((u) => {
               const isSel = selectedIds.includes(u.id);
               return (
@@ -257,6 +260,7 @@ async function fetchTasksPageData(): Promise<TasksPageData> {
 type SortKey = 'title' | 'project' | 'status' | 'priority' | 'assignee' | 'creator' | 'dueDate' | 'updatedAt';
 
 function SortIcon({ active, dir }: { active: boolean; dir: 'asc' | 'desc' }) {
+  const t = useT();
   return (
     <span className="inline-flex flex-col gap-px ml-1 align-middle">
       <svg
@@ -276,6 +280,7 @@ function SortIcon({ active, dir }: { active: boolean; dir: 'asc' | 'desc' }) {
 }
 
 export default function TasksPage() {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -557,15 +562,15 @@ export default function TasksPage() {
     <div>
       <div className="sm:flex sm:items-center sm:justify-between mb-6">
         <div>
-          <h1 className="text-2xl md:text-3xl text-gray-800 dark:text-gray-100 font-bold">Задачи</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Управление задачами проекта</p>
+          <h1 className="text-2xl md:text-3xl text-gray-800 dark:text-gray-100 font-bold">{t('Задачи')}</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('Управление задачами проекта')}</p>
         </div>
         <div className="relative flex items-center gap-2 mt-3 sm:mt-0" ref={settingsRef}>
           {/* Action buttons */}
           <div className="flex items-center gap-0.5">
             <button
               onClick={() => setShowSearch((v) => !v)}
-              title="Поиск"
+              title={t('Поиск')}
               className={`relative p-2 rounded-lg transition-colors ${showSearch || searchQuery ? 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20' : 'text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20'}`}
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -574,7 +579,7 @@ export default function TasksPage() {
             </button>
             <button
               onClick={() => handleCreate()}
-              title="Создать задачу"
+              title={t('Создать задачу')}
               className="p-2 text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -583,7 +588,7 @@ export default function TasksPage() {
             </button>
             <button
               onClick={() => { setShowFilter((v) => !v); setShowSearch(false); }}
-              title="Фильтры"
+              title={t('Фильтры')}
               className={`relative p-2 rounded-lg transition-colors ${showFilter || filterStatus !== null || filterProject !== null || filterOverdue ? 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20' : 'text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20'}`}
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -597,7 +602,7 @@ export default function TasksPage() {
             <div>
               <button
                 onClick={() => setShowSettings((v) => !v)}
-                title="Настройки и экспорт"
+                title={t('Настройки и экспорт')}
                 className={`p-2 rounded-lg transition-colors ${showSettings ? 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20' : 'text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20'}`}
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -609,7 +614,7 @@ export default function TasksPage() {
           </div>
           {showSettings && (
                 <div className="absolute right-0 top-full mt-1 w-56 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl py-1.5 z-[200]">
-                  <p className="px-4 py-1 text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">Экспорт</p>
+                  <p className="px-4 py-1 text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">{t('Экспорт')}</p>
                   <button
                     onClick={() => { window.print(); setShowSettings(false); }}
                     className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/60 transition-colors"
@@ -649,7 +654,7 @@ export default function TasksPage() {
             <button
               onClick={() => { setViewMode('table'); localStorage.setItem('dashViewMode', 'table'); }}
               className={`p-1.5 rounded transition-colors ${viewMode === 'table' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}
-              title="Таблица"
+              title={t('Таблица')}
             >
               <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -658,7 +663,7 @@ export default function TasksPage() {
             <button
               onClick={() => { setViewMode('grid'); localStorage.setItem('dashViewMode', 'grid'); }}
               className={`p-1.5 rounded transition-colors ${viewMode === 'grid' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}
-              title="Карточки"
+              title={t('Карточки')}
             >
               <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
@@ -677,7 +682,7 @@ export default function TasksPage() {
           <input
             autoFocus
             type="text"
-            placeholder="Поиск по названию задачи..."
+            placeholder={t('Поиск по названию задачи...')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="flex-1 text-sm bg-transparent text-gray-800 dark:text-gray-100 placeholder-gray-400 outline-none"
@@ -724,7 +729,7 @@ export default function TasksPage() {
           onChange={(e) => setFilterProject(e.target.value === '' ? null : Number(e.target.value))}
           className={`text-xs font-medium rounded-lg px-3 py-1.5 outline-none transition-colors border ${filterProject !== null ? 'bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300 border-violet-300 dark:border-violet-700' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700'} focus:border-violet-400`}
         >
-          <option value="">Все проекты</option>
+          <option value="">{t('Все проекты')}</option>
           {(data?.projects ?? []).map((p) => (
             <option key={p.id} value={p.id}>{p.name}</option>
           ))}
@@ -732,7 +737,7 @@ export default function TasksPage() {
       </div>}
 
       {loading ? (
-        <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-8 text-center text-gray-500 dark:text-gray-400">Загрузка...</div>
+        <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-8 text-center text-gray-500 dark:text-gray-400">{t('Загрузка...')}</div>
       ) : error ? (
         <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-8 text-center text-red-500">{error}</div>
       ) : filteredTasks.length === 0 ? (
@@ -769,7 +774,7 @@ export default function TasksPage() {
                     onMouseEnter={(e) => showTaskHistory(e, t.id)}
                     onMouseLeave={hideTaskHistory}
                     className="shrink-0 opacity-0 group-hover/card:opacity-60 hover:!opacity-100 p-0.5 text-gray-400 hover:text-violet-500 transition-all mt-0.5"
-                    title="История задачи"
+                    title={t('История задачи')}
                   >
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -789,13 +794,13 @@ export default function TasksPage() {
                   <span className={`text-xs font-medium ${priority.color}`}>{priority.label}</span>
                 </div>
                 <dl className="grid grid-cols-2 gap-x-3 gap-y-2">
-                  <div><dt className="text-xs text-gray-400">Проект</dt><dd className="text-xs text-gray-700 dark:text-gray-300 truncate">{t.project?.name || '—'}</dd></div>
-                  <div><dt className="text-xs text-gray-400">Срок</dt><dd className={`text-xs ${overdue ? 'text-red-600 font-semibold' : 'text-gray-700 dark:text-gray-300'}`}>{formatDate(t.dueDate || t.due_date)}</dd></div>
-                  <div className="col-span-2"><dt className="text-xs text-gray-400">Исполнитель</dt><dd className="text-xs text-gray-700 dark:text-gray-300 truncate">{assigneeName}</dd></div>
-                  <div className="col-span-2"><dt className="text-xs text-gray-400">Поставил</dt><dd className="text-xs text-gray-700 dark:text-gray-300 truncate">{creatorName}{createdAt && <span className="ml-1 text-gray-400">{formatDate(createdAt)}</span>}</dd></div>
+                  <div><dt className="text-xs text-gray-400">{t('Проект')}</dt><dd className="text-xs text-gray-700 dark:text-gray-300 truncate">{t.project?.name || '—'}</dd></div>
+                  <div><dt className="text-xs text-gray-400">{t('Срок')}</dt><dd className={`text-xs ${overdue ? 'text-red-600 font-semibold' : 'text-gray-700 dark:text-gray-300'}`}>{formatDate(t.dueDate || t.due_date)}</dd></div>
+                  <div className="col-span-2"><dt className="text-xs text-gray-400">{t('Исполнитель')}</dt><dd className="text-xs text-gray-700 dark:text-gray-300 truncate">{assigneeName}</dd></div>
+                  <div className="col-span-2"><dt className="text-xs text-gray-400">{t('Поставил')}</dt><dd className="text-xs text-gray-700 dark:text-gray-300 truncate">{creatorName}{createdAt && <span className="ml-1 text-gray-400">{formatDate(createdAt)}</span>}</dd></div>
                 </dl>
                 <div className="flex items-center gap-1.5 pt-2 border-t border-gray-100 dark:border-gray-700">
-                  <button onClick={() => handleEdit(t)} className="flex-1 px-3 py-1.5 text-xs font-medium text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-500/10 rounded transition-colors text-center">Изменить</button>
+                  <button onClick={() => handleEdit(t)} className="flex-1 px-3 py-1.5 text-xs font-medium text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-500/10 rounded transition-colors text-center">{t('Изменить')}</button>
                   <button onClick={() => handleDelete(t.id)} disabled={deletingId === t.id} className="px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded transition-colors disabled:opacity-50">{deletingId === t.id ? '...' : 'Удалить'}</button>
                 </div>
               </div>
@@ -868,7 +873,7 @@ export default function TasksPage() {
                             onMouseEnter={(e) => { e.stopPropagation(); showTaskHistory(e, t.id); }}
                             onMouseLeave={hideTaskHistory}
                             className="shrink-0 opacity-0 group-hover/row:opacity-60 hover:!opacity-100 p-0.5 text-gray-400 hover:text-violet-500 transition-all"
-                            title="История задачи"
+                            title={t('История задачи')}
                           >
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -925,7 +930,7 @@ export default function TasksPage() {
                       <td className="py-2.5 px-4 whitespace-nowrap">
                         <span className={overdue ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-gray-600 dark:text-gray-400'}>
                           {formatDate(t.dueDate || t.due_date)}
-                          {overdue && <span className="ml-1 text-[10px] uppercase tracking-wide">просрочена</span>}
+                          {overdue && <span className="ml-1 text-[10px] uppercase tracking-wide">{t('просрочена')}</span>}
                         </span>
                       </td>
                       {/* Дата изменения */}
@@ -940,7 +945,7 @@ export default function TasksPage() {
                         <div className="flex items-center gap-0.5 opacity-0 group-hover/row:opacity-100 transition-opacity">
                           <button
                             onClick={() => handleEdit(t)}
-                            title="Редактировать"
+                            title={t('Редактировать')}
                             className="p-1.5 text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors"
                           >
                             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -950,7 +955,7 @@ export default function TasksPage() {
                           <button
                             onClick={() => handleDelete(t.id)}
                             disabled={deletingId === t.id}
-                            title="Удалить"
+                            title={t('Удалить')}
                             className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-40"
                           >
                             {deletingId === t.id ? (
@@ -983,9 +988,9 @@ export default function TasksPage() {
           onMouseLeave={hideTaskHistory}
           onClick={(e) => e.stopPropagation()}
         >
-          <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-3">Последние события</p>
+          <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-3">{t('Последние события')}</p>
           {historyTooltip.events.length === 0 ? (
-            <p className="text-xs text-gray-400">Комментариев пока нет</p>
+            <p className="text-xs text-gray-400">{t('Комментариев пока нет')}</p>
           ) : (
             <ul className="space-y-2.5">
               {historyTooltip.events.map((ev: any, i) => {
@@ -1030,7 +1035,7 @@ export default function TasksPage() {
             <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 shrink-0">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">История задачи</p>
+                  <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">{t('История задачи')}</p>
                   <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 truncate">{historyTask.title}</h2>
                   {historyTask.project?.name && (
                     <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{historyTask.project.name}</p>
@@ -1066,8 +1071,8 @@ export default function TasksPage() {
                   <svg className="w-12 h-12 mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <p className="text-sm">История пуста</p>
-                  <p className="text-xs mt-1 text-gray-300 dark:text-gray-600">Комментарии появятся после первых действий</p>
+                  <p className="text-sm">{t('История пуста')}</p>
+                  <p className="text-xs mt-1 text-gray-300 dark:text-gray-600">{t('Комментарии появятся после первых действий')}</p>
                 </div>
               ) : (
                 <div className="relative">

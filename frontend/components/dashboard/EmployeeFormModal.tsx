@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
+import { useT } from '@/lib/i18n';
 
 interface Employee {
   id: number;
@@ -58,6 +59,7 @@ const AVAILABILITY_OPTIONS = [
 const inputCls = 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent';
 
 export default function EmployeeFormModal({ employee, onClose, onSaved }: EmployeeFormModalProps) {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
   const isCreate = !employee;
 
@@ -244,18 +246,18 @@ export default function EmployeeFormModal({ employee, onClose, onSaved }: Employ
             </p>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Имя</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('Имя')}</label>
               <input
                 type="text"
                 value={inviteName}
                 onChange={(e) => { setInviteName(e.target.value); setInviteLink(null); }}
                 className={inputCls}
-                placeholder="Иванов Иван Иванович"
+                placeholder={t('Иванов Иван Иванович')}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Телефон</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('Телефон')}</label>
               <input
                 type="text"
                 value={invitePhone}
@@ -266,17 +268,17 @@ export default function EmployeeFormModal({ employee, onClose, onSaved }: Employ
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Срок действия ссылки</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('Срок действия ссылки')}</label>
               <select
                 value={expiresInHours}
                 onChange={(e) => { setExpiresInHours(Number(e.target.value)); setInviteLink(null); }}
                 className={inputCls}
               >
-                <option value={24}>24 часа</option>
-                <option value={72}>3 дня</option>
-                <option value={168}>7 дней</option>
-                <option value={720}>30 дней</option>
-                <option value={0}>Без ограничений</option>
+                <option value={24}>{t('24 часа')}</option>
+                <option value={72}>{t('3 дня')}</option>
+                <option value={168}>{t('7 дней')}</option>
+                <option value={720}>{t('30 дней')}</option>
+                <option value={0}>{t('Без ограничений')}</option>
               </select>
             </div>
 
@@ -347,12 +349,12 @@ export default function EmployeeFormModal({ employee, onClose, onSaved }: Employ
                 <input type="email" required value={form.email} onChange={(e) => set('email', e.target.value)} className={inputCls} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Телефон</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('Телефон')}</label>
                 <input type="text" value={form.phone} onChange={(e) => set('phone', e.target.value)} className={inputCls} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Должность</label>
-                <input type="text" value={form.position} onChange={(e) => set('position', e.target.value)} className={inputCls} placeholder="Директор, PM…" />
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('Должность')}</label>
+                <input type="text" value={form.position} onChange={(e) => set('position', e.target.value)} className={inputCls} placeholder={t('Директор, PM…')} />
               </div>
             </div>
 
@@ -371,7 +373,7 @@ export default function EmployeeFormModal({ employee, onClose, onSaved }: Employ
               </div>
               {!isCreate && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Доступность</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('Доступность')}</label>
                   <select value={form.availability} onChange={(e) => set('availability', e.target.value)} className={inputCls}>
                     {AVAILABILITY_OPTIONS.map((a) => (
                       <option key={a.value} value={a.value}>{a.label}</option>
@@ -385,11 +387,11 @@ export default function EmployeeFormModal({ employee, onClose, onSaved }: Employ
             {!isCreate && (
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Дата найма</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('Дата найма')}</label>
                   <input type="date" value={form.hireDate} onChange={(e) => set('hireDate', e.target.value)} className={inputCls} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Дата рождения</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('Дата рождения')}</label>
                   <input type="date" value={form.birthDate} onChange={(e) => set('birthDate', e.target.value)} className={inputCls} />
                 </div>
               </div>
@@ -398,8 +400,8 @@ export default function EmployeeFormModal({ employee, onClose, onSaved }: Employ
             {/* Адрес — только в edit */}
             {!isCreate && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Адрес</label>
-                <input type="text" value={form.address} onChange={(e) => set('address', e.target.value)} className={inputCls} placeholder="г. Москва, ул. Примерная, 1" />
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('Адрес')}</label>
+                <input type="text" value={form.address} onChange={(e) => set('address', e.target.value)} className={inputCls} placeholder={t('г. Москва, ул. Примерная, 1')} />
               </div>
             )}
 
@@ -423,9 +425,9 @@ export default function EmployeeFormModal({ employee, onClose, onSaved }: Employ
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 {isCreate ? (
-                  <>Пароль <span className="text-red-500">*</span> <span className="text-gray-400 font-normal">(мин. 6 символов)</span></>
+                  <>Пароль <span className="text-red-500">*</span> <span className="text-gray-400 font-normal">{t('(мин. 6 символов)')}</span></>
                 ) : (
-                  <>Новый пароль <span className="text-gray-400 font-normal">(оставьте пустым, чтобы не менять)</span></>
+                  <>Новый пароль <span className="text-gray-400 font-normal">{t('(оставьте пустым, чтобы не менять)')}</span></>
                 )}
               </label>
               <input

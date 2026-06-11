@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
+import { useT } from '@/lib/i18n';
 
 interface Movement {
   id: number;
@@ -37,6 +38,7 @@ function fmt(d?: string | null) {
 }
 
 export default function MovementsTab() {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
   const [items, setItems] = useState<Movement[]>([]);
   const [loading, setLoading] = useState(true);
@@ -122,8 +124,8 @@ export default function MovementsTab() {
     <div>
       <div className="flex items-center justify-between mb-3">
         <div>
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">История перемещений</h2>
-          <p className="text-xs text-gray-500">Приходы, расходы и перемещения материалов между складами</p>
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">{t('История перемещений')}</h2>
+          <p className="text-xs text-gray-500">{t('Приходы, расходы и перемещения материалов между складами')}</p>
         </div>
         <button
           onClick={() => setShowCreate(true)}
@@ -134,21 +136,21 @@ export default function MovementsTab() {
       </div>
 
       {loading ? (
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 text-center text-gray-500">Загрузка...</div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 text-center text-gray-500">{t('Загрузка...')}</div>
       ) : items.length === 0 ? (
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 text-center text-gray-500">Движений пока нет</div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 text-center text-gray-500">{t('Движений пока нет')}</div>
       ) : (
         <div className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-xs">
           <table className="w-full text-sm">
             <thead className="text-xs uppercase text-gray-400 bg-gray-50 dark:bg-gray-900/20">
               <tr>
-                <th className="px-4 py-2.5 text-left">Дата</th>
-                <th className="px-4 py-2.5 text-left">Тип</th>
-                <th className="px-4 py-2.5 text-left">Материал</th>
-                <th className="px-4 py-2.5 text-right">Кол-во</th>
-                <th className="px-4 py-2.5 text-left">Откуда → Куда</th>
-                <th className="px-4 py-2.5 text-left">Кто</th>
-                <th className="px-4 py-2.5 text-left">Комментарий</th>
+                <th className="px-4 py-2.5 text-left">{t('Дата')}</th>
+                <th className="px-4 py-2.5 text-left">{t('Тип')}</th>
+                <th className="px-4 py-2.5 text-left">{t('Материал')}</th>
+                <th className="px-4 py-2.5 text-right">{t('Кол-во')}</th>
+                <th className="px-4 py-2.5 text-left">{t('Откуда → Куда')}</th>
+                <th className="px-4 py-2.5 text-left">{t('Кто')}</th>
+                <th className="px-4 py-2.5 text-left">{t('Комментарий')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
@@ -182,30 +184,30 @@ export default function MovementsTab() {
       {showCreate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} onClick={() => !saving && setShowCreate(false)}>
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 max-w-md w-full" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-4">Новое движение</h3>
+            <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-4">{t('Новое движение')}</h3>
             <div className="space-y-3">
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Тип</label>
+                <label className="block text-xs text-gray-500 mb-1">{t('Тип')}</label>
                 <select
                   value={form.movementType}
                   onChange={(e) => setForm({ ...form, movementType: e.target.value })}
                   className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg"
                 >
-                  <option value="in">Приход</option>
-                  <option value="out">Расход</option>
-                  <option value="transfer">Перемещение</option>
-                  <option value="adjust">Корректировка</option>
-                  <option value="loss">Списание</option>
+                  <option value="in">{t('Приход')}</option>
+                  <option value="out">{t('Расход')}</option>
+                  <option value="transfer">{t('Перемещение')}</option>
+                  <option value="adjust">{t('Корректировка')}</option>
+                  <option value="loss">{t('Списание')}</option>
                 </select>
               </div>
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Материал *</label>
+                <label className="block text-xs text-gray-500 mb-1">{t('Материал *')}</label>
                 <select
                   value={form.materialId}
                   onChange={(e) => setForm({ ...form, materialId: e.target.value })}
                   className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg"
                 >
-                  <option value="">— выберите —</option>
+                  <option value="">{t('— выберите —')}</option>
                   {materials.map((m) => (
                     <option key={m.id} value={m.id}>{m.name} {m.unit ? `(${m.unit})` : ''}</option>
                   ))}
@@ -213,7 +215,7 @@ export default function MovementsTab() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">Количество *</label>
+                  <label className="block text-xs text-gray-500 mb-1">{t('Количество *')}</label>
                   <input
                     type="number"
                     step="0.01"
@@ -224,7 +226,7 @@ export default function MovementsTab() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">Ед.</label>
+                  <label className="block text-xs text-gray-500 mb-1">{t('Ед.')}</label>
                   <input
                     value={form.unit}
                     onChange={(e) => setForm({ ...form, unit: e.target.value })}
@@ -236,7 +238,7 @@ export default function MovementsTab() {
               {form.movementType === 'transfer' ? (
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1">Откуда *</label>
+                    <label className="block text-xs text-gray-500 mb-1">{t('Откуда *')}</label>
                     <select
                       value={form.fromWarehouseId}
                       onChange={(e) => setForm({ ...form, fromWarehouseId: e.target.value })}
@@ -247,7 +249,7 @@ export default function MovementsTab() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1">Куда *</label>
+                    <label className="block text-xs text-gray-500 mb-1">{t('Куда *')}</label>
                     <select
                       value={form.toWarehouseId}
                       onChange={(e) => setForm({ ...form, toWarehouseId: e.target.value })}
@@ -260,19 +262,19 @@ export default function MovementsTab() {
                 </div>
               ) : (
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">Склад *</label>
+                  <label className="block text-xs text-gray-500 mb-1">{t('Склад *')}</label>
                   <select
                     value={form.warehouseId}
                     onChange={(e) => setForm({ ...form, warehouseId: e.target.value })}
                     className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg"
                   >
-                    <option value="">— выберите —</option>
+                    <option value="">{t('— выберите —')}</option>
                     {warehouses.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
                   </select>
                 </div>
               )}
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Комментарий</label>
+                <label className="block text-xs text-gray-500 mb-1">{t('Комментарий')}</label>
                 <textarea
                   value={form.notes}
                   rows={2}

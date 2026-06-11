@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import api from '@/lib/api';
+import { useT } from '@/lib/i18n';
 
 type ClientType = 'individual' | 'company' | 'government';
 
@@ -15,6 +16,7 @@ interface InviteInfo {
 }
 
 function ClientInviteForm() {
+  const t = useT();
   const params = useSearchParams();
   const token = params.get('ref') ?? '';
 
@@ -112,7 +114,7 @@ function ClientInviteForm() {
     return (
       <div className="text-center py-10">
         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-violet-500 mx-auto" />
-        <p className="text-sm text-gray-500 mt-4">Проверяем приглашение...</p>
+        <p className="text-sm text-gray-500 mt-4">{t('Проверяем приглашение...')}</p>
       </div>
     );
   }
@@ -125,7 +127,7 @@ function ClientInviteForm() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </div>
-        <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-2">Приглашение недоступно</h1>
+        <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-2">{t('Приглашение недоступно')}</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400">{checkError}</p>
         <Link
           href="/portal/login"
@@ -189,7 +191,7 @@ function ClientInviteForm() {
         {clientType === 'individual' ? (
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Фамилия</label>
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{t('Фамилия')}</label>
               <input className="form-input w-full" value={lastName} onChange={(e) => setLastName(e.target.value)} />
             </div>
             <div>
@@ -218,7 +220,7 @@ function ClientInviteForm() {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">ИНН</label>
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{t('ИНН')}</label>
               <input className="form-input w-full" value={inn} onChange={(e) => setInn(e.target.value)} />
             </div>
           </>
@@ -235,11 +237,11 @@ function ClientInviteForm() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
-          <p className="text-[10px] text-gray-400 mt-1">Будет использоваться как логин</p>
+          <p className="text-[10px] text-gray-400 mt-1">{t('Будет использоваться как логин')}</p>
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Телефон</label>
+          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{t('Телефон')}</label>
           <input className="form-input w-full" value={phone} onChange={(e) => setPhone(e.target.value)} />
         </div>
 
@@ -264,7 +266,7 @@ function ClientInviteForm() {
               {showPassword ? '🙈' : '👁'}
             </button>
           </div>
-          <p className="text-[10px] text-gray-400 mt-1">Минимум 8 символов</p>
+          <p className="text-[10px] text-gray-400 mt-1">{t('Минимум 8 символов')}</p>
         </div>
 
         <div>
@@ -295,7 +297,7 @@ function ClientInviteForm() {
         </button>
 
         <p className="text-center text-xs text-gray-400">
-          Уже есть доступ? <Link href="/portal/login" className="text-violet-600 hover:underline">Войти в портал</Link>
+          Уже есть доступ? <Link href="/portal/login" className="text-violet-600 hover:underline">{t('Войти в портал')}</Link>
         </p>
       </form>
     </>
@@ -303,8 +305,9 @@ function ClientInviteForm() {
 }
 
 export default function ClientInvitePage() {
+  const t = useT();
   return (
-    <Suspense fallback={<div className="text-center py-10 text-gray-500">Загрузка...</div>}>
+    <Suspense fallback={<div className="text-center py-10 text-gray-500">{t('Загрузка...')}</div>}>
       <ClientInviteForm />
     </Suspense>
   );

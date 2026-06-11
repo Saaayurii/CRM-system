@@ -7,6 +7,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
 } from 'recharts';
+import { useT } from '@/lib/i18n';
 
 function getGreeting(): string {
   const h = new Date().getHours();
@@ -43,6 +44,7 @@ function fmtDate(v: string | null | undefined): string {
 }
 
 function StatusBadge({ label, color }: { label: string; color: string }) {
+  const t = useT();
   const colors: Record<string, string> = {
     gray: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300',
     blue: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
@@ -103,6 +105,7 @@ const SEVERITY_COLORS: Record<string, string> = {
 };
 
 export default function InspectorDashboard({ user }: { user: any }) {
+  const t = useT();
   const [loading, setLoading] = useState(true);
   const [inspections, setInspections] = useState<any[]>([]);
   const [defects, setDefects] = useState<any[]>([]);
@@ -269,20 +272,20 @@ export default function InspectorDashboard({ user }: { user: any }) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs">
           <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Последние инспекции</h3>
-            <Link href="/dashboard/inspector/inspections" className="text-xs text-violet-500 hover:text-violet-600 font-medium">Все инспекции</Link>
+            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">{t('Последние инспекции')}</h3>
+            <Link href="/dashboard/inspector/inspections" className="text-xs text-violet-500 hover:text-violet-600 font-medium">{t('Все инспекции')}</Link>
           </div>
           <div className="p-5">
             {inspections.length === 0 ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Нет инспекций</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">{t('Нет инспекций')}</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-left text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700/60">
-                      <th className="pb-2 font-medium">Название</th>
-                      <th className="pb-2 font-medium">Статус</th>
-                      <th className="pb-2 font-medium text-right">Дата</th>
+                      <th className="pb-2 font-medium">{t('Название')}</th>
+                      <th className="pb-2 font-medium">{t('Статус')}</th>
+                      <th className="pb-2 font-medium text-right">{t('Дата')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -305,20 +308,20 @@ export default function InspectorDashboard({ user }: { user: any }) {
 
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs">
           <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Открытые дефекты</h3>
-            <Link href="/dashboard/inspector/defects" className="text-xs text-violet-500 hover:text-violet-600 font-medium">Все дефекты</Link>
+            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">{t('Открытые дефекты')}</h3>
+            <Link href="/dashboard/inspector/defects" className="text-xs text-violet-500 hover:text-violet-600 font-medium">{t('Все дефекты')}</Link>
           </div>
           <div className="p-5">
             {openDefects.length === 0 ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Нет открытых дефектов</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">{t('Нет открытых дефектов')}</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-left text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700/60">
-                      <th className="pb-2 font-medium">Название</th>
-                      <th className="pb-2 font-medium">Серьёзность</th>
-                      <th className="pb-2 font-medium">Статус</th>
+                      <th className="pb-2 font-medium">{t('Название')}</th>
+                      <th className="pb-2 font-medium">{t('Серьёзность')}</th>
+                      <th className="pb-2 font-medium">{t('Статус')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -344,10 +347,10 @@ export default function InspectorDashboard({ user }: { user: any }) {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <div className="lg:col-span-2 bg-white dark:bg-gray-800 shadow-xs rounded-xl p-5">
-          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-4">Инспекции по статусам</h3>
+          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-4">{t('Инспекции по статусам')}</h3>
           <div className="h-64">
             {inspByStatus.length === 0 ? (
-              <div className="flex items-center justify-center h-full text-sm text-gray-400">Нет данных</div>
+              <div className="flex items-center justify-center h-full text-sm text-gray-400">{t('Нет данных')}</div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={inspByStatus} barCategoryGap="20%">
@@ -365,10 +368,10 @@ export default function InspectorDashboard({ user }: { user: any }) {
         </div>
 
         <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-5">
-          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-4">Дефекты по серьёзности</h3>
+          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-4">{t('Дефекты по серьёзности')}</h3>
           <div className="h-64">
             {defectsBySeverity.length === 0 ? (
-              <div className="flex items-center justify-center h-full text-sm text-gray-400">Нет данных</div>
+              <div className="flex items-center justify-center h-full text-sm text-gray-400">{t('Нет данных')}</div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
+import { useT } from '@/lib/i18n';
 
 interface Integration {
   id: number;
@@ -36,6 +37,7 @@ const PROVIDER_HELP: Record<string, string> = {
 };
 
 export default function CalendarIntegrationsPage() {
+  const t = useT();
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [providers, setProviders] = useState<ProvidersInfo | null>(null);
   const [loading, setLoading] = useState(true);
@@ -121,7 +123,7 @@ export default function CalendarIntegrationsPage() {
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-4xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Интеграции календаря</h1>
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">{t('Интеграции календаря')}</h1>
         <p className="text-sm text-gray-500 mt-1">
           Подключите внешние календари, чтобы события CRM появлялись в Google / Яндекс / Apple, а ваши встречи — в CRM.
         </p>
@@ -130,7 +132,7 @@ export default function CalendarIntegrationsPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <ProviderCard
           name="Google Calendar"
-          subtitle="OAuth 2.0 • двусторонняя"
+          subtitle={t('OAuth 2.0 • двусторонняя')}
           enabled={!!providers?.google.configured}
           disabledHint="Сервер: задайте GOOGLE_CLIENT_ID и GOOGLE_CLIENT_SECRET"
           onClick={handleConnectGoogle}
@@ -138,7 +140,7 @@ export default function CalendarIntegrationsPage() {
         />
         <ProviderCard
           name="Яндекс Календарь"
-          subtitle="CalDAV • двусторонняя"
+          subtitle={t('CalDAV • двусторонняя')}
           enabled
           onClick={() => setShowCalDav('yandex')}
           accent="#ffcc00"
@@ -152,9 +154,9 @@ export default function CalendarIntegrationsPage() {
         />
       </div>
 
-      <h2 className="text-lg font-semibold mb-3">Подключения</h2>
+      <h2 className="text-lg font-semibold mb-3">{t('Подключения')}</h2>
       {loading ? (
-        <div className="text-sm text-gray-500">Загрузка…</div>
+        <div className="text-sm text-gray-500">{t('Загрузка…')}</div>
       ) : integrations.length === 0 ? (
         <div className="text-sm text-gray-500 rounded-md border border-dashed border-gray-200 dark:border-gray-700 p-4">
           Пока нет подключений
@@ -210,14 +212,14 @@ export default function CalendarIntegrationsPage() {
             <div className="space-y-3">
               <input
                 type="text"
-                placeholder="Email / логин"
+                placeholder={t('Email / логин')}
                 value={form.username}
                 onChange={(e) => setForm({ ...form, username: e.target.value })}
                 className="w-full rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-700 px-3 py-2 text-sm"
               />
               <input
                 type="password"
-                placeholder="Пароль приложения"
+                placeholder={t('Пароль приложения')}
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
                 className="w-full rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-700 px-3 py-2 text-sm"

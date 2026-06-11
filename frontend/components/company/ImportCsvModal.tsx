@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
+import { useT } from '@/lib/i18n';
 
 interface ProjectCategoryLite {
   id: number;
@@ -121,6 +122,7 @@ export default function ImportCsvModal({
   onClose: () => void;
   onImported: () => void;
 }) {
+  const t = useT();
   const addToast = useToastStore((st) => st.addToast);
   const inputRef = useRef<HTMLInputElement>(null);
   const [rows, setRows] = useState<ParsedRow[] | null>(null);
@@ -253,7 +255,7 @@ export default function ImportCsvModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-          <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100">Импорт прайса из CSV</h3>
+          <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100">{t('Импорт прайса из CSV')}</h3>
           <button
             onClick={onClose}
             className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -268,10 +270,10 @@ export default function ImportCsvModal({
           {!rows && (
             <>
               <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-lg p-3 text-sm text-blue-800 dark:text-blue-300">
-                <p className="font-medium mb-1">Формат CSV</p>
+                <p className="font-medium mb-1">{t('Формат CSV')}</p>
                 <p className="text-xs">
-                  Заголовки первой строкой. Обязательная колонка — <code className="px-1 py-0.5 bg-white/50 dark:bg-black/30 rounded">Название</code>.
-                  Опциональные: <code>Категория</code>, <code>Описание</code>, <code>Ед.</code>, <code>Себест.</code>.
+                  Заголовки первой строкой. Обязательная колонка — <code className="px-1 py-0.5 bg-white/50 dark:bg-black/30 rounded">{t('Название')}</code>.
+                  Опциональные: <code>{t('Категория')}</code>, <code>{t('Описание')}</code>, <code>{t('Ед.')}</code>, <code>{t('Себест.')}</code>.
                   Все остальные колонки воспринимаются как цены по категориям проектов (заголовок = имя категории проекта).
                 </p>
                 <p className="text-xs mt-2">
@@ -314,7 +316,7 @@ export default function ImportCsvModal({
 
               {unknownColumns.length > 0 && (
                 <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-lg p-3 text-sm text-amber-800 dark:text-amber-300">
-                  <p className="font-medium mb-1">Незнакомые колонки цен</p>
+                  <p className="font-medium mb-1">{t('Незнакомые колонки цен')}</p>
                   <p className="text-xs">
                     Не найдены в категориях проектов: {unknownColumns.map((n) => `«${n}»`).join(', ')}.
                     Включите чекбокс ниже, чтобы создать их автоматически.
@@ -330,7 +332,7 @@ export default function ImportCsvModal({
                     onChange={(e) => setCreateCats(e.target.checked)}
                     className="rounded"
                   />
-                  <span className="text-gray-700 dark:text-gray-200">Создавать недостающие категории прайса</span>
+                  <span className="text-gray-700 dark:text-gray-200">{t('Создавать недостающие категории прайса')}</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
@@ -339,7 +341,7 @@ export default function ImportCsvModal({
                     onChange={(e) => setCreatePCs(e.target.checked)}
                     className="rounded"
                   />
-                  <span className="text-gray-700 dark:text-gray-200">Создавать недостающие колонки цен (категории проектов)</span>
+                  <span className="text-gray-700 dark:text-gray-200">{t('Создавать недостающие колонки цен (категории проектов)')}</span>
                 </label>
               </div>
 
@@ -349,10 +351,10 @@ export default function ImportCsvModal({
                     <thead className="bg-gray-50 dark:bg-gray-700/50 sticky top-0">
                       <tr>
                         <th className="text-left px-2 py-1.5 font-medium text-gray-500 dark:text-gray-400">№</th>
-                        <th className="text-left px-2 py-1.5 font-medium text-gray-500 dark:text-gray-400">Категория</th>
-                        <th className="text-left px-2 py-1.5 font-medium text-gray-500 dark:text-gray-400">Название</th>
-                        <th className="text-left px-2 py-1.5 font-medium text-gray-500 dark:text-gray-400">Ед.</th>
-                        <th className="text-right px-2 py-1.5 font-medium text-gray-500 dark:text-gray-400">Себест.</th>
+                        <th className="text-left px-2 py-1.5 font-medium text-gray-500 dark:text-gray-400">{t('Категория')}</th>
+                        <th className="text-left px-2 py-1.5 font-medium text-gray-500 dark:text-gray-400">{t('Название')}</th>
+                        <th className="text-left px-2 py-1.5 font-medium text-gray-500 dark:text-gray-400">{t('Ед.')}</th>
+                        <th className="text-right px-2 py-1.5 font-medium text-gray-500 dark:text-gray-400">{t('Себест.')}</th>
                         {priceColumns.map((pc) => (
                           <th key={pc} className="text-right px-2 py-1.5 font-medium text-violet-700 dark:text-violet-300 whitespace-nowrap">
                             {pc}
@@ -412,8 +414,8 @@ export default function ImportCsvModal({
                   <table className="w-full text-xs">
                     <thead className="bg-red-50 dark:bg-red-500/10 sticky top-0">
                       <tr>
-                        <th className="text-left px-2 py-1 font-medium text-red-700 dark:text-red-300">Строка</th>
-                        <th className="text-left px-2 py-1 font-medium text-red-700 dark:text-red-300">Проблема</th>
+                        <th className="text-left px-2 py-1 font-medium text-red-700 dark:text-red-300">{t('Строка')}</th>
+                        <th className="text-left px-2 py-1 font-medium text-red-700 dark:text-red-300">{t('Проблема')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-red-100 dark:divide-red-500/20">

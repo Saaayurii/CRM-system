@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import api from '@/lib/api';
+import { useT } from '@/lib/i18n';
 
 function getGreeting(): string {
   const h = new Date().getHours();
@@ -100,6 +101,7 @@ const TILES: Tile[] = [
 ];
 
 export default function ClientDashboard({ user }: { user: any }) {
+  const t = useT();
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -138,7 +140,7 @@ export default function ClientDashboard({ user }: { user: any }) {
 
       {/* Projects */}
       <section>
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Ваши объекты</h2>
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{t('Ваши объекты')}</h2>
 
         {loading ? (
           <div className="flex justify-center py-12">
@@ -169,7 +171,7 @@ export default function ClientDashboard({ user }: { user: any }) {
                   {progress !== null && (
                     <div className="mt-4">
                       <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
-                        <span>Прогресс</span>
+                        <span>{t('Прогресс')}</span>
                         <span>{progress}%</span>
                       </div>
                       <div className="h-2 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
@@ -190,7 +192,7 @@ export default function ClientDashboard({ user }: { user: any }) {
 
       {/* Quick access tiles */}
       <section>
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Быстрый доступ</h2>
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{t('Быстрый доступ')}</h2>
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {TILES.map((t) => (
             <Link

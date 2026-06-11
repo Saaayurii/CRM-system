@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
+import { useT } from '@/lib/i18n';
 
 interface RecoveryLogEntry {
   id: number;
@@ -46,6 +47,7 @@ function formatDate(iso: string): string {
 }
 
 export default function RecoveryLogTab() {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
   const [loading, setLoading] = useState(true);
   const [entries, setEntries] = useState<RecoveryLogEntry[]>([]);
@@ -94,10 +96,10 @@ export default function RecoveryLogTab() {
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700/60">
-                <th className="px-4 py-3 font-medium">Сотрудник</th>
-                <th className="px-4 py-3 font-medium">Роль</th>
-                <th className="px-4 py-3 font-medium">Способ</th>
-                <th className="px-4 py-3 font-medium">Когда</th>
+                <th className="px-4 py-3 font-medium">{t('Сотрудник')}</th>
+                <th className="px-4 py-3 font-medium">{t('Роль')}</th>
+                <th className="px-4 py-3 font-medium">{t('Способ')}</th>
+                <th className="px-4 py-3 font-medium">{t('Когда')}</th>
                 <th className="px-4 py-3 font-medium">IP</th>
               </tr>
             </thead>

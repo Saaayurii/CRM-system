@@ -12,6 +12,7 @@ import {
   type SelectionType,
 } from '@/lib/price/types';
 import AddParameterPicker from './AddParameterPicker';
+import { useT } from '@/lib/i18n';
 
 interface PriceCategory {
   id: number;
@@ -34,6 +35,7 @@ export default function CreateServiceWizard({
   onClose: () => void;
   onCreated: (id: number) => void;
 }) {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
 
   const [mode, setMode] = useState<Mode>('stepped');
@@ -159,13 +161,13 @@ export default function CreateServiceWizard({
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-4xl w-full max-h-[92vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
           <div>
-            <h3 className="font-semibold text-gray-800 dark:text-gray-100">Создание услуги с параметрами</h3>
+            <h3 className="font-semibold text-gray-800 dark:text-gray-100">{t('Создание услуги с параметрами')}</h3>
             <p className="text-xs text-gray-500 dark:text-gray-400">Шаг {step} из 3</p>
           </div>
           <div className="flex items-center gap-2">
             <div className="flex rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600 text-xs">
-              <button onClick={() => setMode('stepped')} className={`px-2.5 py-1.5 ${mode === 'stepped' ? 'bg-violet-500 text-white' : 'text-gray-600 dark:text-gray-300'}`}>По шагам</button>
-              <button onClick={() => setMode('inline')} className={`px-2.5 py-1.5 ${mode === 'inline' ? 'bg-violet-500 text-white' : 'text-gray-600 dark:text-gray-300'}`}>В названии</button>
+              <button onClick={() => setMode('stepped')} className={`px-2.5 py-1.5 ${mode === 'stepped' ? 'bg-violet-500 text-white' : 'text-gray-600 dark:text-gray-300'}`}>{t('По шагам')}</button>
+              <button onClick={() => setMode('inline')} className={`px-2.5 py-1.5 ${mode === 'inline' ? 'bg-violet-500 text-white' : 'text-gray-600 dark:text-gray-300'}`}>{t('В названии')}</button>
             </div>
             <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg">✕</button>
           </div>
@@ -176,10 +178,10 @@ export default function CreateServiceWizard({
           <div className="md:col-span-2 overflow-y-auto p-5 space-y-4 border-r border-gray-100 dark:border-gray-700">
             {step === 1 && (
               <>
-                <h4 className="font-medium text-gray-800 dark:text-gray-100">Основная информация</h4>
+                <h4 className="font-medium text-gray-800 dark:text-gray-100">{t('Основная информация')}</h4>
                 <div>
                   <label className={LABEL}>{mode === 'inline' ? 'Базовое название (без параметров) *' : 'Название услуги *'}</label>
-                  <input value={name} onChange={(e) => setName(e.target.value)} className={INPUT} placeholder="Сверление стены" />
+                  <input value={name} onChange={(e) => setName(e.target.value)} className={INPUT} placeholder={t('Сверление стены')} />
                   {mode === 'inline' && (
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                       Параметры подставляются в название автоматически: <span className="text-violet-600 dark:text-violet-400">{composedName || '…'}</span>
@@ -188,29 +190,29 @@ export default function CreateServiceWizard({
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className={LABEL}>Категория</label>
+                    <label className={LABEL}>{t('Категория')}</label>
                     <select value={categoryId === '' ? '' : String(categoryId)} onChange={(e) => setCategoryId(e.target.value === '' ? '' : Number(e.target.value))} className={INPUT}>
-                      <option value="">— без категории —</option>
+                      <option value="">{t('— без категории —')}</option>
                       {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className={LABEL}>Единица измерения</label>
-                    <input value={unit} onChange={(e) => setUnit(e.target.value)} className={INPUT} placeholder="отверстие (шт.)" />
+                    <label className={LABEL}>{t('Единица измерения')}</label>
+                    <input value={unit} onChange={(e) => setUnit(e.target.value)} className={INPUT} placeholder={t('отверстие (шт.)')} />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className={LABEL}>Базовая цена, ₽</label>
+                    <label className={LABEL}>{t('Базовая цена, ₽')}</label>
                     <input value={basePrice} onChange={(e) => setBasePrice(e.target.value)} className={INPUT} inputMode="decimal" placeholder="1000" />
                   </div>
                   <div>
-                    <label className={LABEL}>Себестоимость, ₽</label>
+                    <label className={LABEL}>{t('Себестоимость, ₽')}</label>
                     <input value={cost} onChange={(e) => setCost(e.target.value)} className={INPUT} inputMode="decimal" placeholder="600" />
                   </div>
                 </div>
                 <div>
-                  <label className={LABEL}>Описание</label>
+                  <label className={LABEL}>{t('Описание')}</label>
                   <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className={INPUT} />
                 </div>
               </>
@@ -219,20 +221,20 @@ export default function CreateServiceWizard({
             {step === 2 && (
               <>
                 <div className="flex items-center justify-between">
-                  <h4 className="font-medium text-gray-800 dark:text-gray-100">Параметры услуги</h4>
-                  <button onClick={() => setPicking(true)} className="px-3 py-1.5 text-xs font-medium bg-violet-500 hover:bg-violet-600 text-white rounded-lg">+ Добавить параметр</button>
+                  <h4 className="font-medium text-gray-800 dark:text-gray-100">{t('Параметры услуги')}</h4>
+                  <button onClick={() => setPicking(true)} className="px-3 py-1.5 text-xs font-medium bg-violet-500 hover:bg-violet-600 text-white rounded-lg">{t('+ Добавить параметр')}</button>
                 </div>
                 {groups.length === 0 ? (
-                  <p className="text-center text-sm text-gray-400 py-8">Добавьте параметры из библиотеки или создайте новые.</p>
+                  <p className="text-center text-sm text-gray-400 py-8">{t('Добавьте параметры из библиотеки или создайте новые.')}</p>
                 ) : (
                   <div className="space-y-3">
                     {groups.map((g, gi) => (
                       <div key={gi} className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 space-y-2">
                         <div className="flex items-center gap-2">
-                          <input value={g.name} onChange={(e) => updateGroup(gi, { name: e.target.value })} className={`${INPUT} flex-1`} placeholder="Название параметра" />
+                          <input value={g.name} onChange={(e) => updateGroup(gi, { name: e.target.value })} className={`${INPUT} flex-1`} placeholder={t('Название параметра')} />
                           <select value={g.selectionType} onChange={(e) => updateGroup(gi, { selectionType: e.target.value as SelectionType })} className={`${INPUT} w-40`}>
-                            <option value="single">Один вариант</option>
-                            <option value="multi">Несколько</option>
+                            <option value="single">{t('Один вариант')}</option>
+                            <option value="multi">{t('Несколько')}</option>
                           </select>
                           <button onClick={() => removeGroup(gi)} className="p-2 text-gray-400 hover:text-red-500">✕</button>
                         </div>
@@ -243,7 +245,7 @@ export default function CreateServiceWizard({
                         <div className="space-y-1.5">
                           {g.options.map((o, oi) => (
                             <div key={oi} className="grid grid-cols-12 gap-1.5 items-center">
-                              <input value={o.name} onChange={(e) => updateOption(gi, oi, { name: e.target.value })} className={`${INPUT} col-span-6`} placeholder="Значение" />
+                              <input value={o.name} onChange={(e) => updateOption(gi, oi, { name: e.target.value })} className={`${INPUT} col-span-6`} placeholder={t('Значение')} />
                               <select value={o.influenceType} onChange={(e) => updateOption(gi, oi, { influenceType: e.target.value as InfluenceType })} className={`${INPUT} col-span-3`}>
                                 {(Object.keys(INFLUENCE_LABELS) as InfluenceType[]).map((t) => <option key={t} value={t}>{INFLUENCE_LABELS[t]}</option>)}
                               </select>
@@ -251,7 +253,7 @@ export default function CreateServiceWizard({
                               <button onClick={() => removeOption(gi, oi)} className="col-span-1 p-1 text-gray-400 hover:text-red-500">✕</button>
                             </div>
                           ))}
-                          <button onClick={() => addOption(gi)} className="text-xs text-violet-600 dark:text-violet-400">+ Добавить значение</button>
+                          <button onClick={() => addOption(gi)} className="text-xs text-violet-600 dark:text-violet-400">{t('+ Добавить значение')}</button>
                         </div>
                       </div>
                     ))}
@@ -262,7 +264,7 @@ export default function CreateServiceWizard({
 
             {step === 3 && (
               <>
-                <h4 className="font-medium text-gray-800 dark:text-gray-100">Услуга готова</h4>
+                <h4 className="font-medium text-gray-800 dark:text-gray-100">{t('Услуга готова')}</h4>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
                   Услуга <span className="font-medium">«{mode === 'inline' ? composedName : name}»</span> с {groups.length} параметрами будет создана как черновик. После создания откроется редактор для тонкой настройки.
                 </p>
@@ -275,7 +277,7 @@ export default function CreateServiceWizard({
 
           {/* preview */}
           <div className="overflow-y-auto p-4 bg-gray-50 dark:bg-gray-900/30">
-            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Предпросмотр услуги</p>
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">{t('Предпросмотр услуги')}</p>
             <p className="font-medium text-gray-800 dark:text-gray-100">{(mode === 'inline' ? composedName : name) || 'Новая услуга'}</p>
             <div className="mt-3 space-y-2">
               {groups.map((g, gi) => (
@@ -283,7 +285,7 @@ export default function CreateServiceWizard({
                   <p className="text-xs text-gray-500 dark:text-gray-400">{g.name || 'Параметр'}</p>
                   <div className="flex flex-wrap gap-1 mt-0.5">
                     {g.options.length === 0 ? (
-                      <span className="text-xs text-gray-400">значения не заданы</span>
+                      <span className="text-xs text-gray-400">{t('значения не заданы')}</span>
                     ) : (
                       g.options.map((o, oi) => {
                         const okey = gi * 1000 + oi;
@@ -301,7 +303,7 @@ export default function CreateServiceWizard({
             </div>
             {Number(basePrice) > 0 && groups.length > 0 && (
               <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                <span className="text-xs text-gray-500">Цена</span>
+                <span className="text-xs text-gray-500">{t('Цена')}</span>
                 <span className="text-base font-bold text-green-600 dark:text-green-400">{preview.price.toLocaleString('ru-RU')} ₽</span>
               </div>
             )}

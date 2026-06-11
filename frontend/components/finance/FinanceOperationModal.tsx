@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import api from '@/lib/api';
 import { formatMoney, parseMoney } from '@/lib/utils';
+import { useT } from '@/lib/i18n';
 
 type Direction = 'income' | 'expense';
 
@@ -70,6 +71,7 @@ export default function FinanceOperationModal({
   defaultConstructionSiteId,
   operation,
 }: Props) {
+  const t = useT();
   const isEdit = !!operation;
   const [direction, setDirection] = useState<Direction>('income');
   const [subType, setSubType] = useState<string>('payment');
@@ -229,7 +231,7 @@ export default function FinanceOperationModal({
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-            aria-label="Закрыть"
+            aria-label={t('Закрыть')}
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -379,7 +381,7 @@ export default function FinanceOperationModal({
                     }
                     className="form-select w-full"
                   >
-                    <option value="">Выберите счёт…</option>
+                    <option value="">{t('Выберите счёт…')}</option>
                     {accounts.map((a) => (
                       <option key={a.id} value={a.id}>
                         {a.name}
@@ -411,7 +413,7 @@ export default function FinanceOperationModal({
                 }}
                 className="form-select w-full"
               >
-                <option value="">Без привязки</option>
+                <option value="">{t('Без привязки')}</option>
                 {projects.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
@@ -448,7 +450,7 @@ export default function FinanceOperationModal({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
-              placeholder="Краткое описание операции"
+              placeholder={t('Краткое описание операции')}
               className="form-textarea w-full"
             />
           </div>

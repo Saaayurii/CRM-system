@@ -4,8 +4,10 @@ import { useState, useRef, FormEvent, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
+import { useT } from '@/lib/i18n';
 
 function RegisterCompanyForm() {
+  const t = useT();
   const router = useRouter();
   const searchParams = useSearchParams();
   const login = useAuthStore((s) => s.login);
@@ -122,7 +124,7 @@ function RegisterCompanyForm() {
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
         </svg>
-        <p className="text-sm text-gray-500">Проверка инвайт-ссылки...</p>
+        <p className="text-sm text-gray-500">{t('Проверка инвайт-ссылки...')}</p>
       </div>
     );
   }
@@ -134,7 +136,7 @@ function RegisterCompanyForm() {
           <svg className="w-10 h-10 text-red-500 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
           </svg>
-          <h2 className="font-semibold text-gray-800 dark:text-gray-100 mb-2">Недействительная ссылка</h2>
+          <h2 className="font-semibold text-gray-800 dark:text-gray-100 mb-2">{t('Недействительная ссылка')}</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400">{tokenError}</p>
           <a href="/auth/login" className="mt-4 inline-block text-sm text-violet-500 hover:text-violet-600">
             Войти в существующий аккаунт
@@ -146,15 +148,15 @@ function RegisterCompanyForm() {
 
   return (
     <div className="w-full max-w-sm">
-      <h1 className="text-3xl text-gray-800 dark:text-gray-100 font-bold mb-1">Регистрация компании</h1>
-      <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Создайте аккаунт для вашей организации</p>
+      <h1 className="text-3xl text-gray-800 dark:text-gray-100 font-bold mb-1">{t('Регистрация компании')}</h1>
+      <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">{t('Создайте аккаунт для вашей организации')}</p>
 
       {error && (
         <div className="bg-red-500/10 text-red-500 px-4 py-3 rounded-lg mb-4 text-sm">{error}</div>
       )}
 
       <form onSubmit={handleSubmit}>
-        <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3">Данные компании</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3">{t('Данные компании')}</p>
         <div className="space-y-4 mb-6">
           <div className="flex items-center gap-4">
             <button
@@ -174,7 +176,7 @@ function RegisterCompanyForm() {
               <button type="button" onClick={() => fileRef.current?.click()} className="text-sm text-violet-500 hover:text-violet-600 font-medium">
                 {logoPreview ? 'Изменить логотип' : 'Загрузить логотип'}
               </button>
-              <p className="text-xs text-gray-400 mt-0.5">PNG, JPG до 2 МБ</p>
+              <p className="text-xs text-gray-400 mt-0.5">{t('PNG, JPG до 2 МБ')}</p>
             </div>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleLogoChange} />
           </div>
@@ -188,13 +190,13 @@ function RegisterCompanyForm() {
               type="text"
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
-              placeholder="ООО Строй Групп"
+              placeholder={t('ООО Строй Групп')}
               required
             />
           </div>
         </div>
 
-        <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3">Данные администратора</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3">{t('Данные администратора')}</p>
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
@@ -205,7 +207,7 @@ function RegisterCompanyForm() {
               type="text"
               value={adminName}
               onChange={(e) => setAdminName(e.target.value)}
-              placeholder="Иванов Иван Иванович"
+              placeholder={t('Иванов Иван Иванович')}
               required
             />
           </div>
@@ -225,7 +227,7 @@ function RegisterCompanyForm() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Телефон</label>
+            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">{t('Телефон')}</label>
             <input
               className="form-input w-full"
               type="tel"
@@ -245,7 +247,7 @@ function RegisterCompanyForm() {
                 type={showPass ? 'text' : 'password'}
                 value={adminPassword}
                 onChange={(e) => setAdminPassword(e.target.value)}
-                placeholder="Минимум 8 символов"
+                placeholder={t('Минимум 8 символов')}
                 required
                 minLength={8}
               />
@@ -267,7 +269,7 @@ function RegisterCompanyForm() {
                 type={showConfirm ? 'text' : 'password'}
                 value={adminConfirm}
                 onChange={(e) => setAdminConfirm(e.target.value)}
-                placeholder="Повторите пароль"
+                placeholder={t('Повторите пароль')}
                 required
                 minLength={8}
               />
@@ -294,8 +296,8 @@ function RegisterCompanyForm() {
       </form>
 
       <div className="mt-4 text-center">
-        <span className="text-sm text-gray-500 dark:text-gray-400">Уже есть аккаунт? </span>
-        <a href="/auth/login" className="text-sm font-medium text-violet-500 hover:text-violet-600 dark:hover:text-violet-400">Войти</a>
+        <span className="text-sm text-gray-500 dark:text-gray-400">{t('Уже есть аккаунт?')}</span>
+        <a href="/auth/login" className="text-sm font-medium text-violet-500 hover:text-violet-600 dark:hover:text-violet-400">{t('Войти')}</a>
       </div>
       <p className="mt-4 text-center text-xs text-gray-400 dark:text-gray-500">
         Регистрируясь, вы соглашаетесь с{' '}
@@ -308,8 +310,9 @@ function RegisterCompanyForm() {
 }
 
 export default function RegisterCompanyPage() {
+  const t = useT();
   return (
-    <Suspense fallback={<div className="w-full max-w-sm text-center py-12 text-sm text-gray-400">Загрузка...</div>}>
+    <Suspense fallback={<div className="w-full max-w-sm text-center py-12 text-sm text-gray-400">{t('Загрузка...')}</div>}>
       <RegisterCompanyForm />
     </Suspense>
   );

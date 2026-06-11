@@ -4,8 +4,10 @@ import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { useToastStore } from '@/stores/toastStore';
+import { useT } from '@/lib/i18n';
 
 export default function ProfilePage() {
+  const t = useT();
   const user = useAuthStore((s) => s.user);
   const updateUser = useAuthStore((s) => s.updateUser);
   const addToast = useToastStore((s) => s.addToast);
@@ -94,25 +96,25 @@ export default function ProfilePage() {
   return (
     <div className="max-w-2xl space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Мой профиль</h1>
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Личные данные и пароль для входа.</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('Мой профиль')}</h1>
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{t('Личные данные и пароль для входа.')}</p>
       </div>
 
       {/* Профиль */}
       <form onSubmit={handleSaveProfile} className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 space-y-4">
-        <h2 className="font-semibold text-gray-900 dark:text-white">Личные данные</h2>
+        <h2 className="font-semibold text-gray-900 dark:text-white">{t('Личные данные')}</h2>
         <div>
-          <label className={labelCls}>Имя</label>
-          <input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} placeholder="Фамилия Имя Отчество" />
+          <label className={labelCls}>{t('Имя')}</label>
+          <input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} placeholder={t('Фамилия Имя Отчество')} />
         </div>
         <div>
-          <label className={labelCls}>Телефон</label>
+          <label className={labelCls}>{t('Телефон')}</label>
           <input value={phone} onChange={(e) => setPhone(e.target.value)} className={inputCls} placeholder="+7…" />
         </div>
         <div>
-          <label className={labelCls}>Email (логин)</label>
+          <label className={labelCls}>{t('Email (логин)')}</label>
           <input value={user?.email || ''} disabled className={`${inputCls} opacity-60 cursor-not-allowed`} />
-          <p className="mt-1 text-xs text-gray-400">Email менять нельзя — это ваш логин. Обратитесь к менеджеру.</p>
+          <p className="mt-1 text-xs text-gray-400">{t('Email менять нельзя — это ваш логин. Обратитесь к менеджеру.')}</p>
         </div>
         <div className="flex justify-end">
           <button type="submit" disabled={savingProfile} className="px-5 py-2.5 rounded-xl bg-violet-500 hover:bg-violet-600 disabled:opacity-60 text-white text-sm font-semibold transition-colors">
@@ -123,17 +125,17 @@ export default function ProfilePage() {
 
       {/* Пароль */}
       <form onSubmit={handleChangePassword} className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 space-y-4">
-        <h2 className="font-semibold text-gray-900 dark:text-white">Смена пароля</h2>
+        <h2 className="font-semibold text-gray-900 dark:text-white">{t('Смена пароля')}</h2>
         <div>
-          <label className={labelCls}>Текущий пароль</label>
+          <label className={labelCls}>{t('Текущий пароль')}</label>
           <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className={inputCls} autoComplete="current-password" />
         </div>
         <div>
-          <label className={labelCls}>Новый пароль</label>
+          <label className={labelCls}>{t('Новый пароль')}</label>
           <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className={inputCls} autoComplete="new-password" />
         </div>
         <div>
-          <label className={labelCls}>Повторите новый пароль</label>
+          <label className={labelCls}>{t('Повторите новый пароль')}</label>
           <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={inputCls} autoComplete="new-password" />
         </div>
         <div className="flex justify-end">

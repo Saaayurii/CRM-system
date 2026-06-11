@@ -11,6 +11,7 @@ import React from 'react';
 import type { PassportCtx } from '../usePassport';
 import type { PassportHistoryEntry } from '../types';
 import { Card, EmptyState } from '../primitives';
+import { useT } from '@/lib/i18n';
 
 const SECTION_LABEL: Record<string, string> = {
   general: 'Общая информация',
@@ -32,10 +33,11 @@ function fmt(d: string): string {
 }
 
 export default function HistorySection({ ctx }: { ctx: PassportCtx }) {
+  const t = useT();
   const entries: PassportHistoryEntry[] = [...(ctx.history || [])].reverse();
 
   return (
-    <Card title="История изменений">
+    <Card title={t('История изменений')}>
       {entries.length === 0 ? (
         <EmptyState text="История изменений пуста" />
       ) : (

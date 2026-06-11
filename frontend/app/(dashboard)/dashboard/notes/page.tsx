@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useToastStore } from '@/stores/toastStore';
 import { Note, noteColorClass, notesApi } from '@/lib/notes';
 import NoteFormModal from '@/components/notes/NoteFormModal';
+import { useT } from '@/lib/i18n';
 
 type Tab = 'active' | 'scheduled' | 'history';
 
@@ -25,6 +26,7 @@ function formatDate(iso?: string | null): string {
 }
 
 export default function NotesPage() {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
@@ -106,7 +108,7 @@ export default function NotesPage() {
   return (
     <div className="max-w-6xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Заметки</h1>
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">{t('Заметки')}</h1>
         <button
           onClick={openCreate}
           className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-violet-500 hover:bg-violet-600"
@@ -135,9 +137,9 @@ export default function NotesPage() {
       </div>
 
       {loading ? (
-        <p className="text-gray-400 text-sm">Загрузка…</p>
+        <p className="text-gray-400 text-sm">{t('Загрузка…')}</p>
       ) : visible.length === 0 ? (
-        <p className="text-gray-400 text-sm py-10 text-center">Здесь пока пусто.</p>
+        <p className="text-gray-400 text-sm py-10 text-center">{t('Здесь пока пусто.')}</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {visible.map((note) => (

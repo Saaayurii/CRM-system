@@ -6,6 +6,7 @@ import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { useToastStore } from '@/stores/toastStore';
 import TrainingMaterialsManagerModal from '@/components/learning/TrainingMaterialsManagerModal';
+import { useT } from '@/lib/i18n';
 
 type MaterialType = 'video' | 'article' | 'instruction' | 'checklist' | 'presentation' | string;
 
@@ -55,6 +56,7 @@ type Tab = 'all' | 'mandatory' | 'in_progress' | 'completed';
 type SortKey = 'newest' | 'oldest' | 'popular' | 'duration_asc' | 'duration_desc';
 
 export default function LearningLibraryPage() {
+  const t = useT();
   const user = useAuthStore((s) => s.user);
   const roleCode = user?.role?.code;
   const roleId = user?.role?.id;
@@ -191,7 +193,7 @@ export default function LearningLibraryPage() {
       <div className="mb-6 rounded-2xl p-5 sm:p-6 bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-md">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
-            <h1 className="text-xl sm:text-2xl font-bold leading-tight">Библиотека обучающих материалов</h1>
+            <h1 className="text-xl sm:text-2xl font-bold leading-tight">{t('Библиотека обучающих материалов')}</h1>
             <p className="text-sm text-white/80 mt-1 max-w-xl">
               Видео, статьи, инструкции, чек-листы и тесты для развития сотрудников.
             </p>
@@ -223,19 +225,19 @@ export default function LearningLibraryPage() {
         </div>
 
         <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <StatCard label="Всего" value={counters.total} />
-          <StatCard label="Изучено" value={counters.completed} accent="green" />
-          <StatCard label="В процессе" value={counters.inProgress} accent="blue" />
-          <StatCard label="Обязательных не пройдено" value={counters.mandatoryUnfinished} accent={counters.mandatoryUnfinished > 0 ? 'red' : 'gray'} />
+          <StatCard label={t('Всего')} value={counters.total} />
+          <StatCard label={t('Изучено')} value={counters.completed} accent="green" />
+          <StatCard label={t('В процессе')} value={counters.inProgress} accent="blue" />
+          <StatCard label={t('Обязательных не пройдено')} value={counters.mandatoryUnfinished} accent={counters.mandatoryUnfinished > 0 ? 'red' : 'gray'} />
         </div>
       </div>
 
       {/* Tabs */}
       <div className="mb-4 flex flex-wrap gap-2 border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
-        <TabBtn active={tab === 'all'} onClick={() => setTab('all')} label="Все" count={counters.total} />
-        <TabBtn active={tab === 'mandatory'} onClick={() => setTab('mandatory')} label="Обязательные" count={counters.mandatoryUnfinished} accent={counters.mandatoryUnfinished > 0 ? 'red' : undefined} />
-        <TabBtn active={tab === 'in_progress'} onClick={() => setTab('in_progress')} label="В процессе" count={counters.inProgress} />
-        <TabBtn active={tab === 'completed'} onClick={() => setTab('completed')} label="Изученные" count={counters.completed} />
+        <TabBtn active={tab === 'all'} onClick={() => setTab('all')} label={t('Все')} count={counters.total} />
+        <TabBtn active={tab === 'mandatory'} onClick={() => setTab('mandatory')} label={t('Обязательные')} count={counters.mandatoryUnfinished} accent={counters.mandatoryUnfinished > 0 ? 'red' : undefined} />
+        <TabBtn active={tab === 'in_progress'} onClick={() => setTab('in_progress')} label={t('В процессе')} count={counters.inProgress} />
+        <TabBtn active={tab === 'completed'} onClick={() => setTab('completed')} label={t('Изученные')} count={counters.completed} />
         {canManage && (
           <Link
             href="/dashboard/learning/admin"
@@ -257,7 +259,7 @@ export default function LearningLibraryPage() {
           </svg>
           <input
             type="text"
-            placeholder="Поиск по названию, описанию, тегам..."
+            placeholder={t('Поиск по названию, описанию, тегам...')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:outline-none focus:border-violet-400"
@@ -268,7 +270,7 @@ export default function LearningLibraryPage() {
           onChange={(e) => setTypeFilter(e.target.value)}
           className="px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:outline-none focus:border-violet-400"
         >
-          <option value="">Все типы</option>
+          <option value="">{t('Все типы')}</option>
           {Object.entries(TYPE_META).map(([k, v]) => (
             <option key={k} value={k}>{v.emoji} {v.label}</option>
           ))}
@@ -278,7 +280,7 @@ export default function LearningLibraryPage() {
           onChange={(e) => setCategoryFilter(e.target.value)}
           className="px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:outline-none focus:border-violet-400"
         >
-          <option value="">Все категории</option>
+          <option value="">{t('Все категории')}</option>
           {categories.map((c) => (
             <option key={c} value={c}>{c}</option>
           ))}
@@ -288,11 +290,11 @@ export default function LearningLibraryPage() {
           onChange={(e) => setSort(e.target.value as SortKey)}
           className="px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:outline-none focus:border-violet-400"
         >
-          <option value="newest">Сначала новые</option>
-          <option value="oldest">Сначала старые</option>
-          <option value="popular">По популярности</option>
-          <option value="duration_asc">Короче — сначала</option>
-          <option value="duration_desc">Длиннее — сначала</option>
+          <option value="newest">{t('Сначала новые')}</option>
+          <option value="oldest">{t('Сначала старые')}</option>
+          <option value="popular">{t('По популярности')}</option>
+          <option value="duration_asc">{t('Короче — сначала')}</option>
+          <option value="duration_desc">{t('Длиннее — сначала')}</option>
         </select>
       </div>
 
@@ -329,6 +331,7 @@ export default function LearningLibraryPage() {
 // ─── Cards & atoms ────────────────────────────────────────────────────────────
 
 function ProgressRing({ pct }: { pct: number }) {
+  const t = useT();
   const r = 26;
   const c = 2 * Math.PI * r;
   const offset = c - (pct / 100) * c;
@@ -355,6 +358,7 @@ function ProgressRing({ pct }: { pct: number }) {
 }
 
 function StatCard({ label, value, accent = 'gray' }: { label: string; value: number; accent?: 'gray' | 'green' | 'blue' | 'red' }) {
+  const t = useT();
   const color = {
     gray:  'text-white',
     green: 'text-emerald-200',
@@ -479,6 +483,7 @@ function MaterialCard({ material, progress, mandatoryForMe, canManage }: {
 }
 
 function SkeletonGrid() {
+  const t = useT();
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
       {Array.from({ length: 8 }).map((_, i) => (

@@ -11,6 +11,7 @@ import InventoryTab from '@/components/warehouse/InventoryTab';
 import CalculatorsTab from '@/components/warehouse/CalculatorsTab';
 import EquipmentQRModal from '@/components/warehouse/EquipmentQRModal';
 import EquipmentMoveModal from '@/components/warehouse/EquipmentMoveModal';
+import { useT } from '@/lib/i18n';
 
 const TABS = [
   { key: 'warehouses',  label: 'Склады' },
@@ -24,6 +25,7 @@ const TABS = [
 type TabKey = typeof TABS[number]['key'];
 
 export default function WarehousePage() {
+  const t = useT();
   const router = useRouter();
   const [tab, setTab] = useState<TabKey>(() => {
     if (typeof window !== 'undefined') {
@@ -49,7 +51,7 @@ export default function WarehousePage() {
     <div className="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-9xl mx-auto">
       <div className="sm:flex sm:justify-between sm:items-center mb-6">
         <div>
-          <h1 className="text-2xl md:text-3xl text-gray-800 dark:text-gray-100 font-bold">Склад</h1>
+          <h1 className="text-2xl md:text-3xl text-gray-800 dark:text-gray-100 font-bold">{t('Склад')}</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             Склады, оборудование, материалы, инвентаризация и перемещения
           </p>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import api from '@/lib/api';
+import { useT } from '@/lib/i18n';
 
 interface Stats {
   priceItemsCount: number;
@@ -29,6 +30,7 @@ export default function DocumentsOverview({
   onCreateEstimate: () => void;
   onOpenFinancialReport: () => void;
 }) {
+  const t = useT();
   const [stats, setStats] = useState<Stats>({
     priceItemsCount: 0,
     estimatesCount: 0,
@@ -83,13 +85,13 @@ export default function DocumentsOverview({
 
       {/* ─── Поток смет ─────────────────────────────────────── */}
       <FlowSection
-        title="Сметы → Документы"
-        description="Прайс компании используется как источник позиций. Из позиций строится Смета. Из сметы выгружаются три формы документов."
+        title={t('Сметы → Документы')}
+        description={t('Прайс компании используется как источник позиций. Из позиций строится Смета. Из сметы выгружаются три формы документов.')}
       >
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr_auto_2fr] gap-3 items-stretch">
           <SourceCard
             icon={<IconPrice />}
-            title="Прайс компании"
+            title={t('Прайс компании')}
             subtitle={`Позиций: ${stats.priceItemsCount}`}
             link="/dashboard/company?tab=price"
             color="violet"
@@ -97,7 +99,7 @@ export default function DocumentsOverview({
           <Arrow />
           <SourceCard
             icon={<IconEstimate />}
-            title="Сметы проекта"
+            title={t('Сметы проекта')}
             subtitle={`Создано: ${stats.estimatesCount}`}
             onClick={onCreateEstimate}
             action="Создать смету"
@@ -106,18 +108,18 @@ export default function DocumentsOverview({
           <Arrow />
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <PdfCard
-              title="Сводный расчёт"
-              description="Краткая форма для заказчика"
+              title={t('Сводный расчёт')}
+              description={t('Краткая форма для заказчика')}
               color="violet"
             />
             <PdfCard
-              title="КС-2"
-              description="Гос-форма Госкомстат №100"
+              title={t('КС-2')}
+              description={t('Гос-форма Госкомстат №100')}
               color="indigo"
             />
             <PdfCard
-              title="Акт приёмки"
-              description="Упрощённый акт"
+              title={t('Акт приёмки')}
+              description={t('Упрощённый акт')}
               color="blue"
             />
           </div>
@@ -156,27 +158,27 @@ export default function DocumentsOverview({
 
       {/* ─── Поток финансовых отчётов ─────────────────────── */}
       <FlowSection
-        title="Платежи → Финансовые отчёты"
-        description="Все приходы и расходы проекта сводятся в два типа PDF-отчётов."
+        title={t('Платежи → Финансовые отчёты')}
+        description={t('Все приходы и расходы проекта сводятся в два типа PDF-отчётов.')}
       >
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_2fr] gap-3 items-stretch">
           <SourceCard
             icon={<IconPayment />}
-            title="Платежи проекта"
+            title={t('Платежи проекта')}
             subtitle={`Записей: ${stats.paymentsCount}`}
             color="amber"
           />
           <Arrow />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <PdfCard
-              title="Детализация баланса"
-              description="Приход / Расход / Баланс + разбивка по статьям"
+              title={t('Детализация баланса')}
+              description={t('Приход / Расход / Баланс + разбивка по статьям')}
               onClick={onOpenFinancialReport}
               color="emerald"
             />
             <PdfCard
-              title="Ведомость по статье"
-              description="Платежи по конкретной статье"
+              title={t('Ведомость по статье')}
+              description={t('Платежи по конкретной статье')}
               onClick={onOpenFinancialReport}
               color="rose"
             />
@@ -200,6 +202,7 @@ function FlowSection({
   description: string;
   children: React.ReactNode;
 }) {
+  const t = useT();
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-4">
       <h4 className="font-semibold text-gray-800 dark:text-gray-100 mb-1">{title}</h4>
@@ -259,6 +262,7 @@ function SourceCard({
   action?: string;
   color: keyof typeof COLORS;
 }) {
+  const t = useT();
   const c = COLORS[color];
   const inner = (
     <div className={`flex flex-col h-full rounded-xl border ${c.bg} p-4`}>
@@ -309,6 +313,7 @@ function PdfCard({
   onClick?: () => void;
   color: keyof typeof COLORS;
 }) {
+  const t = useT();
   const c = COLORS[color];
   const content = (
     <div className={`flex flex-col h-full rounded-lg border ${c.bg} p-3`}>
@@ -332,6 +337,7 @@ function PdfCard({
 }
 
 function Arrow() {
+  const t = useT();
   return (
     <div className="hidden lg:flex items-center justify-center">
       <svg className="w-6 h-6 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -342,6 +348,7 @@ function Arrow() {
 }
 
 function IconPrice() {
+  const t = useT();
   return (
     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
@@ -350,6 +357,7 @@ function IconPrice() {
 }
 
 function IconEstimate() {
+  const t = useT();
   return (
     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -358,6 +366,7 @@ function IconEstimate() {
 }
 
 function IconPayment() {
+  const t = useT();
   return (
     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M5 6h14a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2z" />

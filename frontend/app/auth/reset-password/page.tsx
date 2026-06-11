@@ -6,8 +6,10 @@ import api from '@/lib/api';
 import RecoverySetPasswordForm, {
   RecoverableAccount,
 } from '@/components/auth/RecoverySetPasswordForm';
+import { useT } from '@/lib/i18n';
 
 function ResetPasswordInner() {
+  const t = useT();
   const searchParams = useSearchParams();
   const token = searchParams.get('token') || '';
 
@@ -85,7 +87,7 @@ function ResetPasswordInner() {
   if (phase === 'done') {
     return (
       <div>
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">Готово</h1>
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">{t('Готово')}</h1>
         <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">{doneMessage}</p>
         <a href="/auth/login" className="btn bg-violet-500 hover:bg-violet-600 text-white w-full">
           Войти
@@ -96,7 +98,7 @@ function ResetPasswordInner() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">Новый пароль</h1>
+      <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">{t('Новый пароль')}</h1>
       <p className="text-sm text-gray-600 dark:text-gray-400 mb-5">
         Восстановление для <strong className="text-gray-800 dark:text-gray-200">{email}</strong>.
         {accounts.length > 1 ? ' Отметьте аккаунты, для которых нужно сбросить пароль.' : ''}
@@ -119,6 +121,7 @@ function ResetPasswordInner() {
 }
 
 export default function ResetPasswordPage() {
+  const t = useT();
   return (
     <Suspense
       fallback={

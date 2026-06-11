@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic';
 import { useChatStore, UploadedAttachment } from '@/stores/chatStore';
 import { useToastStore } from '@/stores/toastStore';
 import api from '@/lib/api';
+import { useT } from '@/lib/i18n';
 
 const TaskFormModal = dynamic(() => import('@/components/dashboard/TaskFormModal'), { ssr: false });
 
@@ -128,6 +129,7 @@ function renderMarkdownInEditor(el: HTMLDivElement, md: string) {
 // ── Component ─────────────────────────────────────────────────────────────
 
 export default function ChatInput({ channelId, projectId, channelType, onFilesSent }: ChatInputProps) {
+  const t = useT();
   const isDirect = channelType === 'direct';
 
   const [text, setText] = useState(() => {
@@ -1475,8 +1477,8 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
           {showCancelVideoConfirm && (
             <div className="absolute inset-0 flex items-center justify-center z-10" onClick={(e) => e.stopPropagation()}>
               <div className="bg-gray-900 rounded-2xl p-6 max-w-xs w-full mx-5 text-center shadow-2xl">
-                <p className="text-white font-semibold text-base mb-1">Прекратить запись?</p>
-                <p className="text-gray-300 text-sm mb-5">Вы точно хотите прекратить запись и сбросить записанное сообщение?</p>
+                <p className="text-white font-semibold text-base mb-1">{t('Прекратить запись?')}</p>
+                <p className="text-gray-300 text-sm mb-5">{t('Вы точно хотите прекратить запись и сбросить записанное сообщение?')}</p>
                 <div className="flex gap-3">
                   <button
                     onClick={() => setShowCancelVideoConfirm(false)}
@@ -1508,8 +1510,8 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
               </svg>
             </div>
             <div className="text-center">
-              <p className="text-violet-600 dark:text-violet-400 font-semibold text-xl">Перетащите файлы сюда</p>
-              <p className="text-violet-500/80 dark:text-violet-400/70 text-sm mt-1">Отпустите для прикрепления к сообщению</p>
+              <p className="text-violet-600 dark:text-violet-400 font-semibold text-xl">{t('Перетащите файлы сюда')}</p>
+              <p className="text-violet-500/80 dark:text-violet-400/70 text-sm mt-1">{t('Отпустите для прикрепления к сообщению')}</p>
             </div>
           </div>
         </div>,
@@ -1525,7 +1527,7 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
             <svg className="w-3.5 h-3.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
-            <p className="text-xs font-medium text-gray-500 dark:text-gray-400">↑↓ выбор · Enter вставить · Esc закрыть</p>
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400">{t('↑↓ выбор · Enter вставить · Esc закрыть')}</p>
           </div>
           <div className="overflow-y-auto max-h-44">
             {filteredUserMentions.map((user, idx) => (
@@ -1564,7 +1566,7 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
             <svg className="w-3.5 h-3.5 text-violet-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
             </svg>
-            <p className="text-xs font-medium text-gray-500 dark:text-gray-400">↑↓ выбор · Enter вставить · Esc закрыть</p>
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400">{t('↑↓ выбор · Enter вставить · Esc закрыть')}</p>
           </div>
           <div className="overflow-y-auto max-h-44">
             {filteredTaskMentions.map((task, idx) => (
@@ -1608,7 +1610,7 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
           <svg className="w-3 h-3 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
           </svg>
-          <span className="text-xs text-amber-500 dark:text-amber-400">Черновик восстановлен</span>
+          <span className="text-xs text-amber-500 dark:text-amber-400">{t('Черновик восстановлен')}</span>
         </div>
       )}
 
@@ -1619,7 +1621,7 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
           </svg>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-sky-500">Редактирование</p>
+            <p className="text-xs font-medium text-sky-500">{t('Редактирование')}</p>
             <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{editingMessage.text}</p>
           </div>
           <button
@@ -1644,7 +1646,7 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
               type="button"
               onClick={closeWizard}
               className="shrink-0 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-              title="Отмена (Esc)"
+              title={t('Отмена (Esc)')}
             >Esc</button>
           </div>
           <div className="flex flex-col gap-1">
@@ -1676,12 +1678,12 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
       {wizard?.kind === 'new-menu' && (
         <div className="mb-2 px-3 py-2 bg-violet-50 dark:bg-violet-900/20 rounded-lg border-l-2 border-violet-500">
           <div className="flex items-center justify-between gap-2 mb-2">
-            <p className="text-xs font-medium text-violet-600 dark:text-violet-400">Что создать?</p>
+            <p className="text-xs font-medium text-violet-600 dark:text-violet-400">{t('Что создать?')}</p>
             <button
               type="button"
               onClick={closeWizard}
               className="shrink-0 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-              title="Отмена (Esc)"
+              title={t('Отмена (Esc)')}
             >Esc</button>
           </div>
           <div className="flex flex-col gap-1">
@@ -1691,7 +1693,7 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
               className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-left bg-violet-500 text-white"
             >
               <span>➕</span>
-              <span className="flex-1">Создать задачу</span>
+              <span className="flex-1">{t('Создать задачу')}</span>
               <span className="text-xs opacity-70">↵</span>
             </button>
           </div>
@@ -1714,7 +1716,7 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
             type="button"
             onClick={closeWizard}
             className="shrink-0 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-            title="Отмена (Esc)"
+            title={t('Отмена (Esc)')}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1730,7 +1732,7 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
           </svg>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-violet-600 dark:text-violet-400">Создать задачу</p>
+            <p className="text-xs font-medium text-violet-600 dark:text-violet-400">{t('Создать задачу')}</p>
             <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
               {taskSlashTitle ? `«${taskSlashTitle}» — Enter, чтобы открыть форму` : 'Введите название после /task и нажмите Enter'}
             </p>
@@ -1807,11 +1809,11 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
                         {pf.compressed ? (
                           <><svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>Фото</>
+                          </svg>{t('Фото')}</>
                         ) : (
                           <><svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                          </svg>Файл</>
+                          </svg>{t('Файл')}</>
                         )}
                       </button>
                       <span className="text-[10px] text-gray-400">{pf.compressed ? '· сожмётся' : '· без изменений'}</span>
@@ -1828,7 +1830,7 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
                   )}
                 </div>
                 <button onClick={() => removeFile(pf.id)}
-                  className="shrink-0 p-1.5 text-red-400 hover:text-white hover:bg-red-500 rounded-lg transition-colors" title="Удалить файл">
+                  className="shrink-0 p-1.5 text-red-400 hover:text-white hover:bg-red-500 rounded-lg transition-colors" title={t('Удалить файл')}>
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
@@ -1843,7 +1845,7 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
       {isRecording ? (
         <div className="flex items-center gap-3">
           <button onClick={cancelRecording}
-            className="shrink-0 p-2 text-gray-400 hover:text-red-500 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" title="Отменить">
+            className="shrink-0 p-2 text-gray-400 hover:text-red-500 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" title={t('Отменить')}>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
@@ -1854,7 +1856,7 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
             <span className="text-sm font-mono text-gray-600 dark:text-gray-300 shrink-0 tabular-nums">{formatDuration(recordingTime)}</span>
           </div>
           <button onClick={stopRecording} disabled={isSending}
-            className="shrink-0 p-2 text-white bg-violet-500 hover:bg-violet-600 disabled:opacity-50 rounded-xl transition-colors" title="Остановить и отправить">
+            className="shrink-0 p-2 text-white bg-violet-500 hover:bg-violet-600 disabled:opacity-50 rounded-xl transition-colors" title={t('Остановить и отправить')}>
             {isSending ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
               : <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h12v12H6z" /></svg>}
           </button>
@@ -1867,7 +1869,7 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
               onClick={() => setShowAttachMenu((v) => !v)}
               disabled={isSending}
               className={`p-2 rounded-xl transition-colors disabled:opacity-50 ${showAttachMenu ? 'text-violet-500 bg-violet-50 dark:bg-violet-900/20' : 'text-gray-400 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/20'}`}
-              title="Прикрепить файл"
+              title={t('Прикрепить файл')}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
@@ -1957,7 +1959,7 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
                 onClick={() => setShowEmojiPicker((v) => !v)}
                 disabled={isSending}
                 className="p-1 text-gray-400 hover:text-yellow-500 transition-colors disabled:opacity-50 rounded"
-                title="Смайлики"
+                title={t('Смайлики')}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -2056,6 +2058,7 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
 const WAVEFORM_HEIGHTS = [4, 8, 12, 6, 10, 14, 8, 5, 12, 9, 7, 11, 6, 10, 8, 13, 5, 9, 7, 11];
 
 function RecordingWaveform() {
+  const t = useT();
   return (
     <div className="flex items-center gap-0.5 flex-1 h-6">
       {WAVEFORM_HEIGHTS.map((h, i) => (

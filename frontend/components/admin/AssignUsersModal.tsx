@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
+import { useT } from '@/lib/i18n';
 
 interface UserOption {
   id: number;
@@ -41,6 +42,7 @@ export default function AssignUsersModal({
   onClose,
   onSaved,
 }: AssignUsersModalProps) {
+  const t = useT();
   const [users, setUsers] = useState<UserOption[]>([]);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(false);
@@ -173,7 +175,7 @@ export default function AssignUsersModal({
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Поиск по имени или email..."
+            placeholder={t('Поиск по имени или email...')}
             className="form-input w-full text-sm"
           />
         </div>
@@ -181,9 +183,9 @@ export default function AssignUsersModal({
         {/* User list */}
         <div className="flex-1 overflow-y-auto px-4 pb-2">
           {loading ? (
-            <p className="py-6 text-center text-gray-500 dark:text-gray-400 text-sm">Загрузка...</p>
+            <p className="py-6 text-center text-gray-500 dark:text-gray-400 text-sm">{t('Загрузка...')}</p>
           ) : filtered.length === 0 ? (
-            <p className="py-6 text-center text-gray-500 dark:text-gray-400 text-sm">Пользователи не найдены</p>
+            <p className="py-6 text-center text-gray-500 dark:text-gray-400 text-sm">{t('Пользователи не найдены')}</p>
           ) : (
             <ul className="divide-y divide-gray-100 dark:divide-gray-700">
               {filtered.map((user) => {

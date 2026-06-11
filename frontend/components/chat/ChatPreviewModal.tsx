@@ -6,6 +6,7 @@ import api from '@/lib/api';
 import { ChatChannel, ChatMessage as ChatMessageType, mapRawMessage } from '@/stores/chatStore';
 import { useAuthStore } from '@/stores/authStore';
 import ChatMessage from './ChatMessage';
+import { useT } from '@/lib/i18n';
 
 const RU_MONTHS = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
 
@@ -48,6 +49,7 @@ interface Props {
  * read-only, WITHOUT marking the channel as read or making it the active channel.
  */
 export default function ChatPreviewModal({ channel, onClose, onOpenFull }: Props) {
+  const t = useT();
   const currentUserId = useAuthStore((s) => s.user?.id);
   const [messages, setMessages] = useState<ChatMessageType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -170,7 +172,7 @@ export default function ChatPreviewModal({ channel, onClose, onOpenFull }: Props
           <button
             onClick={onClose}
             className="shrink-0 p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            title="Закрыть"
+            title={t('Закрыть')}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -235,7 +237,7 @@ export default function ChatPreviewModal({ channel, onClose, onOpenFull }: Props
             <button
               onClick={scrollToBottom}
               className="sticky bottom-2 ml-auto mr-1 flex w-9 h-9 rounded-full bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-600 items-center justify-center text-violet-500 hover:text-violet-600 transition-colors"
-              title="Вниз"
+              title={t('Вниз')}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />

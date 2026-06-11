@@ -10,6 +10,7 @@ import {
   type LibraryParameterValue,
   type SelectionType,
 } from '@/lib/price/types';
+import { useT } from '@/lib/i18n';
 
 const INPUT =
   'w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-violet-500';
@@ -28,6 +29,7 @@ export default function ParameterLibraryModal({
   onClose: () => void;
   onChanged?: () => void;
 }) {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
   const [list, setList] = useState<LibraryParameter[]>([]);
   const [loading, setLoading] = useState(true);
@@ -115,8 +117,8 @@ export default function ParameterLibraryModal({
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
           <div>
-            <h3 className="font-semibold text-gray-800 dark:text-gray-100">Библиотека параметров</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Параметры переиспользуются во всех услугах прайса.</p>
+            <h3 className="font-semibold text-gray-800 dark:text-gray-100">{t('Библиотека параметров')}</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{t('Параметры переиспользуются во всех услугах прайса.')}</p>
           </div>
           <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg">✕</button>
         </div>
@@ -128,9 +130,9 @@ export default function ParameterLibraryModal({
               + Создать параметр
             </button>
             {loading ? (
-              <p className="text-center text-sm text-gray-400 py-6">Загрузка…</p>
+              <p className="text-center text-sm text-gray-400 py-6">{t('Загрузка…')}</p>
             ) : list.length === 0 ? (
-              <p className="text-center text-sm text-gray-400 py-6">Параметров пока нет</p>
+              <p className="text-center text-sm text-gray-400 py-6">{t('Параметров пока нет')}</p>
             ) : (
               <ul className="space-y-1">
                 {list.map((p) => (
@@ -139,7 +141,7 @@ export default function ParameterLibraryModal({
                       <span className="text-sm font-medium text-gray-800 dark:text-gray-100">{p.name}</span>
                       <span className="block text-xs text-gray-400">{p.selectionType === 'single' ? 'Один вариант' : 'Несколько'} · {p.values.length} знач.</span>
                     </button>
-                    <button onClick={() => remove(p.id)} className="p-1 text-gray-400 hover:text-red-500" title="Удалить">✕</button>
+                    <button onClick={() => remove(p.id)} className="p-1 text-gray-400 hover:text-red-500" title={t('Удалить')}>✕</button>
                   </li>
                 ))}
               </ul>
@@ -149,28 +151,28 @@ export default function ParameterLibraryModal({
           {/* редактор параметра */}
           <div className="p-4">
             {!draft ? (
-              <p className="text-center text-sm text-gray-400 py-10">Выберите параметр или создайте новый</p>
+              <p className="text-center text-sm text-gray-400 py-10">{t('Выберите параметр или создайте новый')}</p>
             ) : (
               <div className="space-y-3">
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">Название параметра *</label>
-                  <input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} className={INPUT} placeholder="Например: Материал стены" />
+                  <label className="block text-xs text-gray-500 mb-1">{t('Название параметра *')}</label>
+                  <input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} className={INPUT} placeholder={t('Например: Материал стены')} />
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">Тип выбора</label>
+                  <label className="block text-xs text-gray-500 mb-1">{t('Тип выбора')}</label>
                   <select value={draft.selectionType} onChange={(e) => setDraft({ ...draft, selectionType: e.target.value as SelectionType })} className={INPUT}>
-                    <option value="single">Один вариант</option>
-                    <option value="multi">Несколько вариантов</option>
+                    <option value="single">{t('Один вариант')}</option>
+                    <option value="multi">{t('Несколько вариантов')}</option>
                   </select>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Значения</span>
-                  <button onClick={addValue} className="text-xs font-medium text-violet-600 dark:text-violet-400">+ Добавить значение</button>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{t('Значения')}</span>
+                  <button onClick={addValue} className="text-xs font-medium text-violet-600 dark:text-violet-400">{t('+ Добавить значение')}</button>
                 </div>
                 <div className="space-y-2">
                   {draft.values.map((v, i) => (
                     <div key={i} className="grid grid-cols-12 gap-1.5 items-center">
-                      <input value={v.name} onChange={(e) => setValue(i, { name: e.target.value })} className={`${INPUT} col-span-12 sm:col-span-5`} placeholder="Значение" />
+                      <input value={v.name} onChange={(e) => setValue(i, { name: e.target.value })} className={`${INPUT} col-span-12 sm:col-span-5`} placeholder={t('Значение')} />
                       <select value={v.influenceType} onChange={(e) => setValue(i, { influenceType: e.target.value as InfluenceType })} className={`${INPUT} col-span-7 sm:col-span-4`}>
                         {(Object.keys(INFLUENCE_LABELS) as InfluenceType[]).map((t) => <option key={t} value={t}>{INFLUENCE_LABELS[t]}</option>)}
                       </select>
@@ -180,8 +182,8 @@ export default function ParameterLibraryModal({
                   ))}
                 </div>
                 <div className="flex justify-end gap-2 pt-2">
-                  <button onClick={() => setDraft(null)} className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">Отмена</button>
-                  <button onClick={save} disabled={saving} className="px-4 py-1.5 text-sm font-medium bg-violet-500 hover:bg-violet-600 disabled:opacity-50 text-white rounded-lg">Сохранить</button>
+                  <button onClick={() => setDraft(null)} className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">{t('Отмена')}</button>
+                  <button onClick={save} disabled={saving} className="px-4 py-1.5 text-sm font-medium bg-violet-500 hover:bg-violet-600 disabled:opacity-50 text-white rounded-lg">{t('Сохранить')}</button>
                 </div>
               </div>
             )}

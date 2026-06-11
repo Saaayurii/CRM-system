@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import { AxiosError } from 'axios';
+import { useT } from '@/lib/i18n';
 
 const ROLE_OPTIONS: { value: number; label: string }[] = [
   { value: 10, label: 'Рабочий' },
@@ -45,6 +46,7 @@ function fmtDate(v: string | null | undefined): string {
 type Tab = 'pending' | 'history';
 
 export default function RegistrationsPage() {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
   const [tab, setTab] = useState<Tab>('pending');
   const [pending, setPending] = useState<RegRequest[]>([]);
@@ -178,7 +180,7 @@ export default function RegistrationsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Заявки на регистрацию</h1>
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('Заявки на регистрацию')}</h1>
 
       {/* Tabs + PDF button */}
       <div className="flex items-center justify-between">
@@ -233,7 +235,7 @@ export default function RegistrationsPage() {
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-violet-500" />
               </div>
             ) : pending.length === 0 ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">Нет ожидающих заявок</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">{t('Нет ожидающих заявок')}</p>
             ) : (
               <div className="space-y-3">
                 {pending.map((req) => (
@@ -303,7 +305,7 @@ export default function RegistrationsPage() {
                         <input
                           type="text"
                           className="form-input text-xs py-1.5 rounded-lg flex-1 min-w-[150px]"
-                          placeholder="Причина отказа (необязательно)"
+                          placeholder={t('Причина отказа (необязательно)')}
                           value={rejectState.reason}
                           onChange={(e) => setRejectState({ ...rejectState, reason: e.target.value })}
                         />
@@ -338,18 +340,18 @@ export default function RegistrationsPage() {
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-violet-500" />
             </div>
           ) : history.length === 0 ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">Нет рассмотренных заявок</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">{t('Нет рассмотренных заявок')}</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-100 dark:border-gray-700/60">
-                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Имя</th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">{t('Имя')}</th>
                     <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Email</th>
-                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Статус</th>
-                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Рассмотрел</th>
-                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Дата</th>
-                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Причина отказа</th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">{t('Статус')}</th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">{t('Рассмотрел')}</th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">{t('Дата')}</th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">{t('Причина отказа')}</th>
                   </tr>
                 </thead>
                 <tbody>

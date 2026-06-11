@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { useToastStore } from '@/stores/toastStore';
+import { useT } from '@/lib/i18n';
 
 interface TrainingMaterial {
   id: number;
@@ -49,6 +50,7 @@ function userLabel(u: User): string {
 }
 
 export default function TrainingStatsPage() {
+  const t = useT();
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const roleCode = user?.role?.code;
@@ -156,15 +158,15 @@ export default function TrainingStatsPage() {
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        <SummaryCard label="Сотрудников" value={users.length} color="violet" />
-        <SummaryCard label="Материалов" value={materials.length} color="blue" />
+        <SummaryCard label={t('Сотрудников')} value={users.length} color="violet" />
+        <SummaryCard label={t('Материалов')} value={materials.length} color="blue" />
         <SummaryCard
-          label="Записей о прогрессе"
+          label={t('Записей о прогрессе')}
           value={stats?.summary.totalRecords ?? 0}
           color="orange"
         />
         <SummaryCard
-          label="Завершено всего"
+          label={t('Завершено всего')}
           value={stats?.summary.totalCompleted ?? 0}
           color="green"
         />
@@ -174,7 +176,7 @@ export default function TrainingStatsPage() {
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <input
           type="text"
-          placeholder="Поиск по сотрудникам..."
+          placeholder={t('Поиск по сотрудникам...')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:outline-none focus:border-violet-400 min-w-[220px]"
@@ -304,6 +306,7 @@ export default function TrainingStatsPage() {
 }
 
 function SummaryCard({ label, value, color }: { label: string; value: number; color: 'violet' | 'blue' | 'orange' | 'green' }) {
+  const t = useT();
   const map = {
     violet: 'from-violet-500/10 to-fuchsia-500/10 text-violet-700 dark:text-violet-300 border-violet-200 dark:border-violet-800/50',
     blue:   'from-blue-500/10 to-sky-500/10 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800/50',

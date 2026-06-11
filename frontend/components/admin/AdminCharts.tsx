@@ -2,6 +2,7 @@
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import type { ContainerInfo } from '@/types/docker';
+import { useT } from '@/lib/i18n';
 
 interface AdminChartsProps {
   containers: ContainerInfo[];
@@ -24,6 +25,7 @@ const STATE_COLORS: Record<string, string> = {
 };
 
 export default function AdminCharts({ containers }: AdminChartsProps) {
+  const t = useT();
   // Group by state
   const stateCount: Record<string, number> = {};
   containers.forEach((c) => {

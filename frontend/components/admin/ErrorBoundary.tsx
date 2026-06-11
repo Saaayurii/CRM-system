@@ -1,6 +1,8 @@
 'use client';
 
 import { Component, type ReactNode } from 'react';
+import { useLanguageStore } from '@/stores/languageStore';
+import { en } from '@/lib/i18n/en';
 
 interface Props {
   children: ReactNode;
@@ -20,17 +22,19 @@ export default class ErrorBoundary extends Component<Props, State> {
   }
 
   render() {
+    const lang = useLanguageStore.getState().language;
+    const t = (key: string) => lang === 'ru' ? key : en[key] ?? key;
     if (this.state.hasError) {
       return (
         this.props.fallback || (
           <div className="bg-red-500/10 text-red-600 dark:text-red-400 px-4 py-3 rounded-lg text-sm">
-            <p className="font-medium mb-1">Ошибка отображения данных</p>
-            <p className="text-xs text-red-500/70">{this.state.error?.message || 'Неизвестная ошибка'}</p>
+            <p className="font-medium mb-1">{t('Ошибка отображения данных')}</p>
+            <p className="text-xs text-red-500/70">{this.state.error?.message || t('Неизвестная ошибка')}</p>
             <button
               onClick={() => this.setState({ hasError: false, error: null })}
               className="mt-2 btn-xs bg-red-500 hover:bg-red-600 text-white"
             >
-              Попробовать снова
+              {t('Попробовать снова')}
             </button>
           </div>
         )

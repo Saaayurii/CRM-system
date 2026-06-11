@@ -21,6 +21,7 @@ import {
   EditToggle, GhostBtn, IconBtn, TrashIcon, EmptyState, FileChip,
   EditableTable, DataTable, EditableColumn,
 } from '../primitives';
+import { useT } from '@/lib/i18n';
 
 /* ───────────────────────── helpers ───────────────────────── */
 
@@ -58,6 +59,7 @@ function humanSize(bytes: number): string {
 
 /* Masked password in view mode with show/hide toggle. */
 function SecretValue({ value }: { value?: string }) {
+  const t = useT();
   const [shown, setShown] = useState(false);
   if (!value) return <>—</>;
   return (
@@ -73,6 +75,7 @@ function SecretValue({ value }: { value?: string }) {
 /* ───────────────────────── component ───────────────────────── */
 
 export default function InfrastructureSection({ ctx }: { ctx: PassportCtx }) {
+  const t = useT();
   const infra: InfrastructureSectionData = ctx.passport.infrastructure || {};
 
   return (
@@ -98,6 +101,7 @@ const INTERNET_DEFAULT_LABELS = [
 ];
 
 function InternetCard({ ctx, infra }: { ctx: PassportCtx; infra: InfrastructureSectionData }) {
+  const t = useT();
   const net: EngineeringSubsystem = infra.internet || {};
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -141,7 +145,7 @@ function InternetCard({ ctx, infra }: { ctx: PassportCtx; infra: InfrastructureS
 
   return (
     <Card
-      title="Интернет и провайдер"
+      title={t('Интернет и провайдер')}
       status={!editing && net.status ? <StatusDot status={net.status} /> : undefined}
       actions={<EditToggle editing={editing} onEdit={start} onCancel={cancel} onSave={save} saving={saving} />}
     >
@@ -151,7 +155,7 @@ function InternetCard({ ctx, infra }: { ctx: PassportCtx; infra: InfrastructureS
           : <EmptyState text="Нет данных" />
       ) : (
         <div className="space-y-4">
-          <Select label="Статус" value={status} onChange={setStatus} options={STATUS_OPTIONS} />
+          <Select label={t('Статус')} value={status} onChange={setStatus} options={STATUS_OPTIONS} />
           <EditableTable
             rows={fields}
             columns={fieldColumns}
@@ -168,6 +172,7 @@ function InternetCard({ ctx, infra }: { ctx: PassportCtx; infra: InfrastructureS
 /* ───────────────────── Сеть и Wi-Fi ───────────────────── */
 
 function NetworkWifiCard({ ctx, infra }: { ctx: PassportCtx; infra: InfrastructureSectionData }) {
+  const t = useT();
   const nw = infra.networkWifi || {};
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -222,20 +227,20 @@ function NetworkWifiCard({ ctx, infra }: { ctx: PassportCtx; infra: Infrastructu
 
   return (
     <Card
-      title="Сеть и Wi-Fi"
+      title={t('Сеть и Wi-Fi')}
       status={!editing && nw.status ? <StatusDot status={nw.status} /> : undefined}
       actions={<EditToggle editing={editing} onEdit={start} onCancel={cancel} onSave={save} saving={saving} />}
     >
       {!editing ? (
         <div className="space-y-4">
           <FieldGroup>
-            <Field label="Модель" value={nw.routerModel} />
-            <Field label="IP-адрес" value={nw.routerIp} />
-            <Field label="Версия ПО" value={nw.firmware} />
-            <Field label="Расположение" value={nw.routerLocation} />
+            <Field label={t('Модель')} value={nw.routerModel} />
+            <Field label={t('IP-адрес')} value={nw.routerIp} />
+            <Field label={t('Версия ПО')} value={nw.firmware} />
+            <Field label={t('Расположение')} value={nw.routerLocation} />
           </FieldGroup>
           <div>
-            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Wi-Fi сети</p>
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">{t('Wi-Fi сети')}</p>
             <DataTable
               rows={nw.wifi || []}
               empty="Wi-Fi сети не добавлены"
@@ -251,14 +256,14 @@ function NetworkWifiCard({ ctx, infra }: { ctx: PassportCtx; infra: Infrastructu
       ) : (
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Select label="Статус" value={status} onChange={setStatus} options={STATUS_OPTIONS} />
-            <TextInput label="Модель" value={routerModel} onChange={setRouterModel} />
-            <TextInput label="IP-адрес" value={routerIp} onChange={setRouterIp} placeholder="192.168.1.1" />
-            <TextInput label="Версия ПО" value={firmware} onChange={setFirmware} />
-            <TextInput label="Расположение" value={routerLocation} onChange={setRouterLocation} />
+            <Select label={t('Статус')} value={status} onChange={setStatus} options={STATUS_OPTIONS} />
+            <TextInput label={t('Модель')} value={routerModel} onChange={setRouterModel} />
+            <TextInput label={t('IP-адрес')} value={routerIp} onChange={setRouterIp} placeholder="192.168.1.1" />
+            <TextInput label={t('Версия ПО')} value={firmware} onChange={setFirmware} />
+            <TextInput label={t('Расположение')} value={routerLocation} onChange={setRouterLocation} />
           </div>
           <div>
-            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Wi-Fi сети</p>
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">{t('Wi-Fi сети')}</p>
             <EditableTable
               rows={wifi}
               columns={wifiColumns}
@@ -276,6 +281,7 @@ function NetworkWifiCard({ ctx, infra }: { ctx: PassportCtx; infra: Infrastructu
 /* ───────────────────── Серверы и оборудование ───────────────────── */
 
 function ServersCard({ ctx, infra }: { ctx: PassportCtx; infra: InfrastructureSectionData }) {
+  const t = useT();
   const srv = infra.servers || {};
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -315,7 +321,7 @@ function ServersCard({ ctx, infra }: { ctx: PassportCtx; infra: InfrastructureSe
 
   return (
     <Card
-      title="Серверы и оборудование"
+      title={t('Серверы и оборудование')}
       status={!editing && srv.status ? <StatusDot status={srv.status} /> : undefined}
       actions={<EditToggle editing={editing} onEdit={start} onCancel={cancel} onSave={save} saving={saving} />}
     >
@@ -332,7 +338,7 @@ function ServersCard({ ctx, infra }: { ctx: PassportCtx; infra: InfrastructureSe
         />
       ) : (
         <div className="space-y-4">
-          <Select label="Статус" value={status} onChange={setStatus} options={STATUS_OPTIONS} />
+          <Select label={t('Статус')} value={status} onChange={setStatus} options={STATUS_OPTIONS} />
           <EditableTable
             rows={devices}
             columns={columns}
@@ -349,6 +355,7 @@ function ServersCard({ ctx, infra }: { ctx: PassportCtx; infra: InfrastructureSe
 /* ───────────────────── Видеонаблюдение ───────────────────── */
 
 function VideoCard({ ctx, infra }: { ctx: PassportCtx; infra: InfrastructureSectionData }) {
+  const t = useT();
   const video = infra.video || {};
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -403,20 +410,20 @@ function VideoCard({ ctx, infra }: { ctx: PassportCtx; infra: InfrastructureSect
 
   return (
     <Card
-      title="Видеонаблюдение"
+      title={t('Видеонаблюдение')}
       status={!editing && video.status ? <StatusDot status={video.status} /> : undefined}
       actions={<EditToggle editing={editing} onEdit={start} onCancel={cancel} onSave={save} saving={saving} />}
     >
       {!editing ? (
         <div className="space-y-4">
           <FieldGroup>
-            <Field label="Регистратор (NVR)" value={video.nvrModel} />
-            <Field label="IP-адрес" value={video.nvrIp} />
-            <Field label="Каналы" value={video.channels} />
-            <Field label="Расположение" value={video.location} />
+            <Field label={t('Регистратор (NVR)')} value={video.nvrModel} />
+            <Field label={t('IP-адрес')} value={video.nvrIp} />
+            <Field label={t('Каналы')} value={video.channels} />
+            <Field label={t('Расположение')} value={video.location} />
           </FieldGroup>
           <div>
-            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Камеры</p>
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">{t('Камеры')}</p>
             <DataTable
               rows={video.cameras || []}
               empty="Камеры не добавлены"
@@ -433,14 +440,14 @@ function VideoCard({ ctx, infra }: { ctx: PassportCtx; infra: InfrastructureSect
       ) : (
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-            <Select label="Статус" value={status} onChange={setStatus} options={STATUS_OPTIONS} />
-            <TextInput label="Регистратор (NVR)" value={nvrModel} onChange={setNvrModel} />
-            <TextInput label="IP-адрес" value={nvrIp} onChange={setNvrIp} placeholder="192.168.1.10" />
-            <TextInput label="Каналы" value={channels} onChange={setChannels} type="number" />
-            <TextInput label="Расположение" value={location} onChange={setLocation} />
+            <Select label={t('Статус')} value={status} onChange={setStatus} options={STATUS_OPTIONS} />
+            <TextInput label={t('Регистратор (NVR)')} value={nvrModel} onChange={setNvrModel} />
+            <TextInput label={t('IP-адрес')} value={nvrIp} onChange={setNvrIp} placeholder="192.168.1.10" />
+            <TextInput label={t('Каналы')} value={channels} onChange={setChannels} type="number" />
+            <TextInput label={t('Расположение')} value={location} onChange={setLocation} />
           </div>
           <div>
-            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Камеры</p>
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">{t('Камеры')}</p>
             <EditableTable
               rows={cameras}
               columns={columns}
@@ -458,6 +465,7 @@ function VideoCard({ ctx, infra }: { ctx: PassportCtx; infra: InfrastructureSect
 /* ───────────────────── Телефония и связь ───────────────────── */
 
 function TelephonyCard({ ctx, infra }: { ctx: PassportCtx; infra: InfrastructureSectionData }) {
+  const t = useT();
   const tel = infra.telephony || {};
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -517,19 +525,19 @@ function TelephonyCard({ ctx, infra }: { ctx: PassportCtx; infra: Infrastructure
 
   return (
     <Card
-      title="Телефония и связь"
+      title={t('Телефония и связь')}
       status={!editing && tel.status ? <StatusDot status={tel.status} /> : undefined}
       actions={<EditToggle editing={editing} onEdit={start} onCancel={cancel} onSave={save} saving={saving} />}
     >
       {!editing ? (
         <div className="space-y-4">
           <FieldGroup>
-            <Field label="Провайдер" value={tel.provider} />
-            <Field label="Тип связи" value={tel.type} />
-            <Field label="Номер договора" value={tel.contract} />
+            <Field label={t('Провайдер')} value={tel.provider} />
+            <Field label={t('Тип связи')} value={tel.type} />
+            <Field label={t('Номер договора')} value={tel.contract} />
           </FieldGroup>
           <div>
-            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">SIP-аккаунты</p>
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">{t('SIP-аккаунты')}</p>
             <DataTable
               rows={tel.sip || []}
               empty="SIP-аккаунты не добавлены"
@@ -541,7 +549,7 @@ function TelephonyCard({ ctx, infra }: { ctx: PassportCtx; infra: Infrastructure
             />
           </div>
           <div>
-            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Оборудование</p>
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">{t('Оборудование')}</p>
             <DataTable
               rows={tel.devices || []}
               empty="Оборудование не добавлено"
@@ -557,13 +565,13 @@ function TelephonyCard({ ctx, infra }: { ctx: PassportCtx; infra: Infrastructure
       ) : (
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-            <Select label="Статус" value={status} onChange={setStatus} options={STATUS_OPTIONS} />
-            <TextInput label="Провайдер" value={provider} onChange={setProvider} />
-            <TextInput label="Тип связи" value={type} onChange={setType} placeholder="IP-телефония" />
-            <TextInput label="Номер договора" value={contract} onChange={setContract} />
+            <Select label={t('Статус')} value={status} onChange={setStatus} options={STATUS_OPTIONS} />
+            <TextInput label={t('Провайдер')} value={provider} onChange={setProvider} />
+            <TextInput label={t('Тип связи')} value={type} onChange={setType} placeholder={t('IP-телефония')} />
+            <TextInput label={t('Номер договора')} value={contract} onChange={setContract} />
           </div>
           <div>
-            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">SIP-аккаунты</p>
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">{t('SIP-аккаунты')}</p>
             <EditableTable
               rows={sip}
               columns={sipColumns}
@@ -573,7 +581,7 @@ function TelephonyCard({ ctx, infra }: { ctx: PassportCtx; infra: Infrastructure
             />
           </div>
           <div>
-            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Оборудование</p>
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">{t('Оборудование')}</p>
             <EditableTable
               rows={devices}
               columns={deviceColumns}
@@ -591,6 +599,7 @@ function TelephonyCard({ ctx, infra }: { ctx: PassportCtx; infra: Infrastructure
 /* ───────────────────── IP-адреса и доступы ───────────────────── */
 
 function IpAccessCard({ ctx, infra }: { ctx: PassportCtx; infra: InfrastructureSectionData }) {
+  const t = useT();
   const ip = infra.ipAccess || {};
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -651,7 +660,7 @@ function IpAccessCard({ ctx, infra }: { ctx: PassportCtx; infra: InfrastructureS
 
   return (
     <Card
-      title="IP-адреса и доступы"
+      title={t('IP-адреса и доступы')}
       status={!editing && ip.status ? <StatusDot status={ip.status} /> : undefined}
       actions={<EditToggle editing={editing} onEdit={start} onCancel={cancel} onSave={save} saving={saving} />}
     >
@@ -661,12 +670,12 @@ function IpAccessCard({ ctx, infra }: { ctx: PassportCtx; infra: InfrastructureS
             <Field label="IPv4" value={ip.ipv4} />
             <Field label="IPv6" value={ip.ipv6} />
             <Field label="DDNS" value={ip.ddns} />
-            <Field label="VPN сервер" value={ip.vpnServer} />
-            <Field label="Порт" value={ip.vpnPort} />
-            <Field label="Статус" value={ip.vpnStatus} />
+            <Field label={t('VPN сервер')} value={ip.vpnServer} />
+            <Field label={t('Порт')} value={ip.vpnPort} />
+            <Field label={t('Статус')} value={ip.vpnStatus} />
           </FieldGroup>
           <div>
-            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Доступы к устройствам</p>
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">{t('Доступы к устройствам')}</p>
             <DataTable
               rows={ip.devices || []}
               empty="Доступы не добавлены"
@@ -682,16 +691,16 @@ function IpAccessCard({ ctx, infra }: { ctx: PassportCtx; infra: InfrastructureS
       ) : (
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-            <Select label="Статус" value={status} onChange={setStatus} options={STATUS_OPTIONS} />
+            <Select label={t('Статус')} value={status} onChange={setStatus} options={STATUS_OPTIONS} />
             <TextInput label="IPv4" value={ipv4} onChange={setIpv4} placeholder="92.118.x.x" />
             <TextInput label="IPv6" value={ipv6} onChange={setIpv6} />
             <TextInput label="DDNS" value={ddns} onChange={setDdns} />
-            <TextInput label="VPN сервер" value={vpnServer} onChange={setVpnServer} />
-            <TextInput label="Порт" value={vpnPort} onChange={setVpnPort} />
-            <TextInput label="Статус VPN" value={vpnStatus} onChange={setVpnStatus} />
+            <TextInput label={t('VPN сервер')} value={vpnServer} onChange={setVpnServer} />
+            <TextInput label={t('Порт')} value={vpnPort} onChange={setVpnPort} />
+            <TextInput label={t('Статус VPN')} value={vpnStatus} onChange={setVpnStatus} />
           </div>
           <div>
-            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Доступы к устройствам</p>
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">{t('Доступы к устройствам')}</p>
             <EditableTable
               rows={devices}
               columns={deviceColumns}
@@ -709,6 +718,7 @@ function IpAccessCard({ ctx, infra }: { ctx: PassportCtx; infra: InfrastructureS
 /* ───────────────────── Документы и схемы ───────────────────── */
 
 function DocumentsCard({ ctx, infra }: { ctx: PassportCtx; infra: InfrastructureSectionData }) {
+  const t = useT();
   const docs = infra.documents || [];
   const [busy, setBusy] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -747,7 +757,7 @@ function DocumentsCard({ ctx, infra }: { ctx: PassportCtx; infra: Infrastructure
 
   return (
     <Card
-      title="Документы и схемы"
+      title={t('Документы и схемы')}
       actions={
         <GhostBtn onClick={() => inputRef.current?.click()} disabled={busy}>
           {busy ? 'Загрузка...' : 'Добавить документ'}

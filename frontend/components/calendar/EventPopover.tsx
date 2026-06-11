@@ -10,6 +10,7 @@ import {
   normalizePriority,
   resolveTypeMeta,
 } from './types';
+import { useT } from '@/lib/i18n';
 
 interface Props {
   event: FeedEvent;
@@ -45,6 +46,7 @@ function isSameDay(a: Date, b: Date): boolean {
 }
 
 export default function EventPopover({ event, anchorRect, onClose, onOpenEditor }: Props) {
+  const t = useT();
   const ref = useRef<HTMLDivElement | null>(null);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
 
@@ -114,7 +116,7 @@ export default function EventPopover({ event, anchorRect, onClose, onOpenEditor 
         <button
           onClick={onClose}
           className="text-gray-500 hover:text-gray-800 dark:hover:text-gray-100 text-sm"
-          title="Закрыть"
+          title={t('Закрыть')}
         >
           ✕
         </button>
@@ -125,11 +127,11 @@ export default function EventPopover({ event, anchorRect, onClose, onOpenEditor 
           {cleanTitle(event.title)}
         </h3>
 
-        <Row label="Когда" value={formatRange(event)} />
-        {props.location && <Row label="Место" value={props.location} />}
+        <Row label={t('Когда')} value={formatRange(event)} />
+        {props.location && <Row label={t('Место')} value={props.location} />}
         {prio && (
           <Row
-            label="Приоритет"
+            label={t('Приоритет')}
             value={
               <span className="inline-flex items-center gap-1.5">
                 <span
@@ -144,8 +146,8 @@ export default function EventPopover({ event, anchorRect, onClose, onOpenEditor 
             }
           />
         )}
-        {event.status && <Row label="Статус" value={String(event.status)} />}
-        {event.projectId && <Row label="Проект" value={`#${event.projectId}`} />}
+        {event.status && <Row label={t('Статус')} value={String(event.status)} />}
+        {event.projectId && <Row label={t('Проект')} value={`#${event.projectId}`} />}
         {props.description && (
           <div className="text-xs text-gray-600 dark:text-gray-300 pt-1 border-t border-gray-100 dark:border-gray-700 line-clamp-3">
             {props.description}
@@ -175,6 +177,7 @@ export default function EventPopover({ event, anchorRect, onClose, onOpenEditor 
 }
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
+  const t = useT();
   return (
     <div className="flex items-start gap-3 text-xs">
       <span className="w-20 shrink-0 text-gray-400 dark:text-gray-500">{label}</span>

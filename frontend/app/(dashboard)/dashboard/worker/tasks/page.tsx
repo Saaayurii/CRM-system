@@ -3,8 +3,10 @@
 import Link from 'next/link';
 import CrudPage from '@/components/admin/CrudPage';
 import { ADMIN_MODULES } from '@/lib/admin/modulesConfig';
+import { useT } from '@/lib/i18n';
 
 export default function WorkerTasksPage() {
+  const t = useT();
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-9xl mx-auto">
       <div className="mb-4">

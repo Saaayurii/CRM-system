@@ -9,6 +9,7 @@ import { useOfflineData } from '@/hooks/useOfflineData';
 import { useDownloadPdf } from '@/lib/hooks/useDownloadPdf';
 import { FAB_CREATED_EVENT } from '@/components/ui/QuickActionsButton';
 import { useIsClient } from '@/hooks/useIsClient';
+import { useT } from '@/lib/i18n';
 
 interface Project {
   id: number;
@@ -56,6 +57,7 @@ async function fetchProjects(): Promise<Project[]> {
 type ViewMode = 'table' | 'grid';
 
 export default function ProjectsPage() {
+  const t = useT();
   const router = useRouter();
   const isClient = useIsClient();
   const [showModal, setShowModal] = useState(false);
@@ -150,14 +152,14 @@ export default function ProjectsPage() {
     <div>
       <div className="sm:flex sm:justify-between sm:items-center mb-4">
         <div>
-          <h1 className="text-2xl md:text-3xl text-gray-800 dark:text-gray-100 font-bold">Проекты</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Список всех проектов</p>
+          <h1 className="text-2xl md:text-3xl text-gray-800 dark:text-gray-100 font-bold">{t('Проекты')}</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('Список всех проектов')}</p>
         </div>
         <div className="flex items-center gap-2 mt-3 sm:mt-0">
           <div className="flex items-center gap-0.5">
             <button
               onClick={() => { setShowSearch((v) => !v); setShowFilter(false); }}
-              title="Поиск"
+              title={t('Поиск')}
               className={`p-2 rounded-lg transition-colors ${showSearch || searchQuery ? 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20' : 'text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20'}`}
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -167,7 +169,7 @@ export default function ProjectsPage() {
             {!isClient && (
               <button
                 onClick={handleCreate}
-                title="Создать проект"
+                title={t('Создать проект')}
                 className="p-2 text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -177,7 +179,7 @@ export default function ProjectsPage() {
             )}
             <button
               onClick={() => { setShowFilter((v) => !v); setShowSearch(false); }}
-              title="Фильтры"
+              title={t('Фильтры')}
               className={`relative p-2 rounded-lg transition-colors ${showFilter || filterStatus ? 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20' : 'text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20'}`}
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -188,7 +190,7 @@ export default function ProjectsPage() {
             <div className="relative" ref={settingsRef}>
               <button
                 onClick={() => setShowSettings((v) => !v)}
-                title="Экспорт"
+                title={t('Экспорт')}
                 className={`p-2 rounded-lg transition-colors ${showSettings ? 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20' : 'text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20'}`}
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -230,7 +232,7 @@ export default function ProjectsPage() {
             <button
               onClick={() => handleViewMode('table')}
               className={`p-1.5 rounded transition-colors ${viewMode === 'table' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}
-              title="Таблица"
+              title={t('Таблица')}
             >
               <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -239,7 +241,7 @@ export default function ProjectsPage() {
             <button
               onClick={() => handleViewMode('grid')}
               className={`p-1.5 rounded transition-colors ${viewMode === 'grid' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}
-              title="Карточки"
+              title={t('Карточки')}
             >
               <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
@@ -257,7 +259,7 @@ export default function ProjectsPage() {
           <input
             autoFocus
             type="text"
-            placeholder="Поиск по названию или коду..."
+            placeholder={t('Поиск по названию или коду...')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="flex-1 text-sm bg-transparent text-gray-800 dark:text-gray-100 placeholder-gray-400 outline-none"
@@ -279,7 +281,7 @@ export default function ProjectsPage() {
             onChange={(e) => setFilterStatus(e.target.value)}
             className="text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none"
           >
-            <option value="">Все статусы</option>
+            <option value="">{t('Все статусы')}</option>
             {Object.entries(STATUS_LABELS).map(([v, { label }]) => (
               <option key={v} value={v}>{label}</option>
             ))}
@@ -293,7 +295,7 @@ export default function ProjectsPage() {
       )}
 
       {loading ? (
-        <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-8 text-center text-gray-500 dark:text-gray-400">Загрузка...</div>
+        <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-8 text-center text-gray-500 dark:text-gray-400">{t('Загрузка...')}</div>
       ) : error ? (
         <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-8 text-center text-red-500">{error}</div>
       ) : projects.length === 0 ? (
@@ -306,12 +308,12 @@ export default function ProjectsPage() {
             <table className="table-auto w-full text-sm">
               <thead>
                 <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
-                  <th className="py-3 px-4 text-left font-semibold">Название</th>
-                  <th className="py-3 px-4 text-left font-semibold">Статус</th>
-                  <th className="py-3 px-4 text-left font-semibold">Начало</th>
-                  <th className="py-3 px-4 text-left font-semibold">Окончание</th>
-                  <th className="py-3 px-4 text-right font-semibold">Бюджет</th>
-                  <th className="py-3 px-4 text-center font-semibold">Действия</th>
+                  <th className="py-3 px-4 text-left font-semibold">{t('Название')}</th>
+                  <th className="py-3 px-4 text-left font-semibold">{t('Статус')}</th>
+                  <th className="py-3 px-4 text-left font-semibold">{t('Начало')}</th>
+                  <th className="py-3 px-4 text-left font-semibold">{t('Окончание')}</th>
+                  <th className="py-3 px-4 text-right font-semibold">{t('Бюджет')}</th>
+                  <th className="py-3 px-4 text-center font-semibold">{t('Действия')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
@@ -347,7 +349,7 @@ export default function ProjectsPage() {
                             <button
                               onClick={() => { setEditProject(p); setShowModal(true); }}
                               className="p-1.5 text-gray-400 hover:text-violet-500 transition-colors"
-                              title="Редактировать"
+                              title={t('Редактировать')}
                             >
                               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -356,7 +358,7 @@ export default function ProjectsPage() {
                             <button
                               onClick={() => setConfirmDelete(p)}
                               className="p-1.5 text-gray-400 hover:text-red-500 transition-colors"
-                              title="Удалить"
+                              title={t('Удалить')}
                             >
                               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -390,15 +392,15 @@ export default function ProjectsPage() {
                 </span>
                 <dl className="grid grid-cols-2 gap-x-3 gap-y-2">
                   <div>
-                    <dt className="text-xs text-gray-400 dark:text-gray-500">Начало</dt>
+                    <dt className="text-xs text-gray-400 dark:text-gray-500">{t('Начало')}</dt>
                     <dd className="text-xs text-gray-700 dark:text-gray-300">{formatDate(p.startDate || p.start_date)}</dd>
                   </div>
                   <div>
-                    <dt className="text-xs text-gray-400 dark:text-gray-500">Окончание</dt>
+                    <dt className="text-xs text-gray-400 dark:text-gray-500">{t('Окончание')}</dt>
                     <dd className="text-xs text-gray-700 dark:text-gray-300">{formatDate(p.plannedEndDate || p.planned_end_date)}</dd>
                   </div>
                   <div className="col-span-2">
-                    <dt className="text-xs text-gray-400 dark:text-gray-500">Бюджет</dt>
+                    <dt className="text-xs text-gray-400 dark:text-gray-500">{t('Бюджет')}</dt>
                     <dd className="text-xs text-gray-700 dark:text-gray-300">{formatBudget(p.budget)}</dd>
                   </div>
                 </dl>
@@ -420,7 +422,7 @@ export default function ProjectsPage() {
                       <button
                         onClick={() => setConfirmDelete(p)}
                         className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded transition-colors"
-                        title="Удалить"
+                        title={t('Удалить')}
                       >
                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -446,7 +448,7 @@ export default function ProjectsPage() {
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} onClick={() => setConfirmDelete(null)}>
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-2">Удалить проект?</h3>
+            <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-2">{t('Удалить проект?')}</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
               Проект <span className="font-medium text-gray-700 dark:text-gray-300">{confirmDelete.name}</span> будет удалён без возможности восстановления.
             </p>

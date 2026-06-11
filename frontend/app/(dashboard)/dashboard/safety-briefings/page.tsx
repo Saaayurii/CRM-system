@@ -7,6 +7,7 @@ import api from '@/lib/api';
 import CrudPage from '@/components/admin/CrudPage';
 import { ADMIN_MODULES } from '@/lib/admin/modulesConfig';
 import { useToastStore } from '@/stores/toastStore';
+import { useT } from '@/lib/i18n';
 
 type Tab = 'journal' | 'reminders' | 'compliance';
 
@@ -58,6 +59,7 @@ function fmtDate(v?: string | null): string {
 }
 
 function RemindersTab() {
+  const t = useT();
   const [expiring, setExpiring] = useState<ExpiringParticipant[]>([]);
   const [days, setDays] = useState(30);
   const [loading, setLoading] = useState(true);
@@ -85,7 +87,7 @@ function RemindersTab() {
   return (
     <div>
       <div className="flex items-center gap-3 mb-5">
-        <span className="text-sm text-gray-600 dark:text-gray-400">Показывать истекающие в течение</span>
+        <span className="text-sm text-gray-600 dark:text-gray-400">{t('Показывать истекающие в течение')}</span>
         {[14, 30, 60, 90].map((d) => (
           <button
             key={d}
@@ -102,7 +104,7 @@ function RemindersTab() {
       </div>
 
       {loading ? (
-        <div className="text-sm text-gray-500 py-8 text-center">Загрузка…</div>
+        <div className="text-sm text-gray-500 py-8 text-center">{t('Загрузка…')}</div>
       ) : expiring.length === 0 ? (
         <div className="text-center py-12">
           <svg className="mx-auto h-12 w-12 text-green-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -147,16 +149,17 @@ function BriefingParticipantList({
   items: ExpiringParticipant[];
   variant: 'overdue' | 'soon';
 }) {
+  const t = useT();
   return (
     <div className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
       <table className="w-full text-sm">
         <thead className="bg-gray-50 dark:bg-gray-800">
           <tr>
-            <th className="text-left px-4 py-2 text-xs font-medium text-gray-500 uppercase">Сотрудник</th>
-            <th className="text-left px-4 py-2 text-xs font-medium text-gray-500 uppercase">Инструктаж</th>
-            <th className="text-left px-4 py-2 text-xs font-medium text-gray-500 uppercase">Тип</th>
-            <th className="text-left px-4 py-2 text-xs font-medium text-gray-500 uppercase">Действует до</th>
-            <th className="text-left px-4 py-2 text-xs font-medium text-gray-500 uppercase">Осталось</th>
+            <th className="text-left px-4 py-2 text-xs font-medium text-gray-500 uppercase">{t('Сотрудник')}</th>
+            <th className="text-left px-4 py-2 text-xs font-medium text-gray-500 uppercase">{t('Инструктаж')}</th>
+            <th className="text-left px-4 py-2 text-xs font-medium text-gray-500 uppercase">{t('Тип')}</th>
+            <th className="text-left px-4 py-2 text-xs font-medium text-gray-500 uppercase">{t('Действует до')}</th>
+            <th className="text-left px-4 py-2 text-xs font-medium text-gray-500 uppercase">{t('Осталось')}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100 dark:divide-gray-700 bg-white dark:bg-gray-800">
@@ -202,6 +205,7 @@ function BriefingParticipantList({
 }
 
 function ComplianceTab() {
+  const t = useT();
   const [users, setUsers] = useState<{ id: number; firstName: string; lastName: string; email: string }[]>([]);
   const [statusMap, setStatusMap] = useState<Record<number, Record<string, boolean>>>({});
   const [loading, setLoading] = useState(true);
@@ -241,7 +245,7 @@ function ComplianceTab() {
   }, [addToast]);
 
   if (loading) {
-    return <div className="text-sm text-gray-500 py-8 text-center">Загрузка…</div>;
+    return <div className="text-sm text-gray-500 py-8 text-center">{t('Загрузка…')}</div>;
   }
 
   return (
@@ -261,7 +265,7 @@ function ComplianceTab() {
                   {TYPE_LABELS[t]}
                 </th>
               ))}
-              <th className="text-center px-3 py-2.5 text-xs font-medium text-gray-500 uppercase">Итого</th>
+              <th className="text-center px-3 py-2.5 text-xs font-medium text-gray-500 uppercase">{t('Итого')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-gray-700 bg-white dark:bg-gray-800">
@@ -315,6 +319,7 @@ function ComplianceTab() {
 }
 
 export default function SafetyBriefingsPage() {
+  const t = useT();
   const router = useRouter();
   const [tab, setTab] = useState<Tab>('journal');
   const [expiringCount, setExpiringCount] = useState<number | null>(null);
@@ -338,7 +343,7 @@ export default function SafetyBriefingsPage() {
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-9xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Журнал инструктажей</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('Журнал инструктажей')}</h1>
         <p className="text-sm text-gray-500 mt-1">
           Электронный журнал инструктажей по безопасности с подписями участников
         </p>

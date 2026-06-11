@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import api from '@/lib/api';
 import { DOC_TYPE_LABELS, DOC_TYPE_COLORS, DOC_STATUS_LABELS, DOC_STATUS_COLORS, type DocType, type DocStatus } from '@/lib/wiki/constants';
+import { useT } from '@/lib/i18n';
 
 export type BlockType =
   | 'paragraph' | 'heading' | 'bulletList' | 'numberedList'
@@ -53,25 +54,25 @@ const CALLOUT_VARIANTS: Record<string, string> = {
   danger:  'bg-red-50 dark:bg-red-500/10 border-red-300 dark:border-red-500/40 text-red-800 dark:text-red-200',
 };
 
-function renderBlockPreview(block: Block) {
+function renderBlockPreview(block: Block, t: (k: string) => string) {
   switch (block.type) {
     case 'heading': {
       const level = block.attrs?.level ?? 2;
       const cls = level === 1 ? 'text-2xl font-bold' : level === 2 ? 'text-xl font-bold' : 'text-lg font-semibold';
-      return <div className={cls}>{block.content || <span className="text-gray-400 italic">Заголовок…</span>}</div>;
+      return <div className={cls}>{block.content || <span className="text-gray-400 italic">{t('Заголовок…')}</span>}</div>;
     }
     case 'bulletList':
       return (
         <ul className="list-disc list-inside space-y-0.5">
           {(block.content || '').split('\n').filter(Boolean).map((line, i) => <li key={i}>{line}</li>)}
-          {!block.content && <li className="text-gray-400 italic">Пункт списка…</li>}
+          {!block.content && <li className="text-gray-400 italic">{t('Пункт списка…')}</li>}
         </ul>
       );
     case 'numberedList':
       return (
         <ol className="list-decimal list-inside space-y-0.5">
           {(block.content || '').split('\n').filter(Boolean).map((line, i) => <li key={i}>{line}</li>)}
-          {!block.content && <li className="text-gray-400 italic">Пункт…</li>}
+          {!block.content && <li className="text-gray-400 italic">{t('Пункт…')}</li>}
         </ol>
       );
     case 'code':
@@ -83,7 +84,7 @@ function renderBlockPreview(block: Block) {
     case 'quote':
       return (
         <blockquote className="border-l-4 border-violet-400 pl-4 italic text-gray-600 dark:text-gray-300">
-          {block.content || <span className="text-gray-400">Цитата…</span>}
+          {block.content || <span className="text-gray-400">{t('Цитата…')}</span>}
         </blockquote>
       );
     case 'image':
@@ -99,7 +100,7 @@ function renderBlockPreview(block: Block) {
       );
     case 'table': {
       const rows = block.attrs?.rows as string[][] | undefined;
-      if (!rows || rows.length === 0) return <div className="text-gray-400 italic text-sm">Пустая таблица</div>;
+      if (!rows || rows.length === 0) return <div className="text-gray-400 italic text-sm">{t('Пустая таблица')}</div>;
       return (
         <div className="overflow-x-auto">
           <table className="min-w-full border-collapse text-sm">
@@ -147,12 +148,12 @@ function renderBlockPreview(block: Block) {
       return (
         <div className={`flex gap-3 p-4 rounded-lg border ${CALLOUT_VARIANTS[variant]}`}>
           <span className="text-xl shrink-0">{icons[variant]}</span>
-          <div>{block.content || <span className="opacity-60">Текст выноски…</span>}</div>
+          <div>{block.content || <span className="opacity-60">{t('Текст выноски…')}</span>}</div>
         </div>
       );
     }
     default:
-      return <p className="whitespace-pre-wrap leading-relaxed">{block.content || <span className="text-gray-400 italic">Введите текст…</span>}</p>;
+      return <p className="whitespace-pre-wrap leading-relaxed">{block.content || <span className="text-gray-400 italic">{t('Введите текст…')}</span>}</p>;
   }
 }
 
@@ -179,6 +180,7 @@ function BlockEditorItem({
   onAddAfter: () => void;
   onTypeChange: (type: BlockType) => void;
 }) {
+  const t = useT();
   const [showTypeMenu, setShowTypeMenu] = useState(false);
   const typeMenuRef = useRef<HTMLDivElement>(null);
 
@@ -203,7 +205,7 @@ function BlockEditorItem({
           <button
             onClick={(e) => { e.stopPropagation(); setShowTypeMenu((v) => !v); }}
             className="p-0.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-400 text-xs"
-            title="Тип блока"
+            title={t('Тип блока')}
           >⊞</button>
           {showTypeMenu && (
             <div className="absolute left-7 top-0 z-50 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 min-w-[160px]">
@@ -221,13 +223,14 @@ function BlockEditorItem({
 
       {/* Block content */}
       <div className="flex-1 min-w-0 pr-2">
-        {isActive ? <BlockEditForm block={block} onChange={update} onAddAfter={onAddAfter} /> : renderBlockPreview(block)}
+        {isActive ? <BlockEditForm block={block} onChange={update} onAddAfter={onAddAfter} /> : renderBlockPreview(block, t)}
       </div>
     </div>
   );
 }
 
 function BlockEditForm({ block, onChange, onAddAfter }: { block: Block; onChange: (b: Block) => void; onAddAfter: () => void }) {
+  const t = useT();
   const update = (patch: Partial<Block>) => onChange({ ...block, ...patch });
   const ta = useRef<HTMLTextAreaElement>(null);
   useEffect(() => { ta.current?.focus(); }, []);
@@ -257,7 +260,7 @@ function BlockEditForm({ block, onChange, onAddAfter }: { block: Block; onChange
             value={block.content}
             onChange={(e) => update({ content: e.target.value })}
             onKeyDown={handleKeyDown}
-            placeholder="Заголовок…"
+            placeholder={t('Заголовок…')}
             className={`w-full bg-transparent outline-none ${block.attrs?.level === 1 ? 'text-2xl font-bold' : block.attrs?.level === 3 ? 'text-lg font-semibold' : 'text-xl font-bold'}`}
           />
         </div>
@@ -269,7 +272,7 @@ function BlockEditForm({ block, onChange, onAddAfter }: { block: Block; onChange
           <input
             value={block.attrs?.language || ''}
             onChange={(e) => update({ attrs: { ...block.attrs, language: e.target.value } })}
-            placeholder="Язык (js, python, sql…)"
+            placeholder={t('Язык (js, python, sql…)')}
             className="text-xs border border-gray-200 dark:border-gray-700 rounded px-2 py-0.5 bg-white dark:bg-gray-800 w-40 outline-none"
           />
           <textarea
@@ -277,7 +280,7 @@ function BlockEditForm({ block, onChange, onAddAfter }: { block: Block; onChange
             value={block.content}
             onChange={(e) => update({ content: e.target.value })}
             rows={6}
-            placeholder="// код…"
+            placeholder={t('// код…')}
             className="w-full font-mono text-sm bg-gray-900 dark:bg-black text-green-400 rounded-lg p-3 outline-none resize-y"
           />
         </div>
@@ -290,13 +293,13 @@ function BlockEditForm({ block, onChange, onAddAfter }: { block: Block; onChange
             autoFocus
             value={block.content}
             onChange={(e) => update({ content: e.target.value })}
-            placeholder="URL изображения…"
+            placeholder={t('URL изображения…')}
             className="w-full bg-transparent outline-none border-b border-gray-300 dark:border-gray-600 text-sm py-0.5"
           />
           <input
             value={block.attrs?.caption || ''}
             onChange={(e) => update({ attrs: { ...block.attrs, caption: e.target.value } })}
-            placeholder="Подпись (необязательно)"
+            placeholder={t('Подпись (необязательно)')}
             className="w-full bg-transparent outline-none border-b border-gray-300 dark:border-gray-600 text-xs py-0.5 text-gray-500"
           />
           {block.content && <img src={block.content} alt="" className="max-w-xs rounded" />}
@@ -340,9 +343,9 @@ function BlockEditForm({ block, onChange, onAddAfter }: { block: Block; onChange
             </tbody>
           </table>
           <div className="flex gap-2">
-            <button onClick={addRow} className="text-xs text-violet-600 hover:underline">+ Строка</button>
-            <button onClick={addCol} className="text-xs text-violet-600 hover:underline">+ Колонка</button>
-            {(rows[0]?.length ?? 0) > 1 && <button onClick={() => removeCol(rows[0].length - 1)} className="text-xs text-red-500 hover:underline">− Колонка</button>}
+            <button onClick={addRow} className="text-xs text-violet-600 hover:underline">{t('+ Строка')}</button>
+            <button onClick={addCol} className="text-xs text-violet-600 hover:underline">{t('+ Колонка')}</button>
+            {(rows[0]?.length ?? 0) > 1 && <button onClick={() => removeCol(rows[0].length - 1)} className="text-xs text-red-500 hover:underline">{t('− Колонка')}</button>}
           </div>
         </div>
       );
@@ -356,10 +359,10 @@ function BlockEditForm({ block, onChange, onAddAfter }: { block: Block; onChange
             onChange={(e) => update({ attrs: { ...block.attrs, variant: e.target.value } })}
             className="text-xs border border-gray-200 dark:border-gray-700 rounded px-1 py-0.5 bg-white dark:bg-gray-800"
           >
-            <option value="info">💡 Информация</option>
-            <option value="warning">⚠️ Предупреждение</option>
-            <option value="success">✅ Успех</option>
-            <option value="danger">🚫 Опасность</option>
+            <option value="info">{t('💡 Информация')}</option>
+            <option value="warning">{t('⚠️ Предупреждение')}</option>
+            <option value="success">{t('✅ Успех')}</option>
+            <option value="danger">{t('🚫 Опасность')}</option>
           </select>
           <textarea
             ref={ta}
@@ -367,7 +370,7 @@ function BlockEditForm({ block, onChange, onAddAfter }: { block: Block; onChange
             onChange={(e) => update({ content: e.target.value })}
             onKeyDown={handleKeyDown}
             rows={2}
-            placeholder="Текст выноски…"
+            placeholder={t('Текст выноски…')}
             className="w-full bg-transparent outline-none resize-none"
           />
         </div>
@@ -396,6 +399,7 @@ function BlockEditForm({ block, onChange, onAddAfter }: { block: Block; onChange
 }
 
 function NormRefEditForm({ block, onChange }: { block: Block; onChange: (b: Block) => void }) {
+  const t = useT();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
@@ -424,7 +428,7 @@ function NormRefEditForm({ block, onChange }: { block: Block; onChange: (b: Bloc
       {block.attrs?.normId && (
         <div className="flex items-center gap-2 p-3 rounded-lg bg-gray-50 dark:bg-gray-800 text-sm">
           <span className="flex-1 font-medium truncate">{block.attrs.normCode && `${block.attrs.normCode} — `}{block.attrs.normTitle}</span>
-          <button onClick={() => onChange({ ...block, attrs: {} })} className="text-red-400 hover:text-red-600 text-xs shrink-0">✕ Сбросить</button>
+          <button onClick={() => onChange({ ...block, attrs: {} })} className="text-red-400 hover:text-red-600 text-xs shrink-0">{t('✕ Сбросить')}</button>
         </div>
       )}
       <div className="relative">
@@ -432,7 +436,7 @@ function NormRefEditForm({ block, onChange }: { block: Block; onChange: (b: Bloc
           autoFocus={!block.attrs?.normId}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Поиск норматива по коду или названию…"
+          placeholder={t('Поиск норматива по коду или названию…')}
           className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800 outline-none focus:ring-2 focus:ring-violet-500"
         />
         {searching && <span className="absolute right-3 top-2 text-xs text-gray-400">…</span>}
@@ -454,6 +458,7 @@ function NormRefEditForm({ block, onChange }: { block: Block; onChange: (b: Bloc
 }
 
 export default function BlockEditor({ blocks, onChange, readOnly = false }: Props) {
+  const t = useT();
   const [activeId, setActiveId] = useState<string | null>(null);
 
   const updateBlock = useCallback((id: string, b: Block) => {
@@ -492,7 +497,7 @@ export default function BlockEditor({ blocks, onChange, readOnly = false }: Prop
   if (readOnly) {
     return (
       <div className="space-y-4">
-        {blocks.map((b) => <div key={b.id}>{renderBlockPreview(b)}</div>)}
+        {blocks.map((b) => <div key={b.id}>{renderBlockPreview(b, t)}</div>)}
       </div>
     );
   }
@@ -504,7 +509,7 @@ export default function BlockEditor({ blocks, onChange, readOnly = false }: Prop
     >
       {blocks.length === 0 && (
         <div className="text-center py-12 text-gray-400 cursor-pointer hover:text-gray-500">
-          <p>Нажмите, чтобы начать редактировать</p>
+          <p>{t('Нажмите, чтобы начать редактировать')}</p>
         </div>
       )}
       {blocks.map((block, index) => (

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
+import { useT } from '@/lib/i18n';
 
 type MaterialType = 'video' | 'article' | 'instruction' | 'checklist' | 'presentation' | string;
 
@@ -95,6 +96,7 @@ const EMPTY_FORM: FormState = {
 };
 
 export default function TrainingMaterialsManagerModal({ open, onClose, onChanged, initialMode = 'list' }: Props) {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
 
   const [mode, setMode] = useState<Mode>('list');
@@ -300,7 +302,7 @@ export default function TrainingMaterialsManagerModal({ open, onClose, onChanged
                   type="button"
                   onClick={() => setMode('list')}
                   className="p-1.5 -ml-1 rounded-lg hover:bg-white/15 transition-colors"
-                  title="Назад к списку"
+                  title={t('Назад к списку')}
                 >
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -322,7 +324,7 @@ export default function TrainingMaterialsManagerModal({ open, onClose, onChanged
               type="button"
               onClick={onClose}
               className="p-2 rounded-lg hover:bg-white/15 transition-colors shrink-0"
-              title="Закрыть"
+              title={t('Закрыть')}
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -332,10 +334,10 @@ export default function TrainingMaterialsManagerModal({ open, onClose, onChanged
 
           {mode === 'list' && (
             <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <HeaderStat label="Всего" value={stats.total} />
-              <HeaderStat label="Опубликовано" value={stats.published} accent="green" />
-              <HeaderStat label="Черновики" value={stats.drafts} accent="gray" />
-              <HeaderStat label="Обязательные" value={stats.mandatory} accent="red" />
+              <HeaderStat label={t('Всего')} value={stats.total} />
+              <HeaderStat label={t('Опубликовано')} value={stats.published} accent="green" />
+              <HeaderStat label={t('Черновики')} value={stats.drafts} accent="gray" />
+              <HeaderStat label={t('Обязательные')} value={stats.mandatory} accent="red" />
             </div>
           )}
         </div>
@@ -378,7 +380,7 @@ export default function TrainingMaterialsManagerModal({ open, onClose, onChanged
                   </svg>
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100">Удалить материал?</h3>
+                  <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100">{t('Удалить материал?')}</h3>
                   <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                     Действие нельзя отменить. Материал и связанный прогресс будут удалены.
                   </p>
@@ -435,6 +437,7 @@ function ListView({
   onToggleMandatory: (m: TrainingMaterial) => void;
   onAskDelete: (id: number) => void;
 }) {
+  const t = useT();
   return (
     <>
       {/* Toolbar */}
@@ -445,7 +448,7 @@ function ListView({
           </svg>
           <input
             type="text"
-            placeholder="Поиск по названию, описанию..."
+            placeholder={t('Поиск по названию, описанию...')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:outline-none focus:border-violet-400"
@@ -456,7 +459,7 @@ function ListView({
           onChange={(e) => setTypeFilter(e.target.value)}
           className="px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:outline-none focus:border-violet-400"
         >
-          <option value="">Все типы</option>
+          <option value="">{t('Все типы')}</option>
           {Object.entries(TYPE_META).map(([k, v]) => (
             <option key={k} value={k}>{v.emoji} {v.label}</option>
           ))}
@@ -466,10 +469,10 @@ function ListView({
           onChange={(e) => setStatusFilter(e.target.value as '' | 'published' | 'draft' | 'mandatory')}
           className="px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:outline-none focus:border-violet-400"
         >
-          <option value="">Все статусы</option>
-          <option value="published">Опубликованные</option>
-          <option value="draft">Черновики</option>
-          <option value="mandatory">Обязательные</option>
+          <option value="">{t('Все статусы')}</option>
+          <option value="published">{t('Опубликованные')}</option>
+          <option value="draft">{t('Черновики')}</option>
+          <option value="mandatory">{t('Обязательные')}</option>
         </select>
         <button
           type="button"
@@ -490,8 +493,8 @@ function ListView({
         ) : filtered.length === 0 ? (
           <div className="text-center py-16">
             <div className="text-5xl mb-3">📚</div>
-            <h3 className="text-base font-semibold text-gray-700 dark:text-gray-200">Материалов не найдено</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Создайте первый материал или сбросьте фильтры.</p>
+            <h3 className="text-base font-semibold text-gray-700 dark:text-gray-200">{t('Материалов не найдено')}</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('Создайте первый материал или сбросьте фильтры.')}</p>
             <button
               type="button"
               onClick={onCreate}
@@ -531,6 +534,7 @@ function Row({
   onToggleMandatory: () => void;
   onDelete: () => void;
 }) {
+  const tl = useT();
   const t = TYPE_META[String(material.materialType ?? '')] ?? {
     label: String(material.materialType ?? '—'),
     emoji: '📚',
@@ -610,12 +614,12 @@ function Row({
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
             </svg>
           </IconButton>
-          <IconButton title="Редактировать" onClick={onEdit}>
+          <IconButton title={tl('Редактировать')} onClick={onEdit}>
             <svg className="w-4 h-4 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
             </svg>
           </IconButton>
-          <IconButton title="Удалить" onClick={onDelete}>
+          <IconButton title={tl('Удалить')} onClick={onDelete}>
             <svg className="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3" />
             </svg>
@@ -627,6 +631,7 @@ function Row({
 }
 
 function IconButton({ children, onClick, title }: { children: React.ReactNode; onClick: () => void; title: string }) {
+  const t = useT();
   return (
     <button
       type="button"
@@ -640,6 +645,7 @@ function IconButton({ children, onClick, title }: { children: React.ReactNode; o
 }
 
 function ListSkeleton() {
+  const t = useT();
   return (
     <ul className="space-y-2">
       {Array.from({ length: 4 }).map((_, i) => (
@@ -669,6 +675,7 @@ function FormView({
   onCancel: () => void;
   onSubmit: (e: React.FormEvent) => void;
 }) {
+  const t = useT();
   const titleRef = useRef<HTMLInputElement | null>(null);
   useEffect(() => { titleRef.current?.focus(); }, []);
 
@@ -691,22 +698,22 @@ function FormView({
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           {/* Left: main fields */}
           <div className="lg:col-span-2 space-y-4">
-            <Field label="Название" required>
+            <Field label={t('Название')} required>
               <input
                 ref={titleRef}
                 type="text"
                 className="form-input w-full"
                 value={form.title}
                 onChange={(e) => update('title', e.target.value)}
-                placeholder="Например, «Техника безопасности на стройплощадке»"
+                placeholder={t('Например, «Техника безопасности на стройплощадке»')}
               />
             </Field>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Field label="Тип материала">
+              <Field label={t('Тип материала')}>
                 <TypePicker value={form.materialType} onChange={(v) => update('materialType', v)} />
               </Field>
-              <Field label="Уровень сложности">
+              <Field label={t('Уровень сложности')}>
                 <div className="flex gap-2 flex-wrap">
                   {Object.entries(DIFFICULTY_META).map(([k, v]) => (
                     <button
@@ -727,7 +734,7 @@ function FormView({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Field label="Категория" hint="Например, «Охрана труда»">
+              <Field label={t('Категория')} hint="Например, «Охрана труда»">
                 <input
                   type="text"
                   className="form-input w-full"
@@ -735,7 +742,7 @@ function FormView({
                   onChange={(e) => update('category', e.target.value)}
                 />
               </Field>
-              <Field label="Длительность, мин">
+              <Field label={t('Длительность, мин')}>
                 <input
                   type="number"
                   min={0}
@@ -746,7 +753,7 @@ function FormView({
               </Field>
             </div>
 
-            <Field label="Краткое описание" hint="Покажется на карточке в библиотеке">
+            <Field label={t('Краткое описание')} hint="Покажется на карточке в библиотеке">
               <textarea
                 className="form-textarea w-full"
                 rows={2}
@@ -755,7 +762,7 @@ function FormView({
               />
             </Field>
 
-            <Field label="Содержимое (текст/HTML/Markdown)" hint="Основной материал, который сотрудник увидит на странице курса">
+            <Field label={t('Содержимое (текст/HTML/Markdown)')} hint="Основной материал, который сотрудник увидит на странице курса">
               <textarea
                 className="form-textarea w-full font-mono text-xs"
                 rows={6}
@@ -765,7 +772,7 @@ function FormView({
             </Field>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Field label="Ссылка на файл / видео" hint="YouTube, PDF, ссылка на хранилище...">
+              <Field label={t('Ссылка на файл / видео')} hint="YouTube, PDF, ссылка на хранилище...">
                 <input
                   type="url"
                   className="form-input w-full"
@@ -774,7 +781,7 @@ function FormView({
                   placeholder="https://..."
                 />
               </Field>
-              <Field label="Обложка (URL картинки)">
+              <Field label={t('Обложка (URL картинки)')}>
                 <input
                   type="url"
                   className="form-input w-full"
@@ -785,13 +792,13 @@ function FormView({
               </Field>
             </div>
 
-            <Field label="Теги" hint="Через запятую — помогают искать материал">
+            <Field label={t('Теги')} hint="Через запятую — помогают искать материал">
               <input
                 type="text"
                 className="form-input w-full"
                 value={form.tagsCsv}
                 onChange={(e) => update('tagsCsv', e.target.value)}
-                placeholder="безопасность, новички, ОТ"
+                placeholder={t('безопасность, новички, ОТ')}
               />
             </Field>
           </div>
@@ -799,15 +806,15 @@ function FormView({
           {/* Right: settings panel */}
           <div className="space-y-4">
             <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/60 dark:bg-gray-900/40 p-4 space-y-3">
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Публикация</h4>
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{t('Публикация')}</h4>
               <SwitchRow
-                label="Опубликован"
+                label={t('Опубликован')}
                 hint="Сотрудники видят материал в библиотеке"
                 checked={form.isPublished}
                 onChange={(v) => update('isPublished', v)}
               />
               <SwitchRow
-                label="Обязательный"
+                label={t('Обязательный')}
                 hint="Будет в разделе «Обязательные»"
                 checked={form.isMandatory}
                 onChange={(v) => update('isMandatory', v)}
@@ -817,7 +824,7 @@ function FormView({
 
             <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/60 dark:bg-gray-900/40 p-4">
               <div className="flex items-center justify-between mb-2">
-                <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Назначить ролям</h4>
+                <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{t('Назначить ролям')}</h4>
                 {form.targetRoleIds.length > 0 && (
                   <button
                     type="button"
@@ -861,7 +868,7 @@ function FormView({
 
             {form.coverUrl && (
               <div className="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-                <div className="px-3 py-2 text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 bg-gray-50/60 dark:bg-gray-900/40">Превью обложки</div>
+                <div className="px-3 py-2 text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 bg-gray-50/60 dark:bg-gray-900/40">{t('Превью обложки')}</div>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={form.coverUrl} alt="" className="w-full h-32 object-cover" />
               </div>
@@ -912,6 +919,7 @@ function FormView({
 }
 
 function Field({ label, hint, required, children }: { label: string; hint?: string; required?: boolean; children: React.ReactNode }) {
+  const t = useT();
   return (
     <div>
       <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
@@ -925,6 +933,7 @@ function Field({ label, hint, required, children }: { label: string; hint?: stri
 }
 
 function TypePicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const t = useT();
   return (
     <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
       {Object.entries(TYPE_META).map(([k, v]) => {
@@ -951,6 +960,7 @@ function TypePicker({ value, onChange }: { value: string; onChange: (v: string) 
 }
 
 function SwitchRow({ label, hint, checked, onChange, accent }: { label: string; hint?: string; checked: boolean; onChange: (v: boolean) => void; accent?: 'red' }) {
+  const t = useT();
   const onColor = accent === 'red' ? 'bg-red-500' : 'bg-violet-500';
   return (
     <label className="flex items-start gap-3 cursor-pointer select-none">
@@ -974,6 +984,7 @@ function SwitchRow({ label, hint, checked, onChange, accent }: { label: string; 
 }
 
 function HeaderStat({ label, value, accent = 'default' }: { label: string; value: number; accent?: 'default' | 'green' | 'gray' | 'red' }) {
+  const t = useT();
   const color = {
     default: 'text-white',
     green:   'text-emerald-200',

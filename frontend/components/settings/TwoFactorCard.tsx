@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
+import { useT } from '@/lib/i18n';
 
 interface Status {
   enabled: boolean;
@@ -17,6 +18,7 @@ interface SetupData {
 }
 
 export default function TwoFactorCard() {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
 
   const [status, setStatus] = useState<Status | null>(null);
@@ -147,7 +149,7 @@ export default function TwoFactorCard() {
       </div>
 
       {loading ? (
-        <p className="text-sm text-gray-400 py-4">Загрузка...</p>
+        <p className="text-sm text-gray-400 py-4">{t('Загрузка...')}</p>
       ) : (
         <div className="mt-5">
           {/* Enrollment QR flow */}
@@ -159,10 +161,10 @@ export default function TwoFactorCard() {
               <div className="flex flex-col sm:flex-row gap-5 items-start">
                 <div className="bg-white p-3 rounded-xl border border-gray-200 dark:border-gray-700 shrink-0">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={setup.qrDataUrl} alt="QR-код для 2FA" className="w-40 h-40" />
+                  <img src={setup.qrDataUrl} alt={t('QR-код для 2FA')} className="w-40 h-40" />
                 </div>
                 <div className="flex-1 w-full">
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mb-1">Ключ для ручного ввода:</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mb-1">{t('Ключ для ручного ввода:')}</p>
                   <p className="font-mono text-xs text-gray-600 dark:text-gray-300 break-all mb-4 select-all">
                     {setup.secret}
                   </p>

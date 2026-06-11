@@ -10,6 +10,7 @@ import {
   fmtDate,
   getRoleName,
 } from './shared';
+import { useT } from '@/lib/i18n';
 
 type TabKey =
   | 'main'
@@ -111,6 +112,7 @@ export default function EmployeeFullProfileModal({
   onClose,
   onEdit,
 }: Props) {
+  const t = useT();
   const [tab, setTab] = useState<TabKey>('main');
   const [stats, setStats] = useState<Stats>({ projects: 0, tasks: 0, accessRoles: 1 });
 
@@ -189,7 +191,7 @@ export default function EmployeeFullProfileModal({
                 <button
                   type="button"
                   onClick={onEdit}
-                  title="Редактировать"
+                  title={t('Редактировать')}
                   className="p-1.5 text-gray-400 hover:text-violet-500 transition-colors"
                 >
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -200,7 +202,7 @@ export default function EmployeeFullProfileModal({
               <button
                 type="button"
                 onClick={onClose}
-                title="Закрыть"
+                title={t('Закрыть')}
                 className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -226,17 +228,19 @@ export default function EmployeeFullProfileModal({
 }
 
 function LoadingState() {
+  const t = useT();
   return (
     <div className="flex items-center justify-center py-12 text-gray-400 dark:text-gray-500">
       <svg className="w-5 h-5 animate-spin mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
       </svg>
-      <span className="text-sm">Загрузка...</span>
+      <span className="text-sm">{t('Загрузка...')}</span>
     </div>
   );
 }
 
 function EmptyState({ title, text }: { title: string; text: string }) {
+  const t = useT();
   return (
     <div className="flex flex-col items-center justify-center text-center py-10 text-gray-400 dark:text-gray-500">
       <svg className="w-10 h-10 mb-3 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -249,6 +253,7 @@ function EmptyState({ title, text }: { title: string; text: string }) {
 }
 
 function Field({ label, value }: { label: string; value?: React.ReactNode }) {
+  const t = useT();
   return (
     <div>
       <dt className="text-xs text-gray-400 dark:text-gray-500 mb-0.5">{label}</dt>
@@ -258,16 +263,17 @@ function Field({ label, value }: { label: string; value?: React.ReactNode }) {
 }
 
 function MainTab({ employee, stats }: { employee: EmployeeData; stats: Stats }) {
+  const t = useT();
   const hireDate = fmtDate(employee.hireDate || employee.hire_date);
   const active = employee.isActive ?? employee.is_active ?? true;
   return (
     <div className="space-y-6">
       <section>
-        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">Основное</h3>
+        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">{t('Основное')}</h3>
         <dl className="grid grid-cols-2 gap-x-6 gap-y-4">
-          <Field label="Роль" value={getRoleName(employee)} />
+          <Field label={t('Роль')} value={getRoleName(employee)} />
           <Field
-            label="Телефон"
+            label={t('Телефон')}
             value={
               employee.phone ? (
                 <a
@@ -279,7 +285,7 @@ function MainTab({ employee, stats }: { employee: EmployeeData; stats: Stats }) 
               ) : null
             }
           />
-          <Field label="Должность" value={employee.position} />
+          <Field label={t('Должность')} value={employee.position} />
           <Field
             label="Email"
             value={
@@ -291,22 +297,23 @@ function MainTab({ employee, stats }: { employee: EmployeeData; stats: Stats }) 
               </a>
             }
           />
-          <Field label="Дата найма" value={hireDate} />
-          <Field label="Статус" value={active ? 'Активен' : 'Деактивирован'} />
-          {employee.address && <Field label="Адрес" value={employee.address} />}
+          <Field label={t('Дата найма')} value={hireDate} />
+          <Field label={t('Статус')} value={active ? 'Активен' : 'Деактивирован'} />
+          {employee.address && <Field label={t('Адрес')} value={employee.address} />}
         </dl>
       </section>
 
       <section className="grid grid-cols-3 gap-3">
-        <StatCard label="Проектов" value={stats.projects} hint="Доступных проектов" />
-        <StatCard label="Задач" value={stats.tasks} hint="Назначено задач" />
-        <StatCard label="Права доступа" value={stats.accessRoles} hint="Ролей в системе" />
+        <StatCard label={t('Проектов')} value={stats.projects} hint="Доступных проектов" />
+        <StatCard label={t('Задач')} value={stats.tasks} hint="Назначено задач" />
+        <StatCard label={t('Права доступа')} value={stats.accessRoles} hint="Ролей в системе" />
       </section>
     </div>
   );
 }
 
 function StatCard({ label, value, hint }: { label: string; value: number; hint: string }) {
+  const t = useT();
   return (
     <div className="rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700 p-4">
       <div className="text-xs text-gray-500 dark:text-gray-400">{label}</div>
@@ -317,6 +324,7 @@ function StatCard({ label, value, hint }: { label: string; value: number; hint: 
 }
 
 function DocumentsTab({ employee }: { employee: EmployeeData }) {
+  const t = useT();
   const [docs, setDocs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -336,7 +344,7 @@ function DocumentsTab({ employee }: { employee: EmployeeData }) {
   }, [employee.id]);
 
   if (loading) return <LoadingState />;
-  if (docs.length === 0) return <EmptyState title="Документы" text="Документы сотрудника не загружены" />;
+  if (docs.length === 0) return <EmptyState title={t('Документы')} text="Документы сотрудника не загружены" />;
 
   const typeLabel = (d: any) =>
     d.documentType || d.document_type || d.type || 'Документ';
@@ -376,6 +384,7 @@ function DocumentsTab({ employee }: { employee: EmployeeData }) {
 }
 
 function FinanceTab({ employee }: { employee: EmployeeData }) {
+  const t = useT();
   const [payroll, setPayroll] = useState<any[]>([]);
   const [bonuses, setBonuses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -413,7 +422,7 @@ function FinanceTab({ employee }: { employee: EmployeeData }) {
           Расчётные ведомости
         </h3>
         {payroll.length === 0 ? (
-          <p className="text-sm text-gray-400 dark:text-gray-500">Нет данных о начислениях</p>
+          <p className="text-sm text-gray-400 dark:text-gray-500">{t('Нет данных о начислениях')}</p>
         ) : (
           <div className="space-y-2">
             {payroll.map((p: any) => (
@@ -439,9 +448,9 @@ function FinanceTab({ employee }: { employee: EmployeeData }) {
       </section>
 
       <section>
-        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">Бонусы</h3>
+        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">{t('Бонусы')}</h3>
         {bonuses.length === 0 ? (
-          <p className="text-sm text-gray-400 dark:text-gray-500">Бонусы не начислялись</p>
+          <p className="text-sm text-gray-400 dark:text-gray-500">{t('Бонусы не начислялись')}</p>
         ) : (
           <div className="space-y-2">
             {bonuses.map((b: any) => (
@@ -465,9 +474,10 @@ function FinanceTab({ employee }: { employee: EmployeeData }) {
 }
 
 function AccessTab({ employee }: { employee: EmployeeData }) {
+  const t = useT();
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200">Роль в системе</h3>
+      <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200">{t('Роль в системе')}</h3>
       <div className="rounded-xl border border-gray-100 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-900/40">
         <div className="text-sm font-medium text-gray-800 dark:text-gray-100">
           {getRoleName(employee)}
@@ -500,6 +510,7 @@ const TASK_STATUS_LABELS: Record<string, string> = {
 };
 
 function ProjectsTab({ employee }: { employee: EmployeeData }) {
+  const t = useT();
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -520,7 +531,7 @@ function ProjectsTab({ employee }: { employee: EmployeeData }) {
 
   if (loading) return <LoadingState />;
   if (tasks.length === 0)
-    return <EmptyState title="Задачи" text="Нет назначенных задач" />;
+    return <EmptyState title={t('Задачи')} text="Нет назначенных задач" />;
 
   return (
     <div className="space-y-2">
@@ -554,6 +565,7 @@ function ProjectsTab({ employee }: { employee: EmployeeData }) {
 }
 
 function ActivityTab({ employee }: { employee: EmployeeData }) {
+  const t = useT();
   const [attendance, setAttendance] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -574,7 +586,7 @@ function ActivityTab({ employee }: { employee: EmployeeData }) {
 
   if (loading) return <LoadingState />;
   if (attendance.length === 0)
-    return <EmptyState title="Активность" text="Нет данных о посещаемости" />;
+    return <EmptyState title={t('Активность')} text="Нет данных о посещаемости" />;
 
   const fmtTime = (val: string | undefined) => {
     if (!val) return '—';
@@ -585,9 +597,9 @@ function ActivityTab({ employee }: { employee: EmployeeData }) {
   return (
     <div>
       <div className="grid grid-cols-3 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase px-3 mb-2">
-        <span>Дата</span>
-        <span>Приход</span>
-        <span>Уход</span>
+        <span>{t('Дата')}</span>
+        <span>{t('Приход')}</span>
+        <span>{t('Уход')}</span>
       </div>
       <div className="space-y-1.5">
         {attendance.map((a: any) => (
@@ -610,6 +622,7 @@ function ActivityTab({ employee }: { employee: EmployeeData }) {
 }
 
 function HistoryTab({ employee }: { employee: EmployeeData }) {
+  const t = useT();
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -631,7 +644,7 @@ function HistoryTab({ employee }: { employee: EmployeeData }) {
 
   if (loading) return <LoadingState />;
   if (logs.length === 0)
-    return <EmptyState title="История изменений" text="Нет записей об изменениях" />;
+    return <EmptyState title={t('История изменений')} text="Нет записей об изменениях" />;
 
   const actionLabel = (action: string) => {
     const map: Record<string, string> = {

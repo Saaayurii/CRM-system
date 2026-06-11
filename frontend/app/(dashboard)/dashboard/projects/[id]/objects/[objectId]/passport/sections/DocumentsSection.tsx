@@ -16,6 +16,7 @@ import {
   Card, SectionHeader, Stat, PrimaryBtn, GhostBtn, IconBtn, EmptyState, Donut,
   TextInput, Select, FileIcon, TrashIcon, PlusIcon,
 } from '../primitives';
+import { useT } from '@/lib/i18n';
 
 /* ───────────────────────── types & helpers ───────────────────────── */
 
@@ -85,6 +86,7 @@ const CloseIcon = (p: { className?: string }) => <svg className={p.className} fi
 /* ───────────────────────── component ───────────────────────── */
 
 export default function DocumentsSection({ ctx, onCountChange }: { ctx: PassportCtx; onCountChange: (n: number) => void }) {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
   const [docs, setDocs] = useState<DocItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -232,25 +234,25 @@ export default function DocumentsSection({ ctx, onCountChange }: { ctx: Passport
   return (
     <div className="space-y-5">
       <SectionHeader
-        title="Документы и файлы"
-        subtitle="Проекты, договоры, акты, инструкции"
-        right={!showForm ? <PrimaryBtn onClick={openForm}><PlusIcon className="w-4 h-4" />Добавить документ</PrimaryBtn> : undefined}
+        title={t('Документы и файлы')}
+        subtitle={t('Проекты, договоры, акты, инструкции')}
+        right={!showForm ? <PrimaryBtn onClick={openForm}><PlusIcon className="w-4 h-4" />{t('Добавить документ')}</PrimaryBtn> : undefined}
       />
 
       {/* stat tiles */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-        <Stat label="Всего документов" value={docs.length} icon={<FileIcon className="w-6 h-6" />} />
-        <Stat label="Файлов" value={filesCount} accent="text-green-500" icon={<FileIcon className="w-6 h-6" />} />
-        <Stat label="Категорий" value={categories.length} accent="text-orange-500" icon={<FileIcon className="w-6 h-6" />} />
+        <Stat label={t('Всего документов')} value={docs.length} icon={<FileIcon className="w-6 h-6" />} />
+        <Stat label={t('Файлов')} value={filesCount} accent="text-green-500" icon={<FileIcon className="w-6 h-6" />} />
+        <Stat label={t('Категорий')} value={categories.length} accent="text-orange-500" icon={<FileIcon className="w-6 h-6" />} />
       </div>
 
       {showForm && (
-        <Card title="Новый документ">
+        <Card title={t('Новый документ')}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <TextInput label="Название *" value={title} onChange={setTitle} placeholder="Название документа" />
-            <Select label="Категория" value={docType} onChange={setDocType} options={DOC_TYPE_OPTIONS} />
+            <TextInput label={t('Название *')} value={title} onChange={setTitle} placeholder={t('Название документа')} />
+            <Select label={t('Категория')} value={docType} onChange={setDocType} options={DOC_TYPE_OPTIONS} />
             <div className="sm:col-span-2">
-              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Файл</label>
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{t('Файл')}</label>
               <div className="flex items-center gap-2">
                 <GhostBtn onClick={() => fileRef.current?.click()}>
                   {file ? 'Заменить файл' : 'Выбрать файл'}
@@ -261,7 +263,7 @@ export default function DocumentsSection({ ctx, onCountChange }: { ctx: Passport
             </div>
           </div>
           <div className="flex items-center justify-end gap-2 mt-4">
-            <GhostBtn onClick={cancel} disabled={saving}>Отмена</GhostBtn>
+            <GhostBtn onClick={cancel} disabled={saving}>{t('Отмена')}</GhostBtn>
             <PrimaryBtn onClick={save} disabled={saving}>{saving ? 'Сохранение...' : 'Сохранить'}</PrimaryBtn>
           </div>
         </Card>
@@ -272,14 +274,14 @@ export default function DocumentsSection({ ctx, onCountChange }: { ctx: Passport
       ) : (
         <div className="grid grid-cols-1 xl:grid-cols-[220px_1fr_280px] gap-5">
           {/* categories */}
-          <Card title="Категории">
+          <Card title={t('Категории')}>
             <div className="space-y-1">
               <button
                 type="button"
                 onClick={() => setActiveCategory('__all__')}
                 className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${activeCategory === '__all__' ? 'bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 font-medium' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900/30'}`}
               >
-                <span>Все</span>
+                <span>{t('Все')}</span>
                 <span className="text-xs text-gray-400 tabular-nums">{docs.length}</span>
               </button>
               {categories.map((c) => (
@@ -293,14 +295,14 @@ export default function DocumentsSection({ ctx, onCountChange }: { ctx: Passport
                   <span className="text-xs text-gray-400 tabular-nums shrink-0">{c.count}</span>
                 </button>
               ))}
-              {categories.length === 0 && <p className="px-3 py-2 text-xs text-gray-400">Нет категорий</p>}
+              {categories.length === 0 && <p className="px-3 py-2 text-xs text-gray-400">{t('Нет категорий')}</p>}
             </div>
           </Card>
 
           {/* documents list */}
-          <Card title="Все документы">
+          <Card title={t('Все документы')}>
             <div className="flex items-center gap-2 mb-4 flex-wrap">
-              <TextInput value={search} onChange={setSearch} placeholder="Поиск по названию..." className="flex-1 min-w-[160px]" />
+              <TextInput value={search} onChange={setSearch} placeholder={t('Поиск по названию...')} className="flex-1 min-w-[160px]" />
               <Select
                 value={activeCategory === '__all__' ? '' : activeCategory}
                 onChange={(v) => setActiveCategory(v || '__all__')}
@@ -315,10 +317,10 @@ export default function DocumentsSection({ ctx, onCountChange }: { ctx: Passport
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-xs text-gray-400 dark:text-gray-500 border-b border-gray-200 dark:border-gray-700">
-                      <th className="py-2 pr-3 text-left font-semibold">Название</th>
-                      <th className="py-2 pr-3 text-left font-semibold">Категория</th>
-                      <th className="py-2 pr-3 text-left font-semibold">Тип</th>
-                      <th className="py-2 pr-3 text-left font-semibold">Дата добавления</th>
+                      <th className="py-2 pr-3 text-left font-semibold">{t('Название')}</th>
+                      <th className="py-2 pr-3 text-left font-semibold">{t('Категория')}</th>
+                      <th className="py-2 pr-3 text-left font-semibold">{t('Тип')}</th>
+                      <th className="py-2 pr-3 text-left font-semibold">{t('Дата добавления')}</th>
                       <th className="py-2 text-right font-semibold w-20" />
                     </tr>
                   </thead>
@@ -332,17 +334,17 @@ export default function DocumentsSection({ ctx, onCountChange }: { ctx: Passport
                         <td className="py-2 align-top">
                           <div className="flex items-center justify-end gap-1">
                             {d.fileUrl && (
-                              <IconBtn title="Просмотр" onClick={() => setPreview(d)}><EyeIcon className="w-4 h-4" /></IconBtn>
+                              <IconBtn title={t('Просмотр')} onClick={() => setPreview(d)}><EyeIcon className="w-4 h-4" /></IconBtn>
                             )}
                             {d.fileUrl && (
-                              <button type="button" title="Скачать" disabled={downloading === d.id} onClick={() => download(d)}
+                              <button type="button" title={t('Скачать')} disabled={downloading === d.id} onClick={() => download(d)}
                                 className="p-1.5 text-gray-400 hover:text-violet-500 transition-colors disabled:opacity-50">
                                 {downloading === d.id
                                   ? <span className="block w-4 h-4 animate-spin rounded-full border-b-2 border-violet-500" />
                                   : <DownloadIcon className="w-4 h-4" />}
                               </button>
                             )}
-                            <IconBtn danger title="Удалить" onClick={() => remove(d)}><TrashIcon className="w-4 h-4" /></IconBtn>
+                            <IconBtn danger title={t('Удалить')} onClick={() => remove(d)}><TrashIcon className="w-4 h-4" /></IconBtn>
                           </div>
                         </td>
                       </tr>
@@ -354,7 +356,7 @@ export default function DocumentsSection({ ctx, onCountChange }: { ctx: Passport
           </Card>
 
           {/* files by type */}
-          <Card title="Файлы по типам">
+          <Card title={t('Файлы по типам')}>
             {extDistribution.length === 0 ? (
               <EmptyState text="Нет файлов" />
             ) : (
@@ -382,7 +384,7 @@ export default function DocumentsSection({ ctx, onCountChange }: { ctx: Passport
                   className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600 rounded-lg hover:border-violet-400 transition-colors">
                   Открыть
                 </a>
-                <IconBtn title="Закрыть" onClick={() => setPreview(null)}><CloseIcon className="w-5 h-5" /></IconBtn>
+                <IconBtn title={t('Закрыть')} onClick={() => setPreview(null)}><CloseIcon className="w-5 h-5" /></IconBtn>
               </div>
             </div>
             <div className="flex-1 min-h-0 bg-gray-50 dark:bg-gray-900/40">
@@ -406,7 +408,7 @@ export default function DocumentsSection({ ctx, onCountChange }: { ctx: Passport
                 return (
                   <div className="w-full h-full flex flex-col items-center justify-center gap-3 text-gray-400 px-6 text-center">
                     <FileIcon className="w-12 h-12" />
-                    <p className="text-sm">Предпросмотр недоступен для этого типа файла.</p>
+                    <p className="text-sm">{t('Предпросмотр недоступен для этого типа файла.')}</p>
                     <button type="button" onClick={() => download(preview)}
                       className="inline-flex items-center gap-1.5 px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-lg">
                       <DownloadIcon className="w-4 h-4" />Скачать файл

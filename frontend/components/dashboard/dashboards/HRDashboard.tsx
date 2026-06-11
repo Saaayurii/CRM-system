@@ -9,6 +9,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
   PieChart, Pie, Cell,
 } from 'recharts';
+import { useT } from '@/lib/i18n';
 
 function getGreeting(): string {
   const h = new Date().getHours();
@@ -61,6 +62,7 @@ interface DocRecord {
 }
 
 function StatusBadge({ label, color }: { label: string; color: string }) {
+  const t = useT();
   const colors: Record<string, string> = {
     gray: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300',
     yellow: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300',
@@ -142,6 +144,7 @@ const ATTENDANCE_CHART_LABELS: Record<string, string> = {
 const DAY_NAMES = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 
 export default function HRDashboard({ user }: { user: any }) {
+  const t = useT();
   const addToast = useToastStore((s) => s.addToast);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<Stats>({ totalEmployees: 0, pendingLeaves: 0, presentToday: 0, expiringDocs: 0 });
@@ -382,8 +385,8 @@ export default function HRDashboard({ user }: { user: any }) {
             </svg>
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-800 dark:text-gray-100">Посещаемость</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Учёт рабочего времени</p>
+            <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{t('Посещаемость')}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{t('Учёт рабочего времени')}</p>
           </div>
         </Link>
         <Link href="/dashboard/hr/time-off" className="flex items-center gap-3 bg-white dark:bg-gray-800 rounded-xl shadow-xs p-4 hover:ring-1 hover:ring-violet-500/20 transition-all">
@@ -393,8 +396,8 @@ export default function HRDashboard({ user }: { user: any }) {
             </svg>
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-800 dark:text-gray-100">Отпуска и отсутствия</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Заявки на отпуск</p>
+            <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{t('Отпуска и отсутствия')}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{t('Заявки на отпуск')}</p>
           </div>
         </Link>
         <Link href="/dashboard/hr/documents" className="flex items-center gap-3 bg-white dark:bg-gray-800 rounded-xl shadow-xs p-4 hover:ring-1 hover:ring-violet-500/20 transition-all">
@@ -404,8 +407,8 @@ export default function HRDashboard({ user }: { user: any }) {
             </svg>
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-800 dark:text-gray-100">Документы сотрудников</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Управление документами</p>
+            <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{t('Документы сотрудников')}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{t('Управление документами')}</p>
           </div>
         </Link>
       </div>
@@ -447,7 +450,7 @@ export default function HRDashboard({ user }: { user: any }) {
           </h3>
           <div className="h-64">
             {leavesByStatus.length === 0 ? (
-              <div className="flex items-center justify-center h-full text-sm text-gray-400">Нет данных</div>
+              <div className="flex items-center justify-center h-full text-sm text-gray-400">{t('Нет данных')}</div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -487,7 +490,7 @@ export default function HRDashboard({ user }: { user: any }) {
           </h3>
           <div className="h-64">
             {leavesByType.length === 0 ? (
-              <div className="flex items-center justify-center h-full text-sm text-gray-400">Нет данных</div>
+              <div className="flex items-center justify-center h-full text-sm text-gray-400">{t('Нет данных')}</div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -520,14 +523,14 @@ export default function HRDashboard({ user }: { user: any }) {
         {/* Pending leave requests */}
         <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl shadow-xs">
           <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Заявки на отпуск</h3>
+            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">{t('Заявки на отпуск')}</h3>
             <Link href="/dashboard/hr/time-off" className="text-xs text-violet-500 hover:text-violet-600 font-medium">
               Все заявки
             </Link>
           </div>
           <div className="p-5">
             {pendingLeaves.length === 0 ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Нет ожидающих заявок</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">{t('Нет ожидающих заявок')}</p>
             ) : (
               <div className="space-y-3">
                 {pendingLeaves.map((leave) => (
@@ -569,14 +572,14 @@ export default function HRDashboard({ user }: { user: any }) {
         {/* Today's attendance */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs">
           <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Посещаемость сегодня</h3>
+            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">{t('Посещаемость сегодня')}</h3>
             <Link href="/dashboard/hr/attendance" className="text-xs text-violet-500 hover:text-violet-600 font-medium">
               Подробнее
             </Link>
           </div>
           <div className="p-5">
             {todayAttendance.length === 0 ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Нет записей за сегодня</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">{t('Нет записей за сегодня')}</p>
             ) : (
               <div className="space-y-3">
                 {todayAttendance.map((rec) => {
@@ -598,14 +601,14 @@ export default function HRDashboard({ user }: { user: any }) {
         {/* Expiring documents */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs">
           <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Истекающие документы (30 дней)</h3>
+            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">{t('Истекающие документы (30 дней)')}</h3>
             <Link href="/dashboard/hr/documents" className="text-xs text-violet-500 hover:text-violet-600 font-medium">
               Все документы
             </Link>
           </div>
           <div className="p-5">
             {expiringDocs.length === 0 ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Нет истекающих документов</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">{t('Нет истекающих документов')}</p>
             ) : (
               <div className="space-y-3">
                 {expiringDocs.map((doc) => (
@@ -618,7 +621,7 @@ export default function HRDashboard({ user }: { user: any }) {
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-medium text-red-600 dark:text-red-400">{fmtDate(doc.expiryDate)}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Истекает</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{t('Истекает')}</p>
                     </div>
                   </div>
                 ))}

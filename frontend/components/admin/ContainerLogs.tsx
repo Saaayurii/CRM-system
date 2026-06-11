@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useT } from '@/lib/i18n';
 
 interface ContainerLogsProps {
   containerId: string;
@@ -17,6 +18,7 @@ type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
 const MAX_RECONNECT_ATTEMPTS = 3;
 
 export default function ContainerLogs({ containerId, onClose }: ContainerLogsProps) {
+  const t = useT();
   const [logs, setLogs] = useState<LogLine[]>([]);
   const [paused, setPaused] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting');
@@ -113,13 +115,13 @@ export default function ContainerLogs({ containerId, onClose }: ContainerLogsPro
   const statusIndicator = () => {
     switch (connectionStatus) {
       case 'connecting':
-        return <span className="flex items-center gap-1.5 text-yellow-400 text-xs"><span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />Подключение...</span>;
+        return <span className="flex items-center gap-1.5 text-yellow-400 text-xs"><span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />{t('Подключение...')}</span>;
       case 'connected':
-        return <span className="flex items-center gap-1.5 text-green-400 text-xs"><span className="w-2 h-2 rounded-full bg-green-400" />Подключено</span>;
+        return <span className="flex items-center gap-1.5 text-green-400 text-xs"><span className="w-2 h-2 rounded-full bg-green-400" />{t('Подключено')}</span>;
       case 'disconnected':
-        return <span className="flex items-center gap-1.5 text-gray-400 text-xs"><span className="w-2 h-2 rounded-full bg-gray-400" />Отключено</span>;
+        return <span className="flex items-center gap-1.5 text-gray-400 text-xs"><span className="w-2 h-2 rounded-full bg-gray-400" />{t('Отключено')}</span>;
       case 'error':
-        return <span className="flex items-center gap-1.5 text-red-400 text-xs"><span className="w-2 h-2 rounded-full bg-red-400" />Ошибка</span>;
+        return <span className="flex items-center gap-1.5 text-red-400 text-xs"><span className="w-2 h-2 rounded-full bg-red-400" />{t('Ошибка')}</span>;
     }
   };
 
@@ -165,10 +167,10 @@ export default function ContainerLogs({ containerId, onClose }: ContainerLogsPro
       </div>
       <div className="h-80 overflow-y-auto p-4 font-mono text-xs text-green-400 space-y-0.5">
         {logs.length === 0 && connectionStatus === 'connected' && (
-          <p className="text-gray-500">Контейнер не выводит логи</p>
+          <p className="text-gray-500">{t('Контейнер не выводит логи')}</p>
         )}
         {logs.length === 0 && connectionStatus === 'connecting' && (
-          <p className="text-gray-500">Подключение к контейнеру...</p>
+          <p className="text-gray-500">{t('Подключение к контейнеру...')}</p>
         )}
         {logs.length === 0 && connectionStatus === 'error' && (
           <p className="text-red-400/70">{errorMessage || 'Не удалось подключиться к логам контейнера'}</p>

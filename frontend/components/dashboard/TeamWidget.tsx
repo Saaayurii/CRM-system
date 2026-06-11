@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
+import { useT } from '@/lib/i18n';
 
 interface TeamMember {
   id: number;
@@ -18,6 +19,7 @@ interface Team {
 }
 
 export default function TeamWidget() {
+  const t = useT();
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -38,11 +40,11 @@ export default function TeamWidget() {
 
   return (
     <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-5">
-      <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">Команды</h3>
+      <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">{t('Команды')}</h3>
       {loading ? (
-        <p className="text-sm text-gray-400 dark:text-gray-500">Загрузка...</p>
+        <p className="text-sm text-gray-400 dark:text-gray-500">{t('Загрузка...')}</p>
       ) : teams.length === 0 ? (
-        <p className="text-sm text-gray-400 dark:text-gray-500">Нет команд</p>
+        <p className="text-sm text-gray-400 dark:text-gray-500">{t('Нет команд')}</p>
       ) : (
         <ul className="space-y-3">
           {teams.map((team) => (
@@ -73,7 +75,7 @@ export default function TeamWidget() {
                   )}
                 </div>
               ) : (
-                <p className="text-xs text-gray-400 dark:text-gray-500">Нет участников</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500">{t('Нет участников')}</p>
               )}
             </li>
           ))}

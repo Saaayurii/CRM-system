@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { useToastStore } from '@/stores/toastStore';
+import { useT } from '@/lib/i18n';
 
 interface TrainingMaterial {
   id: number;
@@ -94,6 +95,7 @@ function youtubeEmbed(url: string): string | null {
 }
 
 export default function MaterialDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const tl = useT();
   const { id } = use(params);
   const materialId = Number(id);
   const router = useRouter();
@@ -286,7 +288,7 @@ export default function MaterialDetailPage({ params }: { params: Promise<{ id: s
               className="block bg-violet-500 hover:bg-violet-600 text-white rounded-xl p-5 text-center shadow-sm transition-colors"
             >
               <div className="text-3xl mb-1">📎</div>
-              <div className="font-semibold">Открыть материал</div>
+              <div className="font-semibold">{tl('Открыть материал')}</div>
               <div className="text-xs text-white/80 mt-1 break-all">{material.fileUrl}</div>
             </a>
           ) : null}
@@ -362,7 +364,7 @@ export default function MaterialDetailPage({ params }: { params: Promise<{ id: s
         {/* Sidebar */}
         <aside className="space-y-4">
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
-            <div className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">Ваш прогресс</div>
+            <div className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">{tl('Ваш прогресс')}</div>
             <div className="flex items-center gap-3">
               <ProgressDonut pct={pct} />
               <div className="flex-1 min-w-0">
@@ -405,7 +407,7 @@ export default function MaterialDetailPage({ params }: { params: Promise<{ id: s
           {/* Tags */}
           {Array.isArray(material.tags) && (material.tags as string[]).length > 0 && (
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
-              <div className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">Теги</div>
+              <div className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">{tl('Теги')}</div>
               <div className="flex flex-wrap gap-1.5">
                 {(material.tags as string[]).map((tag) => (
                   <span key={tag} className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
@@ -436,6 +438,7 @@ export default function MaterialDetailPage({ params }: { params: Promise<{ id: s
 // ─── Progress donut ──────────────────────────────────────────────────────────
 
 function ProgressDonut({ pct }: { pct: number }) {
+  const t = useT();
   const r = 24;
   const c = 2 * Math.PI * r;
   const offset = c - (pct / 100) * c;
@@ -469,6 +472,7 @@ function TestModal({ testId, onClose, onCompleted }: {
   onClose: () => void;
   onCompleted: () => void;
 }) {
+  const t = useT();
   const user = useAuthStore((s) => s.user);
   const addToast = useToastStore((s) => s.addToast);
   const [test, setTest] = useState<KnowledgeTest | null>(null);
@@ -537,7 +541,7 @@ function TestModal({ testId, onClose, onCompleted }: {
       >
         <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
           <div className="flex-1 min-w-0">
-            <div className="text-xs uppercase tracking-wide text-violet-600 dark:text-violet-400 font-semibold">Тест</div>
+            <div className="text-xs uppercase tracking-wide text-violet-600 dark:text-violet-400 font-semibold">{t('Тест')}</div>
             <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 truncate">
               {test?.title ?? 'Загрузка...'}
             </h2>
@@ -551,9 +555,9 @@ function TestModal({ testId, onClose, onCompleted }: {
 
         <div className="flex-1 overflow-y-auto p-5">
           {loading ? (
-            <div className="text-center py-8 text-gray-500 dark:text-gray-400">Загрузка...</div>
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">{t('Загрузка...')}</div>
           ) : !test ? (
-            <div className="text-center py-8 text-gray-500 dark:text-gray-400">Тест не найден</div>
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">{t('Тест не найден')}</div>
           ) : result ? (
             <ResultView result={result} passingScore={test.passingScore ?? 0} onClose={onCompleted} />
           ) : questions.length === 0 ? (

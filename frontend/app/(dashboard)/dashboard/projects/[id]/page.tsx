@@ -24,6 +24,7 @@ import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
+import { useT } from '@/lib/i18n';
 
 /* ─── Types ─── */
 
@@ -476,6 +477,7 @@ function TabsNav({
   onSelect: (k: TabKey) => void;
   tabs?: typeof TABS[number][];
 }) {
+  const t = useT();
   const navRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -653,15 +655,16 @@ function paymentIsExpense(p: { paymentType?: string }): boolean {
 }
 
 function FinanceViewToggle({ mode, onChange }: { mode: 'table' | 'grid'; onChange: (m: 'table' | 'grid') => void }) {
+  const t = useT();
   return (
     <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
-      <button onClick={() => onChange('table')} title="Таблица"
+      <button onClick={() => onChange('table')} title={t('Таблица')}
         className={`p-1.5 rounded transition-colors ${mode === 'table' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}>
         <svg className="w-3.5 h-3.5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
         </svg>
       </button>
-      <button onClick={() => onChange('grid')} title="Карточки"
+      <button onClick={() => onChange('grid')} title={t('Карточки')}
         className={`p-1.5 rounded transition-colors ${mode === 'grid' ? 'bg-white dark:bg-gray-600 shadow-sm' : ''}`}>
         <svg className="w-3.5 h-3.5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
@@ -681,6 +684,7 @@ function fmtSize(bytes?: number) {
 /* ─── Main Page ─── */
 
 function ProjectDetailPage() {
+  const t = useT();
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -2029,7 +2033,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   if (loadingProject) {
     return (
       <div className="flex items-center justify-center min-h-64">
-        <div className="text-gray-500 dark:text-gray-400">Загрузка...</div>
+        <div className="text-gray-500 dark:text-gray-400">{t('Загрузка...')}</div>
       </div>
     );
   }
@@ -2081,7 +2085,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
           )}
         </div>
         <div className="flex items-center gap-2 mt-3 sm:mt-0 shrink-0">
-          <Link href="/dashboard/projects" className="text-sm text-violet-500 hover:text-violet-600">&larr; Назад</Link>
+          <Link href="/dashboard/projects" className="text-sm text-violet-500 hover:text-violet-600">{t('&larr; Назад')}</Link>
           {project && (
             <button
               onClick={downloadProjectPdf}
@@ -2111,8 +2115,8 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
         <>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-5 space-y-4">
-            <h2 className="font-semibold text-gray-800 dark:text-gray-100">Основная информация</h2>
-            <InfoRow label="Статус" value={
+            <h2 className="font-semibold text-gray-800 dark:text-gray-100">{t('Основная информация')}</h2>
+            <InfoRow label={t('Статус')} value={
               <select
                 value={project.status}
                 onChange={(e) => handleQuickStatusChange(Number(e.target.value))}
@@ -2123,13 +2127,13 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                 ))}
               </select>
             } />
-            <InfoRow label="Приоритет" value={<span className={`text-sm font-medium ${priority.color}`}>{priority.label}</span>} />
-            <InfoRow label="Руководитель" value={project.projectManager?.name || '—'} />
-            <InfoRow label="Клиент" value={project.clientName || '—'} />
-            <InfoRow label="Адрес" value={project.address || '—'} />
+            <InfoRow label={t('Приоритет')} value={<span className={`text-sm font-medium ${priority.color}`}>{priority.label}</span>} />
+            <InfoRow label={t('Руководитель')} value={project.projectManager?.name || '—'} />
+            <InfoRow label={t('Клиент')} value={project.clientName || '—'} />
+            <InfoRow label={t('Адрес')} value={project.address || '—'} />
             {project.settings?.notes && (
               <div className="pt-1 border-t border-gray-100 dark:border-gray-700/60">
-                <p className="text-xs font-medium text-gray-400 dark:text-gray-500 mb-1.5">Заметки</p>
+                <p className="text-xs font-medium text-gray-400 dark:text-gray-500 mb-1.5">{t('Заметки')}</p>
                 <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
                   {project.settings.notes}
                 </p>
@@ -2162,7 +2166,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
               return (
                 <>
                   <div className="flex items-center justify-between">
-                    <h2 className="font-semibold text-gray-800 dark:text-gray-100">Сроки и бюджет</h2>
+                    <h2 className="font-semibold text-gray-800 dark:text-gray-100">{t('Сроки и бюджет')}</h2>
                     {hasOverrun && (
                       <span className="flex items-center gap-1 text-xs font-medium text-red-500 bg-red-50 dark:bg-red-900/20 px-2 py-0.5 rounded-full">
                         <WarningIcon /> Превышение показателей
@@ -2175,16 +2179,16 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                       Обнаружены превышения плановых показателей
                     </div>
                   )}
-                  <InfoRow label="Дата начала" value={fmt(project.startDate)} />
-                  <InfoRow label="Плановое окончание" value={
+                  <InfoRow label={t('Дата начала')} value={fmt(project.startDate)} />
+                  <InfoRow label={t('Плановое окончание')} value={
                     <span className="flex items-center gap-1.5">
                       {fmt(displayPlanned)}
                       {fromTasks && displayPlanned && (
-                        <span className="text-xs text-gray-400 font-normal">(по задачам)</span>
+                        <span className="text-xs text-gray-400 font-normal">{t('(по задачам)')}</span>
                       )}
                     </span>
                   } />
-                  <InfoRow label="Фактическое окончание" value={
+                  <InfoRow label={t('Фактическое окончание')} value={
                     dateOverrun ? (
                       <span className="flex items-center gap-1.5 text-red-500 font-semibold">
                         <WarningIcon />{fmt(displayActual)}
@@ -2193,13 +2197,13 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                       <span className="flex items-center gap-1.5">
                         {fmt(displayActual)}
                         {!project.actualEndDate && displayActual && (
-                          <span className="text-xs text-gray-400 font-normal">(по задачам)</span>
+                          <span className="text-xs text-gray-400 font-normal">{t('(по задачам)')}</span>
                         )}
                       </span>
                     )
                   } />
-                  <InfoRow label="Бюджет" value={fmtMoney(project.budget)} />
-                  <InfoRow label="Фактические затраты" value={
+                  <InfoRow label={t('Бюджет')} value={fmtMoney(project.budget)} />
+                  <InfoRow label={t('Фактические затраты')} value={
                     budgetOverrun ? (
                       <span className="flex items-center gap-1.5 text-red-500 font-semibold">
                         <WarningIcon />{fmtMoney(project.actualCost)}
@@ -2209,7 +2213,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                   {pct !== null && (
                     <div>
                       <div className="flex justify-between text-xs mb-1">
-                        <span className="text-gray-500">Освоение бюджета</span>
+                        <span className="text-gray-500">{t('Освоение бюджета')}</span>
                         <span className={budgetOverrun ? 'text-red-500 font-semibold' : 'text-gray-500'}>{pct}%</span>
                       </div>
                       <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
@@ -2227,15 +2231,15 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
         {/* ─── Overview Tree ─── */}
         <div className="mt-4 bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700">
-            <h2 className="font-semibold text-gray-800 dark:text-gray-100">Состав проекта</h2>
+            <h2 className="font-semibold text-gray-800 dark:text-gray-100">{t('Состав проекта')}</h2>
           </div>
           {overviewLoading ? (
-            <div className="p-6 text-center text-gray-500 dark:text-gray-400 text-sm">Загрузка...</div>
+            <div className="p-6 text-center text-gray-500 dark:text-gray-400 text-sm">{t('Загрузка...')}</div>
           ) : !overviewSummary ? null : (
             <div className="p-4 space-y-1">
               <TreeSection
                 icon="👥"
-                label="Команды"
+                label={t('Команды')}
                 count={overviewSummary.teams.length}
                 items={overviewSummary.teams.map((m) => ({
                   key: String(m.id),
@@ -2245,7 +2249,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
               />
               <TreeSection
                 icon="👤"
-                label="Сотрудники"
+                label={t('Сотрудники')}
                 count={overviewSummary.assignments.length}
                 items={overviewSummary.assignments.map((a) => ({
                   key: String(a.id),
@@ -2255,7 +2259,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
               />
               <TreeSection
                 icon="✅"
-                label="Задачи"
+                label={t('Задачи')}
                 count={overviewSummary.tasks.length}
                 items={[
                   { key: 'new', label: `Новые: ${overviewSummary.tasks.filter((t) => (t.status ?? 0) === 0).length}` },
@@ -2270,7 +2274,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
               />
               <TreeSection
                 icon="📄"
-                label="Документы"
+                label={t('Документы')}
                 count={overviewSummary.documents.length}
                 items={overviewSummary.documents.map((d) => ({
                   key: String(d.id),
@@ -2280,7 +2284,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
               />
               <TreeSection
                 icon="🏗️"
-                label="Объекты строительства"
+                label={t('Объекты строительства')}
                 count={overviewSummary.sites.length}
                 items={overviewSummary.sites.map((s) => ({
                   key: String(s.id),
@@ -2295,7 +2299,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
         {/* ─── Finance Summary Chart ─── */}
         {(project.budget != null || project.actualCost != null) && (
           <div className="mt-4 bg-white dark:bg-gray-800 rounded-xl shadow-xs p-5">
-            <h2 className="font-semibold text-gray-800 dark:text-gray-100 mb-4">Финансы проекта</h2>
+            <h2 className="font-semibold text-gray-800 dark:text-gray-100 mb-4">{t('Финансы проекта')}</h2>
             <ResponsiveContainer width="100%" height={180}>
               <BarChart
                 data={[
@@ -2343,7 +2347,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
           {/* Header */}
           <div className="bg-white dark:bg-gray-800 px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <h2 className="font-semibold text-gray-800 dark:text-gray-100 shrink-0">Задачи проекта</h2>
+            <h2 className="font-semibold text-gray-800 dark:text-gray-100 shrink-0">{t('Задачи проекта')}</h2>
             <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
               {/* Search */}
               <div className="relative flex-1 min-w-[120px] max-w-xs">
@@ -2352,20 +2356,20 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                 </svg>
                 <input
                   type="text" value={taskSearch} onChange={(e) => setTaskSearch(e.target.value)}
-                  placeholder="Поиск..."
+                  placeholder={t('Поиск...')}
                   className="w-full pl-8 pr-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-700 border-0 rounded-lg text-gray-800 dark:text-gray-200 placeholder-gray-400 focus:ring-2 focus:ring-violet-500 focus:outline-none"
                 />
               </div>
               {/* Status filter */}
               <select value={taskStatusFilter} onChange={(e) => setTaskStatusFilter(e.target.value)}
                 className="text-xs px-2 py-1.5 bg-gray-100 dark:bg-gray-700 border-0 rounded-lg text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-violet-500 focus:outline-none">
-                <option value="">Все статусы</option>
+                <option value="">{t('Все статусы')}</option>
                 {Object.entries(TASK_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
               </select>
               {/* Priority filter */}
               <select value={taskPriorityFilter} onChange={(e) => setTaskPriorityFilter(e.target.value)}
                 className="text-xs px-2 py-1.5 bg-gray-100 dark:bg-gray-700 border-0 rounded-lg text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-violet-500 focus:outline-none">
-                <option value="">Все приоритеты</option>
+                <option value="">{t('Все приоритеты')}</option>
                 {Object.entries(TASK_PRIORITY).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
               </select>
             </div>
@@ -2373,11 +2377,11 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
               {/* View toggle */}
               <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
                 <button onClick={() => { setTaskViewMode('table'); localStorage.setItem('projTaskView','table'); }}
-                  className={`p-1.5 rounded transition-colors ${taskViewMode==='table' ? 'bg-white dark:bg-gray-600 shadow-sm text-violet-600' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`} title="Таблица">
+                  className={`p-1.5 rounded transition-colors ${taskViewMode==='table' ? 'bg-white dark:bg-gray-600 shadow-sm text-violet-600' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`} title={t('Таблица')}>
                   <svg className="w-4 h-4 fill-current" viewBox="0 0 16 16"><path d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2zm15 2h-4v3h4V4zm0 4h-4v3h4V8zm0 4h-4v3h3a1 1 0 0 0 1-1v-2zm-5 3v-3H6v3h4zm-5 0v-3H1v2a1 1 0 0 0 1 1h3zm-4-4h4V8H1v3zm0-4h4V4H1v3zm5-3v3h4V4H6zm4 4H6v3h4V8z"/></svg>
                 </button>
                 <button onClick={() => { setTaskViewMode('grid'); localStorage.setItem('projTaskView','grid'); }}
-                  className={`p-1.5 rounded transition-colors ${taskViewMode==='grid' ? 'bg-white dark:bg-gray-600 shadow-sm text-violet-600' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`} title="Карточки">
+                  className={`p-1.5 rounded transition-colors ${taskViewMode==='grid' ? 'bg-white dark:bg-gray-600 shadow-sm text-violet-600' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`} title={t('Карточки')}>
                   <svg className="w-4 h-4 fill-current" viewBox="0 0 16 16"><path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zm8 0A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm-8 8A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5v-3zm8 0A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 13.5v-3z"/></svg>
                 </button>
               </div>
@@ -2387,8 +2391,8 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                 </svg>
-                <span className="hidden sm:inline">Создать задачу</span>
-                <span className="sm:hidden">Создать</span>
+                <span className="hidden sm:inline">{t('Создать задачу')}</span>
+                <span className="sm:hidden">{t('Создать')}</span>
               </button>
             </div>
           </div>
@@ -2417,10 +2421,10 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <div className="font-medium text-gray-800 dark:text-gray-100 line-clamp-2 flex-1">{t.title}</div>
                         <div className="flex items-center gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
-                          <button onClick={() => setSelectedTask(t)} className="p-1 text-gray-400 hover:text-violet-500 transition-colors rounded" title="Редактировать">
+                          <button onClick={() => setSelectedTask(t)} className="p-1 text-gray-400 hover:text-violet-500 transition-colors rounded" title={t('Редактировать')}>
                             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                           </button>
-                          <button onClick={() => handleDeleteTask(t.id)} disabled={deletingTaskId === t.id} className="p-1 text-gray-400 hover:text-red-500 transition-colors rounded disabled:opacity-40" title="Удалить">
+                          <button onClick={() => handleDeleteTask(t.id)} disabled={deletingTaskId === t.id} className="p-1 text-gray-400 hover:text-red-500 transition-colors rounded disabled:opacity-40" title={t('Удалить')}>
                             {deletingTaskId === t.id
                               ? <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                               : <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
@@ -2434,7 +2438,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                       </div>
                       <div className={`text-xs ${isTaskOverdue(t) ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-gray-400'}`}>
                         {fmt(t.dueDate || t.due_date) || '—'}
-                        {isTaskOverdue(t) && <span className="ml-1 text-[10px] uppercase">просрочена</span>}
+                        {isTaskOverdue(t) && <span className="ml-1 text-[10px] uppercase">{t('просрочена')}</span>}
                       </div>
                       {(t.assignees?.length ?? 0) > 0 && (
                         <div className="mt-1 text-xs text-gray-400 truncate">{t.assignees?.map((a) => a.userName || `#${a.userId}`).join(', ')}</div>
@@ -2449,12 +2453,12 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                 <table className="table-auto w-full text-sm min-w-[480px]">
                   <thead>
                     <tr className="text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
-                      <th className="py-3 px-4 text-left font-semibold">Название</th>
-                      <th className="py-3 px-4 text-left font-semibold">Статус</th>
-                      <th className="py-3 px-4 text-left font-semibold">Приоритет</th>
-                      <th className="py-3 px-4 text-left font-semibold">Срок</th>
-                      <th className="py-3 px-4 text-left font-semibold">Исполнители</th>
-                      <th className="py-3 px-4 text-left font-semibold">Поставил</th>
+                      <th className="py-3 px-4 text-left font-semibold">{t('Название')}</th>
+                      <th className="py-3 px-4 text-left font-semibold">{t('Статус')}</th>
+                      <th className="py-3 px-4 text-left font-semibold">{t('Приоритет')}</th>
+                      <th className="py-3 px-4 text-left font-semibold">{t('Срок')}</th>
+                      <th className="py-3 px-4 text-left font-semibold">{t('Исполнители')}</th>
+                      <th className="py-3 px-4 text-left font-semibold">{t('Поставил')}</th>
                       <th className="py-3 px-4 text-center font-semibold w-20"></th>
                     </tr>
                   </thead>
@@ -2476,7 +2480,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                           <td className="py-2.5 px-4">
                             <span className={isTaskOverdue(t) ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-gray-500 dark:text-gray-400'}>
                               {fmt(t.dueDate || t.due_date)}
-                              {isTaskOverdue(t) && <span className="ml-1 text-[10px] uppercase tracking-wide">просрочена</span>}
+                              {isTaskOverdue(t) && <span className="ml-1 text-[10px] uppercase tracking-wide">{t('просрочена')}</span>}
                             </span>
                           </td>
                           <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400 text-xs">
@@ -2492,10 +2496,10 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                           </td>
                           <td className="py-2.5 px-4" onClick={(e) => e.stopPropagation()}>
                             <div className="flex items-center justify-end gap-0.5">
-                              <button onClick={() => setSelectedTask(t)} className="p-1.5 text-gray-400 hover:text-violet-500 transition-colors rounded" title="Редактировать">
+                              <button onClick={() => setSelectedTask(t)} className="p-1.5 text-gray-400 hover:text-violet-500 transition-colors rounded" title={t('Редактировать')}>
                                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                               </button>
-                              <button onClick={() => handleDeleteTask(t.id)} disabled={deletingTaskId === t.id} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors rounded disabled:opacity-40" title="Удалить">
+                              <button onClick={() => handleDeleteTask(t.id)} disabled={deletingTaskId === t.id} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors rounded disabled:opacity-40" title={t('Удалить')}>
                                 {deletingTaskId === t.id
                                   ? <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                                   : <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
@@ -2522,22 +2526,22 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
               {/* Teams section */}
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
                 <div className="bg-white dark:bg-gray-800 px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex flex-wrap items-center gap-2">
-                  <h2 className="font-semibold text-gray-800 dark:text-gray-100 shrink-0">Команды</h2>
+                  <h2 className="font-semibold text-gray-800 dark:text-gray-100 shrink-0">{t('Команды')}</h2>
                   <div className="relative flex-1 min-w-[140px] max-w-xs">
                     <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
-                    <input type="text" value={teamGroupSearch} onChange={(e) => setTeamGroupSearch(e.target.value)} placeholder="Поиск..."
+                    <input type="text" value={teamGroupSearch} onChange={(e) => setTeamGroupSearch(e.target.value)} placeholder={t('Поиск...')}
                       className="w-full pl-8 pr-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-700 border-0 rounded-lg text-gray-800 dark:text-gray-200 placeholder-gray-400 focus:ring-2 focus:ring-violet-500 focus:outline-none" />
                   </div>
                   <div className="flex items-center gap-2 ml-auto">
                     <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
                       <button onClick={() => { setTeamViewMode('table'); localStorage.setItem('projTeamView','table'); }}
-                        className={`p-1.5 rounded transition-colors ${teamViewMode==='table' ? 'bg-white dark:bg-gray-600 shadow-sm text-violet-600' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`} title="Таблица">
+                        className={`p-1.5 rounded transition-colors ${teamViewMode==='table' ? 'bg-white dark:bg-gray-600 shadow-sm text-violet-600' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`} title={t('Таблица')}>
                         <svg className="w-4 h-4 fill-current" viewBox="0 0 16 16"><path d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2zm15 2h-4v3h4V4zm0 4h-4v3h4V8zm0 4h-4v3h3a1 1 0 0 0 1-1v-2zm-5 3v-3H6v3h4zm-5 0v-3H1v2a1 1 0 0 0 1 1h3zm-4-4h4V8H1v3zm0-4h4V4H1v3zm5-3v3h4V4H6zm4 4H6v3h4V8z"/></svg>
                       </button>
                       <button onClick={() => { setTeamViewMode('grid'); localStorage.setItem('projTeamView','grid'); }}
-                        className={`p-1.5 rounded transition-colors ${teamViewMode==='grid' ? 'bg-white dark:bg-gray-600 shadow-sm text-violet-600' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`} title="Карточки">
+                        className={`p-1.5 rounded transition-colors ${teamViewMode==='grid' ? 'bg-white dark:bg-gray-600 shadow-sm text-violet-600' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`} title={t('Карточки')}>
                         <svg className="w-4 h-4 fill-current" viewBox="0 0 16 16"><path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zm8 0A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm-8 8A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5v-3zm8 0A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 13.5v-3z"/></svg>
                       </button>
                     </div>
@@ -2546,8 +2550,8 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                       </svg>
-                      <span className="hidden sm:inline">Назначить команду</span>
-                      <span className="sm:hidden">Добавить</span>
+                      <span className="hidden sm:inline">{t('Назначить команду')}</span>
+                      <span className="sm:hidden">{t('Добавить')}</span>
                     </button>
                   </div>
                 </div>
@@ -2562,10 +2566,10 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                         <div>
                           <div className="font-medium text-gray-800 dark:text-gray-100">{m.team?.name || m.teamName || `Команда #${m.teamId}`}</div>
                           <div className="text-xs text-gray-400 mt-1">{fmt(m.assignedAt)}</div>
-                          {m.isPrimary && <span className="mt-2 inline-block text-xs bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 px-2 py-0.5 rounded-full">Основная</span>}
+                          {m.isPrimary && <span className="mt-2 inline-block text-xs bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 px-2 py-0.5 rounded-full">{t('Основная')}</span>}
                         </div>
                         <button onClick={(e) => { e.stopPropagation(); handleRemoveTeam(m.teamId); }} disabled={removingTeamId === m.teamId}
-                          className="p-1.5 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-40 shrink-0" title="Удалить">
+                          className="p-1.5 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-40 shrink-0" title={t('Удалить')}>
                           {removingTeamId === m.teamId
                             ? <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                             : <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
@@ -2579,10 +2583,10 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                     <table className="table-auto w-full text-sm min-w-[400px]">
                       <thead>
                         <tr className="text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
-                          <th className="py-3 px-4 text-left font-semibold">Команда</th>
-                          <th className="py-3 px-4 text-left font-semibold">Дата назначения</th>
-                          <th className="py-3 px-4 text-left font-semibold">Основная</th>
-                          <th className="py-3 px-4 text-center font-semibold w-20">Удалить</th>
+                          <th className="py-3 px-4 text-left font-semibold">{t('Команда')}</th>
+                          <th className="py-3 px-4 text-left font-semibold">{t('Дата назначения')}</th>
+                          <th className="py-3 px-4 text-left font-semibold">{t('Основная')}</th>
+                          <th className="py-3 px-4 text-center font-semibold w-20">{t('Удалить')}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
@@ -2591,11 +2595,11 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                             <td className="py-2.5 px-4 text-gray-800 dark:text-gray-100">{m.team?.name || m.teamName || `Команда #${m.teamId}`}</td>
                             <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{fmt(m.assignedAt)}</td>
                             <td className="py-2.5 px-4">
-                              {m.isPrimary && <span className="text-xs bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 px-2 py-0.5 rounded-full">Основная</span>}
+                              {m.isPrimary && <span className="text-xs bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 px-2 py-0.5 rounded-full">{t('Основная')}</span>}
                             </td>
                             <td className="py-2.5 px-4 text-center" onClick={(e) => e.stopPropagation()}>
                               <button onClick={() => handleRemoveTeam(m.teamId)} disabled={removingTeamId === m.teamId}
-                                className="p-1.5 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-40" title="Удалить">
+                                className="p-1.5 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-40" title={t('Удалить')}>
                                 {removingTeamId === m.teamId
                                   ? <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                                   : <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
@@ -2614,22 +2618,22 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
               {/* Employees section */}
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
                 <div className="bg-white dark:bg-gray-800 px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex flex-wrap items-center gap-2">
-                  <h2 className="font-semibold text-gray-800 dark:text-gray-100 shrink-0">Сотрудники</h2>
+                  <h2 className="font-semibold text-gray-800 dark:text-gray-100 shrink-0">{t('Сотрудники')}</h2>
                   <div className="relative flex-1 min-w-[140px] max-w-xs">
                     <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
-                    <input type="text" value={employeeSearch} onChange={(e) => setEmployeeSearch(e.target.value)} placeholder="Поиск..."
+                    <input type="text" value={employeeSearch} onChange={(e) => setEmployeeSearch(e.target.value)} placeholder={t('Поиск...')}
                       className="w-full pl-8 pr-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-700 border-0 rounded-lg text-gray-800 dark:text-gray-200 placeholder-gray-400 focus:ring-2 focus:ring-violet-500 focus:outline-none" />
                   </div>
                   <div className="flex items-center gap-2 ml-auto">
                     <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
                       <button onClick={() => { setTeamViewMode('table'); localStorage.setItem('projTeamView','table'); }}
-                        className={`p-1.5 rounded transition-colors ${teamViewMode==='table' ? 'bg-white dark:bg-gray-600 shadow-sm text-violet-600' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`} title="Таблица">
+                        className={`p-1.5 rounded transition-colors ${teamViewMode==='table' ? 'bg-white dark:bg-gray-600 shadow-sm text-violet-600' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`} title={t('Таблица')}>
                         <svg className="w-4 h-4 fill-current" viewBox="0 0 16 16"><path d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2zm15 2h-4v3h4V4zm0 4h-4v3h4V8zm0 4h-4v3h3a1 1 0 0 0 1-1v-2zm-5 3v-3H6v3h4zm-5 0v-3H1v2a1 1 0 0 0 1 1h3zm-4-4h4V8H1v3zm0-4h4V4H1v3zm5-3v3h4V4H6zm4 4H6v3h4V8z"/></svg>
                       </button>
                       <button onClick={() => { setTeamViewMode('grid'); localStorage.setItem('projTeamView','grid'); }}
-                        className={`p-1.5 rounded transition-colors ${teamViewMode==='grid' ? 'bg-white dark:bg-gray-600 shadow-sm text-violet-600' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`} title="Карточки">
+                        className={`p-1.5 rounded transition-colors ${teamViewMode==='grid' ? 'bg-white dark:bg-gray-600 shadow-sm text-violet-600' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`} title={t('Карточки')}>
                         <svg className="w-4 h-4 fill-current" viewBox="0 0 16 16"><path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zm8 0A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm-8 8A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5v-3zm8 0A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 13.5v-3z"/></svg>
                       </button>
                     </div>
@@ -2638,8 +2642,8 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                       </svg>
-                      <span className="hidden sm:inline">Добавить сотрудника</span>
-                      <span className="sm:hidden">Добавить</span>
+                      <span className="hidden sm:inline">{t('Добавить сотрудника')}</span>
+                      <span className="sm:hidden">{t('Добавить')}</span>
                     </button>
                   </div>
                 </div>
@@ -2663,7 +2667,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                             </span>
                           </div>
                           <button onClick={(e) => { e.stopPropagation(); handleRemoveAssignment(a.id); }} disabled={removingAssignId === a.id}
-                            className="p-1.5 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-40 shrink-0" title="Удалить">
+                            className="p-1.5 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-40 shrink-0" title={t('Удалить')}>
                             {removingAssignId === a.id
                               ? <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                               : <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
@@ -2678,11 +2682,11 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                     <table className="table-auto w-full text-sm min-w-[480px]">
                       <thead>
                         <tr className="text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
-                          <th className="py-3 px-4 text-left font-semibold">Сотрудник</th>
-                          <th className="py-3 px-4 text-left font-semibold">Роль</th>
-                          <th className="py-3 px-4 text-left font-semibold">В сети</th>
-                          <th className="py-3 px-4 text-left font-semibold">Назначен</th>
-                          <th className="py-3 px-4 text-center font-semibold w-20">Удалить</th>
+                          <th className="py-3 px-4 text-left font-semibold">{t('Сотрудник')}</th>
+                          <th className="py-3 px-4 text-left font-semibold">{t('Роль')}</th>
+                          <th className="py-3 px-4 text-left font-semibold">{t('В сети')}</th>
+                          <th className="py-3 px-4 text-left font-semibold">{t('Назначен')}</th>
+                          <th className="py-3 px-4 text-center font-semibold w-20">{t('Удалить')}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
@@ -2704,7 +2708,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                             <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{fmt(a.assignedAt)}</td>
                             <td className="py-2.5 px-4 text-center" onClick={(e) => e.stopPropagation()}>
                               <button onClick={() => handleRemoveAssignment(a.id)} disabled={removingAssignId === a.id}
-                                className="p-1.5 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-40" title="Удалить">
+                                className="p-1.5 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-40" title={t('Удалить')}>
                                 {removingAssignId === a.id
                                   ? <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                                   : <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
@@ -2730,7 +2734,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
         <div className="space-y-4">
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
           <div className="bg-white dark:bg-gray-800 px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <h2 className="font-semibold text-gray-800 dark:text-gray-100 shrink-0">Документы проекта</h2>
+            <h2 className="font-semibold text-gray-800 dark:text-gray-100 shrink-0">{t('Документы проекта')}</h2>
             <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
               {/* Search */}
               <div className="relative flex-1 min-w-[120px] max-w-xs">
@@ -2739,14 +2743,14 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                 </svg>
                 <input
                   type="text" value={docSearch} onChange={(e) => setDocSearch(e.target.value)}
-                  placeholder="Поиск..."
+                  placeholder={t('Поиск...')}
                   className="w-full pl-8 pr-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-700 border-0 rounded-lg text-gray-800 dark:text-gray-200 placeholder-gray-400 focus:ring-2 focus:ring-violet-500 focus:outline-none"
                 />
               </div>
               {/* Type filter */}
               <select value={docTypeFilter} onChange={(e) => setDocTypeFilter(e.target.value)}
                 className="text-xs px-2 py-1.5 bg-gray-100 dark:bg-gray-700 border-0 rounded-lg text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-violet-500 focus:outline-none">
-                <option value="">Все типы</option>
+                <option value="">{t('Все типы')}</option>
                 {DOC_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
@@ -2754,11 +2758,11 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
               {/* View toggle */}
               <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
                 <button onClick={() => { setDocViewMode('table'); localStorage.setItem('projDocView','table'); }}
-                  className={`p-1.5 rounded transition-colors ${docViewMode==='table' ? 'bg-white dark:bg-gray-600 shadow-sm text-violet-600' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`} title="Таблица">
+                  className={`p-1.5 rounded transition-colors ${docViewMode==='table' ? 'bg-white dark:bg-gray-600 shadow-sm text-violet-600' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`} title={t('Таблица')}>
                   <svg className="w-4 h-4 fill-current" viewBox="0 0 16 16"><path d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2zm15 2h-4v3h4V4zm0 4h-4v3h4V8zm0 4h-4v3h3a1 1 0 0 0 1-1v-2zm-5 3v-3H6v3h4zm-5 0v-3H1v2a1 1 0 0 0 1 1h3zm-4-4h4V8H1v3zm0-4h4V4H1v3zm5-3v3h4V4H6zm4 4H6v3h4V8z"/></svg>
                 </button>
                 <button onClick={() => { setDocViewMode('grid'); localStorage.setItem('projDocView','grid'); }}
-                  className={`p-1.5 rounded transition-colors ${docViewMode==='grid' ? 'bg-white dark:bg-gray-600 shadow-sm text-violet-600' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`} title="Карточки">
+                  className={`p-1.5 rounded transition-colors ${docViewMode==='grid' ? 'bg-white dark:bg-gray-600 shadow-sm text-violet-600' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`} title={t('Карточки')}>
                   <svg className="w-4 h-4 fill-current" viewBox="0 0 16 16"><path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zm8 0A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm-8 8A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5v-3zm8 0A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 13.5v-3z"/></svg>
                 </button>
               </div>
@@ -2767,8 +2771,8 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                 </svg>
-                <span className="hidden sm:inline">Загрузить документ</span>
-                <span className="sm:hidden">Загрузить</span>
+                <span className="hidden sm:inline">{t('Загрузить документ')}</span>
+                <span className="sm:hidden">{t('Загрузить')}</span>
               </button>
             </div>
           </div>
@@ -2835,7 +2839,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                             </a>
                           )}
                           <button onClick={() => setSelectedDocument(doc)}
-                            className="p-1.5 text-gray-400 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors" title="Информация">
+                            className="p-1.5 text-gray-400 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors" title={t('Информация')}>
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                           </button>
                         </div>
@@ -2880,12 +2884,12 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                       <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
                         {doc.fileUrl && (
                           <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer"
-                            className="p-1.5 text-gray-400 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors" title="Скачать">
+                            className="p-1.5 text-gray-400 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors" title={t('Скачать')}>
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                           </a>
                         )}
                         <button onClick={() => setSelectedDocument(doc)}
-                          className="p-1.5 text-gray-400 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors" title="Информация">
+                          className="p-1.5 text-gray-400 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors" title={t('Информация')}>
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         </button>
                       </div>
@@ -2901,7 +2905,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
         {taskDocAttachments.length > 0 && (
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
             <div className="px-5 py-3 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
-              <h3 className="font-medium text-gray-700 dark:text-gray-300 text-sm">Вложения из задач</h3>
+              <h3 className="font-medium text-gray-700 dark:text-gray-300 text-sm">{t('Вложения из задач')}</h3>
               <span className="text-xs text-gray-400">{taskDocAttachments.length} файлов</span>
             </div>
             <div className="divide-y divide-gray-100 dark:divide-gray-700/60">
@@ -2943,9 +2947,9 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
           {/* Sidebar: channel list — hidden on mobile when chat is open */}
           <div className={`${mobileChatOpen ? 'hidden sm:flex' : 'flex'} w-full sm:w-64 shrink-0 bg-white dark:bg-gray-800 rounded-xl shadow-xs flex-col overflow-hidden`}>
             <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
-              <h3 className="font-semibold text-sm text-gray-800 dark:text-gray-100">Каналы проекта</h3>
+              <h3 className="font-semibold text-sm text-gray-800 dark:text-gray-100">{t('Каналы проекта')}</h3>
               <button onClick={() => setShowCreateChannelModal(true)}
-                className="p-1.5 text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors" title="Создать канал">
+                className="p-1.5 text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors" title={t('Создать канал')}>
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                 </svg>
@@ -2956,9 +2960,9 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                 <div className="p-4 flex justify-center"><div className="w-5 h-5 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" /></div>
               ) : projectChannels.length === 0 ? (
                 <div className="p-4 text-center">
-                  <p className="text-xs text-gray-400 mb-2">Каналов пока нет</p>
+                  <p className="text-xs text-gray-400 mb-2">{t('Каналов пока нет')}</p>
                   <button onClick={() => setShowCreateChannelModal(true)}
-                    className="text-xs text-violet-500 hover:text-violet-600 transition-colors">+ Создать первый</button>
+                    className="text-xs text-violet-500 hover:text-violet-600 transition-colors">{t('+ Создать первый')}</button>
                 </div>
               ) : (
                 projectChannels.map((ch) => (
@@ -2986,7 +2990,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                       <button
                         onClick={(e) => { e.stopPropagation(); setEditingChannel(ch); }}
                         className="p-1 text-gray-400 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded transition-all"
-                        title="Редактировать канал">
+                        title={t('Редактировать канал')}>
                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
@@ -2994,7 +2998,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                       <button
                         onClick={(e) => { e.stopPropagation(); handleDeleteChannel(ch); }}
                         className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-all"
-                        title="Удалить канал">
+                        title={t('Удалить канал')}>
                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
@@ -3071,7 +3075,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                 onChange={(e) => setPhotoSiteFilter(e.target.value)}
                 className="appearance-none py-2 pl-3 pr-8 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-violet-500 focus:outline-none cursor-pointer"
               >
-                <option value="">Все площадки</option>
+                <option value="">{t('Все площадки')}</option>
                 {sites.filter((s) => (s.photos || []).length > 0).map((s) => (
                   <option key={s.id} value={String(s.id)}>{s.name}</option>
                 ))}
@@ -3103,11 +3107,11 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                 onChange={(e) => setPhotoSort(e.target.value)}
                 className="appearance-none py-2 pl-3 pr-8 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-violet-500 focus:outline-none cursor-pointer"
               >
-                <option value="default">По умолчанию</option>
-                <option value="most">Больше медиа</option>
-                <option value="least">Меньше медиа</option>
-                <option value="az">Название А-Я</option>
-                <option value="za">Название Я-А</option>
+                <option value="default">{t('По умолчанию')}</option>
+                <option value="most">{t('Больше медиа')}</option>
+                <option value="least">{t('Меньше медиа')}</option>
+                <option value="az">{t('Название А-Я')}</option>
+                <option value="za">{t('Название Я-А')}</option>
               </select>
               <svg className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
@@ -3138,8 +3142,8 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
-              <p className="text-gray-500 dark:text-gray-400">Медиафайлы не загружены</p>
-              <p className="text-xs text-gray-400 mt-1">Нажмите «Добавить медиа» чтобы загрузить фото или видео</p>
+              <p className="text-gray-500 dark:text-gray-400">{t('Медиафайлы не загружены')}</p>
+              <p className="text-xs text-gray-400 mt-1">{t('Нажмите «Добавить медиа» чтобы загрузить фото или видео')}</p>
             </div>
           ) : (
             (() => {
@@ -3192,7 +3196,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                             onClick={(e) => { e.stopPropagation(); handleDeletePhoto(site, rawUrl); }}
                             disabled={isDeleting}
                             className="absolute top-1.5 right-1.5 w-7 h-7 flex items-center justify-center bg-black/60 hover:bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all disabled:opacity-50"
-                            title="Удалить"
+                            title={t('Удалить')}
                           >
                             {isDeleting ? (
                               <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>
@@ -3215,7 +3219,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
           {taskMediaAttachments.length > 0 && (
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
               <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
-                <h3 className="font-semibold text-gray-800 dark:text-gray-100">Медиа из задач</h3>
+                <h3 className="font-semibold text-gray-800 dark:text-gray-100">{t('Медиа из задач')}</h3>
                 <span className="text-xs text-gray-400">{taskMediaAttachments.length} файлов</span>
               </div>
               <div className="p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
@@ -3243,7 +3247,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                       </div>
                       <a href={att.fileUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
                         className="absolute top-1.5 right-1.5 w-7 h-7 flex items-center justify-center bg-black/60 hover:bg-violet-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all"
-                        title="Открыть">
+                        title={t('Открыть')}>
                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
                       </a>
                     </div>
@@ -3259,7 +3263,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
       {activeTab === 'notes' && (
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
-            <h2 className="font-semibold text-gray-800 dark:text-gray-100">Заметки проекта</h2>
+            <h2 className="font-semibold text-gray-800 dark:text-gray-100">{t('Заметки проекта')}</h2>
             {!notesEditing && (
               <button onClick={() => setNotesEditing(true)}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors">
@@ -3278,7 +3282,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                   onChange={(e) => setNotesText(e.target.value)}
                   rows={10}
                   autoFocus
-                  placeholder="Введите заметки по проекту..."
+                  placeholder={t('Введите заметки по проекту...')}
                   className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 text-gray-800 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 resize-y"
                 />
                 <div className="flex gap-2 justify-end">
@@ -3317,7 +3321,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                 <svg className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
-                <p className="text-sm text-gray-400">Заметок пока нет</p>
+                <p className="text-sm text-gray-400">{t('Заметок пока нет')}</p>
                 <button onClick={() => setNotesEditing(true)}
                   className="mt-2 text-xs text-violet-500 hover:text-violet-600 transition-colors">
                   Добавить заметку
@@ -3344,14 +3348,14 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                 <button
                   onClick={() => { setObjectViewMode('table'); localStorage.setItem('projObjectView', 'table'); }}
                   className={`p-1.5 rounded transition-colors ${objectViewMode === 'table' ? 'bg-white dark:bg-gray-600 shadow-sm text-violet-600' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`}
-                  title="Таблица"
+                  title={t('Таблица')}
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 12h16.5M3.75 6.75h16.5M3.75 17.25h16.5" /></svg>
                 </button>
                 <button
                   onClick={() => { setObjectViewMode('grid'); localStorage.setItem('projObjectView', 'grid'); }}
                   className={`p-1.5 rounded transition-colors ${objectViewMode === 'grid' ? 'bg-white dark:bg-gray-600 shadow-sm text-violet-600' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`}
-                  title="Карточки"
+                  title={t('Карточки')}
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" /></svg>
                 </button>
@@ -3373,8 +3377,8 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
               <svg className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
               </svg>
-              <p className="text-sm text-gray-400 dark:text-gray-500">Объектов пока нет</p>
-              <button onClick={() => { setEditingObject(null); setShowObjectModal(true); }} className="mt-2 text-xs text-violet-500 hover:text-violet-600 transition-colors">Добавить первый объект</button>
+              <p className="text-sm text-gray-400 dark:text-gray-500">{t('Объектов пока нет')}</p>
+              <button onClick={() => { setEditingObject(null); setShowObjectModal(true); }} className="mt-2 text-xs text-violet-500 hover:text-violet-600 transition-colors">{t('Добавить первый объект')}</button>
             </div>
           ) : objectViewMode === 'grid' ? (
             <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -3408,14 +3412,14 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                         {obj.plannedEndDate ? new Date(obj.plannedEndDate).toLocaleDateString('ru-RU') : '—'}
                       </span>
                       <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
-                        <button onClick={() => { setEditingObject(obj); setShowObjectModal(true); }} className="p-1.5 text-gray-400 hover:text-violet-500 transition-colors" title="Редактировать">
+                        <button onClick={() => { setEditingObject(obj); setShowObjectModal(true); }} className="p-1.5 text-gray-400 hover:text-violet-500 transition-colors" title={t('Редактировать')}>
                           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                         </button>
                         <button onClick={async () => {
                           if (!confirm(`Удалить объект «${obj.name}»?`)) return;
                           try { await api.delete(`/construction-sites/${obj.id}`); setObjectsList((prev) => prev.filter((o) => o.id !== obj.id)); addToast('success', 'Объект удалён'); }
                           catch { addToast('error', 'Ошибка при удалении'); }
-                        }} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors" title="Удалить">
+                        }} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors" title={t('Удалить')}>
                           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                         </button>
                       </div>
@@ -3429,10 +3433,10 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20">
-                    <th className="py-3 px-4 text-left font-semibold">Название</th>
-                    <th className="py-3 px-4 text-left font-semibold">Адрес</th>
-                    <th className="py-3 px-4 text-left font-semibold">Статус</th>
-                    <th className="py-3 px-4 text-left font-semibold">Нач. — Оконч.</th>
+                    <th className="py-3 px-4 text-left font-semibold">{t('Название')}</th>
+                    <th className="py-3 px-4 text-left font-semibold">{t('Адрес')}</th>
+                    <th className="py-3 px-4 text-left font-semibold">{t('Статус')}</th>
+                    <th className="py-3 px-4 text-left font-semibold">{t('Нач. — Оконч.')}</th>
                     <th className="py-3 px-4 w-28"></th>
                   </tr>
                 </thead>
@@ -3465,7 +3469,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                             <button
                               onClick={() => { setEditingObject(obj); setShowObjectModal(true); }}
                               className="p-1.5 text-gray-400 hover:text-violet-500 transition-colors"
-                              title="Редактировать"
+                              title={t('Редактировать')}
                             >
                               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                             </button>
@@ -3479,7 +3483,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                                 } catch { addToast('error', 'Ошибка при удалении'); }
                               }}
                               className="p-1.5 text-gray-400 hover:text-red-500 transition-colors"
-                              title="Удалить"
+                              title={t('Удалить')}
                             >
                               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                             </button>
@@ -3585,17 +3589,17 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                     <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
                       {/* Budget */}
                       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-4">
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Бюджет</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{t('Бюджет')}</p>
                         <p className="text-xl font-bold text-violet-600 dark:text-violet-400">{fmtMoney(project?.budget) || '—'}</p>
                       </div>
                       {/* Income */}
                       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-4">
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Поступления</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{t('Поступления')}</p>
                         <p className="text-xl font-bold text-green-600 dark:text-green-400">{fmtMoney(totalIncome)}</p>
                       </div>
                       {/* Expense */}
                       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-4">
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Расходы</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{t('Расходы')}</p>
                         <p className="text-xl font-bold text-red-500">{fmtMoney(totalExpense)}</p>
                         {expensePct !== null && (
                           <p className={`text-xs mt-0.5 ${expensePct > 100 ? 'text-red-500 font-semibold' : 'text-gray-400'}`}>
@@ -3605,14 +3609,14 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                       </div>
                       {/* Balance */}
                       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-4">
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Баланс</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{t('Баланс')}</p>
                         <p className={`text-xl font-bold ${balance >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500'}`}>
                           {balance >= 0 ? '+' : ''}{fmtMoney(balance)}
                         </p>
                       </div>
                       {/* Actual costs */}
                       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-4">
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Факт. затраты</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{t('Факт. затраты')}</p>
                         <p className="text-xl font-bold text-orange-500">{fmtMoney(totalActual)}</p>
                         {project?.budget ? (
                           <p className={`text-xs mt-0.5 ${totalActual > project.budget ? 'text-red-500 font-semibold' : 'text-gray-400'}`}>
@@ -3624,7 +3628,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
 
                     {/* ── Correlation chart ── */}
                     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-5">
-                      <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">Корреляция финансов</h3>
+                      <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">{t('Корреляция финансов')}</h3>
                       <ResponsiveContainer width="100%" height={200}>
                         <BarChart data={chartData} barCategoryGap="30%" barGap={4}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
@@ -3673,7 +3677,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                               </svg>
                             </div>
-                            <h3 className="font-semibold text-gray-900 dark:text-gray-100">Прогнозирование бюджета</h3>
+                            <h3 className="font-semibold text-gray-900 dark:text-gray-100">{t('Прогнозирование бюджета')}</h3>
                             {isOverrun && (
                               <span className="ml-auto text-xs font-medium px-2 py-0.5 bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 rounded-full">
                                 Риск превышения
@@ -3683,7 +3687,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
 
                           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                             <div className="bg-gray-50 dark:bg-gray-700/40 rounded-xl p-3.5">
-                              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Прогноз итоговых затрат</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{t('Прогноз итоговых затрат')}</p>
                               <p className={`text-lg font-bold ${isOverrun ? 'text-red-500' : 'text-green-600 dark:text-green-400'}`}>
                                 {projected != null ? fmtMoney(projected) : '—'}
                               </p>
@@ -3703,7 +3707,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                               </p>
                             </div>
                             <div className="bg-gray-50 dark:bg-gray-700/40 rounded-xl p-3.5">
-                              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Индекс эффективности (CPI)</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{t('Индекс эффективности (CPI)')}</p>
                               <p className={`text-lg font-bold ${cpi == null ? 'text-gray-400' : cpi <= 1 ? 'text-green-600 dark:text-green-400' : 'text-red-500'}`}>
                                 {cpi != null ? cpi.toFixed(2) : '—'}
                               </p>
@@ -3712,7 +3716,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                               </p>
                             </div>
                             <div className="bg-gray-50 dark:bg-gray-700/40 rounded-xl p-3.5">
-                              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Осталось дней</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{t('Осталось дней')}</p>
                               <p className={`text-lg font-bold ${daysLeft == null ? 'text-gray-400' : daysLeft === 0 ? 'text-red-500' : daysLeft <= 7 ? 'text-orange-500' : 'text-gray-700 dark:text-gray-200'}`}>
                                 {daysLeft != null ? daysLeft : '—'}
                               </p>
@@ -3725,7 +3729,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                           <div className="space-y-3">
                             <div>
                               <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-1.5">
-                                <span>Использование бюджета</span>
+                                <span>{t('Использование бюджета')}</span>
                                 <span className="font-medium">{expensePctForecast}%</span>
                               </div>
                               <div className="h-2.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
@@ -3738,7 +3742,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                             {timePct != null && (
                               <div>
                                 <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-1.5">
-                                  <span>Прошло времени по плану</span>
+                                  <span>{t('Прошло времени по плану')}</span>
                                   <span className="font-medium">{timePct}%</span>
                                 </div>
                                 <div className="h-2.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
@@ -3749,7 +3753,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                             {projectedPct != null && (
                               <div>
                                 <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-1.5">
-                                  <span>Прогноз к завершению</span>
+                                  <span>{t('Прогноз к завершению')}</span>
                                   <span className={`font-medium ${projectedPct > 100 ? 'text-red-500' : 'text-green-600'}`}>{projectedPct}%</span>
                                 </div>
                                 <div className="h-2.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
@@ -3768,7 +3772,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
                               </svg>
                               <div>
-                                <p className="text-sm font-medium text-red-700 dark:text-red-400">Прогнозируемое превышение бюджета</p>
+                                <p className="text-sm font-medium text-red-700 dark:text-red-400">{t('Прогнозируемое превышение бюджета')}</p>
                                 <p className="text-xs text-red-600 dark:text-red-400 mt-0.5">
                                   При текущем темпе расходов ({fmtMoney(Math.round(burnRate))} / день) итоговые затраты превысят бюджет на {fmtMoney(overrun)}.
                                   {daysLeft != null && daysLeft > 0 ? ` Рекомендуется сократить расходы до ${fmtMoney(Math.round((budget - totalExpense) / daysLeft))} / день.` : ''}
@@ -3799,7 +3803,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
           {financeSubTab === 'payments' && (loadingFinance ? <LoadingState /> : (
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
               <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-3">
-                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">Платежи</h3>
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">{t('Платежи')}</h3>
                   <FinanceViewToggle mode={financeViewMode} onChange={(m) => { setFinanceViewMode(m); localStorage.setItem('financeViewMode', m); }} />
                   <button onClick={() => { setEditingPayment(null); setShowPaymentModal(true); }}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
@@ -3808,18 +3812,18 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                   </button>
                 </div>
                 {financePayments.length === 0 ? (
-                  <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">Нет платежей для этого проекта</div>
+                  <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">{t('Нет платежей для этого проекта')}</div>
                 ) : financeViewMode === 'table' ? (
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
                           <th className="py-3 px-4 text-left font-semibold">№</th>
-                          <th className="py-3 px-4 text-left font-semibold">Направление</th>
-                          <th className="py-3 px-4 text-right font-semibold">Сумма</th>
-                          <th className="py-3 px-4 text-left font-semibold">Дата</th>
-                          <th className="py-3 px-4 text-left font-semibold">Категория</th>
-                          <th className="py-3 px-4 text-center font-semibold">Статус</th>
+                          <th className="py-3 px-4 text-left font-semibold">{t('Направление')}</th>
+                          <th className="py-3 px-4 text-right font-semibold">{t('Сумма')}</th>
+                          <th className="py-3 px-4 text-left font-semibold">{t('Дата')}</th>
+                          <th className="py-3 px-4 text-left font-semibold">{t('Категория')}</th>
+                          <th className="py-3 px-4 text-center font-semibold">{t('Статус')}</th>
                           <th className="py-3 px-4 w-16"></th>
                         </tr>
                       </thead>
@@ -3890,18 +3894,18 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                           </p>
                           <div className="space-y-1.5 text-xs text-gray-500 dark:text-gray-400">
                             <div className="flex justify-between">
-                              <span>Дата:</span>
+                              <span>{t('Дата:')}</span>
                               <span className="text-gray-700 dark:text-gray-300">{fmt(p.paymentDate)}</span>
                             </div>
                             {p.category && (
                               <div className="flex justify-between">
-                                <span>Категория:</span>
+                                <span>{t('Категория:')}</span>
                                 <span className="text-gray-700 dark:text-gray-300 truncate ml-2">{p.category}</span>
                               </div>
                             )}
                             {p.status != null && (
                               <div className="flex justify-between items-center">
-                                <span>Статус:</span>
+                                <span>{t('Статус:')}</span>
                                 <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${PAYMENT_STATUS[p.status]?.color ?? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>
                                   {PAYMENT_STATUS[p.status]?.label ?? p.status}
                                 </span>
@@ -3921,7 +3925,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
           {financeSubTab === 'budgets' && (loadingFinance ? <LoadingState /> : (
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
               <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-3">
-                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">Бюджеты</h3>
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">{t('Бюджеты')}</h3>
                   <FinanceViewToggle mode={budgetsViewMode} onChange={(m) => { setBudgetsViewMode(m); localStorage.setItem('budgetsViewMode', m); }} />
                   <button onClick={() => { setEditingBudget(null); setShowBudgetModal(true); }}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
@@ -3930,18 +3934,18 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                   </button>
                 </div>
                 {financeBudgets.length === 0 ? (
-                  <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">Нет бюджетов для этого проекта</div>
+                  <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">{t('Нет бюджетов для этого проекта')}</div>
                 ) : budgetsViewMode === 'table' ? (
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
-                          <th className="py-3 px-4 text-left font-semibold">Название</th>
-                          <th className="py-3 px-4 text-right font-semibold">Общий</th>
-                          <th className="py-3 px-4 text-right font-semibold">Потрачено</th>
-                          <th className="py-3 px-4 text-right font-semibold">Выделено</th>
-                          <th className="py-3 px-4 text-center font-semibold">Статус</th>
-                          <th className="py-3 px-4 text-left font-semibold">Период</th>
+                          <th className="py-3 px-4 text-left font-semibold">{t('Название')}</th>
+                          <th className="py-3 px-4 text-right font-semibold">{t('Общий')}</th>
+                          <th className="py-3 px-4 text-right font-semibold">{t('Потрачено')}</th>
+                          <th className="py-3 px-4 text-right font-semibold">{t('Выделено')}</th>
+                          <th className="py-3 px-4 text-center font-semibold">{t('Статус')}</th>
+                          <th className="py-3 px-4 text-left font-semibold">{t('Период')}</th>
                           <th className="py-3 px-4 w-16"></th>
                         </tr>
                       </thead>
@@ -4004,7 +4008,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                           {pct != null && (
                             <div className="mb-3">
                               <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
-                                <span>Использовано</span>
+                                <span>{t('Использовано')}</span>
                                 <span className={overSpent ? 'text-red-500 font-semibold' : ''}>{pct}%</span>
                               </div>
                               <div className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
@@ -4014,16 +4018,16 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                           )}
                           <div className="space-y-1.5 text-xs text-gray-500 dark:text-gray-400">
                             <div className="flex justify-between">
-                              <span>Потрачено:</span>
+                              <span>{t('Потрачено:')}</span>
                               <span className={overSpent ? 'text-red-500 font-semibold' : 'text-gray-700 dark:text-gray-300'}>{fmtMoney(b.spentAmount)}</span>
                             </div>
                             <div className="flex justify-between">
-                              <span>Выделено:</span>
+                              <span>{t('Выделено:')}</span>
                               <span className="text-gray-700 dark:text-gray-300">{fmtMoney(b.allocatedAmount)}</span>
                             </div>
                             {b.status != null && (
                               <div className="flex justify-between items-center">
-                                <span>Статус:</span>
+                                <span>{t('Статус:')}</span>
                                 <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${BUDGET_STATUS[b.status]?.color ?? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>
                                   {BUDGET_STATUS[b.status]?.label ?? b.status}
                                 </span>
@@ -4031,7 +4035,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                             )}
                             {(b.startDate || b.endDate) && (
                               <div className="flex justify-between">
-                                <span>Период:</span>
+                                <span>{t('Период:')}</span>
                                 <span className="text-gray-700 dark:text-gray-300">{b.startDate ? fmt(b.startDate) : ''}{b.startDate && b.endDate ? ' – ' : ''}{b.endDate ? fmt(b.endDate) : ''}</span>
                               </div>
                             )}
@@ -4048,7 +4052,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
           {financeSubTab === 'acts' && (loadingFinance ? <LoadingState /> : (
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
               <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-3">
-                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">Акты</h3>
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">{t('Акты')}</h3>
                   <FinanceViewToggle mode={actsViewMode} onChange={(m) => { setActsViewMode(m); localStorage.setItem('actsViewMode', m); }} />
                   <button onClick={() => { setEditingAct(null); setShowActModal(true); }}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
@@ -4057,17 +4061,17 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                   </button>
                 </div>
                 {financeActs.length === 0 ? (
-                  <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">Нет актов для этого проекта</div>
+                  <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">{t('Нет актов для этого проекта')}</div>
                 ) : actsViewMode === 'table' ? (
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
-                          <th className="py-3 px-4 text-left font-semibold">№ акта</th>
-                          <th className="py-3 px-4 text-left font-semibold">Тип</th>
-                          <th className="py-3 px-4 text-left font-semibold">Дата</th>
-                          <th className="py-3 px-4 text-right font-semibold">Сумма</th>
-                          <th className="py-3 px-4 text-center font-semibold">Статус</th>
+                          <th className="py-3 px-4 text-left font-semibold">{t('№ акта')}</th>
+                          <th className="py-3 px-4 text-left font-semibold">{t('Тип')}</th>
+                          <th className="py-3 px-4 text-left font-semibold">{t('Дата')}</th>
+                          <th className="py-3 px-4 text-right font-semibold">{t('Сумма')}</th>
+                          <th className="py-3 px-4 text-center font-semibold">{t('Статус')}</th>
                           <th className="py-3 px-4 w-16"></th>
                         </tr>
                       </thead>
@@ -4115,12 +4119,12 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                         <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">{fmtMoney(a.totalAmount)}</p>
                         <div className="space-y-1.5 text-xs text-gray-500 dark:text-gray-400">
                           <div className="flex justify-between">
-                            <span>Дата:</span>
+                            <span>{t('Дата:')}</span>
                             <span className="text-gray-700 dark:text-gray-300">{fmt(a.actDate)}</span>
                           </div>
                           {a.status != null && (
                             <div className="flex justify-between items-center">
-                              <span>Статус:</span>
+                              <span>{t('Статус:')}</span>
                               <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${ACT_STATUS[a.status]?.color ?? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>
                                 {ACT_STATUS[a.status]?.label ?? a.status}
                               </span>
@@ -4140,15 +4144,15 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
               <div className="flex items-center gap-3">
                 <div className="relative flex-1 max-w-xs">
                   <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                  <input value={priceSearch} onChange={e => setPriceSearch(e.target.value)} placeholder="Поиск по названию..." className="w-full pl-9 pr-4 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                  <input value={priceSearch} onChange={e => setPriceSearch(e.target.value)} placeholder={t('Поиск по названию...')} className="w-full pl-9 pr-4 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500" />
                 </div>
                 {priceCategories.length > 0 && (
                   <select value={priceCategoryFilter} onChange={e => setPriceCategoryFilter(e.target.value)} className="text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500 text-gray-700 dark:text-gray-300">
-                    <option value="">Все категории</option>
+                    <option value="">{t('Все категории')}</option>
                     {priceCategories.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 )}
-                <button onClick={() => setShowImportPriceModal(true)} className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-medium rounded-lg transition-colors whitespace-nowrap" title="Импорт позиций из прайс-листа компании">
+                <button onClick={() => setShowImportPriceModal(true)} className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-medium rounded-lg transition-colors whitespace-nowrap" title={t('Импорт позиций из прайс-листа компании')}>
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 16V4m0 12l-3-3m3 3l3-3m6 6.5V19a2 2 0 01-2 2H6a2 2 0 01-2-2v-2.5" /></svg>
                   Из прайса компании
                 </button>
@@ -4181,11 +4185,11 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                           <table className="w-full text-sm">
                             <thead>
                               <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50/50 dark:bg-gray-900/10">
-                                <th className="py-2.5 px-4 text-left font-semibold">Услуга</th>
-                                <th className="py-2.5 px-4 text-left font-semibold">Код</th>
-                                <th className="py-2.5 px-4 text-left font-semibold">Ед.</th>
-                                <th className="py-2.5 px-4 text-right font-semibold">Стоимость</th>
-                                <th className="py-2.5 px-4 text-center font-semibold">Сложность</th>
+                                <th className="py-2.5 px-4 text-left font-semibold">{t('Услуга')}</th>
+                                <th className="py-2.5 px-4 text-left font-semibold">{t('Код')}</th>
+                                <th className="py-2.5 px-4 text-left font-semibold">{t('Ед.')}</th>
+                                <th className="py-2.5 px-4 text-right font-semibold">{t('Стоимость')}</th>
+                                <th className="py-2.5 px-4 text-center font-semibold">{t('Сложность')}</th>
                                 <th className="py-2.5 px-4 w-20"></th>
                               </tr>
                             </thead>
@@ -4272,7 +4276,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                   {/* Реквиты КП — collapsible */}
                   <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
                     <button onClick={() => setProposalDetailsOpen(o => !o)} className="w-full px-5 py-3.5 flex items-center gap-2 text-left hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                      <span className="text-sm font-semibold text-violet-600 dark:text-violet-400">Реквиты КП</span>
+                      <span className="text-sm font-semibold text-violet-600 dark:text-violet-400">{t('Реквиты КП')}</span>
                       <span className="flex-1" />
                       <svg className={`w-4 h-4 text-gray-400 transition-transform ${proposalDetailsOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
                     </button>
@@ -4293,7 +4297,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                         ))}
                         {selectedProposal.notes && (
                           <div className="col-span-2 md:col-span-3">
-                            <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 tracking-wide mb-0.5">ПРИМЕЧАНИЯ</p>
+                            <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 tracking-wide mb-0.5">{t('ПРИМЕЧАНИЯ')}</p>
                             <p className="text-sm text-gray-800 dark:text-gray-200">{selectedProposal.notes}</p>
                           </div>
                         )}
@@ -4304,7 +4308,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                   {/* Добавить позицию — из прайса или из задач */}
                   <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-4">
                     <div className="flex items-center justify-between mb-3">
-                      <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Добавить позицию</p>
+                      <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">{t('Добавить позицию')}</p>
                       <div className="flex rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 text-xs font-medium">
                         <button
                           onClick={() => setKpAddSource('price')}
@@ -4339,7 +4343,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                             <input
                               value={proposalLineSearch}
                               onChange={e => setProposalLineSearch(e.target.value)}
-                              placeholder="Фильтр по названию или категории..."
+                              placeholder={t('Фильтр по названию или категории...')}
                               className="w-full pl-9 pr-4 py-2 text-sm bg-gray-50 dark:bg-gray-900/30 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:bg-white dark:focus:bg-gray-800"
                             />
                           </div>
@@ -4349,7 +4353,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                               Прайс-лист пуст. Добавьте услуги во вкладке «Прайс».
                             </div>
                           ) : visible.length === 0 ? (
-                            <p className="py-3 text-center text-sm text-gray-400 dark:text-gray-500">Ничего не найдено</p>
+                            <p className="py-3 text-center text-sm text-gray-400 dark:text-gray-500">{t('Ничего не найдено')}</p>
                           ) : (
                             <div className="space-y-1 max-h-64 overflow-y-auto">
                               {visible.map(p => {
@@ -4392,7 +4396,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                     })() : kpAddSource === 'tasks' ? (
                       <div className="space-y-1 max-h-72 overflow-y-auto">
                         {closedTasksLoading ? (
-                          <div className="py-6 text-center text-sm text-gray-400 dark:text-gray-500">Загрузка задач...</div>
+                          <div className="py-6 text-center text-sm text-gray-400 dark:text-gray-500">{t('Загрузка задач...')}</div>
                         ) : closedTasks.length === 0 ? (
                           <div className="py-6 text-center text-sm text-gray-400 dark:text-gray-500">
                             <svg className="w-8 h-8 mx-auto mb-2 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
@@ -4416,7 +4420,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                                   <input
                                     type="number"
                                     min="0"
-                                    placeholder="Цена ₽"
+                                    placeholder={t('Цена ₽')}
                                     value={taskPrices[task.id] ?? ''}
                                     onChange={e => setTaskPrices(prev => ({ ...prev, [task.id]: e.target.value }))}
                                     className="w-24 text-sm text-right border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1.5 bg-gray-50 dark:bg-gray-900/30 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:bg-white dark:focus:bg-gray-800"
@@ -4449,10 +4453,10 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                       <div className="space-y-3">
                         <div className="grid grid-cols-1 gap-2">
                           <div>
-                            <label className="block text-xs text-gray-400 dark:text-gray-500 mb-1">Наименование *</label>
+                            <label className="block text-xs text-gray-400 dark:text-gray-500 mb-1">{t('Наименование *')}</label>
                             <input
                               type="text"
-                              placeholder="Название работы или услуги"
+                              placeholder={t('Название работы или услуги')}
                               value={manualLine.serviceName}
                               onChange={e => setManualLine(prev => ({ ...prev, serviceName: e.target.value }))}
                               className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-900/30 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:bg-white dark:focus:bg-gray-800"
@@ -4460,17 +4464,17 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                           </div>
                           <div className="grid grid-cols-3 gap-2">
                             <div>
-                              <label className="block text-xs text-gray-400 dark:text-gray-500 mb-1">Ед. изм.</label>
+                              <label className="block text-xs text-gray-400 dark:text-gray-500 mb-1">{t('Ед. изм.')}</label>
                               <input
                                 type="text"
-                                placeholder="шт, м², км..."
+                                placeholder={t('шт, м², км...')}
                                 value={manualLine.unit}
                                 onChange={e => setManualLine(prev => ({ ...prev, unit: e.target.value }))}
                                 className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-900/30 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:bg-white dark:focus:bg-gray-800"
                               />
                             </div>
                             <div>
-                              <label className="block text-xs text-gray-400 dark:text-gray-500 mb-1">Количество</label>
+                              <label className="block text-xs text-gray-400 dark:text-gray-500 mb-1">{t('Количество')}</label>
                               <input
                                 type="number"
                                 min="0"
@@ -4481,7 +4485,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                               />
                             </div>
                             <div>
-                              <label className="block text-xs text-gray-400 dark:text-gray-500 mb-1">Цена ₽</label>
+                              <label className="block text-xs text-gray-400 dark:text-gray-500 mb-1">{t('Цена ₽')}</label>
                               <input
                                 type="number"
                                 min="0"
@@ -4528,21 +4532,21 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                   {/* Состав КП */}
                   <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
                     <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center">
-                      <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">Состав КП</h4>
+                      <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">{t('Состав КП')}</h4>
                       <span className="text-xs text-gray-400 dark:text-gray-500">{selectedProposal.lines.length} позиций</span>
                     </div>
                     {selectedProposal.lines.length === 0 ? (
-                      <div className="py-10 text-center text-sm text-gray-400 dark:text-gray-500">Добавьте позиции: из прайса, задач проекта или вручную</div>
+                      <div className="py-10 text-center text-sm text-gray-400 dark:text-gray-500">{t('Добавьте позиции: из прайса, задач проекта или вручную')}</div>
                     ) : (
                       <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                           <thead>
                             <tr className="text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
-                              <th className="py-3 px-4 text-left font-semibold">Услуга</th>
-                              <th className="py-3 px-4 text-center font-semibold w-16">Ед.</th>
-                              <th className="py-3 px-4 text-right font-semibold w-24">Кол-во</th>
-                              <th className="py-3 px-4 text-right font-semibold w-32">Цена</th>
-                              <th className="py-3 px-4 text-right font-semibold w-28">Сумма</th>
+                              <th className="py-3 px-4 text-left font-semibold">{t('Услуга')}</th>
+                              <th className="py-3 px-4 text-center font-semibold w-16">{t('Ед.')}</th>
+                              <th className="py-3 px-4 text-right font-semibold w-24">{t('Кол-во')}</th>
+                              <th className="py-3 px-4 text-right font-semibold w-32">{t('Цена')}</th>
+                              <th className="py-3 px-4 text-right font-semibold w-28">{t('Сумма')}</th>
                               <th className="py-3 px-4 w-12"></th>
                             </tr>
                           </thead>
@@ -4559,7 +4563,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                           </tbody>
                           <tfoot>
                             <tr className="bg-gray-50 dark:bg-gray-900/20 border-t-2 border-gray-200 dark:border-gray-700">
-                              <td colSpan={3} className="py-3 px-4 text-right font-semibold text-gray-700 dark:text-gray-300 text-sm">Итого:</td>
+                              <td colSpan={3} className="py-3 px-4 text-right font-semibold text-gray-700 dark:text-gray-300 text-sm">{t('Итого:')}</td>
                               <td className="py-3 px-4 text-right font-bold text-base text-violet-600 dark:text-violet-400" colSpan={2}>{fmtMoney(selectedProposal.totalAmount)}</td>
                               <td></td>
                             </tr>
@@ -4573,7 +4577,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
               ) : (
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
                   <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-3">
-                    <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">Коммерческие предложения</h3>
+                    <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">{t('Коммерческие предложения')}</h3>
                     <button onClick={() => setShowProposalModal(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
                       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
                       Создать КП
@@ -4582,19 +4586,19 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                   {proposals.length === 0 ? (
                     <div className="py-16 text-center">
                       <svg className="w-12 h-12 mx-auto text-gray-300 dark:text-gray-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                      <p className="text-sm text-gray-400 dark:text-gray-500">Коммерческих предложений нет</p>
+                      <p className="text-sm text-gray-400 dark:text-gray-500">{t('Коммерческих предложений нет')}</p>
                     </div>
                   ) : (
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
-                            <th className="py-3 px-4 text-left font-semibold">№ КП</th>
-                            <th className="py-3 px-4 text-left font-semibold">Клиент</th>
-                            <th className="py-3 px-4 text-left font-semibold">Объект</th>
-                            <th className="py-3 px-4 text-right font-semibold">Сумма</th>
-                            <th className="py-3 px-4 text-center font-semibold">Статус</th>
-                            <th className="py-3 px-4 text-right font-semibold">Дата</th>
+                            <th className="py-3 px-4 text-left font-semibold">{t('№ КП')}</th>
+                            <th className="py-3 px-4 text-left font-semibold">{t('Клиент')}</th>
+                            <th className="py-3 px-4 text-left font-semibold">{t('Объект')}</th>
+                            <th className="py-3 px-4 text-right font-semibold">{t('Сумма')}</th>
+                            <th className="py-3 px-4 text-center font-semibold">{t('Статус')}</th>
+                            <th className="py-3 px-4 text-right font-semibold">{t('Дата')}</th>
                             <th className="py-3 px-4 w-12"></th>
                           </tr>
                         </thead>
@@ -4631,7 +4635,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
           {financeSubTab === 'payroll' && (
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
               <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-3">
-                <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">Расчётные ведомости</h3>
+                <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">{t('Расчётные ведомости')}</h3>
                 <button onClick={() => { setEditingPayroll(null); setShowPayrollModal(true); }} className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
                   Создать
@@ -4640,19 +4644,19 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
               {payrollLoading ? <LoadingState /> : payrollList.length === 0 ? (
                 <div className="py-16 text-center">
                   <svg className="w-12 h-12 mx-auto text-gray-300 dark:text-gray-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-                  <p className="text-sm text-gray-400 dark:text-gray-500">Расчётных ведомостей нет</p>
+                  <p className="text-sm text-gray-400 dark:text-gray-500">{t('Расчётных ведомостей нет')}</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
-                        <th className="py-3 px-4 text-left font-semibold">Сотрудник</th>
-                        <th className="py-3 px-4 text-left font-semibold">Период</th>
-                        <th className="py-3 px-4 text-right font-semibold">Оклад</th>
-                        <th className="py-3 px-4 text-right font-semibold">Итого</th>
-                        <th className="py-3 px-4 text-center font-semibold">Статус</th>
-                        <th className="py-3 px-4 text-right font-semibold">Дата выплаты</th>
+                        <th className="py-3 px-4 text-left font-semibold">{t('Сотрудник')}</th>
+                        <th className="py-3 px-4 text-left font-semibold">{t('Период')}</th>
+                        <th className="py-3 px-4 text-right font-semibold">{t('Оклад')}</th>
+                        <th className="py-3 px-4 text-right font-semibold">{t('Итого')}</th>
+                        <th className="py-3 px-4 text-center font-semibold">{t('Статус')}</th>
+                        <th className="py-3 px-4 text-right font-semibold">{t('Дата выплаты')}</th>
                         <th className="py-3 px-4 w-20"></th>
                       </tr>
                     </thead>
@@ -4697,7 +4701,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
           {financeSubTab === 'bonuses' && (
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
               <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-3">
-                <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">Бонусы</h3>
+                <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">{t('Бонусы')}</h3>
                 <button onClick={() => { setEditingBonus(null); setShowBonusModal(true); }} className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
                   Начислить
@@ -4706,18 +4710,18 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
               {bonusLoading ? <LoadingState /> : bonusList.length === 0 ? (
                 <div className="py-16 text-center">
                   <svg className="w-12 h-12 mx-auto text-gray-300 dark:text-gray-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  <p className="text-sm text-gray-400 dark:text-gray-500">Бонусов нет</p>
+                  <p className="text-sm text-gray-400 dark:text-gray-500">{t('Бонусов нет')}</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
-                        <th className="py-3 px-4 text-left font-semibold">Сотрудник</th>
-                        <th className="py-3 px-4 text-left font-semibold">Тип</th>
-                        <th className="py-3 px-4 text-right font-semibold">Сумма</th>
-                        <th className="py-3 px-4 text-left font-semibold">Описание</th>
-                        <th className="py-3 px-4 text-right font-semibold">Дата</th>
+                        <th className="py-3 px-4 text-left font-semibold">{t('Сотрудник')}</th>
+                        <th className="py-3 px-4 text-left font-semibold">{t('Тип')}</th>
+                        <th className="py-3 px-4 text-right font-semibold">{t('Сумма')}</th>
+                        <th className="py-3 px-4 text-left font-semibold">{t('Описание')}</th>
+                        <th className="py-3 px-4 text-right font-semibold">{t('Дата')}</th>
                         <th className="py-3 px-4 w-20"></th>
                       </tr>
                     </thead>
@@ -4789,7 +4793,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                       </>
                     ) : (
                       <div className="w-28 h-28 bg-gray-100 dark:bg-gray-900/40 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-200 dark:border-gray-700">
-                        <span className="text-xs text-gray-300 dark:text-gray-600">QR код</span>
+                        <span className="text-xs text-gray-300 dark:text-gray-600">{t('QR код')}</span>
                       </div>
                     )}
                   </div>
@@ -4808,7 +4812,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                       </div>
                     ))}
                     <div>
-                      <dt className="text-xs text-gray-400 dark:text-gray-500">Текущий склад</dt>
+                      <dt className="text-xs text-gray-400 dark:text-gray-500">{t('Текущий склад')}</dt>
                       <dd className="mt-0.5">
                         {eq.currentLocation ? (
                           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300">{eq.currentLocation}</span>
@@ -4816,7 +4820,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                       </dd>
                     </div>
                     <div>
-                      <dt className="text-xs text-gray-400 dark:text-gray-500">Статус</dt>
+                      <dt className="text-xs text-gray-400 dark:text-gray-500">{t('Статус')}</dt>
                       <dd className="mt-0.5">
                         {eq.status != null ? (
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${EQUIPMENT_STATUS[eq.status]?.color ?? 'bg-gray-100 text-gray-600'}`}>
@@ -4829,7 +4833,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                 </div>
                 {eq.notes && (
                   <div className="px-5 pb-5">
-                    <dt className="text-xs text-gray-400 dark:text-gray-500 mb-1">Примечания</dt>
+                    <dt className="text-xs text-gray-400 dark:text-gray-500 mb-1">{t('Примечания')}</dt>
                     <dd className="text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/30 rounded-lg p-3">{eq.notes}</dd>
                   </div>
                 )}
@@ -4837,10 +4841,10 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
               {/* Right card — history */}
               <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
                 <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60">
-                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm">История перемещений</h3>
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{t('История перемещений')}</h3>
                 </div>
                 {eqHistory.length === 0 ? (
-                  <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">Нет записей истории</div>
+                  <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">{t('Нет записей истории')}</div>
                 ) : (
                   <div className="px-5 py-4 overflow-y-auto max-h-[480px]">
                     <div className="relative">
@@ -4913,7 +4917,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
               {resourceSubTab === 'materials' && (
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
                   <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-3">
-                    <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">Материальные заявки</h3>
+                    <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">{t('Материальные заявки')}</h3>
                     <FinanceViewToggle mode={matReqViewMode} onChange={(m) => { setMatReqViewMode(m); localStorage.setItem('matReqViewMode', m); }} />
                     <button onClick={() => { setEditingMR(null); setShowMRModal(true); }}
                       className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
@@ -4922,7 +4926,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                     </button>
                   </div>
                   {materialRequests.length === 0 ? (
-                    <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">Нет материальных заявок для этого проекта</div>
+                    <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">{t('Нет материальных заявок для этого проекта')}</div>
                   ) : matReqViewMode === 'grid' ? (
                     <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                       {materialRequests.map((mr) => (
@@ -4936,10 +4940,10 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                           </div>
                           {mr.purpose && <p className="text-sm text-gray-700 dark:text-gray-300 truncate">{mr.purpose}</p>}
                           <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs mt-1">
-                            <div><dt className="text-gray-400">Позиций</dt><dd className="text-gray-700 dark:text-gray-300">{mr.items?.length ?? 0}</dd></div>
-                            <div><dt className="text-gray-400">Запросил</dt><dd className="text-gray-700 dark:text-gray-300 truncate">{mr.requestedBy?.name || '—'}</dd></div>
-                            <div><dt className="text-gray-400">Дата заявки</dt><dd className="text-gray-700 dark:text-gray-300">{mr.requestDate ? new Date(mr.requestDate).toLocaleDateString('ru-RU') : '—'}</dd></div>
-                            <div><dt className="text-gray-400">Нужно до</dt><dd className="text-gray-700 dark:text-gray-300">{mr.neededByDate ? new Date(mr.neededByDate).toLocaleDateString('ru-RU') : '—'}</dd></div>
+                            <div><dt className="text-gray-400">{t('Позиций')}</dt><dd className="text-gray-700 dark:text-gray-300">{mr.items?.length ?? 0}</dd></div>
+                            <div><dt className="text-gray-400">{t('Запросил')}</dt><dd className="text-gray-700 dark:text-gray-300 truncate">{mr.requestedBy?.name || '—'}</dd></div>
+                            <div><dt className="text-gray-400">{t('Дата заявки')}</dt><dd className="text-gray-700 dark:text-gray-300">{mr.requestDate ? new Date(mr.requestDate).toLocaleDateString('ru-RU') : '—'}</dd></div>
+                            <div><dt className="text-gray-400">{t('Нужно до')}</dt><dd className="text-gray-700 dark:text-gray-300">{mr.neededByDate ? new Date(mr.neededByDate).toLocaleDateString('ru-RU') : '—'}</dd></div>
                           </dl>
                           <div className="flex justify-end pt-1" onClick={(e) => e.stopPropagation()}>
                             <button onClick={() => handleDeleteMaterialRequest(mr.id)} className="p-1 text-gray-300 hover:text-red-500 dark:text-gray-600 dark:hover:text-red-400 transition-colors">
@@ -4954,13 +4958,13 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
-                            <th className="py-3 px-4 text-left font-semibold">№ заявки</th>
-                            <th className="py-3 px-4 text-left font-semibold">Статус</th>
-                            <th className="py-3 px-4 text-left font-semibold">Цель</th>
-                            <th className="py-3 px-4 text-left font-semibold">Позиций</th>
-                            <th className="py-3 px-4 text-left font-semibold">Запросил</th>
-                            <th className="py-3 px-4 text-left font-semibold">Дата заявки</th>
-                            <th className="py-3 px-4 text-left font-semibold">Нужно до</th>
+                            <th className="py-3 px-4 text-left font-semibold">{t('№ заявки')}</th>
+                            <th className="py-3 px-4 text-left font-semibold">{t('Статус')}</th>
+                            <th className="py-3 px-4 text-left font-semibold">{t('Цель')}</th>
+                            <th className="py-3 px-4 text-left font-semibold">{t('Позиций')}</th>
+                            <th className="py-3 px-4 text-left font-semibold">{t('Запросил')}</th>
+                            <th className="py-3 px-4 text-left font-semibold">{t('Дата заявки')}</th>
+                            <th className="py-3 px-4 text-left font-semibold">{t('Нужно до')}</th>
                             <th className="py-3 px-4 w-10"></th>
                           </tr>
                         </thead>
@@ -4998,7 +5002,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
               {resourceSubTab === 'orders' && (
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
                   <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-3">
-                    <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">Заказы поставщикам</h3>
+                    <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">{t('Заказы поставщикам')}</h3>
                     <FinanceViewToggle mode={supplierOrderViewMode} onChange={(m) => { setSupplierOrderViewMode(m); localStorage.setItem('supplierOrderViewMode', m); }} />
                     <button onClick={() => { setEditingSO(null); setShowSOModal(true); }}
                       className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
@@ -5007,7 +5011,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                     </button>
                   </div>
                   {supplierOrders.length === 0 ? (
-                    <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">Нет заказов поставщикам для этого проекта</div>
+                    <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">{t('Нет заказов поставщикам для этого проекта')}</div>
                   ) : supplierOrderViewMode === 'grid' ? (
                     <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                       {supplierOrders.map((so) => (
@@ -5021,11 +5025,11 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                           </div>
                           <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{so.supplier?.name || '—'}</p>
                           <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs mt-1">
-                            <div><dt className="text-gray-400">Позиций</dt><dd className="text-gray-700 dark:text-gray-300">{so.items?.length ?? 0}</dd></div>
-                            <div><dt className="text-gray-400">Сумма</dt><dd className="font-semibold text-gray-800 dark:text-gray-200">
+                            <div><dt className="text-gray-400">{t('Позиций')}</dt><dd className="text-gray-700 dark:text-gray-300">{so.items?.length ?? 0}</dd></div>
+                            <div><dt className="text-gray-400">{t('Сумма')}</dt><dd className="font-semibold text-gray-800 dark:text-gray-200">
                               {so.totalAmount != null ? new Intl.NumberFormat('ru-RU', { style: 'currency', currency: so.currency || 'RUB', maximumFractionDigits: 0 }).format(so.totalAmount) : '—'}
                             </dd></div>
-                            <div><dt className="text-gray-400">Дата заказа</dt><dd className="text-gray-700 dark:text-gray-300">{so.orderDate ? new Date(so.orderDate).toLocaleDateString('ru-RU') : '—'}</dd></div>
+                            <div><dt className="text-gray-400">{t('Дата заказа')}</dt><dd className="text-gray-700 dark:text-gray-300">{so.orderDate ? new Date(so.orderDate).toLocaleDateString('ru-RU') : '—'}</dd></div>
                           </dl>
                           <div className="flex justify-end pt-1" onClick={(e) => e.stopPropagation()}>
                             <button onClick={() => handleDeleteSupplierOrder(so.id)} className="p-1 text-gray-300 hover:text-red-500 dark:text-gray-600 dark:hover:text-red-400 transition-colors">
@@ -5040,12 +5044,12 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
-                            <th className="py-3 px-4 text-left font-semibold">№ заказа</th>
-                            <th className="py-3 px-4 text-left font-semibold">Статус</th>
-                            <th className="py-3 px-4 text-left font-semibold">Поставщик</th>
-                            <th className="py-3 px-4 text-left font-semibold">Позиций</th>
-                            <th className="py-3 px-4 text-right font-semibold">Сумма</th>
-                            <th className="py-3 px-4 text-left font-semibold">Дата заказа</th>
+                            <th className="py-3 px-4 text-left font-semibold">{t('№ заказа')}</th>
+                            <th className="py-3 px-4 text-left font-semibold">{t('Статус')}</th>
+                            <th className="py-3 px-4 text-left font-semibold">{t('Поставщик')}</th>
+                            <th className="py-3 px-4 text-left font-semibold">{t('Позиций')}</th>
+                            <th className="py-3 px-4 text-right font-semibold">{t('Сумма')}</th>
+                            <th className="py-3 px-4 text-left font-semibold">{t('Дата заказа')}</th>
                             <th className="py-3 px-4 w-10"></th>
                           </tr>
                         </thead>
@@ -5086,7 +5090,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
               {resourceSubTab === 'equipment' && (
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
                   <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-3">
-                    <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">Оборудование</h3>
+                    <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">{t('Оборудование')}</h3>
                     <FinanceViewToggle mode={equipViewMode} onChange={(m) => { setEquipViewMode(m); localStorage.setItem('equipViewMode', m); }} />
                     <button onClick={() => { setEditingEq(null); setShowEqModal(true); }}
                       className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
@@ -5095,7 +5099,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                     </button>
                   </div>
                   {equipmentList.length === 0 ? (
-                    <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">Оборудование не найдено</div>
+                    <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">{t('Оборудование не найдено')}</div>
                   ) : equipViewMode === 'grid' ? (
                     <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                       {equipmentList.map((eq) => (
@@ -5110,10 +5114,10 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                             )}
                           </div>
                           <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs mt-1">
-                            <div><dt className="text-gray-400">Тип</dt><dd className="text-gray-700 dark:text-gray-300">{eq.equipmentType ? (EQUIPMENT_TYPE_LABELS[eq.equipmentType] ?? eq.equipmentType) : '—'}</dd></div>
-                            <div><dt className="text-gray-400">Серийный №</dt><dd className="font-mono text-gray-500 dark:text-gray-400 truncate">{eq.serialNumber || '—'}</dd></div>
-                            <div><dt className="text-gray-400">Расположение</dt><dd className="text-gray-700 dark:text-gray-300 truncate">{eq.currentLocation || '—'}</dd></div>
-                            <div><dt className="text-gray-400">Поступление</dt><dd className="text-gray-700 dark:text-gray-300">{eq.purchaseDate ? new Date(eq.purchaseDate).toLocaleDateString('ru-RU') : '—'}</dd></div>
+                            <div><dt className="text-gray-400">{t('Тип')}</dt><dd className="text-gray-700 dark:text-gray-300">{eq.equipmentType ? (EQUIPMENT_TYPE_LABELS[eq.equipmentType] ?? eq.equipmentType) : '—'}</dd></div>
+                            <div><dt className="text-gray-400">{t('Серийный №')}</dt><dd className="font-mono text-gray-500 dark:text-gray-400 truncate">{eq.serialNumber || '—'}</dd></div>
+                            <div><dt className="text-gray-400">{t('Расположение')}</dt><dd className="text-gray-700 dark:text-gray-300 truncate">{eq.currentLocation || '—'}</dd></div>
+                            <div><dt className="text-gray-400">{t('Поступление')}</dt><dd className="text-gray-700 dark:text-gray-300">{eq.purchaseDate ? new Date(eq.purchaseDate).toLocaleDateString('ru-RU') : '—'}</dd></div>
                           </dl>
                           <div className="flex justify-end gap-1 pt-1" onClick={(e) => e.stopPropagation()}>
                             <button onClick={() => { setEditingEq(eq); setShowEqModal(true); }} className="p-1 text-gray-300 hover:text-violet-500 dark:text-gray-600 dark:hover:text-violet-400 transition-colors">
@@ -5131,12 +5135,12 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
-                            <th className="py-3 px-4 text-left font-semibold">Название</th>
-                            <th className="py-3 px-4 text-left font-semibold">Тип</th>
-                            <th className="py-3 px-4 text-left font-semibold">Серийный №</th>
-                            <th className="py-3 px-4 text-left font-semibold">Расположение</th>
-                            <th className="py-3 px-4 text-left font-semibold">Дата поступления</th>
-                            <th className="py-3 px-4 text-left font-semibold">Статус</th>
+                            <th className="py-3 px-4 text-left font-semibold">{t('Название')}</th>
+                            <th className="py-3 px-4 text-left font-semibold">{t('Тип')}</th>
+                            <th className="py-3 px-4 text-left font-semibold">{t('Серийный №')}</th>
+                            <th className="py-3 px-4 text-left font-semibold">{t('Расположение')}</th>
+                            <th className="py-3 px-4 text-left font-semibold">{t('Дата поступления')}</th>
+                            <th className="py-3 px-4 text-left font-semibold">{t('Статус')}</th>
                             <th className="py-3 px-4 w-10"></th>
                           </tr>
                         </thead>
@@ -5191,8 +5195,8 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                     {/* Header */}
                     <div className="flex items-start justify-between gap-4">
                       <div>
-                        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Склады</h2>
-                        <p className="text-sm text-gray-400 dark:text-gray-500 mt-0.5">Распределение оборудования по складам</p>
+                        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{t('Склады')}</h2>
+                        <p className="text-sm text-gray-400 dark:text-gray-500 mt-0.5">{t('Распределение оборудования по складам')}</p>
                       </div>
                       <div className="flex items-center gap-2">
                         <button onClick={() => { setResourceSubTab('inventory'); }}
@@ -5226,7 +5230,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                         </button>
                       )}
                       {warehousesList.length === 0 && noWarehouseEq.length === 0 && (
-                        <span className="text-sm text-gray-400 dark:text-gray-500">Нет складов. Нажмите «+ Добавить склад».</span>
+                        <span className="text-sm text-gray-400 dark:text-gray-500">{t('Нет складов. Нажмите «+ Добавить склад».')}</span>
                       )}
                     </div>
 
@@ -5265,7 +5269,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                             <input
                               value={whSearch}
                               onChange={(e) => setWhSearch(e.target.value)}
-                              placeholder="Поиск по инструментам..."
+                              placeholder={t('Поиск по инструментам...')}
                               className="w-full pl-8 pr-3 py-1.5 text-sm bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-400 dark:focus:ring-violet-500 text-gray-700 dark:text-gray-300 placeholder-gray-400"
                             />
                           </div>
@@ -5283,13 +5287,13 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                                   <th className="py-3 px-4 w-10">
                                     <input type="checkbox" className="rounded border-gray-300 dark:border-gray-600 text-violet-500 focus:ring-violet-400" />
                                   </th>
-                                  <th className="py-3 px-4 text-left font-semibold">Порядковый №</th>
-                                  <th className="py-3 px-4 text-left font-semibold">Название</th>
-                                  <th className="py-3 px-4 text-left font-semibold">Дата</th>
-                                  <th className="py-3 px-4 text-left font-semibold">Склад</th>
-                                  <th className="py-3 px-4 text-left font-semibold">Статус</th>
-                                  <th className="py-3 px-4 text-left font-semibold">Производитель</th>
-                                  <th className="py-3 px-4 text-left font-semibold">Ответственный</th>
+                                  <th className="py-3 px-4 text-left font-semibold">{t('Порядковый №')}</th>
+                                  <th className="py-3 px-4 text-left font-semibold">{t('Название')}</th>
+                                  <th className="py-3 px-4 text-left font-semibold">{t('Дата')}</th>
+                                  <th className="py-3 px-4 text-left font-semibold">{t('Склад')}</th>
+                                  <th className="py-3 px-4 text-left font-semibold">{t('Статус')}</th>
+                                  <th className="py-3 px-4 text-left font-semibold">{t('Производитель')}</th>
+                                  <th className="py-3 px-4 text-left font-semibold">{t('Ответственный')}</th>
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
@@ -5345,10 +5349,10 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
               {resourceSubTab === 'history' && (
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
                   <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60">
-                    <h3 className="font-semibold text-gray-900 dark:text-gray-100">История обслуживания и перемещений</h3>
+                    <h3 className="font-semibold text-gray-900 dark:text-gray-100">{t('История обслуживания и перемещений')}</h3>
                   </div>
                   {maintenanceList.length === 0 ? (
-                    <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">История пуста</div>
+                    <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">{t('История пуста')}</div>
                   ) : (
                     <div className="px-5 py-4">
                       <div className="relative">
@@ -5393,7 +5397,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
               {resourceSubTab === 'inventory' && !detailInventory && (
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
                   <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-3">
-                    <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">Инвентаризации</h3>
+                    <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">{t('Инвентаризации')}</h3>
                     <FinanceViewToggle mode={invSessionViewMode} onChange={(m) => { setInvSessionViewMode(m); localStorage.setItem('invSessionViewMode', m); }} />
                     <button onClick={() => { setEditingInv(null); setShowInvModal(true); }}
                       className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
@@ -5402,7 +5406,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                     </button>
                   </div>
                   {inventorySessions.length === 0 ? (
-                    <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">Инвентаризации не проводились</div>
+                    <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">{t('Инвентаризации не проводились')}</div>
                   ) : invSessionViewMode === 'grid' ? (
                     <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                       {inventorySessions.map((inv) => (
@@ -5415,9 +5419,9 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                             </span>
                           </div>
                           <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs mt-1">
-                            <div><dt className="text-gray-400">Дата проведения</dt><dd className="text-gray-700 dark:text-gray-300">{inv.scheduledDate ? new Date(inv.scheduledDate).toLocaleDateString('ru-RU') : '—'}</dd></div>
-                            <div><dt className="text-gray-400">Завершена</dt><dd className="text-gray-700 dark:text-gray-300">{inv.completedDate ? new Date(inv.completedDate).toLocaleDateString('ru-RU') : '—'}</dd></div>
-                            <div><dt className="text-gray-400">Позиций</dt><dd><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 text-xs font-semibold">{inv.items?.length ?? 0}</span></dd></div>
+                            <div><dt className="text-gray-400">{t('Дата проведения')}</dt><dd className="text-gray-700 dark:text-gray-300">{inv.scheduledDate ? new Date(inv.scheduledDate).toLocaleDateString('ru-RU') : '—'}</dd></div>
+                            <div><dt className="text-gray-400">{t('Завершена')}</dt><dd className="text-gray-700 dark:text-gray-300">{inv.completedDate ? new Date(inv.completedDate).toLocaleDateString('ru-RU') : '—'}</dd></div>
+                            <div><dt className="text-gray-400">{t('Позиций')}</dt><dd><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 text-xs font-semibold">{inv.items?.length ?? 0}</span></dd></div>
                           </dl>
                           {inv.notes && <p className="text-xs text-gray-400 truncate">{inv.notes}</p>}
                           <div className="flex justify-end gap-1 pt-1" onClick={(e) => e.stopPropagation()}>
@@ -5436,12 +5440,12 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
-                            <th className="py-3 px-4 text-left font-semibold">Название</th>
-                            <th className="py-3 px-4 text-left font-semibold">Статус</th>
-                            <th className="py-3 px-4 text-left font-semibold">Дата проведения</th>
-                            <th className="py-3 px-4 text-left font-semibold">Дата завершения</th>
-                            <th className="py-3 px-4 text-center font-semibold">Позиций</th>
-                            <th className="py-3 px-4 text-left font-semibold">Примечания</th>
+                            <th className="py-3 px-4 text-left font-semibold">{t('Название')}</th>
+                            <th className="py-3 px-4 text-left font-semibold">{t('Статус')}</th>
+                            <th className="py-3 px-4 text-left font-semibold">{t('Дата проведения')}</th>
+                            <th className="py-3 px-4 text-left font-semibold">{t('Дата завершения')}</th>
+                            <th className="py-3 px-4 text-center font-semibold">{t('Позиций')}</th>
+                            <th className="py-3 px-4 text-left font-semibold">{t('Примечания')}</th>
                             <th className="py-3 px-4 w-16"></th>
                           </tr>
                         </thead>
@@ -5467,11 +5471,11 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                               <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
                                 <div className="flex items-center gap-1">
                                   <button onClick={() => { setEditingInv(inv); setShowInvModal(true); }}
-                                    className="p-1 text-gray-300 hover:text-violet-500 dark:text-gray-600 dark:hover:text-violet-400 transition-colors" title="Редактировать">
+                                    className="p-1 text-gray-300 hover:text-violet-500 dark:text-gray-600 dark:hover:text-violet-400 transition-colors" title={t('Редактировать')}>
                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                                   </button>
                                   <button onClick={() => handleDeleteInventory(inv.id)}
-                                    className="p-1 text-gray-300 hover:text-red-500 dark:text-gray-600 dark:hover:text-red-400 transition-colors" title="Удалить">
+                                    className="p-1 text-gray-300 hover:text-red-500 dark:text-gray-600 dark:hover:text-red-400 transition-colors" title={t('Удалить')}>
                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                   </button>
                                 </div>
@@ -5522,24 +5526,24 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                       </div>
                       <div className="px-5 py-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
                         <div>
-                          <dt className="text-xs text-gray-400 dark:text-gray-500">Дата проведения</dt>
+                          <dt className="text-xs text-gray-400 dark:text-gray-500">{t('Дата проведения')}</dt>
                           <dd className="text-sm font-medium text-gray-800 dark:text-gray-200 mt-0.5">{inv.scheduledDate ? new Date(inv.scheduledDate).toLocaleDateString('ru-RU') : '—'}</dd>
                         </div>
                         <div>
-                          <dt className="text-xs text-gray-400 dark:text-gray-500">Дата завершения</dt>
+                          <dt className="text-xs text-gray-400 dark:text-gray-500">{t('Дата завершения')}</dt>
                           <dd className="text-sm font-medium text-gray-800 dark:text-gray-200 mt-0.5">{inv.completedDate ? new Date(inv.completedDate).toLocaleDateString('ru-RU') : '—'}</dd>
                         </div>
                         <div>
-                          <dt className="text-xs text-gray-400 dark:text-gray-500">Найдено</dt>
+                          <dt className="text-xs text-gray-400 dark:text-gray-500">{t('Найдено')}</dt>
                           <dd className="text-sm font-semibold text-green-600 dark:text-green-400 mt-0.5">{foundCount} из {inv.items?.length ?? 0}</dd>
                         </div>
                         <div>
-                          <dt className="text-xs text-gray-400 dark:text-gray-500">Не найдено / расхождения</dt>
+                          <dt className="text-xs text-gray-400 dark:text-gray-500">{t('Не найдено / расхождения')}</dt>
                           <dd className={`text-sm font-semibold mt-0.5 ${notFoundCount > 0 ? 'text-red-500 dark:text-red-400' : 'text-gray-400'}`}>{notFoundCount}</dd>
                         </div>
                         {inv.notes && (
                           <div className="col-span-2 sm:col-span-4">
-                            <dt className="text-xs text-gray-400 dark:text-gray-500">Примечания</dt>
+                            <dt className="text-xs text-gray-400 dark:text-gray-500">{t('Примечания')}</dt>
                             <dd className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">{inv.notes}</dd>
                           </div>
                         )}
@@ -5549,7 +5553,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                     {/* Items table */}
                     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
                       <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-3">
-                        <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">Позиции инвентаризации</h3>
+                        <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">{t('Позиции инвентаризации')}</h3>
                         <button onClick={() => setShowInvItemModal(true)}
                           className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
                           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
@@ -5557,20 +5561,20 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                         </button>
                       </div>
                       {!inv.items?.length ? (
-                        <div className="py-10 text-center text-sm text-gray-400 dark:text-gray-500">Позиции не добавлены</div>
+                        <div className="py-10 text-center text-sm text-gray-400 dark:text-gray-500">{t('Позиции не добавлены')}</div>
                       ) : (
                         <div className="overflow-x-auto">
                           <table className="w-full text-sm">
                             <thead>
                               <tr className="text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
                                 <th className="py-3 px-4 text-left font-semibold">№</th>
-                                <th className="py-3 px-4 text-left font-semibold">Оборудование</th>
-                                <th className="py-3 px-4 text-left font-semibold">Серийный №</th>
-                                <th className="py-3 px-4 text-left font-semibold">Склад</th>
-                                <th className="py-3 px-4 text-left font-semibold">Ожид. статус</th>
-                                <th className="py-3 px-4 text-left font-semibold">Факт. статус</th>
-                                <th className="py-3 px-4 text-center font-semibold">Найден</th>
-                                <th className="py-3 px-4 text-left font-semibold">Примечания</th>
+                                <th className="py-3 px-4 text-left font-semibold">{t('Оборудование')}</th>
+                                <th className="py-3 px-4 text-left font-semibold">{t('Серийный №')}</th>
+                                <th className="py-3 px-4 text-left font-semibold">{t('Склад')}</th>
+                                <th className="py-3 px-4 text-left font-semibold">{t('Ожид. статус')}</th>
+                                <th className="py-3 px-4 text-left font-semibold">{t('Факт. статус')}</th>
+                                <th className="py-3 px-4 text-center font-semibold">{t('Найден')}</th>
+                                <th className="py-3 px-4 text-left font-semibold">{t('Примечания')}</th>
                                 <th className="py-3 px-4 w-10"></th>
                               </tr>
                             </thead>
@@ -5632,7 +5636,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
               {resourceSubTab === 'maintenance' && (
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
                   <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-3">
-                    <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">Обслуживание оборудования</h3>
+                    <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex-1">{t('Обслуживание оборудования')}</h3>
                     <FinanceViewToggle mode={maintViewMode} onChange={(m) => { setMaintViewMode(m); localStorage.setItem('maintViewMode', m); }} />
                     <button onClick={() => { setEditingMaint(null); setShowMaintModal(true); }}
                       className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
@@ -5641,7 +5645,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                     </button>
                   </div>
                   {maintenanceList.length === 0 ? (
-                    <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">Записей об обслуживании нет</div>
+                    <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">{t('Записей об обслуживании нет')}</div>
                   ) : maintViewMode === 'grid' ? (
                     <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                       {maintenanceList.map((m) => (
@@ -5650,9 +5654,9 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                           <p className="font-semibold text-gray-800 dark:text-gray-200 truncate">{m.equipment?.name || `#${m.equipmentId}`}</p>
                           {m.maintenanceType && <p className="text-xs text-gray-500 dark:text-gray-400">{m.maintenanceType}</p>}
                           <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs mt-1">
-                            <div><dt className="text-gray-400">Дата ТО</dt><dd className="text-gray-700 dark:text-gray-300">{new Date(m.maintenanceDate).toLocaleDateString('ru-RU')}</dd></div>
-                            <div><dt className="text-gray-400">Следующее ТО</dt><dd className="text-gray-700 dark:text-gray-300">{m.nextMaintenanceDate ? new Date(m.nextMaintenanceDate).toLocaleDateString('ru-RU') : '—'}</dd></div>
-                            <div className="col-span-2"><dt className="text-gray-400">Стоимость</dt><dd className="font-semibold text-gray-800 dark:text-gray-200">{m.cost != null ? new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(m.cost) : '—'}</dd></div>
+                            <div><dt className="text-gray-400">{t('Дата ТО')}</dt><dd className="text-gray-700 dark:text-gray-300">{new Date(m.maintenanceDate).toLocaleDateString('ru-RU')}</dd></div>
+                            <div><dt className="text-gray-400">{t('Следующее ТО')}</dt><dd className="text-gray-700 dark:text-gray-300">{m.nextMaintenanceDate ? new Date(m.nextMaintenanceDate).toLocaleDateString('ru-RU') : '—'}</dd></div>
+                            <div className="col-span-2"><dt className="text-gray-400">{t('Стоимость')}</dt><dd className="font-semibold text-gray-800 dark:text-gray-200">{m.cost != null ? new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(m.cost) : '—'}</dd></div>
                           </dl>
                           {m.description && <p className="text-xs text-gray-400 truncate">{m.description}</p>}
                           <div className="flex justify-end pt-1" onClick={(e) => e.stopPropagation()}>
@@ -5668,12 +5672,12 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
-                            <th className="py-3 px-4 text-left font-semibold">Оборудование</th>
-                            <th className="py-3 px-4 text-left font-semibold">Тип ТО</th>
-                            <th className="py-3 px-4 text-left font-semibold">Дата</th>
-                            <th className="py-3 px-4 text-left font-semibold">Следующее ТО</th>
-                            <th className="py-3 px-4 text-right font-semibold">Стоимость</th>
-                            <th className="py-3 px-4 text-left font-semibold">Описание</th>
+                            <th className="py-3 px-4 text-left font-semibold">{t('Оборудование')}</th>
+                            <th className="py-3 px-4 text-left font-semibold">{t('Тип ТО')}</th>
+                            <th className="py-3 px-4 text-left font-semibold">{t('Дата')}</th>
+                            <th className="py-3 px-4 text-left font-semibold">{t('Следующее ТО')}</th>
+                            <th className="py-3 px-4 text-right font-semibold">{t('Стоимость')}</th>
+                            <th className="py-3 px-4 text-left font-semibold">{t('Описание')}</th>
                             <th className="py-3 px-4 w-10"></th>
                           </tr>
                         </thead>
@@ -5719,7 +5723,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
           {/\.(mp4|mov|avi|webm|mkv|m4v)(\?|$)/i.test(lightboxPhoto) ? (
             <video src={lightboxPhoto} controls autoPlay className="max-w-full max-h-full rounded-lg shadow-xl" onClick={(e) => e.stopPropagation()} />
           ) : (
-            <img src={lightboxPhoto} alt="Просмотр" className="max-w-full max-h-full rounded-lg shadow-xl" onClick={(e) => e.stopPropagation()} />
+            <img src={lightboxPhoto} alt={t('Просмотр')} className="max-w-full max-h-full rounded-lg shadow-xl" onClick={(e) => e.stopPropagation()} />
           )}
         </div>
       )}
@@ -5892,7 +5896,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
       {/* Inventory Item Modal */}
       {showInvItemModal && (
         <FinanceModal
-          title="Добавить позицию"
+          title={t('Добавить позицию')}
           saving={savingInvItem}
           fields={[
             {
@@ -6274,6 +6278,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
 /* ─── Helper Components ─── */
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
+  const t = useT();
   return (
     <div className="flex items-start justify-between gap-4">
       <span className="text-sm text-gray-500 dark:text-gray-400 shrink-0">{label}</span>
@@ -6290,6 +6295,7 @@ function TreeSection({
   count: number;
   items: { key: string; label: string; sub?: string }[];
 }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   return (
     <div className="rounded-lg overflow-hidden">
@@ -6310,7 +6316,7 @@ function TreeSection({
       {open && (
         <div className="ml-9 border-l-2 border-gray-100 dark:border-gray-700 pl-3 py-1 space-y-0.5">
           {items.length === 0 ? (
-            <p className="text-xs text-gray-400 py-1">Нет данных</p>
+            <p className="text-xs text-gray-400 py-1">{t('Нет данных')}</p>
           ) : items.map((item) => (
             <div key={item.key} className="flex items-center gap-2 py-1">
               <span className="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-gray-600 shrink-0" />
@@ -6325,10 +6331,12 @@ function TreeSection({
 }
 
 function LoadingState() {
-  return <div className="p-8 text-center text-gray-500 dark:text-gray-400">Загрузка...</div>;
+  const t = useT();
+  return <div className="p-8 text-center text-gray-500 dark:text-gray-400">{t('Загрузка...')}</div>;
 }
 
 function EmptyState({ text }: { text: string }) {
+  const t = useT();
   return <div className="p-8 text-center text-gray-500 dark:text-gray-400">{text}</div>;
 }
 
@@ -6341,6 +6349,7 @@ function AssignTeamModal({
   onAssign: (teamId: number) => Promise<void>;
   onClose: () => void;
 }) {
+  const t = useT();
   const [teams, setTeams] = useState<TeamOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -6361,8 +6370,8 @@ function AssignTeamModal({
   );
 
   return (
-    <ModalShell title="Назначить команду" onClose={onClose}>
-      <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Поиск команды..."
+    <ModalShell title={t('Назначить команду')} onClose={onClose}>
+      <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('Поиск команды...')}
         className="w-full px-3 py-2 mb-4 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100" />
       {loading ? <LoadingState /> : filtered.length === 0 ? <EmptyState text="Команды не найдены" /> : (
         <div className="space-y-2 max-h-72 overflow-y-auto">
@@ -6378,7 +6387,7 @@ function AssignTeamModal({
                   </div>
                 </div>
                 {assigned ? (
-                  <span className="text-xs text-green-600 dark:text-green-400 font-medium">Назначена</span>
+                  <span className="text-xs text-green-600 dark:text-green-400 font-medium">{t('Назначена')}</span>
                 ) : (
                   <button
                     onClick={async () => { setAssigning(team.id); await onAssign(team.id); setAssigning(null); }}
@@ -6405,6 +6414,7 @@ function AssignEmployeeModal({
   onAssign: (user: UserOption, role?: string) => Promise<void>;
   onClose: () => void;
 }) {
+  const t = useT();
   const [users, setUsers] = useState<UserOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -6426,10 +6436,10 @@ function AssignEmployeeModal({
   );
 
   return (
-    <ModalShell title="Добавить сотрудника" onClose={onClose}>
-      <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Поиск сотрудника..."
+    <ModalShell title={t('Добавить сотрудника')} onClose={onClose}>
+      <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('Поиск сотрудника...')}
         className="w-full px-3 py-2 mb-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100" />
-      <input value={roleInput} onChange={(e) => setRoleInput(e.target.value)} placeholder="Роль в проекте (необязательно)"
+      <input value={roleInput} onChange={(e) => setRoleInput(e.target.value)} placeholder={t('Роль в проекте (необязательно)')}
         className="w-full px-3 py-2 mb-4 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100" />
       {loading ? <LoadingState /> : filtered.length === 0 ? <EmptyState text="Сотрудники не найдены" /> : (
         <div className="space-y-2 max-h-72 overflow-y-auto">
@@ -6443,7 +6453,7 @@ function AssignEmployeeModal({
                   {user.position && <div className="text-xs text-gray-400">{user.position}</div>}
                 </div>
                 {assigned ? (
-                  <span className="text-xs text-green-600 dark:text-green-400 font-medium">Добавлен</span>
+                  <span className="text-xs text-green-600 dark:text-green-400 font-medium">{t('Добавлен')}</span>
                 ) : (
                   <button
                     onClick={async () => { setAssigning(user.id); await onAssign(user, roleInput || undefined); setAssigning(null); }}
@@ -6469,6 +6479,7 @@ function UploadDocumentModal({
   onUpload: (file: File, title: string, type: string, description: string) => Promise<void>;
   onClose: () => void;
 }) {
+  const t = useT();
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState('');
   const [docType, setDocType] = useState('');
@@ -6490,28 +6501,28 @@ function UploadDocumentModal({
   };
 
   return (
-    <ModalShell title="Загрузить документ" onClose={onClose}>
+    <ModalShell title={t('Загрузить документ')} onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Название *</label>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} required placeholder="Введите название документа"
+          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{t('Название *')}</label>
+          <input value={title} onChange={(e) => setTitle(e.target.value)} required placeholder={t('Введите название документа')}
             className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100" />
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Тип документа</label>
+          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{t('Тип документа')}</label>
           <select value={docType} onChange={(e) => setDocType(e.target.value)}
             className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100">
-            <option value="">— Не выбрано —</option>
+            <option value="">{t('— Не выбрано —')}</option>
             {DOC_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Описание</label>
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} placeholder="Краткое описание"
+          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{t('Описание')}</label>
+          <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} placeholder={t('Краткое описание')}
             className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100 resize-none" />
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Файл *</label>
+          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{t('Файл *')}</label>
           <input type="file" required onChange={(e) => setFile(e.target.files?.[0] || null)}
             className="w-full text-sm text-gray-500 dark:text-gray-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-violet-100 file:text-violet-700 hover:file:bg-violet-200 dark:file:bg-violet-900/40 dark:file:text-violet-300" />
           {file && <p className="text-xs text-gray-400 mt-1">{file.name} · {fmtSize(file.size)}</p>}
@@ -6533,6 +6544,7 @@ function UploadDocumentModal({
 /* ─── Project Chat Panel ─── */
 
 function ProjectChatPanel({ channelId, channelName, projectId, projectMembers = [], onFilesSent, onBack }: { channelId: number; channelName: string; projectId?: number; projectMembers?: Assignment[]; onFilesSent?: (attachments: any[]) => void; onBack?: () => void }) {
+  const t = useT();
   const connect = useChatStore((s) => s.connect);
   const setActiveChannel = useChatStore((s) => s.setActiveChannel);
   const fetchChannels = useChatStore((s) => s.fetchChannels);
@@ -6793,7 +6805,7 @@ function ProjectChatPanel({ channelId, channelName, projectId, projectMembers = 
         <button
           onClick={() => { setShowParticipants(true); loadParticipants(); }}
           className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors"
-          title="Участники чата"
+          title={t('Участники чата')}
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -6807,7 +6819,7 @@ function ProjectChatPanel({ channelId, channelName, projectId, projectMembers = 
         <div className="absolute inset-0 z-10 bg-white dark:bg-gray-800 flex flex-col" style={{ borderRadius: 'inherit' }}>
           {/* Panel header */}
           <div className="px-5 py-3 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between shrink-0">
-            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Участники чата</h3>
+            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">{t('Участники чата')}</h3>
             <div className="flex items-center gap-1">
               {(() => {
                 const role = participants.find((p) => p.id === user?.id)?.role;
@@ -6815,7 +6827,7 @@ function ProjectChatPanel({ channelId, channelName, projectId, projectMembers = 
                   <button
                     onClick={() => { setShowAddMember((v) => !v); if (!showAddMember) loadProjectMembers(); }}
                     className={`p-1.5 rounded-lg transition-colors ${showAddMember ? 'bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400' : 'text-gray-400 hover:text-violet-600 hover:bg-violet-50 dark:hover:bg-violet-900/20'}`}
-                    title="Добавить участника"
+                    title={t('Добавить участника')}
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
@@ -6837,11 +6849,11 @@ function ProjectChatPanel({ channelId, channelName, projectId, projectMembers = 
           {/* Add member from project */}
           {showAddMember && (
             <div className="px-4 pt-3 pb-3 border-b border-gray-100 dark:border-gray-700 shrink-0">
-              <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2">Добавить из проекта</p>
+              <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2">{t('Добавить из проекта')}</p>
               {loadingProjectMembers ? (
-                <div className="text-xs text-gray-400 text-center py-2">Загрузка...</div>
+                <div className="text-xs text-gray-400 text-center py-2">{t('Загрузка...')}</div>
               ) : projectMemberOptions.length === 0 ? (
-                <div className="text-xs text-gray-400 text-center py-2">Все участники проекта уже в чате</div>
+                <div className="text-xs text-gray-400 text-center py-2">{t('Все участники проекта уже в чате')}</div>
               ) : (
                 <div className="space-y-1 max-h-40 overflow-y-auto">
                   {projectMemberOptions.map((m) => (
@@ -6873,9 +6885,9 @@ function ProjectChatPanel({ channelId, channelName, projectId, projectMembers = 
           {/* Members list */}
           <div className="flex-1 overflow-y-auto p-4">
             {loadingParticipants ? (
-              <div className="text-center text-sm text-gray-400 py-8">Загрузка...</div>
+              <div className="text-center text-sm text-gray-400 py-8">{t('Загрузка...')}</div>
             ) : participants.length === 0 ? (
-              <div className="text-center text-sm text-gray-400 py-8">Нет участников</div>
+              <div className="text-center text-sm text-gray-400 py-8">{t('Нет участников')}</div>
             ) : (
               <div className="space-y-2">
                 {(() => {
@@ -6941,7 +6953,7 @@ function ProjectChatPanel({ channelId, channelName, projectId, projectMembers = 
                           <button
                             onClick={() => handleRemoveMember(p.id, p.name)}
                             disabled={removingId === p.id}
-                            title="Удалить из чата"
+                            title={t('Удалить из чата')}
                             className="shrink-0 p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
                           >
                             {removingId === p.id ? (
@@ -6986,7 +6998,7 @@ function ProjectChatPanel({ channelId, channelName, projectId, projectMembers = 
             <button
               onClick={() => unpinMessageSocket(channelId, currentPinned.id)}
               className="shrink-0 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded"
-              title="Открепить"
+              title={t('Открепить')}
             >
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -6998,9 +7010,9 @@ function ProjectChatPanel({ channelId, channelName, projectId, projectMembers = 
 
       {/* Messages */}
       <div ref={containerRef} className="flex-1 overflow-y-auto p-4 space-y-1 bg-gray-50 dark:bg-gray-900">
-        {isLoadingMessages && <div className="text-center text-xs text-gray-400 py-2">Загрузка...</div>}
+        {isLoadingMessages && <div className="text-center text-xs text-gray-400 py-2">{t('Загрузка...')}</div>}
         {!isLoadingMessages && messages.length === 0 && (
-          <p className="text-center text-sm text-gray-400 mt-12">Нет сообщений. Начните диалог!</p>
+          <p className="text-center text-sm text-gray-400 mt-12">{t('Нет сообщений. Начните диалог!')}</p>
         )}
         {messages.map((msg, idx) => {
           const prev = messages[idx - 1];
@@ -7052,6 +7064,7 @@ function TeamMemberDetailModal({
   onRemoved: () => Promise<void>;
   onClose: () => void;
 }) {
+  const t = useT();
   const [removing, setRemoving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const addToast = useToastStore((s) => s.addToast);
@@ -7071,7 +7084,7 @@ function TeamMemberDetailModal({
   const teamName = member.team?.name || member.teamName || `Команда #${member.teamId}`;
 
   return (
-    <ModalShell title="Команда" onClose={onClose}>
+    <ModalShell title={t('Команда')} onClose={onClose}>
       <div className="space-y-4">
         <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-900/30 rounded-xl">
           <div className="w-10 h-10 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center text-base font-semibold text-violet-700 dark:text-violet-300 shrink-0">
@@ -7080,24 +7093,24 @@ function TeamMemberDetailModal({
           <div>
             <div className="font-semibold text-gray-800 dark:text-gray-100">{teamName}</div>
             {member.isPrimary && (
-              <span className="text-xs bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 px-2 py-0.5 rounded-full">Основная команда</span>
+              <span className="text-xs bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 px-2 py-0.5 rounded-full">{t('Основная команда')}</span>
             )}
           </div>
         </div>
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="text-gray-500 dark:text-gray-400">Дата назначения</span>
+            <span className="text-gray-500 dark:text-gray-400">{t('Дата назначения')}</span>
             <span className="text-gray-800 dark:text-gray-100">{fmt(member.assignedAt)}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-gray-500 dark:text-gray-400">ID команды</span>
+            <span className="text-gray-500 dark:text-gray-400">{t('ID команды')}</span>
             <span className="text-gray-800 dark:text-gray-100">#{member.teamId}</span>
           </div>
         </div>
         <div className="flex items-center justify-between gap-2 pt-3 border-t border-gray-100 dark:border-gray-700">
           {confirmDelete ? (
             <div className="flex items-center gap-2">
-              <span className="text-xs text-red-500">Удалить команду из проекта?</span>
+              <span className="text-xs text-red-500">{t('Удалить команду из проекта?')}</span>
               <button onClick={handleRemove} disabled={removing}
                 className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded-lg disabled:opacity-50">
                 {removing ? '...' : 'Да'}
@@ -7130,6 +7143,7 @@ function AssignmentDetailModal({
   onRemoved: () => Promise<void>;
   onClose: () => void;
 }) {
+  const t = useT();
   const [removing, setRemoving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [userTasks, setUserTasks] = useState<any[]>([]);
@@ -7171,7 +7185,7 @@ function AssignmentDetailModal({
   };
 
   return (
-    <ModalShell title="Сотрудник" onClose={onClose}>
+    <ModalShell title={t('Сотрудник')} onClose={onClose}>
       <div className="space-y-4">
         <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-900/30 rounded-xl">
           <div className="w-10 h-10 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center text-base font-semibold text-violet-700 dark:text-violet-300 shrink-0 relative overflow-hidden">
@@ -7187,17 +7201,17 @@ function AssignmentDetailModal({
         </div>
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="text-gray-500 dark:text-gray-400">Роль в проекте</span>
+            <span className="text-gray-500 dark:text-gray-400">{t('Роль в проекте')}</span>
             <span className="text-gray-800 dark:text-gray-100">{assignment.roleOnProject || '—'}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-gray-500 dark:text-gray-400">Статус</span>
+            <span className="text-gray-500 dark:text-gray-400">{t('Статус')}</span>
             <span className={`text-sm font-medium ${assignment.isActive ? 'text-green-600 dark:text-green-400' : 'text-gray-500'}`}>
               {assignment.isActive ? 'Активен' : 'Неактивен'}
             </span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-gray-500 dark:text-gray-400">Назначен</span>
+            <span className="text-gray-500 dark:text-gray-400">{t('Назначен')}</span>
             <span className="text-gray-800 dark:text-gray-100">{fmt(assignment.assignedAt)}</span>
           </div>
         </div>
@@ -7208,9 +7222,9 @@ function AssignmentDetailModal({
             Задачи сотрудника
           </div>
           {loadingTasks ? (
-            <div className="text-xs text-gray-400 py-2">Загрузка...</div>
+            <div className="text-xs text-gray-400 py-2">{t('Загрузка...')}</div>
           ) : userTasks.length === 0 ? (
-            <div className="text-xs text-gray-400 py-2">Нет задач в этом проекте</div>
+            <div className="text-xs text-gray-400 py-2">{t('Нет задач в этом проекте')}</div>
           ) : (
             <ul className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
               {userTasks.map((t) => {
@@ -7233,7 +7247,7 @@ function AssignmentDetailModal({
         <div className="flex items-center justify-between gap-2 pt-3 border-t border-gray-100 dark:border-gray-700">
           {confirmDelete ? (
             <div className="flex items-center gap-2">
-              <span className="text-xs text-red-500">Удалить сотрудника из проекта?</span>
+              <span className="text-xs text-red-500">{t('Удалить сотрудника из проекта?')}</span>
               <button onClick={handleRemove} disabled={removing}
                 className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded-lg disabled:opacity-50">
                 {removing ? '...' : 'Да'}
@@ -7265,6 +7279,7 @@ function DocumentDetailModal({
   onDeleted: () => Promise<void>;
   onClose: () => void;
 }) {
+  const t = useT();
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const addToast = useToastStore((s) => s.addToast);
@@ -7304,7 +7319,7 @@ function DocumentDetailModal({
           ) : (
             <div className="flex flex-col items-center gap-3 p-8 text-center">
               <span className="text-6xl">📄</span>
-              <p className="text-sm text-gray-400">Предпросмотр недоступен</p>
+              <p className="text-sm text-gray-400">{t('Предпросмотр недоступен')}</p>
             </div>
           )}
         </div>
@@ -7312,7 +7327,7 @@ function DocumentDetailModal({
         {/* Info panel */}
         <div className="w-full md:w-72 shrink-0 flex flex-col border-t md:border-t-0 md:border-l border-gray-100 dark:border-gray-700">
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
-            <h3 className="font-semibold text-gray-800 dark:text-gray-100 text-sm">Информация</h3>
+            <h3 className="font-semibold text-gray-800 dark:text-gray-100 text-sm">{t('Информация')}</h3>
             <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1 rounded-lg">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -7321,21 +7336,21 @@ function DocumentDetailModal({
           </div>
           <div className="flex-1 overflow-y-auto p-5 space-y-4">
             <div>
-              <p className="text-xs text-gray-400 mb-1">Название</p>
+              <p className="text-xs text-gray-400 mb-1">{t('Название')}</p>
               <p className="text-sm text-gray-800 dark:text-gray-100 break-words">{document.title}</p>
             </div>
             {document.documentType && (
               <div>
-                <p className="text-xs text-gray-400 mb-1">Тип</p>
+                <p className="text-xs text-gray-400 mb-1">{t('Тип')}</p>
                 <p className="text-sm text-gray-800 dark:text-gray-100">{DOC_TYPE_LABELS[document.documentType] || document.documentType}</p>
               </div>
             )}
             <div>
-              <p className="text-xs text-gray-400 mb-1">Размер</p>
+              <p className="text-xs text-gray-400 mb-1">{t('Размер')}</p>
               <p className="text-sm text-gray-800 dark:text-gray-100">{fmtSize(document.fileSize) || '—'}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-400 mb-1">Дата загрузки</p>
+              <p className="text-xs text-gray-400 mb-1">{t('Дата загрузки')}</p>
               <p className="text-sm text-gray-800 dark:text-gray-100">{fmt(document.createdAt)}</p>
             </div>
           </div>
@@ -7411,6 +7426,7 @@ function FinanceModal({ title, fields, initialData, saving, onClose, onSave }: {
   onClose: () => void;
   onSave: (data: Record<string, unknown>) => void;
 }) {
+  const t = useT();
   const [form, setForm] = useState<Record<string, unknown>>(() => {
     const defaults: Record<string, unknown> = {};
     for (const f of fields) {
@@ -7534,6 +7550,7 @@ function ObjectFormModal({
   onClose: () => void;
   onSave: (data: Partial<ConstructionSite>) => Promise<void>;
 }) {
+  const t = useT();
   const [name, setName] = useState(obj?.name ?? '');
   const [address, setAddress] = useState(obj?.address ?? '');
   const [code, setCode] = useState(obj?.code ?? '');
@@ -7546,57 +7563,57 @@ function ObjectFormModal({
     <ModalShell title={obj ? 'Редактировать объект' : 'Новый объект'} onClose={onClose}>
       <div className="space-y-4">
         <div>
-          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Название *</label>
+          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{t('Название *')}</label>
           <input
             autoFocus
             className="form-input w-full"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Наименование объекта"
+            placeholder={t('Наименование объекта')}
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Адрес *</label>
+          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{t('Адрес *')}</label>
           <input
             className="form-input w-full"
             value={address}
             onChange={(e) => setAddress(e.target.value)}
-            placeholder="Адрес объекта"
+            placeholder={t('Адрес объекта')}
           />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Код</label>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{t('Код')}</label>
             <input className="form-input w-full" value={code} onChange={(e) => setCode(e.target.value)} placeholder="OBJ-001" />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Статус</label>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{t('Статус')}</label>
             <select className="form-select w-full" value={status} onChange={(e) => setStatus(Number(e.target.value))}>
-              <option value={0}>Планирование</option>
-              <option value={1}>В работе</option>
-              <option value={2}>Приостановлен</option>
-              <option value={3}>Завершён</option>
+              <option value={0}>{t('Планирование')}</option>
+              <option value={1}>{t('В работе')}</option>
+              <option value={2}>{t('Приостановлен')}</option>
+              <option value={3}>{t('Завершён')}</option>
             </select>
           </div>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Дата начала</label>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{t('Дата начала')}</label>
             <input type="date" className="form-input w-full" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Плановое окончание</label>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{t('Плановое окончание')}</label>
             <input type="date" className="form-input w-full" value={plannedEndDate} onChange={(e) => setPlannedEndDate(e.target.value)} />
           </div>
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Описание</label>
+          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{t('Описание')}</label>
           <textarea
             className="form-input w-full resize-y"
             rows={3}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Дополнительная информация..."
+            placeholder={t('Дополнительная информация...')}
           />
         </div>
       </div>
@@ -7618,6 +7635,7 @@ function ObjectFormModal({
 }
 
 function ModalShell({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) {
+  const t = useT();
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-2xl" onClick={(e) => e.stopPropagation()}>
@@ -7638,12 +7656,13 @@ function ModalShell({ title, children, onClose }: { title: string; children: Rea
 /* ─── Modal: Create Project Channel ─── */
 
 function AvatarPicker({ preview, onFile, onClear }: { preview: string | null; onFile: (f: File) => void; onClear: () => void }) {
+  const t = useT();
   const ref = useRef<HTMLInputElement>(null);
   return (
     <div className="flex items-center gap-3 mb-3">
       <button type="button" onClick={() => ref.current?.click()}
         className="relative w-14 h-14 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center shrink-0 overflow-hidden border-2 border-dashed border-violet-300 dark:border-violet-700 hover:border-violet-500 transition-colors"
-        title="Загрузить аватар">
+        title={t('Загрузить аватар')}>
         {preview
           ? <img src={preview} alt="" className="w-full h-full object-cover" />
           : <svg className="w-6 h-6 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
@@ -7651,7 +7670,7 @@ function AvatarPicker({ preview, onFile, onClear }: { preview: string | null; on
       </button>
       <input ref={ref} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); }} />
       {preview && (
-        <button type="button" onClick={onClear} className="text-xs text-red-400 hover:text-red-600 transition-colors">Удалить фото</button>
+        <button type="button" onClick={onClear} className="text-xs text-red-400 hover:text-red-600 transition-colors">{t('Удалить фото')}</button>
       )}
     </div>
   );
@@ -7667,6 +7686,7 @@ function ProjectChannelCreateModal({
   onCreated: (channel: ChatChannel) => void;
   onClose: () => void;
 }) {
+  const t = useT();
   const [name, setName] = useState('');
   const [selectedMemberIds, setSelectedMemberIds] = useState<number[]>([]);
   const [saving, setSaving] = useState(false);
@@ -7741,10 +7761,10 @@ function ProjectChannelCreateModal({
   };
 
   return (
-    <ModalShell title="Новый канал" onClose={onClose}>
+    <ModalShell title={t('Новый канал')} onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Название канала *</label>
+          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{t('Название канала *')}</label>
           <div className="flex items-center gap-3">
             <AvatarPicker
               preview={avatarPreview}
@@ -7761,14 +7781,14 @@ function ProjectChannelCreateModal({
         {sites.length > 0 && (
           <div>
             <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-              Объект <span className="text-gray-400 font-normal">(необязательно)</span>
+              Объект <span className="text-gray-400 font-normal">{t('(необязательно)')}</span>
             </label>
             <select
               value={selectedSiteId ?? ''}
               onChange={(e) => setSelectedSiteId(e.target.value ? Number(e.target.value) : null)}
               className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100"
             >
-              <option value="">— Не привязывать к объекту</option>
+              <option value="">{t('— Не привязывать к объекту')}</option>
               {sites.map((s) => (
                 <option key={s.id} value={s.id}>{s.name}</option>
               ))}
@@ -7781,7 +7801,7 @@ function ProjectChannelCreateModal({
             <span className="text-violet-500">{selectedMemberIds.length > 0 ? `(${selectedMemberIds.length} выбрано)` : '— только участники проекта'}</span>
           </label>
           {members.length === 0 ? (
-            <p className="text-xs text-gray-400">Нет участников в проекте</p>
+            <p className="text-xs text-gray-400">{t('Нет участников в проекте')}</p>
           ) : (
             <div className="space-y-1.5 max-h-48 overflow-y-auto">
               {members.map((m) => {
@@ -7805,7 +7825,7 @@ function ProjectChannelCreateModal({
         </div>
         <div className="flex justify-end gap-2 pt-1">
           <button type="button" onClick={onClose}
-            className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 transition-colors">Отмена</button>
+            className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 transition-colors">{t('Отмена')}</button>
           <button type="submit" disabled={saving || !name.trim()}
             className="px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition-colors">
             {saving ? 'Создание...' : 'Создать'}
@@ -7823,6 +7843,7 @@ function ProjectChannelEditModal({
   onSaved: (updated: Partial<ChatChannel> & { id: number }) => void;
   onClose: () => void;
 }) {
+  const t = useT();
   const [name, setName] = useState(channel.channelName || channel.name || '');
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(channel.avatarUrl || null);
@@ -7855,10 +7876,10 @@ function ProjectChannelEditModal({
   };
 
   return (
-    <ModalShell title="Редактировать канал" onClose={onClose}>
+    <ModalShell title={t('Редактировать канал')} onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Название канала *</label>
+          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{t('Название канала *')}</label>
           <div className="flex items-center gap-3">
             <AvatarPicker
               preview={avatarPreview}
@@ -7867,14 +7888,14 @@ function ProjectChannelEditModal({
             />
             <input
               value={name} onChange={(e) => setName(e.target.value)} required autoFocus
-              placeholder="Название канала"
+              placeholder={t('Название канала')}
               className="flex-1 px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-gray-100"
             />
           </div>
         </div>
         <div className="flex justify-end gap-2 pt-1">
           <button type="button" onClick={onClose}
-            className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 transition-colors">Отмена</button>
+            className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 transition-colors">{t('Отмена')}</button>
           <button type="submit" disabled={saving || !name.trim()}
             className="px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition-colors">
             {saving ? 'Сохранение...' : 'Сохранить'}
@@ -7892,6 +7913,7 @@ function ProposalActDocument({ proposal, projectName, projectAddress, managerNam
   managerName?: string;
   onBack: () => void;
 }) {
+  const t = useT();
   const sortedLines = [...proposal.lines].sort((a, b) => a.sortOrder - b.sortOrder);
   const dateStr = new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
   const actNumber = `АКТ-${proposal.proposalNumber}`;
@@ -7923,7 +7945,7 @@ function ProposalActDocument({ proposal, projectName, projectAddress, managerNam
           К составу
         </button>
         <div className="flex-1" />
-        <p className="text-xs text-gray-400 dark:text-gray-500 hidden sm:block">Откройте «Печать» и сохраните как PDF — макет ориентирован на лист А4.</p>
+        <p className="text-xs text-gray-400 dark:text-gray-500 hidden sm:block">{t('Откройте «Печать» и сохраните как PDF — макет ориентирован на лист А4.')}</p>
         <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 bg-gray-900 hover:bg-gray-700 dark:bg-gray-100 dark:hover:bg-white text-white dark:text-gray-900 text-sm font-semibold rounded-xl transition-colors">
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
           Печать / PDF
@@ -7944,7 +7966,7 @@ function ProposalActDocument({ proposal, projectName, projectAddress, managerNam
 
           {/* Title */}
           <div className="text-center mb-7">
-            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Акт оказанных услуг</h1>
+            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{t('Акт оказанных услуг')}</h1>
             <p className="text-xs text-gray-400 mt-1.5">{actNumber} &nbsp;·&nbsp; Дата составления: {dateStr}</p>
           </div>
 
@@ -7953,12 +7975,12 @@ function ProposalActDocument({ proposal, projectName, projectAddress, managerNam
           {/* Parties row */}
           <div className="grid grid-cols-2 gap-8 mb-6">
             <div>
-              <p className={labelCls}>Коммерческое предложение</p>
+              <p className={labelCls}>{t('Коммерческое предложение')}</p>
               <p className="text-base font-bold text-gray-900">{proposal.proposalNumber}</p>
               {projectName && <p className="text-xs text-gray-500 mt-0.5">Проект: {projectName}</p>}
             </div>
             <div>
-              <p className={labelCls}>Заказчик</p>
+              <p className={labelCls}>{t('Заказчик')}</p>
               <p className="text-base font-bold text-gray-900">{proposal.clientName || '—'}</p>
               {(proposal.clientPhone || proposal.clientEmail) && (
                 <p className="text-xs text-gray-500 mt-0.5">{[proposal.clientPhone, proposal.clientEmail].filter(Boolean).join(' · ')}</p>
@@ -7968,7 +7990,7 @@ function ProposalActDocument({ proposal, projectName, projectAddress, managerNam
 
           {(proposal.objectAddress || projectAddress) && (
             <div className="mb-7 bg-gray-50 rounded-xl px-5 py-4">
-              <p className={labelCls}>Объект (адрес)</p>
+              <p className={labelCls}>{t('Объект (адрес)')}</p>
               <p className={valCls}>{proposal.objectAddress || projectAddress}</p>
               {proposal.objectComment && <p className="text-xs text-gray-500 mt-1">{proposal.objectComment}</p>}
             </div>
@@ -7978,7 +8000,7 @@ function ProposalActDocument({ proposal, projectName, projectAddress, managerNam
 
           {/* Preamble */}
           <div className="mb-7">
-            <h2 className="text-sm font-bold text-gray-800 mb-2">Преамбула</h2>
+            <h2 className="text-sm font-bold text-gray-800 mb-2">{t('Преамбула')}</h2>
             <p className="text-sm text-gray-600 leading-relaxed text-justify">
               Настоящий акт составлен в подтверждение того, что Исполнитель надлежащим образом выполнил,
               а Заказчик принял следующие работы и услуги в соответствии с Коммерческим предложением&nbsp;
@@ -7990,17 +8012,17 @@ function ProposalActDocument({ proposal, projectName, projectAddress, managerNam
 
           {/* Section 1: Services table */}
           <div className="mb-7">
-            <h2 className="text-sm font-bold text-gray-800 mb-1">1. Состав и стоимость выполненных работ</h2>
-            <p className="text-xs text-gray-400 mb-3">Стоимость указана в соответствии с Коммерческим предложением. НДС не облагается.</p>
+            <h2 className="text-sm font-bold text-gray-800 mb-1">{t('1. Состав и стоимость выполненных работ')}</h2>
+            <p className="text-xs text-gray-400 mb-3">{t('Стоимость указана в соответствии с Коммерческим предложением. НДС не облагается.')}</p>
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr className="border-y border-gray-200 bg-gray-50">
                   <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500 w-8">№</th>
-                  <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500">Наименование работ / услуг</th>
-                  <th className="py-2 px-3 text-center text-xs font-semibold text-gray-500 w-14">Ед.</th>
-                  <th className="py-2 px-3 text-right text-xs font-semibold text-gray-500 w-18">Кол-во</th>
-                  <th className="py-2 px-3 text-right text-xs font-semibold text-gray-500 w-28">Цена, ₽</th>
-                  <th className="py-2 px-3 text-right text-xs font-semibold text-gray-500 w-28">Стоимость, ₽</th>
+                  <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500">{t('Наименование работ / услуг')}</th>
+                  <th className="py-2 px-3 text-center text-xs font-semibold text-gray-500 w-14">{t('Ед.')}</th>
+                  <th className="py-2 px-3 text-right text-xs font-semibold text-gray-500 w-18">{t('Кол-во')}</th>
+                  <th className="py-2 px-3 text-right text-xs font-semibold text-gray-500 w-28">{t('Цена, ₽')}</th>
+                  <th className="py-2 px-3 text-right text-xs font-semibold text-gray-500 w-28">{t('Стоимость, ₽')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -8020,11 +8042,11 @@ function ProposalActDocument({ proposal, projectName, projectAddress, managerNam
               </tbody>
               <tfoot>
                 <tr className="border-t-2 border-gray-300">
-                  <td colSpan={4} className="py-3 px-3 text-right text-xs text-gray-500 uppercase tracking-wide font-semibold">НДС:</td>
-                  <td className="py-3 px-3 text-right text-xs text-gray-500" colSpan={2}>Не облагается</td>
+                  <td colSpan={4} className="py-3 px-3 text-right text-xs text-gray-500 uppercase tracking-wide font-semibold">{t('НДС:')}</td>
+                  <td className="py-3 px-3 text-right text-xs text-gray-500" colSpan={2}>{t('Не облагается')}</td>
                 </tr>
                 <tr className="bg-violet-50 border-b-2 border-violet-200">
-                  <td colSpan={4} className="py-3 px-3 text-right font-bold text-gray-900 text-sm uppercase tracking-wide">Итого к оплате:</td>
+                  <td colSpan={4} className="py-3 px-3 text-right font-bold text-gray-900 text-sm uppercase tracking-wide">{t('Итого к оплате:')}</td>
                   <td className="py-3 px-3 text-right font-bold text-lg text-violet-700" colSpan={2}>{fmtMoney(Number(proposal.totalAmount))}</td>
                 </tr>
               </tfoot>
@@ -8033,7 +8055,7 @@ function ProposalActDocument({ proposal, projectName, projectAddress, managerNam
 
           {/* Section 2: Status of each work */}
           <div className="mb-7">
-            <h2 className="text-sm font-bold text-gray-800 mb-3">2. Акт выполненных работ по позициям</h2>
+            <h2 className="text-sm font-bold text-gray-800 mb-3">{t('2. Акт выполненных работ по позициям')}</h2>
             <div className="space-y-2">
               {sortedLines.map((line, i) => {
                 const ws = line.workStatus;
@@ -8067,13 +8089,13 @@ function ProposalActDocument({ proposal, projectName, projectAddress, managerNam
 
           {/* Section 3: Guarantee & claims */}
           <div className="mb-7">
-            <h2 className="text-sm font-bold text-gray-800 mb-2">3. Гарантийные обязательства и претензии</h2>
+            <h2 className="text-sm font-bold text-gray-800 mb-2">{t('3. Гарантийные обязательства и претензии')}</h2>
             <p className="text-sm text-gray-600 leading-relaxed text-justify">
-              Исполнитель гарантирует надлежащее качество выполненных работ в течение <span className="font-semibold text-gray-800">12 (двенадцати) месяцев</span> с даты подписания настоящего акта. На момент подписания настоящего акта Заказчик претензий к качеству, объёму и срокам выполненных работ не имеет.
+              Исполнитель гарантирует надлежащее качество выполненных работ в течение <span className="font-semibold text-gray-800">{t('12 (двенадцати) месяцев')}</span> с даты подписания настоящего акта. На момент подписания настоящего акта Заказчик претензий к качеству, объёму и срокам выполненных работ не имеет.
             </p>
             {proposal.notes && (
               <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-                <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-1">Примечания</p>
+                <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-1">{t('Примечания')}</p>
                 <p className="text-sm text-amber-900 leading-relaxed">{proposal.notes}</p>
               </div>
             )}
@@ -8081,23 +8103,23 @@ function ProposalActDocument({ proposal, projectName, projectAddress, managerNam
 
           {/* Section 4: Signatures */}
           <div className="mb-2">
-            <h2 className="text-sm font-bold text-gray-800 mb-5">4. Подписи сторон</h2>
+            <h2 className="text-sm font-bold text-gray-800 mb-5">{t('4. Подписи сторон')}</h2>
             <div className="grid grid-cols-2 gap-12">
               <div>
-                <p className={labelCls}>Исполнитель</p>
+                <p className={labelCls}>{t('Исполнитель')}</p>
                 <p className="text-sm text-gray-700 font-medium mb-1">{managerName || projectName || '________________'}</p>
                 {projectName && <p className="text-xs text-gray-500 mb-6">{projectName}</p>}
                 {!projectName && <div className="mb-6" />}
                 <div className="border-b-2 border-gray-300 mb-1.5 mt-8" />
-                <p className="text-[10px] text-gray-400 uppercase tracking-widest">Подпись / дата</p>
+                <p className="text-[10px] text-gray-400 uppercase tracking-widest">{t('Подпись / дата')}</p>
               </div>
               <div>
-                <p className={labelCls}>Заказчик</p>
+                <p className={labelCls}>{t('Заказчик')}</p>
                 <p className="text-sm text-gray-700 font-medium mb-1">{proposal.clientName || '________________'}</p>
                 {proposal.clientPhone && <p className="text-xs text-gray-500 mb-6">{proposal.clientPhone}</p>}
                 {!proposal.clientPhone && <div className="mb-6" />}
                 <div className="border-b-2 border-gray-300 mb-1.5 mt-8" />
-                <p className="text-[10px] text-gray-400 uppercase tracking-widest">Подпись / дата</p>
+                <p className="text-[10px] text-gray-400 uppercase tracking-widest">{t('Подпись / дата')}</p>
               </div>
             </div>
           </div>
@@ -8120,6 +8142,7 @@ function ProposalLineRow({ line, proposalId, onUpdate, onDelete }: {
   onUpdate: (proposalId: number, lineId: number, data: { quantity: number; unitPrice: number }) => Promise<void>;
   onDelete: (proposalId: number, lineId: number) => void;
 }) {
+  const t = useT();
   const [qty, setQty] = useState(String(line.quantity));
   const [price, setPrice] = useState(String(line.unitPrice));
   const [saving, setSaving] = useState(false);
@@ -8167,6 +8190,7 @@ function AddLineModal({ proposalId, onAdd }: {
   proposalId: number;
   onAdd: (id: number, line: { serviceName: string; unit?: string; quantity: number; unitPrice: number; totalPrice: number; workStatus: string; sortOrder: number }) => Promise<void>;
 }) {
+  const t = useT();
   const [show, setShow] = useState(false);
   const [form, setForm] = useState({ serviceName: '', unit: '', quantity: '1', unitPrice: '0' });
   const [saving, setSaving] = useState(false);
@@ -8196,7 +8220,7 @@ function AddLineModal({ proposalId, onAdd }: {
   );
 
   return (
-    <ModalShell title="Добавить позицию" onClose={() => setShow(false)}>
+    <ModalShell title={t('Добавить позицию')} onClose={() => setShow(false)}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-3">
           <div>
@@ -8205,21 +8229,21 @@ function AddLineModal({ proposalId, onAdd }: {
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Ед.</label>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{t('Ед.')}</label>
               <input value={form.unit} onChange={e => setForm(p => ({ ...p, unit: e.target.value }))} className={inputCls} />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Кол-во</label>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{t('Кол-во')}</label>
               <input type="number" min="0" step="0.01" value={form.quantity} onChange={e => setForm(p => ({ ...p, quantity: e.target.value }))} className={inputCls} />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Цена</label>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{t('Цена')}</label>
               <input type="number" min="0" step="0.01" value={form.unitPrice} onChange={e => setForm(p => ({ ...p, unitPrice: e.target.value }))} className={inputCls} />
             </div>
           </div>
         </div>
         <div className="flex justify-end gap-3 pt-2 border-t border-gray-100 dark:border-gray-700">
-          <button type="button" onClick={() => setShow(false)} className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors">Отмена</button>
+          <button type="button" onClick={() => setShow(false)} className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors">{t('Отмена')}</button>
           <button type="submit" disabled={saving} className="px-5 py-2 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
             {saving ? 'Добавление...' : 'Добавить'}
           </button>
@@ -8230,6 +8254,7 @@ function AddLineModal({ proposalId, onAdd }: {
 }
 
 export default function Page() {
+  const t = useT();
   return (
     <Suspense>
       <ProjectDetailPage />

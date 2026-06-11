@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
+import { useT } from '@/lib/i18n';
 
 interface Equipment {
   id: number;
@@ -18,6 +19,7 @@ export default function EquipmentQRModal({
   equipment: Equipment;
   onClose: () => void;
 }) {
+  const t = useT();
   const [dataUrl, setDataUrl] = useState<string | null>(null);
 
   // Payload encodes a stable identifier the warehouse staff can scan; the
@@ -61,7 +63,7 @@ export default function EquipmentQRModal({
         <div className="flex items-center justify-center bg-white rounded-lg p-3 border border-gray-200 dark:border-gray-600 min-h-[260px]">
           {dataUrl
             ? <img src={dataUrl} alt="QR" width={240} height={240} />
-            : <div className="text-sm text-gray-500">Генерация...</div>}
+            : <div className="text-sm text-gray-500">{t('Генерация...')}</div>}
         </div>
         <p className="text-[10px] text-gray-400 break-all mt-3">{payload}</p>
         <div className="flex justify-end gap-2 mt-4">

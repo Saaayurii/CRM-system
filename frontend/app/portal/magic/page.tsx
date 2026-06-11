@@ -3,8 +3,10 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import api from '@/lib/api';
+import { useT } from '@/lib/i18n';
 
 export default function PortalMagicPage() {
+  const t = useT();
   const params = useSearchParams();
   const [status, setStatus] = useState<'loading' | 'error'>('loading');
   const [message, setMessage] = useState('Проверяем ссылку...');

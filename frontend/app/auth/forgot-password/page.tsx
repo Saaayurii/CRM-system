@@ -5,11 +5,13 @@ import api from '@/lib/api';
 import RecoverySetPasswordForm, {
   RecoverableAccount,
 } from '@/components/auth/RecoverySetPasswordForm';
+import { useT } from '@/lib/i18n';
 
 type Mode = 'email' | 'phone';
 type PhoneStep = 'phone' | 'code' | 'reset' | 'done';
 
 export default function ForgotPasswordPage() {
+  const t = useT();
   const [mode, setMode] = useState<Mode>('email');
 
   // ── Email flow ──
@@ -113,7 +115,7 @@ export default function ForgotPasswordPage() {
   if (mode === 'phone' && phoneStep === 'done') {
     return (
       <div>
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">Готово</h1>
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">{t('Готово')}</h1>
         <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">{doneMessage}</p>
         <a href="/auth/login" className="btn bg-violet-500 hover:bg-violet-600 text-white w-full">
           Войти
@@ -125,7 +127,7 @@ export default function ForgotPasswordPage() {
   if (mode === 'phone' && phoneStep === 'reset') {
     return (
       <div>
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">Новый пароль</h1>
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">{t('Новый пароль')}</h1>
         <p className="text-sm text-gray-600 dark:text-gray-400 mb-5">
           Код подтверждён.
           {accounts.length > 1 ? ' Отметьте аккаунты, для которых нужно сбросить пароль.' : ''}
