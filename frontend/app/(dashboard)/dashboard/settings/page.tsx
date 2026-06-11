@@ -6,6 +6,7 @@ import { useToastStore } from '@/stores/toastStore';
 import api from '@/lib/api';
 import { normalizeFileUrl } from '@/lib/utils';
 import TwoFactorCard from '@/components/settings/TwoFactorCard';
+import AppearanceSettings from '@/components/settings/AppearanceSettings';
 
 async function compressImage(file: File, maxSizeMB = 1, maxDimension = 1024): Promise<File> {
   return new Promise((resolve) => {
@@ -485,6 +486,9 @@ export default function SettingsPage() {
           </div>
         )}
       </div>
+
+      {/* Appearance (Telegram-style) */}
+      <AppearanceSettings />
 
       {/* Avatar section */}
       <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-6 mb-6">

@@ -147,6 +147,20 @@ export class SettingsGatewayController {
     });
   }
 
+  @Put('user-preferences')
+  @ApiOperation({ summary: 'Update current user preferences' })
+  async updateCurrentUserPreferences(@Req() req: Request, @Body() body: any) {
+    return this.proxyService.forward('settings', {
+      method: 'PUT',
+      path: '/user-preferences',
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
   @Put('user-preferences/:id')
   @ApiOperation({ summary: 'Update user preference' })
   async updateUserPreference(

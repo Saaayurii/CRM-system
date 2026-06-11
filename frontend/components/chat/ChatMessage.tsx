@@ -9,6 +9,8 @@ import MediaViewer, { MediaItem } from './MediaViewer';
 import FilePreviewModal from '@/components/ui/FilePreviewModal';
 import UserProfileModal from './UserProfileModal';
 import { haptic } from '@/lib/haptics';
+import { useThemeStore } from '@/stores/themeStore';
+import { nameColorClass } from '@/lib/appearance';
 
 const QUICK_EMOJIS = ['❤️', '🤗', '👍', '😄', '👎', '🔥', '👏'];
 
@@ -175,6 +177,15 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
   const isVoice = message.messageType === 'voice';
   const isVideoNote = message.messageType === 'video_note';
 
+  // Настройки оформления: «сообщения блоками» и цветные имена (как в Telegram).
+  // В режиме блоков все сообщения рендерятся плоским списком слева; isOwn
+  // продолжает управлять правами (редактирование/удаление/галочки), а `own` —
+  // только внешним видом «своего» пузыря.
+  const chatBubbles = useThemeStore((s) => s.appearance.chatBubbles);
+  const nameColors = useThemeStore((s) => s.appearance.nameColors);
+  const blockMode = !chatBubbles;
+  const own = isOwn && !blockMode;
+
   // Forwarded message detection
   const forwardMeta = message.forwardMeta ?? null;
   const oldForwardMatch = !forwardMeta ? OLD_FORWARD_RE.exec(message.text || '') : null;
@@ -219,7 +230,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
     (a: any) => !isImageAtt(a) && !isVideoAtt(a) && a.type !== 'tg_meta' && a.type !== 'forward_meta'
   );
   const hasAlbum = mediaAtts.length >= 2;
-  const albumCornerClass = isOwn ? 'rounded-tl-2xl rounded-tr-sm' : 'rounded-tl-sm rounded-tr-2xl';
+  const albumCornerClass = own ? 'rounded-tl-2xl rounded-tr-sm' : 'rounded-tl-sm rounded-tr-2xl';
 
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const [previewFile, setPreviewFile] = useState<{ url: string; name?: string; mimeType?: string } | null>(null);
@@ -295,7 +306,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
         // Fan pattern: scattered left/right/up, slight downward drift
         const angle = (Math.random() - 0.5) * Math.PI * 1.4;
         const dist = 35 + Math.random() * 110;
-        const bias = isOwn ? 35 : -35; // own msgs scatter right, others left
+        const bias = own ? 35 : -35; // own msgs scatter right, others left
         return {
           id: i,
           left: startX,
@@ -311,7 +322,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
       setSnapParticles(pts);
     }
     setIsDeleting(true);
-  }, [isOwn]);
+  }, [own]);
 
   const handleDeleteWithSnap = useCallback(() => {
     if (isDeleting) return;
@@ -398,7 +409,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
       return (
         <TaskCardMessage
           card={card}
-          isOwn={isOwn}
+          isOwn={own}
           senderName={displaySenderName}
           createdAt={message.createdAt}
           messageId={message.id}
@@ -410,7 +421,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
   return (
     <div
       data-message-id={message.id}
-      className={`flex gap-2 group [@media(pointer:coarse)]:select-none ${isOwn ? 'flex-row-reverse' : ''} ${showAvatar ? 'mt-3' : 'mt-0.5'} ${isPinned ? 'ring-1 ring-violet-300 dark:ring-violet-700 rounded-2xl' : ''}`}
+      className={`flex gap-2 group [@media(pointer:coarse)]:select-none ${own ? 'flex-row-reverse' : ''} ${showAvatar ? 'mt-3' : 'mt-0.5'} ${isPinned ? 'ring-1 ring-violet-300 dark:ring-violet-700 rounded-2xl' : ''}`}
       style={{ transition: 'opacity 0.7s ease-out, transform 0.7s ease-out, filter 0.7s ease-out', opacity: isDeleting ? 0 : 1, transform: isDeleting ? 'scale(0.95)' : 'scale(1)', filter: isDeleting ? 'blur(6px)' : 'none' }}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
@@ -431,7 +442,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
     >
       {/* Avatar placeholder / real avatar */}
       <div className="w-8 shrink-0">
-        {showAvatar && !isOwn && (() => {
+        {showAvatar && !own && (() => {
           // For left-side forwarded messages use original sender's avatar/initials
           const avatarName = forwardMeta ? forwardSenderName : displaySenderName;
           const avatarUrl = forwardMeta ? (forwardMeta.originalSenderAvatarUrl || message.senderAvatarUrl) : message.senderAvatarUrl;
@@ -461,12 +472,18 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
       </div>
 
       {/* Bubble */}
-      <div className={`max-w-[70%] min-w-[80px] flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}>
+      <div className={`${blockMode ? 'w-full max-w-full' : 'max-w-[70%]'} min-w-[80px] flex flex-col ${own ? 'items-end' : 'items-start'}`}>
         {/* Sender name */}
-        {showAvatar && !isOwn && (
+        {showAvatar && !own && (
           <p
             onClick={openProfile}
-            className={`text-xs font-medium mb-0.5 ml-1 ${isSenderDeleted ? 'text-gray-400 dark:text-gray-600 italic' : 'text-gray-500 dark:text-gray-400'} ${canOpenProfile ? 'cursor-pointer hover:text-violet-500 dark:hover:text-violet-400 transition-colors' : ''}`}
+            className={`text-xs font-medium mb-0.5 ml-1 ${
+              isSenderDeleted
+                ? 'text-gray-400 dark:text-gray-600 italic'
+                : nameColors
+                  ? `${nameColorClass(message.senderId)} font-semibold`
+                  : 'text-gray-500 dark:text-gray-400'
+            } ${canOpenProfile ? 'cursor-pointer hover:text-violet-500 dark:hover:text-violet-400 transition-colors' : ''}`}
           >
             {forwardMeta ? forwardSenderName : displaySenderName}
           </p>
@@ -477,7 +494,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
           <div
             onClick={onScrollToReply}
             className={`text-xs px-2 py-1 mb-0.5 rounded-t-lg border-l-2 max-w-full ${
-              isOwn
+              own
                 ? 'bg-violet-400/20 border-violet-300 dark:bg-violet-500/20 dark:border-violet-400'
                 : 'bg-gray-100 border-gray-300 dark:bg-gray-700 dark:border-gray-500'
             } ${onScrollToReply ? 'cursor-pointer hover:brightness-95 dark:hover:brightness-110 transition-all' : ''}`}
@@ -491,30 +508,32 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
 
         <div
           ref={bubbleRef}
-          className={`relative rounded-2xl px-3 py-2 w-full ${isSelected ? 'chat-msg-select' : ''} ${
-            isOwn
-              ? 'bg-violet-500 text-white rounded-tr-sm'
-              : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-transparent shadow-sm rounded-tl-sm'
+          className={`relative rounded-2xl w-full ${isSelected ? 'chat-msg-select' : ''} ${
+            own
+              ? 'bg-violet-500 text-white rounded-tr-sm px-3 py-2'
+              : blockMode
+                ? 'bg-transparent text-gray-800 dark:text-gray-100 px-1 py-0.5'
+                : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-transparent shadow-sm rounded-tl-sm px-3 py-2'
           }`}
         >
 
           {/* Video note / Voice message / Regular content */}
           {isVideoNote && message.attachments && message.attachments.length > 0 ? (
-            <VideoNotePlayer src={message.attachments[0].fileUrl} isOwn={isOwn} />
+            <VideoNotePlayer src={message.attachments[0].fileUrl} isOwn={own} />
           ) : isVoice && message.attachments && message.attachments.length > 0 ? (
-            <VoicePlayer src={message.attachments[0].fileUrl} isOwn={isOwn} />
+            <VoicePlayer src={message.attachments[0].fileUrl} isOwn={own} />
           ) : (
             <>
               {/* Media album — full-width at top (Telegram style), rendered before text */}
               {hasAlbum && (
-                <div className={`overflow-hidden -mx-3 -mt-2 mb-2 ${albumCornerClass}`}>
+                <div className={`overflow-hidden mb-2 ${blockMode ? 'rounded-xl max-w-md' : `-mx-3 -mt-2 ${albumCornerClass}`}`}>
                   <MediaAlbum items={mediaAtts} mediaItems={mediaItems} onOpen={openViewer} />
                 </div>
               )}
 
               {/* TG sender badge */}
               {isTgMessage && tgSender && (
-                <div className={`flex items-center gap-1 mb-1 text-xs font-medium ${isOwn ? 'text-white/80' : 'text-sky-500 dark:text-sky-400'}`}>
+                <div className={`flex items-center gap-1 mb-1 text-xs font-medium ${own ? 'text-white/80' : 'text-sky-500 dark:text-sky-400'}`}>
                   <svg className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-2.012 9.482c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.875.739z"/>
                   </svg>
@@ -524,17 +543,17 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
 
               {/* Forwarded message header */}
               {isForwarded && (
-                <div className={`flex items-center gap-1.5 mb-1.5 border-l-2 pl-2 ${isOwn ? 'border-white/40' : 'border-violet-400'}`}>
-                  <svg className={`w-3 h-3 shrink-0 ${isOwn ? 'text-white/60' : 'text-violet-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <div className={`flex items-center gap-1.5 mb-1.5 border-l-2 pl-2 ${own ? 'border-white/40' : 'border-violet-400'}`}>
+                  <svg className={`w-3 h-3 shrink-0 ${own ? 'text-white/60' : 'text-violet-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M13 9l3 3-3 3m-6 0a9 9 0 110-18 9 9 0 010 18" />
                   </svg>
-                  <span className={`text-xs font-medium truncate ${isOwn ? 'text-white/70' : 'text-violet-500 dark:text-violet-400'}`}>
+                  <span className={`text-xs font-medium truncate ${own ? 'text-white/70' : 'text-violet-500 dark:text-violet-400'}`}>
                     {forwardSenderName}
                   </span>
                   {forwardChannelId && onGoToOriginalChannel && (
                     <button
                       onClick={(e) => { e.stopPropagation(); onGoToOriginalChannel(forwardChannelId); }}
-                      className={`ml-auto shrink-0 p-0.5 rounded transition-colors ${isOwn ? 'text-white/50 hover:text-white/90' : 'text-violet-400 hover:text-violet-600'}`}
+                      className={`ml-auto shrink-0 p-0.5 rounded transition-colors ${own ? 'text-white/50 hover:text-white/90' : 'text-violet-400 hover:text-violet-600'}`}
                       title="Перейти к оригиналу"
                     >
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
@@ -546,7 +565,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
               )}
 
               {/* Text (caption if album, otherwise regular message text) */}
-              {resolvedDisplayText && renderText(resolvedDisplayText, isOwn, highlightQuery)}
+              {resolvedDisplayText && renderText(resolvedDisplayText, own, highlightQuery)}
 
               {/* Single image */}
               {!hasAlbum && mediaAtts.length === 1 && isImageAtt(mediaAtts[0]) && (() => {
@@ -559,7 +578,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
                       onClick={() => openViewer(mediaIndex)}
                       onError={(e) => { e.currentTarget.style.display = 'none'; (e.currentTarget.nextElementSibling as HTMLElement)?.classList.remove('hidden'); }}
                     />
-                    <div className={`hidden items-center gap-2 p-2 rounded-lg text-sm ${isOwn ? 'bg-violet-400/30' : 'bg-gray-100 dark:bg-gray-700'}`}>
+                    <div className={`hidden items-center gap-2 p-2 rounded-lg text-sm ${own ? 'bg-violet-400/30' : 'bg-gray-100 dark:bg-gray-700'}`}>
                       <FileIcon mimeType={att.mimeType} /><span className="truncate text-sm">{att.fileName}</span>
                     </div>
                     <a href={att.fileUrl} download={att.fileName} target="_blank" rel="noopener noreferrer"
@@ -601,14 +620,14 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
                     const isAudio = att.mimeType?.startsWith('audio/');
                     if (isAudio) {
                       return (
-                        <div key={att.id ?? index} className={`flex flex-col gap-1 p-2 rounded-lg ${isOwn ? 'bg-violet-400/30' : 'bg-gray-100 dark:bg-gray-700'}`}>
+                        <div key={att.id ?? index} className={`flex flex-col gap-1 p-2 rounded-lg ${own ? 'bg-violet-400/30' : 'bg-gray-100 dark:bg-gray-700'}`}>
                           <div className="flex items-center justify-between gap-2">
                             <div className="flex items-center gap-2 min-w-0">
                               <FileIcon mimeType={att.mimeType} />
                               <span className="truncate text-sm font-medium">{att.fileName}</span>
                             </div>
                             <a href={att.fileUrl} download={att.fileName} target="_blank" rel="noopener noreferrer"
-                              className={`shrink-0 p-1 rounded-full hover:bg-black/10 ${isOwn ? 'text-violet-200' : 'text-gray-500'}`}>
+                              className={`shrink-0 p-1 rounded-full hover:bg-black/10 ${own ? 'text-violet-200' : 'text-gray-500'}`}>
                               <DownloadIcon />
                             </a>
                           </div>
@@ -620,17 +639,17 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
                       <div key={att.id ?? index}
                         onClick={() => setPreviewFile({ url: att.fileUrl, name: att.fileName, mimeType: att.mimeType })}
                         className={`flex items-center gap-2 p-2 rounded-lg text-sm cursor-pointer transition-colors ${
-                          isOwn ? 'bg-violet-400/30 hover:bg-violet-400/40' : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600'
+                          own ? 'bg-violet-400/30 hover:bg-violet-400/40' : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600'
                         }`}>
                         <FileIcon mimeType={att.mimeType} />
                         <div className="min-w-0 flex-1">
                           <p className="truncate font-medium text-sm">{att.fileName}</p>
-                          <p className={`text-xs ${isOwn ? 'text-violet-200' : 'text-gray-400 dark:text-gray-500'}`}>
+                          <p className={`text-xs ${own ? 'text-violet-200' : 'text-gray-400 dark:text-gray-500'}`}>
                             {getFileExt(att.fileName)} · {formatSize(att.fileSize)}
                           </p>
                         </div>
                         <a href={att.fileUrl} download={att.fileName} target="_blank" rel="noopener noreferrer"
-                          className={`shrink-0 p-1.5 rounded-full transition-colors ${isOwn ? 'text-violet-200 hover:bg-violet-400/30' : 'text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-600'}`}
+                          className={`shrink-0 p-1.5 rounded-full transition-colors ${own ? 'text-violet-200 hover:bg-violet-400/30' : 'text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-600'}`}
                           onClick={(e) => e.stopPropagation()}>
                           <DownloadIcon />
                         </a>
@@ -643,13 +662,13 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
           )}
 
           {/* Time + edited + read checkmark + readers */}
-          <div className={`flex items-center gap-1 mt-0.5 ${isOwn ? 'justify-end' : 'justify-start'}`}>
+          <div className={`flex items-center gap-1 mt-0.5 ${own ? 'justify-end' : 'justify-start'}`}>
             {message.isEdited && (
-              <span className={`text-[10px] ${isOwn ? 'text-violet-200' : 'text-gray-400 dark:text-gray-500'}`}>
+              <span className={`text-[10px] ${own ? 'text-violet-200' : 'text-gray-400 dark:text-gray-500'}`}>
                 ред.
               </span>
             )}
-            <span className={`text-[10px] ${isOwn ? 'text-violet-200' : 'text-gray-400 dark:text-gray-500'}`}>
+            <span className={`text-[10px] ${own ? 'text-violet-200' : 'text-gray-400 dark:text-gray-500'}`}>
               {formatTime(message.createdAt)}
             </span>
             {isOwn && (
@@ -659,7 +678,11 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
                   <ReadersTooltip readers={readers} />
                 )}
                 {/* Checkmark */}
-                <span className={`text-[10px] leading-none ${isRead ? 'text-sky-300' : 'text-violet-200'}`}>
+                <span className={`text-[10px] leading-none ${
+                  isRead
+                    ? own ? 'text-sky-300' : 'text-sky-500'
+                    : own ? 'text-violet-200' : 'text-gray-400 dark:text-gray-500'
+                }`}>
                   {isRead ? (
                     <svg className="w-4 h-3 inline" viewBox="0 0 18 11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <polyline points="1,6 4.5,10 10,2" />
@@ -744,11 +767,11 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
 
           {/* Message preview bubble */}
           <div
-            className={`relative z-10 w-full flex ${isOwn ? 'justify-end' : 'justify-start'}`}
+            className={`relative z-10 w-full flex ${own ? 'justify-end' : 'justify-start'}`}
             onClick={(e) => e.stopPropagation()}
           >
             <div className={`max-w-[75%] rounded-2xl px-3 py-2 shadow-lg ${
-              isOwn
+              own
                 ? 'bg-violet-500 text-white rounded-tr-sm'
                 : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-transparent rounded-tl-sm'
             }`}>
@@ -756,11 +779,11 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
                 <p className="text-sm whitespace-pre-wrap break-words line-clamp-4">{message.text}</p>
               )}
               {!message.text && message.attachments && message.attachments.length > 0 && (
-                <p className={`text-sm ${isOwn ? 'text-violet-200' : 'text-gray-500 dark:text-gray-400'}`}>
+                <p className={`text-sm ${own ? 'text-violet-200' : 'text-gray-500 dark:text-gray-400'}`}>
                   📎 {message.attachments[0].fileName}
                 </p>
               )}
-              <div className={`text-[10px] mt-0.5 ${isOwn ? 'text-right text-violet-200' : 'text-gray-400 dark:text-gray-500'}`}>
+              <div className={`text-[10px] mt-0.5 ${own ? 'text-right text-violet-200' : 'text-gray-400 dark:text-gray-500'}`}>
                 {formatTime(message.createdAt)}
               </div>
             </div>
@@ -968,7 +991,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
                 top: p.top,
                 width: p.size,
                 height: p.size,
-                background: isOwn
+                background: own
                   ? `rgba(196, 181, 253, ${p.alpha})`
                   : `rgba(156, 163, 175, ${p.alpha})`,
                 '--tx': `${p.tx}px`,

@@ -76,6 +76,34 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="3.15 CRM" />
         <meta name="msapplication-TileColor" content="#7c3aed" />
         <meta name="msapplication-tap-highlight" content="no" />
+        {/* Apply theme/accent/font-size before paint to avoid flash */}
+        <script dangerouslySetInnerHTML={{ __html: `
+          try {
+            var raw = localStorage.getItem('appearance');
+            var a = raw ? JSON.parse(raw) : null;
+            var sys = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            var dark = false;
+            if (a) {
+              var night = false;
+              if (a.nightMode === 'scheduled' && a.nightStart && a.nightEnd) {
+                var p = function (s) { var x = s.split(':'); return (+x[0]) * 60 + (+x[1]); };
+                var d = new Date(); var cur = d.getHours() * 60 + d.getMinutes();
+                var st = p(a.nightStart), en = p(a.nightEnd);
+                night = st < en ? (cur >= st && cur < en) : (cur >= st || cur < en);
+              }
+              dark = a.mode === 'night' || (a.mode === 'system' && sys) ||
+                ((a.mode === 'classic' || a.mode === 'day') && ((a.nightMode === 'system' && sys) || night));
+              if (a.accent && a.accent !== 'violet') document.documentElement.setAttribute('data-accent', a.accent);
+              if (a.fontSize && a.fontSize !== 16) document.documentElement.style.fontSize = a.fontSize + 'px';
+            } else {
+              dark = localStorage.getItem('theme') === 'dark';
+            }
+            if (dark) {
+              document.documentElement.classList.add('dark');
+              document.documentElement.style.colorScheme = 'dark';
+            }
+          } catch (e) {}
+        `}} />
         {/* Capture beforeinstallprompt before React mounts */}
         <script dangerouslySetInnerHTML={{ __html: `
           window.addEventListener('beforeinstallprompt', function(e) {

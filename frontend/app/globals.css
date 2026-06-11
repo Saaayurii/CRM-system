@@ -347,3 +347,115 @@
 .recharts-wrapper *:focus-visible {
   outline: none !important;
 }
+
+/* ── Акцентные цвета (настройки оформления, как в Telegram) ──────────────────
+   Акцент приложения — фиолетовая палитра (--color-violet-*). Атрибут
+   data-accent на <html> переопределяет её на выбранную палитру, и весь UI
+   (кнопки, ссылки, активные элементы) автоматически перекрашивается. */
+html[data-accent='blue'] {
+  --color-violet-50: #eff6ff;
+  --color-violet-100: #dbeafe;
+  --color-violet-200: #bfdbfe;
+  --color-violet-300: #93c5fd;
+  --color-violet-400: #60a5fa;
+  --color-violet-500: #3b82f6;
+  --color-violet-600: #2563eb;
+  --color-violet-700: #1d4ed8;
+  --color-violet-800: #1e40af;
+  --color-violet-900: #1e3a8a;
+  --color-violet-950: #172554;
+}
+html[data-accent='red'] {
+  --color-violet-50: #fef2f2;
+  --color-violet-100: #fee2e2;
+  --color-violet-200: #fecaca;
+  --color-violet-300: #fca5a5;
+  --color-violet-400: #f87171;
+  --color-violet-500: #ef4444;
+  --color-violet-600: #dc2626;
+  --color-violet-700: #b91c1c;
+  --color-violet-800: #991b1b;
+  --color-violet-900: #7f1d1d;
+  --color-violet-950: #450a0a;
+}
+html[data-accent='orange'] {
+  --color-violet-50: #fff7ed;
+  --color-violet-100: #ffedd5;
+  --color-violet-200: #fed7aa;
+  --color-violet-300: #fdba74;
+  --color-violet-400: #fb923c;
+  --color-violet-500: #f97316;
+  --color-violet-600: #ea580c;
+  --color-violet-700: #c2410c;
+  --color-violet-800: #9a3412;
+  --color-violet-900: #7c2d12;
+  --color-violet-950: #431407;
+}
+html[data-accent='amber'] {
+  --color-violet-50: #fffbeb;
+  --color-violet-100: #fef3c7;
+  --color-violet-200: #fde68a;
+  --color-violet-300: #fcd34d;
+  --color-violet-400: #fbbf24;
+  --color-violet-500: #f59e0b;
+  --color-violet-600: #d97706;
+  --color-violet-700: #b45309;
+  --color-violet-800: #92400e;
+  --color-violet-900: #78350f;
+  --color-violet-950: #451a03;
+}
+html[data-accent='green'] {
+  --color-violet-50: #ecfdf5;
+  --color-violet-100: #d1fae5;
+  --color-violet-200: #a7f3d0;
+  --color-violet-300: #6ee7b7;
+  --color-violet-400: #34d399;
+  --color-violet-500: #10b981;
+  --color-violet-600: #059669;
+  --color-violet-700: #047857;
+  --color-violet-800: #065f46;
+  --color-violet-900: #064e3b;
+  --color-violet-950: #022c22;
+}
+html[data-accent='cyan'] {
+  --color-violet-50: #ecfeff;
+  --color-violet-100: #cffafe;
+  --color-violet-200: #a5f3fc;
+  --color-violet-300: #67e8f9;
+  --color-violet-400: #22d3ee;
+  --color-violet-500: #06b6d4;
+  --color-violet-600: #0891b2;
+  --color-violet-700: #0e7490;
+  --color-violet-800: #155e75;
+  --color-violet-900: #164e63;
+  --color-violet-950: #083344;
+}
+html[data-accent='pink'] {
+  --color-violet-50: #fdf2f8;
+  --color-violet-100: #fce7f3;
+  --color-violet-200: #fbcfe8;
+  --color-violet-300: #f9a8d4;
+  --color-violet-400: #f472b6;
+  --color-violet-500: #ec4899;
+  --color-violet-600: #db2777;
+  --color-violet-700: #be185d;
+  --color-violet-800: #9d174d;
+  --color-violet-900: #831843;
+  --color-violet-950: #500724;
+}
+
+/* ── Цветные имена собеседников в чате (палитра как в Telegram) ───────────── */
+.chat-name-c0 { color: #cc5049; }
+.chat-name-c1 { color: #d67722; }
+.chat-name-c2 { color: #955cdb; }
+.chat-name-c3 { color: #40a920; }
+.chat-name-c4 { color: #309eba; }
+.chat-name-c5 { color: #368ad1; }
+.chat-name-c6 { color: #c7508b; }
+.dark .chat-name-c0 { color: #ff8e87; }
+.dark .chat-name-c1 { color: #ffa85c; }
+.dark .chat-name-c2 { color: #b18fff; }
+.dark .chat-name-c3 { color: #7ddd5e; }
+.dark .chat-name-c4 { color: #5cc8e0; }
+.dark .chat-name-c5 { color: #6cb8f5; }
+.dark .chat-name-c6 { color: #f37fb2; }
