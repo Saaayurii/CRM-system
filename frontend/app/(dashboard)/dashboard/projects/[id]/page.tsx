@@ -2085,7 +2085,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
           )}
         </div>
         <div className="flex items-center gap-2 mt-3 sm:mt-0 shrink-0">
-          <Link href="/dashboard/projects" className="text-sm text-violet-500 hover:text-violet-600">{t('&larr; Назад')}</Link>
+          <Link href="/dashboard/projects" className="text-sm text-violet-500 hover:text-violet-600">← {t('Назад')}</Link>
           {project && (
             <button
               onClick={downloadProjectPdf}
