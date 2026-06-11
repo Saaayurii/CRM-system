@@ -54,6 +54,7 @@ export class CalendarEventsService {
       title: dto.title,
       description: dto.description,
       eventType: dto.eventType,
+      customTypeId: dto.customTypeId || null,
       startDatetime: new Date(dto.startDatetime),
       endDatetime: dto.endDatetime ? new Date(dto.endDatetime) : null,
       isAllDay: dto.isAllDay || false,

@@ -27,6 +27,11 @@ export class CreateCalendarEventDto {
   @MaxLength(100)
   eventType?: string;
 
+  @ApiPropertyOptional({ description: 'Custom event type ID' })
+  @IsOptional()
+  @IsInt()
+  customTypeId?: number;
+
   @ApiProperty({ description: 'Start date/time' })
   @IsNotEmpty()
   @IsDateString()
