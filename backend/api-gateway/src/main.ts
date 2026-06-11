@@ -11,6 +11,11 @@ async function bootstrap() {
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
+  // Шлюз стоит за nginx в docker-сети: доверяем приватным хопам, чтобы req.ip
+  // был реальным клиентским адресом из X-Forwarded-For, а не IP прокси-контейнера.
+  // Иначе сессии и rate-limit видят один и тот же 172.x для всех пользователей.
+  app.set('trust proxy', ['loopback', 'linklocal', 'uniquelocal']);
+
   // Serve uploaded chat files statically at /uploads/*
   app.useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads' });
 

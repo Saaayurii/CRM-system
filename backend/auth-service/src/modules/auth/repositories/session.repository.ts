@@ -28,6 +28,24 @@ export class SessionRepository {
     });
   }
 
+  /**
+   * Удаляет прежние сессии того же устройства (точное совпадение user-agent
+   * и IP) — повторный логин заменяет старую запись, а не плодит дубли.
+   */
+  async deleteByDevice(userId: number, userAgent: string, ipAddress: string): Promise<void> {
+    if (!userAgent || !ipAddress) return;
+    await (this.prisma as any).userSession.deleteMany({
+      where: { userId, userAgent, ipAddress },
+    });
+  }
+
+  /** Удаляет сессии с истёкшим refresh-токеном — они уже не активны. */
+  async deleteExpired(userId: number): Promise<void> {
+    await (this.prisma as any).userSession.deleteMany({
+      where: { userId, expiresAt: { lt: new Date() } },
+    });
+  }
+
   /** Delete oldest sessions so the user has at most `max` sessions total */
   async enforceLimit(userId: number, max = 5): Promise<void> {
     const sessions = await (this.prisma as any).userSession.findMany({

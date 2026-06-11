@@ -300,6 +300,9 @@ export class AuthService {
 
     const tokenPair = this.tokenService.generateTokenPair(jwtPayload);
 
+    // Повторный логин с того же устройства (UA+IP) заменяет прежнюю сессию,
+    // чтобы список «Активные сессии» не зарастал дублями одного браузера.
+    await this.sessionRepository.deleteByDevice(user.id, userAgent, ipAddress);
     await this.sessionRepository.enforceLimit(user.id, 5);
     const session = await this.sessionRepository.create({
       userId: user.id,
@@ -592,6 +595,8 @@ export class AuthService {
   }
 
   async getSessions(userId: number, currentSessionId?: number) {
+    // Сессии с истёкшим refresh-токеном уже не активны — убираем из списка
+    await this.sessionRepository.deleteExpired(userId);
     const sessions = await this.sessionRepository.findAllByUserId(userId);
     return sessions.map((s: any) => {
       const parsed = s.userAgent ? parseUserAgent(s.userAgent) : null;
@@ -936,6 +941,7 @@ export class AuthService {
     };
 
     const tokenPair = this.tokenService.generateTokenPair(jwtPayload);
+    await this.sessionRepository.deleteByDevice(targetUser.id, userAgent, ipAddress);
     await this.sessionRepository.enforceLimit(targetUser.id, 5);
     const session = await this.sessionRepository.create({
       userId: targetUser.id,
