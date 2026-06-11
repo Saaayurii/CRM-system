@@ -19,6 +19,11 @@ import { PresenceService } from '../presence/presence.service';
 import { NotificationsClientService } from './notifications-client.service';
 import * as jwt from 'jsonwebtoken';
 
+// Heartbeat-presence: живые сокеты продлеваются каждые 30с,
+// записи без продления дольше 75с считаются протухшими (2 пропущенных бита + запас)
+const PRESENCE_HEARTBEAT_MS = 30_000;
+const PRESENCE_STALE_MS = 75_000;
+
 @WebSocketGateway({
   cors: { origin: '*' },
   namespace: '/chat',
@@ -46,6 +51,33 @@ export class ChatGateway
 
   afterInit() {
     this.logger.log('WebSocket server initialized (Redis adapter via main.ts)');
+    // Presence-heartbeat (та же идея, что у авто-сброса «печатает»):
+    // живые сокеты продлевают свежесть записи, протухшие записи вычищаются —
+    // самовосстановление после рестартов/обрывов, когда handleDisconnect не сработал.
+    setInterval(() => {
+      this.refreshPresence().catch((err) =>
+        this.logger.warn(`Presence heartbeat failed: ${err.message}`),
+      );
+    }, PRESENCE_HEARTBEAT_MS);
+  }
+
+  private async refreshPresence(): Promise<void> {
+    // fetchSockets() через Redis-адаптер видит сокеты всех инстансов
+    const sockets = await this.server.fetchSockets();
+    const userIds = Array.from(
+      new Set(
+        sockets
+          .map((s) => (s.data as { userId?: number })?.userId)
+          .filter((id): id is number => typeof id === 'number'),
+      ),
+    );
+    await this.presenceService.refreshUsers(userIds);
+
+    const staleUserIds = await this.presenceService.sweepStale(PRESENCE_STALE_MS);
+    for (const userId of staleUserIds) {
+      this.server.emit('presence:offline', { userId });
+      this.logger.debug(`Presence sweep: user ${userId} marked offline (stale)`);
+    }
   }
 
   async handleConnection(client: AuthenticatedSocket) {

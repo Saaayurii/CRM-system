@@ -338,7 +338,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
     });
 
     socket.on('disconnect', () => {
-      set({ isConnected: false });
+      // Без соединения данные presence неактуальны — гасим все «в сети»,
+      // свежий snapshot придёт при reconnect.
+      set({ isConnected: false, onlineUsers: new Set() });
     });
 
     // New message

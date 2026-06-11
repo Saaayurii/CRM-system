@@ -89,6 +89,36 @@ export class PresenceService implements OnModuleInit, OnModuleDestroy {
     return members.map((id) => parseInt(id, 10));
   }
 
+  /** Heartbeat: продлевает «свежесть» presence для живых подключений. */
+  async refreshUsers(userIds: number[]): Promise<void> {
+    if (userIds.length === 0) return;
+    const now = Date.now();
+    const args: (string | number)[] = [];
+    for (const id of userIds) {
+      args.push(now, id.toString());
+    }
+    await this.redis.zadd('presence:online', ...args);
+  }
+
+  /**
+   * Удаляет protухшие presence-записи (heartbeat не приходил дольше maxAgeMs):
+   * сокеты, умершие без handleDisconnect (рестарт сервиса, обрыв сети),
+   * иначе пользователь остаётся «в сети» навсегда. Возвращает их userIds.
+   */
+  async sweepStale(maxAgeMs: number): Promise<number[]> {
+    const cutoff = (Date.now() - maxAgeMs).toString();
+    const stale = await this.redis.zrangebyscore('presence:online', '-inf', cutoff);
+    if (stale.length > 0) {
+      const pipeline = this.redis.pipeline();
+      pipeline.zremrangebyscore('presence:online', '-inf', cutoff);
+      for (const id of stale) {
+        pipeline.del(`presence:user:${id}`);
+      }
+      await pipeline.exec();
+    }
+    return stale.map((id) => parseInt(id, 10));
+  }
+
   getRedisClient(): Redis {
     return this.redis;
   }
