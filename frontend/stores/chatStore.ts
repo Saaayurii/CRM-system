@@ -258,6 +258,10 @@ interface ChatState {
   setShowArchive: (show: boolean) => void;
   connect: () => void;
   disconnect: () => void;
+  // Refcounted socket lifecycle: several consumers (страница чата + мини-чат)
+  // могут одновременно держать соединение; сокет рвётся только когда все отпустили.
+  acquireConnection: () => void;
+  releaseConnection: () => void;
   sendMessage: (channelId: number, text: string, attachments?: UploadedAttachment[], replyToMessageId?: number, messageType?: string) => void;
   editMessage: (messageId: number, text: string) => void;
   deleteMessage: (messageId: number) => void;
@@ -286,6 +290,7 @@ interface ChatState {
 
 let socketRef: Socket | null = null;
 let typingTimeout: ReturnType<typeof setTimeout> | null = null;
+let connectionRefs = 0;
 // Reads requested before the socket finished connecting (e.g. opening a
 // channel straight from a push notification). Flushed on 'connect'.
 const pendingReads = new Set<number>();
@@ -515,6 +520,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
     disconnectSocket();
     socketRef = null;
     set({ isConnected: false });
+  },
+
+  acquireConnection: () => {
+    connectionRefs++;
+    get().connect();
+  },
+
+  releaseConnection: () => {
+    connectionRefs = Math.max(0, connectionRefs - 1);
+    if (connectionRefs === 0) get().disconnect();
   },
 
   sendMessage: (channelId, text, attachments, replyToMessageId, messageType) => {

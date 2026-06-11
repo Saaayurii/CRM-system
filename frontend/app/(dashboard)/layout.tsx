@@ -8,6 +8,7 @@ import PushInit from '@/components/layout/PushInit';
 import PendingSync from '@/components/ui/PendingSync';
 import OfflineBanner from '@/components/ui/OfflineBanner';
 import QuickActionsButton from '@/components/ui/QuickActionsButton';
+import MiniChatWidget from '@/components/chat/MiniChatWidget';
 import ForcePasswordChangeModal from '@/components/layout/ForcePasswordChangeModal';
 import NoteReminder from '@/components/notes/NoteReminder';
 import { useFormEnterNav } from '@/hooks/useFormEnterNav';
@@ -27,6 +28,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </main>
         </div>
         <QuickActionsButton />
+        <MiniChatWidget />
         <ToastContainer />
         <PushInit />
         <PendingSync />

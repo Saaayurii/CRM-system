@@ -7,8 +7,8 @@ import ChatSidebar from '@/components/chat/ChatSidebar';
 import ChatWindow from '@/components/chat/ChatWindow';
 
 export default function ChatPage() {
-  const connect = useChatStore((s) => s.connect);
-  const disconnect = useChatStore((s) => s.disconnect);
+  const connect = useChatStore((s) => s.acquireConnection);
+  const disconnect = useChatStore((s) => s.releaseConnection);
   const fetchChannels = useChatStore((s) => s.fetchChannels);
   const activeChannelId = useChatStore((s) => s.activeChannelId);
   const setActiveChannel = useChatStore((s) => s.setActiveChannel);
