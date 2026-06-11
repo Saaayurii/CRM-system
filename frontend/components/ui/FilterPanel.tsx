@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useT } from '@/lib/i18n';
 
 export interface FilterField {
   type: 'search' | 'select';
@@ -55,6 +56,7 @@ function FilterFields({ fields }: { fields: FilterField[] }) {
 }
 
 export default function FilterPanel({ fields, hasActiveFilters, onReset, className }: FilterPanelProps) {
+  const t = useT();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   // Close drawer on resize to desktop
@@ -132,7 +134,7 @@ export default function FilterPanel({ fields, hasActiveFilters, onReset, classNa
           <div className="relative ml-auto w-80 max-w-full h-full bg-white dark:bg-gray-800 shadow-xl flex flex-col animate-slide-in-right">
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-4 border-b border-gray-100 dark:border-gray-700">
-              <span className="font-semibold text-gray-800 dark:text-gray-100">Фильтры</span>
+              <span className="font-semibold text-gray-800 dark:text-gray-100">{t('Фильтры')}</span>
               <button
                 onClick={() => setDrawerOpen(false)}
                 className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg"

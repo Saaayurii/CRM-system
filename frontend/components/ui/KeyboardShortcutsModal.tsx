@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { isMac } from '@/hooks/useNavHotkeys';
+import { useT } from '@/lib/i18n';
 
 interface Props {
   open: boolean;
@@ -14,33 +15,6 @@ interface ShortcutItem {
   key: string;
   roleOnly?: boolean;
 }
-
-const NAV_SHORTCUTS: ShortcutItem[] = [
-  { label: 'Обзор', key: '1' },
-  { label: 'Проекты', key: '2' },
-  { label: 'Задачи', key: '3' },
-  { label: 'Сообщество', key: '4' },
-  { label: 'Документы', key: '5' },
-  { label: 'Команды', key: '6', roleOnly: true },
-  { label: 'Клиенты', key: '7', roleOnly: true },
-  { label: 'Чат', key: '8' },
-  { label: 'Компания', key: '9', roleOnly: true },
-  { label: 'Настройки', key: '0' },
-  { label: 'Администрирование', key: 'A', roleOnly: true },
-  { label: 'Календарь', key: 'C' },
-  { label: 'Финансы', key: 'F', roleOnly: true },
-  { label: 'Охрана труда', key: 'H' },
-  { label: 'Инструктажи', key: 'I' },
-  { label: 'Обучение', key: 'L' },
-  { label: 'Медиа', key: 'M' },
-  { label: 'Заметки', key: 'N' },
-  { label: 'Склад', key: 'S', roleOnly: true },
-  { label: 'ВИКИ', key: 'W' },
-];
-
-const ACTION_SHORTCUTS: ShortcutItem[] = [
-  { label: 'Выйти', key: 'Q' },
-];
 
 function KeyBadge({ k }: { k: string }) {
   const label = isMac() ? `⌥${k}` : `Alt+${k}`;
@@ -75,6 +49,8 @@ function Section({ title, items }: { title: string; items: ShortcutItem[] }) {
 
 export default function KeyboardShortcutsModal({ open, onClose }: Props) {
   const [mounted, setMounted] = useState(false);
+  const t = useT();
+
   useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
@@ -87,6 +63,33 @@ export default function KeyboardShortcutsModal({ open, onClose }: Props) {
   if (!mounted || !open) return null;
 
   const mac = isMac();
+
+  const navShortcuts: ShortcutItem[] = [
+    { label: t('Обзор'), key: '1' },
+    { label: t('Проекты'), key: '2' },
+    { label: t('Задачи'), key: '3' },
+    { label: t('Сообщество'), key: '4' },
+    { label: t('Документы'), key: '5' },
+    { label: t('Команды'), key: '6', roleOnly: true },
+    { label: t('Клиенты'), key: '7', roleOnly: true },
+    { label: t('Чат'), key: '8' },
+    { label: t('Компания'), key: '9', roleOnly: true },
+    { label: t('Настройки'), key: '0' },
+    { label: t('Администрирование'), key: 'A', roleOnly: true },
+    { label: t('Календарь'), key: 'C' },
+    { label: t('Финансы'), key: 'F', roleOnly: true },
+    { label: t('Охрана труда'), key: 'H' },
+    { label: t('Инструктажи'), key: 'I' },
+    { label: t('Обучение'), key: 'L' },
+    { label: t('Медиа'), key: 'M' },
+    { label: t('Заметки'), key: 'N' },
+    { label: t('Склад'), key: 'S', roleOnly: true },
+    { label: t('ВИКИ'), key: 'W' },
+  ];
+
+  const actionShortcuts: ShortcutItem[] = [
+    { label: t('Выйти'), key: 'Q' },
+  ];
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -101,7 +104,7 @@ export default function KeyboardShortcutsModal({ open, onClose }: Props) {
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 10.5h.01M10 10.5h.01M14 10.5h.01M18 10.5h.01M8 14.5h8" />
             </svg>
             <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">
-              Горячие клавиши
+              {t('Горячие клавиши')}
             </h2>
             {mac && (
               <span suppressHydrationWarning className="text-[11px] text-gray-400 dark:text-gray-500 font-normal">macOS</span>
@@ -119,14 +122,14 @@ export default function KeyboardShortcutsModal({ open, onClose }: Props) {
 
         {/* Body */}
         <div className="px-5 py-4 space-y-5 overflow-y-auto max-h-[70vh]">
-          <Section title="Навигация" items={NAV_SHORTCUTS} />
-          <Section title="Действия" items={ACTION_SHORTCUTS} />
+          <Section title={t('Навигация')} items={navShortcuts} />
+          <Section title={t('Действия')} items={actionShortcuts} />
         </div>
 
         {/* Footer */}
         <div className="px-5 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60">
           <p className="text-[11px] text-gray-400 dark:text-gray-500">
-            <span className="font-mono text-[10px]">*</span> Доступно в зависимости от роли &nbsp;·&nbsp; <kbd className="font-mono text-[10px]">Esc</kbd> — закрыть
+            <span className="font-mono text-[10px]">*</span> {t('Доступно в зависимости от роли')} &nbsp;·&nbsp; <kbd className="font-mono text-[10px]">Esc</kbd> — {t('закрыть')}
           </p>
         </div>
       </div>

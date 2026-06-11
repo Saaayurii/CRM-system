@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useT } from '@/lib/i18n';
 
 export default function CookieBanner() {
   const [visible, setVisible] = useState(false);

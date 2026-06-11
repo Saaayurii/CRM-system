@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { normalizeFileUrl } from '@/lib/utils';
+import { useT } from '@/lib/i18n';
 
 interface FilePreviewModalProps {
   fileUrl: string;
@@ -37,6 +38,7 @@ const TEXT_EXTS  = ['txt', 'log', 'md', 'json', 'xml', 'yaml', 'yml', 'ini', 'en
 const OFFICE_VIEWER_EXTS = ['ppt', 'pptx', 'odp', 'odt', 'ods', 'rtf'];
 
 export default function FilePreviewModal({ fileUrl, fileName, mimeType, onClose }: FilePreviewModalProps) {
+  const t = useT();
   const [state, setState] = useState<PreviewState>({ kind: 'loading' });
 
   const load = useCallback(async () => {
@@ -177,7 +179,7 @@ export default function FilePreviewModal({ fileUrl, fileName, mimeType, onClose 
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                 </svg>
-                <span className="text-sm">Загрузка предпросмотра...</span>
+                <span className="text-sm">{t('Загрузка предпросмотра...')}</span>
               </div>
             </div>
           )}

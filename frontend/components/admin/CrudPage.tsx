@@ -13,6 +13,7 @@ import ManageMembersModal from './ManageMembersModal';
 import ErrorBoundary from './ErrorBoundary';
 import ClientPortalAccessModal from './ClientPortalAccessModal';
 import { useIsClient } from '@/hooks/useIsClient';
+import { useT } from '@/lib/i18n';
 
 interface CrudPageProps {
   config: CrudModuleConfig;
@@ -38,6 +39,7 @@ interface Assignee {
 }
 
 export default function CrudPage({ config, onExtraAction, hideTitle, onRowClick }: CrudPageProps) {
+  const t = useT();
   const crud = useCrudData<Record<string, unknown>>({ apiEndpoint: config.apiEndpoint, prepareCreate: config.prepareCreate, prepareUpdate: config.prepareUpdate });
   const addToast = useToastStore((s) => s.addToast);
   const [pdfLoading, setPdfLoading] = useState<number | null>(null);

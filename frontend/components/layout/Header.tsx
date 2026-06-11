@@ -1,6 +1,7 @@
 'use client';
 
 import { useSidebarStore } from '@/stores/sidebarStore';
+import { useT } from '@/lib/i18n';
 
 /**
  * Mobile menu trigger — a floating round button in the BOTTOM-LEFT corner,
@@ -9,6 +10,7 @@ import { useSidebarStore } from '@/stores/sidebarStore';
  * the two never overlap.
  */
 export default function Header() {
+  const t = useT();
   const { sidebarOpen, setSidebarOpen } = useSidebarStore();
 
   // Hide the floating trigger while the menu is open (the sidebar covers it)
@@ -21,7 +23,7 @@ export default function Header() {
       aria-expanded={sidebarOpen}
       onClick={(e) => { e.stopPropagation(); setSidebarOpen(true); }}
     >
-      <span className="sr-only">Открыть меню</span>
+      <span className="sr-only">{t('Открыть меню')}</span>
       <svg className="w-7 h-7 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
         <rect x="4" y="5" width="16" height="2" />
         <rect x="4" y="11" width="16" height="2" />

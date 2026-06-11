@@ -6,6 +6,7 @@ import Transition from '@/components/ui/Transition';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { useSidebarStore } from '@/stores/sidebarStore';
 import { getPermissionState } from '@/lib/pushNotifications';
+import { useT } from '@/lib/i18n';
 
 function plainText(text?: string | null): string {
   if (!text) return '';
@@ -112,6 +113,7 @@ function NotifIcon({ type }: { type?: string }) {
 }
 
 export default function NotificationDropdown({ navItem }: { navItem?: boolean }) {
+  const t = useT();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [fixedStyle, setFixedStyle] = useState<React.CSSProperties>({});
   const [mounted, setMounted] = useState(false);
@@ -236,7 +238,7 @@ export default function NotificationDropdown({ navItem }: { navItem?: boolean })
     <div ref={dropdown}>
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700/60">
-        <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Уведомления</h3>
+        <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">{t('Уведомления')}</h3>
         <div className="flex items-center gap-3">
           {unreadCount > 0 && (
             <button
@@ -304,7 +306,7 @@ export default function NotificationDropdown({ navItem }: { navItem?: boolean })
             <svg className="w-10 h-10 mx-auto mb-2 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
             </svg>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Нет уведомлений</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{t('Нет уведомлений')}</p>
           </div>
         ) : (
           <ul>
@@ -390,7 +392,7 @@ export default function NotificationDropdown({ navItem }: { navItem?: boolean })
         onClick={handleToggle}
         aria-expanded={dropdownOpen}
       >
-        <span className="sr-only">Уведомления</span>
+        <span className="sr-only">{t('Уведомления')}</span>
         <div className="relative shrink-0">
           <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
@@ -402,7 +404,7 @@ export default function NotificationDropdown({ navItem }: { navItem?: boolean })
           )}
         </div>
         {navItem && (
-          <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Уведомления</span>
+          <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">{t('Уведомления')}</span>
         )}
       </button>
 

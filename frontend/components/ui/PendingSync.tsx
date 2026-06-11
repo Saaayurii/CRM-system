@@ -3,8 +3,10 @@
 import { useEffect, useState } from 'react';
 import { useOfflineQueueStore } from '@/stores/offlineQueueStore';
 import { useToastStore } from '@/stores/toastStore';
+import { useT } from '@/lib/i18n';
 
 export default function PendingSync() {
+  const t = useT();
   const { items, pendingCount, isSyncing, isOnline, refresh, syncNow, removeItem, setOnline } =
     useOfflineQueueStore();
   const addToast = useToastStore((s) => s.addToast);

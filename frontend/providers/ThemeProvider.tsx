@@ -2,13 +2,16 @@
 
 import { useEffect } from 'react';
 import { useThemeStore } from '@/stores/themeStore';
+import { useLanguageStore } from '@/stores/languageStore';
 
 export default function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { theme, initialize } = useThemeStore();
+  const { initialize: initLanguage } = useLanguageStore();
 
   useEffect(() => {
     initialize();
-  }, [initialize]);
+    initLanguage();
+  }, [initialize, initLanguage]);
 
   useEffect(() => {
     document.documentElement.classList.add('**:transition-none!');

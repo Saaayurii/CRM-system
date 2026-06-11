@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 import { useSidebarStore } from '@/stores/sidebarStore';
 import { useChatStore } from '@/stores/chatStore';
 import { useAuthStore } from '@/stores/authStore';
+import { useT } from '@/lib/i18n';
 
 type Item = { href: string; label: string; icon: React.ReactNode };
 
@@ -79,6 +80,7 @@ const ITEMS: Item[] = [
 const LABEL_CLS = 'text-sm font-medium flex-1 inline lg:hidden lg:sidebar-expanded:inline';
 
 export default function ClientSidebar() {
+  const t = useT();
   const pathname = usePathname();
   const router = useRouter();
   const { sidebarOpen, setSidebarOpen, sidebarExpanded, setSidebarExpanded } = useSidebarStore();
@@ -193,7 +195,7 @@ export default function ClientSidebar() {
             <svg className="shrink-0 w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M18 15l3-3m0 0-3-3m3 3H9" />
             </svg>
-            <span className={LABEL_CLS}>Выйти</span>
+            <span className={LABEL_CLS}>{t('Выйти')}</span>
           </button>
 
           {/* Свернуть/развернуть (только десктоп) */}
@@ -211,7 +213,7 @@ export default function ClientSidebar() {
             >
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
             </svg>
-            <span className="text-sm hidden lg:sidebar-expanded:inline flex-1 text-left">Свернуть</span>
+            <span className="text-sm hidden lg:sidebar-expanded:inline flex-1 text-left">{t('Свернуть')}</span>
           </button>
         </div>
       </div>

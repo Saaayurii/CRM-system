@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useT } from '@/lib/i18n';
 
 export default function OfflineBanner() {
+  const t = useT();
   const [offline, setOffline] = useState(false);
   const [visible, setVisible] = useState(false);
 
@@ -53,8 +55,8 @@ export default function OfflineBanner() {
         </span>
 
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-white leading-tight">Нет соединения</p>
-          <p className="text-xs text-gray-400 mt-0.5 leading-tight">Проверьте подключение к интернету</p>
+          <p className="text-sm font-semibold text-white leading-tight">{t('Нет соединения с интернетом')}</p>
+          <p className="text-xs text-gray-400 mt-0.5 leading-tight">{t('Проверьте подключение к интернету')}</p>
         </div>
 
         <button
@@ -64,7 +66,7 @@ export default function OfflineBanner() {
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
-          Обновить
+          {t('Обновить страницу')}
         </button>
       </div>
     </div>

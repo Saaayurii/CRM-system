@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { FormField } from '@/types/admin';
 import api from '@/lib/api';
+import { useT } from '@/lib/i18n';
 
 function formatThousands(raw: string): string {
   const clean = raw.replace(/\s/g, '');
@@ -132,6 +133,7 @@ export default function EntityFormModal({
   onSubmit,
   loading,
 }: EntityFormModalProps) {
+  const t = useT();
   const [formData, setFormData] = useState<Record<string, unknown>>({});
   const [asyncOptions, setAsyncOptions] = useState<Record<string, { value: string | number; label: string }[]>>({});
   const [uploadingFields, setUploadingFields] = useState<Set<string>>(new Set());
@@ -260,7 +262,7 @@ export default function EntityFormModal({
                       }}
                       required={field.required}
                     >
-                      <option value="">Выберите...</option>
+                      <option value="">{t('Выберите...')}</option>
                       {(asyncOptions[field.key] ?? field.options ?? []).map((opt) => (
                         <option key={opt.value} value={opt.value}>
                           {opt.label}

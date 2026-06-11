@@ -7,6 +7,8 @@ import Transition from '@/components/ui/Transition';
 import { useAuthStore } from '@/stores/authStore';
 import { useSidebarStore } from '@/stores/sidebarStore';
 import KeyboardShortcutsModal from '@/components/ui/KeyboardShortcutsModal';
+import { useLanguageStore } from '@/stores/languageStore';
+import { useT } from '@/lib/i18n';
 
 export default function ProfileDropdown({ navItem }: { navItem?: boolean }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -15,6 +17,8 @@ export default function ProfileDropdown({ navItem }: { navItem?: boolean }) {
   const [mounted, setMounted] = useState(false);
   const [switching, setSwitching] = useState<number | null>(null);
   const { user, logout, availableAccounts, fetchAvailableAccounts, switchCompany } = useAuthStore();
+  const { language, toggleLanguage } = useLanguageStore();
+  const t = useT();
   const trigger = useRef<HTMLButtonElement>(null);
   const dropdown = useRef<HTMLDivElement>(null);
 
@@ -120,7 +124,7 @@ export default function ProfileDropdown({ navItem }: { navItem?: boolean }) {
       {otherAccounts.length > 0 && (
         <div className="pb-2 mb-1 border-b border-gray-200 dark:border-gray-700/60">
           <div className="px-3 py-1 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-            Сменить компанию
+            {t('Сменить компанию')}
           </div>
           {otherAccounts.map((acc) => (
             <button
@@ -158,10 +162,24 @@ export default function ProfileDropdown({ navItem }: { navItem?: boolean }) {
               className="font-medium text-sm text-gray-700 dark:text-gray-300 hover:text-violet-500 dark:hover:text-violet-400 flex items-center py-1 px-3"
               onClick={() => setDropdownOpen(false)}
             >
-              Настройки
+              {t('Настройки')}
             </Link>
           </li>
         )}
+        <li>
+          <button
+            className="font-medium text-sm text-gray-700 dark:text-gray-300 hover:text-violet-500 dark:hover:text-violet-400 flex items-center gap-2 py-1 px-3 w-full text-left"
+            onClick={toggleLanguage}
+          >
+            <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 21l5.25-11.25L21 21m-9-3h7.5M3 5.621a48.474 48.474 0 016-.371m0 0c1.12 0 2.233.038 3.334.114M9 5.25V3m3.334 2.364C11.176 10.658 7.69 15.08 3 17.502m9.334-12.138c.896.061 1.785.147 2.666.257m-4.589 8.495a18.023 18.023 0 01-3.827-5.802" />
+            </svg>
+            <span className="flex-1">{t('Язык')}</span>
+            <span className="text-xs font-mono bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-1.5 py-0.5 rounded">
+              {language === 'ru' ? 'RU' : 'EN'}
+            </span>
+          </button>
+        </li>
         <li>
           <button
             className="font-medium text-sm text-gray-700 dark:text-gray-300 hover:text-violet-500 dark:hover:text-violet-400 flex items-center gap-2 py-1 px-3 w-full text-left"
@@ -171,7 +189,7 @@ export default function ProfileDropdown({ navItem }: { navItem?: boolean }) {
               <rect x="2" y="6" width="20" height="13" rx="2" strokeLinecap="round" strokeLinejoin="round" />
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 10.5h.01M10 10.5h.01M14 10.5h.01M18 10.5h.01M8 14.5h8" />
             </svg>
-            Горячие клавиши
+            {t('Горячие клавиши')}
           </button>
         </li>
         <li>
@@ -179,7 +197,7 @@ export default function ProfileDropdown({ navItem }: { navItem?: boolean }) {
             className="font-medium text-sm text-violet-500 hover:text-violet-600 dark:hover:text-violet-400 flex items-center py-1 px-3 w-full text-left"
             onClick={handleLogout}
           >
-            Выйти
+            {t('Выйти')}
           </button>
         </li>
       </ul>

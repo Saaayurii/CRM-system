@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useT } from '@/lib/i18n';
 import { useSidebarStore } from '@/stores/sidebarStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useTaskNotifStore } from '@/stores/taskNotifStore';
@@ -260,9 +261,10 @@ function CompanySwitcher() {
   const isGlobal = user?.isGlobalAdmin || user?.roleId === 1;
   const activeId = selectedAccountId ?? user?.accountId;
   const activeAccount = accounts.find((a) => a.id === activeId);
+  const t = useT();
   const resolvedName = selectedAccountId
     ? (activeAccount?.name ?? selectedAccountName ?? 'Компания')
-    : 'Все компании';
+    : t('Все компании');
   const resolvedLogo = activeAccount?.logoUrl ?? selectedAccountLogo ?? null;
   const displayName = isGlobal ? resolvedName : (user?.accountName || null);
 
@@ -336,9 +338,9 @@ function CompanySwitcher() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
                 </svg>
               </div>
-              Все компании
+              {t('Все компании')}
             </button>
-            {loading && <p className="px-3 py-2 text-xs text-gray-400">Загрузка...</p>}
+            {loading && <p className="px-3 py-2 text-xs text-gray-400">{t('Загрузка...')}</p>}
             {accounts.map((acc) => (
               <button
                 key={acc.id}
@@ -355,7 +357,7 @@ function CompanySwitcher() {
                     : <span className="text-xs font-bold text-gray-500 dark:text-gray-300">{acc.name[0]?.toUpperCase()}</span>}
                 </div>
                 <span className="truncate">{acc.name}</span>
-                {acc.status !== 1 && <span className="ml-auto text-xs text-orange-400">неакт.</span>}
+                {acc.status !== 1 && <span className="ml-auto text-xs text-orange-400">{t("неакт.")}</span>}
               </button>
             ))}
           </div>
@@ -379,6 +381,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const { sidebarOpen, setSidebarOpen, sidebarExpanded, setSidebarExpanded, initialize } = useSidebarStore();
   const user = useAuthStore((s) => s.user);
+  const t = useT();
   const isSuperAdmin = user?.role?.code === 'super_admin';
   const roleCode = user?.role?.code;
   const isHR = roleCode === 'hr_manager';
@@ -564,7 +567,7 @@ export default function Sidebar() {
           <div>
             <h3 className="text-xs uppercase text-gray-400 dark:text-gray-500 font-semibold pl-3 pt-2">
               <span className="hidden lg:block lg:sidebar-expanded:hidden text-center w-6" aria-hidden="true">&bull;&bull;&bull;</span>
-              <span className="lg:hidden lg:sidebar-expanded:block">Меню</span>
+              <span className="lg:hidden lg:sidebar-expanded:block">{t('Меню')}</span>
             </h3>
             <ul className="mt-3">
 
@@ -572,7 +575,7 @@ export default function Sidebar() {
               <li className="mb-1 last:mb-0">
                 <NavLink href="/dashboard" hotkey={hkByHref['/dashboard']} className={linkCls(pathname === '/dashboard')}>
                   <IconDashboard />
-                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Обзор</span>
+                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">{t("Обзор")}</span>
                 </NavLink>
               </li>
 
@@ -580,7 +583,7 @@ export default function Sidebar() {
               <li className="mb-1 last:mb-0">
                 <NavLink href="/dashboard/projects" hotkey={hkByHref['/dashboard/projects']} className={linkCls(pathname.startsWith('/dashboard/projects'))}>
                   <IconProjects />
-                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Проекты</span>
+                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">{t("Проекты")}</span>
                 </NavLink>
               </li>
 
@@ -595,7 +598,7 @@ export default function Sidebar() {
                       </span>
                     )}
                   </div>
-                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Задачи</span>
+                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">{t("Задачи")}</span>
                 </NavLink>
               </li>
 
@@ -611,7 +614,7 @@ export default function Sidebar() {
                   )}
                 >
                   <IconEmployees />
-                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Сообщество</span>
+                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">{t("Сообщество")}</span>
                 </NavLink>
               </li>
 
@@ -619,7 +622,7 @@ export default function Sidebar() {
               <li className="mb-1 last:mb-0">
                 <NavLink href={calendarHref} className={linkCls(pathname.includes('/calendar'))}>
                   <IconCalendar />
-                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Календарь</span>
+                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">{t("Календарь")}</span>
                 </NavLink>
               </li>
 
@@ -627,7 +630,7 @@ export default function Sidebar() {
               <li className="mb-1 last:mb-0">
                 <NavLink href="/dashboard/notes" className={linkCls(pathname.startsWith('/dashboard/notes'))}>
                   <IconNotes />
-                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Заметки</span>
+                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">{t("Заметки")}</span>
                 </NavLink>
               </li>
 
@@ -636,7 +639,7 @@ export default function Sidebar() {
                 <li className="mb-1 last:mb-0">
                   <NavLink href="/dashboard/pm/construction-sites" className={linkCls(pathname === '/dashboard/pm/construction-sites')}>
                     <IconSite />
-                    <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Стройплощадки</span>
+                    <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">{t("Стройплощадки")}</span>
                   </NavLink>
                 </li>
               )}
@@ -647,19 +650,19 @@ export default function Sidebar() {
                   <li className="mb-1 last:mb-0">
                     <NavLink href="/dashboard/hr/attendance" className={linkCls(pathname === '/dashboard/hr/attendance')}>
                       <IconAttendance />
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Посещаемость</span>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">{t("Посещаемость")}</span>
                     </NavLink>
                   </li>
                   <li className="mb-1 last:mb-0">
                     <NavLink href="/dashboard/hr/time-off" className={linkCls(pathname === '/dashboard/hr/time-off')}>
                       <IconTimeOff />
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Отпуска</span>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">{t("Отпуска")}</span>
                     </NavLink>
                   </li>
                   <li className="mb-1 last:mb-0">
                     <NavLink href="/dashboard/hr/documents" className={linkCls(pathname === '/dashboard/hr/documents')}>
                       <IconHRDocs />
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Документы сотрудников</span>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">{t("Документы сотрудников")}</span>
                     </NavLink>
                   </li>
                 </>
@@ -671,19 +674,19 @@ export default function Sidebar() {
                   <li className="mb-1 last:mb-0">
                     <NavLink href="/dashboard/foreman/construction-sites" className={linkCls(pathname === '/dashboard/foreman/construction-sites')}>
                       <IconSite />
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Стройплощадки</span>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">{t("Стройплощадки")}</span>
                     </NavLink>
                   </li>
                   <li className="mb-1 last:mb-0">
                     <NavLink href="/dashboard/foreman/equipment" className={linkCls(pathname === '/dashboard/foreman/equipment')}>
                       <IconEquipment />
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Оборудование</span>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">{t("Оборудование")}</span>
                     </NavLink>
                   </li>
                   <li className="mb-1 last:mb-0">
                     <NavLink href="/dashboard/foreman/inspections" className={linkCls(pathname === '/dashboard/foreman/inspections')}>
                       <IconInspections />
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Проверки</span>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">{t("Проверки")}</span>
                     </NavLink>
                   </li>
                 </>
@@ -695,19 +698,19 @@ export default function Sidebar() {
                   <li className="mb-1 last:mb-0">
                     <NavLink href="/dashboard/worker/attendance" className={linkCls(pathname === '/dashboard/worker/attendance')}>
                       <IconAttendance />
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Посещаемость</span>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">{t("Посещаемость")}</span>
                     </NavLink>
                   </li>
                   <li className="mb-1 last:mb-0">
                     <NavLink href="/dashboard/worker/time-off" className={linkCls(pathname === '/dashboard/worker/time-off')}>
                       <IconTimeOff />
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Отпуска</span>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">{t("Отпуска")}</span>
                     </NavLink>
                   </li>
                   <li className="mb-1 last:mb-0">
                     <NavLink href="/dashboard/worker/construction-sites" className={linkCls(pathname === '/dashboard/worker/construction-sites')}>
                       <IconSite />
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Стройплощадки</span>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">{t("Стройплощадки")}</span>
                     </NavLink>
                   </li>
                 </>
@@ -719,19 +722,19 @@ export default function Sidebar() {
                   <li className="mb-1 last:mb-0">
                     <NavLink href="/dashboard/supplier/suppliers" className={linkCls(pathname === '/dashboard/supplier/suppliers')}>
                       <IconSuppliers />
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Поставщики</span>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">{t("Поставщики")}</span>
                     </NavLink>
                   </li>
                   <li className="mb-1 last:mb-0">
                     <NavLink href="/dashboard/supplier/orders" className={linkCls(pathname === '/dashboard/supplier/orders')}>
                       <IconOrders />
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Заказы</span>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">{t("Заказы")}</span>
                     </NavLink>
                   </li>
                   <li className="mb-1 last:mb-0">
                     <NavLink href="/dashboard/supplier/materials" className={linkCls(pathname === '/dashboard/supplier/materials')}>
                       <IconMaterials />
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Материалы</span>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">{t("Материалы")}</span>
                     </NavLink>
                   </li>
                 </>
@@ -743,19 +746,19 @@ export default function Sidebar() {
                   <li className="mb-1 last:mb-0">
                     <NavLink href="/dashboard/warehouse/materials" className={linkCls(pathname === '/dashboard/warehouse/materials')}>
                       <IconMaterials />
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Материалы</span>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">{t("Материалы")}</span>
                     </NavLink>
                   </li>
                   <li className="mb-1 last:mb-0">
                     <NavLink href="/dashboard/warehouse/equipment" className={linkCls(pathname === '/dashboard/warehouse/equipment')}>
                       <IconEquipment />
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Оборудование</span>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">{t("Оборудование")}</span>
                     </NavLink>
                   </li>
                   <li className="mb-1 last:mb-0">
                     <NavLink href="/dashboard/warehouse/requests" className={linkCls(pathname === '/dashboard/warehouse/requests')}>
                       <IconRequests />
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Заявки</span>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">{t("Заявки")}</span>
                     </NavLink>
                   </li>
                 </>
@@ -767,19 +770,19 @@ export default function Sidebar() {
                   <li className="mb-1 last:mb-0">
                     <NavLink href="/dashboard/accountant/payments" className={linkCls(pathname === '/dashboard/accountant/payments')}>
                       <IconPayments />
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Платежи</span>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">{t("Платежи")}</span>
                     </NavLink>
                   </li>
                   <li className="mb-1 last:mb-0">
                     <NavLink href="/dashboard/accountant/budgets" className={linkCls(pathname === '/dashboard/accountant/budgets')}>
                       <IconBudgets />
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Бюджеты</span>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">{t("Бюджеты")}</span>
                     </NavLink>
                   </li>
                   <li className="mb-1 last:mb-0">
                     <NavLink href="/dashboard/accountant/salaries" className={linkCls(pathname === '/dashboard/accountant/salaries')}>
                       <IconSalaries />
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Зарплаты</span>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">{t("Зарплаты")}</span>
                     </NavLink>
                   </li>
                 </>
@@ -791,19 +794,19 @@ export default function Sidebar() {
                   <li className="mb-1 last:mb-0">
                     <NavLink href="/dashboard/inspector/inspections" className={linkCls(pathname === '/dashboard/inspector/inspections')}>
                       <IconInspections />
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Инспекции</span>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">{t("Инспекции")}</span>
                     </NavLink>
                   </li>
                   <li className="mb-1 last:mb-0">
                     <NavLink href="/dashboard/inspector/defects" className={linkCls(pathname === '/dashboard/inspector/defects')}>
                       <IconDefects />
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Дефекты</span>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">{t("Дефекты")}</span>
                     </NavLink>
                   </li>
                   <li className="mb-1 last:mb-0">
                     <NavLink href="/dashboard/inspector/construction-sites" className={linkCls(pathname === '/dashboard/inspector/construction-sites')}>
                       <IconSite />
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Стройплощадки</span>
+                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">{t("Стройплощадки")}</span>
                     </NavLink>
                   </li>
                 </>
@@ -814,7 +817,7 @@ export default function Sidebar() {
                 <li className="mb-1 last:mb-0">
                   <NavLink href="/dashboard/finance" className={linkCls(pathname.startsWith('/dashboard/finance'))}>
                     <IconFinance />
-                    <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Финансы</span>
+                    <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">{t("Финансы")}</span>
                   </NavLink>
                 </li>
               )}
@@ -824,7 +827,7 @@ export default function Sidebar() {
                 <li className="mb-1 last:mb-0">
                   <NavLink href="/dashboard/warehouse" className={linkCls(pathname === '/dashboard/warehouse' || pathname.startsWith('/dashboard/warehouse'))}>
                     <IconWarehouse />
-                    <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Склад</span>
+                    <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">{t("Склад")}</span>
                   </NavLink>
                 </li>
               )}
@@ -833,7 +836,7 @@ export default function Sidebar() {
               <li className="mb-1 last:mb-0">
                 <NavLink href="/dashboard/documents" hotkey={hkByHref['/dashboard/documents']} className={linkCls(pathname === '/dashboard/documents')}>
                   <IconDocuments />
-                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Документы</span>
+                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">{t("Документы")}</span>
                 </NavLink>
               </li>
 
@@ -841,7 +844,7 @@ export default function Sidebar() {
               <li className="mb-1 last:mb-0">
                 <NavLink href="/dashboard/media" className={linkCls(pathname === '/dashboard/media')}>
                   <IconMedia />
-                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Медиа</span>
+                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">{t("Медиа")}</span>
                 </NavLink>
               </li>
 
@@ -851,7 +854,7 @@ export default function Sidebar() {
                   <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
                   </svg>
-                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Обучение</span>
+                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">{t("Обучение")}</span>
                 </NavLink>
               </li>
 
@@ -861,7 +864,7 @@ export default function Sidebar() {
                   <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25M9 9.75h.008v.008H9V9.75Zm0 3h.008v.008H9v-.008Z" />
                   </svg>
-                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">ВИКИ</span>
+                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">{t("ВИКИ")}</span>
                 </NavLink>
               </li>
 
@@ -871,7 +874,7 @@ export default function Sidebar() {
                   <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25ZM6.75 12h.008v.008H6.75V12Zm0 3h.008v.008H6.75V15Zm0 3h.008v.008H6.75V18Z" />
                   </svg>
-                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Инструктажи</span>
+                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">{t("Инструктажи")}</span>
                 </NavLink>
               </li>
 
@@ -884,7 +887,7 @@ export default function Sidebar() {
                   <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                   </svg>
-                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Охрана труда</span>
+                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">{t("Охрана труда")}</span>
                 </NavLink>
               </li>
 
@@ -900,7 +903,7 @@ export default function Sidebar() {
                         </span>
                       )}
                     </div>
-                    <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Чат</span>
+                    <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">{t("Чат")}</span>
                   </NavLink>
                 </li>
               )}
@@ -912,7 +915,7 @@ export default function Sidebar() {
                     <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
                     </svg>
-                    <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Компания</span>
+                    <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">{t("Компания")}</span>
                   </NavLink>
                 </li>
               )}
@@ -925,7 +928,7 @@ export default function Sidebar() {
                   className={linkCls(pathname === '/admin/settings' || pathname === '/dashboard/settings')}
                 >
                   <IconSettings />
-                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Настройки</span>
+                  <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">{t("Настройки")}</span>
                 </NavLink>
               </li>
 
@@ -939,7 +942,7 @@ export default function Sidebar() {
                     >
                       <path d="M12 1a1 1 0 1 0-2 0v2a3 3 0 0 0 3 3h2a1 1 0 1 0 0-2h-2a1 1 0 0 1-1-1V1ZM1 10a1 1 0 1 0 0 2h2a1 1 0 0 1 1 1v2a1 1 0 1 0 2 0v-2a3 3 0 0 0-3-3H1ZM5 0a1 1 0 0 1 1 1v2a3 3 0 0 1-3 3H1a1 1 0 0 1 0-2h2a1 1 0 0 0 1-1V1a1 1 0 0 1 1-1ZM12 13a1 1 0 0 1 1-1h2a1 1 0 1 0 0-2h-2a3 3 0 0 0-3 3v2a1 1 0 1 0 2 0v-2Z" />
                     </svg>
-                    <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">Администрирование</span>
+                    <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">{t("Администрирование")}</span>
                   </NavLink>
                 </li>
               )}

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { ColumnDef } from '@/types/admin';
 import { TableSkeleton } from '@/components/ui/Skeleton';
+import { useT } from '@/lib/i18n';
 
 type ViewMode = 'table' | 'grid';
 
@@ -58,6 +59,7 @@ export default function DataTable<T extends Record<string, unknown>>({
   onDownloadPdf,
   pdfLoading,
 }: DataTableProps<T>) {
+  const t = useT();
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [sortKey, setSortKey] = useState<string | null>(null);
@@ -231,7 +233,7 @@ export default function DataTable<T extends Record<string, unknown>>({
                   );
                 })}
                 {(canEdit || canDelete || (customRowActions && customRowActions.length > 0)) && (
-                  <th className="py-3 px-4 text-right font-semibold whitespace-nowrap w-px">Действия</th>
+                  <th className="py-3 px-4 text-right font-semibold whitespace-nowrap w-px">{t('Действия')}</th>
                 )}
               </tr>
             </thead>
@@ -305,7 +307,7 @@ export default function DataTable<T extends Record<string, unknown>>({
         /* Grid / card view */
         <div className="p-4">
           {data.length === 0 ? (
-            <p className="py-8 text-center text-gray-500 dark:text-gray-400">Данные не найдены</p>
+            <p className="py-8 text-center text-gray-500 dark:text-gray-400">{t('Данные не найдены')}</p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {data.map((row, idx) => {

@@ -11,6 +11,7 @@ import TaskFormModal from '@/components/dashboard/TaskFormModal';
 import EmployeeFormModal from '@/components/dashboard/EmployeeFormModal';
 import DocumentFormModal from '@/components/dashboard/DocumentFormModal';
 import CreateTeamModal from '@/components/dashboard/CreateTeamModal';
+import { useT } from '@/lib/i18n';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -78,6 +79,7 @@ const ACTIONS = [
 // ── Main component ─────────────────────────────────────────────────────────
 
 export default function QuickActionsButton() {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [dialMode, setDialMode] = useState<'page' | 'default'>('default');
   const [panel, setPanel] = useState<Panel>(null);
