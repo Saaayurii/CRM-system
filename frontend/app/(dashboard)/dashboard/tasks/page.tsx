@@ -846,31 +846,31 @@ export default function TasksPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
-                {filteredTasks.flatMap((t) => {
-                  const status = STATUS_LABELS[t.status] || STATUS_LABELS[0];
-                  const priority = PRIORITY_LABELS[t.priority] || PRIORITY_LABELS[2];
-                  const creatorId = t.createdByUserId || t.created_by_user_id;
+                {filteredTasks.flatMap((task) => {
+                  const status = STATUS_LABELS[task.status] || STATUS_LABELS[0];
+                  const priority = PRIORITY_LABELS[task.priority] || PRIORITY_LABELS[2];
+                  const creatorId = task.createdByUserId || task.created_by_user_id;
                   const creatorUser = creatorId ? users.find((u) => u.id === creatorId) : null;
                   const isSystem = !creatorId || creatorUser?.roleId === 1;
                   const creatorName = isSystem ? 'Система' : (creatorUser?.name || creatorUser?.email || 'Система');
-                  const updatedAt = t.updatedAt || t.updated_at;
-                  const overdue = isTaskOverdue(t);
-                  const { done, total } = getTaskProgress(t);
+                  const updatedAt = task.updatedAt || task.updated_at;
+                  const overdue = isTaskOverdue(task);
+                  const { done, total } = getTaskProgress(task);
                   const progressPct = total > 0 ? Math.round((done / total) * 100) : 0;
 
                   return (
                     <tr
-                      key={t.id}
+                      key={task.id}
                       className={`group/row cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900/20 ${overdue ? 'bg-red-50/70 dark:bg-red-900/10 hover:bg-red-50 dark:hover:bg-red-900/20' : ''}`}
-                      onClick={() => handleEdit(t)}
+                      onClick={() => handleEdit(task)}
                     >
                       {/* Название */}
                       <td className="py-2.5 px-4 font-medium text-gray-800 dark:text-gray-100 max-w-[220px]">
                         <div className="flex items-center gap-1.5">
-                          <div className="truncate flex-1">{t.title}</div>
+                          <div className="truncate flex-1">{task.title}</div>
                           <button
-                            onClick={(e) => { e.stopPropagation(); openTaskHistory(t); }}
-                            onMouseEnter={(e) => { e.stopPropagation(); showTaskHistory(e, t.id); }}
+                            onClick={(e) => { e.stopPropagation(); openTaskHistory(task); }}
+                            onMouseEnter={(e) => { e.stopPropagation(); showTaskHistory(e, task.id); }}
                             onMouseLeave={hideTaskHistory}
                             className="shrink-0 opacity-0 group-hover/row:opacity-60 hover:!opacity-100 p-0.5 text-gray-400 hover:text-violet-500 transition-all"
                             title={t('История задачи')}
@@ -891,7 +891,7 @@ export default function TasksPage() {
                       </td>
                       {/* Проект */}
                       <td className="py-2.5 px-4 text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                        {t.project?.name || '—'}
+                        {task.project?.name || '—'}
                       </td>
                       {/* Статус */}
                       <td className="py-2.5 px-4 whitespace-nowrap">
@@ -906,7 +906,7 @@ export default function TasksPage() {
                       {/* Исполнитель */}
                       <td className="py-2.5 px-4 max-w-[180px]" onClick={(e) => e.stopPropagation()}>
                         <AssigneeTextCell
-                          task={assigneeOverrides[t.id] !== undefined ? { ...t, assignees: assigneeOverrides[t.id] } : t}
+                          task={assigneeOverrides[task.id] !== undefined ? { ...t, assignees: assigneeOverrides[task.id] } : t}
                           users={users}
                           onNameClick={setProfileUserId}
                         />
@@ -920,16 +920,16 @@ export default function TasksPage() {
                         >
                           {creatorName}
                         </button>
-                        {(t.createdAt || t.created_at) && (
+                        {(task.createdAt || task.created_at) && (
                           <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-                            {formatDate(t.createdAt || t.created_at)}
+                            {formatDate(task.createdAt || task.created_at)}
                           </div>
                         )}
                       </td>
                       {/* Срок */}
                       <td className="py-2.5 px-4 whitespace-nowrap">
                         <span className={overdue ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-gray-600 dark:text-gray-400'}>
-                          {formatDate(t.dueDate || t.due_date)}
+                          {formatDate(task.dueDate || task.due_date)}
                           {overdue && <span className="ml-1 text-[10px] uppercase tracking-wide">{t('просрочена')}</span>}
                         </span>
                       </td>
@@ -944,7 +944,7 @@ export default function TasksPage() {
                       >
                         <div className="flex items-center gap-0.5 opacity-0 group-hover/row:opacity-100 transition-opacity">
                           <button
-                            onClick={() => handleEdit(t)}
+                            onClick={() => handleEdit(task)}
                             title={t('Редактировать')}
                             className="p-1.5 text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors"
                           >
@@ -953,12 +953,12 @@ export default function TasksPage() {
                             </svg>
                           </button>
                           <button
-                            onClick={() => handleDelete(t.id)}
-                            disabled={deletingId === t.id}
+                            onClick={() => handleDelete(task.id)}
+                            disabled={deletingId === task.id}
                             title={t('Удалить')}
                             className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-40"
                           >
-                            {deletingId === t.id ? (
+                            {deletingId === task.id ? (
                               <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v4m0 8v4M4 12H8m8 0h4" />
                               </svg>
