@@ -473,18 +473,51 @@ function MiniChatView() {
     if (el) el.scrollTop = el.scrollHeight;
   }, [lastMsgId, activeChannelId]);
 
-  // Подгрузка истории при прокрутке вверх с сохранением позиции
+  // Подгрузка истории при прокрутке вверх. Позицию держит «якорь»: первое
+  // старое сообщение остаётся на месте даже когда медиа пачки догружается
+  // и меняет высоту (иначе чат прыгает).
+  const prependAnchorRef = useRef<{ id: number; top: number } | null>(null);
+
+  const repinAnchor = useCallback(() => {
+    const anchor = prependAnchorRef.current;
+    const node = listRef.current;
+    if (!anchor || !node) return;
+    const el = node.querySelector(`[data-msgid="${anchor.id}"]`) as HTMLElement | null;
+    if (!el) return;
+    const delta = el.getBoundingClientRect().top - anchor.top;
+    if (delta !== 0) node.scrollTop += delta;
+  }, []);
+
   const handleScroll = useCallback(() => {
     const el = listRef.current;
-    if (!el || el.scrollTop > 40 || isLoadingMessages || !hasMoreMessages || !activeChannelId || messages.length === 0) return;
-    const prevHeight = el.scrollHeight;
-    fetchMessages(activeChannelId, messages[0].id).then(() => {
+    if (!el) return;
+    // Ручной скролл перебазирует якорь на текущую позицию
+    const anchor = prependAnchorRef.current;
+    if (anchor) {
+      const anchorEl = el.querySelector(`[data-msgid="${anchor.id}"]`) as HTMLElement | null;
+      if (anchorEl) anchor.top = anchorEl.getBoundingClientRect().top;
+    }
+    if (el.scrollTop > 40 || isLoadingMessages || !hasMoreMessages || !activeChannelId || messages.length === 0) return;
+    const firstId = messages[0].id;
+    const firstEl = el.querySelector(`[data-msgid="${firstId}"]`) as HTMLElement | null;
+    const anchorTop = firstEl?.getBoundingClientRect().top ?? el.getBoundingClientRect().top;
+    fetchMessages(activeChannelId, firstId).then(() => {
       requestAnimationFrame(() => {
+        prependAnchorRef.current = { id: firstId, top: anchorTop };
+        repinAnchor();
+        setTimeout(() => { prependAnchorRef.current = null; }, 2500);
         const node = listRef.current;
-        if (node) node.scrollTop = node.scrollHeight - prevHeight;
+        if (node) {
+          node.querySelectorAll('img').forEach((img) => {
+            if (!img.complete) img.addEventListener('load', repinAnchor, { once: true });
+          });
+          node.querySelectorAll('video').forEach((v) => {
+            if (v.readyState < 1) v.addEventListener('loadedmetadata', repinAnchor, { once: true });
+          });
+        }
       });
     });
-  }, [isLoadingMessages, hasMoreMessages, activeChannelId, messages, fetchMessages]);
+  }, [isLoadingMessages, hasMoreMessages, activeChannelId, messages, fetchMessages, repinAnchor]);
 
   const scrollToMessage = useCallback((id: number) => {
     const el = listRef.current?.querySelector(`[data-msgid="${id}"]`);

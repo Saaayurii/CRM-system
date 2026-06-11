@@ -193,6 +193,8 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
   const [matchIdx, setMatchIdx] = useState(0);
   const [highlightedMsgId, setHighlightedMsgId] = useState<number | null>(null);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
+  // Сколько новых сообщений пришло, пока читаем историю выше — бейдж на стрелке «вниз»
+  const [newBelowCount, setNewBelowCount] = useState(0);
   const [snapParticles, setSnapParticles] = useState<{ id: number; tx: number; ty: number; size: number; hue: number; delay: number }[]>([]);
   const [isSnapping, setIsSnapping] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
@@ -250,11 +252,12 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
     });
   }, [messages, isLoadingMessages, hasMoreMessages, activeChannelId, fetchMessages, doHighlightScroll]);
 
-  // При смене канала сбрасываем ожидающий скролл и режим редактирования
+  // При смене канала сбрасываем ожидающий скролл, режим редактирования и счётчик новых
   useEffect(() => {
     pendingScrollIdRef.current = null;
     scrollFetchAttemptsRef.current = 0;
     setEditingMessage(null);
+    setNewBelowCount(0);
   }, [activeChannelId, setEditingMessage]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -434,10 +437,38 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
       if (isNearBottom || isOwnNew) {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
         wasAtBottomRef.current = true;
+      } else if (lastMsg) {
+        // Читаем историю выше — копим счётчик на стрелке «вниз»
+        setNewBelowCount((c) => c + 1);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages.length]);
+
+  // ── Якорь при подгрузке истории ───────────────────────────────────────────
+  // Восстановить позицию по разнице высот недостаточно: картинки/видео из
+  // подгруженной пачки декодируются позже и снова раздувают высоту сверху —
+  // чат прыгает. Поэтому держим «якорь» (первое сообщение, которое было на
+  // экране до подгрузки) и при каждом изменении высоты возвращаем его на
+  // прежнее место, пока медиа пачки не стабилизируется.
+  const prependAnchorRef = useRef<{ id: number; top: number } | null>(null);
+  const prependStabilizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const repinPrependAnchor = useCallback(() => {
+    const anchor = prependAnchorRef.current;
+    const container = messagesContainerRef.current;
+    if (!anchor || !container) return;
+    const el = container.querySelector(`[data-msgid="${anchor.id}"]`) as HTMLElement | null;
+    if (!el) return;
+    const delta = el.getBoundingClientRect().top - anchor.top;
+    if (delta !== 0) {
+      // Помечаем как программный скролл, чтобы handleScroll не сбросил якорь
+      isProgrammaticScrollRef.current = true;
+      container.scrollTop += delta;
+      if (programmaticScrollTimerRef.current) clearTimeout(programmaticScrollTimerRef.current);
+      programmaticScrollTimerRef.current = setTimeout(() => { isProgrammaticScrollRef.current = false; }, 80);
+    }
+  }, []);
 
   // Programmatic scroll helper — prevents handleScroll from falsely resetting wasAtBottomRef
   const scrollToBottomInstant = useCallback(() => {
@@ -456,13 +487,19 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
     if (!inner) return;
     let rafId: number;
     const ro = new ResizeObserver(() => {
+      // Во время стабилизации подгруженной истории держим якорь на месте
+      if (prependAnchorRef.current) {
+        cancelAnimationFrame(rafId);
+        rafId = requestAnimationFrame(() => repinPrependAnchor());
+        return;
+      }
       if (!wasAtBottomRef.current) return;
       cancelAnimationFrame(rafId);
       rafId = requestAnimationFrame(() => scrollToBottomInstant());
     });
     ro.observe(inner);
     return () => { ro.disconnect(); cancelAnimationFrame(rafId); };
-  }, [scrollToBottomInstant]);
+  }, [scrollToBottomInstant, repinPrependAnchor]);
 
   const handleScrollToBottom = useCallback(() => {
     if (isSnapping) return;
@@ -480,6 +517,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
     });
     setSnapParticles(pts);
     setIsSnapping(true);
+    setNewBelowCount(0);
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     setTimeout(() => {
       setSnapParticles([]);
@@ -495,21 +533,42 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
     const distFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
     if (!isProgrammaticScrollRef.current) {
       wasAtBottomRef.current = distFromBottom < 80;
+      // Пользователь крутит сам (включая инерцию) — перебазируем якорь на его
+      // новую позицию, чтобы дозагрузка медиа не дёргала обратно
+      const anchor = prependAnchorRef.current;
+      if (anchor) {
+        const el = container.querySelector(`[data-msgid="${anchor.id}"]`) as HTMLElement | null;
+        if (el) anchor.top = el.getBoundingClientRect().top;
+      }
     }
+    // Долистали до низа — новые сообщения увидены, счётчик гаснет
+    if (distFromBottom < 80) setNewBelowCount((c) => (c === 0 ? c : 0));
     setShowScrollBtn(distFromBottom > 300);
     if (isLoadingMessages || !hasMoreMessages || !activeChannelId) return;
     if (container.scrollTop < 200 && messages.length > 0) {
-      const oldScrollHeight = container.scrollHeight;
-      fetchMessages(activeChannelId, messages[0]?.id).then(() => {
+      const firstId = messages[0].id;
+      const anchorEl = container.querySelector(`[data-msgid="${firstId}"]`) as HTMLElement | null;
+      const anchorTop = anchorEl?.getBoundingClientRect().top ?? container.getBoundingClientRect().top;
+      fetchMessages(activeChannelId, firstId).then(() => {
         requestAnimationFrame(() => {
-          if (messagesContainerRef.current) {
-            const newScrollHeight = messagesContainerRef.current.scrollHeight;
-            messagesContainerRef.current.scrollTop = newScrollHeight - oldScrollHeight;
+          prependAnchorRef.current = { id: firstId, top: anchorTop };
+          repinPrependAnchor();
+          // Якорь живёт, пока медиа подгруженной пачки меняет высоту
+          if (prependStabilizeTimerRef.current) clearTimeout(prependStabilizeTimerRef.current);
+          prependStabilizeTimerRef.current = setTimeout(() => { prependAnchorRef.current = null; }, 2500);
+          const node = messagesContainerRef.current;
+          if (node) {
+            node.querySelectorAll('img').forEach((img) => {
+              if (!img.complete) img.addEventListener('load', repinPrependAnchor, { once: true });
+            });
+            node.querySelectorAll('video').forEach((v) => {
+              if (v.readyState < 1) v.addEventListener('loadedmetadata', repinPrependAnchor, { once: true });
+            });
           }
         });
       });
     }
-  }, [isLoadingMessages, hasMoreMessages, activeChannelId, messages, fetchMessages]);
+  }, [isLoadingMessages, hasMoreMessages, activeChannelId, messages, fetchMessages, repinPrependAnchor]);
 
   useEffect(() => {
     const container = messagesContainerRef.current;
@@ -970,12 +1029,18 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
                   opacity: isSnapping ? 0 : 1,
                   transform: isSnapping ? 'scale(0.4)' : 'scale(1)',
                 }}
-                className="w-9 h-9 rounded-full bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-600 flex items-center justify-center text-violet-500 hover:text-violet-600 hover:shadow-xl transition-shadow"
+                className="relative w-9 h-9 rounded-full bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-600 flex items-center justify-center text-violet-500 hover:text-violet-600 hover:shadow-xl transition-shadow"
                 title={t('Вниз')}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                 </svg>
+                {/* Счётчик новых сообщений, пришедших пока читали историю */}
+                {newBelowCount > 0 && (
+                  <span className="absolute -top-2 -right-1.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center text-[10px] font-bold text-white bg-violet-500 rounded-full shadow">
+                    {newBelowCount > 99 ? '99+' : newBelowCount}
+                  </span>
+                )}
               </button>
             </div>
           </div>
