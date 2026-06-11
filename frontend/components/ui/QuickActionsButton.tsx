@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import api from '@/lib/api';
+import { notesApi, Note as ApiNote } from '@/lib/notes';
 import { useToastStore } from '@/stores/toastStore';
 import { useChatStore } from '@/stores/chatStore';
 import { useIsClient } from '@/hooks/useIsClient';
@@ -61,11 +62,6 @@ interface SearchResult {
   href: string;
 }
 
-interface Note {
-  id: string;
-  text: string;
-  createdAt: string;
-}
 
 // ── Speed-dial items ───────────────────────────────────────────────────────
 
@@ -547,34 +543,37 @@ function QuickTaskPanel({ onClose }: { onClose: () => void }) {
 
 // ── Note panel ─────────────────────────────────────────────────────────────
 
-const NOTES_KEY = 'crm_quick_notes';
-
 function NotePanel({ onClose }: { onClose: () => void }) {
-  const [notes, setNotes] = useState<Note[]>([]);
+  const [notes, setNotes] = useState<ApiNote[]>([]);
   const [text, setText] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(NOTES_KEY);
-      if (raw) setNotes(JSON.parse(raw));
-    } catch {}
+    notesApi.list('active').then(({ data }) => {
+      setNotes(Array.isArray(data) ? data.slice(0, 10) : []);
+    }).catch(() => {}).finally(() => setLoading(false));
     textareaRef.current?.focus();
   }, []);
 
-  const save = (updated: Note[]) => {
-    setNotes(updated);
-    localStorage.setItem(NOTES_KEY, JSON.stringify(updated));
+  const addNote = async () => {
+    if (!text.trim() || saving) return;
+    setSaving(true);
+    try {
+      const { data } = await notesApi.create({ content: text.trim(), color: 'yellow' });
+      setNotes((prev) => [data, ...prev]);
+      setText('');
+    } catch {
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const addNote = () => {
-    if (!text.trim()) return;
-    const note: Note = { id: crypto.randomUUID(), text: text.trim(), createdAt: new Date().toISOString() };
-    save([note, ...notes]);
-    setText('');
+  const deleteNote = async (id: number) => {
+    await notesApi.remove(id).catch(() => {});
+    setNotes((prev) => prev.filter((n) => n.id !== id));
   };
-
-  const deleteNote = (id: string) => save(notes.filter((n) => n.id !== id));
 
   return (
     <PanelShell onClose={onClose} className="w-80">
@@ -594,19 +593,21 @@ function NotePanel({ onClose }: { onClose: () => void }) {
           />
           <button
             onClick={addNote}
-            disabled={!text.trim()}
+            disabled={!text.trim() || saving}
             className="px-3 rounded-lg bg-emerald-500 hover:bg-emerald-600 disabled:opacity-40 text-white text-sm font-medium transition-colors"
           >
             +
           </button>
         </div>
         <div className="max-h-60 overflow-y-auto flex flex-col gap-1.5 mt-1">
-          {notes.length === 0 && (
+          {loading && <p className="text-xs text-gray-400 text-center py-3">Загрузка…</p>}
+          {!loading && notes.length === 0 && (
             <p className="text-xs text-gray-400 text-center py-3">Заметок пока нет</p>
           )}
           {notes.map((n) => (
             <div key={n.id} className="group flex items-start gap-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800/40 rounded-lg px-3 py-2">
-              <p className="flex-1 text-sm text-gray-800 dark:text-gray-100 whitespace-pre-wrap break-words">{n.text}</p>
+              {n.title && <p className="text-xs font-semibold text-gray-700 dark:text-gray-200 truncate mb-0.5">{n.title}</p>}
+              <p className="flex-1 text-sm text-gray-800 dark:text-gray-100 whitespace-pre-wrap break-words">{n.content}</p>
               <button
                 onClick={() => deleteNote(n.id)}
                 className="shrink-0 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-all"
