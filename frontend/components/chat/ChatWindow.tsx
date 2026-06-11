@@ -276,6 +276,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
   );
   const isCurrentUserMuted = currentMember?.isMuted ?? false;
   const isCurrentUserAdmin = currentMember?.role === 'admin';
+  const isCompanyAdmin = user?.roleId === 1 || user?.roleId === 2;
 
   // Self-chat detection
   const isSelf =
@@ -1014,6 +1015,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
               isSelf={isSelf}
               isPartnerOnline={isPartnerOnline}
               isAdmin={isCurrentUserAdmin}
+              isCompanyAdmin={isCompanyAdmin}
               currentUserId={user?.id}
               onClose={() => setShowInfo(false)}
             />
@@ -1026,6 +1028,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
               isSelf={isSelf}
               isPartnerOnline={isPartnerOnline}
               isAdmin={isCurrentUserAdmin}
+              isCompanyAdmin={isCompanyAdmin}
               currentUserId={user?.id}
               onClose={() => setShowInfo(false)}
             />
@@ -1044,16 +1047,19 @@ interface InfoPanelProps {
   isSelf: boolean;
   isPartnerOnline: boolean;
   isAdmin: boolean;
+  isCompanyAdmin: boolean;
   currentUserId?: number;
   onClose: () => void;
 }
 
-function InfoPanel({ channel, partner, isSelf, isPartnerOnline, isAdmin, currentUserId, onClose }: InfoPanelProps) {
+function InfoPanel({ channel, partner, isSelf, isPartnerOnline, isAdmin, isCompanyAdmin, currentUserId, onClose }: InfoPanelProps) {
   const t = useT();
   const [userDetails, setUserDetails] = useState<any>(null);
   const [members, setMembers] = useState(channel.members ?? []);
   const [mutingId, setMutingId] = useState<number | null>(null);
+  const [showAddMember, setShowAddMember] = useState(false);
   const updateChannels = useChatStore((s) => s.fetchChannels);
+  const canManageMembers = isAdmin || isCompanyAdmin;
 
   useEffect(() => {
     setMembers(channel.members ?? []);
@@ -1172,27 +1178,36 @@ function InfoPanel({ channel, partner, isSelf, isPartnerOnline, isAdmin, current
         )}
 
         {/* Members (group) */}
-        {channel.channelType === 'group' && members.length > 0 && (
+        {channel.channelType === 'group' && members.length > 0 && (() => {
+          const visibleMembers = members.filter(
+            (m) => m.name && !/^deleted_\d+_\d+@crm\.deleted$/.test(m.email ?? ''),
+          );
+          return (
           <div>
-            <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2">
-              Участники ({channel.membersCount})
-            </p>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">
+                Участники ({visibleMembers.length})
+              </p>
+              {canManageMembers && (
+                <button
+                  onClick={() => setShowAddMember(true)}
+                  className="p-1 rounded-lg text-gray-400 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-500/10 transition-colors"
+                  title="Добавить участника"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                </button>
+              )}
+            </div>
             <div className="space-y-2">
-              {members.map((m) => {
+              {visibleMembers.map((m) => {
                 const isSelf = m.id === currentUserId;
-                const isDeleted = !m.name || /^deleted_\d+_\d+@crm\.deleted$/.test(m.email ?? '');
-                const displayName = isDeleted ? 'Удалённый пользователь' : m.name;
                 return (
                   <div key={m.id} className="flex items-center gap-2">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0 overflow-hidden relative ${isDeleted ? 'bg-gray-400 dark:bg-gray-600' : 'bg-sky-500'}`}>
-                      {isDeleted ? (
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
-                        </svg>
-                      ) : (
-                        getInitials(m.name)
-                      )}
-                      {!isDeleted && m.avatarUrl && (
+                    <div className="w-8 h-8 rounded-full bg-sky-500 flex items-center justify-center text-white text-xs font-semibold shrink-0 overflow-hidden relative">
+                      {getInitials(m.name)}
+                      {m.avatarUrl && (
                         <img
                           src={m.avatarUrl}
                           alt=""
@@ -1202,17 +1217,17 @@ function InfoPanel({ channel, partner, isSelf, isPartnerOnline, isAdmin, current
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-medium truncate ${isDeleted ? 'text-gray-400 dark:text-gray-500 italic' : 'text-gray-800 dark:text-gray-100'}`}>
-                        {displayName}
-                        {!isDeleted && m.role === 'admin' && (
-                          <span className="ml-1 text-xs text-violet-500 font-medium not-italic">admin</span>
+                      <p className="text-sm font-medium truncate text-gray-800 dark:text-gray-100">
+                        {m.name}
+                        {m.role === 'admin' && (
+                          <span className="ml-1 text-xs text-violet-500 font-medium">admin</span>
                         )}
                       </p>
-                      {!isDeleted && m.isMuted && (
+                      {m.isMuted && (
                         <p className="text-xs text-red-400">{t('Ограничен')}</p>
                       )}
                     </div>
-                    {isAdmin && !isSelf && !isDeleted && (
+                    {isAdmin && !isSelf && (
                       <button
                         onClick={() => handleToggleMute(m.id, m.isMuted ?? false)}
                         disabled={mutingId === m.id}
@@ -1245,7 +1260,211 @@ function InfoPanel({ channel, partner, isSelf, isPartnerOnline, isAdmin, current
               })}
             </div>
           </div>
+          );
+        })()}
+
+        {showAddMember && (
+          <AddMemberModal
+            channel={channel}
+            existingMemberIds={members.map((m) => m.id)}
+            onClose={() => setShowAddMember(false)}
+            onAdded={(newMember) => {
+              setMembers((prev) => [...prev, newMember]);
+              updateChannels(1);
+            }}
+          />
         )}
+      </div>
+    </div>
+  );
+}
+
+/* ───────── Add Member Modal ───────── */
+
+function AddMemberModal({
+  channel,
+  existingMemberIds,
+  onClose,
+  onAdded,
+}: {
+  channel: ChatChannel;
+  existingMemberIds: number[];
+  onClose: () => void;
+  onAdded: (member: { id: number; name: string; avatarUrl?: string; email?: string; isMuted?: boolean; role?: string }) => void;
+}) {
+  const [search, setSearch] = useState('');
+  const [users, setUsers] = useState<any[]>([]);
+  const [projectMemberIds, setProjectMemberIds] = useState<Set<number> | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<any>(null);
+  const [confirmNotInProject, setConfirmNotInProject] = useState(false);
+  const [adding, setAdding] = useState(false);
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const [{ data: usersData }] = await Promise.all([api.get('/users', { params: { limit: 200 } })]);
+        const all: any[] = Array.isArray(usersData) ? usersData : (usersData.data ?? usersData.users ?? []);
+        setUsers(all.filter((u: any) => !existingMemberIds.includes(u.id)));
+
+        if (channel.projectId) {
+          try {
+            const { data: teams } = await api.get(`/projects/${channel.projectId}/team`);
+            const teamList: any[] = Array.isArray(teams) ? teams : (teams.data ?? []);
+            const memberSets = await Promise.all(
+              teamList.map((t: any) =>
+                api.get(`/teams/${t.teamId ?? t.team?.id}/members`).then(({ data }) =>
+                  (Array.isArray(data) ? data : (data.data ?? [])).map((m: any) => m.userId ?? m.id),
+                ).catch(() => [] as number[]),
+              ),
+            );
+            setProjectMemberIds(new Set(memberSets.flat()));
+          } catch {
+            setProjectMemberIds(new Set());
+          }
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  const filtered = users.filter((u) => {
+    const name = `${u.firstName ?? ''} ${u.lastName ?? ''}`.trim().toLowerCase();
+    const email = (u.email ?? '').toLowerCase();
+    const q = search.toLowerCase();
+    return name.includes(q) || email.includes(q);
+  });
+
+  const handleSelect = (u: any) => {
+    if (channel.projectId && projectMemberIds !== null && !projectMemberIds.has(u.id)) {
+      setSelected(u);
+      setConfirmNotInProject(true);
+    } else {
+      doAdd(u, false);
+    }
+  };
+
+  const doAdd = async (u: any, addToProject: boolean) => {
+    setAdding(true);
+    try {
+      if (addToProject && channel.projectId) {
+        try {
+          const { data: userDetail } = await api.get(`/users/${u.id}`);
+          const teamId = userDetail?.team?.id;
+          if (teamId) {
+            await api.post(`/projects/${channel.projectId}/team`, { teamId }).catch(() => {});
+          }
+        } catch {}
+      }
+      await api.post(`/chat-channels/${channel.id}/members`, { userId: u.id });
+      onAdded({
+        id: u.id,
+        name: `${u.firstName ?? ''} ${u.lastName ?? ''}`.trim() || u.email,
+        avatarUrl: u.avatarUrl,
+        email: u.email,
+        isMuted: false,
+        role: 'member',
+      });
+      onClose();
+    } catch (err: any) {
+      alert(err?.response?.data?.message ?? 'Не удалось добавить участника');
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  if (confirmNotInProject && selected) {
+    return (
+      <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={onClose}>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-sm p-5" onClick={(e) => e.stopPropagation()}>
+          <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-1">Пользователь не в проекте</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            <span className="font-medium text-gray-700 dark:text-gray-200">{`${selected.firstName ?? ''} ${selected.lastName ?? ''}`.trim() || selected.email}</span> не входит в команду проекта. Добавить его/её в проект тоже?
+          </p>
+          <div className="flex flex-col gap-2">
+            <button
+              disabled={adding}
+              onClick={() => doAdd(selected, true)}
+              className="w-full py-2 bg-violet-500 hover:bg-violet-600 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
+            >
+              {adding ? 'Добавляю…' : 'Добавить в проект и в чат'}
+            </button>
+            <button
+              disabled={adding}
+              onClick={() => doAdd(selected, false)}
+              className="w-full py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 disabled:opacity-50 text-gray-700 dark:text-gray-200 text-sm font-medium rounded-lg transition-colors"
+            >
+              Только в чат
+            </button>
+            <button
+              disabled={adding}
+              onClick={() => { setConfirmNotInProject(false); setSelected(null); }}
+              className="w-full py-1.5 text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+            >
+              Отмена
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={onClose}>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-sm flex flex-col max-h-[70vh]" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 shrink-0">
+          <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">Добавить участника</span>
+          <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div className="px-3 py-2 shrink-0">
+          <input
+            autoFocus
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Поиск по имени или email…"
+            className="w-full px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+          />
+        </div>
+        <div className="flex-1 overflow-y-auto px-2 pb-2">
+          {loading ? (
+            <p className="text-xs text-gray-400 text-center py-6">Загрузка…</p>
+          ) : filtered.length === 0 ? (
+            <p className="text-xs text-gray-400 text-center py-6">Нет сотрудников для добавления</p>
+          ) : (
+            filtered.map((u) => {
+              const name = `${u.firstName ?? ''} ${u.lastName ?? ''}`.trim() || u.email;
+              const notInProject = channel.projectId && projectMemberIds !== null && !projectMemberIds.has(u.id);
+              return (
+                <button
+                  key={u.id}
+                  onClick={() => handleSelect(u)}
+                  className="w-full flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left"
+                >
+                  <div className="w-8 h-8 rounded-full bg-sky-500 flex items-center justify-center text-white text-xs font-semibold shrink-0 overflow-hidden relative">
+                    {getInitials(name)}
+                    {u.avatarUrl && (
+                      <img src={u.avatarUrl} alt="" className="absolute inset-0 w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">{name}</p>
+                    <p className="text-xs text-gray-400 truncate">{u.email}</p>
+                  </div>
+                  {notInProject && (
+                    <span className="text-xs text-amber-500 shrink-0">не в проекте</span>
+                  )}
+                </button>
+              );
+            })
+          )}
+        </div>
       </div>
     </div>
   );
