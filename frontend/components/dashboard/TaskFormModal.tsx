@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback, useMemo, useLayoutEffect, type ReactNode, type KeyboardEvent } from 'react';
+import { createPortal } from 'react-dom';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import { useAuthStore } from '@/stores/authStore';
@@ -748,10 +749,14 @@ function SubtaskSettingsPanel({ settings, onChange, onClose }: {
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  return (
+  // Портал в body: панель живёт вне DOM-дерева модалки задачи, поэтому клики
+  // и перетаскивание не всплывают до её бэкдропа (иначе модалка закрывалась).
+  return createPortal(
     <div
       className="fixed z-[200] w-[22rem] max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col"
       style={{ left: pos.x, top: pos.y, maxHeight: 'calc(100vh - 24px)' }}
+      onClick={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()}
     >
       <div
         onPointerDown={(e) => { dragOffset.current = { dx: e.clientX - pos.x, dy: e.clientY - pos.y }; }}
@@ -832,7 +837,8 @@ function SubtaskSettingsPanel({ settings, onChange, onClose }: {
           Готово
         </button>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
