@@ -262,6 +262,39 @@ const SUBTASK_PRIORITY_TABLE: Record<number, { label: string; cls: string }> = {
   4: { label: 'Критический', cls: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' },
 };
 
+// ── Настройки отображения подзадач (шестерёнка в шапке списка) ──────────────
+interface SubtaskDisplaySettings {
+  viewMode: 'table' | 'grid';
+  colAssignee: boolean;
+  colDueDate: boolean;
+  colPriority: boolean;
+  colCreatedAt: boolean;
+}
+
+const SUBTASK_DISPLAY_KEY = 'subtaskDisplaySettings';
+const DEFAULT_SUBTASK_DISPLAY: SubtaskDisplaySettings = {
+  viewMode: 'table',
+  colAssignee: true,
+  colDueDate: true,
+  colPriority: true,
+  colCreatedAt: true,
+};
+
+function loadSubtaskDisplaySettings(): SubtaskDisplaySettings {
+  try {
+    const raw = localStorage.getItem(SUBTASK_DISPLAY_KEY);
+    if (raw) return { ...DEFAULT_SUBTASK_DISPLAY, ...JSON.parse(raw) };
+  } catch { /* ignore */ }
+  return { ...DEFAULT_SUBTASK_DISPLAY };
+}
+
+const SUBTASK_COLUMN_ITEMS: { key: keyof SubtaskDisplaySettings; label: string }[] = [
+  { key: 'colAssignee',  label: 'Исполнитель' },
+  { key: 'colDueDate',   label: 'Срок' },
+  { key: 'colPriority',  label: 'Приоритет' },
+  { key: 'colCreatedAt', label: 'Создано' },
+];
+
 function isItemOverdue(item: ChecklistItem): boolean {
   if (!item.dueDate) return false;
   const st = typeof item.status === 'number' ? item.status : (item.checked ? 3 : 0);
@@ -675,6 +708,134 @@ function AutoResizeTextarea({ value, onChange, className, placeholder, autoFocus
   );
 }
 
+// Панель настроек отображения подзадач — как шестерёнка на странице задач:
+// перетаскиваемая за шапку, без затемнения фона, изменения видны сразу.
+function SubtaskSettingsPanel({ settings, onChange, onClose }: {
+  settings: SubtaskDisplaySettings;
+  onChange: (s: SubtaskDisplaySettings) => void;
+  onClose: () => void;
+}) {
+  const t = useT();
+  const isDefault = JSON.stringify(settings) === JSON.stringify(DEFAULT_SUBTASK_DISPLAY);
+
+  const [pos, setPos] = useState<{ x: number; y: number }>(() => ({
+    x: typeof window !== 'undefined' ? Math.max(16, window.innerWidth - 440) : 100,
+    y: 88,
+  }));
+  const dragOffset = useRef<{ dx: number; dy: number } | null>(null);
+
+  useEffect(() => {
+    const move = (e: PointerEvent) => {
+      if (!dragOffset.current) return;
+      e.preventDefault();
+      setPos({
+        x: Math.min(Math.max(8, e.clientX - dragOffset.current.dx), window.innerWidth - 80),
+        y: Math.min(Math.max(8, e.clientY - dragOffset.current.dy), window.innerHeight - 60),
+      });
+    };
+    const up = () => { dragOffset.current = null; };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+    return () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+  }, []);
+
+  useEffect(() => {
+    const onKey = (e: globalThis.KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed z-[200] w-[22rem] max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col"
+      style={{ left: pos.x, top: pos.y, maxHeight: 'calc(100vh - 24px)' }}
+    >
+      <div
+        onPointerDown={(e) => { dragOffset.current = { dx: e.clientX - pos.x, dy: e.clientY - pos.y }; }}
+        className="px-5 py-4 border-b border-gray-200 dark:border-gray-700 flex items-start justify-between gap-3 shrink-0 cursor-grab active:cursor-grabbing select-none touch-none"
+      >
+        <div>
+          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('Настройки подзадач')}</h2>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{t('Изменения применяются сразу • потяните за шапку, чтобы передвинуть')}</p>
+        </div>
+        <button
+          onClick={onClose}
+          onPointerDown={(e) => e.stopPropagation()}
+          className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg transition-colors shrink-0"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+        {/* Вид */}
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">{t('Вид')}</p>
+          <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
+            <button
+              onClick={() => onChange({ ...settings, viewMode: 'table' })}
+              className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${settings.viewMode === 'table' ? 'bg-white dark:bg-gray-600 text-gray-800 dark:text-gray-100 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+            >
+              Таблица
+            </button>
+            <button
+              onClick={() => onChange({ ...settings, viewMode: 'grid' })}
+              className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${settings.viewMode === 'grid' ? 'bg-white dark:bg-gray-600 text-gray-800 dark:text-gray-100 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+            >
+              Карточки
+            </button>
+          </div>
+        </div>
+        {/* Колонки таблицы */}
+        <div className={settings.viewMode === 'grid' ? 'opacity-50 pointer-events-none' : ''}>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">{t('Колонки таблицы')}</p>
+          <div className="space-y-0.5">
+            {SUBTASK_COLUMN_ITEMS.map((item) => {
+              const checked = settings[item.key] as boolean;
+              return (
+                <label
+                  key={item.key}
+                  className="flex items-center gap-3 px-2 py-1.5 -mx-2 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors"
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => onChange({ ...settings, [item.key]: !checked })}
+                    className="sr-only"
+                  />
+                  <span className={`w-[18px] h-[18px] rounded border flex items-center justify-center shrink-0 transition-colors ${checked ? 'bg-violet-500 border-violet-500' : 'border-gray-300 dark:border-gray-600'}`}>
+                    {checked && <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                  </span>
+                  <span className="text-sm text-gray-700 dark:text-gray-300">{t(item.label)}</span>
+                </label>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+      <div className="px-5 py-3 border-t border-gray-200 dark:border-gray-700 shrink-0 flex items-center justify-between">
+        <button
+          onClick={() => onChange({ ...DEFAULT_SUBTASK_DISPLAY })}
+          disabled={isDefault}
+          className="text-xs text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors disabled:opacity-40"
+        >
+          Сбросить по умолчанию
+        </button>
+        <button
+          onClick={onClose}
+          className="px-4 py-1.5 text-sm font-medium text-white bg-violet-500 hover:bg-violet-600 rounded-lg transition-colors"
+        >
+          Готово
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function TaskFormModal({ task, onClose, onSaved, initialProjectId, initialTitle, lockProjectId, onSavedTask }: TaskFormModalProps) {
   const t = useT();
   const { user } = useAuthStore();
@@ -709,8 +870,8 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
   const [showMobileSettings, setShowMobileSettings] = useState(false);
   // History collapse
   const [showHistory, setShowHistory] = useState(true);
-  // Sidebar collapsed state
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  // Sidebar collapsed state — правая панель (статус и т.д.) всегда изначально свёрнута
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   // History panel in sidebar
   const [historyPanelItemId, setHistoryPanelItemId] = useState<string | null>(null);
   // Hover tooltip for item history
@@ -721,7 +882,13 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
   const dragOverItemRef = useRef<{ groupId: string; itemId: string } | null>(null);
   // Inline cell editing for subtask table fields
   const [editingCell, setEditingCell] = useState<{ itemId: string; field: 'status' | 'assignee' | 'dueDate' | 'priority' } | null>(null);
-  const [subtaskViewMode, setSubtaskViewMode] = useState<'table' | 'grid'>('table');
+  // Настройки отображения подзадач (вид + колонки таблицы), сохраняются в localStorage
+  const [subtaskDisplay, setSubtaskDisplay] = useState<SubtaskDisplaySettings>(loadSubtaskDisplaySettings);
+  const [showSubtaskSettings, setShowSubtaskSettings] = useState(false);
+
+  useEffect(() => {
+    try { localStorage.setItem(SUBTASK_DISPLAY_KEY, JSON.stringify(subtaskDisplay)); } catch { /* ignore */ }
+  }, [subtaskDisplay]);
 
   // Assignees
   const [assignees, setAssignees] = useState<Assignee[]>(() =>
@@ -1823,28 +1990,18 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                       Добавить
                     </button>
+                    {/* Настройки отображения (вид + колонки) */}
+                    <button
+                      onClick={() => setShowSubtaskSettings(true)}
+                      title={t('Настройки отображения подзадач')}
+                      className="p-1 text-gray-400 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-md transition-colors shrink-0"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                    </button>
                     {total > 0 && <span className="text-xs text-gray-400 shrink-0">{done}/{total}</span>}
-                    {/* View toggle */}
-                    <div className="flex items-center gap-0.5 bg-gray-100 dark:bg-gray-700/60 p-0.5 rounded-md shrink-0">
-                      <button
-                        onClick={() => setSubtaskViewMode('table')}
-                        title={t('Таблица')}
-                        className={`p-1 rounded transition-colors ${subtaskViewMode === 'table' ? 'bg-white dark:bg-gray-600 shadow-sm' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`}
-                      >
-                        <svg className="w-3 h-3 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                        </svg>
-                      </button>
-                      <button
-                        onClick={() => setSubtaskViewMode('grid')}
-                        title={t('Карточки')}
-                        className={`p-1 rounded transition-colors ${subtaskViewMode === 'grid' ? 'bg-white dark:bg-gray-600 shadow-sm' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`}
-                      >
-                        <svg className="w-3 h-3 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                        </svg>
-                      </button>
-                    </div>
                     {canApproveSubtasks && (
                       <button
                         onClick={() => removeChecklist(group.id)}
@@ -1886,7 +2043,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                       </div>
                     </>
                   )}
-                  {!group.collapsed && subtaskViewMode === 'grid' && (
+                  {!group.collapsed && subtaskDisplay.viewMode === 'grid' && (
                     <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {group.items.map((item) => {
                         const itemStatus = getItemStatus(item);
@@ -2070,17 +2227,17 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                       })}
                     </div>
                   )}
-                  {!group.collapsed && subtaskViewMode === 'table' && (
+                  {!group.collapsed && subtaskDisplay.viewMode === 'table' && (
                     <div className="overflow-x-auto scrollbar-none">
                       <table className="w-full text-sm min-w-[600px]">
                         <thead>
                           <tr className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider border-b border-gray-100 dark:border-gray-700/40 bg-gray-50/60 dark:bg-gray-800/30">
                             <th className="px-3 py-2 text-left font-semibold">{t('Статус')}</th>
                             <th className="px-3 py-2 text-left font-semibold">{t('Название подзадачи')}</th>
-                            <th className="px-3 py-2 text-left font-semibold whitespace-nowrap">{t('Исполнитель')}</th>
-                            <th className="px-3 py-2 text-left font-semibold">{t('Срок')}</th>
-                            <th className="px-3 py-2 text-left font-semibold">{t('Приоритет')}</th>
-                            <th className="px-3 py-2 text-left font-semibold">{t('Создано')}</th>
+                            {subtaskDisplay.colAssignee && <th className="px-3 py-2 text-left font-semibold whitespace-nowrap">{t('Исполнитель')}</th>}
+                            {subtaskDisplay.colDueDate && <th className="px-3 py-2 text-left font-semibold">{t('Срок')}</th>}
+                            {subtaskDisplay.colPriority && <th className="px-3 py-2 text-left font-semibold">{t('Приоритет')}</th>}
+                            {subtaskDisplay.colCreatedAt && <th className="px-3 py-2 text-left font-semibold">{t('Создано')}</th>}
                             <th className="px-2 py-2 w-14" aria-hidden />
                           </tr>
                         </thead>
@@ -2189,6 +2346,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                                   )}
                                 </td>
                                 {/* Assignee */}
+                                {subtaskDisplay.colAssignee && (
                                 <td className="px-3 py-2 whitespace-nowrap">
                                   {isEditingAssignee ? (
                                     <select
@@ -2218,7 +2376,9 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                                     </span>
                                   )}
                                 </td>
+                                )}
                                 {/* Due date */}
+                                {subtaskDisplay.colDueDate && (
                                 <td className="px-3 py-2 whitespace-nowrap">
                                   {isEditingDate ? (
                                     <input
@@ -2239,7 +2399,9 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                                     </span>
                                   )}
                                 </td>
+                                )}
                                 {/* Priority */}
+                                {subtaskDisplay.colPriority && (
                                 <td className="px-3 py-2 whitespace-nowrap">
                                   {isEditingPriority ? (
                                     <select
@@ -2265,10 +2427,13 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
                                     </span>
                                   )}
                                 </td>
+                                )}
                                 {/* Created */}
+                                {subtaskDisplay.colCreatedAt && (
                                 <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-400 dark:text-gray-500">
                                   {item.createdAt ? new Date(item.createdAt).toLocaleDateString('ru-RU') : '—'}
                                 </td>
+                                )}
                                 {/* Actions */}
                                 <td className="px-2 py-2">
                                   <div className="flex items-center gap-0.5 opacity-0 group-hover/item:opacity-100 transition-opacity">
@@ -2700,6 +2865,15 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
           fileUrl={previewFile.url}
           fileName={previewFile.name}
           onClose={() => setPreviewFile(null)}
+        />
+      )}
+
+      {/* Настройки отображения подзадач (шестерёнка в шапке списка) */}
+      {showSubtaskSettings && (
+        <SubtaskSettingsPanel
+          settings={subtaskDisplay}
+          onChange={setSubtaskDisplay}
+          onClose={() => setShowSubtaskSettings(false)}
         />
       )}
     </div>
