@@ -2417,7 +2417,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                   const ts = TASK_STATUS[task.status ?? 0] || TASK_STATUS[0];
                   const tp = TASK_PRIORITY[task.priority ?? 2] || TASK_PRIORITY[2];
                   return (
-                    <div key={task.id} className={`rounded-xl p-4 cursor-pointer hover:ring-2 hover:ring-violet-300 dark:hover:ring-violet-600 transition-all ${isTaskOverdue(t) ? 'bg-red-50 dark:bg-red-900/15 ring-1 ring-red-300 dark:ring-red-700/50' : 'bg-gray-50 dark:bg-gray-900/30'}`} onClick={() => setSelectedTask(task)}>
+                    <div key={task.id} className={`rounded-xl p-4 cursor-pointer hover:ring-2 hover:ring-violet-300 dark:hover:ring-violet-600 transition-all ${isTaskOverdue(task) ? 'bg-red-50 dark:bg-red-900/15 ring-1 ring-red-300 dark:ring-red-700/50' : 'bg-gray-50 dark:bg-gray-900/30'}`} onClick={() => setSelectedTask(task)}>
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <div className="font-medium text-gray-800 dark:text-gray-100 line-clamp-2 flex-1">{task.title}</div>
                         <div className="flex items-center gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
@@ -2436,9 +2436,9 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                         <span className={`text-xs px-2 py-0.5 rounded-full ${ts.color}`}>{ts.label}</span>
                         <span className={`text-xs font-medium ${tp.color}`}>{tp.label}</span>
                       </div>
-                      <div className={`text-xs ${isTaskOverdue(t) ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-gray-400'}`}>
+                      <div className={`text-xs ${isTaskOverdue(task) ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-gray-400'}`}>
                         {fmt(task.dueDate || task.due_date) || '—'}
-                        {isTaskOverdue(t) && <span className="ml-1 text-[10px] uppercase">{t('просрочена')}</span>}
+                        {isTaskOverdue(task) && <span className="ml-1 text-[10px] uppercase">{t('просрочена')}</span>}
                       </div>
                       {(task.assignees?.length ?? 0) > 0 && (
                         <div className="mt-1 text-xs text-gray-400 truncate">{task.assignees?.map((a) => a.userName || `#${a.userId}`).join(', ')}</div>
@@ -2473,14 +2473,14 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                         : task.createdByUser?.name || task.createdByUser?.email || '—';
                       const taskCreatedAt = task.createdAt || task.created_at;
                       return (
-                        <tr key={task.id} className={`hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer ${isTaskOverdue(t) ? 'bg-red-50/70 dark:bg-red-900/10 hover:bg-red-50 dark:hover:bg-red-900/20' : ''}`} onClick={() => setSelectedTask(task)}>
+                        <tr key={task.id} className={`hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer ${isTaskOverdue(task) ? 'bg-red-50/70 dark:bg-red-900/10 hover:bg-red-50 dark:hover:bg-red-900/20' : ''}`} onClick={() => setSelectedTask(task)}>
                           <td className="py-2.5 px-4 font-medium text-gray-800 dark:text-gray-100">{task.title}</td>
                           <td className="py-2.5 px-4"><span className={`text-xs px-2 py-0.5 rounded-full ${ts.color}`}>{ts.label}</span></td>
                           <td className="py-2.5 px-4"><span className={`text-xs font-medium ${tp.color}`}>{tp.label}</span></td>
                           <td className="py-2.5 px-4">
-                            <span className={isTaskOverdue(t) ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-gray-500 dark:text-gray-400'}>
+                            <span className={isTaskOverdue(task) ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-gray-500 dark:text-gray-400'}>
                               {fmt(task.dueDate || task.due_date)}
-                              {isTaskOverdue(t) && <span className="ml-1 text-[10px] uppercase tracking-wide">{t('просрочена')}</span>}
+                              {isTaskOverdue(task) && <span className="ml-1 text-[10px] uppercase tracking-wide">{t('просрочена')}</span>}
                             </span>
                           </td>
                           <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400 text-xs">
