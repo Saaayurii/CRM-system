@@ -78,6 +78,24 @@ export class UsersGatewayController {
     });
   }
 
+  @Put(':id/password')
+  @ApiOperation({ summary: 'Change user password' })
+  async changePassword(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
+    return this.proxyService.forward('users', {
+      method: 'PUT',
+      path: `/users/${id}/password`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
   @Put(':id')
   @ApiOperation({ summary: 'Update user' })
   async update(
