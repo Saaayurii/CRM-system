@@ -1,16 +1,57 @@
 'use client';
 
+import { useRef, useState } from 'react';
 import { useThemeStore } from '@/stores/themeStore';
+import { useToastStore } from '@/stores/toastStore';
+import api from '@/lib/api';
 import {
   ACCENTS,
+  CHAT_FONT_SIZE_MAX,
+  CHAT_FONT_SIZE_MIN,
   FONT_SIZE_MAX,
   FONT_SIZE_MIN,
   THEME_PRESETS,
   WALLPAPERS,
-  getWallpaperBackground,
+  getChatBackground,
   type NightMode,
   type ThemeMode,
 } from '@/lib/appearance';
+
+/** Сжатие картинки-обоев перед загрузкой (макс. 1920px, JPEG) */
+async function compressWallpaper(file: File): Promise<File> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let { width, height } = img;
+      const max = 1920;
+      if (width > max || height > max) {
+        if (width > height) {
+          height = Math.round((height * max) / width);
+          width = max;
+        } else {
+          width = Math.round((width * max) / height);
+          height = max;
+        }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) { resolve(file); return; }
+          resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }));
+        },
+        'image/jpeg',
+        0.85,
+      );
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+    img.src = url;
+  });
+}
 
 /* ── Переключатель (toggle) в стиле Telegram ── */
 function Switch({
@@ -101,11 +142,13 @@ function PresetCard({
 /* ── Живое превью чата ── */
 function ChatPreview() {
   const theme = useThemeStore((s) => s.theme);
-  const { chatWallpaper, chatBubbles, nameColors, fontSize } = useThemeStore(
-    (s) => s.appearance,
+  const { chatWallpaper, customWallpaperUrl, chatPattern, chatBubbles, nameColors, chatFontSize } =
+    useThemeStore((s) => s.appearance);
+  const wallpaper = getChatBackground(
+    { chatWallpaper, customWallpaperUrl, chatPattern },
+    theme,
   );
-  const wallpaper = getWallpaperBackground(chatWallpaper, theme);
-  const ts = { fontSize: `${fontSize}px`, lineHeight: 1.4 };
+  const ts = { fontSize: `${chatFontSize}px`, lineHeight: 1.4 };
 
   const incomingName = (
     <p
@@ -122,13 +165,13 @@ function ChatPreview() {
       className={`rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 px-4 py-4 space-y-2 ${
         wallpaper ? '' : 'bg-[#e9e9e9] dark:bg-gray-900'
       }`}
-      style={wallpaper ? { background: wallpaper } : undefined}
+      style={wallpaper ?? undefined}
     >
       {chatBubbles ? (
         <>
           {/* Исходящее */}
           <div className="flex justify-end">
-            <div className="bg-violet-500 text-white rounded-2xl rounded-tr-sm px-3 py-2 max-w-[75%]">
+            <div className="bg-bubble-500 text-white rounded-2xl rounded-tr-sm px-3 py-2 max-w-[75%]">
               <p style={ts}>Доброе утро! 👋</p>
               <p className="text-[10px] text-white/70 text-right mt-0.5">21:18</p>
             </div>
@@ -149,7 +192,7 @@ function ChatPreview() {
           </div>
           {/* Исходящее */}
           <div className="flex justify-end">
-            <div className="bg-violet-500 text-white rounded-2xl rounded-tr-sm px-3 py-2 max-w-[75%]">
+            <div className="bg-bubble-500 text-white rounded-2xl rounded-tr-sm px-3 py-2 max-w-[75%]">
               <p style={ts}>В Токио утро 😎</p>
               <p className="text-[10px] text-white/70 text-right mt-0.5">21:22</p>
             </div>
@@ -215,6 +258,29 @@ export default function AppearanceSettings() {
   const appearance = useThemeStore((s) => s.appearance);
   const setAppearance = useThemeStore((s) => s.setAppearance);
   const toggleTheme = useThemeStore((s) => s.toggleTheme);
+  const addToast = useToastStore((s) => s.addToast);
+  const [open, setOpen] = useState(false);
+  const [wpUploading, setWpUploading] = useState(false);
+  const wpInputRef = useRef<HTMLInputElement>(null);
+
+  const handleWallpaperUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setWpUploading(true);
+    try {
+      const compressed = await compressWallpaper(file);
+      const formData = new FormData();
+      formData.append('file', compressed);
+      const { data } = await api.post('/users/avatar/upload', formData);
+      setAppearance({ chatWallpaper: 'custom', customWallpaperUrl: data.fileUrl });
+      addToast('success', 'Обои загружены');
+    } catch {
+      addToast('error', 'Ошибка загрузки обоев');
+    } finally {
+      setWpUploading(false);
+    }
+  };
 
   const NIGHT_OPTIONS: { id: NightMode; name: string }[] = [
     { id: 'off', name: 'Отключена' },
@@ -224,13 +290,32 @@ export default function AppearanceSettings() {
 
   return (
     <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-6 mb-6">
-      <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-1">
-        Оформление
-      </h2>
-      <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">
-        Цветовая тема, акцент и вид чата. Настройки сохраняются в вашем профиле.
-      </p>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between gap-4 text-left"
+      >
+        <div>
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-1">
+            Оформление
+          </h2>
+          <p className="text-xs text-gray-400 dark:text-gray-500">
+            Цветовая тема, акцент и вид чата. Настройки сохраняются в вашем профиле.
+          </p>
+        </div>
+        <svg
+          className={`w-5 h-5 shrink-0 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+        </svg>
+      </button>
 
+      {open && (
+      <div className="mt-4">
       {/* Превью чата */}
       <ChatPreview />
 
@@ -269,6 +354,49 @@ export default function AppearanceSettings() {
           </button>
         ))}
       </div>
+
+      {/* Цвет исходящих сообщений */}
+      <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mt-5 mb-3">
+        Цвет сообщений
+      </p>
+      <div className="flex items-center gap-2.5 flex-wrap">
+        {/* «Как акцент» — пузыри следуют за акцентом приложения */}
+        <button
+          type="button"
+          title="Как акцент приложения"
+          onClick={() => setAppearance({ bubbleColor: 'accent' })}
+          className="w-9 h-9 rounded-full bg-violet-500 flex items-center justify-center transition-transform hover:scale-110"
+        >
+          {appearance.bubbleColor === 'accent' ? (
+            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+            </svg>
+          ) : (
+            <svg className="w-4 h-4 text-white/80" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+            </svg>
+          )}
+        </button>
+        {ACCENTS.map((a) => (
+          <button
+            key={a.id}
+            type="button"
+            title={a.name}
+            onClick={() => setAppearance({ bubbleColor: a.id })}
+            className="w-9 h-9 rounded-full flex items-center justify-center transition-transform hover:scale-110"
+            style={{ background: a.color }}
+          >
+            {appearance.bubbleColor === a.id && (
+              <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+              </svg>
+            )}
+          </button>
+        ))}
+      </div>
+      <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+        Цвет ваших сообщений в чате. Первый вариант — следовать акценту приложения.
+      </p>
 
       {/* Переключатели */}
       <div className="mt-5">
@@ -330,6 +458,88 @@ export default function AppearanceSettings() {
             </button>
           );
         })}
+
+        {/* Свои обои — загрузка собственной картинки */}
+        <div className="flex flex-col items-center gap-1.5 group relative">
+          <input
+            ref={wpInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            disabled={wpUploading}
+            onChange={handleWallpaperUpload}
+          />
+          <button
+            type="button"
+            disabled={wpUploading}
+            onClick={() => {
+              if (appearance.customWallpaperUrl) {
+                setAppearance({ chatWallpaper: 'custom' });
+              } else {
+                wpInputRef.current?.click();
+              }
+            }}
+            className={`w-[72px] h-[52px] rounded-lg border-2 transition-colors flex items-center justify-center overflow-hidden bg-gray-50 dark:bg-gray-900 bg-cover bg-center ${
+              appearance.chatWallpaper === 'custom'
+                ? 'border-violet-500'
+                : 'border-gray-200 dark:border-gray-700 group-hover:border-gray-300 dark:group-hover:border-gray-600'
+            } ${wpUploading ? 'opacity-50' : ''}`}
+            style={
+              appearance.customWallpaperUrl
+                ? { backgroundImage: `url('${appearance.customWallpaperUrl}')` }
+                : undefined
+            }
+          >
+            {wpUploading ? (
+              <svg className="w-4 h-4 text-gray-400 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+              </svg>
+            ) : appearance.chatWallpaper === 'custom' ? (
+              <span className="w-5 h-5 rounded-full bg-violet-500 flex items-center justify-center">
+                <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+              </span>
+            ) : !appearance.customWallpaperUrl ? (
+              <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+            ) : null}
+          </button>
+          {/* Заменить картинку */}
+          {appearance.customWallpaperUrl && !wpUploading && (
+            <button
+              type="button"
+              title="Заменить картинку"
+              onClick={() => wpInputRef.current?.click()}
+              className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-gray-700/80 hover:bg-gray-700 text-white flex items-center justify-center"
+            >
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+            </button>
+          )}
+          <span
+            className={`text-[11px] ${
+              appearance.chatWallpaper === 'custom'
+                ? 'text-violet-500 font-medium'
+                : 'text-gray-400 dark:text-gray-500'
+            }`}
+          >
+            Свои
+          </span>
+        </div>
+      </div>
+
+      {/* Узор поверх обоев */}
+      <div className="mt-3">
+        <SettingRow label="Узор поверх обоев" last>
+          <Switch
+            checked={appearance.chatPattern}
+            onChange={(v) => setAppearance({ chatPattern: v })}
+          />
+        </SettingRow>
       </div>
 
       {/* Размер текста */}
@@ -352,6 +562,30 @@ export default function AppearanceSettings() {
           {appearance.fontSize} px
         </span>
       </div>
+
+      {/* Размер текста в чате */}
+      <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mt-5 mb-3">
+        Размер текста в чате
+      </p>
+      <div className="flex items-center gap-3">
+        <span className="text-xs text-gray-500 dark:text-gray-400">A</span>
+        <input
+          type="range"
+          min={CHAT_FONT_SIZE_MIN}
+          max={CHAT_FONT_SIZE_MAX}
+          step={1}
+          value={appearance.chatFontSize}
+          onChange={(e) => setAppearance({ chatFontSize: Number(e.target.value) })}
+          className="flex-1 accent-violet-500"
+        />
+        <span className="text-lg text-gray-500 dark:text-gray-400 font-medium">A</span>
+        <span className="text-xs text-gray-400 dark:text-gray-500 w-10 text-right tabular-nums">
+          {appearance.chatFontSize} px
+        </span>
+      </div>
+      <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+        Влияет только на текст сообщений в чате, не затрагивая остальной интерфейс.
+      </p>
 
       {/* Смена темы ночью */}
       <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mt-5 mb-3">
@@ -399,6 +633,8 @@ export default function AppearanceSettings() {
             ? 'Тёмная тема включится автоматически вместе с тёмной темой системы.'
             : 'Тёмная тема включится автоматически в указанный период.'}
         </p>
+      )}
+      </div>
       )}
     </div>
   );

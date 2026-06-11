@@ -4,7 +4,7 @@ import { useRef, useEffect, useCallback, useState, useMemo } from 'react';
 import { useChatStore, ChatChannel, ChatMessage as ChatMessageType } from '@/stores/chatStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useThemeStore } from '@/stores/themeStore';
-import { getWallpaperBackground } from '@/lib/appearance';
+import { getChatBackground } from '@/lib/appearance';
 import api from '@/lib/api';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
@@ -134,8 +134,10 @@ interface ChatWindowProps {
 
 export default function ChatWindow({ onBack }: ChatWindowProps) {
   const chatWallpaper = useThemeStore((s) => s.appearance.chatWallpaper);
+  const customWallpaperUrl = useThemeStore((s) => s.appearance.customWallpaperUrl);
+  const chatPattern = useThemeStore((s) => s.appearance.chatPattern);
   const resolvedTheme = useThemeStore((s) => s.theme);
-  const wallpaperBg = getWallpaperBackground(chatWallpaper, resolvedTheme);
+  const wallpaperStyle = getChatBackground({ chatWallpaper, customWallpaperUrl, chatPattern }, resolvedTheme);
   const activeChannelId = useChatStore((s) => s.activeChannelId);
   const messages = useChatStore((s) => s.messages);
   const channels = useChatStore((s) => s.channels);
@@ -818,8 +820,8 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
         {/* Messages */}
         <div
           ref={messagesContainerRef}
-          className={`flex-1 overflow-y-auto px-4 py-3 space-y-1 ${wallpaperBg ? '' : 'bg-[#e9e9e9] dark:bg-gray-900'}`}
-          style={wallpaperBg ? { background: wallpaperBg } : undefined}
+          className={`flex-1 overflow-y-auto px-4 py-3 space-y-1 ${wallpaperStyle ? '' : 'bg-[#e9e9e9] dark:bg-gray-900'}`}
+          style={wallpaperStyle ?? undefined}
         >
           {/* Initial loading — full area spinner */}
           {isLoadingMessages && messages.length === 0 && (

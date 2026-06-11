@@ -43,6 +43,11 @@ function sanitize(raw: unknown): AppearanceSettings {
   const src = (raw && typeof raw === 'object' ? raw : {}) as Partial<AppearanceSettings>;
   const merged = { ...DEFAULT_APPEARANCE, ...src };
   merged.fontSize = Math.min(20, Math.max(13, Number(merged.fontSize) || 16));
+  merged.chatFontSize = Math.min(22, Math.max(12, Number(merged.chatFontSize) || 14));
+  // свои обои без загруженной картинки невозможны
+  if (merged.chatWallpaper === 'custom' && !merged.customWallpaperUrl) {
+    merged.chatWallpaper = 'default';
+  }
   return merged;
 }
 

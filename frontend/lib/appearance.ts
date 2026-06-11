@@ -1,6 +1,8 @@
 // Настройки оформления в стиле Telegram: темы-пресеты, акцентные цвета,
 // обои чатов, размер текста, автосмена ночной темы.
 
+import type { CSSProperties } from 'react';
+
 export type ThemeMode = 'classic' | 'day' | 'night' | 'system';
 export type NightMode = 'off' | 'system' | 'scheduled';
 export type AccentId =
@@ -12,6 +14,8 @@ export type AccentId =
   | 'green'
   | 'cyan'
   | 'pink';
+/** Цвет исходящих сообщений: 'accent' — следовать акценту приложения */
+export type BubbleColorId = 'accent' | AccentId;
 export type WallpaperId =
   | 'default'
   | 'classic'
@@ -20,7 +24,8 @@ export type WallpaperId =
   | 'lilac'
   | 'mint'
   | 'sunset'
-  | 'graphite';
+  | 'graphite'
+  | 'custom';
 
 export interface AppearanceSettings {
   /** Тема-пресет: классическая/дневная — светлые, ночная — тёмная, системная — за ОС */
@@ -29,10 +34,18 @@ export interface AppearanceSettings {
   accent: AccentId;
   /** Базовый размер текста (px на корневом элементе), 16 — по умолчанию */
   fontSize: number;
+  /** Размер текста сообщений в чате (px), 14 — по умолчанию */
+  chatFontSize: number;
   /** Сообщения «пузырями» (true) или блоками во всю ширину (false) */
   chatBubbles: boolean;
+  /** Цвет исходящих сообщений (пузырей) */
+  bubbleColor: BubbleColorId;
   /** Обои для чатов */
   chatWallpaper: WallpaperId;
+  /** URL собственной картинки-обоев (chatWallpaper === 'custom') */
+  customWallpaperUrl: string | null;
+  /** Полупрозрачный узор-doodle поверх обоев */
+  chatPattern: boolean;
   /** Цветные имена собеседников в чате */
   nameColors: boolean;
   /** Автосмена тёмной темы для светлых пресетов */
@@ -45,8 +58,12 @@ export const DEFAULT_APPEARANCE: AppearanceSettings = {
   mode: 'classic',
   accent: 'violet',
   fontSize: 16,
+  chatFontSize: 14,
   chatBubbles: true,
+  bubbleColor: 'accent',
   chatWallpaper: 'default',
+  customWallpaperUrl: null,
+  chatPattern: false,
   nameColors: true,
   nightMode: 'off',
   nightStart: '22:00',
@@ -55,6 +72,9 @@ export const DEFAULT_APPEARANCE: AppearanceSettings = {
 
 export const FONT_SIZE_MIN = 13;
 export const FONT_SIZE_MAX = 20;
+export const CHAT_FONT_SIZE_MIN = 12;
+export const CHAT_FONT_SIZE_MAX = 22;
+export const CHAT_FONT_SIZE_DEFAULT = 14;
 
 export const THEME_PRESETS: { id: ThemeMode; name: string }[] = [
   { id: 'classic', name: 'Классическая' },
@@ -75,7 +95,7 @@ export const ACCENTS: { id: AccentId; name: string; color: string }[] = [
 ];
 
 export const WALLPAPERS: {
-  id: WallpaperId;
+  id: Exclude<WallpaperId, 'custom'>;
   name: string;
   light: string | null;
   dark: string | null;
@@ -125,7 +145,7 @@ export const WALLPAPERS: {
   },
 ];
 
-/** CSS background для обоев чата с учётом текущей (разрешённой) темы */
+/** CSS background для пресетных обоев чата с учётом текущей темы */
 export function getWallpaperBackground(
   id: WallpaperId,
   theme: 'light' | 'dark',
@@ -133,6 +153,51 @@ export function getWallpaperBackground(
   const wp = WALLPAPERS.find((w) => w.id === id);
   if (!wp) return null;
   return theme === 'dark' ? wp.dark : wp.light;
+}
+
+const PATTERN_URL = "url('/chat-pattern.svg')";
+
+/**
+ * Полный фон чата: узор (поверх) + обои (пресет-градиент или своя картинка).
+ * Для своей картинки в тёмной теме добавляется затемняющий слой.
+ * Возвращает null, когда нужен стандартный фон (классы bg-*).
+ */
+export function getChatBackground(
+  a: Pick<AppearanceSettings, 'chatWallpaper' | 'customWallpaperUrl' | 'chatPattern'>,
+  theme: 'light' | 'dark',
+): CSSProperties | null {
+  type Layer = { image: string; size: string; repeat: string };
+  const layers: Layer[] = [];
+
+  if (a.chatPattern) {
+    layers.push({ image: PATTERN_URL, size: 'auto', repeat: 'repeat' });
+  }
+
+  if (a.chatWallpaper === 'custom' && a.customWallpaperUrl) {
+    if (theme === 'dark') {
+      layers.push({
+        image: 'linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45))',
+        size: 'auto',
+        repeat: 'no-repeat',
+      });
+    }
+    layers.push({
+      image: `url('${a.customWallpaperUrl}')`,
+      size: 'cover',
+      repeat: 'no-repeat',
+    });
+  } else {
+    const gradient = getWallpaperBackground(a.chatWallpaper, theme);
+    if (gradient) layers.push({ image: gradient, size: 'auto', repeat: 'no-repeat' });
+  }
+
+  if (layers.length === 0) return null;
+  return {
+    backgroundImage: layers.map((l) => l.image).join(', '),
+    backgroundSize: layers.map((l) => l.size).join(', '),
+    backgroundRepeat: layers.map((l) => l.repeat).join(', '),
+    backgroundPosition: 'center',
+  };
 }
 
 /** Количество цветов имён (классы chat-name-c0 … chat-name-c6 в globals.css) */

@@ -495,7 +495,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
             onClick={onScrollToReply}
             className={`text-xs px-2 py-1 mb-0.5 rounded-t-lg border-l-2 max-w-full ${
               own
-                ? 'bg-violet-400/20 border-violet-300 dark:bg-violet-500/20 dark:border-violet-400'
+                ? 'bg-bubble-400/20 border-bubble-300 dark:bg-bubble-500/20 dark:border-bubble-400'
                 : 'bg-gray-100 border-gray-300 dark:bg-gray-700 dark:border-gray-500'
             } ${onScrollToReply ? 'cursor-pointer hover:brightness-95 dark:hover:brightness-110 transition-all' : ''}`}
           >
@@ -510,7 +510,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
           ref={bubbleRef}
           className={`relative rounded-2xl w-full ${isSelected ? 'chat-msg-select' : ''} ${
             own
-              ? 'bg-violet-500 text-white rounded-tr-sm px-3 py-2'
+              ? 'bg-bubble-500 text-white rounded-tr-sm px-3 py-2'
               : blockMode
                 ? 'bg-transparent text-gray-800 dark:text-gray-100 px-1 py-0.5'
                 : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-transparent shadow-sm rounded-tl-sm px-3 py-2'
@@ -578,7 +578,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
                       onClick={() => openViewer(mediaIndex)}
                       onError={(e) => { e.currentTarget.style.display = 'none'; (e.currentTarget.nextElementSibling as HTMLElement)?.classList.remove('hidden'); }}
                     />
-                    <div className={`hidden items-center gap-2 p-2 rounded-lg text-sm ${own ? 'bg-violet-400/30' : 'bg-gray-100 dark:bg-gray-700'}`}>
+                    <div className={`hidden items-center gap-2 p-2 rounded-lg text-sm ${own ? 'bg-bubble-400/30' : 'bg-gray-100 dark:bg-gray-700'}`}>
                       <FileIcon mimeType={att.mimeType} /><span className="truncate text-sm">{att.fileName}</span>
                     </div>
                     <a href={att.fileUrl} download={att.fileName} target="_blank" rel="noopener noreferrer"
@@ -620,14 +620,14 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
                     const isAudio = att.mimeType?.startsWith('audio/');
                     if (isAudio) {
                       return (
-                        <div key={att.id ?? index} className={`flex flex-col gap-1 p-2 rounded-lg ${own ? 'bg-violet-400/30' : 'bg-gray-100 dark:bg-gray-700'}`}>
+                        <div key={att.id ?? index} className={`flex flex-col gap-1 p-2 rounded-lg ${own ? 'bg-bubble-400/30' : 'bg-gray-100 dark:bg-gray-700'}`}>
                           <div className="flex items-center justify-between gap-2">
                             <div className="flex items-center gap-2 min-w-0">
                               <FileIcon mimeType={att.mimeType} />
                               <span className="truncate text-sm font-medium">{att.fileName}</span>
                             </div>
                             <a href={att.fileUrl} download={att.fileName} target="_blank" rel="noopener noreferrer"
-                              className={`shrink-0 p-1 rounded-full hover:bg-black/10 ${own ? 'text-violet-200' : 'text-gray-500'}`}>
+                              className={`shrink-0 p-1 rounded-full hover:bg-black/10 ${own ? 'text-bubble-200' : 'text-gray-500'}`}>
                               <DownloadIcon />
                             </a>
                           </div>
@@ -639,17 +639,17 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
                       <div key={att.id ?? index}
                         onClick={() => setPreviewFile({ url: att.fileUrl, name: att.fileName, mimeType: att.mimeType })}
                         className={`flex items-center gap-2 p-2 rounded-lg text-sm cursor-pointer transition-colors ${
-                          own ? 'bg-violet-400/30 hover:bg-violet-400/40' : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600'
+                          own ? 'bg-bubble-400/30 hover:bg-bubble-400/40' : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600'
                         }`}>
                         <FileIcon mimeType={att.mimeType} />
                         <div className="min-w-0 flex-1">
                           <p className="truncate font-medium text-sm">{att.fileName}</p>
-                          <p className={`text-xs ${own ? 'text-violet-200' : 'text-gray-400 dark:text-gray-500'}`}>
+                          <p className={`text-xs ${own ? 'text-bubble-200' : 'text-gray-400 dark:text-gray-500'}`}>
                             {getFileExt(att.fileName)} · {formatSize(att.fileSize)}
                           </p>
                         </div>
                         <a href={att.fileUrl} download={att.fileName} target="_blank" rel="noopener noreferrer"
-                          className={`shrink-0 p-1.5 rounded-full transition-colors ${own ? 'text-violet-200 hover:bg-violet-400/30' : 'text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-600'}`}
+                          className={`shrink-0 p-1.5 rounded-full transition-colors ${own ? 'text-bubble-200 hover:bg-bubble-400/30' : 'text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-600'}`}
                           onClick={(e) => e.stopPropagation()}>
                           <DownloadIcon />
                         </a>
@@ -664,11 +664,11 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
           {/* Time + edited + read checkmark + readers */}
           <div className={`flex items-center gap-1 mt-0.5 ${own ? 'justify-end' : 'justify-start'}`}>
             {message.isEdited && (
-              <span className={`text-[10px] ${own ? 'text-violet-200' : 'text-gray-400 dark:text-gray-500'}`}>
+              <span className={`text-[10px] ${own ? 'text-bubble-200' : 'text-gray-400 dark:text-gray-500'}`}>
                 ред.
               </span>
             )}
-            <span className={`text-[10px] ${own ? 'text-violet-200' : 'text-gray-400 dark:text-gray-500'}`}>
+            <span className={`text-[10px] ${own ? 'text-bubble-200' : 'text-gray-400 dark:text-gray-500'}`}>
               {formatTime(message.createdAt)}
             </span>
             {isOwn && (
@@ -681,7 +681,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
                 <span className={`text-[10px] leading-none ${
                   isRead
                     ? own ? 'text-sky-300' : 'text-sky-500'
-                    : own ? 'text-violet-200' : 'text-gray-400 dark:text-gray-500'
+                    : own ? 'text-bubble-200' : 'text-gray-400 dark:text-gray-500'
                 }`}>
                   {isRead ? (
                     <svg className="w-4 h-3 inline" viewBox="0 0 18 11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -772,18 +772,18 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
           >
             <div className={`max-w-[75%] rounded-2xl px-3 py-2 shadow-lg ${
               own
-                ? 'bg-violet-500 text-white rounded-tr-sm'
+                ? 'bg-bubble-500 text-white rounded-tr-sm'
                 : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-transparent rounded-tl-sm'
             }`}>
               {message.text && (
                 <p className="text-sm whitespace-pre-wrap break-words line-clamp-4">{message.text}</p>
               )}
               {!message.text && message.attachments && message.attachments.length > 0 && (
-                <p className={`text-sm ${own ? 'text-violet-200' : 'text-gray-500 dark:text-gray-400'}`}>
+                <p className={`text-sm ${own ? 'text-bubble-200' : 'text-gray-500 dark:text-gray-400'}`}>
                   📎 {message.attachments[0].fileName}
                 </p>
               )}
-              <div className={`text-[10px] mt-0.5 ${own ? 'text-right text-violet-200' : 'text-gray-400 dark:text-gray-500'}`}>
+              <div className={`text-[10px] mt-0.5 ${own ? 'text-right text-bubble-200' : 'text-gray-400 dark:text-gray-500'}`}>
                 {formatTime(message.createdAt)}
               </div>
             </div>
@@ -1395,7 +1395,7 @@ function renderText(text: string, isOwn: boolean, highlightQuery?: string) {
   return (
     <div>
       {textSegments.length > 0 && (
-        <p className="text-sm whitespace-pre-wrap break-words">{textSegments}</p>
+        <p className="chat-msg-text whitespace-pre-wrap break-words">{textSegments}</p>
       )}
       {cards.length > 0 && (
         <div className={textSegments.length > 0 ? 'mt-2 space-y-1.5' : 'space-y-1.5'}>
@@ -1637,7 +1637,7 @@ function VoicePlayer({ src, isOwn }: VoicePlayerProps) {
         </div>
 
         {/* Duration */}
-        <span className={`text-[10px] tabular-nums ${isOwn ? 'text-violet-200' : 'text-gray-400 dark:text-gray-500'}`}>
+        <span className={`text-[10px] tabular-nums ${isOwn ? 'text-bubble-200' : 'text-gray-400 dark:text-gray-500'}`}>
           {formatAudioDuration(displayTime)}
         </span>
       </div>

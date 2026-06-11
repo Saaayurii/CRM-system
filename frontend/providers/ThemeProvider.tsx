@@ -9,6 +9,8 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
   const theme = useThemeStore((s) => s.theme);
   const accent = useThemeStore((s) => s.appearance.accent);
   const fontSize = useThemeStore((s) => s.appearance.fontSize);
+  const chatFontSize = useThemeStore((s) => s.appearance.chatFontSize);
+  const bubbleColor = useThemeStore((s) => s.appearance.bubbleColor);
   const nightMode = useThemeStore((s) => s.appearance.nightMode);
   const initialize = useThemeStore((s) => s.initialize);
   const refreshResolved = useThemeStore((s) => s.refreshResolved);
@@ -57,12 +59,22 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
     } else {
       root.removeAttribute('data-accent');
     }
+    if (bubbleColor && bubbleColor !== 'accent') {
+      root.setAttribute('data-bubble', bubbleColor);
+    } else {
+      root.removeAttribute('data-bubble');
+    }
     root.style.fontSize = fontSize && fontSize !== 16 ? `${fontSize}px` : '';
+    if (chatFontSize && chatFontSize !== 14) {
+      root.style.setProperty('--chat-font-size', `${chatFontSize}px`);
+    } else {
+      root.style.removeProperty('--chat-font-size');
+    }
     const timeout = setTimeout(() => {
       root.classList.remove('**:transition-none!');
     }, 1);
     return () => clearTimeout(timeout);
-  }, [theme, accent, fontSize]);
+  }, [theme, accent, fontSize, chatFontSize, bubbleColor]);
 
   return <>{children}</>;
 }
