@@ -422,17 +422,26 @@ export default function Sidebar() {
       { key: '1', href: '/dashboard' },
       { key: '2', href: '/dashboard/projects' },
       { key: '3', href: '/dashboard/tasks' },
-      { key: '4', href: '/dashboard/employees' },
+      { key: '4', href: '/dashboard/community' },
       { key: '5', href: '/dashboard/documents' },
+      { key: 'c', href: calendarHref },
+      { key: 'n', href: '/dashboard/notes' },
+      { key: 'm', href: '/dashboard/media' },
+      { key: 'l', href: '/dashboard/learning' },
+      { key: 'w', href: '/dashboard/wiki' },
+      { key: 'i', href: '/dashboard/safety-briefings' },
+      { key: 'h', href: '/dashboard/hse' },
     ];
     if (showTeams) list.push({ key: '6', href: '/dashboard/teams' });
     if (isSuperAdmin || isAdmin || isPM) list.push({ key: '7', href: '/dashboard/clients' });
     if (showChat) list.push({ key: '8', href: '/dashboard/chat' });
+    if (isSuperAdmin || isAdmin || isAccountant || isPM) list.push({ key: 'f', href: '/dashboard/finance' });
+    if (isSuperAdmin || isAdmin || isPM || isForeman || isWarehouse) list.push({ key: 's', href: '/dashboard/warehouse' });
     if (isAdmin || isSuperAdmin) list.push({ key: '9', href: '/dashboard/company' });
     list.push({ key: '0', href: settingsHref });
     if (isSuperAdmin) list.push({ key: 'a', href: '/admin' });
     return list;
-  }, [showTeams, isAdmin, isHR, isPM, isSuperAdmin, showChat, settingsHref]);
+  }, [showTeams, isAdmin, isHR, isPM, isSuperAdmin, showChat, settingsHref, calendarHref, isAccountant, isForeman, isWarehouse]);
 
   useNavHotkeys(hotkeys);
   const hkByHref = useMemo(() => Object.fromEntries(hotkeys.map((h) => [h.href, h])), [hotkeys]);

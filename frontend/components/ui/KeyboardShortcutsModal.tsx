@@ -19,13 +19,23 @@ const NAV_SHORTCUTS: ShortcutItem[] = [
   { label: 'Обзор', key: '1' },
   { label: 'Проекты', key: '2' },
   { label: 'Задачи', key: '3' },
-  { label: 'Сотрудники', key: '4' },
+  { label: 'Сообщество', key: '4' },
   { label: 'Документы', key: '5' },
   { label: 'Команды', key: '6', roleOnly: true },
+  { label: 'Клиенты', key: '7', roleOnly: true },
   { label: 'Чат', key: '8' },
   { label: 'Компания', key: '9', roleOnly: true },
   { label: 'Настройки', key: '0' },
   { label: 'Администрирование', key: 'A', roleOnly: true },
+  { label: 'Календарь', key: 'C' },
+  { label: 'Финансы', key: 'F', roleOnly: true },
+  { label: 'Охрана труда', key: 'H' },
+  { label: 'Инструктажи', key: 'I' },
+  { label: 'Обучение', key: 'L' },
+  { label: 'Медиа', key: 'M' },
+  { label: 'Заметки', key: 'N' },
+  { label: 'Склад', key: 'S', roleOnly: true },
+  { label: 'ВИКИ', key: 'W' },
 ];
 
 const ACTION_SHORTCUTS: ShortcutItem[] = [
@@ -108,7 +118,7 @@ export default function KeyboardShortcutsModal({ open, onClose }: Props) {
         </div>
 
         {/* Body */}
-        <div className="px-5 py-4 space-y-5">
+        <div className="px-5 py-4 space-y-5 overflow-y-auto max-h-[70vh]">
           <Section title="Навигация" items={NAV_SHORTCUTS} />
           <Section title="Действия" items={ACTION_SHORTCUTS} />
         </div>
