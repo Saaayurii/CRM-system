@@ -906,7 +906,7 @@ export default function TasksPage() {
                       {/* Исполнитель */}
                       <td className="py-2.5 px-4 max-w-[180px]" onClick={(e) => e.stopPropagation()}>
                         <AssigneeTextCell
-                          task={assigneeOverrides[task.id] !== undefined ? { ...t, assignees: assigneeOverrides[task.id] } : t}
+                          task={assigneeOverrides[task.id] !== undefined ? { ...task, assignees: assigneeOverrides[task.id] } : task}
                           users={users}
                           onNameClick={setProfileUserId}
                         />
