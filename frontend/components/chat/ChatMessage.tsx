@@ -485,7 +485,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
             <p className="font-medium text-gray-600 dark:text-gray-300 truncate">
               {message.replyToMessage.senderName}
             </p>
-            <p className="text-gray-500 dark:text-gray-400 truncate">{message.replyToMessage.text}</p>
+            <p className="text-gray-500 dark:text-gray-400 truncate">{plainText(message.replyToMessage.text)}</p>
           </div>
         )}
 
@@ -1288,6 +1288,13 @@ function renderInlineBold(text: string, isOwn: boolean, highlightQuery?: string)
   }
   if (last < text.length) parts.push(...renderUrlsInSegment(text.slice(last), isOwn, highlightQuery, last));
   return parts;
+}
+
+function plainText(text?: string | null): string {
+  if (!text) return '';
+  return text
+    .replace(/#\[([^\]]+)\]\(task:[^)]*\)/g, '📋 $1')
+    .replace(/@\[([^\]]+)\]\(user:\d+\)/g, '@$1');
 }
 
 function renderText(text: string, isOwn: boolean, highlightQuery?: string) {
