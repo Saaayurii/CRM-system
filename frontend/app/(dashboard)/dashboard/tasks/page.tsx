@@ -92,6 +92,57 @@ const PRIORITY_LABELS: Record<number, { label: string; color: string }> = {
   4: { label: 'Критический', color: 'text-red-500' },
 };
 
+interface DisplaySettings {
+  colProject: boolean;
+  colStatus: boolean;
+  colPriority: boolean;
+  colAssignee: boolean;
+  colCreator: boolean;
+  colDueDate: boolean;
+  colUpdatedAt: boolean;
+  showProgress: boolean;
+  showCreatedDate: boolean;
+  showOverdueBadge: boolean;
+  highlightOverdue: boolean;
+  showHistoryIcon: boolean;
+  showActions: boolean;
+  compactMode: boolean;
+  hideCompleted: boolean;
+  hideCancelled: boolean;
+}
+
+const DEFAULT_DISPLAY_SETTINGS: DisplaySettings = {
+  colProject: true,
+  colStatus: true,
+  colPriority: true,
+  colAssignee: true,
+  colCreator: true,
+  colDueDate: true,
+  colUpdatedAt: true,
+  showProgress: true,
+  showCreatedDate: true,
+  showOverdueBadge: true,
+  highlightOverdue: true,
+  showHistoryIcon: true,
+  showActions: true,
+  compactMode: false,
+  hideCompleted: false,
+  hideCancelled: false,
+};
+
+const DISPLAY_SETTINGS_KEY = 'tasksDisplaySettings';
+
+function loadDisplaySettings(): DisplaySettings {
+  if (typeof window === 'undefined') return DEFAULT_DISPLAY_SETTINGS;
+  try {
+    const raw = localStorage.getItem(DISPLAY_SETTINGS_KEY);
+    if (!raw) return DEFAULT_DISPLAY_SETTINGS;
+    return { ...DEFAULT_DISPLAY_SETTINGS, ...JSON.parse(raw) };
+  } catch {
+    return DEFAULT_DISPLAY_SETTINGS;
+  }
+}
+
 function formatDate(d?: string): string {
   if (!d) return '—';
   return new Date(d).toLocaleDateString('ru-RU');
@@ -279,6 +330,120 @@ function SortIcon({ active, dir }: { active: boolean; dir: 'asc' | 'desc' }) {
   );
 }
 
+const DISPLAY_SECTIONS: { title: string; items: { key: keyof DisplaySettings; label: string; hint?: string }[] }[] = [
+  {
+    title: 'Колонки таблицы',
+    items: [
+      { key: 'colProject',   label: 'Проект' },
+      { key: 'colStatus',    label: 'Статус' },
+      { key: 'colPriority',  label: 'Приоритет' },
+      { key: 'colAssignee',  label: 'Исполнитель' },
+      { key: 'colCreator',   label: 'Поставил' },
+      { key: 'colDueDate',   label: 'Срок' },
+      { key: 'colUpdatedAt', label: 'Изменён' },
+    ],
+  },
+  {
+    title: 'Элементы строк',
+    items: [
+      { key: 'showProgress',     label: 'Прогресс чек-листа',     hint: 'Полоска выполнения под названием' },
+      { key: 'showCreatedDate',  label: 'Дата постановки',        hint: 'Мелкая дата под именем поставившего' },
+      { key: 'showOverdueBadge', label: 'Метка «Просрочена»',     hint: 'Надпись рядом со сроком' },
+      { key: 'highlightOverdue', label: 'Подсветка просроченных', hint: 'Красный фон строки' },
+      { key: 'showHistoryIcon',  label: 'Иконка истории',         hint: 'Появляется при наведении на строку' },
+      { key: 'showActions',      label: 'Кнопки действий',        hint: 'Редактировать и удалить' },
+    ],
+  },
+  {
+    title: 'Поведение',
+    items: [
+      { key: 'compactMode',   label: 'Компактный режим',          hint: 'Уже строки и мельче текст' },
+      { key: 'hideCompleted', label: 'Скрыть завершённые задачи' },
+      { key: 'hideCancelled', label: 'Скрыть отменённые задачи' },
+    ],
+  },
+];
+
+function TableSettingsModal({ settings, onChange, onClose }: {
+  settings: DisplaySettings;
+  onChange: (s: DisplaySettings) => void;
+  onClose: () => void;
+}) {
+  const t = useT();
+  const toggle = (key: keyof DisplaySettings) => onChange({ ...settings, [key]: !settings[key] });
+  const isDefault = JSON.stringify(settings) === JSON.stringify(DEFAULT_DISPLAY_SETTINGS);
+  return (
+    <div className="fixed inset-0 z-[180] flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div
+        className="w-full max-w-md bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col max-h-[85vh]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700 flex items-start justify-between gap-3 shrink-0">
+          <div>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('Настройки отображения')}</h2>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{t('Изменения применяются сразу и сохраняются')}</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg transition-colors shrink-0"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+          {DISPLAY_SECTIONS.map((section) => (
+            <div key={section.title}>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">{t(section.title)}</p>
+              <div className="space-y-0.5">
+                {section.items.map((item) => {
+                  const checked = settings[item.key];
+                  return (
+                    <label
+                      key={item.key}
+                      className="flex items-center gap-3 px-2 py-1.5 -mx-2 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggle(item.key)}
+                        className="sr-only"
+                      />
+                      <span className={`w-[18px] h-[18px] rounded border flex items-center justify-center shrink-0 transition-colors ${checked ? 'bg-violet-500 border-violet-500' : 'border-gray-300 dark:border-gray-600'}`}>
+                        {checked && <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                      </span>
+                      <span className="flex-1 min-w-0">
+                        <span className="block text-sm text-gray-700 dark:text-gray-300">{t(item.label)}</span>
+                        {item.hint && <span className="block text-[11px] text-gray-400 dark:text-gray-500 mt-px">{t(item.hint)}</span>}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="px-5 py-3 border-t border-gray-200 dark:border-gray-700 shrink-0 flex items-center justify-between">
+          <button
+            onClick={() => onChange({ ...DEFAULT_DISPLAY_SETTINGS })}
+            disabled={isDefault}
+            className="text-xs text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors disabled:opacity-40"
+          >
+            Сбросить по умолчанию
+          </button>
+          <button
+            onClick={onClose}
+            className="px-4 py-1.5 text-sm font-medium text-white bg-violet-500 hover:bg-violet-600 rounded-lg transition-colors"
+          >
+            Готово
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function TasksPage() {
   const t = useT();
   const addToast = useToastStore((s) => s.addToast);
@@ -314,6 +479,12 @@ export default function TasksPage() {
   const [assigneeOverrides, setAssigneeOverrides] = useState<Record<number, Assignee[]>>({});
   const [filterAssigneeIds, setFilterAssigneeIds] = useState<number[]>([]);
   const [filterCreatorId, setFilterCreatorId] = useState<number[]>([]);
+  const [displaySettings, setDisplaySettings] = useState<DisplaySettings>(loadDisplaySettings);
+  const [showTableSettings, setShowTableSettings] = useState(false);
+
+  useEffect(() => {
+    try { localStorage.setItem(DISPLAY_SETTINGS_KEY, JSON.stringify(displaySettings)); } catch {}
+  }, [displaySettings]);
 
   useEffect(() => { markTasksRead(); }, []);
 
@@ -424,9 +595,12 @@ export default function TasksPage() {
         const cId = t.createdByUserId || t.created_by_user_id;
         if (!cId || !filterCreatorId.includes(cId)) return false;
       }
+      // Скрытие по настройкам отображения (если статус выбран фильтром явно — показываем)
+      if (displaySettings.hideCompleted && t.status === 4 && filterStatus !== 4) return false;
+      if (displaySettings.hideCancelled && t.status === 5 && filterStatus !== 5) return false;
       return true;
     });
-  }, [sortedTasks, searchQuery, filterStatus, filterProject, filterOverdue, filterAssigneeIds, filterCreatorId, assigneeOverrides]);
+  }, [sortedTasks, searchQuery, filterStatus, filterProject, filterOverdue, filterAssigneeIds, filterCreatorId, assigneeOverrides, displaySettings]);
 
   const hasActiveFilters = !!(searchQuery || filterStatus !== null || filterProject !== null || filterOverdue);
 
@@ -546,16 +720,19 @@ export default function TasksPage() {
     await refetch();
   };
 
+  const ds = displaySettings;
+  const cellPad = ds.compactMode ? 'py-1.5 px-3' : 'py-2.5 px-4';
+
   const COLUMNS: { key: SortKey | null; label: string }[] = [
-    { key: 'title',     label: 'Название' },
-    { key: 'project',   label: 'Проект' },
-    { key: 'status',    label: 'Статус' },
-    { key: 'priority',  label: 'Приоритет' },
-    { key: 'assignee',  label: 'Исполнитель' },
-    { key: 'creator',   label: 'Поставил' },
-    { key: 'dueDate',   label: 'Срок' },
-    { key: 'updatedAt', label: 'Изменён' },
-    { key: null,        label: '' },
+    { key: 'title', label: 'Название' },
+    ...(ds.colProject   ? [{ key: 'project' as SortKey,   label: 'Проект' }] : []),
+    ...(ds.colStatus    ? [{ key: 'status' as SortKey,    label: 'Статус' }] : []),
+    ...(ds.colPriority  ? [{ key: 'priority' as SortKey,  label: 'Приоритет' }] : []),
+    ...(ds.colAssignee  ? [{ key: 'assignee' as SortKey,  label: 'Исполнитель' }] : []),
+    ...(ds.colCreator   ? [{ key: 'creator' as SortKey,   label: 'Поставил' }] : []),
+    ...(ds.colDueDate   ? [{ key: 'dueDate' as SortKey,   label: 'Срок' }] : []),
+    ...(ds.colUpdatedAt ? [{ key: 'updatedAt' as SortKey, label: 'Изменён' }] : []),
+    ...(ds.showActions  ? [{ key: null, label: '' }] : []),
   ];
 
   return (
@@ -614,6 +791,17 @@ export default function TasksPage() {
           </div>
           {showSettings && (
                 <div className="absolute right-0 top-full mt-1 w-56 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl py-1.5 z-[200]">
+                  <p className="px-4 py-1 text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">{t('Вид')}</p>
+                  <button
+                    onClick={() => { setShowTableSettings(true); setShowSettings(false); }}
+                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/60 transition-colors"
+                  >
+                    <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                    </svg>
+                    Настроить таблицу
+                  </button>
+                  <div className="mx-3 my-1 border-t border-gray-100 dark:border-gray-700" />
                   <p className="px-4 py-1 text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">{t('Экспорт')}</p>
                   <button
                     onClick={() => { window.print(); setShowSettings(false); }}
@@ -761,27 +949,30 @@ export default function TasksPage() {
             const creatorName = !creatorId || creatorUser?.roleId === 1 ? 'Система' : creatorUser?.name || creatorUser?.email || 'Система';
             const createdAt = task.createdAt || task.created_at;
             const overdue = isTaskOverdue(task);
+            const rowOverdue = overdue && ds.highlightOverdue;
             const { done, total } = getTaskProgress(task);
             const progressPct = total > 0 ? Math.round((done / total) * 100) : 0;
             return (
-              <div key={task.id} className={`group/card border rounded-xl p-4 flex flex-col gap-3 hover:shadow-md transition-shadow ${overdue ? 'bg-red-50/70 dark:bg-red-900/10 border-red-300 dark:border-red-700/60' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'}`}>
+              <div key={task.id} className={`group/card border rounded-xl p-4 flex flex-col gap-3 hover:shadow-md transition-shadow ${rowOverdue ? 'bg-red-50/70 dark:bg-red-900/10 border-red-300 dark:border-red-700/60' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'}`}>
                 <div className="flex items-start gap-1.5">
                   <div className="font-semibold text-gray-800 dark:text-gray-100 cursor-pointer hover:text-violet-600 dark:hover:text-violet-400 flex-1 leading-snug" onClick={() => handleEdit(task)}>
                     {task.title}
                   </div>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleEdit(task); setHistoryTooltip(null); }}
-                    onMouseEnter={(e) => showTaskHistory(e, task.id)}
-                    onMouseLeave={hideTaskHistory}
-                    className="shrink-0 opacity-0 group-hover/card:opacity-60 hover:!opacity-100 p-0.5 text-gray-400 hover:text-violet-500 transition-all mt-0.5"
-                    title={t('История задачи')}
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </button>
+                  {ds.showHistoryIcon && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleEdit(task); setHistoryTooltip(null); }}
+                      onMouseEnter={(e) => showTaskHistory(e, task.id)}
+                      onMouseLeave={hideTaskHistory}
+                      className="shrink-0 opacity-0 group-hover/card:opacity-60 hover:!opacity-100 p-0.5 text-gray-400 hover:text-violet-500 transition-all mt-0.5"
+                      title={t('История задачи')}
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </button>
+                  )}
                 </div>
-                {total > 0 && (
+                {ds.showProgress && total > 0 && (
                   <div className="flex items-center gap-1.5">
                     <div className="flex-1 h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                       <div className={`h-full rounded-full ${progressPct === 100 ? 'bg-green-500' : 'bg-violet-400'}`} style={{ width: `${progressPct}%` }} />
@@ -794,15 +985,17 @@ export default function TasksPage() {
                   <span className={`text-xs font-medium ${priority.color}`}>{priority.label}</span>
                 </div>
                 <dl className="grid grid-cols-2 gap-x-3 gap-y-2">
-                  <div><dt className="text-xs text-gray-400">{t('Проект')}</dt><dd className="text-xs text-gray-700 dark:text-gray-300 truncate">{task.project?.name || '—'}</dd></div>
-                  <div><dt className="text-xs text-gray-400">{t('Срок')}</dt><dd className={`text-xs ${overdue ? 'text-red-600 font-semibold' : 'text-gray-700 dark:text-gray-300'}`}>{formatDate(task.dueDate || task.due_date)}</dd></div>
-                  <div className="col-span-2"><dt className="text-xs text-gray-400">{t('Исполнитель')}</dt><dd className="text-xs text-gray-700 dark:text-gray-300 truncate">{assigneeName}</dd></div>
-                  <div className="col-span-2"><dt className="text-xs text-gray-400">{t('Поставил')}</dt><dd className="text-xs text-gray-700 dark:text-gray-300 truncate">{creatorName}{createdAt && <span className="ml-1 text-gray-400">{formatDate(createdAt)}</span>}</dd></div>
+                  {ds.colProject && <div><dt className="text-xs text-gray-400">{t('Проект')}</dt><dd className="text-xs text-gray-700 dark:text-gray-300 truncate">{task.project?.name || '—'}</dd></div>}
+                  {ds.colDueDate && <div><dt className="text-xs text-gray-400">{t('Срок')}</dt><dd className={`text-xs ${overdue ? 'text-red-600 font-semibold' : 'text-gray-700 dark:text-gray-300'}`}>{formatDate(task.dueDate || task.due_date)}</dd></div>}
+                  {ds.colAssignee && <div className="col-span-2"><dt className="text-xs text-gray-400">{t('Исполнитель')}</dt><dd className="text-xs text-gray-700 dark:text-gray-300 truncate">{assigneeName}</dd></div>}
+                  {ds.colCreator && <div className="col-span-2"><dt className="text-xs text-gray-400">{t('Поставил')}</dt><dd className="text-xs text-gray-700 dark:text-gray-300 truncate">{creatorName}{ds.showCreatedDate && createdAt && <span className="ml-1 text-gray-400">{formatDate(createdAt)}</span>}</dd></div>}
                 </dl>
-                <div className="flex items-center gap-1.5 pt-2 border-t border-gray-100 dark:border-gray-700">
-                  <button onClick={() => handleEdit(task)} className="flex-1 px-3 py-1.5 text-xs font-medium text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-500/10 rounded transition-colors text-center">{t('Изменить')}</button>
-                  <button onClick={() => handleDelete(task.id)} disabled={deletingId === task.id} className="px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded transition-colors disabled:opacity-50">{deletingId === task.id ? '...' : 'Удалить'}</button>
-                </div>
+                {ds.showActions && (
+                  <div className="flex items-center gap-1.5 pt-2 border-t border-gray-100 dark:border-gray-700">
+                    <button onClick={() => handleEdit(task)} className="flex-1 px-3 py-1.5 text-xs font-medium text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-500/10 rounded transition-colors text-center">{t('Изменить')}</button>
+                    <button onClick={() => handleDelete(task.id)} disabled={deletingId === task.id} className="px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded transition-colors disabled:opacity-50">{deletingId === task.id ? '...' : 'Удалить'}</button>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -810,11 +1003,11 @@ export default function TasksPage() {
       ) : (
         <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="table-auto w-full text-sm">
+            <table className={`table-auto w-full ${ds.compactMode ? 'text-xs' : 'text-sm'}`}>
               <thead>
                 <tr className="text-xs uppercase text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-900/20 border-b border-gray-100 dark:border-gray-700/60">
                   {COLUMNS.map((col) => (
-                    <th key={col.label} className="py-3 px-4 text-left font-semibold">
+                    <th key={col.label} className={`${ds.compactMode ? 'py-2 px-3' : 'py-3 px-4'} text-left font-semibold`}>
                       <div className="inline-flex items-center">
                         {col.key ? (
                           <button
@@ -855,32 +1048,35 @@ export default function TasksPage() {
                   const creatorName = isSystem ? 'Система' : (creatorUser?.name || creatorUser?.email || 'Система');
                   const updatedAt = task.updatedAt || task.updated_at;
                   const overdue = isTaskOverdue(task);
+                  const rowOverdue = overdue && ds.highlightOverdue;
                   const { done, total } = getTaskProgress(task);
                   const progressPct = total > 0 ? Math.round((done / total) * 100) : 0;
 
                   return (
                     <tr
                       key={task.id}
-                      className={`group/row cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900/20 ${overdue ? 'bg-red-50/70 dark:bg-red-900/10 hover:bg-red-50 dark:hover:bg-red-900/20' : ''}`}
+                      className={`group/row cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900/20 ${rowOverdue ? 'bg-red-50/70 dark:bg-red-900/10 hover:bg-red-50 dark:hover:bg-red-900/20' : ''}`}
                       onClick={() => handleEdit(task)}
                     >
                       {/* Название */}
-                      <td className="py-2.5 px-4 font-medium text-gray-800 dark:text-gray-100 max-w-[220px]">
+                      <td className={`${cellPad} font-medium text-gray-800 dark:text-gray-100 max-w-[220px]`}>
                         <div className="flex items-center gap-1.5">
                           <div className="truncate flex-1">{task.title}</div>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); openTaskHistory(task); }}
-                            onMouseEnter={(e) => { e.stopPropagation(); showTaskHistory(e, task.id); }}
-                            onMouseLeave={hideTaskHistory}
-                            className="shrink-0 opacity-0 group-hover/row:opacity-60 hover:!opacity-100 p-0.5 text-gray-400 hover:text-violet-500 transition-all"
-                            title={t('История задачи')}
-                          >
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                          </button>
+                          {ds.showHistoryIcon && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); openTaskHistory(task); }}
+                              onMouseEnter={(e) => { e.stopPropagation(); showTaskHistory(e, task.id); }}
+                              onMouseLeave={hideTaskHistory}
+                              className="shrink-0 opacity-0 group-hover/row:opacity-60 hover:!opacity-100 p-0.5 text-gray-400 hover:text-violet-500 transition-all"
+                              title={t('История задачи')}
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            </button>
+                          )}
                         </div>
-                        {total > 0 && (
+                        {ds.showProgress && total > 0 && (
                           <div className="flex items-center gap-1.5 mt-1">
                             <div className="flex-1 h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                               <div className={`h-full rounded-full transition-all ${progressPct === 100 ? 'bg-green-500' : 'bg-violet-400'}`} style={{ width: `${progressPct}%` }} />
@@ -890,56 +1086,71 @@ export default function TasksPage() {
                         )}
                       </td>
                       {/* Проект */}
-                      <td className="py-2.5 px-4 text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                        {task.project?.name || '—'}
-                      </td>
+                      {ds.colProject && (
+                        <td className={`${cellPad} text-gray-600 dark:text-gray-400 whitespace-nowrap`}>
+                          {task.project?.name || '—'}
+                        </td>
+                      )}
                       {/* Статус */}
-                      <td className="py-2.5 px-4 whitespace-nowrap">
-                        <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${status.color}`}>
-                          {status.label}
-                        </span>
-                      </td>
+                      {ds.colStatus && (
+                        <td className={`${cellPad} whitespace-nowrap`}>
+                          <span className={`inline-flex rounded-full ${ds.compactMode ? 'px-2 py-px text-[11px]' : 'px-2.5 py-0.5 text-xs'} font-medium ${status.color}`}>
+                            {status.label}
+                          </span>
+                        </td>
+                      )}
                       {/* Приоритет */}
-                      <td className="py-2.5 px-4 whitespace-nowrap">
-                        <span className={`text-xs font-medium ${priority.color}`}>{priority.label}</span>
-                      </td>
+                      {ds.colPriority && (
+                        <td className={`${cellPad} whitespace-nowrap`}>
+                          <span className={`text-xs font-medium ${priority.color}`}>{priority.label}</span>
+                        </td>
+                      )}
                       {/* Исполнитель */}
-                      <td className="py-2.5 px-4 max-w-[180px]" onClick={(e) => e.stopPropagation()}>
-                        <AssigneeTextCell
-                          task={assigneeOverrides[task.id] !== undefined ? { ...task, assignees: assigneeOverrides[task.id] } : task}
-                          users={users}
-                          onNameClick={setProfileUserId}
-                        />
-                      </td>
+                      {ds.colAssignee && (
+                        <td className={`${cellPad} max-w-[180px]`} onClick={(e) => e.stopPropagation()}>
+                          <AssigneeTextCell
+                            task={assigneeOverrides[task.id] !== undefined ? { ...task, assignees: assigneeOverrides[task.id] } : task}
+                            users={users}
+                            onNameClick={setProfileUserId}
+                          />
+                        </td>
+                      )}
                       {/* Поставил */}
-                      <td className="py-2.5 px-4" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          className={`text-sm text-left transition-colors ${!isSystem ? 'text-gray-700 dark:text-gray-300 hover:text-violet-600 dark:hover:text-violet-400 hover:underline cursor-pointer' : 'text-gray-500 dark:text-gray-400 cursor-default'}`}
-                          onClick={(e) => { e.stopPropagation(); if (!isSystem && creatorId) setProfileUserId(creatorId); }}
-                          disabled={isSystem}
-                        >
-                          {creatorName}
-                        </button>
-                        {(task.createdAt || task.created_at) && (
-                          <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-                            {formatDate(task.createdAt || task.created_at)}
-                          </div>
-                        )}
-                      </td>
+                      {ds.colCreator && (
+                        <td className={cellPad} onClick={(e) => e.stopPropagation()}>
+                          <button
+                            className={`${ds.compactMode ? 'text-xs' : 'text-sm'} text-left transition-colors ${!isSystem ? 'text-gray-700 dark:text-gray-300 hover:text-violet-600 dark:hover:text-violet-400 hover:underline cursor-pointer' : 'text-gray-500 dark:text-gray-400 cursor-default'}`}
+                            onClick={(e) => { e.stopPropagation(); if (!isSystem && creatorId) setProfileUserId(creatorId); }}
+                            disabled={isSystem}
+                          >
+                            {creatorName}
+                          </button>
+                          {ds.showCreatedDate && (task.createdAt || task.created_at) && (
+                            <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                              {formatDate(task.createdAt || task.created_at)}
+                            </div>
+                          )}
+                        </td>
+                      )}
                       {/* Срок */}
-                      <td className="py-2.5 px-4 whitespace-nowrap">
-                        <span className={overdue ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-gray-600 dark:text-gray-400'}>
-                          {formatDate(task.dueDate || task.due_date)}
-                          {overdue && <span className="ml-1 text-[10px] uppercase tracking-wide">{t('просрочена')}</span>}
-                        </span>
-                      </td>
+                      {ds.colDueDate && (
+                        <td className={`${cellPad} whitespace-nowrap`}>
+                          <span className={overdue ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-gray-600 dark:text-gray-400'}>
+                            {formatDate(task.dueDate || task.due_date)}
+                            {overdue && ds.showOverdueBadge && <span className="ml-1 text-[10px] uppercase tracking-wide">{t('просрочена')}</span>}
+                          </span>
+                        </td>
+                      )}
                       {/* Дата изменения */}
-                      <td className="py-2.5 px-4 whitespace-nowrap text-gray-500 dark:text-gray-400 text-sm">
-                        {formatDate(updatedAt)}
-                      </td>
+                      {ds.colUpdatedAt && (
+                        <td className={`${cellPad} whitespace-nowrap text-gray-500 dark:text-gray-400`}>
+                          {formatDate(updatedAt)}
+                        </td>
+                      )}
                       {/* Действия */}
+                      {ds.showActions && (
                       <td
-                        className={`py-2.5 px-3 whitespace-nowrap sticky right-0 ${overdue ? 'bg-red-50/70 dark:bg-red-900/10 group-hover/row:bg-red-50 dark:group-hover/row:bg-red-900/20' : 'bg-white dark:bg-gray-800 group-hover/row:bg-gray-50 dark:group-hover/row:bg-gray-900/20'}`}
+                        className={`${ds.compactMode ? 'py-1.5 px-2' : 'py-2.5 px-3'} whitespace-nowrap sticky right-0 ${rowOverdue ? 'bg-red-50/70 dark:bg-red-900/10 group-hover/row:bg-red-50 dark:group-hover/row:bg-red-900/20' : 'bg-white dark:bg-gray-800 group-hover/row:bg-gray-50 dark:group-hover/row:bg-gray-900/20'}`}
                         onClick={(e) => e.stopPropagation()}
                       >
                         <div className="flex items-center gap-0.5 opacity-0 group-hover/row:opacity-100 transition-opacity">
@@ -970,6 +1181,7 @@ export default function TasksPage() {
                           </button>
                         </div>
                       </td>
+                      )}
                     </tr>
                   );
                 })}
@@ -1160,6 +1372,14 @@ export default function TasksPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {showTableSettings && (
+        <TableSettingsModal
+          settings={displaySettings}
+          onChange={setDisplaySettings}
+          onClose={() => setShowTableSettings(false)}
+        />
       )}
 
       {profileUserId !== null && <UserProfileModal userId={profileUserId} onClose={() => setProfileUserId(null)} />}
