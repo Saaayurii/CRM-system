@@ -7,6 +7,13 @@ import { useNotificationStore } from '@/stores/notificationStore';
 import { useSidebarStore } from '@/stores/sidebarStore';
 import { getPermissionState } from '@/lib/pushNotifications';
 
+function plainText(text?: string | null): string {
+  if (!text) return '';
+  return text
+    .replace(/#\[([^\]]+)\]\(task:[^)]*\)/g, '📋 $1')
+    .replace(/@\[([^\]]+)\]\(user:\d+\)/g, '@$1');
+}
+
 // Icon per notification type
 function NotifIcon({ type }: { type?: string }) {
   const cls = 'w-4 h-4 shrink-0 mt-0.5';
@@ -322,7 +329,7 @@ export default function NotificationDropdown({ navItem }: { navItem?: boolean })
                       </div>
                       {n.message && (
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">
-                          {n.message}
+                          {plainText(n.message)}
                         </p>
                       )}
                       <div className="flex items-center gap-2 mt-1">
