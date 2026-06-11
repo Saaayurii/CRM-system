@@ -6,6 +6,53 @@ import { useAuthStore } from '@/stores/authStore';
 import { useToastStore } from '@/stores/toastStore';
 import { useT } from '@/lib/i18n';
 
+function EyeIcon({ open }: { open: boolean }) {
+  return open ? (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+    </svg>
+  ) : (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.97 9.97 0 012.5-4.225M9.878 9.878a3 3 0 104.243 4.243M9.878 9.878L3 3m6.878 6.878l4.243 4.243M21 21l-6.122-6.122" />
+    </svg>
+  );
+}
+
+function PasswordField({ label, value, onChange, autoComplete, labelCls, inputCls }: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  autoComplete: string;
+  labelCls: string;
+  inputCls: string;
+}) {
+  const [show, setShow] = useState(false);
+  return (
+    <div>
+      <label className={labelCls}>{label}</label>
+      <div className="relative">
+        <input
+          type={show ? 'text' : 'password'}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          autoComplete={autoComplete}
+          className={`${inputCls} pr-11`}
+        />
+        <button
+          type="button"
+          onClick={() => setShow((s) => !s)}
+          className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+          tabIndex={-1}
+          title={show ? 'Скрыть пароль' : 'Показать пароль'}
+        >
+          <EyeIcon open={show} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function ProfilePage() {
   const t = useT();
   const user = useAuthStore((s) => s.user);
@@ -126,18 +173,9 @@ export default function ProfilePage() {
       {/* Пароль */}
       <form onSubmit={handleChangePassword} className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 space-y-4">
         <h2 className="font-semibold text-gray-900 dark:text-white">{t('Смена пароля')}</h2>
-        <div>
-          <label className={labelCls}>{t('Текущий пароль')}</label>
-          <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className={inputCls} autoComplete="current-password" />
-        </div>
-        <div>
-          <label className={labelCls}>{t('Новый пароль')}</label>
-          <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className={inputCls} autoComplete="new-password" />
-        </div>
-        <div>
-          <label className={labelCls}>{t('Повторите новый пароль')}</label>
-          <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={inputCls} autoComplete="new-password" />
-        </div>
+        <PasswordField label={t('Текущий пароль')} value={currentPassword} onChange={setCurrentPassword} autoComplete="current-password" labelCls={labelCls} inputCls={inputCls} />
+        <PasswordField label={t('Новый пароль')} value={newPassword} onChange={setNewPassword} autoComplete="new-password" labelCls={labelCls} inputCls={inputCls} />
+        <PasswordField label={t('Повторите новый пароль')} value={confirmPassword} onChange={setConfirmPassword} autoComplete="new-password" labelCls={labelCls} inputCls={inputCls} />
         <div className="flex justify-end">
           <button type="submit" disabled={savingPassword} className="px-5 py-2.5 rounded-xl bg-gray-900 dark:bg-violet-500 hover:bg-gray-800 dark:hover:bg-violet-600 disabled:opacity-60 text-white text-sm font-semibold transition-colors">
             {savingPassword ? 'Сохраняем…' : 'Изменить пароль'}

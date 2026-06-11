@@ -9,6 +9,54 @@ import TwoFactorCard from '@/components/settings/TwoFactorCard';
 import AppearanceSettings from '@/components/settings/AppearanceSettings';
 import { useT } from '@/lib/i18n';
 
+function EyeIcon({ open }: { open: boolean }) {
+  return open ? (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+    </svg>
+  ) : (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.97 9.97 0 012.5-4.225M9.878 9.878a3 3 0 104.243 4.243M9.878 9.878L3 3m6.878 6.878l4.243 4.243M21 21l-6.122-6.122" />
+    </svg>
+  );
+}
+
+function PasswordField({ label, value, onChange, autoComplete, minLength }: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  autoComplete: string;
+  minLength?: number;
+}) {
+  const [show, setShow] = useState(false);
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{label}</label>
+      <div className="relative">
+        <input
+          type={show ? 'text' : 'password'}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          required
+          minLength={minLength}
+          autoComplete={autoComplete}
+          className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+        />
+        <button
+          type="button"
+          onClick={() => setShow((s) => !s)}
+          className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+          tabIndex={-1}
+          title={show ? 'Скрыть пароль' : 'Показать пароль'}
+        >
+          <EyeIcon open={show} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 async function compressImage(file: File, maxSizeMB = 1, maxDimension = 1024): Promise<File> {
   return new Promise((resolve) => {
     const img = new Image();
@@ -584,47 +632,37 @@ export default function SettingsPage() {
       {/* Password change */}
       <form onSubmit={handlePasswordSubmit} className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-6 mb-6">
         <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">{t('Смена пароля')}</h2>
-        <div className="space-y-4 max-w-md">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('Текущий пароль')}</label>
-            <input
-              type="password"
+        <div className="max-w-md">
+          <div className="space-y-4">
+            <PasswordField
+              label={t('Текущий пароль')}
               value={password.currentPassword}
-              onChange={(e) => setPassword({ ...password, currentPassword: e.target.value })}
-              required
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+              onChange={(v) => setPassword({ ...password, currentPassword: v })}
+              autoComplete="current-password"
             />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('Новый пароль')}</label>
-            <input
-              type="password"
+            <PasswordField
+              label={t('Новый пароль')}
               value={password.newPassword}
-              onChange={(e) => setPassword({ ...password, newPassword: e.target.value })}
-              required
+              onChange={(v) => setPassword({ ...password, newPassword: v })}
+              autoComplete="new-password"
               minLength={6}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-violet-500 focus:border-transparent"
             />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('Подтверждение пароля')}</label>
-            <input
-              type="password"
+            <PasswordField
+              label={t('Подтверждение пароля')}
               value={password.confirmPassword}
-              onChange={(e) => setPassword({ ...password, confirmPassword: e.target.value })}
-              required
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+              onChange={(v) => setPassword({ ...password, confirmPassword: v })}
+              autoComplete="new-password"
             />
           </div>
-        </div>
-        <div className="mt-4 flex justify-end">
-          <button
-            type="submit"
-            disabled={passwordLoading}
-            className="px-6 py-2 bg-violet-500 hover:bg-violet-600 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
-          >
-            {passwordLoading ? 'Сохранение...' : 'Изменить пароль'}
-          </button>
+          <div className="mt-4 flex justify-end">
+            <button
+              type="submit"
+              disabled={passwordLoading}
+              className="px-6 py-2 bg-violet-500 hover:bg-violet-600 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
+            >
+              {passwordLoading ? 'Сохранение...' : 'Изменить пароль'}
+            </button>
+          </div>
         </div>
       </form>
 
