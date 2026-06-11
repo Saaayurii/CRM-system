@@ -98,7 +98,7 @@ export class TasksService {
         notificationType: 'task_assigned',
         priority: task.priority >= 3 ? 3 : 2,
         channels: ['in_app', 'push'],
-        actionUrl: `/dashboard/tasks/${task.id}`,
+        actionUrl: `/dashboard/tasks?edit=${task.id}`,
         entityType: 'task',
         entityId: task.id,
       }]);
@@ -115,7 +115,7 @@ export class TasksService {
       notificationType: 'task_created',
       priority: 2,
       channels: ['in_app'],
-      actionUrl: `/dashboard/tasks/${task.id}`,
+      actionUrl: `/dashboard/tasks?edit=${task.id}`,
       entityType: 'task',
       entityId: task.id,
     });
@@ -155,7 +155,7 @@ export class TasksService {
         notificationType: 'task_status_changed',
         priority: 1,
         channels: ['in_app'],
-        actionUrl: `/dashboard/tasks/${id}`,
+        actionUrl: `/dashboard/tasks?edit=${id}`,
         entityType: 'task',
         entityId: id,
       });
@@ -171,7 +171,7 @@ export class TasksService {
         notificationType: 'task_completed',
         priority: 2,
         channels: ['in_app', 'push'],
-        actionUrl: `/dashboard/tasks/${id}`,
+        actionUrl: `/dashboard/tasks?edit=${id}`,
         entityType: 'task',
         entityId: id,
       }]);
@@ -189,7 +189,7 @@ export class TasksService {
           notificationType: 'task_overdue',
           priority: 3,
           channels: ['in_app', 'push'],
-          actionUrl: `/dashboard/tasks/${id}`,
+          actionUrl: `/dashboard/tasks?edit=${id}`,
           entityType: 'task',
           entityId: id,
         }]);
@@ -211,7 +211,7 @@ export class TasksService {
           notificationType: 'task_updated',
           priority: 2,
           channels: ['in_app'],
-          actionUrl: `/dashboard/tasks/${id}`,
+          actionUrl: `/dashboard/tasks?edit=${id}`,
           entityType: 'task',
           entityId: id,
         }]);
@@ -230,7 +230,7 @@ export class TasksService {
             notificationType: 'task_deadline',
             priority: 3,
             channels: ['in_app', 'push'],
-            actionUrl: `/dashboard/tasks/${id}`,
+            actionUrl: `/dashboard/tasks?edit=${id}`,
             entityType: 'task',
             entityId: id,
           }]);
@@ -303,7 +303,7 @@ export class TasksService {
       notificationType: 'task_assigned',
       priority: (task.priority ?? 2) >= 3 ? 3 : 2,
       channels: ['in_app', 'push'],
-      actionUrl: `/dashboard/tasks/${taskId}`,
+      actionUrl: `/dashboard/tasks?edit=${taskId}`,
       entityType: 'task',
       entityId: taskId,
     }));

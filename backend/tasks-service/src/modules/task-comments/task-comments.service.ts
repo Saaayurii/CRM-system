@@ -60,7 +60,7 @@ export class TaskCommentsService {
             notificationType: 'task_commented',
             priority: 2 as const,
             channels: ['in_app', 'push'],
-            actionUrl: `/dashboard/tasks/${createDto.taskId}`,
+            actionUrl: `/dashboard/tasks?edit=${createDto.taskId}`,
             entityType: 'task',
             entityId: createDto.taskId,
           }));
