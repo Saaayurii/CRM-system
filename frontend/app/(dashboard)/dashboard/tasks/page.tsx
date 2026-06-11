@@ -746,32 +746,32 @@ export default function TasksPage() {
         </div>
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredTasks.map((t) => {
-            const status = STATUS_LABELS[t.status] || STATUS_LABELS[0];
-            const priority = PRIORITY_LABELS[t.priority] || PRIORITY_LABELS[2];
-            const assignee = t.assignedToUser || t.assigned_to_user;
-            const assigneeId = t.assignedToUserId || t.assigned_to_user_id;
+          {filteredTasks.map((task) => {
+            const status = STATUS_LABELS[task.status] || STATUS_LABELS[0];
+            const priority = PRIORITY_LABELS[task.priority] || PRIORITY_LABELS[2];
+            const assignee = task.assignedToUser || task.assigned_to_user;
+            const assigneeId = task.assignedToUserId || task.assigned_to_user_id;
             const resolvedUser = assigneeId ? users.find((u) => u.id === assigneeId) : null;
             const assigneeName =
-              t.assignees && t.assignees.length > 0
-                ? t.assignees.map((a) => resolveAssigneeName(a.userId, a.userName ?? null)).join(', ')
+              task.assignees && task.assignees.length > 0
+                ? task.assignees.map((a) => resolveAssigneeName(a.userId, a.userName ?? null)).join(', ')
                 : assignee?.name || assignee?.email || resolvedUser?.name || resolvedUser?.email || '—';
-            const creatorId = t.createdByUserId || t.created_by_user_id;
+            const creatorId = task.createdByUserId || task.created_by_user_id;
             const creatorUser = creatorId ? users.find((u) => u.id === creatorId) : null;
             const creatorName = !creatorId || creatorUser?.roleId === 1 ? 'Система' : creatorUser?.name || creatorUser?.email || 'Система';
-            const createdAt = t.createdAt || t.created_at;
-            const overdue = isTaskOverdue(t);
-            const { done, total } = getTaskProgress(t);
+            const createdAt = task.createdAt || task.created_at;
+            const overdue = isTaskOverdue(task);
+            const { done, total } = getTaskProgress(task);
             const progressPct = total > 0 ? Math.round((done / total) * 100) : 0;
             return (
-              <div key={t.id} className={`group/card border rounded-xl p-4 flex flex-col gap-3 hover:shadow-md transition-shadow ${overdue ? 'bg-red-50/70 dark:bg-red-900/10 border-red-300 dark:border-red-700/60' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'}`}>
+              <div key={task.id} className={`group/card border rounded-xl p-4 flex flex-col gap-3 hover:shadow-md transition-shadow ${overdue ? 'bg-red-50/70 dark:bg-red-900/10 border-red-300 dark:border-red-700/60' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'}`}>
                 <div className="flex items-start gap-1.5">
-                  <div className="font-semibold text-gray-800 dark:text-gray-100 cursor-pointer hover:text-violet-600 dark:hover:text-violet-400 flex-1 leading-snug" onClick={() => handleEdit(t)}>
-                    {t.title}
+                  <div className="font-semibold text-gray-800 dark:text-gray-100 cursor-pointer hover:text-violet-600 dark:hover:text-violet-400 flex-1 leading-snug" onClick={() => handleEdit(task)}>
+                    {task.title}
                   </div>
                   <button
-                    onClick={(e) => { e.stopPropagation(); handleEdit(t); setHistoryTooltip(null); }}
-                    onMouseEnter={(e) => showTaskHistory(e, t.id)}
+                    onClick={(e) => { e.stopPropagation(); handleEdit(task); setHistoryTooltip(null); }}
+                    onMouseEnter={(e) => showTaskHistory(e, task.id)}
                     onMouseLeave={hideTaskHistory}
                     className="shrink-0 opacity-0 group-hover/card:opacity-60 hover:!opacity-100 p-0.5 text-gray-400 hover:text-violet-500 transition-all mt-0.5"
                     title={t('История задачи')}
@@ -794,14 +794,14 @@ export default function TasksPage() {
                   <span className={`text-xs font-medium ${priority.color}`}>{priority.label}</span>
                 </div>
                 <dl className="grid grid-cols-2 gap-x-3 gap-y-2">
-                  <div><dt className="text-xs text-gray-400">{t('Проект')}</dt><dd className="text-xs text-gray-700 dark:text-gray-300 truncate">{t.project?.name || '—'}</dd></div>
-                  <div><dt className="text-xs text-gray-400">{t('Срок')}</dt><dd className={`text-xs ${overdue ? 'text-red-600 font-semibold' : 'text-gray-700 dark:text-gray-300'}`}>{formatDate(t.dueDate || t.due_date)}</dd></div>
+                  <div><dt className="text-xs text-gray-400">{t('Проект')}</dt><dd className="text-xs text-gray-700 dark:text-gray-300 truncate">{task.project?.name || '—'}</dd></div>
+                  <div><dt className="text-xs text-gray-400">{t('Срок')}</dt><dd className={`text-xs ${overdue ? 'text-red-600 font-semibold' : 'text-gray-700 dark:text-gray-300'}`}>{formatDate(task.dueDate || task.due_date)}</dd></div>
                   <div className="col-span-2"><dt className="text-xs text-gray-400">{t('Исполнитель')}</dt><dd className="text-xs text-gray-700 dark:text-gray-300 truncate">{assigneeName}</dd></div>
                   <div className="col-span-2"><dt className="text-xs text-gray-400">{t('Поставил')}</dt><dd className="text-xs text-gray-700 dark:text-gray-300 truncate">{creatorName}{createdAt && <span className="ml-1 text-gray-400">{formatDate(createdAt)}</span>}</dd></div>
                 </dl>
                 <div className="flex items-center gap-1.5 pt-2 border-t border-gray-100 dark:border-gray-700">
-                  <button onClick={() => handleEdit(t)} className="flex-1 px-3 py-1.5 text-xs font-medium text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-500/10 rounded transition-colors text-center">{t('Изменить')}</button>
-                  <button onClick={() => handleDelete(t.id)} disabled={deletingId === t.id} className="px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded transition-colors disabled:opacity-50">{deletingId === t.id ? '...' : 'Удалить'}</button>
+                  <button onClick={() => handleEdit(task)} className="flex-1 px-3 py-1.5 text-xs font-medium text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-500/10 rounded transition-colors text-center">{t('Изменить')}</button>
+                  <button onClick={() => handleDelete(task.id)} disabled={deletingId === task.id} className="px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded transition-colors disabled:opacity-50">{deletingId === task.id ? '...' : 'Удалить'}</button>
                 </div>
               </div>
             );

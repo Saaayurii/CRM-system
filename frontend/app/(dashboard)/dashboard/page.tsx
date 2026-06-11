@@ -536,14 +536,14 @@ function AdminDashboard({ user }: { user: any }) {
                   new Date(a.updatedAt || a.updated_at || 0).getTime()
                 )
                 .slice(0, 6)
-                .map((t: any) => {
-                  const st = TASK_STATUS_MAP[Number(t.status)];
-                  const pr = TASK_PRIORITY_MAP[Number(t.priority)];
+                .map((task: any) => {
+                  const st = TASK_STATUS_MAP[Number(task.status)];
+                  const pr = TASK_PRIORITY_MAP[Number(task.priority)];
                   return (
-                    <div key={t.id} onClick={() => router.push(`/dashboard/tasks?edit=${t.id}`)}
+                    <div key={task.id} onClick={() => router.push(`/dashboard/tasks?edit=${task.id}`)}
                       className="flex flex-col gap-2 p-4 border border-gray-200 dark:border-gray-700 rounded-xl cursor-pointer hover:shadow-md hover:border-violet-300 dark:hover:border-violet-700 transition-all">
                       <div className="flex items-start justify-between gap-2">
-                        <p className="font-semibold text-sm text-gray-800 dark:text-gray-100 line-clamp-2">{t.title}</p>
+                        <p className="font-semibold text-sm text-gray-800 dark:text-gray-100 line-clamp-2">{task.title}</p>
                         {st && <StatusBadge label={st.label} color={st.color} />}
                       </div>
                       <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 mt-1">
@@ -553,7 +553,7 @@ function AdminDashboard({ user }: { user: any }) {
                         </div>
                         <div>
                           <dt className="text-xs text-gray-400 dark:text-gray-500">{t('Срок')}</dt>
-                          <dd className="text-xs font-medium text-gray-700 dark:text-gray-300">{fmtDate(t.dueDate)}</dd>
+                          <dd className="text-xs font-medium text-gray-700 dark:text-gray-300">{fmtDate(task.dueDate)}</dd>
                         </div>
                       </dl>
                     </div>

@@ -364,17 +364,17 @@ export default function BriefingDetailPage() {
           <div className="text-sm text-gray-500">{t('Темы не заданы')}</div>
         ) : (
           <ol className="space-y-2 list-decimal list-inside mb-4">
-            {briefing.topics.map((t) => (
-              <li key={t.id} className="text-sm flex gap-2 items-start group">
+            {briefing.topics.map((topic) => (
+              <li key={topic.id} className="text-sm flex gap-2 items-start group">
                 <div className="flex-1">
-                  <span className="font-medium">{t.topic}</span>
-                  {t.description && (
-                    <div className="text-gray-500 mt-0.5 whitespace-pre-wrap">{t.description}</div>
+                  <span className="font-medium">{topic.topic}</span>
+                  {topic.description && (
+                    <div className="text-gray-500 mt-0.5 whitespace-pre-wrap">{topic.description}</div>
                   )}
                 </div>
                 {canManage && !isCompleted && (
                   <button
-                    onClick={() => handleRemoveTopic(t.id)}
+                    onClick={() => handleRemoveTopic(topic.id)}
                     className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 text-xs mt-0.5 shrink-0"
                     title={t('Удалить тему')}
                   >

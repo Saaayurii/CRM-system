@@ -167,21 +167,21 @@ export default function TasksPanel({ projectId, constructionSiteId, title = 'З�
           <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500">{t('Ничего не найдено')}</div>
         ) : taskViewMode === 'grid' ? (
           <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {filtered.map((t) => {
-              const ts = TASK_STATUS[t.status ?? 0] || TASK_STATUS[0];
-              const tp = TASK_PRIORITY[t.priority ?? 2] || TASK_PRIORITY[2];
+            {filtered.map((task) => {
+              const ts = TASK_STATUS[task.status ?? 0] || TASK_STATUS[0];
+              const tp = TASK_PRIORITY[task.priority ?? 2] || TASK_PRIORITY[2];
               return (
-                <div key={t.id}
+                <div key={task.id}
                   className="bg-gray-50 dark:bg-gray-900/30 rounded-xl p-4 cursor-pointer hover:ring-2 hover:ring-violet-300 dark:hover:ring-violet-600 transition-all"
-                  onClick={() => setSelectedTask(t)}>
+                  onClick={() => setSelectedTask(task)}>
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <div className="font-medium text-gray-800 dark:text-gray-100 line-clamp-2 flex-1">{t.title}</div>
+                    <div className="font-medium text-gray-800 dark:text-gray-100 line-clamp-2 flex-1">{task.title}</div>
                     <div className="flex items-center gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
-                      <button onClick={() => setSelectedTask(t)} className="p-1 text-gray-400 hover:text-violet-500 transition-colors rounded" title={t('Редактировать')}>
+                      <button onClick={() => setSelectedTask(task)} className="p-1 text-gray-400 hover:text-violet-500 transition-colors rounded" title={t('Редактировать')}>
                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                       </button>
-                      <button onClick={() => handleDelete(t.id)} disabled={deletingId === t.id} className="p-1 text-gray-400 hover:text-red-500 transition-colors rounded disabled:opacity-40" title={t('Удалить')}>
-                        {deletingId === t.id
+                      <button onClick={() => handleDelete(task.id)} disabled={deletingId === task.id} className="p-1 text-gray-400 hover:text-red-500 transition-colors rounded disabled:opacity-40" title={t('Удалить')}>
+                        {deletingId === task.id
                           ? <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                           : <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                         }
@@ -192,10 +192,10 @@ export default function TasksPanel({ projectId, constructionSiteId, title = 'З�
                     <span className={`text-xs px-2 py-0.5 rounded-full ${ts.color}`}>{ts.label}</span>
                     <span className={`text-xs font-medium ${tp.color}`}>{tp.label}</span>
                   </div>
-                  <div className="text-xs text-gray-400">{fmt(t.dueDate || t.due_date)}</div>
-                  {(t.assignees?.length ?? 0) > 0 && (
+                  <div className="text-xs text-gray-400">{fmt(task.dueDate || task.due_date)}</div>
+                  {(task.assignees?.length ?? 0) > 0 && (
                     <div className="mt-1 text-xs text-gray-400 truncate">
-                      {t.assignees?.map((a) => a.userName || `#${a.userId}`).join(', ')}
+                      {task.assignees?.map((a) => a.userName || `#${a.userId}`).join(', ')}
                     </div>
                   )}
                 </div>
@@ -216,25 +216,25 @@ export default function TasksPanel({ projectId, constructionSiteId, title = 'З�
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
-                {filtered.map((t) => {
-                  const ts = TASK_STATUS[t.status ?? 0] || TASK_STATUS[0];
-                  const tp = TASK_PRIORITY[t.priority ?? 2] || TASK_PRIORITY[2];
+                {filtered.map((task) => {
+                  const ts = TASK_STATUS[task.status ?? 0] || TASK_STATUS[0];
+                  const tp = TASK_PRIORITY[task.priority ?? 2] || TASK_PRIORITY[2];
                   return (
-                    <tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer" onClick={() => setSelectedTask(t)}>
-                      <td className="py-2.5 px-4 font-medium text-gray-800 dark:text-gray-100">{t.title}</td>
+                    <tr key={task.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer" onClick={() => setSelectedTask(task)}>
+                      <td className="py-2.5 px-4 font-medium text-gray-800 dark:text-gray-100">{task.title}</td>
                       <td className="py-2.5 px-4"><span className={`text-xs px-2 py-0.5 rounded-full ${ts.color}`}>{ts.label}</span></td>
                       <td className="py-2.5 px-4"><span className={`text-xs font-medium ${tp.color}`}>{tp.label}</span></td>
-                      <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{fmt(t.dueDate || t.due_date)}</td>
+                      <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{fmt(task.dueDate || task.due_date)}</td>
                       <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400 text-xs">
-                        {t.assignees?.map((a) => a.userName || `#${a.userId}`).join(', ') || '—'}
+                        {task.assignees?.map((a) => a.userName || `#${a.userId}`).join(', ') || '—'}
                       </td>
                       <td className="py-2.5 px-4" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-0.5">
-                          <button onClick={() => setSelectedTask(t)} className="p-1.5 text-gray-400 hover:text-violet-500 transition-colors rounded" title={t('Редактировать')}>
+                          <button onClick={() => setSelectedTask(task)} className="p-1.5 text-gray-400 hover:text-violet-500 transition-colors rounded" title={t('Редактировать')}>
                             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                           </button>
-                          <button onClick={() => handleDelete(t.id)} disabled={deletingId === t.id} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors rounded disabled:opacity-40" title={t('Удалить')}>
-                            {deletingId === t.id
+                          <button onClick={() => handleDelete(task.id)} disabled={deletingId === task.id} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors rounded disabled:opacity-40" title={t('Удалить')}>
+                            {deletingId === task.id
                               ? <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                               : <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                             }
