@@ -282,11 +282,9 @@ export const en: Record<string, string> = {
   'Описание проекта': 'Project description',
   'Заметки проекта': 'Project notes',
   'Документы проекта': 'Project documents',
-  'Заметки проекта': 'Project notes',
   'Введите заметки по проекту...': 'Enter project notes...',
   'Адрес объекта': 'Site address',
   'Добавить первый объект': 'Add first site',
-  'Задачи проекта': 'Project tasks',
   'Добавить описание задачи...': 'Add task description...',
 
   // ── Tasks ────────────────────────────────────────────────────────
@@ -309,7 +307,6 @@ export const en: Record<string, string> = {
   'Настройки задачи': 'Task settings',
   'Изменить статус': 'Change status',
   'Поиск пользователей...': 'Search users...',
-  'Поиск...': 'Search...',
   'Перетащить': 'Drag',
   'Вниз': 'Down',
   'Вверх': 'Up',
@@ -341,10 +338,8 @@ export const en: Record<string, string> = {
 
   // ── Employees / HR ────────────────────────────────────────────────
   'Добавить сотрудника': 'Add employee',
-  'Сотрудники': 'Employees',
   'Документы сотрудника не загружены': 'Employee documents not uploaded',
   'В компании с': 'With company since',
-  'Должность': 'Position',
   'Присутствует': 'Present',
   'Отсутствует': 'Absent',
   'Опоздание': 'Late',
@@ -499,11 +494,9 @@ export const en: Record<string, string> = {
   'Соединение восстановлено': 'Connection restored',
   'Сохранить черновик': 'Save draft',
   'Удалить черновик': 'Delete draft',
-  'Черновик': 'Draft',
   'Отложенные операции': 'Pending operations',
 
   // ── Cookie banner ────────────────────────────────────────────────
-  'Принять': 'Accept',
   'Мы используем cookies': 'We use cookies',
 
   // ── Safety ──────────────────────────────────────────────────────
@@ -512,7 +505,6 @@ export const en: Record<string, string> = {
 
   // ── Passport sections ─────────────────────────────────────────────
   'Общие сведения': 'General information',
-  'Доступ и безопасность': 'Access and security',
   'Инженерные системы': 'Engineering systems',
   'Инфраструктура': 'Infrastructure',
   'Охрана': 'Security',
@@ -560,14 +552,10 @@ export const en: Record<string, string> = {
   'Добавить из проекта': 'Add from project',
   'Добавлен': 'Added',
   'Добавочный': 'Extension',
-  'Действие': 'Action',
   'ЗД': 'SD',
   'ЖК «Северный», 4 корпуса': 'Residential complex "Severny", 4 buildings',
   'Единиц': 'Units',
   'Единицы измерения': 'Units of measure',
-  'Вступление в силу': 'Effective date',
-  'Вложения': 'Attachments',
-  'Всего документов': 'Total documents',
   'Действующих': 'Active',
   'Заказчик объекта Сосенки': 'Client of Sosenki site',
   'г. Москва, ул. Примерная, 1': 'Moscow, Primernaya st., 1',
@@ -583,7 +571,6 @@ export const en: Record<string, string> = {
   // ── ServiceGrid / Admin panel ─────────────────────────────────────
   'Онлайн': 'Online',
   'Офлайн': 'Offline',
-  'Ошибка': 'Error',
   'Перезапустить': 'Restart',
   'Остановить': 'Stop',
   'Запустить': 'Start',
@@ -600,7 +587,6 @@ export const en: Record<string, string> = {
   'Продолжить': 'Continue',
   'Вернуться': 'Go back',
   'Обновить страницу': 'Refresh page',
-  'Обновить': 'Refresh',
 
   // ── OfflineBanner / connection ────────────────────────────────────
   'Нет соединения': 'No connection',
@@ -608,7 +594,6 @@ export const en: Record<string, string> = {
 
   // ── DraftBanner ───────────────────────────────────────────────────
   'Найден незавершённый черновик. Продолжить заполнение?': 'Unsaved draft found. Continue filling in?',
-  'Восстановить': 'Restore',
 
   // ── CookieBanner ─────────────────────────────────────────────────
   'Мы используем файлы cookie для улучшения сервиса.': 'We use cookies to improve the service.',
