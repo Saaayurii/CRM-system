@@ -7,6 +7,7 @@ import { useMiniChatStore } from '@/stores/miniChatStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useThemeStore } from '@/stores/themeStore';
 import { getChatBackground } from '@/lib/appearance';
+import { useBubbleGradientFlow } from '@/hooks/useBubbleGradientFlow';
 import { previewMessageText } from '@/lib/chat/messagePreview';
 import {
   isSelfChat,
@@ -448,6 +449,8 @@ function MiniChatView() {
 
   const [forwardingMessage, setForwardingMessage] = useState<ChatMessageType | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  // «Градиент по всем сообщениям» — срез общего градиента на каждом пузыре
+  useBubbleGradientFlow(listRef);
 
   const channel = useMemo(
     () => channels.find((c) => c.id === activeChannelId) ?? null,

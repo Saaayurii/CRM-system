@@ -59,6 +59,10 @@ export interface AppearanceSettings {
   customBubbleColor: string | null;
   /** Дополнительные цвета сообщений — вместе с customBubbleColor дают градиент (как в Telegram) */
   customBubbleColors: string[] | null;
+  /** Градиент «по всем сообщениям»: один градиент на весь чат, пузыри показывают свой срез */
+  bubbleGradientFlow: boolean;
+  /** Анимация градиента сообщений — цвета плавно переливаются */
+  bubbleGradientAnimate: boolean;
   /** Обои для чатов */
   chatWallpaper: WallpaperId;
   /** URL собственной картинки-обоев (chatWallpaper === 'custom') */
@@ -97,6 +101,8 @@ export const DEFAULT_APPEARANCE: AppearanceSettings = {
   bubbleColor: 'accent',
   customBubbleColor: null,
   customBubbleColors: null,
+  bubbleGradientFlow: false,
+  bubbleGradientAnimate: false,
   chatWallpaper: 'default',
   customWallpaperUrl: null,
   customWallpaperColor: null,

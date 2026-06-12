@@ -25,6 +25,8 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
   );
   const customBubbleColor = useThemeStore((s) => s.appearance.customBubbleColor);
   const customBubbleColors = useThemeStore((s) => s.appearance.customBubbleColors);
+  const bubbleGradientFlow = useThemeStore((s) => s.appearance.bubbleGradientFlow);
+  const bubbleGradientAnimate = useThemeStore((s) => s.appearance.bubbleGradientAnimate);
   const fontSize = useThemeStore((s) => s.appearance.fontSize);
   const chatFontSize = useThemeStore((s) => s.appearance.chatFontSize);
   const bubbleColor = useThemeStore((s) => s.appearance.bubbleColor);
@@ -104,12 +106,25 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
     }
     // Градиент сообщений из 2+ своих цветов
     const gradientStops = (customBubbleColors ?? []).filter(isHexColor);
-    if (isHexColor(customBubbleColor) && gradientStops.length >= 2) {
+    const gradientActive = isHexColor(customBubbleColor) && gradientStops.length >= 2;
+    if (gradientActive) {
       root.setAttribute('data-bubble-gradient', '');
       root.style.setProperty('--bubble-gradient', bubbleGradientCss(gradientStops));
     } else {
       root.removeAttribute('data-bubble-gradient');
       root.style.removeProperty('--bubble-gradient');
+    }
+    // Режимы градиента: «по всему чату» (срез на пузыре через CSS-переменные
+    // от useBubbleGradientFlow) и анимация перелива
+    if (gradientActive && bubbleGradientFlow) {
+      root.setAttribute('data-bubble-grad-flow', '');
+    } else {
+      root.removeAttribute('data-bubble-grad-flow');
+    }
+    if (gradientActive && bubbleGradientAnimate) {
+      root.setAttribute('data-bubble-grad-anim', '');
+    } else {
+      root.removeAttribute('data-bubble-grad-anim');
     }
     if (density === 'compact') {
       root.setAttribute('data-density', 'compact');
@@ -138,7 +153,7 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
       root.classList.remove('**:transition-none!');
     }, 1);
     return () => clearTimeout(timeout);
-  }, [theme, accent, customAccent, fontSize, chatFontSize, bubbleColor, customBubbleColor, customBubbleColors, density, liquidGlass, textContrast]);
+  }, [theme, accent, customAccent, fontSize, chatFontSize, bubbleColor, customBubbleColor, customBubbleColors, bubbleGradientFlow, bubbleGradientAnimate, density, liquidGlass, textContrast]);
 
   return <>{children}</>;
 }

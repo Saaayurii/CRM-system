@@ -5,6 +5,7 @@ import { useChatStore, ChatChannel, ChatMessage as ChatMessageType } from '@/sto
 import { useAuthStore } from '@/stores/authStore';
 import { useThemeStore } from '@/stores/themeStore';
 import { getChatBackground } from '@/lib/appearance';
+import { useBubbleGradientFlow } from '@/hooks/useBubbleGradientFlow';
 import { formatLastSeen } from '@/lib/chat/channelDisplay';
 import api from '@/lib/api';
 import ChatMessage from './ChatMessage';
@@ -265,6 +266,8 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  // «Градиент по всем сообщениям» — срез общего градиента на каждом пузыре
+  useBubbleGradientFlow(messagesContainerRef);
   const messagesInnerRef = useRef<HTMLDivElement>(null);
   const prevMessagesLenRef = useRef(0);
   const lastMsgIdRef = useRef<number | null>(null);

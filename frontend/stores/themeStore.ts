@@ -61,6 +61,8 @@ function sanitize(raw: unknown): AppearanceSettings {
   if (merged.customBubbleColors) {
     merged.customBubbleColor = merged.customBubbleColors[0];
   }
+  merged.bubbleGradientFlow = merged.bubbleGradientFlow === true;
+  merged.bubbleGradientAnimate = merged.bubbleGradientAnimate === true;
   merged.customWallpaperColor = isHexColor(merged.customWallpaperColor)
     ? merged.customWallpaperColor
     : null;

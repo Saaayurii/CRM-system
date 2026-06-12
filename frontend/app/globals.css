@@ -528,6 +528,37 @@ html[data-bubble-gradient] .bg-bubble-500 {
   background-image: var(--bubble-gradient);
 }
 
+/* Режим «по всему чату»: useBubbleGradientFlow кладёт на каждый пузырь
+   переменные --grad-w/h/x/y (размер чата и смещение пузыря) — пузырь
+   показывает свой срез общего градиента. Дефолты — на случай пузырей вне
+   чата (превью в long-press меню). */
+html[data-bubble-grad-flow] .bg-bubble-500 {
+  background-size: var(--grad-w, 100%) var(--grad-h, 100%);
+  background-position: var(--grad-x, 0) var(--grad-y, 0);
+}
+
+/* Анимация перелива градиента (тоггл «Анимация»). CSS-анимация перебивает
+   обычные декларации background-position — в flow-режиме keyframes ссылаются
+   на те же переменные, поэтому срез и дрейф складываются. */
+@media (prefers-reduced-motion: no-preference) {
+  html[data-bubble-grad-anim]:not([data-bubble-grad-flow]) .bg-bubble-500 {
+    background-size: 300% 300%;
+    animation: bubble-grad-pan 9s ease-in-out infinite;
+  }
+  html[data-bubble-grad-anim][data-bubble-grad-flow] .bg-bubble-500 {
+    background-size: calc(var(--grad-w, 100%) * 2) var(--grad-h, 100%);
+    animation: bubble-grad-pan-flow 9s ease-in-out infinite;
+  }
+}
+@keyframes bubble-grad-pan {
+  0%, 100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
+}
+@keyframes bubble-grad-pan-flow {
+  0%, 100% { background-position: var(--grad-x, 0) var(--grad-y, 0); }
+  50%      { background-position: calc(var(--grad-x, 0px) - var(--grad-w, 100px)) var(--grad-y, 0); }
+}
+
 /* Размер текста сообщений чата (настройка «Размер текста в чате») */
 .chat-msg-text {
   font-size: var(--chat-font-size, 0.875rem);

@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react';
 import { useThemeStore } from '@/stores/themeStore';
 import { useToastStore } from '@/stores/toastStore';
+import { useBubbleGradientFlow } from '@/hooks/useBubbleGradientFlow';
 import api from '@/lib/api';
 import ColorPicker from './ColorPicker';
 import {
@@ -185,6 +186,8 @@ function ChatPreview() {
   const theme = useThemeStore((s) => s.theme);
   const { chatWallpaper, customWallpaperUrl, customWallpaperColor, chatPattern, patternContrast, chatBubbles, nameColors, chatFontSize } =
     useThemeStore((s) => s.appearance);
+  const previewRef = useRef<HTMLDivElement>(null);
+  useBubbleGradientFlow(previewRef);
   const wallpaper = getChatBackground(
     { chatWallpaper, customWallpaperUrl, customWallpaperColor, chatPattern, patternContrast },
     theme,
@@ -203,6 +206,7 @@ function ChatPreview() {
 
   return (
     <div
+      ref={previewRef}
       className={`rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 px-4 py-4 space-y-2 ${
         wallpaper ? '' : 'bg-[#e9e9e9] dark:bg-gray-900'
       }`}
@@ -538,6 +542,48 @@ export default function AppearanceSettings() {
                   </svg>
                 </button>
               )}
+            </div>
+          )}
+          {/* Режим градиента: на каждом пузыре или один на весь чат (как в TG) */}
+          {bubbleStops.length >= 2 && (
+            <div className="flex items-center gap-3 mt-3">
+              <div className="inline-flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                {([
+                  { flow: false, name: 'На сообщении' },
+                  { flow: true, name: 'По всему чату' },
+                ] as const).map((o) => (
+                  <button
+                    key={o.name}
+                    type="button"
+                    onClick={() => setAppearance({ bubbleGradientFlow: o.flow })}
+                    className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                      appearance.bubbleGradientFlow === o.flow
+                        ? 'bg-violet-500 text-white'
+                        : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    {o.name}
+                  </button>
+                ))}
+              </div>
+              <span className="text-xs text-gray-400 dark:text-gray-500">
+                {appearance.bubbleGradientFlow
+                  ? 'Один градиент на весь чат — сообщения переливаются при прокрутке'
+                  : 'Градиент целиком на каждом сообщении'}
+              </span>
+            </div>
+          )}
+          {/* Анимация перелива (как тоггл «Анимация» в редакторе тем TG) */}
+          {bubbleStops.length >= 2 && (
+            <div className="flex items-center gap-3 mt-3">
+              <Switch
+                checked={appearance.bubbleGradientAnimate}
+                onChange={(v) => setAppearance({ bubbleGradientAnimate: v })}
+              />
+              <span className="text-sm text-gray-800 dark:text-gray-100">Анимация</span>
+              <span className="text-xs text-gray-400 dark:text-gray-500">
+                цвета плавно переливаются — видно в превью сверху
+              </span>
             </div>
           )}
           <ColorPicker

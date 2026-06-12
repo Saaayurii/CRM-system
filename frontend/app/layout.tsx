@@ -114,6 +114,8 @@ export default function RootLayout({
                 if (stops.length >= 2) {
                   document.documentElement.setAttribute('data-bubble-gradient', '');
                   document.documentElement.style.setProperty('--bubble-gradient', 'linear-gradient(135deg, ' + stops.join(', ') + ')');
+                  if (a.bubbleGradientFlow) document.documentElement.setAttribute('data-bubble-grad-flow', '');
+                  if (a.bubbleGradientAnimate) document.documentElement.setAttribute('data-bubble-grad-anim', '');
                 }
               } else if (a.bubbleColor && a.bubbleColor !== 'accent') {
                 document.documentElement.setAttribute('data-bubble', a.bubbleColor);
