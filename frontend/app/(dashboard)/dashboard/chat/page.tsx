@@ -56,15 +56,22 @@ export default function ChatPage() {
   // Auto-select channel from URL param (e.g. push notification click), or
   // restore the last opened channel after a reload (desktop only).
   const restoredRef = useRef(false);
+  const appliedUrlChannelRef = useRef<number | null>(null);
   useEffect(() => {
     if (!channels.length) return;
 
     const channelId = searchParams.get('channelId');
     if (channelId) {
       const id = Number(channelId);
-      if (channels.find((c) => c.id === id)) {
+      // Параметр применяем один раз: channels обновляется на каждое новое
+      // сообщение, и повторный setActiveChannel очищал бы messages и
+      // перезагружал открытый чат (спиннер + прыжок скролла вниз)
+      if (appliedUrlChannelRef.current !== id && channels.find((c) => c.id === id)) {
+        appliedUrlChannelRef.current = id;
+        restoredRef.current = true;
         setActiveChannel(id);
         setShowSidebar(false);
+        window.history.replaceState(null, '', '/dashboard/chat');
       }
       return;
     }
