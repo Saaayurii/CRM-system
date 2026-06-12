@@ -1941,18 +1941,18 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
                 </svg>
               </button>
               {showEmojiPicker && (
-                <div className="absolute bottom-full mb-2 right-0 z-50 w-72 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl shadow-xl overflow-hidden">
+                <div className="absolute bottom-full mb-2 right-0 z-50 w-64 max-w-[calc(100vw-1rem)] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl shadow-xl overflow-hidden">
                   <div className="flex border-b border-gray-100 dark:border-gray-700">
                     {EMOJI_CATEGORIES.map((cat, idx) => (
                       <button key={cat.label} onClick={() => setActiveCategory(idx)}
-                        className={`flex-1 py-2 text-xs font-medium transition-colors ${activeCategory === idx
+                        className={`flex-1 py-2 text-[11px] font-medium transition-colors truncate px-1 ${activeCategory === idx
                           ? 'text-violet-600 border-b-2 border-violet-500 bg-violet-50 dark:bg-violet-900/20'
                           : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}>
                         {cat.label}
                       </button>
                     ))}
                   </div>
-                  <div className="grid grid-cols-8 gap-0.5 p-2 max-h-48 overflow-y-auto">
+                  <div className="grid grid-cols-7 gap-0.5 p-2 max-h-48 overflow-y-auto">
                     {EMOJI_CATEGORIES[activeCategory].emojis.map((emoji) => (
                       <button key={emoji} onClick={() => insertEmoji(emoji)}
                         className="flex items-center justify-center w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-lg">
