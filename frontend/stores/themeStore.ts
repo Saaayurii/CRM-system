@@ -49,6 +49,7 @@ function sanitize(raw: unknown): AppearanceSettings {
     merged.chatWallpaper = 'default';
   }
   if (merged.density !== 'compact') merged.density = 'comfortable';
+  merged.liquidGlass = merged.liquidGlass === true;
   merged.quietHours = { ...DEFAULT_APPEARANCE.quietHours, ...(merged.quietHours || {}) };
   if (typeof merged.startPage !== 'string' || !merged.startPage.startsWith('/dashboard')) {
     merged.startPage = DEFAULT_APPEARANCE.startPage;

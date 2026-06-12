@@ -418,6 +418,12 @@ export default function AppearanceSettings() {
         <SettingRow label="Тёмное оформление">
           <Switch checked={theme === 'dark'} onChange={() => toggleTheme()} />
         </SettingRow>
+        <SettingRow label="Liquid Glass — жидкое стекло">
+          <Switch
+            checked={appearance.liquidGlass}
+            onChange={(v) => setAppearance({ liquidGlass: v })}
+          />
+        </SettingRow>
         <SettingRow label="Компактный режим">
           <Switch
             checked={appearance.density === 'compact'}

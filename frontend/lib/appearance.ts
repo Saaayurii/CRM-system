@@ -60,6 +60,8 @@ export interface AppearanceSettings {
   chatPattern: boolean;
   /** Цветные имена собеседников в чате */
   nameColors: boolean;
+  /** Тема «жидкое стекло» (Liquid Glass, как в iOS): полупрозрачные панели с блюром */
+  liquidGlass: boolean;
   /** Плотность интерфейса: компактный режим уменьшает отступы таблиц */
   density: Density;
   /** Раздел, который открывается после входа */
@@ -83,6 +85,7 @@ export const DEFAULT_APPEARANCE: AppearanceSettings = {
   customWallpaperUrl: null,
   chatPattern: false,
   nameColors: true,
+  liquidGlass: false,
   density: 'comfortable',
   startPage: '/dashboard',
   quietHours: {

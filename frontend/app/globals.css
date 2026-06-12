@@ -542,3 +542,85 @@ html[data-density='compact'] table td {
 .dark .chat-name-c4 { color: #5cc8e0; }
 .dark .chat-name-c5 { color: #6cb8f5; }
 .dark .chat-name-c6 { color: #f37fb2; }
+
+/* ── Liquid Glass (тема «жидкое стекло», как в iOS) ──────────────────────────
+   Включается атрибутом data-glass на <html> (настройка «Оформление»).
+   Принцип: фон приложения — цветная «аврора», следующая за акцентом
+   (--color-violet-*); непрозрачные поверхности (bg-white / dark:bg-gray-*)
+   становятся полупрозрачными «стёклами», а панели-оверлеи (сайдбар, модалки,
+   дропдауны, липкие шапки) дополнительно получают backdrop-blur. Правила
+   написаны вне @layer и поэтому побеждают utility-классы Tailwind. */
+
+/* Аврора-фон приложения (страница не скроллится — скроллятся внутренние
+   контейнеры, поэтому фон body всегда остаётся на месте) */
+html[data-glass] body {
+  background:
+    radial-gradient(52% 64% at 12% 6%, color-mix(in srgb, var(--color-violet-400) 42%, transparent), transparent 70%),
+    radial-gradient(44% 56% at 88% 10%, rgb(56 189 248 / 0.30), transparent 70%),
+    radial-gradient(56% 64% at 84% 92%, rgb(244 114 182 / 0.24), transparent 72%),
+    radial-gradient(48% 56% at 10% 92%, rgb(52 211 153 / 0.26), transparent 70%),
+    linear-gradient(180deg, #eef1f8 0%, #e8ebf3 100%) !important;
+}
+html[data-glass].dark body {
+  background:
+    radial-gradient(52% 64% at 12% 6%, color-mix(in srgb, var(--color-violet-600) 38%, transparent), transparent 70%),
+    radial-gradient(44% 56% at 88% 10%, rgb(14 116 180 / 0.30), transparent 70%),
+    radial-gradient(56% 64% at 84% 92%, rgb(190 24 93 / 0.18), transparent 72%),
+    radial-gradient(48% 56% at 10% 92%, rgb(13 148 136 / 0.16), transparent 70%),
+    linear-gradient(180deg, #14151f 0%, #101118 100%) !important;
+}
+
+/* Светлая тема: молочное стекло вместо сплошных светлых поверхностей.
+   Блик сверху (--tw-inset-shadow) компонуется с теневыми утилитами Tailwind
+   и проявляется только на элементах с shadow-*. */
+html[data-glass]:not(.dark) .bg-white {
+  background-color: rgb(255 255 255 / 0.62);
+  --tw-inset-shadow: inset 0 1px 0 0 rgb(255 255 255 / 0.65);
+}
+html[data-glass]:not(.dark) .bg-gray-50 { background-color: rgb(249 250 251 / 0.55); }
+html[data-glass]:not(.dark) .bg-gray-100 { background-color: rgb(243 244 246 / 0.55); }
+/* Стандартный фон чата/превью — лёгкая дымка, чтобы аврора просвечивала */
+html[data-glass]:not(.dark) .bg-\[\#e9e9e9\]:not(body) { background-color: rgb(255 255 255 / 0.22); }
+html[data-glass]:not(.dark) :is(.border-gray-100, .border-gray-200) {
+  border-color: rgb(255 255 255 / 0.55);
+}
+
+/* Тёмная тема: дымчатое стекло вместо сплошных серых */
+html[data-glass].dark .dark\:bg-gray-700 { background-color: rgb(61 62 77 / 0.55); }
+html[data-glass].dark .dark\:bg-gray-800 {
+  background-color: rgb(49 50 62 / 0.55);
+  --tw-inset-shadow: inset 0 1px 0 0 rgb(255 255 255 / 0.07);
+}
+html[data-glass].dark .dark\:bg-gray-900 { background-color: rgb(30 32 44 / 0.50); }
+html[data-glass].dark .dark\:bg-gray-950 { background-color: rgb(24 26 36 / 0.55); }
+html[data-glass].dark :is(.dark\:border-gray-600, .dark\:border-gray-700) {
+  border-color: rgb(255 255 255 / 0.09);
+}
+
+/* Блюр на «хроме» и оверлеях: сайдбар, липкие шапки, модальные панели,
+   дропдауны. Практически все панели несут класс bg-white (плюс dark:bg-*),
+   поэтому отбираем по нему + позиционированию/структуре, а не по теме. */
+html[data-glass] #sidebar,
+html[data-glass] .sticky.bg-white,
+html[data-glass] .fixed.bg-white,
+html[data-glass] .absolute.bg-white,
+html[data-glass] .fixed > .bg-white,
+html[data-glass] .fixed > div > .bg-white {
+  -webkit-backdrop-filter: blur(22px) saturate(170%);
+  backdrop-filter: blur(22px) saturate(170%);
+}
+
+/* Лёгкий блюр затемняющих подложек модалок и мобильного меню */
+html[data-glass] .fixed.inset-0[class*='bg-black'],
+html[data-glass] .fixed.inset-0[class*='bg-gray-900/'] {
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+/* Акцентные кнопки — слегка стеклянные, сохраняя читаемость */
+html[data-glass] .bg-violet-500 {
+  background-color: color-mix(in srgb, var(--color-violet-500) 84%, transparent);
+}
+html[data-glass] .bg-violet-600 {
+  background-color: color-mix(in srgb, var(--color-violet-600) 84%, transparent);
+}
