@@ -97,6 +97,25 @@ export class NotificationsClientService {
     }
   }
 
+  /** Канал прочитан — убрать у пользователя все уведомления о его сообщениях. */
+  async clearChatChannelNotifications(userId: number, channelId: number): Promise<void> {
+    try {
+      const res = await fetch(`${this.baseUrl}/notifications/internal/chat-channel-read`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, channelId }),
+        signal: AbortSignal.timeout(5000),
+      });
+      if (!res.ok) {
+        this.logger.warn(`notifications-service chat-channel-read responded ${res.status}`);
+      }
+    } catch (err) {
+      this.logger.error(
+        `Failed to clear chat notifications for userId=${userId} channelId=${channelId}: ${(err as Error).message}`,
+      );
+    }
+  }
+
   /**
    * Broadcast to a computed audience: every active user with one of `roleIds`,
    * plus explicit `userIds`, minus `excludeUserId`. Fire-and-forget.

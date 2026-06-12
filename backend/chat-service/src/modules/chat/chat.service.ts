@@ -450,6 +450,9 @@ export class ChatService {
 
   async markAsRead(channelId: number, userId: number) {
     await this.chatRepository.updateLastReadAt(channelId, userId);
+    // Канал прочитан — гасим в колокольчике всю пачку уведомлений о его
+    // сообщениях (fire-and-forget, SSE notification_deleted обновит фронт)
+    void this.notificationsClient.clearChatChannelNotifications(userId, channelId);
     return { channelId, lastReadAt: new Date() };
   }
 

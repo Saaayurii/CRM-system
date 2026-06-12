@@ -107,6 +107,15 @@ export class NotificationsController {
   }
 
   @Public()
+  @Post('notifications/internal/chat-channel-read')
+  @ApiOperation({
+    summary: 'Internal: user read a chat channel — drop all its chat_message notifications',
+  })
+  clearChatChannelNotifications(@Body() body: { userId: number; channelId: number }) {
+    return this.notificationsService.clearChatChannelForUser(body.userId, body.channelId);
+  }
+
+  @Public()
   @Post('notifications/internal/broadcast')
   @ApiOperation({
     summary:

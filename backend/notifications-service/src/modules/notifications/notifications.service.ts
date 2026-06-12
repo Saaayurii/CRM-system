@@ -293,6 +293,22 @@ export class NotificationsService implements OnModuleInit {
   }
 
   /**
+   * Пользователь прочитал чат-канал: убираем у него ВСЕ уведомления о
+   * сообщениях этого канала (всю пачку, не только последнее) и шлём SSE
+   * `notification_deleted`, чтобы колокольчик обновился сразу.
+   */
+  async clearChatChannelForUser(userId: number, channelId: number) {
+    const actionUrl = `/dashboard/chat?channelId=${channelId}`;
+    const rows: { id: number }[] =
+      await this.notificationRepository.findChatMessageNotifications(userId, actionUrl);
+    const ids = rows.map((r) => r.id);
+    if (ids.length === 0) return { deleted: 0 };
+    await this.notificationRepository.deleteByIds(ids);
+    this.pushSystemEvent(userId, 'notification_deleted', { ids });
+    return { deleted: ids.length };
+  }
+
+  /**
    * Broadcast a notification to a computed audience: every active user with one
    * of `roleIds`, plus explicit `userIds`, minus `excludeUserId` (the actor).
    */

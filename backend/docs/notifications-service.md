@@ -6,6 +6,7 @@
 ## Ключевые эндпоинты
 - `GET  /notifications/events` — SSE-поток уведомлений (аутентификация по query-параметру `?token=`)
 - `POST /notifications/internal/force-logout` — внутренний: отправить событие принудительного выхода пользователю
+- `POST /notifications/internal/chat-channel-read` — внутренний: пользователь прочитал чат-канал → удалить все его `chat_message`-уведомления по каналу + SSE `notification_deleted` (вызывается chat-service из `markAsRead`)
 - `GET  /notifications/vapid-public-key` — публичный VAPID-ключ для Web Push
 - `POST /notifications/push-subscribe` — сохранить подписку на Web Push
 - `DELETE /notifications/push-subscribe` — удалить подписку на Web Push

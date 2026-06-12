@@ -63,6 +63,21 @@ export class NotificationRepository {
     });
   }
 
+  /** Уведомления о сообщениях одного чат-канала у одного пользователя. */
+  async findChatMessageNotifications(userId: number, actionUrl: string) {
+    return (this.prisma as any).notification.findMany({
+      where: { userId, notificationType: 'chat_message', actionUrl },
+      select: { id: true },
+    });
+  }
+
+  async deleteByIds(ids: number[]) {
+    if (ids.length === 0) return { count: 0 };
+    return (this.prisma as any).notification.deleteMany({
+      where: { id: { in: ids } },
+    });
+  }
+
   async updateNotification(id: number, accountId: number, data: any) {
     return (this.prisma as any).notification.updateMany({
       where: { id, accountId },
