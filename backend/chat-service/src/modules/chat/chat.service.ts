@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ForbiddenException,
   ConflictException,
+  BadRequestException,
   Logger,
 } from '@nestjs/common';
 import { ChatRepository } from './repositories/chat.repository';
@@ -403,6 +404,72 @@ export class ChatService {
       isEdited: true,
       editedAt: new Date(),
     });
+  }
+
+  /**
+   * Исчезающие медиа: получатель досмотрел вложение с ttl — вложение «сгорает»
+   * для всех (fileUrl затирается, ставится burned/burnedAt). Возвращает исходный
+   * fileUrl, чтобы api-gateway удалил физический файл со своего тома.
+   * Сопоставление по имени файла: клиент может прислать нормализованный URL.
+   */
+  async burnMedia(
+    messageId: number,
+    userId: number,
+    fileUrl: string,
+  ): Promise<{
+    burned: boolean;
+    channelId: number;
+    messageId: number;
+    fileUrl?: string;
+  }> {
+    const message = await this.chatRepository.findMessageById(messageId);
+    if (!message) {
+      throw new NotFoundException(`Message with ID ${messageId} not found`);
+    }
+    const channelId = Number(message.channelId);
+    const member = await this.chatRepository.findChannelMember(
+      channelId,
+      userId,
+    );
+    if (!member) {
+      throw new ForbiddenException('You are not a member of this channel');
+    }
+
+    const fileName = (fileUrl || '').split('/').pop();
+    if (!fileName) {
+      throw new BadRequestException('fileUrl is required');
+    }
+    const attachments: any[] = Array.isArray(message.attachments)
+      ? message.attachments
+      : [];
+    const target = attachments.find(
+      (a) =>
+        a &&
+        a.ttl &&
+        !a.burned &&
+        typeof a.fileUrl === 'string' &&
+        a.fileUrl.split('/').pop() === fileName,
+    );
+    if (!target) {
+      // уже сгорело или вложение не исчезающее — идемпотентный no-op
+      return { burned: false, channelId, messageId };
+    }
+
+    const originalFileUrl = String(target.fileUrl);
+    const updatedAttachments = attachments.map((a) =>
+      a === target
+        ? { ...a, burned: true, burnedAt: new Date().toISOString(), fileUrl: '' }
+        : a,
+    );
+    await this.chatRepository.updateMessage(messageId, {
+      attachments: updatedAttachments,
+    });
+    return {
+      burned: true,
+      channelId,
+      messageId,
+      fileUrl: originalFileUrl,
+    };
   }
 
   async deleteMessage(messageId: number, userId: number) {

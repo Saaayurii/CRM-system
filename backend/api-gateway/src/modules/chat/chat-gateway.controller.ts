@@ -18,8 +18,32 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { Request } from 'express';
+import { existsSync, unlinkSync } from 'fs';
+import { join, basename } from 'path';
 import { ProxyService } from '../../common/services/proxy.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+
+const CHAT_UPLOAD_DIR = join(process.cwd(), 'uploads', 'chat');
+
+/** Удалить файл чата с локального тома вместе с видео-вариантами (480p/720p) */
+function deleteChatFile(fileUrl: string) {
+  const safe = basename(fileUrl);
+  if (!safe) return;
+  try {
+    const filePath = join(CHAT_UPLOAD_DIR, safe);
+    if (existsSync(filePath)) unlinkSync(filePath);
+    const nameWithoutExt = safe.replace(/\.[^.]+$/, '');
+    for (const label of ['480p', '720p']) {
+      const variantPath = join(
+        CHAT_UPLOAD_DIR,
+        `${nameWithoutExt}_${label}.mp4`,
+      );
+      if (existsSync(variantPath)) unlinkSync(variantPath);
+    }
+  } catch {
+    // файл уже удалён/недоступен — не валим запрос
+  }
+}
 
 @ApiTags('Chat')
 @ApiBearerAuth()
@@ -83,7 +107,9 @@ export class ChatGatewayController {
   }
 
   @Get('chat-channels/media')
-  @ApiOperation({ summary: 'Get all chat attachments accessible to the current user' })
+  @ApiOperation({
+    summary: 'Get all chat attachments accessible to the current user',
+  })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
   async getUserMediaAttachments(
@@ -100,7 +126,9 @@ export class ChatGatewayController {
   }
 
   @Patch('chat-channels/:id/archive')
-  @ApiOperation({ summary: 'Archive or unarchive a channel for the current user' })
+  @ApiOperation({
+    summary: 'Archive or unarchive a channel for the current user',
+  })
   async archiveChannel(
     @Req() req: Request,
     @Param('id') id: string,
@@ -155,10 +183,7 @@ export class ChatGatewayController {
 
   @Patch('chat-channels/:id/mark-unread')
   @ApiOperation({ summary: 'Mark channel as unread for current user' })
-  async markChannelUnread(
-    @Req() req: Request,
-    @Param('id') id: string,
-  ) {
+  async markChannelUnread(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('chat', {
       method: 'PATCH',
       path: `/chat-channels/${id}/mark-unread`,
@@ -347,6 +372,34 @@ export class ChatGatewayController {
   }
 
   // --- Message operations ---
+
+  @Post('chat-messages/:id/burn-media')
+  @ApiOperation({
+    summary: 'Burn self-destruct media (исчезающие медиа) + удалить файл',
+  })
+  async burnMedia(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
+    const result = await this.proxyService.forward<{
+      burned?: boolean;
+      fileUrl?: string;
+    }>('chat', {
+      method: 'POST',
+      path: `/chat-channels/messages/${id}/burn-media`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+    // chat-service подтвердил сгорание — стираем файл с тома гейтвея
+    if (result && result.burned && result.fileUrl) {
+      deleteChatFile(result.fileUrl);
+    }
+    return result;
+  }
 
   @Put('chat-messages/:id')
   @ApiOperation({ summary: 'Edit chat message' })

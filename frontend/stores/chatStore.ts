@@ -26,6 +26,8 @@ export interface ChatAttachment {
   fileSize: number;
   /** Исчезающее медиа: секунды до исчезновения после открытия; -1 — один просмотр */
   ttl?: number;
+  /** Исчезающее медиа сгорело: файл удалён с сервера */
+  burned?: boolean;
 }
 
 export interface ChatReaction {
@@ -416,6 +418,28 @@ export const useChatStore = create<ChatState>((set, get) => ({
         const preview = previewText ? previewText.slice(0, 60) : 'Новое сообщение';
         useToastStore.getState().addToast('info', `${message.senderName}: ${preview}`);
       }
+    });
+
+    // Исчезающее медиа сгорело — прячем вложение у всех без перезагрузки.
+    // Сопоставление по имени файла: в сторе fileUrl нормализован и может
+    // отличаться от исходного URL из БД.
+    socket.on('message:media:burned', (data: { messageId: number; fileUrl: string }) => {
+      const burnedName = (data.fileUrl || '').split('/').pop();
+      if (!burnedName) return;
+      set((state) => ({
+        messages: state.messages.map((m) =>
+          m.id === data.messageId
+            ? {
+                ...m,
+                attachments: m.attachments.map((a) =>
+                  (a.fileUrl || '').split('/').pop() === burnedName
+                    ? { ...a, burned: true, fileUrl: '' }
+                    : a,
+                ),
+              }
+            : m,
+        ),
+      }));
     });
 
     // Message edited

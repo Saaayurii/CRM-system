@@ -27,6 +27,7 @@ import {
 } from './dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { PresenceService } from '../presence/presence.service';
+import { ChatGateway } from './chat.gateway';
 
 @ApiTags('Chat')
 @ApiBearerAuth()
@@ -35,6 +36,7 @@ export class ChatController {
   constructor(
     private readonly chatService: ChatService,
     private readonly presenceService: PresenceService,
+    private readonly chatGateway: ChatGateway,
   ) {}
 
   // --- Channels ---
@@ -80,7 +82,11 @@ export class ChatController {
 
   @Get('last-seen')
   @ApiOperation({ summary: 'When the given users were last online' })
-  @ApiQuery({ name: 'userIds', required: true, description: 'Comma-separated user ids' })
+  @ApiQuery({
+    name: 'userIds',
+    required: true,
+    description: 'Comma-separated user ids',
+  })
   @ApiResponse({ status: 200, description: 'Map userId → ISO date | null' })
   async getLastSeen(@Query('userIds') userIdsRaw?: string) {
     const userIds = this.parseUserIds(userIdsRaw);
@@ -94,15 +100,25 @@ export class ChatController {
 
   @Get('presence')
   @ApiOperation({ summary: 'Online status + last seen for the given users' })
-  @ApiQuery({ name: 'userIds', required: true, description: 'Comma-separated user ids' })
-  @ApiResponse({ status: 200, description: 'Map userId → { online, lastSeenAt }' })
+  @ApiQuery({
+    name: 'userIds',
+    required: true,
+    description: 'Comma-separated user ids',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Map userId → { online, lastSeenAt }',
+  })
   async getPresence(@Query('userIds') userIdsRaw?: string) {
     const userIds = this.parseUserIds(userIdsRaw);
     const [online, lastSeen] = await Promise.all([
       this.presenceService.getOnlineUsers(userIds),
       this.resolveLastSeen(userIds),
     ]);
-    const result: Record<number, { online: boolean; lastSeenAt: string | null }> = {};
+    const result: Record<
+      number,
+      { online: boolean; lastSeenAt: string | null }
+    > = {};
     for (const id of userIds) {
       result[id] = { online: !!online[id], lastSeenAt: lastSeen[id] ?? null };
     }
@@ -121,7 +137,9 @@ export class ChatController {
    * Redis эфемерный: после рестарта presence:lastseen пуст — добираем
    * из user_sessions.last_seen_at (обновляется при ротации refresh-токена)
    */
-  private async resolveLastSeen(userIds: number[]): Promise<Record<number, string | null>> {
+  private async resolveLastSeen(
+    userIds: number[],
+  ): Promise<Record<number, string | null>> {
     const lastSeen = await this.presenceService.getLastSeen(userIds);
     const missing = userIds.filter((id) => !lastSeen[id]);
     const fromSessions =
@@ -131,7 +149,7 @@ export class ChatController {
     const result: Record<number, string | null> = {};
     for (const id of userIds) {
       result[id] = lastSeen[id]
-        ? new Date(lastSeen[id]!).toISOString()
+        ? new Date(lastSeen[id]).toISOString()
         : fromSessions[id]
           ? fromSessions[id].toISOString()
           : null;
@@ -140,7 +158,9 @@ export class ChatController {
   }
 
   @Get('media')
-  @ApiOperation({ summary: 'Get all chat attachments accessible to the current user' })
+  @ApiOperation({
+    summary: 'Get all chat attachments accessible to the current user',
+  })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiResponse({ status: 200, description: 'Media attachments retrieved' })
@@ -171,7 +191,10 @@ export class ChatController {
 
   @Post('import-telegram')
   @ApiOperation({ summary: 'Import a Telegram chat export as a CRM channel' })
-  @ApiResponse({ status: 201, description: 'Channel created with imported messages' })
+  @ApiResponse({
+    status: 201,
+    description: 'Channel created with imported messages',
+  })
   importTelegram(
     @CurrentUser('accountId') accountId: number,
     @CurrentUser('id') userId: number,
@@ -215,7 +238,9 @@ export class ChatController {
   }
 
   @Patch(':id/archive')
-  @ApiOperation({ summary: 'Archive or unarchive a channel for the current user' })
+  @ApiOperation({
+    summary: 'Archive or unarchive a channel for the current user',
+  })
   @ApiResponse({ status: 200, description: 'Channel archive status updated' })
   archiveChannel(
     @Param('id', ParseIntPipe) id: number,
@@ -237,7 +262,10 @@ export class ChatController {
   }
 
   @Patch(':id/mute')
-  @ApiOperation({ summary: 'Mute notifications for the current user (mutedUntil = ISO string or null to unmute)' })
+  @ApiOperation({
+    summary:
+      'Mute notifications for the current user (mutedUntil = ISO string or null to unmute)',
+  })
   @ApiResponse({ status: 200, description: 'Channel mute status updated' })
   muteChannelSelf(
     @Param('id', ParseIntPipe) id: number,
@@ -303,7 +331,13 @@ export class ChatController {
     @CurrentUser('id') requestingUserId: number,
     @Body('isMuted') isMuted: boolean,
   ) {
-    return this.chatService.muteChannelMember(id, accountId, requestingUserId, userId, isMuted);
+    return this.chatService.muteChannelMember(
+      id,
+      accountId,
+      requestingUserId,
+      userId,
+      isMuted,
+    );
   }
 
   @Delete(':id/members/:userId')
@@ -351,6 +385,34 @@ export class ChatController {
   }
 
   // --- Message operations ---
+
+  @Post('messages/:id/burn-media')
+  @ApiOperation({
+    summary: 'Burn a self-destruct media attachment (исчезающие медиа)',
+  })
+  @ApiResponse({ status: 201, description: 'Attachment burned' })
+  async burnMedia(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser('id') userId: number,
+    @Body() body: { fileUrl?: string },
+  ) {
+    const result = await this.chatService.burnMedia(
+      id,
+      userId,
+      body?.fileUrl ?? '',
+    );
+    if (result.burned) {
+      // Все клиенты канала прячут вложение сразу, без перезагрузки
+      this.chatGateway.server
+        .to(`channel:${result.channelId}`)
+        .emit('message:media:burned', {
+          channelId: result.channelId,
+          messageId: result.messageId,
+          fileUrl: result.fileUrl,
+        });
+    }
+    return result;
+  }
 
   @Put('messages/:id')
   @ApiOperation({ summary: 'Edit a message' })

@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useToastStore } from '@/stores/toastStore';
 import { ChatMessage as ChatMessageType, useChatStore } from '@/stores/chatStore';
 import MediaViewer, { MediaItem } from './MediaViewer';
-import SelfDestructMedia from './SelfDestructMedia';
+import SelfDestructMedia, { BurnedMediaPlaceholder } from './SelfDestructMedia';
 import FilePreviewModal from '@/components/ui/FilePreviewModal';
 import UserProfileModal from './UserProfileModal';
 import { haptic } from '@/lib/haptics';
@@ -233,8 +233,11 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
     setShowProfile(true);
   }, [canOpenProfile]);
 
+  // Сгоревшие исчезающие медиа: файла больше нет — вместо картинки плашка
+  const burnedAtts = (message.attachments ?? []).filter((a) => a.burned);
+
   const mediaItems: MediaItem[] = (message.attachments ?? [])
-    .filter((a) => isImageAtt(a) || isVideoAtt(a))
+    .filter((a) => !a.burned && (isImageAtt(a) || isVideoAtt(a)))
     .map((a) => ({
       url: a.fileUrl,
       type: isVideoAtt(a) ? 'video' : 'image',
@@ -242,10 +245,10 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
     }));
 
   const mediaAtts = (message.attachments ?? []).filter(
-    (a: any) => isImageAtt(a) || isVideoAtt(a)
+    (a: any) => !a.burned && (isImageAtt(a) || isVideoAtt(a))
   );
   const nonMediaAtts = (message.attachments ?? []).filter(
-    (a: any) => !isImageAtt(a) && !isVideoAtt(a) && a.type !== 'tg_meta' && a.type !== 'forward_meta'
+    (a: any) => !a.burned && !isImageAtt(a) && !isVideoAtt(a) && a.type !== 'tg_meta' && a.type !== 'forward_meta'
   );
   const hasAlbum = mediaAtts.length >= 2;
   const albumCornerClass = own ? 'rounded-tl-2xl rounded-tr-sm' : 'rounded-tl-sm rounded-tr-2xl';
@@ -739,6 +742,11 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
                   <React.Fragment key={att.id}>{videoContent}</React.Fragment>
                 );
               })()}
+
+              {/* Сгоревшие исчезающие медиа */}
+              {burnedAtts.map((att, i) => (
+                <BurnedMediaPlaceholder key={att.id ?? `burned-${i}`} />
+              ))}
 
               {/* Audio and document files */}
               {nonMediaAtts.length > 0 && (

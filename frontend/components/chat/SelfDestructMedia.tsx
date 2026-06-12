@@ -6,6 +6,7 @@
 // Факт просмотра хранится в localStorage этого устройства.
 
 import { useEffect, useRef, useState } from 'react';
+import api from '@/lib/api';
 import { useT } from '@/lib/i18n';
 
 const LS_KEY = 'chatExpiredMedia';
@@ -64,6 +65,9 @@ export default function SelfDestructMedia({ messageId, fileUrl, ttl, isOwn, chil
     markExpired(key);
     setRevealed(false);
     setExpired(true);
+    // Серверное «сжигание»: файл удаляется физически, остальные клиенты
+    // получают message:media:burned по WebSocket. localStorage — подстраховка.
+    api.post(`/chat-messages/${messageId}/burn-media`, { fileUrl }).catch(() => {});
   };
 
   const reveal = () => {
@@ -95,12 +99,7 @@ export default function SelfDestructMedia({ messageId, fileUrl, ttl, isOwn, chil
   }
 
   if (expired) {
-    return (
-      <div className="mt-1 flex items-center gap-2 px-3 py-2.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 text-sm w-fit">
-        <FlameIcon />
-        {t('Медиа исчезло')}
-      </div>
-    );
+    return <BurnedMediaPlaceholder />;
   }
 
   if (!revealed) {
@@ -137,6 +136,17 @@ export default function SelfDestructMedia({ messageId, fileUrl, ttl, isOwn, chil
           {t('Закрыть')}
         </button>
       )}
+    </div>
+  );
+}
+
+/** Плашка «Медиа исчезло» — также для сгоревших на сервере вложений (burned) */
+export function BurnedMediaPlaceholder() {
+  const t = useT();
+  return (
+    <div className="mt-1 flex items-center gap-2 px-3 py-2.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 text-sm w-fit">
+      <FlameIcon />
+      {t('Медиа исчезло')}
     </div>
   );
 }
