@@ -521,6 +521,13 @@ html[data-bubble='pink'] {
   --color-bubble-600: #db2777;
 }
 
+/* Градиент исходящих сообщений из нескольких своих цветов (как в Telegram).
+   Ложится поверх background-color пузыря; шейды bubble-200..600 остаются
+   от первого цвета для внутренних элементов (цитаты, плашки). */
+html[data-bubble-gradient] .bg-bubble-500 {
+  background-image: var(--bubble-gradient);
+}
+
 /* Размер текста сообщений чата (настройка «Размер текста в чате») */
 .chat-msg-text {
   font-size: var(--chat-font-size, 0.875rem);

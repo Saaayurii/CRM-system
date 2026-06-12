@@ -9,6 +9,7 @@ import {
   BUBBLE_VAR_NAMES,
   accentCssVars,
   bubbleCssVars,
+  bubbleGradientCss,
   isHexColor,
 } from '@/lib/appearance';
 
@@ -23,6 +24,7 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
     s.appearance.accentSetByUser ? s.appearance.customAccent : null,
   );
   const customBubbleColor = useThemeStore((s) => s.appearance.customBubbleColor);
+  const customBubbleColors = useThemeStore((s) => s.appearance.customBubbleColors);
   const fontSize = useThemeStore((s) => s.appearance.fontSize);
   const chatFontSize = useThemeStore((s) => s.appearance.chatFontSize);
   const bubbleColor = useThemeStore((s) => s.appearance.bubbleColor);
@@ -87,6 +89,7 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
       }
     }
     if (isHexColor(customBubbleColor)) {
+      // Шейды пузырей — от первого (основного) цвета
       root.removeAttribute('data-bubble');
       for (const [name, value] of Object.entries(bubbleCssVars(customBubbleColor))) {
         root.style.setProperty(name, value);
@@ -98,6 +101,15 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
       } else {
         root.removeAttribute('data-bubble');
       }
+    }
+    // Градиент сообщений из 2+ своих цветов
+    const gradientStops = (customBubbleColors ?? []).filter(isHexColor);
+    if (isHexColor(customBubbleColor) && gradientStops.length >= 2) {
+      root.setAttribute('data-bubble-gradient', '');
+      root.style.setProperty('--bubble-gradient', bubbleGradientCss(gradientStops));
+    } else {
+      root.removeAttribute('data-bubble-gradient');
+      root.style.removeProperty('--bubble-gradient');
     }
     if (density === 'compact') {
       root.setAttribute('data-density', 'compact');
@@ -126,7 +138,7 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
       root.classList.remove('**:transition-none!');
     }, 1);
     return () => clearTimeout(timeout);
-  }, [theme, accent, customAccent, fontSize, chatFontSize, bubbleColor, customBubbleColor, density, liquidGlass, textContrast]);
+  }, [theme, accent, customAccent, fontSize, chatFontSize, bubbleColor, customBubbleColor, customBubbleColors, density, liquidGlass, textContrast]);
 
   return <>{children}</>;
 }

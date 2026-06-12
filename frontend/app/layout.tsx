@@ -110,6 +110,11 @@ export default function RootLayout({
               }
               if (hexRe.test(a.customBubbleColor || '')) {
                 setShades('bubble', {200:65,300:40,400:18,500:0,600:-20}, a.customBubbleColor);
+                var stops = (a.customBubbleColors || []).filter(function (c) { return hexRe.test(c || ''); });
+                if (stops.length >= 2) {
+                  document.documentElement.setAttribute('data-bubble-gradient', '');
+                  document.documentElement.style.setProperty('--bubble-gradient', 'linear-gradient(135deg, ' + stops.join(', ') + ')');
+                }
               } else if (a.bubbleColor && a.bubbleColor !== 'accent') {
                 document.documentElement.setAttribute('data-bubble', a.bubbleColor);
               }

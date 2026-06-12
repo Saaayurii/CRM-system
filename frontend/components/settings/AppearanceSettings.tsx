@@ -7,6 +7,8 @@ import api from '@/lib/api';
 import ColorPicker from './ColorPicker';
 import {
   ACCENTS,
+  BUBBLE_GRADIENT_MAX,
+  bubbleGradientCss,
   CHAT_FONT_SIZE_MAX,
   CHAT_FONT_SIZE_MIN,
   FONT_SIZE_MAX,
@@ -312,6 +314,17 @@ export default function AppearanceSettings() {
   const accentPresetColor =
     ACCENTS.find((a) => a.id === effectiveAccent)?.color ?? '#7c6bc4';
 
+  // Градиент сообщений: список цветов + какой из них сейчас редактируется
+  const bubbleStops = appearance.customBubbleColors
+    ?? (appearance.customBubbleColor ? [appearance.customBubbleColor] : []);
+  const [bubbleStopIdx, setBubbleStopIdx] = useState(0);
+  const safeStopIdx = Math.min(bubbleStopIdx, Math.max(0, bubbleStops.length - 1));
+  const setBubbleStops = (stops: string[]) =>
+    setAppearance({
+      customBubbleColor: stops[0] ?? null,
+      customBubbleColors: stops.length > 0 ? stops : null,
+    });
+
   const handleWallpaperUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = '';
@@ -434,7 +447,7 @@ export default function AppearanceSettings() {
         <button
           type="button"
           title="Как акцент приложения"
-          onClick={() => setAppearance({ bubbleColor: 'accent', customBubbleColor: null })}
+          onClick={() => setAppearance({ bubbleColor: 'accent', customBubbleColor: null, customBubbleColors: null })}
           className="w-9 h-9 rounded-full bg-violet-500 flex items-center justify-center transition-transform hover:scale-110"
         >
           {appearance.bubbleColor === 'accent' && !appearance.customBubbleColor ? (
@@ -452,7 +465,7 @@ export default function AppearanceSettings() {
             key={a.id}
             type="button"
             title={a.name}
-            onClick={() => setAppearance({ bubbleColor: a.id, customBubbleColor: null })}
+            onClick={() => setAppearance({ bubbleColor: a.id, customBubbleColor: null, customBubbleColors: null })}
             className="w-9 h-9 rounded-full flex items-center justify-center transition-transform hover:scale-110"
             style={{ background: a.color }}
           >
@@ -464,22 +477,85 @@ export default function AppearanceSettings() {
           </button>
         ))}
         <CustomColorCircle
-          color={appearance.customBubbleColor}
+          color={
+            bubbleStops.length >= 2
+              ? bubbleGradientCss(bubbleStops)
+              : appearance.customBubbleColor
+          }
           active={!!appearance.customBubbleColor}
-          onClick={() => togglePicker('bubble')}
+          onClick={() => { togglePicker('bubble'); setBubbleStopIdx(0); }}
         />
       </div>
       {pickerFor === 'bubble' && (
-        <ColorPicker
-          value={appearance.customBubbleColor
-            ?? ACCENTS.find((a) => a.id === appearance.bubbleColor)?.color
-            ?? accentPresetColor}
-          onChange={(hex) => setAppearance({ customBubbleColor: hex })}
-        />
+        <>
+          {/* Цвета градиента: чипы-остановки + добавление (как в редакторе тем TG) */}
+          {bubbleStops.length > 0 && (
+            <div className="flex items-center gap-2.5 mt-3">
+              {bubbleStops.map((c, i) => (
+                <div key={i} className="relative">
+                  <button
+                    type="button"
+                    title={`Цвет ${i + 1}`}
+                    onClick={() => setBubbleStopIdx(i)}
+                    className={`w-8 h-8 rounded-full transition-transform ${
+                      i === safeStopIdx
+                        ? 'ring-2 ring-violet-500 ring-offset-2 dark:ring-offset-gray-800 scale-105'
+                        : 'border border-black/10 dark:border-white/10 hover:scale-110'
+                    }`}
+                    style={{ background: c }}
+                  />
+                  {bubbleStops.length > 1 && (
+                    <button
+                      type="button"
+                      title="Убрать цвет"
+                      onClick={() => {
+                        const stops = bubbleStops.filter((_, j) => j !== i);
+                        setBubbleStops(stops);
+                        setBubbleStopIdx((cur) => Math.min(cur, stops.length - 1));
+                      }}
+                      className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-gray-600/90 hover:bg-gray-700 text-white flex items-center justify-center"
+                    >
+                      <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              ))}
+              {bubbleStops.length < BUBBLE_GRADIENT_MAX && (
+                <button
+                  type="button"
+                  title="Добавить цвет — получится градиент"
+                  onClick={() => {
+                    const stops = [...bubbleStops, bubbleStops[bubbleStops.length - 1]];
+                    setBubbleStops(stops);
+                    setBubbleStopIdx(stops.length - 1);
+                  }}
+                  className="w-8 h-8 rounded-full border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-400 hover:text-violet-500 hover:border-violet-400 flex items-center justify-center transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          )}
+          <ColorPicker
+            value={bubbleStops[safeStopIdx]
+              ?? ACCENTS.find((a) => a.id === appearance.bubbleColor)?.color
+              ?? accentPresetColor}
+            onChange={(hex) => {
+              const stops = bubbleStops.length > 0 ? [...bubbleStops] : [hex];
+              stops[Math.min(safeStopIdx, stops.length - 1)] = hex;
+              setBubbleStops(stops);
+            }}
+          />
+        </>
       )}
       <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
         Цвет ваших сообщений в чате. Первый вариант — следовать акценту приложения,
-        последний — выбрать свой оттенок по спектру.
+        последний — выбрать свой оттенок по спектру. Добавьте к своему цвету ещё
+        один-два — сообщения станут градиентными.
       </p>
 
       {/* Переключатели */}

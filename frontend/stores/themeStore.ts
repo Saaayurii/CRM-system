@@ -48,6 +48,19 @@ function sanitize(raw: unknown): AppearanceSettings {
   // свои цвета по цветовому кругу — только валидный #RRGGBB
   merged.customAccent = isHexColor(merged.customAccent) ? merged.customAccent : null;
   merged.customBubbleColor = isHexColor(merged.customBubbleColor) ? merged.customBubbleColor : null;
+  // градиент сообщений: массив валидных hex (первый совпадает с customBubbleColor)
+  if (Array.isArray(merged.customBubbleColors)) {
+    const stops = merged.customBubbleColors.filter(isHexColor).slice(0, 4);
+    merged.customBubbleColors = stops.length > 0 ? stops : null;
+  } else {
+    merged.customBubbleColors = null;
+  }
+  if (!merged.customBubbleColors && merged.customBubbleColor) {
+    merged.customBubbleColors = [merged.customBubbleColor];
+  }
+  if (merged.customBubbleColors) {
+    merged.customBubbleColor = merged.customBubbleColors[0];
+  }
   merged.customWallpaperColor = isHexColor(merged.customWallpaperColor)
     ? merged.customWallpaperColor
     : null;

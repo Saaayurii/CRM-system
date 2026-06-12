@@ -57,6 +57,8 @@ export interface AppearanceSettings {
   bubbleColor: BubbleColorId;
   /** Свой цвет сообщений по цветовому кругу (#RRGGBB) — перекрывает bubbleColor */
   customBubbleColor: string | null;
+  /** Дополнительные цвета сообщений — вместе с customBubbleColor дают градиент (как в Telegram) */
+  customBubbleColors: string[] | null;
   /** Обои для чатов */
   chatWallpaper: WallpaperId;
   /** URL собственной картинки-обоев (chatWallpaper === 'custom') */
@@ -94,6 +96,7 @@ export const DEFAULT_APPEARANCE: AppearanceSettings = {
   chatBubbles: true,
   bubbleColor: 'accent',
   customBubbleColor: null,
+  customBubbleColors: null,
   chatWallpaper: 'default',
   customWallpaperUrl: null,
   customWallpaperColor: null,
@@ -203,6 +206,14 @@ export function bubbleCssVars(hex: string): Record<string, string> {
 
 export const ACCENT_VAR_NAMES = Object.keys(ACCENT_SHADE_MIX).map((s) => `--color-violet-${s}`);
 export const BUBBLE_VAR_NAMES = Object.keys(BUBBLE_SHADE_MIX).map((s) => `--color-bubble-${s}`);
+
+/** Максимум цветов в градиенте сообщений (как в Telegram) */
+export const BUBBLE_GRADIENT_MAX = 4;
+
+/** CSS-градиент для пузырей из 2+ цветов */
+export function bubbleGradientCss(colors: string[]): string {
+  return `linear-gradient(135deg, ${colors.join(', ')})`;
+}
 
 export const WALLPAPERS: {
   id: Exclude<WallpaperId, 'custom' | 'color'>;

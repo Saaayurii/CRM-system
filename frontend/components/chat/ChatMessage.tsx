@@ -352,12 +352,12 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
     setIsPressing(true); // запускает медленное вжатие на время удержания
     longPressTimer.current = setTimeout(() => {
       if (!touchMoved.current) {
-        haptic(30);          // haptic feedback on long-press (Android + iOS fallback)
+        haptic(50);          // haptic feedback on long-press (Android + iOS fallback)
         setIsPressing(false); // пузырь пружинит обратно вместе с появлением меню
         setIsSelected(true); // brief selection glow on the bubble
         setShowMobileActions(true);
       }
-    }, 500);
+    }, 350);
   }, [readOnly]);
 
   // Double-tap / double-click anywhere on the message → quick ❤️ (Telegram-style)
@@ -521,7 +521,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
         transition: isDeleting
           ? 'opacity 0.7s ease-out, transform 0.7s ease-out, filter 0.7s ease-out'
           : isPressing
-          ? 'transform 0.55s cubic-bezier(0.22, 1, 0.36, 1)'
+          ? 'transform 0.38s cubic-bezier(0.22, 1, 0.36, 1)'
           : 'transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1)',
         opacity: isDeleting ? 0 : 1,
         transform: isDeleting ? 'scale(0.95)' : isPressing ? 'scale(0.96)' : 'scale(1)',
