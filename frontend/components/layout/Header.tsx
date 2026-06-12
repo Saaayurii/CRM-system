@@ -1,6 +1,8 @@
 'use client';
 
+import { usePathname } from 'next/navigation';
 import { useSidebarStore } from '@/stores/sidebarStore';
+import { useChatStore } from '@/stores/chatStore';
 import { useT } from '@/lib/i18n';
 
 /**
@@ -12,9 +14,16 @@ import { useT } from '@/lib/i18n';
 export default function Header() {
   const t = useT();
   const { sidebarOpen, setSidebarOpen } = useSidebarStore();
+  const pathname = usePathname();
+  const chatConversationOpen = useChatStore((s) => s.activeChannelId !== null);
 
   // Hide the floating trigger while the menu is open (the sidebar covers it)
   if (sidebarOpen) return null;
+
+  // На мобильном чате с открытым диалогом страница (fixed inset-0 z-50)
+  // перекрывает кнопку — она некликабельна, а с Liquid Glass ещё и
+  // просвечивает сквозь полупрозрачную панель ввода. Прячем целиком.
+  if (pathname?.startsWith('/dashboard/chat') && chatConversationOpen) return null;
 
   return (
     <button
