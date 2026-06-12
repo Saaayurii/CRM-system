@@ -88,6 +88,16 @@ function drawStrokes(ctx: CanvasRenderingContext2D, strokes: Stroke[]) {
   }
 }
 
+/** Штрихи на отдельном прозрачном слое: ластик (destination-out) стирает
+ *  только рисунок, а не дырявит фото до чёрного фона */
+function strokesLayer(w: number, h: number, strokes: Stroke[]): HTMLCanvasElement {
+  const c = document.createElement('canvas');
+  c.width = w;
+  c.height = h;
+  drawStrokes(c.getContext('2d')!, strokes);
+  return c;
+}
+
 function drawTexts(ctx: CanvasRenderingContext2D, texts: TextItem[]) {
   for (const item of texts) {
     if (!item.text.trim()) continue;
@@ -167,7 +177,8 @@ export default function PhotoEditor({ file, onCancel, onDone }: PhotoEditorProps
     return () => window.removeEventListener('resize', recomputeFit);
   }, [recomputeFit]);
 
-  // ── Отрисовка предпросмотра (база + штрихи; тексты — DOM-слоем) ───────────
+  // ── Отрисовка предпросмотра (база + слой штрихов; тексты — DOM-слоем) ─────
+  const inkCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const repaint = useCallback(() => {
     const canvas = viewCanvasRef.current;
     if (!canvas || !base) return;
@@ -175,7 +186,19 @@ export default function PhotoEditor({ file, onCancel, onDone }: PhotoEditorProps
     canvas.width = base.width;
     canvas.height = base.height;
     ctx.drawImage(base, 0, 0);
-    drawStrokes(ctx, activeStrokeRef.current ? [...strokes, activeStrokeRef.current] : strokes);
+    // Переиспользуем один слой штрихов между перерисовками (repaint идёт на
+    // каждый pointermove — создавать канву каждый раз дорого на больших фото)
+    let ink = inkCanvasRef.current;
+    if (!ink || ink.width !== base.width || ink.height !== base.height) {
+      ink = document.createElement('canvas');
+      ink.width = base.width;
+      ink.height = base.height;
+      inkCanvasRef.current = ink;
+    }
+    const ictx = ink.getContext('2d')!;
+    ictx.clearRect(0, 0, ink.width, ink.height);
+    drawStrokes(ictx, activeStrokeRef.current ? [...strokes, activeStrokeRef.current] : strokes);
+    ctx.drawImage(ink, 0, 0);
   }, [base, strokes]);
 
   useEffect(() => { repaint(); }, [repaint]);
@@ -283,7 +306,7 @@ export default function PhotoEditor({ file, onCancel, onDone }: PhotoEditorProps
       const hasInk = strokes.length > 0 || texts.some((it) => it.text.trim());
       if (!hasInk) return b;
       const ctx = b.getContext('2d')!;
-      drawStrokes(ctx, strokes);
+      ctx.drawImage(strokesLayer(b.width, b.height, strokes), 0, 0);
       drawTexts(ctx, texts);
       return b;
     });
@@ -354,7 +377,7 @@ export default function PhotoEditor({ file, onCancel, onDone }: PhotoEditorProps
       out.height = base.height;
       const ctx = out.getContext('2d')!;
       ctx.drawImage(base, 0, 0);
-      drawStrokes(ctx, strokes);
+      ctx.drawImage(strokesLayer(out.width, out.height, strokes), 0, 0);
       drawTexts(ctx, texts);
       const isPng = file.type === 'image/png';
       const blob = await new Promise<Blob | null>((resolve) =>
