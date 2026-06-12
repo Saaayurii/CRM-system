@@ -10,7 +10,11 @@ import {
   CHAT_FONT_SIZE_MIN,
   FONT_SIZE_MAX,
   FONT_SIZE_MIN,
+  PATTERN_CONTRAST_MAX,
+  PATTERN_CONTRAST_MIN,
   START_PAGES,
+  TEXT_CONTRAST_MAX,
+  TEXT_CONTRAST_MIN,
   THEME_PRESETS,
   WALLPAPERS,
   getChatBackground,
@@ -143,10 +147,10 @@ function PresetCard({
 /* ── Живое превью чата ── */
 function ChatPreview() {
   const theme = useThemeStore((s) => s.theme);
-  const { chatWallpaper, customWallpaperUrl, chatPattern, chatBubbles, nameColors, chatFontSize } =
+  const { chatWallpaper, customWallpaperUrl, chatPattern, patternContrast, chatBubbles, nameColors, chatFontSize } =
     useThemeStore((s) => s.appearance);
   const wallpaper = getChatBackground(
-    { chatWallpaper, customWallpaperUrl, chatPattern },
+    { chatWallpaper, customWallpaperUrl, chatPattern, patternContrast },
     theme,
   );
   const ts = { fontSize: `${chatFontSize}px`, lineHeight: 1.4 };
@@ -561,12 +565,38 @@ export default function AppearanceSettings() {
 
       {/* Узор поверх обоев */}
       <div className="mt-3">
-        <SettingRow label="Узор поверх обоев" last>
+        <SettingRow label="Узор поверх обоев" last={!appearance.chatPattern}>
           <Switch
             checked={appearance.chatPattern}
             onChange={(v) => setAppearance({ chatPattern: v })}
           />
         </SettingRow>
+        {appearance.chatPattern && (
+          <div className="py-3">
+            <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-3">
+              Контрастность узора
+            </p>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-gray-500 dark:text-gray-400">○</span>
+              <input
+                type="range"
+                min={PATTERN_CONTRAST_MIN}
+                max={PATTERN_CONTRAST_MAX}
+                step={1}
+                value={appearance.patternContrast}
+                onChange={(e) => setAppearance({ patternContrast: Number(e.target.value) })}
+                className="flex-1 accent-violet-500"
+              />
+              <span className="text-lg text-gray-500 dark:text-gray-400 font-medium leading-none">●</span>
+              <span className="text-xs text-gray-400 dark:text-gray-500 w-10 text-right tabular-nums">
+                {appearance.patternContrast}%
+              </span>
+            </div>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+              Насколько заметен узор поверх обоев — видно в превью сверху.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Размер текста */}
@@ -589,6 +619,30 @@ export default function AppearanceSettings() {
           {appearance.fontSize} px
         </span>
       </div>
+
+      {/* Контрастность текста */}
+      <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mt-5 mb-3">
+        Контрастность текста
+      </p>
+      <div className="flex items-center gap-3">
+        <span className="text-xs text-gray-400 dark:text-gray-500">A</span>
+        <input
+          type="range"
+          min={TEXT_CONTRAST_MIN}
+          max={TEXT_CONTRAST_MAX}
+          step={5}
+          value={appearance.textContrast}
+          onChange={(e) => setAppearance({ textContrast: Number(e.target.value) })}
+          className="flex-1 accent-violet-500"
+        />
+        <span className="text-xs font-bold text-gray-900 dark:text-white">A</span>
+        <span className="text-xs text-gray-400 dark:text-gray-500 w-10 text-right tabular-nums">
+          {appearance.textContrast}%
+        </span>
+      </div>
+      <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+        0% — стандартная. Чем выше, тем темнее серый текст в светлой теме и светлее — в тёмной.
+      </p>
 
       {/* Размер текста в чате */}
       <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mt-5 mb-3">

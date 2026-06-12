@@ -98,6 +98,10 @@ export default function RootLayout({
               if (a.bubbleColor && a.bubbleColor !== 'accent') document.documentElement.setAttribute('data-bubble', a.bubbleColor);
               if (a.density === 'compact') document.documentElement.setAttribute('data-density', 'compact');
               if (a.liquidGlass) document.documentElement.setAttribute('data-glass', '');
+              if (a.textContrast > 0) {
+                document.documentElement.setAttribute('data-text-contrast', '');
+                document.documentElement.style.setProperty('--text-contrast', a.textContrast + '%');
+              }
               if (a.fontSize && a.fontSize !== 16) document.documentElement.style.fontSize = a.fontSize + 'px';
               if (a.chatFontSize && a.chatFontSize !== 14) document.documentElement.style.setProperty('--chat-font-size', a.chatFontSize + 'px');
             } else {

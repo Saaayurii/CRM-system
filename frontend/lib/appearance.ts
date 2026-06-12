@@ -58,6 +58,10 @@ export interface AppearanceSettings {
   customWallpaperUrl: string | null;
   /** Полупрозрачный узор-doodle поверх обоев */
   chatPattern: boolean;
+  /** Контрастность узора — непрозрачность штрихов, % (14 — как раньше) */
+  patternContrast: number;
+  /** Контрастность текста, % (0 — стандартная; выше — серый текст ближе к чёрному/белому) */
+  textContrast: number;
   /** Цветные имена собеседников в чате */
   nameColors: boolean;
   /** Тема «жидкое стекло» (Liquid Glass, как в iOS): полупрозрачные панели с блюром */
@@ -84,6 +88,8 @@ export const DEFAULT_APPEARANCE: AppearanceSettings = {
   chatWallpaper: 'default',
   customWallpaperUrl: null,
   chatPattern: false,
+  patternContrast: 14,
+  textContrast: 0,
   nameColors: true,
   liquidGlass: false,
   density: 'comfortable',
@@ -112,6 +118,11 @@ export const START_PAGES: { value: string; name: string }[] = [
 
 export const FONT_SIZE_MIN = 13;
 export const FONT_SIZE_MAX = 20;
+export const PATTERN_CONTRAST_MIN = 5;
+export const PATTERN_CONTRAST_MAX = 60;
+export const PATTERN_CONTRAST_DEFAULT = 14;
+export const TEXT_CONTRAST_MIN = 0;
+export const TEXT_CONTRAST_MAX = 100;
 export const CHAT_FONT_SIZE_MIN = 12;
 export const CHAT_FONT_SIZE_MAX = 22;
 export const CHAT_FONT_SIZE_DEFAULT = 14;
@@ -195,7 +206,33 @@ export function getWallpaperBackground(
   return theme === 'dark' ? wp.dark : wp.light;
 }
 
-const PATTERN_URL = "url('/chat-pattern.svg')";
+// Узор-doodle (содержимое public/chat-pattern.svg) с параметризованной
+// непрозрачностью штрихов — генерируется как data-URI, чтобы настройка
+// «Контрастность узора» работала без отдельного DOM-слоя.
+const PATTERN_PATHS =
+  '<path d="M20 50 L34 36 L48 50 M25 48 v14 h18 v-14"/>' +
+  '<circle cx="120" cy="32" r="8"/>' +
+  '<path d="M120 20 v-4 M120 44 v4 M108 32 h-4 M132 32 h4 M111 23 l-3 -3 M129 41 l3 3 M129 23 l3 -3 M111 41 l-3 3"/>' +
+  '<path d="M196 30 l14 14 M203 23 l10 10 l-6 6 l-10 -10 z"/>' +
+  '<path d="M28 116 h36 v20 h-36 z M28 126 h36 M46 116 v10 M37 126 v10 M55 126 v10"/>' +
+  '<path d="M118 106 a8 8 0 1 0 6 13 l18 18 l5 -5 l-18 -18 a8 8 0 0 0 -11 -8"/>' +
+  '<path d="M188 130 a16 16 0 0 1 32 0 z M192 124 a12 10 0 0 1 24 0"/>' +
+  '<path d="M30 198 l26 -26 M36 192 l3 3 M42 186 l3 3 M48 180 l3 3"/>' +
+  '<path d="M108 192 h24 v8 h-24 z M132 196 h8 v-6 M120 200 v12"/>' +
+  '<circle cx="208" cy="200" r="7"/>' +
+  '<path d="M204 196 l8 8 M204 204 l8 -8"/>' +
+  '<path d="M70 78 l2 5 5 1 -4 4 1 5 -4 -3 -5 3 1 -5 -4 -4 5 -1 z"/>' +
+  '<path d="M152 74 a6 6 0 0 1 6 -6 a7 7 0 0 1 13 2 a5 5 0 0 1 -1 10 h-13 a5 5 0 0 1 -5 -6"/>';
+
+function patternUrl(opacityPct: number): string {
+  const o = Math.min(1, Math.max(0.02, opacityPct / 100));
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">` +
+    `<g fill="none" stroke="#8a8f98" stroke-opacity="${o}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">` +
+    PATTERN_PATHS +
+    `</g></svg>`;
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+}
 
 /**
  * Полный фон чата: узор (поверх) + обои (пресет-градиент или своя картинка).
@@ -203,14 +240,20 @@ const PATTERN_URL = "url('/chat-pattern.svg')";
  * Возвращает null, когда нужен стандартный фон (классы bg-*).
  */
 export function getChatBackground(
-  a: Pick<AppearanceSettings, 'chatWallpaper' | 'customWallpaperUrl' | 'chatPattern'>,
+  a: Pick<AppearanceSettings, 'chatWallpaper' | 'customWallpaperUrl' | 'chatPattern'> & {
+    patternContrast?: number;
+  },
   theme: 'light' | 'dark',
 ): CSSProperties | null {
   type Layer = { image: string; size: string; repeat: string };
   const layers: Layer[] = [];
 
   if (a.chatPattern) {
-    layers.push({ image: PATTERN_URL, size: 'auto', repeat: 'repeat' });
+    layers.push({
+      image: patternUrl(a.patternContrast ?? PATTERN_CONTRAST_DEFAULT),
+      size: 'auto',
+      repeat: 'repeat',
+    });
   }
 
   if (a.chatWallpaper === 'custom' && a.customWallpaperUrl) {

@@ -16,6 +16,7 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
   const bubbleColor = useThemeStore((s) => s.appearance.bubbleColor);
   const density = useThemeStore((s) => s.appearance.density);
   const liquidGlass = useThemeStore((s) => s.appearance.liquidGlass);
+  const textContrast = useThemeStore((s) => s.appearance.textContrast);
   const nightMode = useThemeStore((s) => s.appearance.nightMode);
   const initialize = useThemeStore((s) => s.initialize);
   const refreshResolved = useThemeStore((s) => s.refreshResolved);
@@ -79,6 +80,13 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
     } else {
       root.removeAttribute('data-glass');
     }
+    if (textContrast > 0) {
+      root.setAttribute('data-text-contrast', '');
+      root.style.setProperty('--text-contrast', `${textContrast}%`);
+    } else {
+      root.removeAttribute('data-text-contrast');
+      root.style.removeProperty('--text-contrast');
+    }
     root.style.fontSize = fontSize && fontSize !== 16 ? `${fontSize}px` : '';
     if (chatFontSize && chatFontSize !== 14) {
       root.style.setProperty('--chat-font-size', `${chatFontSize}px`);
@@ -89,7 +97,7 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
       root.classList.remove('**:transition-none!');
     }, 1);
     return () => clearTimeout(timeout);
-  }, [theme, accent, fontSize, chatFontSize, bubbleColor, density, liquidGlass]);
+  }, [theme, accent, fontSize, chatFontSize, bubbleColor, density, liquidGlass, textContrast]);
 
   return <>{children}</>;
 }

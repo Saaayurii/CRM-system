@@ -139,8 +139,9 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
   const chatWallpaper = useThemeStore((s) => s.appearance.chatWallpaper);
   const customWallpaperUrl = useThemeStore((s) => s.appearance.customWallpaperUrl);
   const chatPattern = useThemeStore((s) => s.appearance.chatPattern);
+  const patternContrast = useThemeStore((s) => s.appearance.patternContrast);
   const resolvedTheme = useThemeStore((s) => s.theme);
-  const wallpaperStyle = getChatBackground({ chatWallpaper, customWallpaperUrl, chatPattern }, resolvedTheme);
+  const wallpaperStyle = getChatBackground({ chatWallpaper, customWallpaperUrl, chatPattern, patternContrast }, resolvedTheme);
   const t = useT();
   const activeChannelId = useChatStore((s) => s.activeChannelId);
   const messages = useChatStore((s) => s.messages);

@@ -543,6 +543,21 @@ html[data-density='compact'] table td {
 .dark .chat-name-c5 { color: #6cb8f5; }
 .dark .chat-name-c6 { color: #f37fb2; }
 
+/* ── Контрастность текста (настройка оформления) ─────────────────────────────
+   Атрибут data-text-contrast на <html> + переменная --text-contrast (0–100%).
+   Серые «вторичные» тексты подмешиваются к чёрному (светлая тема) или белому
+   (тёмная), не трогая фоны и границы. Правила вне @layer — бьют утилиты. */
+html[data-text-contrast]:not(.dark) .text-gray-400 { color: color-mix(in srgb, var(--color-gray-400), #000 var(--text-contrast, 0%)); }
+html[data-text-contrast]:not(.dark) .text-gray-500 { color: color-mix(in srgb, var(--color-gray-500), #000 var(--text-contrast, 0%)); }
+html[data-text-contrast]:not(.dark) .text-gray-600 { color: color-mix(in srgb, var(--color-gray-600), #000 var(--text-contrast, 0%)); }
+html[data-text-contrast]:not(.dark) .text-gray-700 { color: color-mix(in srgb, var(--color-gray-700), #000 var(--text-contrast, 0%)); }
+html[data-text-contrast]:not(.dark) .text-gray-800 { color: color-mix(in srgb, var(--color-gray-800), #000 var(--text-contrast, 0%)); }
+html[data-text-contrast].dark .dark\:text-gray-100 { color: color-mix(in srgb, var(--color-gray-100), #fff var(--text-contrast, 0%)); }
+html[data-text-contrast].dark .dark\:text-gray-200 { color: color-mix(in srgb, var(--color-gray-200), #fff var(--text-contrast, 0%)); }
+html[data-text-contrast].dark .dark\:text-gray-300 { color: color-mix(in srgb, var(--color-gray-300), #fff var(--text-contrast, 0%)); }
+html[data-text-contrast].dark .dark\:text-gray-400 { color: color-mix(in srgb, var(--color-gray-400), #fff var(--text-contrast, 0%)); }
+html[data-text-contrast].dark .dark\:text-gray-500 { color: color-mix(in srgb, var(--color-gray-500), #fff var(--text-contrast, 0%)); }
+
 /* ── Liquid Glass (тема «жидкое стекло», как в iOS) ──────────────────────────
    Включается атрибутом data-glass на <html> (настройка «Оформление»).
    Принцип: фон приложения — цветная «аврора», следующая за акцентом
