@@ -575,9 +575,6 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
                 </div>
               )}
 
-              {/* Text (caption if album, otherwise regular message text) */}
-              {resolvedDisplayText && renderText(resolvedDisplayText, own, highlightQuery)}
-
               {/* Single image */}
               {!hasAlbum && mediaAtts.length === 1 && isImageAtt(mediaAtts[0]) && (() => {
                 const att = mediaAtts[0];
@@ -669,6 +666,9 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
                   })}
                 </div>
               )}
+
+              {/* Text / caption — always rendered below all media and attachments */}
+              {resolvedDisplayText && renderText(resolvedDisplayText, own, highlightQuery)}
             </>
           )}
 
