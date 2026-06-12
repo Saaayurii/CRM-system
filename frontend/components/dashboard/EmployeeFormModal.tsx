@@ -71,6 +71,18 @@ export default function EmployeeFormModal({ employee, onClose, onSaved }: Employ
   const [invitePhone, setInvitePhone] = useState('');
   const [expiresInHours, setExpiresInHours] = useState(72);
   const [inviteCreating, setInviteCreating] = useState(false);
+
+  // Тот же запомненный срок, что и на странице «Заявки и инвайты»
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('inviteExpiresInHours');
+      if (raw === null) return;
+      const v = Number(raw);
+      if ([24, 72, 168, 720, 0].includes(v)) setExpiresInHours(v);
+    } catch {
+      // ignore
+    }
+  }, []);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -271,7 +283,16 @@ export default function EmployeeFormModal({ employee, onClose, onSaved }: Employ
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('Срок действия ссылки')}</label>
               <select
                 value={expiresInHours}
-                onChange={(e) => { setExpiresInHours(Number(e.target.value)); setInviteLink(null); }}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  setExpiresInHours(v);
+                  setInviteLink(null);
+                  try {
+                    localStorage.setItem('inviteExpiresInHours', String(v));
+                  } catch {
+                    // ignore
+                  }
+                }}
                 className={inputCls}
               >
                 <option value={24}>{t('24 часа')}</option>

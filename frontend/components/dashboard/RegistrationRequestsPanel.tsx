@@ -55,6 +55,17 @@ function fmt(v: string | null | undefined) {
   return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
+/** Человекочитаемый срок действия ссылки, вычисленный из created/expires */
+function durationLabel(createdAt: string, expiresAt: string | null): string {
+  if (!expiresAt) return 'Бессрочная';
+  const hours = Math.round(
+    (new Date(expiresAt).getTime() - new Date(createdAt).getTime()) / 3_600_000,
+  );
+  if (hours < 48) return `${hours} ч`;
+  const days = Math.round(hours / 24);
+  return `${days} дн.`;
+}
+
 function getInviteStatus(inv: MemberInvite): { label: string; color: string } {
   if (inv.usedAt) return { label: 'Использован', color: 'bg-gray-500/20 text-gray-500' };
   if (inv.expiresAt && new Date(inv.expiresAt) < new Date()) return { label: 'Истёк', color: 'bg-red-500/20 text-red-600 dark:text-red-400' };
@@ -82,6 +93,20 @@ export default function RegistrationRequestsPanel() {
   const [creating, setCreating] = useState(false);
   const [inviteNote, setInviteNote] = useState('');
   const [expiresInHours, setExpiresInHours] = useState(72);
+
+  // Селект «Срок действия» запоминает последний выбор (не сбрасывается на
+  // дефолт при каждом заходе на страницу). Восстановление — после маунта,
+  // чтобы не ловить hydration mismatch.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('inviteExpiresInHours');
+      if (raw === null) return;
+      const v = Number(raw);
+      if ([24, 72, 168, 720, 0].includes(v)) setExpiresInHours(v);
+    } catch {
+      // ignore
+    }
+  }, []);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
   const [newlyCreatedLink, setNewlyCreatedLink] = useState<string | null>(null);
 
@@ -336,7 +361,15 @@ export default function RegistrationRequestsPanel() {
               <select
                 className="form-select w-full text-sm py-1.5"
                 value={expiresInHours}
-                onChange={(e) => setExpiresInHours(Number(e.target.value))}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  setExpiresInHours(v);
+                  try {
+                    localStorage.setItem('inviteExpiresInHours', String(v));
+                  } catch {
+                    // ignore
+                  }
+                }}
               >
                 <option value={24}>{t('24 часа')}</option>
                 <option value={72}>{t('3 дня')}</option>
@@ -409,6 +442,9 @@ export default function RegistrationRequestsPanel() {
                         </div>
                       )}
                       <div className="flex gap-3 mt-1 text-xs text-gray-400 dark:text-gray-500 flex-wrap">
+                        <span className="font-medium text-violet-500 dark:text-violet-400">
+                          Срок: {durationLabel(inv.createdAt, inv.expiresAt)}
+                        </span>
                         <span>Создан: {fmt(inv.createdAt)}</span>
                         {inv.expiresAt && <span>Истекает: {fmt(inv.expiresAt)}</span>}
                         {inv.usedAt && (
