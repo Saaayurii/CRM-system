@@ -14,6 +14,8 @@ export interface UploadedAttachment {
   mimeType: string;
   fileUrl: string;
   excludeFromMedia?: boolean;
+  /** Исчезающее медиа: секунды до исчезновения после открытия; -1 — один просмотр */
+  ttl?: number;
 }
 
 export interface ChatAttachment {
@@ -22,6 +24,8 @@ export interface ChatAttachment {
   fileUrl: string;
   mimeType: string;
   fileSize: number;
+  /** Исчезающее медиа: секунды до исчезновения после открытия; -1 — один просмотр */
+  ttl?: number;
 }
 
 export interface ChatReaction {

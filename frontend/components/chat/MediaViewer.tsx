@@ -16,9 +16,11 @@ interface MediaViewerProps {
   items: MediaItem[];
   initialIndex: number;
   onClose: () => void;
+  /** «Изменить и отправить» — открыть картинку в редакторе и приложить к сообщению */
+  onEditAndSend?: (item: MediaItem) => void;
 }
 
-export default function MediaViewer({ items, initialIndex, onClose }: MediaViewerProps) {
+export default function MediaViewer({ items, initialIndex, onClose, onEditAndSend }: MediaViewerProps) {
   const t = useT();
   const [index, setIndex] = useState(initialIndex);
   const [imageScale, setImageScale] = useState(1);
@@ -87,6 +89,18 @@ export default function MediaViewer({ items, initialIndex, onClose }: MediaViewe
         <div className="flex items-center gap-2">
           {items.length > 1 && (
             <span className="text-white/50 text-sm">{index + 1} / {items.length}</span>
+          )}
+          {/* Edit & send */}
+          {onEditAndSend && current.type === 'image' && (
+            <button
+              onClick={() => onEditAndSend(current)}
+              className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+              title={t('Изменить и отправить')}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897l12.682-12.68z" />
+              </svg>
+            </button>
           )}
           {/* Download */}
           <a

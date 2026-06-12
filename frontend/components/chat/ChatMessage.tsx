@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useToastStore } from '@/stores/toastStore';
 import { ChatMessage as ChatMessageType, useChatStore } from '@/stores/chatStore';
 import MediaViewer, { MediaItem } from './MediaViewer';
+import SelfDestructMedia from './SelfDestructMedia';
 import FilePreviewModal from '@/components/ui/FilePreviewModal';
 import UserProfileModal from './UserProfileModal';
 import { haptic } from '@/lib/haptics';
@@ -683,8 +684,8 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
               {!hasAlbum && mediaAtts.length === 1 && isImageAtt(mediaAtts[0]) && (() => {
                 const att = mediaAtts[0];
                 const mediaIndex = mediaItems.findIndex((m) => m.url === att.fileUrl);
-                return (
-                  <div key={att.id} className="relative group/img mt-1">
+                const imageContent = (
+                  <div className="relative group/img mt-1">
                     <img src={att.fileUrl} alt={att.fileName}
                       className="max-w-full max-h-60 rounded-lg object-cover block cursor-zoom-in"
                       onClick={() => openViewer(mediaIndex)}
@@ -700,14 +701,21 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
                     </a>
                   </div>
                 );
+                return att.ttl ? (
+                  <SelfDestructMedia key={att.id} messageId={message.id} fileUrl={att.fileUrl} ttl={att.ttl} isOwn={isOwn}>
+                    {imageContent}
+                  </SelfDestructMedia>
+                ) : (
+                  <React.Fragment key={att.id}>{imageContent}</React.Fragment>
+                );
               })()}
 
               {/* Single video */}
               {!hasAlbum && mediaAtts.length === 1 && isVideoAtt(mediaAtts[0]) && (() => {
                 const att = mediaAtts[0];
                 const mediaIndex = mediaItems.findIndex((m) => m.url === att.fileUrl);
-                return (
-                  <div key={att.id} className="relative group/vid mt-1 w-fit max-w-full">
+                const videoContent = (
+                  <div className="relative group/vid mt-1 w-fit max-w-full">
                     <div className="relative cursor-pointer rounded-lg overflow-hidden min-w-[180px]" onClick={() => openViewer(mediaIndex)}>
                       <VideoThumbnail src={att.fileUrl} className="max-h-52 w-full rounded-lg block" />
                       <div className="absolute inset-0 flex items-center justify-center bg-black/25 group-hover/vid:bg-black/40 transition-colors rounded-lg">
@@ -722,6 +730,13 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
                       <DownloadIcon />
                     </a>
                   </div>
+                );
+                return att.ttl ? (
+                  <SelfDestructMedia key={att.id} messageId={message.id} fileUrl={att.fileUrl} ttl={att.ttl} isOwn={isOwn}>
+                    {videoContent}
+                  </SelfDestructMedia>
+                ) : (
+                  <React.Fragment key={att.id}>{videoContent}</React.Fragment>
                 );
               })()}
 
@@ -1169,6 +1184,21 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
           items={mediaItems}
           initialIndex={viewerIndex}
           onClose={closeViewer}
+          onEditAndSend={async (item) => {
+            // Скачиваем картинку, передаём инпуту текущего канала — он откроет редактор
+            try {
+              const resp = await fetch(item.url);
+              const blob = await resp.blob();
+              const name = item.name || item.url.split('/').pop() || 'image.jpg';
+              const file = new File([blob], name, { type: blob.type || 'image/jpeg' });
+              window.dispatchEvent(new CustomEvent('chat:edit-and-send', {
+                detail: { file, channelId: message.channelId },
+              }));
+              closeViewer();
+            } catch {
+              // не скачалось — остаёмся в просмотрщике
+            }
+          }}
         />
       )}
 

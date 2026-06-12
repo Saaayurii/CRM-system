@@ -10,6 +10,16 @@ import api from '@/lib/api';
 import { useT } from '@/lib/i18n';
 
 const TaskFormModal = dynamic(() => import('@/components/dashboard/TaskFormModal'), { ssr: false });
+const PhotoEditor = dynamic(() => import('./PhotoEditor'), { ssr: false });
+
+/** Варианты исчезновения медиа (сек; -1 — один просмотр; undefined — не исчезает) */
+const TTL_OPTIONS: { value: number; label: string }[] = [
+  { value: 0, label: 'Не исчезает' },
+  { value: -1, label: '1 просмотр' },
+  { value: 3, label: '3 сек' },
+  { value: 10, label: '10 сек' },
+  { value: 30, label: '30 сек' },
+];
 
 const SLASH_TASK_RE = /^\/task(?:\s+([\s\S]*))?$/;
 // Бот-ввод: распознаём «в инпуте только чип задачи» и триггер #new / #нов*
@@ -67,6 +77,8 @@ interface PendingFile {
   id: string;
   progress: number;
   compressed: boolean;
+  /** Исчезающее медиа: секунды; -1 — один просмотр; 0/undefined — обычное */
+  ttl?: number;
 }
 
 const DRAFT_KEY = (channelId: number) => `chat-draft-${channelId}`;
@@ -958,6 +970,11 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
     if (pendingFiles.length > 0) {
       try {
         uploadedAttachments = await Promise.all(pendingFiles.map((pf) => uploadFileWithProgress(pf)));
+        // Прокидываем таймер исчезновения (Promise.all сохраняет порядок)
+        uploadedAttachments = uploadedAttachments.map((att, i) => {
+          const ttl = pendingFiles[i]?.ttl;
+          return ttl ? { ...att, ttl } : att;
+        });
       } catch {
         setUploadError('Не удалось загрузить файл. Попробуйте ещё раз.');
         setIsSending(false);
@@ -1190,6 +1207,42 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
 
   const toggleCompression = (id: string) =>
     setPendingFiles((prev) => prev.map((f) => (f.id === id ? { ...f, compressed: !f.compressed } : f)));
+
+  const setFileTtl = (id: string, ttl: number) =>
+    setPendingFiles((prev) => prev.map((f) => (f.id === id ? { ...f, ttl: ttl || undefined } : f)));
+
+  // Редактор фото: id ожидающего файла, который сейчас редактируется
+  const [editingPhotoId, setEditingPhotoId] = useState<string | null>(null);
+  const editingPhoto = pendingFiles.find((f) => f.id === editingPhotoId) ?? null;
+
+  const applyEditedPhoto = (edited: File) => {
+    setPendingFiles((prev) =>
+      prev.map((f) => (f.id === editingPhotoId ? { ...f, file: edited, compressed: true } : f)),
+    );
+    setEditingPhotoId(null);
+  };
+
+  // «Изменить и отправить» из просмотрщика медиа: ChatMessage кидает событие
+  // с файлом — добавляем во вложения и сразу открываем редактор.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { file?: File; channelId?: number } | undefined;
+      const file = detail?.file;
+      if (!file) return;
+      // Инпутов может быть несколько (страница чата + мини-виджет) — берёт свой канал
+      if (detail?.channelId != null && detail.channelId !== channelId) return;
+      const pf: PendingFile = {
+        file,
+        id: `${file.name}-${Date.now()}-${Math.random()}`,
+        progress: 0,
+        compressed: true,
+      };
+      setPendingFiles((prev) => [...prev, pf]);
+      setEditingPhotoId(pf.id);
+    };
+    window.addEventListener('chat:edit-and-send', handler);
+    return () => window.removeEventListener('chat:edit-and-send', handler);
+  }, [channelId]);
 
   const removeFile = (id: string) => {
     xhrMapRef.current.get(id)?.forEach((xhr) => xhr.abort());
@@ -1739,7 +1792,7 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
 
       {/* Pending files */}
       {pendingFiles.length > 0 && (
-        <div className="flex flex-col gap-2 mb-2">
+        <div className="flex flex-col gap-2 mb-2 max-h-64 overflow-y-auto overscroll-contain pr-1">
           {pendingFiles.map((pf) => {
             const isImage = pf.file.type.startsWith('image/');
             const isVideo = pf.file.type.startsWith('video/');
@@ -1792,6 +1845,33 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
                         )}
                       </button>
                       <span className="text-[10px] text-gray-400">{pf.compressed ? '· сожмётся' : '· без изменений'}</span>
+                      <button
+                        onClick={() => setEditingPhotoId(pf.id)}
+                        className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-300 hover:bg-violet-100 hover:text-violet-600 dark:hover:bg-violet-900/40 dark:hover:text-violet-400 transition-colors"
+                        title={t('Редактировать фото: кадр, рисунок, текст')}
+                      >
+                        <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897l12.682-12.68z" />
+                        </svg>
+                        {t('Изменить')}
+                      </button>
+                    </div>
+                  )}
+                  {(isImage || isVideo) && !isSending && (
+                    <div className="flex items-center gap-1 mb-1">
+                      <svg className={`w-3 h-3 shrink-0 ${pf.ttl ? 'text-orange-500' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.047 8.287 8.287 0 009 9.601a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z" />
+                      </svg>
+                      <select
+                        value={pf.ttl ?? 0}
+                        onChange={(e) => setFileTtl(pf.id, Number(e.target.value))}
+                        title={t('Через какое время после открытия медиа исчезнет у получателя')}
+                        className={`text-[10px] font-medium bg-transparent border-0 p-0 pr-4 rounded focus:ring-0 cursor-pointer ${pf.ttl ? 'text-orange-500' : 'text-gray-400 dark:text-gray-400'}`}
+                      >
+                        {TTL_OPTIONS.map((o) => (
+                          <option key={o.value} value={o.value}>{t(o.label)}</option>
+                        ))}
+                      </select>
                     </div>
                   )}
                   <div className="h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
@@ -2023,6 +2103,15 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
             sendTaskCardMessage(created);
             setShowTaskCreateModal(false);
           }}
+        />
+      )}
+
+      {/* Редактор фото перед отправкой (кадр, рисунок, текст) */}
+      {editingPhoto && (
+        <PhotoEditor
+          file={editingPhoto.file}
+          onCancel={() => setEditingPhotoId(null)}
+          onDone={applyEditedPhoto}
         />
       )}
     </div>
