@@ -93,9 +93,26 @@ export default function RootLayout({
               }
               dark = a.mode === 'night' || (a.mode === 'system' && sys) ||
                 ((a.mode === 'classic' || a.mode === 'day') && ((a.nightMode === 'system' && sys) || night));
+              var hexRe = /^#[0-9a-fA-F]{6}$/;
+              var setShades = function (prefix, mixes, c) {
+                for (var k in mixes) {
+                  var m = mixes[k];
+                  var v = m === 0 ? c : 'color-mix(in srgb, ' + c + ', ' + (m > 0 ? '#ffffff ' + m : '#000000 ' + (-m)) + '%)';
+                  document.documentElement.style.setProperty('--color-' + prefix + '-' + k, v);
+                }
+              };
+              // Доли подмеса синхронизированы с ACCENT_SHADE_MIX/BUBBLE_SHADE_MIX в lib/appearance.ts
               var accent = a.accentSetByUser ? a.accent : (localStorage.getItem('companyAccent') || a.accent);
-              if (accent && accent !== 'violet') document.documentElement.setAttribute('data-accent', accent);
-              if (a.bubbleColor && a.bubbleColor !== 'accent') document.documentElement.setAttribute('data-bubble', a.bubbleColor);
+              if (a.accentSetByUser && hexRe.test(a.customAccent || '')) {
+                setShades('violet', {50:94,100:88,200:75,300:55,400:28,500:0,600:-12,700:-26,800:-40,900:-52,950:-66}, a.customAccent);
+              } else if (accent && accent !== 'violet') {
+                document.documentElement.setAttribute('data-accent', accent);
+              }
+              if (hexRe.test(a.customBubbleColor || '')) {
+                setShades('bubble', {200:65,300:40,400:18,500:0,600:-20}, a.customBubbleColor);
+              } else if (a.bubbleColor && a.bubbleColor !== 'accent') {
+                document.documentElement.setAttribute('data-bubble', a.bubbleColor);
+              }
               if (a.density === 'compact') document.documentElement.setAttribute('data-density', 'compact');
               if (a.liquidGlass) document.documentElement.setAttribute('data-glass', '');
               if (a.textContrast > 0) {

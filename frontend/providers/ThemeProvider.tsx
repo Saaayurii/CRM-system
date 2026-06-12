@@ -4,6 +4,13 @@ import { useEffect } from 'react';
 import { useThemeStore } from '@/stores/themeStore';
 import { useLanguageStore } from '@/stores/languageStore';
 import { useAuthStore } from '@/stores/authStore';
+import {
+  ACCENT_VAR_NAMES,
+  BUBBLE_VAR_NAMES,
+  accentCssVars,
+  bubbleCssVars,
+  isHexColor,
+} from '@/lib/appearance';
 
 export default function ThemeProvider({ children }: { children: React.ReactNode }) {
   const theme = useThemeStore((s) => s.theme);
@@ -11,6 +18,11 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
   const accent = useThemeStore((s) =>
     s.appearance.accentSetByUser ? s.appearance.accent : (s.companyAccent ?? s.appearance.accent),
   );
+  // Свой цвет по цветовому кругу перекрывает пресеты
+  const customAccent = useThemeStore((s) =>
+    s.appearance.accentSetByUser ? s.appearance.customAccent : null,
+  );
+  const customBubbleColor = useThemeStore((s) => s.appearance.customBubbleColor);
   const fontSize = useThemeStore((s) => s.appearance.fontSize);
   const chatFontSize = useThemeStore((s) => s.appearance.chatFontSize);
   const bubbleColor = useThemeStore((s) => s.appearance.bubbleColor);
@@ -60,15 +72,32 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
       root.classList.remove('dark');
       root.style.colorScheme = 'light';
     }
-    if (accent && accent !== 'violet') {
-      root.setAttribute('data-accent', accent);
-    } else {
+    if (isHexColor(customAccent)) {
+      // Свой акцент: inline-переменные палитры вместо data-accent
       root.removeAttribute('data-accent');
-    }
-    if (bubbleColor && bubbleColor !== 'accent') {
-      root.setAttribute('data-bubble', bubbleColor);
+      for (const [name, value] of Object.entries(accentCssVars(customAccent))) {
+        root.style.setProperty(name, value);
+      }
     } else {
+      ACCENT_VAR_NAMES.forEach((name) => root.style.removeProperty(name));
+      if (accent && accent !== 'violet') {
+        root.setAttribute('data-accent', accent);
+      } else {
+        root.removeAttribute('data-accent');
+      }
+    }
+    if (isHexColor(customBubbleColor)) {
       root.removeAttribute('data-bubble');
+      for (const [name, value] of Object.entries(bubbleCssVars(customBubbleColor))) {
+        root.style.setProperty(name, value);
+      }
+    } else {
+      BUBBLE_VAR_NAMES.forEach((name) => root.style.removeProperty(name));
+      if (bubbleColor && bubbleColor !== 'accent') {
+        root.setAttribute('data-bubble', bubbleColor);
+      } else {
+        root.removeAttribute('data-bubble');
+      }
     }
     if (density === 'compact') {
       root.setAttribute('data-density', 'compact');
@@ -97,7 +126,7 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
       root.classList.remove('**:transition-none!');
     }, 1);
     return () => clearTimeout(timeout);
-  }, [theme, accent, fontSize, chatFontSize, bubbleColor, density, liquidGlass, textContrast]);
+  }, [theme, accent, customAccent, fontSize, chatFontSize, bubbleColor, customBubbleColor, density, liquidGlass, textContrast]);
 
   return <>{children}</>;
 }

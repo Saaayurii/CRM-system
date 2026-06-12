@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import { useThemeStore } from '@/stores/themeStore';
 import { useToastStore } from '@/stores/toastStore';
 import api from '@/lib/api';
+import ColorPicker from './ColorPicker';
 import {
   ACCENTS,
   CHAT_FONT_SIZE_MAX,
@@ -144,13 +145,46 @@ function PresetCard({
   );
 }
 
+/* ── Кружок «свой цвет» (радужный, пока цвет не выбран) ── */
+function CustomColorCircle({
+  color,
+  active,
+  onClick,
+}: {
+  color: string | null;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      title="Свой цвет"
+      onClick={onClick}
+      className="w-9 h-9 rounded-full flex items-center justify-center transition-transform hover:scale-110 border border-black/10 dark:border-white/10"
+      style={{
+        background: color ?? 'conic-gradient(#f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00)',
+      }}
+    >
+      {active ? (
+        <svg className="w-4 h-4 text-white drop-shadow" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+        </svg>
+      ) : (
+        <svg className="w-4 h-4 text-white drop-shadow" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+        </svg>
+      )}
+    </button>
+  );
+}
+
 /* ── Живое превью чата ── */
 function ChatPreview() {
   const theme = useThemeStore((s) => s.theme);
-  const { chatWallpaper, customWallpaperUrl, chatPattern, patternContrast, chatBubbles, nameColors, chatFontSize } =
+  const { chatWallpaper, customWallpaperUrl, customWallpaperColor, chatPattern, patternContrast, chatBubbles, nameColors, chatFontSize } =
     useThemeStore((s) => s.appearance);
   const wallpaper = getChatBackground(
-    { chatWallpaper, customWallpaperUrl, chatPattern, patternContrast },
+    { chatWallpaper, customWallpaperUrl, customWallpaperColor, chatPattern, patternContrast },
     theme,
   );
   const ts = { fontSize: `${chatFontSize}px`, lineHeight: 1.4 };
@@ -271,6 +305,12 @@ export default function AppearanceSettings() {
   const [open, setOpen] = useState(false);
   const [wpUploading, setWpUploading] = useState(false);
   const wpInputRef = useRef<HTMLInputElement>(null);
+  // Какой пикер своего цвета раскрыт: акцент / сообщения / фон чата
+  const [pickerFor, setPickerFor] = useState<null | 'accent' | 'bubble' | 'wallpaper'>(null);
+  const togglePicker = (target: 'accent' | 'bubble' | 'wallpaper') =>
+    setPickerFor((cur) => (cur === target ? null : target));
+  const accentPresetColor =
+    ACCENTS.find((a) => a.id === effectiveAccent)?.color ?? '#7c6bc4';
 
   const handleWallpaperUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -351,18 +391,29 @@ export default function AppearanceSettings() {
             key={a.id}
             type="button"
             title={a.name}
-            onClick={() => setAppearance({ accent: a.id, accentSetByUser: true })}
+            onClick={() => setAppearance({ accent: a.id, accentSetByUser: true, customAccent: null })}
             className="w-9 h-9 rounded-full flex items-center justify-center transition-transform hover:scale-110"
             style={{ background: a.color }}
           >
-            {effectiveAccent === a.id && (
+            {effectiveAccent === a.id && !appearance.customAccent && (
               <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
               </svg>
             )}
           </button>
         ))}
+        <CustomColorCircle
+          color={appearance.accentSetByUser ? appearance.customAccent : null}
+          active={!!appearance.customAccent && !!appearance.accentSetByUser}
+          onClick={() => togglePicker('accent')}
+        />
       </div>
+      {pickerFor === 'accent' && (
+        <ColorPicker
+          value={(appearance.accentSetByUser && appearance.customAccent) || accentPresetColor}
+          onChange={(hex) => setAppearance({ customAccent: hex, accentSetByUser: true })}
+        />
+      )}
 
       {companyAccent && appearance.accentSetByUser && (
         <button
@@ -383,10 +434,10 @@ export default function AppearanceSettings() {
         <button
           type="button"
           title="Как акцент приложения"
-          onClick={() => setAppearance({ bubbleColor: 'accent' })}
+          onClick={() => setAppearance({ bubbleColor: 'accent', customBubbleColor: null })}
           className="w-9 h-9 rounded-full bg-violet-500 flex items-center justify-center transition-transform hover:scale-110"
         >
-          {appearance.bubbleColor === 'accent' ? (
+          {appearance.bubbleColor === 'accent' && !appearance.customBubbleColor ? (
             <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
             </svg>
@@ -401,20 +452,34 @@ export default function AppearanceSettings() {
             key={a.id}
             type="button"
             title={a.name}
-            onClick={() => setAppearance({ bubbleColor: a.id })}
+            onClick={() => setAppearance({ bubbleColor: a.id, customBubbleColor: null })}
             className="w-9 h-9 rounded-full flex items-center justify-center transition-transform hover:scale-110"
             style={{ background: a.color }}
           >
-            {appearance.bubbleColor === a.id && (
+            {appearance.bubbleColor === a.id && !appearance.customBubbleColor && (
               <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
               </svg>
             )}
           </button>
         ))}
+        <CustomColorCircle
+          color={appearance.customBubbleColor}
+          active={!!appearance.customBubbleColor}
+          onClick={() => togglePicker('bubble')}
+        />
       </div>
+      {pickerFor === 'bubble' && (
+        <ColorPicker
+          value={appearance.customBubbleColor
+            ?? ACCENTS.find((a) => a.id === appearance.bubbleColor)?.color
+            ?? accentPresetColor}
+          onChange={(hex) => setAppearance({ customBubbleColor: hex })}
+        />
+      )}
       <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
-        Цвет ваших сообщений в чате. Первый вариант — следовать акценту приложения.
+        Цвет ваших сообщений в чате. Первый вариант — следовать акценту приложения,
+        последний — выбрать свой оттенок по спектру.
       </p>
 
       {/* Переключатели */}
@@ -561,7 +626,55 @@ export default function AppearanceSettings() {
             Свои
           </span>
         </div>
+
+        {/* Свой цвет фона — выбор по спектру */}
+        <button
+          type="button"
+          onClick={() => {
+            togglePicker('wallpaper');
+            if (appearance.customWallpaperColor) {
+              setAppearance({ chatWallpaper: 'color' });
+            }
+          }}
+          className="flex flex-col items-center gap-1.5 group"
+        >
+          <div
+            className={`w-[72px] h-[52px] rounded-lg border-2 transition-colors flex items-center justify-center ${
+              appearance.chatWallpaper === 'color'
+                ? 'border-violet-500'
+                : 'border-gray-200 dark:border-gray-700 group-hover:border-gray-300 dark:group-hover:border-gray-600'
+            }`}
+            style={{
+              background:
+                appearance.customWallpaperColor
+                  ?? 'conic-gradient(#f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00)',
+            }}
+          >
+            {appearance.chatWallpaper === 'color' && (
+              <span className="w-5 h-5 rounded-full bg-violet-500 flex items-center justify-center">
+                <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+              </span>
+            )}
+          </div>
+          <span
+            className={`text-[11px] ${
+              appearance.chatWallpaper === 'color'
+                ? 'text-violet-500 font-medium'
+                : 'text-gray-400 dark:text-gray-500'
+            }`}
+          >
+            Цвет
+          </span>
+        </button>
       </div>
+      {pickerFor === 'wallpaper' && (
+        <ColorPicker
+          value={appearance.customWallpaperColor ?? (theme === 'dark' ? '#1f2937' : '#dcead0')}
+          onChange={(hex) => setAppearance({ chatWallpaper: 'color', customWallpaperColor: hex })}
+        />
+      )}
 
       {/* Узор поверх обоев */}
       <div className="mt-3">

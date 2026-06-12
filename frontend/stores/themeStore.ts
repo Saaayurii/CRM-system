@@ -4,6 +4,7 @@ import {
   AppearanceSettings,
   DEFAULT_APPEARANCE,
   ThemeMode,
+  isHexColor,
   resolveTheme,
   systemPrefersDark,
 } from '@/lib/appearance';
@@ -44,8 +45,17 @@ function sanitize(raw: unknown): AppearanceSettings {
   const merged = { ...DEFAULT_APPEARANCE, ...src };
   merged.fontSize = Math.min(20, Math.max(13, Number(merged.fontSize) || 16));
   merged.chatFontSize = Math.min(22, Math.max(12, Number(merged.chatFontSize) || 14));
-  // свои обои без загруженной картинки невозможны
+  // свои цвета по цветовому кругу — только валидный #RRGGBB
+  merged.customAccent = isHexColor(merged.customAccent) ? merged.customAccent : null;
+  merged.customBubbleColor = isHexColor(merged.customBubbleColor) ? merged.customBubbleColor : null;
+  merged.customWallpaperColor = isHexColor(merged.customWallpaperColor)
+    ? merged.customWallpaperColor
+    : null;
+  // свои обои без загруженной картинки/выбранного цвета невозможны
   if (merged.chatWallpaper === 'custom' && !merged.customWallpaperUrl) {
+    merged.chatWallpaper = 'default';
+  }
+  if (merged.chatWallpaper === 'color' && !merged.customWallpaperColor) {
     merged.chatWallpaper = 'default';
   }
   if (merged.density !== 'compact') merged.density = 'comfortable';

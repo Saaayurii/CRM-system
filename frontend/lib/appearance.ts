@@ -35,13 +35,16 @@ export type WallpaperId =
   | 'mint'
   | 'sunset'
   | 'graphite'
-  | 'custom';
+  | 'custom'
+  | 'color';
 
 export interface AppearanceSettings {
   /** Тема-пресет: классическая/дневная — светлые, ночная — тёмная, системная — за ОС */
   mode: ThemeMode;
   /** Акцентный цвет всего приложения */
   accent: AccentId;
+  /** Свой акцент по цветовому кругу (#RRGGBB) — перекрывает пресет accent */
+  customAccent: string | null;
   /** Пользователь выбирал акцент сам (иначе действует фирменный акцент компании) */
   accentSetByUser?: boolean;
   /** Базовый размер текста (px на корневом элементе), 16 — по умолчанию */
@@ -52,10 +55,14 @@ export interface AppearanceSettings {
   chatBubbles: boolean;
   /** Цвет исходящих сообщений (пузырей) */
   bubbleColor: BubbleColorId;
+  /** Свой цвет сообщений по цветовому кругу (#RRGGBB) — перекрывает bubbleColor */
+  customBubbleColor: string | null;
   /** Обои для чатов */
   chatWallpaper: WallpaperId;
   /** URL собственной картинки-обоев (chatWallpaper === 'custom') */
   customWallpaperUrl: string | null;
+  /** Свой цвет фона чата (#RRGGBB, chatWallpaper === 'color') */
+  customWallpaperColor: string | null;
   /** Полупрозрачный узор-doodle поверх обоев */
   chatPattern: boolean;
   /** Контрастность узора — непрозрачность штрихов, % (14 — как раньше) */
@@ -81,12 +88,15 @@ export interface AppearanceSettings {
 export const DEFAULT_APPEARANCE: AppearanceSettings = {
   mode: 'classic',
   accent: 'violet',
+  customAccent: null,
   fontSize: 16,
   chatFontSize: 14,
   chatBubbles: true,
   bubbleColor: 'accent',
+  customBubbleColor: null,
   chatWallpaper: 'default',
   customWallpaperUrl: null,
+  customWallpaperColor: null,
   chatPattern: false,
   patternContrast: 14,
   textContrast: 0,
@@ -145,8 +155,57 @@ export const ACCENTS: { id: AccentId; name: string; color: string }[] = [
   { id: 'pink', name: 'Розовый', color: '#ec4899' },
 ];
 
+/* ── Свой цвет по цветовому кругу (как редактор тем в Telegram) ──────────────
+   Из одного выбранного hex генерируется вся палитра оттенков через color-mix:
+   светлые шейды — подмес белого, тёмные — чёрного. Значения кладутся
+   inline-переменными на <html> и перекрывают пресетные палитры. */
+
+export const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
+
+export function isHexColor(v: unknown): v is string {
+  return typeof v === 'string' && HEX_COLOR_RE.test(v);
+}
+
+/** Доли подмеса для шейдов акцента: положительное — белый, отрицательное — чёрный */
+export const ACCENT_SHADE_MIX: Record<string, number> = {
+  '50': 94, '100': 88, '200': 75, '300': 55, '400': 28,
+  '500': 0, '600': -12, '700': -26, '800': -40, '900': -52, '950': -66,
+};
+
+/** Доли подмеса для шейдов пузырей сообщений */
+export const BUBBLE_SHADE_MIX: Record<string, number> = {
+  '200': 65, '300': 40, '400': 18, '500': 0, '600': -20,
+};
+
+function mixShade(hex: string, mix: number): string {
+  if (mix === 0) return hex;
+  const into = mix > 0 ? '#ffffff' : '#000000';
+  return `color-mix(in srgb, ${hex}, ${into} ${Math.abs(mix)}%)`;
+}
+
+/** CSS-переменные --color-violet-* для своего акцента */
+export function accentCssVars(hex: string): Record<string, string> {
+  const vars: Record<string, string> = {};
+  for (const [shade, mix] of Object.entries(ACCENT_SHADE_MIX)) {
+    vars[`--color-violet-${shade}`] = mixShade(hex, mix);
+  }
+  return vars;
+}
+
+/** CSS-переменные --color-bubble-* для своего цвета сообщений */
+export function bubbleCssVars(hex: string): Record<string, string> {
+  const vars: Record<string, string> = {};
+  for (const [shade, mix] of Object.entries(BUBBLE_SHADE_MIX)) {
+    vars[`--color-bubble-${shade}`] = mixShade(hex, mix);
+  }
+  return vars;
+}
+
+export const ACCENT_VAR_NAMES = Object.keys(ACCENT_SHADE_MIX).map((s) => `--color-violet-${s}`);
+export const BUBBLE_VAR_NAMES = Object.keys(BUBBLE_SHADE_MIX).map((s) => `--color-bubble-${s}`);
+
 export const WALLPAPERS: {
-  id: Exclude<WallpaperId, 'custom'>;
+  id: Exclude<WallpaperId, 'custom' | 'color'>;
   name: string;
   light: string | null;
   dark: string | null;
@@ -242,6 +301,7 @@ function patternUrl(opacityPct: number): string {
 export function getChatBackground(
   a: Pick<AppearanceSettings, 'chatWallpaper' | 'customWallpaperUrl' | 'chatPattern'> & {
     patternContrast?: number;
+    customWallpaperColor?: string | null;
   },
   theme: 'light' | 'dark',
 ): CSSProperties | null {
@@ -267,6 +327,15 @@ export function getChatBackground(
     layers.push({
       image: `url('${a.customWallpaperUrl}')`,
       size: 'cover',
+      repeat: 'no-repeat',
+    });
+  } else if (a.chatWallpaper === 'color' && isHexColor(a.customWallpaperColor)) {
+    // Свой цвет фона: лёгкий вертикальный градиент вокруг выбранного тона,
+    // чтобы фон не выглядел плоской заливкой (как пресетные обои)
+    const c = a.customWallpaperColor;
+    layers.push({
+      image: `linear-gradient(180deg, color-mix(in srgb, ${c}, #fff 8%) 0%, color-mix(in srgb, ${c}, #000 8%) 100%)`,
+      size: 'auto',
       repeat: 'no-repeat',
     });
   } else {
