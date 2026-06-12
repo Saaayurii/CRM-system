@@ -265,6 +265,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesInnerRef = useRef<HTMLDivElement>(null);
   const prevMessagesLenRef = useRef(0);
+  const lastMsgIdRef = useRef<number | null>(null);
   const initialLoadRef = useRef(false);
   const isInitialLoadingRef = useRef(false);
   const wasAtBottomRef = useRef(true);
@@ -399,6 +400,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
       initialLoadRef.current = false;
       isInitialLoadingRef.current = false;
       prevMessagesLenRef.current = messages.length;
+      lastMsgIdRef.current = messages[messages.length - 1]?.id ?? null;
       wasAtBottomRef.current = true;
 
       // Snap to bottom, but stop the moment the user scrolls up. We flag the
@@ -426,17 +428,35 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
       };
     }
 
-    const isNewMessage = messages.length > prevMessagesLenRef.current;
+    // «Новое сообщение» — только append в конец (id последнего изменился).
+    // Подгрузка истории сверху тоже растит length, но последний id тот же —
+    // иначе prepend ошибочно уводил чат вниз/вверх (последнее сообщение
+    // почти всегда своё, и isOwnNew срабатывал на каждую подгрузку).
+    const lastMsg = messages[messages.length - 1];
+    const isNewMessage =
+      messages.length > prevMessagesLenRef.current &&
+      lastMsg != null &&
+      lastMsg.id !== lastMsgIdRef.current;
     prevMessagesLenRef.current = messages.length;
+    lastMsgIdRef.current = lastMsg?.id ?? null;
     if (isNewMessage) {
       const isNearBottom =
         container.scrollHeight - container.scrollTop - container.clientHeight < 150;
       // Своё сообщение всегда уводит вниз, даже если читали историю выше
-      const lastMsg = messages[messages.length - 1];
       const isOwnNew = lastMsg && lastMsg.senderId === user?.id;
       if (isNearBottom || isOwnNew) {
+        // Гасим якорь подгрузки истории, иначе ResizeObserver вернёт скролл
+        // обратно к старой позиции и сообщение «отскроллит» в историю
+        prependAnchorRef.current = null;
+        if (prependStabilizeTimerRef.current) clearTimeout(prependStabilizeTimerRef.current);
+        // Флаг на время smooth-анимации: события скролла не должны запускать
+        // автоподгрузку истории и сбрасывать wasAtBottom
+        isProgrammaticScrollRef.current = true;
+        if (programmaticScrollTimerRef.current) clearTimeout(programmaticScrollTimerRef.current);
+        programmaticScrollTimerRef.current = setTimeout(() => { isProgrammaticScrollRef.current = false; }, 600);
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
         wasAtBottomRef.current = true;
+        setNewBelowCount(0);
       } else if (lastMsg) {
         // Читаем историю выше — копим счётчик на стрелке «вниз»
         setNewBelowCount((c) => c + 1);
@@ -518,6 +538,13 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
     setSnapParticles(pts);
     setIsSnapping(true);
     setNewBelowCount(0);
+    // Кнопка «вниз» отменяет якорь истории и помечает скролл программным,
+    // чтобы анимация не запускала автоподгрузку и не дралась с repin
+    prependAnchorRef.current = null;
+    if (prependStabilizeTimerRef.current) clearTimeout(prependStabilizeTimerRef.current);
+    isProgrammaticScrollRef.current = true;
+    if (programmaticScrollTimerRef.current) clearTimeout(programmaticScrollTimerRef.current);
+    programmaticScrollTimerRef.current = setTimeout(() => { isProgrammaticScrollRef.current = false; }, 600);
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     setTimeout(() => {
       setSnapParticles([]);
@@ -545,7 +572,10 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
     if (distFromBottom < 80) setNewBelowCount((c) => (c === 0 ? c : 0));
     setShowScrollBtn(distFromBottom > 300);
     if (isLoadingMessages || !hasMoreMessages || !activeChannelId) return;
-    if (container.scrollTop < 200 && messages.length > 0) {
+    // Подгружаем историю только когда пользователь сам докрутил до верха:
+    // программный скролл (smooth-анимация к низу) проходит через зону <200
+    // и иначе запускал бы лишний фетч с якорем, утаскивающим чат в историю
+    if (!isProgrammaticScrollRef.current && container.scrollTop < 200 && messages.length > 0) {
       const firstId = messages[0].id;
       const anchorEl = container.querySelector(`[data-msgid="${firstId}"]`) as HTMLElement | null;
       const anchorTop = anchorEl?.getBoundingClientRect().top ?? container.getBoundingClientRect().top;

@@ -469,6 +469,9 @@ function MiniChatView() {
   // Автоскролл вниз при новом сообщении / смене канала (но не при подгрузке истории)
   const lastMsgId = messages.length > 0 ? messages[messages.length - 1].id : null;
   useEffect(() => {
+    // Новое сообщение отменяет якорь подгрузки истории, иначе догрузка медиа
+    // из старой пачки вернёт скролл обратно наверх
+    prependAnchorRef.current = null;
     const el = listRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [lastMsgId, activeChannelId]);
