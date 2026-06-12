@@ -53,6 +53,18 @@ const ICON_TRASH = (
     <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
   </svg>
 );
+const ICON_COPY_MEDIA = (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+    <circle cx="8.5" cy="8.5" r="1.5" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M21 15l-5-5L5 21" />
+  </svg>
+);
+const ICON_SAVE_AS = (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 4v12m0 0l-4-4m4 4l4-4" />
+  </svg>
+);
 
 interface Reader {
   id: number;
@@ -243,8 +255,9 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
   const [showMobileActions, setShowMobileActions] = useState(false);
   const [isSelected, setIsSelected] = useState(false);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
-  // Desktop right-click context menu (compact popover at cursor)
-  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null);
+  // Desktop right-click context menu (compact popover at cursor);
+  // mediaUrl — медиа, по которому кликнули (для «Копировать медиа»/«Сохранить как…» в альбоме)
+  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; mediaUrl?: string | null } | null>(null);
   const ctxMenuRef = useRef<HTMLDivElement>(null);
   const [ctxAdjusted, setCtxAdjusted] = useState<{ left: number; top: number } | null>(null);
   const [showProfile, setShowProfile] = useState(false);
@@ -260,6 +273,73 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
   const bubbleRef = useRef<HTMLDivElement>(null);
 
   const openViewer = useCallback((mediaIndex: number) => setViewerIndex(mediaIndex), []);
+
+  // «Копировать медиа» — картинка в буфер обмена. Clipboard API принимает
+  // только PNG, поэтому JPEG/WebP перекодируем через canvas.
+  const handleCopyMedia = useCallback(async (media: MediaItem | null) => {
+    if (!media || media.type !== 'image') return;
+    if (!navigator.clipboard || typeof ClipboardItem === 'undefined') {
+      addToast('error', 'Браузер не поддерживает копирование изображений');
+      return;
+    }
+    try {
+      const resp = await fetch(media.url);
+      const blob = await resp.blob();
+      let pngBlob = blob;
+      if (blob.type !== 'image/png') {
+        const bmp = await createImageBitmap(blob);
+        const canvas = document.createElement('canvas');
+        canvas.width = bmp.width;
+        canvas.height = bmp.height;
+        canvas.getContext('2d')!.drawImage(bmp, 0, 0);
+        pngBlob = await new Promise<Blob>((resolve, reject) =>
+          canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob failed'))), 'image/png')
+        );
+      }
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': pngBlob })]);
+      addToast('success', 'Изображение скопировано');
+    } catch {
+      addToast('error', 'Не удалось скопировать изображение');
+    }
+  }, [addToast]);
+
+  // «Сохранить как…» — нативный диалог выбора места (Chrome/Edge),
+  // в остальных браузерах обычное скачивание с именем файла
+  const handleSaveMedia = useCallback(async (media: MediaItem | null) => {
+    if (!media) return;
+    const name = media.name || media.url.split('/').pop() || 'file';
+    try {
+      const picker = (window as unknown as {
+        showSaveFilePicker?: (opts: { suggestedName: string }) => Promise<FileSystemFileHandle>;
+      }).showSaveFilePicker;
+      const resp = await fetch(media.url);
+      const blob = await resp.blob();
+      if (picker) {
+        const handle = await picker.call(window, { suggestedName: name });
+        const writable = await handle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = name;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    } catch (err) {
+      if ((err as DOMException)?.name === 'AbortError') return; // пользователь закрыл диалог
+      addToast('error', 'Не удалось сохранить файл');
+    }
+  }, [addToast]);
+
+  // Медиа, к которому относятся пункты меню: на десктопе — то, по которому
+  // кликнули правой кнопкой; иначе (мобильный sheet, клик мимо медиа) — первое
+  const ctxMedia = (ctxMenu?.mediaUrl && mediaItems.find((m) => m.url === ctxMenu.mediaUrl))
+    || mediaItems[0] || null;
+  const ctxCopyableImage = ctxMedia?.type === 'image'
+    ? ctxMedia
+    : mediaItems.find((m) => m.type === 'image') ?? null;
   const closeViewer = useCallback(() => setViewerIndex(null), []);
 
   // Long press to show actions on touch devices
@@ -441,7 +521,13 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
         if (isCoarse) {
           setShowMobileActions(true);
         } else {
-          setCtxMenu({ x: e.clientX, y: e.clientY });
+          // Запоминаем медиа под курсором — в альбоме «Копировать/Сохранить»
+          // должны работать именно с той картинкой, по которой кликнули
+          const mediaEl = (e.target as HTMLElement).closest?.('img, video');
+          const mediaUrl = mediaEl?.getAttribute('src')
+            ?? mediaEl?.querySelector('source')?.getAttribute('src')
+            ?? null;
+          setCtxMenu({ x: e.clientX, y: e.clientY, mediaUrl });
         }
       }}
     >
@@ -835,6 +921,28 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
               </button>
             )}
 
+            {/* Copy media (first image) */}
+            {ctxCopyableImage && (
+              <button
+                onClick={() => { handleCopyMedia(ctxCopyableImage); setShowMobileActions(false); setIsSelected(false); }}
+                className="w-full flex items-center justify-between px-3.5 py-2 text-white hover:bg-white/10 active:bg-white/15 transition-colors border-b border-white/10"
+              >
+                <span className="text-[13px]">{t('Копировать медиа')}</span>
+                <span className="text-gray-400">{ICON_COPY_MEDIA}</span>
+              </button>
+            )}
+
+            {/* Save as */}
+            {ctxMedia && (
+              <button
+                onClick={() => { handleSaveMedia(ctxMedia); setShowMobileActions(false); setIsSelected(false); }}
+                className="w-full flex items-center justify-between px-3.5 py-2 text-white hover:bg-white/10 active:bg-white/15 transition-colors border-b border-white/10"
+              >
+                <span className="text-[13px]">{t('Сохранить как…')}</span>
+                <span className="text-gray-400">{ICON_SAVE_AS}</span>
+              </button>
+            )}
+
             {/* Edit (own text messages only) */}
             {isOwn && message.text && onEdit && (
               <button
@@ -942,6 +1050,26 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
                 >
                   <span className={CTX_ICON}>{ICON_COPY}</span>
                   <span className="flex-1">{t('Копировать текст')}</span>
+                </button>
+              )}
+
+              {ctxCopyableImage && (
+                <button
+                  onClick={() => { handleCopyMedia(ctxCopyableImage); setCtxMenu(null); }}
+                  className={CTX_ITEM}
+                >
+                  <span className={CTX_ICON}>{ICON_COPY_MEDIA}</span>
+                  <span className="flex-1">{t('Копировать медиа')}</span>
+                </button>
+              )}
+
+              {ctxMedia && (
+                <button
+                  onClick={() => { handleSaveMedia(ctxMedia); setCtxMenu(null); }}
+                  className={CTX_ITEM}
+                >
+                  <span className={CTX_ICON}>{ICON_SAVE_AS}</span>
+                  <span className="flex-1">{t('Сохранить как…')}</span>
                 </button>
               )}
 
