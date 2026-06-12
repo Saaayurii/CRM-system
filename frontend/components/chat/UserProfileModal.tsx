@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import api from '@/lib/api';
 import { useT } from '@/lib/i18n';
+import { useChatStore } from '@/stores/chatStore';
+import { formatLastSeen } from '@/lib/chat/channelDisplay';
 
 interface UserProfile {
   id: number;
@@ -96,11 +98,29 @@ export default function UserProfileModal({ userId, onClose }: Props) {
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
+  // Реальный presence вместо ручного поля availability: «Онлайн» по факту
+  // подключения, офлайн — «был(а) в сети N минут назад»
+  const isOnline = useChatStore((s) => s.onlineUsers).has(userId);
+  const lastSeenAtMap = useChatStore((s) => s.lastSeenAt);
+  const fetchLastSeen = useChatStore((s) => s.fetchLastSeen);
+  useEffect(() => {
+    if (!isOnline) fetchLastSeen([userId]);
+  }, [userId, isOnline, fetchLastSeen]);
+  const lastSeenText = formatLastSeen(lastSeenAtMap[userId]);
+
   if (typeof document === 'undefined') return null;
 
   const active = user?.isActive ?? true;
   const roleName = user?.role?.name || ROLE_NAMES[user?.roleId || 0] || '—';
-  const availLabel = AVAILABILITY_LABEL[user?.availability ?? 1] ?? 'Онлайн';
+  const presenceLabel = isOnline
+    ? 'Онлайн'
+    : lastSeenText
+    ? `был(а) в сети ${lastSeenText}`
+    : 'Не в сети';
+  // Ручные статусы (Занят/Отпуск/Больничный) показываем вместе с presence
+  const manualLabel =
+    (user?.availability ?? 1) >= 2 ? AVAILABILITY_LABEL[user!.availability!] : null;
+  const availLabel = manualLabel ? `${manualLabel} · ${presenceLabel}` : presenceLabel;
   const birthDate = fmtDate(user?.birthDate);
   const hireDate = fmtDate(user?.hireDate);
   const displayName = user?.name || user?.email || 'Пользователь';
@@ -208,7 +228,9 @@ export default function UserProfileModal({ userId, onClose }: Props) {
                 </svg>
                 <div>
                   <dt className="text-xs text-gray-400">{t('Доступность')}</dt>
-                  <dd className="text-sm text-gray-800 dark:text-gray-100">{availLabel}</dd>
+                  <dd className={`text-sm ${isOnline ? 'text-green-600 dark:text-green-400' : 'text-gray-800 dark:text-gray-100'}`}>
+                    {availLabel}
+                  </dd>
                 </div>
               </div>
 
