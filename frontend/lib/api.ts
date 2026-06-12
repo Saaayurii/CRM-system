@@ -51,8 +51,12 @@ api.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
-    // Skip token refresh for auth endpoints (login, register) — let the caller handle 401 directly
-    const isAuthEndpoint = originalRequest.url?.includes('/auth/login') || originalRequest.url?.includes('/auth/register');
+    // Skip token refresh for auth endpoints (login, register, client portal) —
+    // let the caller handle 401 directly (e.g. show "wrong login/password")
+    const isAuthEndpoint =
+      originalRequest.url?.includes('/auth/login') ||
+      originalRequest.url?.includes('/auth/register') ||
+      originalRequest.url?.includes('/auth/portal/');
 
     if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
       if (isRefreshing) {
@@ -92,7 +96,15 @@ api.interceptors.response.use(
         localStorage.removeItem('refreshToken');
         document.cookie = 'crm-session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
         if (typeof window !== 'undefined') {
-          window.location.href = '/auth/login';
+          const path = window.location.pathname;
+          if (path.startsWith('/portal')) {
+            // Клиента портала возвращаем на его форму входа, а не на сотрудничью
+            window.location.href = '/portal/login';
+          } else if (path.startsWith('/dashboard') || path.startsWith('/admin')) {
+            window.location.href = '/auth/login';
+          }
+          // Публичные страницы (лендинг, /auth/*, privacy): токены уже очищены,
+          // принудительный редирект на форму входа не нужен — остаёмся на месте.
         }
         return Promise.reject(refreshError);
       } finally {
