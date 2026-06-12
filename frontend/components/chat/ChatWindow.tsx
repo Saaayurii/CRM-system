@@ -1150,6 +1150,8 @@ function InfoPanel({ channel, partner, isSelf, isPartnerOnline, isAdmin, isCompa
   const [showAddMember, setShowAddMember] = useState(false);
   const updateChannels = useChatStore((s) => s.fetchChannels);
   const canManageMembers = isAdmin || isCompanyAdmin;
+  const lastSeenAt = useChatStore((s) => s.lastSeenAt);
+  const partnerLastSeenText = partner ? formatLastSeen(lastSeenAt[partner.id]) : null;
 
   useEffect(() => {
     setMembers(channel.members ?? []);
@@ -1240,7 +1242,11 @@ function InfoPanel({ channel, partner, isSelf, isPartnerOnline, isAdmin, isCompa
                     isPartnerOnline ? 'bg-green-500' : 'bg-gray-400'
                   }`}
                 />
-                {isPartnerOnline ? 'В сети' : 'Не в сети'}
+                {isPartnerOnline
+                  ? 'В сети'
+                  : partnerLastSeenText
+                  ? `был(а) в сети ${partnerLastSeenText}`
+                  : 'Не в сети'}
               </span>
             )}
             {isSelf && (

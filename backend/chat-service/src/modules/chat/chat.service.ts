@@ -457,6 +457,10 @@ export class ChatService {
     return this.chatRepository.getUnreadSummary(userId);
   }
 
+  async getLastSeenFromSessions(userIds: number[]): Promise<Record<number, Date>> {
+    return this.chatRepository.getLastSeenFromSessions(userIds);
+  }
+
   async findUserMediaAttachments(
     accountId: number,
     userId: number,

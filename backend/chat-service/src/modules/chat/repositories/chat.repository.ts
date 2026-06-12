@@ -446,6 +446,27 @@ export class ChatRepository {
     return summary;
   }
 
+  /**
+   * Fallback для «был(а) в сети»: presence в Redis эфемерный (стирается при
+   * рестарте), а user_sessions.last_seen_at обновляется auth-сервисом при
+   * каждой ротации refresh-токена. Таблица не входит в Prisma-схему чата.
+   */
+  async getLastSeenFromSessions(userIds: number[]): Promise<Record<number, Date>> {
+    if (userIds.length === 0) return {};
+    const rows = await (this.prisma as any).$queryRawUnsafe(
+      `SELECT user_id, MAX(last_seen_at) AS last_seen
+       FROM user_sessions
+       WHERE user_id = ANY($1::int[])
+       GROUP BY user_id`,
+      userIds,
+    );
+    const result: Record<number, Date> = {};
+    for (const row of rows as { user_id: number; last_seen: Date }[]) {
+      if (row.last_seen) result[row.user_id] = new Date(row.last_seen);
+    }
+    return result;
+  }
+
   // --- Pinned messages ---
 
   async pinMessage(channelId: number, messageId: number, messageText: string, senderName: string) {

@@ -89,9 +89,20 @@ export class ChatController {
       .filter((n) => Number.isFinite(n) && n > 0)
       .slice(0, 100);
     const lastSeen = await this.presenceService.getLastSeen(userIds);
+    // Redis эфемерный: после рестарта presence:lastseen пуст — добираем
+    // из user_sessions.last_seen_at (обновляется при ротации refresh-токена)
+    const missing = userIds.filter((id) => !lastSeen[id]);
+    const fromSessions =
+      missing.length > 0
+        ? await this.chatService.getLastSeenFromSessions(missing)
+        : {};
     const result: Record<number, string | null> = {};
     for (const id of userIds) {
-      result[id] = lastSeen[id] ? new Date(lastSeen[id]!).toISOString() : null;
+      result[id] = lastSeen[id]
+        ? new Date(lastSeen[id]!).toISOString()
+        : fromSessions[id]
+          ? fromSessions[id].toISOString()
+          : null;
     }
     return result;
   }
