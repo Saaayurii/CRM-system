@@ -20,7 +20,7 @@ export class DocumentsService {
     user: RequestUser,
     page: number,
     limit: number,
-    filters?: { projectId?: number; documentType?: string; status?: string; constructionSiteId?: number },
+    filters?: { projectId?: number; documentType?: string; status?: string; constructionSiteId?: number; search?: string },
   ) {
     const allowedProjectIds = await getClientAllowedProjectIds(this.prisma, user);
     return this.documentRepository.findAll(user.accountId, page, limit, {

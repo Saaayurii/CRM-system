@@ -17,10 +17,19 @@ export class DocumentRepository {
       status?: string;
       constructionSiteId?: number;
       allowedProjectIds?: number[];
+      search?: string;
     },
   ) {
     const skip = (page - 1) * limit;
     const where: any = { accountId, deletedAt: null };
+
+    if (filters?.search) {
+      where.OR = [
+        { title: { contains: filters.search, mode: 'insensitive' } },
+        { documentNumber: { contains: filters.search, mode: 'insensitive' } },
+        { description: { contains: filters.search, mode: 'insensitive' } },
+      ];
+    }
 
     if (filters?.projectId) {
       where.projectId = filters.projectId;
