@@ -325,6 +325,15 @@
   animation: ctx-pop-in 0.16s cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
 }
 
+/* Плавное проявление блюр-подложки под меню сообщения (long-press) */
+@keyframes ctx-backdrop-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.animate-ctx-backdrop-in {
+  animation: ctx-backdrop-in 0.22s ease-out forwards;
+}
+
 /* Brief highlight glow on the message you long-pressed.
    Uses box-shadow only (no transform) so the bubble does NOT shift. */
 @keyframes chat-msg-select {

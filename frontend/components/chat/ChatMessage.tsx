@@ -254,6 +254,8 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [showMobileActions, setShowMobileActions] = useState(false);
   const [isSelected, setIsSelected] = useState(false);
+  // Палец удерживает сообщение — пузырь плавно «вжимается» (как в Telegram)
+  const [isPressing, setIsPressing] = useState(false);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   // Desktop right-click context menu (compact popover at cursor);
   // mediaUrl — медиа, по которому кликнули (для «Копировать медиа»/«Сохранить как…» в альбоме)
@@ -346,9 +348,11 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
   const handleTouchStart = useCallback(() => {
     if (readOnly) return;
     touchMoved.current = false;
+    setIsPressing(true); // запускает медленное вжатие на время удержания
     longPressTimer.current = setTimeout(() => {
       if (!touchMoved.current) {
         haptic(30);          // haptic feedback on long-press (Android + iOS fallback)
+        setIsPressing(false); // пузырь пружинит обратно вместе с появлением меню
         setIsSelected(true); // brief selection glow on the bubble
         setShowMobileActions(true);
       }
@@ -366,6 +370,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
 
   const handleTouchEnd = useCallback((e: React.TouchEvent) => {
     if (longPressTimer.current) clearTimeout(longPressTimer.current);
+    setIsPressing(false);
     if (touchMoved.current) return;
     const now = Date.now();
     if (now - lastTapRef.current < 300) {
@@ -378,6 +383,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
 
   const handleTouchMove = useCallback(() => {
     touchMoved.current = true;
+    setIsPressing(false); // скролл — отпускаем вжатие сразу
     if (longPressTimer.current) clearTimeout(longPressTimer.current);
   }, []);
 
@@ -507,7 +513,19 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
     <div
       data-message-id={message.id}
       className={`flex gap-2 group [@media(pointer:coarse)]:select-none ${own ? 'flex-row-reverse' : ''} ${showAvatar ? 'mt-3' : 'mt-0.5'} ${isPinned ? 'ring-1 ring-violet-300 dark:ring-violet-700 rounded-2xl' : ''}`}
-      style={{ transition: 'opacity 0.7s ease-out, transform 0.7s ease-out, filter 0.7s ease-out', opacity: isDeleting ? 0 : 1, transform: isDeleting ? 'scale(0.95)' : 'scale(1)', filter: isDeleting ? 'blur(6px)' : 'none' }}
+      style={{
+        // Вжатие при удержании: медленный ease-out пока палец держит,
+        // быстрый пружинистый возврат при отпускании/открытии меню.
+        // Анимация удаления сохраняет свои исходные 0.7s.
+        transition: isDeleting
+          ? 'opacity 0.7s ease-out, transform 0.7s ease-out, filter 0.7s ease-out'
+          : isPressing
+          ? 'transform 0.55s cubic-bezier(0.22, 1, 0.36, 1)'
+          : 'transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1)',
+        opacity: isDeleting ? 0 : 1,
+        transform: isDeleting ? 'scale(0.95)' : isPressing ? 'scale(0.96)' : 'scale(1)',
+        filter: isDeleting ? 'blur(6px)' : 'none',
+      }}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       onTouchMove={handleTouchMove}
@@ -844,7 +862,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
           onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setShowMobileActions(false); setIsSelected(false); }}
         >
           {/* Blurred backdrop */}
-          <div className="absolute inset-0 bg-black/35 backdrop-blur-md" />
+          <div className="absolute inset-0 bg-black/35 backdrop-blur-md animate-ctx-backdrop-in" />
 
           {/* Emoji reaction row */}
           <div
@@ -864,7 +882,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
 
           {/* Message preview bubble */}
           <div
-            className={`relative z-10 w-full flex ${own ? 'justify-end' : 'justify-start'}`}
+            className={`relative z-10 w-full flex animate-ctx-pop-in ${own ? 'justify-end' : 'justify-start'}`}
             onClick={(e) => e.stopPropagation()}
           >
             <div className={`max-w-[75%] rounded-2xl px-3 py-2 shadow-lg ${
@@ -1019,7 +1037,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
             className="flex flex-col gap-1.5"
           >
             {/* Emoji reaction row */}
-            <div className="self-start flex items-center gap-0.5 px-1.5 py-1 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-xl">
+            <div className="self-start flex items-center gap-0.5 px-1.5 py-1 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-xl animate-ctx-pop-in">
               {QUICK_EMOJIS.map((emoji) => (
                 <button
                   key={emoji}
@@ -1032,7 +1050,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
             </div>
 
             {/* Menu card */}
-            <div className="min-w-[210px] py-1 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-xl overflow-hidden">
+            <div className="min-w-[210px] py-1 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-xl overflow-hidden animate-ctx-pop-in">
               <button onClick={() => { onReply(); setCtxMenu(null); }} className={CTX_ITEM}>
                 <span className={CTX_ICON}>{ICON_REPLY}</span>
                 <span className="flex-1">{t('Ответить')}</span>
