@@ -287,6 +287,7 @@ interface ChatState {
   markChannelUnread: (channelId: number) => Promise<void>;
   clearChannelHistory: (channelId: number) => Promise<void>;
   fetchLastSeen: (userIds: number[]) => Promise<void>;
+  fetchPresence: (userIds: number[]) => Promise<void>;
   fetchProjectChannels: (projectId: number) => Promise<ChatChannel[]>;
   fetchMessages: (channelId: number, cursor?: number) => Promise<void>;
   createChannel: (dto: CreateChannelDto) => Promise<ChatChannel | null>;
@@ -302,6 +303,10 @@ let connectionRefs = 0;
 // Reads requested before the socket finished connecting (e.g. opening a
 // channel straight from a push notification). Flushed on 'connect'.
 const pendingReads = new Set<number>();
+// Троттлинг fetchPresence: аватар и бейдж в одной модалке монтируются
+// одновременно и просят presence одного и того же пользователя
+const presenceFetchedAt: Record<number, number> = {};
+const PRESENCE_TTL_MS = 10_000;
 
 export const useChatStore = create<ChatState>((set, get) => ({
   channels: [],
@@ -765,6 +770,38 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }
     } catch {
       // ignore — статус «не в сети» останется без времени
+    }
+  },
+
+  // REST-снимок presence для страниц без чат-сокета (например, «Сотрудники»)
+  fetchPresence: async (userIds) => {
+    const now = Date.now();
+    const ids = userIds.filter(
+      (id) => id > 0 && now - (presenceFetchedAt[id] || 0) > PRESENCE_TTL_MS
+    );
+    if (ids.length === 0) return;
+    for (const id of ids) presenceFetchedAt[id] = now;
+    try {
+      const { data } = await api.get('/chat-channels/presence', {
+        params: { userIds: ids.join(',') },
+      });
+      if (data && typeof data === 'object') {
+        set((state) => {
+          const online = new Set(state.onlineUsers);
+          const lastSeen = { ...state.lastSeenAt };
+          for (const [uid, p] of Object.entries(
+            data as Record<string, { online: boolean; lastSeenAt: string | null }>
+          )) {
+            const id = Number(uid);
+            if (p.online) online.add(id);
+            else online.delete(id);
+            if (p.lastSeenAt) lastSeen[id] = p.lastSeenAt;
+          }
+          return { onlineUsers: online, lastSeenAt: lastSeen };
+        });
+      }
+    } catch {
+      // ignore
     }
   },
 

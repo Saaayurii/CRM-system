@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useToastStore } from '@/stores/toastStore';
+import { useChatStore } from '@/stores/chatStore';
+import { formatLastSeen } from '@/lib/chat/channelDisplay';
 import { useT } from '@/lib/i18n';
 
 export interface EmployeeData {
@@ -57,9 +59,23 @@ export function getAvatarUrl(e: EmployeeData): string | null | undefined {
   return e.avatarUrl || e.avatar_url;
 }
 
-export function isOnline(e: EmployeeData): boolean {
-  const a = e.availability ?? 1;
-  return a === 1 || a === 2;
+/**
+ * Реальный presence из чат-сервиса (вместо ручного поля availability):
+ * REST-снимок при монтировании + live-обновления, если чат-сокет подключён.
+ */
+export function useEmployeePresence(userId: number | undefined): {
+  online: boolean;
+  lastSeenText: string | null;
+} {
+  const onlineUsers = useChatStore((s) => s.onlineUsers);
+  const lastSeenAt = useChatStore((s) => s.lastSeenAt);
+  const fetchPresence = useChatStore((s) => s.fetchPresence);
+  useEffect(() => {
+    if (userId) fetchPresence([userId]);
+  }, [userId, fetchPresence]);
+  const online = userId ? onlineUsers.has(userId) : false;
+  const lastSeenText = !online && userId ? formatLastSeen(lastSeenAt[userId]) : null;
+  return { online, lastSeenText };
 }
 
 export function fmtDate(v: string | null | undefined): string | null {
@@ -90,7 +106,7 @@ export function EmployeeAvatar({
   } as const;
   const s = sizes[size];
   const url = getAvatarUrl(employee);
-  const online = isOnline(employee);
+  const { online, lastSeenText } = useEmployeePresence(employee.id);
 
   return (
     <div className="relative shrink-0">
@@ -112,7 +128,7 @@ export function EmployeeAvatar({
           className={`absolute ${s.dot} rounded-full border-2 border-white dark:border-gray-800 ${
             online ? 'bg-green-500' : 'bg-gray-400'
           }`}
-          title={online ? 'Онлайн' : 'Офлайн'}
+          title={online ? 'Онлайн' : lastSeenText ? `был(а) в сети ${lastSeenText}` : 'Не в сети'}
         />
       )}
     </div>
@@ -121,7 +137,7 @@ export function EmployeeAvatar({
 
 export function OnlineBadge({ employee }: { employee: EmployeeData }) {
   const t = useT();
-  const online = isOnline(employee);
+  const { online, lastSeenText } = useEmployeePresence(employee.id);
   return (
     <span
       className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
@@ -130,7 +146,7 @@ export function OnlineBadge({ employee }: { employee: EmployeeData }) {
           : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
       }`}
     >
-      {online ? 'Онлайн' : 'Офлайн'}
+      {online ? 'Онлайн' : lastSeenText ? `был(а) в сети ${lastSeenText}` : 'Не в сети'}
     </span>
   );
 }

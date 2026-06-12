@@ -83,14 +83,46 @@ export class ChatController {
   @ApiQuery({ name: 'userIds', required: true, description: 'Comma-separated user ids' })
   @ApiResponse({ status: 200, description: 'Map userId → ISO date | null' })
   async getLastSeen(@Query('userIds') userIdsRaw?: string) {
-    const userIds = (userIdsRaw || '')
+    const userIds = this.parseUserIds(userIdsRaw);
+    const lastSeen = await this.resolveLastSeen(userIds);
+    const result: Record<number, string | null> = {};
+    for (const id of userIds) {
+      result[id] = lastSeen[id] ?? null;
+    }
+    return result;
+  }
+
+  @Get('presence')
+  @ApiOperation({ summary: 'Online status + last seen for the given users' })
+  @ApiQuery({ name: 'userIds', required: true, description: 'Comma-separated user ids' })
+  @ApiResponse({ status: 200, description: 'Map userId → { online, lastSeenAt }' })
+  async getPresence(@Query('userIds') userIdsRaw?: string) {
+    const userIds = this.parseUserIds(userIdsRaw);
+    const [online, lastSeen] = await Promise.all([
+      this.presenceService.getOnlineUsers(userIds),
+      this.resolveLastSeen(userIds),
+    ]);
+    const result: Record<number, { online: boolean; lastSeenAt: string | null }> = {};
+    for (const id of userIds) {
+      result[id] = { online: !!online[id], lastSeenAt: lastSeen[id] ?? null };
+    }
+    return result;
+  }
+
+  private parseUserIds(raw?: string): number[] {
+    return (raw || '')
       .split(',')
       .map((s) => parseInt(s.trim(), 10))
       .filter((n) => Number.isFinite(n) && n > 0)
       .slice(0, 100);
+  }
+
+  /**
+   * Redis эфемерный: после рестарта presence:lastseen пуст — добираем
+   * из user_sessions.last_seen_at (обновляется при ротации refresh-токена)
+   */
+  private async resolveLastSeen(userIds: number[]): Promise<Record<number, string | null>> {
     const lastSeen = await this.presenceService.getLastSeen(userIds);
-    // Redis эфемерный: после рестарта presence:lastseen пуст — добираем
-    // из user_sessions.last_seen_at (обновляется при ротации refresh-токена)
     const missing = userIds.filter((id) => !lastSeen[id]);
     const fromSessions =
       missing.length > 0
