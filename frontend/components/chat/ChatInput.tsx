@@ -12,6 +12,11 @@ import { useT } from '@/lib/i18n';
 const TaskFormModal = dynamic(() => import('@/components/dashboard/TaskFormModal'), { ssr: false });
 const PhotoEditor = dynamic(() => import('./PhotoEditor'), { ssr: false });
 
+/* Плавающие «стеклянные» поверхности input-бара (в едином стиле с шапкой чата,
+   как в Telegram iOS): полупрозрачное стекло + блюр + тонкая рамка и тень. */
+const GLASS_SURFACE =
+  'bg-white/72 dark:bg-gray-900/55 backdrop-blur-xl border border-black/[0.06] dark:border-white/[0.08] shadow-[0_2px_10px_rgba(0,0,0,0.07)] dark:shadow-[0_2px_12px_rgba(0,0,0,0.35)]';
+
 /** Варианты исчезновения медиа (сек; -1 — один просмотр; undefined — не исчезает) */
 const TTL_OPTIONS: { value: number; label: string }[] = [
   { value: 0, label: 'Не исчезает' },
@@ -1455,7 +1460,7 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
   const canSend = (text.trim().length > 0 || pendingFiles.length > 0) && !isSending;
 
   return (
-    <div className="relative border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3">
+    <div className="relative px-3 pb-3 pt-2">
       {/* Video note recording overlay — Telegram style */}
       {isRecordingVideo && typeof document !== 'undefined' && createPortal(
         <div
@@ -1926,20 +1931,20 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
 
       {/* Recording UI */}
       {isRecording ? (
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <button onClick={cancelRecording}
-            className="shrink-0 p-2 text-gray-400 hover:text-red-500 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" title={t('Отменить')}>
+            className={`shrink-0 w-10 h-10 flex items-center justify-center rounded-full text-gray-500 dark:text-gray-300 hover:text-red-500 transition-colors ${GLASS_SURFACE}`} title={t('Отменить')}>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
           </button>
-          <div className="flex items-center gap-2 flex-1">
+          <div className={`flex items-center gap-2 flex-1 rounded-full px-4 py-2 ${GLASS_SURFACE}`}>
             <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse shrink-0" />
             <RecordingWaveform />
             <span className="text-sm font-mono text-gray-600 dark:text-gray-300 shrink-0 tabular-nums">{formatDuration(recordingTime)}</span>
           </div>
           <button onClick={stopRecording} disabled={recorderIsSending}
-            className="shrink-0 p-2 text-white bg-violet-500 hover:bg-violet-600 disabled:opacity-50 rounded-xl transition-colors" title={t('Остановить и отправить')}>
+            className="shrink-0 w-10 h-10 flex items-center justify-center text-white bg-violet-500 hover:bg-violet-600 disabled:opacity-50 rounded-full transition-colors shadow-[0_2px_10px_rgba(124,58,237,0.4)]" title={t('Остановить и отправить')}>
             {recorderIsSending ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
               : <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h12v12H6z" /></svg>}
           </button>
@@ -1951,7 +1956,7 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
             <button
               onClick={() => setShowAttachMenu((v) => !v)}
               disabled={isSending}
-              className={`p-2 rounded-xl transition-colors disabled:opacity-50 ${showAttachMenu ? 'text-violet-500 bg-violet-50 dark:bg-violet-900/20' : 'text-gray-400 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/20'}`}
+              className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors disabled:opacity-50 ${GLASS_SURFACE} ${showAttachMenu ? 'text-violet-500' : 'text-gray-500 dark:text-gray-300 hover:text-violet-500'}`}
               title={t('Прикрепить файл')}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
@@ -2033,7 +2038,7 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
                     ? 'Текст комментария…'
                     : projectId ? 'Сообщение... (# задача, @ упоминание, #new)' : 'Сообщение'
               }
-              className={`w-full py-2 pl-3 pr-9 bg-gray-100 dark:bg-gray-700 border-0 rounded-xl text-sm text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-violet-500 focus:outline-none overflow-y-auto min-h-[38px] max-h-[120px] break-words leading-relaxed ${isSending ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`w-full py-2.5 pl-4 pr-9 rounded-3xl text-sm text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-violet-500 focus:outline-none overflow-y-auto min-h-[40px] max-h-[120px] break-words leading-relaxed ${GLASS_SURFACE} ${isSending ? 'opacity-50 cursor-not-allowed' : ''}`}
             />
             {/* Emoji button inside the input */}
             <div className="absolute right-1.5 bottom-1 z-10" ref={emojiPickerRef}>
@@ -2091,10 +2096,10 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
               onMouseEnter={() => { if (!recordHintSeen) setShowRecordTooltip(true); }}
               onMouseLeave={() => { if (showRecordTooltip) markRecordHintSeen(); }}
               disabled={isSending}
-              className={`p-2 rounded-xl transition-all duration-150 disabled:opacity-50 ${
+              className={`w-10 h-10 flex items-center justify-center rounded-full transition-all duration-150 disabled:opacity-50 ${
                 canSend
-                  ? 'text-white bg-violet-500 hover:bg-violet-600'
-                  : 'text-gray-400 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/20'
+                  ? 'text-white bg-violet-500 hover:bg-violet-600 shadow-[0_2px_10px_rgba(124,58,237,0.4)]'
+                  : `${GLASS_SURFACE} text-gray-500 dark:text-gray-300 hover:text-violet-500`
               }`}
             >
               {isSending ? (

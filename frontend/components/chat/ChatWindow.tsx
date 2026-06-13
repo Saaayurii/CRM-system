@@ -14,6 +14,12 @@ import VoicePlayerBar from './VoicePlayerBar';
 import ForwardMessageModal from './ForwardMessageModal';
 import { useT } from '@/lib/i18n';
 
+/* Плавающие «стеклянные» поверхности шапки и input-бара чата (Liquid Glass,
+   как в Telegram iOS): полупрозрачное молочное стекло + блюр + тонкая рамка и
+   мягкая тень. Применяется во всех темах — куски парят поверх ленты. */
+const GLASS_SURFACE =
+  'bg-white/72 dark:bg-gray-900/55 backdrop-blur-xl border border-black/[0.06] dark:border-white/[0.08] shadow-[0_2px_10px_rgba(0,0,0,0.07)] dark:shadow-[0_2px_12px_rgba(0,0,0,0.35)]';
+
 /* ───────── Date helpers ───────── */
 
 const RU_MONTHS = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
@@ -748,25 +754,36 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
 
   return (
     <div className="flex flex-1 min-h-0 relative">
-      {/* Main chat column */}
-      <div className="flex flex-col flex-1 min-w-0 relative">
+      {/* Main chat column — обои/фон на самой колонке (статичны), лента и
+          input-бар прозрачны, поэтому стеклянные шапка и контролы парят над
+          единым фоном (как в Telegram), а не над сплошными панелями */}
+      <div
+        className={`flex flex-col flex-1 min-w-0 relative ${wallpaperStyle ? '' : 'bg-[#e9e9e9] dark:bg-gray-900'}`}
+        style={wallpaperStyle ?? undefined}
+      >
         {/* Floating frosted "Liquid Glass" top stack — лежит поверх ленты */}
         <div
           ref={topStackRef}
-          className="absolute inset-x-0 top-0 z-20 bg-white/75 dark:bg-gray-800/70 backdrop-blur-xl border-b border-gray-200/70 dark:border-gray-700/60 shadow-[0_1px_8px_rgba(0,0,0,0.04)] dark:shadow-[0_1px_8px_rgba(0,0,0,0.25)]"
+          className="absolute inset-x-0 top-0 z-20"
         >
-        {/* Header */}
-        <div className="flex items-center gap-3 px-4 py-3 shrink-0">
-          {/* Back button (mobile) */}
+        {/* Header — плавающие стеклянные пилюли поверх ленты (как в Telegram) */}
+        <div className="flex items-center gap-2 px-3 py-2.5 shrink-0">
+          {/* Back button (mobile) — стеклянный кружок */}
           <button
             onClick={onBack}
-            className="lg:hidden p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            className={`lg:hidden shrink-0 w-9 h-9 flex items-center justify-center rounded-full text-gray-600 dark:text-gray-200 ${GLASS_SURFACE}`}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
 
+          {/* Левая пилюля: аватар + имя/статус (клик открывает инфо-панель) */}
+          <button
+            type="button"
+            onClick={() => { setShowInfo(true); setShowSearch(false); setShowCalendar(false); }}
+            className={`flex items-center gap-2.5 min-w-0 mr-auto pl-1.5 pr-3.5 py-1.5 rounded-full text-left ${GLASS_SURFACE}`}
+          >
           {/* Avatar */}
           <div className="relative shrink-0">
             {(() => {
@@ -806,12 +823,8 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
             )}
           </div>
 
-          {/* Channel info — клик открывает инфо-панель справа (как в Telegram) */}
-          <button
-            type="button"
-            onClick={() => { setShowInfo(true); setShowSearch(false); setShowCalendar(false); }}
-            className="flex-1 min-w-0 text-left"
-          >
+          {/* Channel info — текст внутри пилюли */}
+          <div className="min-w-0">
             <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">
               {channelDisplayName}
             </h3>
@@ -828,57 +841,61 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
                 ? `был(а) в сети ${partnerLastSeenText}`
                 : 'Не в сети'}
             </p>
+          </div>
           </button>
 
-          {/* Calendar button */}
-          <button
-            onClick={() => { setShowCalendar((v) => !v); setShowSearch(false); setShowInfo(false); }}
-            className={`p-2 rounded-lg transition-colors ${
-              showCalendar
-                ? 'bg-violet-100 text-violet-600 dark:bg-violet-500/20 dark:text-violet-400'
-                : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-200 dark:hover:bg-gray-700'
-            }`}
-            title={t('Перейти к дате')}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-          </button>
+          {/* Правая капсула: календарь / поиск / инфо — сгруппированы с разделителями */}
+          <div className={`flex items-center shrink-0 rounded-full overflow-hidden divide-x divide-black/[0.06] dark:divide-white/[0.08] ${GLASS_SURFACE}`}>
+            {/* Calendar button */}
+            <button
+              onClick={() => { setShowCalendar((v) => !v); setShowSearch(false); setShowInfo(false); }}
+              className={`p-2.5 transition-colors ${
+                showCalendar
+                  ? 'bg-violet-500/15 text-violet-600 dark:text-violet-400'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-black/[0.04] dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-white/[0.06]'
+              }`}
+              title={t('Перейти к дате')}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </button>
 
-          {/* Search toggle */}
-          <button
-            onClick={() => { setShowSearch((v) => !v); setShowInfo(false); setShowCalendar(false); }}
-            className={`p-2 rounded-lg transition-colors ${
-              showSearch
-                ? 'bg-violet-100 text-violet-600 dark:bg-violet-500/20 dark:text-violet-400'
-                : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-200 dark:hover:bg-gray-700'
-            }`}
-            title={t('Поиск по сообщениям (Ctrl+F)')}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </button>
+            {/* Search toggle */}
+            <button
+              onClick={() => { setShowSearch((v) => !v); setShowInfo(false); setShowCalendar(false); }}
+              className={`p-2.5 transition-colors ${
+                showSearch
+                  ? 'bg-violet-500/15 text-violet-600 dark:text-violet-400'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-black/[0.04] dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-white/[0.06]'
+              }`}
+              title={t('Поиск по сообщениям (Ctrl+F)')}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </button>
 
-          {/* Info / settings toggle */}
-          <button
-            onClick={() => { setShowInfo((v) => !v); setShowSearch(false); }}
-            className={`p-2 rounded-lg transition-colors ${
-              showInfo
-                ? 'bg-violet-100 text-violet-600 dark:bg-violet-500/20 dark:text-violet-400'
-                : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-200 dark:hover:bg-gray-700'
-            }`}
-            title={t('Информация')}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </button>
+            {/* Info / settings toggle */}
+            <button
+              onClick={() => { setShowInfo((v) => !v); setShowSearch(false); }}
+              className={`p-2.5 transition-colors ${
+                showInfo
+                  ? 'bg-violet-500/15 text-violet-600 dark:text-violet-400'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-black/[0.04] dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-white/[0.06]'
+              }`}
+              title={t('Информация')}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         {/* Search bar */}
         {showSearch && (
-          <div className="flex items-center gap-2 px-3 py-2 border-t border-gray-200/70 dark:border-gray-700/60 shrink-0">
+          <div className={`flex items-center gap-2 mx-3 mt-1.5 px-3 py-2 rounded-2xl shrink-0 ${GLASS_SURFACE}`}>
             <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
@@ -932,7 +949,7 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
         {/* Pinned message banner */}
         {currentPinned && (
           <div
-            className="flex items-center gap-3 px-4 py-2 border-t border-gray-200/70 dark:border-gray-700/60 cursor-pointer hover:bg-gray-50/70 dark:hover:bg-gray-700/40 transition-colors shrink-0"
+            className={`flex items-center gap-3 mx-3 mt-1.5 px-4 py-2 rounded-2xl cursor-pointer hover:bg-black/[0.03] dark:hover:bg-white/[0.05] transition-colors shrink-0 ${GLASS_SURFACE}`}
             onClick={handleBannerClick}
           >
             {/* Полоска-индикатор слева */}
@@ -989,8 +1006,8 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
         {/* Messages */}
         <div
           ref={messagesContainerRef}
-          className={`flex-1 overflow-y-auto overscroll-contain scrollbar-none px-4 pb-3 space-y-1 ${wallpaperStyle ? '' : 'bg-[#e9e9e9] dark:bg-gray-900'}`}
-          style={{ ...(wallpaperStyle ?? {}), paddingTop: topStackHeight + 12, WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
+          className="flex-1 overflow-y-auto overscroll-contain scrollbar-none px-4 pb-3 space-y-1"
+          style={{ paddingTop: topStackHeight + 12, WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
         >
           {/* Initial loading — full area spinner */}
           {isLoadingMessages && messages.length === 0 && (
