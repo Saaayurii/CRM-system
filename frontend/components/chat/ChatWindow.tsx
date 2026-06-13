@@ -287,6 +287,19 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
     setTopStackHeight(el.offsetHeight);
     return () => ro.disconnect();
   }, [activeChannelId]);
+  // Нижний бар (input/плашка) — тоже плавающий оверлей: лента уходит за него
+  // при скролле (как за шапку). Высота динамична (вложения, многострочный ввод,
+  // запись голоса) — ResizeObserver держит нижний отступ ленты в актуале.
+  const bottomBarRef = useRef<HTMLDivElement>(null);
+  const [bottomBarHeight, setBottomBarHeight] = useState(64);
+  useEffect(() => {
+    const el = bottomBarRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setBottomBarHeight(el.offsetHeight));
+    ro.observe(el);
+    setBottomBarHeight(el.offsetHeight);
+    return () => ro.disconnect();
+  }, [activeChannelId]);
   // «Градиент по всем сообщениям» — срез общего градиента на каждом пузыре
   // revision = messages.length + активный канал: при первой загрузке/смене канала
 // заново заводим серию пересчётов среза (важно для коротких, непрокручиваемых чатов)
@@ -1006,8 +1019,8 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
         {/* Messages */}
         <div
           ref={messagesContainerRef}
-          className="flex-1 overflow-y-auto overscroll-contain scrollbar-none px-4 pb-3 space-y-1"
-          style={{ paddingTop: topStackHeight + 12, WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
+          className="flex-1 overflow-y-auto overscroll-contain scrollbar-none px-4 space-y-1"
+          style={{ paddingTop: topStackHeight + 12, paddingBottom: bottomBarHeight + 12, WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
         >
           {/* Initial loading — full area spinner */}
           {isLoadingMessages && messages.length === 0 && (
@@ -1145,10 +1158,11 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
           </div>
         )}
 
-        {/* Input */}
+        {/* Input — плавающий оверлей внизу (лента уходит за него при скролле) */}
+        <div ref={bottomBarRef} className="absolute inset-x-0 bottom-0 z-20">
         {isCurrentUserMuted ? (
-          <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shrink-0">
-            <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+          <div className="px-3 pb-3 pt-2">
+            <div className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl ${GLASS_SURFACE}`}>
               <svg className="w-4 h-4 text-red-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
               </svg>
@@ -1158,6 +1172,7 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
         ) : (
           <ChatInput channelId={activeChannelId} projectId={activeChannel.projectId ?? undefined} channelType={activeChannel.channelType} />
         )}
+        </div>
       </div>
 
       {/* Forward message modal */}

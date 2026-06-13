@@ -1933,7 +1933,7 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
       {isRecording ? (
         <div className="flex items-center gap-2">
           <button onClick={cancelRecording}
-            className={`shrink-0 w-10 h-10 flex items-center justify-center rounded-full text-gray-500 dark:text-gray-300 hover:text-red-500 transition-colors ${GLASS_SURFACE}`} title={t('Отменить')}>
+            className={`shrink-0 w-11 h-11 flex items-center justify-center rounded-full text-gray-500 dark:text-gray-300 hover:text-red-500 transition-colors ${GLASS_SURFACE}`} title={t('Отменить')}>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
@@ -1944,25 +1944,56 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
             <span className="text-sm font-mono text-gray-600 dark:text-gray-300 shrink-0 tabular-nums">{formatDuration(recordingTime)}</span>
           </div>
           <button onClick={stopRecording} disabled={recorderIsSending}
-            className="shrink-0 w-10 h-10 flex items-center justify-center text-white bg-violet-500 hover:bg-violet-600 disabled:opacity-50 rounded-full transition-colors shadow-[0_2px_10px_rgba(124,58,237,0.4)]" title={t('Остановить и отправить')}>
+            className={`shrink-0 w-11 h-11 flex items-center justify-center rounded-full text-violet-500 hover:text-violet-600 disabled:opacity-50 transition-colors ${GLASS_SURFACE}`} title={t('Остановить и отправить')}>
             {recorderIsSending ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
               : <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h12v12H6z" /></svg>}
           </button>
         </div>
       ) : (
         <div className="flex items-end gap-2">
-          {/* Left: Attach dropdown */}
+          {/* Left capsule: скрепка + переключатель медиа — сгруппированы (как в шапке) */}
           <div className="relative shrink-0" ref={attachMenuRef}>
-            <button
-              onClick={() => setShowAttachMenu((v) => !v)}
-              disabled={isSending}
-              className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors disabled:opacity-50 ${GLASS_SURFACE} ${showAttachMenu ? 'text-violet-500' : 'text-gray-500 dark:text-gray-300 hover:text-violet-500'}`}
-              title={t('Прикрепить файл')}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-              </svg>
-            </button>
+            <div className={`flex items-center rounded-full overflow-hidden divide-x divide-black/[0.06] dark:divide-white/[0.08] ${GLASS_SURFACE}`}>
+              <button
+                onClick={() => setShowAttachMenu((v) => !v)}
+                disabled={isSending}
+                className={`h-11 px-3 flex items-center justify-center transition-colors disabled:opacity-50 ${showAttachMenu ? 'text-violet-500' : 'text-gray-500 dark:text-gray-300 hover:text-violet-500 hover:bg-black/[0.04] dark:hover:bg-white/[0.06]'}`}
+                title={t('Прикрепить файл')}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                </svg>
+              </button>
+              {/* Direct-chat only: видимость медиа из чата в разделе «Медиа» */}
+              {isDirect && (
+                <button
+                  type="button"
+                  onClick={toggleShareMedia}
+                  disabled={isSending}
+                  className={`h-11 px-3 flex items-center justify-center transition-colors disabled:opacity-50 ${
+                    shareMedia
+                      ? 'text-violet-500'
+                      : 'text-gray-500 dark:text-gray-300 hover:text-violet-500 hover:bg-black/[0.04] dark:hover:bg-white/[0.06]'
+                  }`}
+                  title={shareMedia
+                    ? 'Медиа из этого чата видны в разделе «Медиа». Нажмите, чтобы скрыть.'
+                    : 'Медиа из этого чата скрыты из раздела «Медиа». Нажмите, чтобы делиться.'}
+                >
+                  {shareMedia ? (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.6 9h16.8M3.6 15h16.8M12 3a14 14 0 010 18M12 3a14 14 0 000 18" />
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.6 9h16.8M3.6 15h16.8M12 3a14 14 0 010 18M12 3a14 14 0 000 18" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4l16 16" />
+                    </svg>
+                  )}
+                </button>
+              )}
+            </div>
             {showAttachMenu && (
               <div className="absolute bottom-full mb-2 left-0 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl shadow-xl overflow-hidden min-w-[170px]">
                 <button
@@ -1992,36 +2023,6 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
           <input ref={fileInputRef} type="file" className="hidden" accept="*/*" multiple onChange={handleFileChange} />
           <input ref={cameraInputRef} type="file" className="hidden" accept="image/*,video/*" capture="environment" onChange={handleFileChange} />
 
-          {/* Direct-chat only: toggle whether attachments appear in the global Media tab */}
-          {isDirect && (
-            <button
-              type="button"
-              onClick={toggleShareMedia}
-              disabled={isSending}
-              className={`shrink-0 p-2 rounded-xl transition-colors disabled:opacity-50 ${
-                shareMedia
-                  ? 'text-violet-500 bg-violet-50 dark:bg-violet-900/20 hover:bg-violet-100 dark:hover:bg-violet-900/30'
-                  : 'text-gray-400 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/20'
-              }`}
-              title={shareMedia
-                ? 'Медиа из этого чата видны в разделе «Медиа». Нажмите, чтобы скрыть.'
-                : 'Медиа из этого чата скрыты из раздела «Медиа». Нажмите, чтобы делиться.'}
-            >
-              {shareMedia ? (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.6 9h16.8M3.6 15h16.8M12 3a14 14 0 010 18M12 3a14 14 0 000 18" />
-                </svg>
-              ) : (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.6 9h16.8M3.6 15h16.8M12 3a14 14 0 010 18M12 3a14 14 0 000 18" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 4l16 16" />
-                </svg>
-              )}
-            </button>
-          )}
-
           {/* Center: input with emoji button inside */}
           <div className="relative flex-1">
             <div
@@ -2038,18 +2039,18 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
                     ? 'Текст комментария…'
                     : projectId ? 'Сообщение... (# задача, @ упоминание, #new)' : 'Сообщение'
               }
-              className={`w-full py-2.5 pl-4 pr-9 rounded-3xl text-sm text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-violet-500 focus:outline-none overflow-y-auto min-h-[40px] max-h-[120px] break-words leading-relaxed ${GLASS_SURFACE} ${isSending ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`w-full py-2.5 pl-4 pr-12 rounded-3xl text-sm text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-violet-500 focus:outline-none overflow-y-auto min-h-[44px] max-h-[120px] break-words leading-relaxed ${GLASS_SURFACE} ${isSending ? 'opacity-50 cursor-not-allowed' : ''}`}
             />
-            {/* Emoji button inside the input */}
-            <div className="absolute right-1.5 bottom-1 z-10" ref={emojiPickerRef}>
+            {/* Emoji button inside the input — выровнен по низу поля */}
+            <div className="absolute right-2 bottom-1 z-10" ref={emojiPickerRef}>
               <button
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => setShowEmojiPicker((v) => !v)}
                 disabled={isSending}
-                className="p-1 text-gray-400 hover:text-yellow-500 transition-colors disabled:opacity-50 rounded"
+                className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-yellow-500 transition-colors disabled:opacity-50 rounded-full"
                 title={t('Смайлики')}
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </button>
@@ -2096,10 +2097,10 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
               onMouseEnter={() => { if (!recordHintSeen) setShowRecordTooltip(true); }}
               onMouseLeave={() => { if (showRecordTooltip) markRecordHintSeen(); }}
               disabled={isSending}
-              className={`w-10 h-10 flex items-center justify-center rounded-full transition-all duration-150 disabled:opacity-50 ${
+              className={`w-11 h-11 flex items-center justify-center rounded-full transition-all duration-150 disabled:opacity-50 ${GLASS_SURFACE} ${
                 canSend
-                  ? 'text-white bg-violet-500 hover:bg-violet-600 shadow-[0_2px_10px_rgba(124,58,237,0.4)]'
-                  : `${GLASS_SURFACE} text-gray-500 dark:text-gray-300 hover:text-violet-500`
+                  ? 'text-violet-500 hover:text-violet-600'
+                  : 'text-gray-500 dark:text-gray-300 hover:text-violet-500'
               }`}
             >
               {isSending ? (
