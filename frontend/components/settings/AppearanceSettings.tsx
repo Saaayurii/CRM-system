@@ -546,8 +546,8 @@ export default function AppearanceSettings() {
           )}
           {/* Режим градиента: на каждом пузыре или один на весь чат (как в TG) */}
           {bubbleStops.length >= 2 && (
-            <div className="flex items-center gap-3 mt-3">
-              <div className="inline-flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="mt-3">
+              <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden w-full max-w-xs">
                 {([
                   { flow: false, name: 'На сообщении' },
                   { flow: true, name: 'По всему чату' },
@@ -556,7 +556,7 @@ export default function AppearanceSettings() {
                     key={o.name}
                     type="button"
                     onClick={() => setAppearance({ bubbleGradientFlow: o.flow })}
-                    className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                    className={`flex-1 px-3 py-1.5 text-xs font-medium transition-colors ${
                       appearance.bubbleGradientFlow === o.flow
                         ? 'bg-violet-500 text-white'
                         : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
@@ -566,24 +566,26 @@ export default function AppearanceSettings() {
                   </button>
                 ))}
               </div>
-              <span className="text-xs text-gray-400 dark:text-gray-500">
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1.5">
                 {appearance.bubbleGradientFlow
                   ? 'Один градиент на весь чат — сообщения переливаются при прокрутке'
                   : 'Градиент целиком на каждом сообщении'}
-              </span>
+              </p>
             </div>
           )}
           {/* Анимация перелива (как тоггл «Анимация» в редакторе тем TG) */}
           {bubbleStops.length >= 2 && (
-            <div className="flex items-center gap-3 mt-3">
-              <Switch
-                checked={appearance.bubbleGradientAnimate}
-                onChange={(v) => setAppearance({ bubbleGradientAnimate: v })}
-              />
-              <span className="text-sm text-gray-800 dark:text-gray-100">Анимация</span>
-              <span className="text-xs text-gray-400 dark:text-gray-500">
+            <div className="mt-3">
+              <div className="flex items-center gap-3">
+                <Switch
+                  checked={appearance.bubbleGradientAnimate}
+                  onChange={(v) => setAppearance({ bubbleGradientAnimate: v })}
+                />
+                <span className="text-sm text-gray-800 dark:text-gray-100">Анимация</span>
+              </div>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1.5">
                 цвета плавно переливаются — видно в превью сверху
-              </span>
+              </p>
             </div>
           )}
           <ColorPicker

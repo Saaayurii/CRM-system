@@ -1106,6 +1106,17 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
         return;
       }
     }
+    // На сенсорных устройствах Enter переносит строку, а не отправляет —
+    // отправка только по кнопке (как в мобильном Telegram). На ПК работает
+    // привычно: Enter — отправить, Shift+Enter — перенос.
+    if (
+      e.key === 'Enter' &&
+      !e.shiftKey &&
+      typeof window !== 'undefined' &&
+      window.matchMedia?.('(pointer: coarse)').matches
+    ) {
+      return; // default contenteditable — вставка переноса строки
+    }
     if (e.key === 'Enter' && !e.shiftKey) {
       // ── Триггеры визарда: чип задачи в одиночку / #new ──
       const el = editorRef.current;

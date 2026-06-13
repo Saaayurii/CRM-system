@@ -114,6 +114,7 @@ export default function RootLayout({
                 if (stops.length >= 2) {
                   document.documentElement.setAttribute('data-bubble-gradient', '');
                   document.documentElement.style.setProperty('--bubble-gradient', 'linear-gradient(135deg, ' + stops.join(', ') + ')');
+                  document.documentElement.style.setProperty('--bubble-gradient-v', 'linear-gradient(180deg, ' + stops.join(', ') + ')');
                   if (a.bubbleGradientFlow) document.documentElement.setAttribute('data-bubble-grad-flow', '');
                   if (a.bubbleGradientAnimate) document.documentElement.setAttribute('data-bubble-grad-anim', '');
                 }

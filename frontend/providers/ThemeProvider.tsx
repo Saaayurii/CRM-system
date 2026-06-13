@@ -10,6 +10,7 @@ import {
   accentCssVars,
   bubbleCssVars,
   bubbleGradientCss,
+  bubbleGradientCssVertical,
   isHexColor,
 } from '@/lib/appearance';
 
@@ -110,9 +111,11 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
     if (gradientActive) {
       root.setAttribute('data-bubble-gradient', '');
       root.style.setProperty('--bubble-gradient', bubbleGradientCss(gradientStops));
+      root.style.setProperty('--bubble-gradient-v', bubbleGradientCssVertical(gradientStops));
     } else {
       root.removeAttribute('data-bubble-gradient');
       root.style.removeProperty('--bubble-gradient');
+      root.style.removeProperty('--bubble-gradient-v');
     }
     // Режимы градиента: «по всему чату» (срез на пузыре через CSS-переменные
     // от useBubbleGradientFlow) и анимация перелива

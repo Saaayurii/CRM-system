@@ -17,7 +17,14 @@ async function bootstrap() {
   app.set('trust proxy', ['loopback', 'linklocal', 'uniquelocal']);
 
   // Serve uploaded chat files statically at /uploads/*
-  app.useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads' });
+  // Файлы загружаются с уникальными именами (timestamp/uuid) и не меняются —
+  // отдаём с длинным кэшем, чтобы браузер не перекачивал картинки/аватары при
+  // каждом заходе в чат (раньше без заголовков каждый рендер бил по серверу).
+  app.useStaticAssets(join(process.cwd(), 'uploads'), {
+    prefix: '/uploads',
+    maxAge: '30d',
+    immutable: true,
+  });
 
   const configService = app.get(ConfigService);
   const port = configService.get<number>('port') || 3000;

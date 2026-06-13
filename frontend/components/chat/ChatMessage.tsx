@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, memo } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useToastStore } from '@/stores/toastStore';
@@ -188,7 +188,7 @@ const isVideoAtt = (a: any): boolean =>
   !!a.mimeType?.startsWith('video/') ||
   (!a.mimeType && /\.(mp4|mov|avi|webm|mkv|m4v|3gp)$/i.test(a.fileName || ''));
 
-export default function ChatMessage({ message, isOwn, showAvatar, isRead, readers = [], onReply, onScrollToReply, onReact, onDelete, onEdit, onPin, onForward, onGoToOriginalChannel, isPinned, canPin, highlightQuery, readOnly = false }: ChatMessageProps) {
+function ChatMessage({ message, isOwn, showAvatar, isRead, readers = [], onReply, onScrollToReply, onReact, onDelete, onEdit, onPin, onForward, onGoToOriginalChannel, isPinned, canPin, highlightQuery, readOnly = false }: ChatMessageProps) {
   const t = useT();
   const addToast = useToastStore((s) => s.addToast);
   const setEditingMessage = useChatStore((s) => s.setEditingMessage);
@@ -553,9 +553,12 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
         }
       }}
     >
-      {/* Avatar placeholder / real avatar */}
+      {/* Avatar placeholder / real avatar — только для чужих сообщений.
+          У своих колонка-аватар не нужна: иначе flex-row-reverse держит её
+          справа и пузырь не доходит до края (паразитный отступ справа). */}
+      {!own && (
       <div className="w-8 shrink-0">
-        {showAvatar && !own && (() => {
+        {showAvatar && (() => {
           // For left-side forwarded messages use original sender's avatar/initials
           const avatarName = forwardMeta ? forwardSenderName : displaySenderName;
           const avatarUrl = forwardMeta ? (forwardMeta.originalSenderAvatarUrl || message.senderAvatarUrl) : message.senderAvatarUrl;
@@ -583,6 +586,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
           );
         })()}
       </div>
+      )}
 
       {/* Bubble */}
       <div className={`${blockMode ? 'w-full max-w-full' : 'max-w-[70%]'} min-w-[80px] flex flex-col ${own ? 'items-end' : 'items-start'}`}>
@@ -689,7 +693,7 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
                 const mediaIndex = mediaItems.findIndex((m) => m.url === att.fileUrl);
                 const imageContent = (
                   <div className="relative group/img mt-1">
-                    <img src={att.fileUrl} alt={att.fileName}
+                    <img src={att.fileUrl} alt={att.fileName} loading="lazy" decoding="async"
                       className="max-w-full max-h-60 rounded-lg object-cover block cursor-zoom-in"
                       onClick={() => openViewer(mediaIndex)}
                       onError={(e) => { e.currentTarget.style.display = 'none'; (e.currentTarget.nextElementSibling as HTMLElement)?.classList.remove('hidden'); }}
@@ -845,9 +849,10 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
               <button
                 key={r.emoji}
                 onClick={() => onReact(message.id, r.emoji)}
-                className="inline-flex items-center gap-0.5 px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 hover:bg-violet-100 dark:hover:bg-violet-900/30 rounded-full border border-transparent hover:border-violet-300 dark:hover:border-violet-700 transition-colors"
+                className="reaction-chip inline-flex items-center gap-0.5 px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 hover:bg-violet-100 dark:hover:bg-violet-900/30 rounded-full border border-transparent hover:border-violet-300 dark:hover:border-violet-700 transition-colors"
               >
-                {r.emoji} <span className="text-gray-600 dark:text-gray-300">{r.count}</span>
+                <span className="reaction-emoji">{r.emoji}</span>
+                <span className="text-gray-600 dark:text-gray-300">{r.count}</span>
               </button>
             ))}
           </div>
@@ -1222,6 +1227,27 @@ export default function ChatMessage({ message, isOwn, showAvatar, isRead, reader
     </div>
   );
 }
+
+// Мемоизация: список сообщений перерисовывается на каждое новое сообщение,
+// печатание, чтение и т.п. Объект `message` сохраняет ссылку, пока его контент
+// не изменился (стор заменяет ссылку только у реально обновлённого сообщения),
+// поэтому неизменные пузыри пропускают ререндер — меньше нагрузки, картинки
+// не перемонтируются. Колбэки сравнивать не нужно: они стабильны по поведению.
+function propsAreEqual(a: ChatMessageProps, b: ChatMessageProps): boolean {
+  return (
+    a.message === b.message &&
+    a.isOwn === b.isOwn &&
+    a.showAvatar === b.showAvatar &&
+    a.isRead === b.isRead &&
+    a.isPinned === b.isPinned &&
+    a.canPin === b.canPin &&
+    a.readOnly === b.readOnly &&
+    a.highlightQuery === b.highlightQuery &&
+    (a.readers?.length ?? 0) === (b.readers?.length ?? 0)
+  );
+}
+
+export default memo(ChatMessage, propsAreEqual);
 
 // ── Task mention renderer ───────────────────────────────────
 
@@ -1630,7 +1656,7 @@ function MediaAlbum({
       <div key={key} className={`relative overflow-hidden cursor-pointer ${className}`} onClick={() => onOpen(idx)}>
         {isVid
           ? <VideoThumbnail src={item.fileUrl} className="w-full h-full object-cover" />
-          : <img src={item.fileUrl} alt={item.fileName} className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+          : <img src={item.fileUrl} alt={item.fileName} loading="lazy" decoding="async" className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
         }
         {isVid && !showOverflow && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/25 pointer-events-none">

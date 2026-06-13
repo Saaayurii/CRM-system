@@ -316,6 +316,39 @@
   animation: slide-in-right 0.25s ease-out forwards;
 }
 
+/* Появление реакции на сообщении — пузырёк «выпрыгивает» с лёгким overshoot,
+   эмодзи внутри подскакивает (как в Telegram). */
+@keyframes reaction-pop {
+  0%   { transform: scale(0);    opacity: 0; }
+  60%  { transform: scale(1.18); opacity: 1; }
+  100% { transform: scale(1);    opacity: 1; }
+}
+@keyframes reaction-emoji-pop {
+  0%   { transform: scale(0.4) rotate(-12deg); }
+  60%  { transform: scale(1.35) rotate(6deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+.reaction-chip {
+  animation: reaction-pop 0.34s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform-origin: center;
+}
+.reaction-chip .reaction-emoji {
+  display: inline-block;
+  animation: reaction-emoji-pop 0.42s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .reaction-chip, .reaction-chip .reaction-emoji { animation: none; }
+}
+
+/* Появление/скрытие индикатора «печатает…» — плавный slide+fade */
+@keyframes typing-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-typing-in {
+  animation: typing-in 0.22s ease-out;
+}
+
 /* Long-press context-menu pop-in (chat message actions) */
 @keyframes ctx-pop-in {
   0%   { transform: scale(0.92); opacity: 0; }
@@ -530,9 +563,11 @@ html[data-bubble-gradient] .bg-bubble-500 {
 
 /* Режим «по всему чату»: useBubbleGradientFlow кладёт на каждый пузырь
    переменные --grad-w/h/x/y (размер чата и смещение пузыря) — пузырь
-   показывает свой срез общего градиента. Дефолты — на случай пузырей вне
-   чата (превью в long-press меню). */
+   показывает свой срез ОБЩЕГО вертикального градиента (вдоль оси прокрутки),
+   поэтому каждый пузырь почти одноцветный, а цвет плавно меняется сверху вниз
+   и переливается при скролле. Дефолты — для пузырей вне чата (превью). */
 html[data-bubble-grad-flow] .bg-bubble-500 {
+  background-image: var(--bubble-gradient-v);
   background-size: var(--grad-w, 100%) var(--grad-h, 100%);
   background-position: var(--grad-x, 0) var(--grad-y, 0);
 }
@@ -540,23 +575,19 @@ html[data-bubble-grad-flow] .bg-bubble-500 {
 /* Анимация перелива градиента (тоггл «Анимация»). CSS-анимация перебивает
    обычные декларации background-position — в flow-режиме keyframes ссылаются
    на те же переменные, поэтому срез и дрейф складываются. */
+/* «Анимация» работает в режиме «на сообщении»: градиент плавно ходит туда-сюда.
+   В режиме «по всему чату» переливом управляет прокрутка (см. flow-правило выше),
+   поэтому панорамную анимацию там не включаем — иначе она перебила бы
+   scroll-позиционирование и снова получилась бы «гифка». */
 @media (prefers-reduced-motion: no-preference) {
   html[data-bubble-grad-anim]:not([data-bubble-grad-flow]) .bg-bubble-500 {
     background-size: 300% 300%;
     animation: bubble-grad-pan 9s ease-in-out infinite;
   }
-  html[data-bubble-grad-anim][data-bubble-grad-flow] .bg-bubble-500 {
-    background-size: calc(var(--grad-w, 100%) * 2) var(--grad-h, 100%);
-    animation: bubble-grad-pan-flow 9s ease-in-out infinite;
-  }
 }
 @keyframes bubble-grad-pan {
   0%, 100% { background-position: 0% 50%; }
   50%      { background-position: 100% 50%; }
-}
-@keyframes bubble-grad-pan-flow {
-  0%, 100% { background-position: var(--grad-x, 0) var(--grad-y, 0); }
-  50%      { background-position: calc(var(--grad-x, 0px) - var(--grad-w, 100px)) var(--grad-y, 0); }
 }
 
 /* Размер текста сообщений чата (настройка «Размер текста в чате») */

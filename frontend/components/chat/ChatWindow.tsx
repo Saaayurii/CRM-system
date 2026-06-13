@@ -1035,6 +1035,23 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
           })}
           </div>
 
+          {/* Индикатор «печатает…» — внутри ленты, чтобы не наезжать на
+              последнее сообщение и учитываться автоскроллом (как в Telegram) */}
+          {channelTyping.length > 0 && (
+            <div className="animate-typing-in flex items-center gap-2 px-3 py-1.5 mt-1 w-fit rounded-2xl rounded-tl-sm bg-white/90 dark:bg-gray-800/90 shadow-sm backdrop-blur-sm">
+              <span className="flex gap-0.5">
+                <span className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              </span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                {channelTyping.length === 1
+                  ? `${channelTyping[0].name} печатает…`
+                  : `${channelTyping.map((u) => u.name).join(', ')} печатают…`}
+              </span>
+            </div>
+          )}
+
           <div ref={messagesEndRef} />
         </div>
 
@@ -1078,22 +1095,6 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
                 )}
               </button>
             </div>
-          </div>
-        )}
-
-        {/* Typing indicator */}
-        {channelTyping.length > 0 && (
-          <div className="px-4 py-1 text-xs text-gray-400 dark:text-gray-500 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700">
-            <span className="inline-flex items-center gap-1">
-              <span className="flex gap-0.5">
-                <span className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-              </span>
-              {channelTyping.length === 1
-                ? `${channelTyping[0].name} печатает...`
-                : `${channelTyping.map((u) => u.name).join(', ')} печатают...`}
-            </span>
           </div>
         )}
 

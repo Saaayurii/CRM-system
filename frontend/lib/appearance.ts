@@ -216,9 +216,16 @@ export const BUBBLE_VAR_NAMES = Object.keys(BUBBLE_SHADE_MIX).map((s) => `--colo
 /** Максимум цветов в градиенте сообщений (как в Telegram) */
 export const BUBBLE_GRADIENT_MAX = 4;
 
-/** CSS-градиент для пузырей из 2+ цветов */
+/** CSS-градиент для пузырей из 2+ цветов (диагональный — режим «на сообщении») */
 export function bubbleGradientCss(colors: string[]): string {
   return `linear-gradient(135deg, ${colors.join(', ')})`;
+}
+
+/** Вертикальный градиент для режима «по всему чату»: вариация идёт вдоль оси
+ *  прокрутки, поэтому каждый пузырь почти одноцветный, а цвет плавно меняется
+ *  сверху вниз и переливается при скролле (как в Telegram). */
+export function bubbleGradientCssVertical(colors: string[]): string {
+  return `linear-gradient(180deg, ${colors.join(', ')})`;
 }
 
 export const WALLPAPERS: {
