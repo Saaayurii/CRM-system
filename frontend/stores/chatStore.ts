@@ -485,6 +485,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     // Typing
     socket.on('typing:start', (data: { channelId: number; userId: number; name: string }) => {
+      // Своё «печатает» с другого устройства того же аккаунта не показываем
+      if (data.userId === useAuthStore.getState().user?.id) return;
       set((state) => {
         const current = state.typingUsers[data.channelId] || [];
         if (current.some((u) => u.userId === data.userId)) return state;
@@ -511,6 +513,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     // Upload activity («отправляет фото/видео/файл/голосовое»)
     socket.on('activity:start', (data: { channelId: number; userId: number; name: string; kind: string }) => {
+      // Свою активность с другого устройства того же аккаунта не показываем
+      if (data.userId === useAuthStore.getState().user?.id) return;
       set((state) => {
         const current = state.activityUsers[data.channelId] || [];
         const without = current.filter((u) => u.userId !== data.userId);
