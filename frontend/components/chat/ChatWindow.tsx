@@ -282,7 +282,9 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
     return () => ro.disconnect();
   }, [activeChannelId]);
   // «Градиент по всем сообщениям» — срез общего градиента на каждом пузыре
-  useBubbleGradientFlow(messagesContainerRef);
+  // revision = messages.length + активный канал: при первой загрузке/смене канала
+// заново заводим серию пересчётов среза (важно для коротких, непрокручиваемых чатов)
+useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.length}`);
   const messagesInnerRef = useRef<HTMLDivElement>(null);
   const prevMessagesLenRef = useRef(0);
   const lastMsgIdRef = useRef<number | null>(null);

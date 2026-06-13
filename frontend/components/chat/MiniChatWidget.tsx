@@ -450,8 +450,9 @@ function MiniChatView() {
 
   const [forwardingMessage, setForwardingMessage] = useState<ChatMessageType | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
-  // «Градиент по всем сообщениям» — срез общего градиента на каждом пузыре
-  useBubbleGradientFlow(listRef);
+  // «Градиент по всем сообщениям» — срез общего градиента на каждом пузыре.
+  // revision перезаводит серию пересчётов при загрузке/смене набора сообщений.
+  useBubbleGradientFlow(listRef, `${activeChannelId}:${messages.length}`);
 
   const channel = useMemo(
     () => channels.find((c) => c.id === activeChannelId) ?? null,

@@ -12,7 +12,15 @@
 import { useEffect, type RefObject } from 'react';
 import { useThemeStore } from '@/stores/themeStore';
 
-export function useBubbleGradientFlow(containerRef: RefObject<HTMLElement | null>) {
+// `revision` — любое значение, меняющееся при смене набора сообщений (обычно
+// messages.length): при его изменении заново заводим всю серию отложенных
+// пересчётов. Это лечит «застрявший» срез в чатах, которые не прокручиваются
+// (мало сообщений → нет scroll-события, которое освежило бы срез после того,
+// как первый замер пришёлся на ещё не разложенный/не доскролленный layout).
+export function useBubbleGradientFlow(
+  containerRef: RefObject<HTMLElement | null>,
+  revision?: unknown,
+) {
   const enabled = useThemeStore(
     (s) =>
       s.appearance.bubbleGradientFlow &&
@@ -86,5 +94,5 @@ export function useBubbleGradientFlow(containerRef: RefObject<HTMLElement | null
         el.style.removeProperty('--grad-y');
       });
     };
-  }, [containerRef, enabled]);
+  }, [containerRef, enabled, revision]);
 }
