@@ -1,11 +1,13 @@
 'use client';
 
-// «Градиент по всем сообщениям» (как в Telegram): один градиент растянут на
-// весь видимый чат, каждый исходящий пузырь показывает свой срез и
-// «переливается» при скролле. background-attachment: fixed на iOS не
-// поддерживается, поэтому срез позиционируется вручную:
-// background-size = размер контейнера, background-position = смещение
-// пузыря относительно контейнера (пересчёт на скролл/ресайз/новые сообщения).
+// «Градиент по всем сообщениям» (как в Telegram): один вертикальный градиент
+// натянут на ВСЮ высоту переписки (scrollHeight), а не на видимую область.
+// Поэтому цвет пузыря зависит от его места в ленте — фиксирован за сообщением:
+// верхние (старые) у первого цвета, нижние (свежие) у последнего. При скролле
+// цвет каждого сообщения НЕ дёргается — просто видно разные участки градиента.
+// background-attachment: fixed на iOS не работает, поэтому срез позиционируем
+// вручную: --grad-h = полная высота контента, --grad-y = минус смещение пузыря
+// от верха контента (background-position сдвигает градиент к нужному участку).
 
 import { useEffect, type RefObject } from 'react';
 import { useThemeStore } from '@/stores/themeStore';
@@ -27,15 +29,16 @@ export function useBubbleGradientFlow(containerRef: RefObject<HTMLElement | null
       const bubbles = container.querySelectorAll<HTMLElement>('.bg-bubble-500');
       if (bubbles.length === 0) return;
       // Сначала все чтения, потом все записи — иначе layout thrashing.
-      // Пишем CSS-переменные, а не background-* напрямую: на них ссылаются
-      // правила html[data-bubble-grad-flow] и keyframes анимации перелива.
       const cRect = container.getBoundingClientRect();
+      const scrollTop = container.scrollTop;
+      const fullH = container.scrollHeight; // высота всей переписки
       const rects = Array.from(bubbles, (el) => el.getBoundingClientRect());
       bubbles.forEach((el, i) => {
-        el.style.setProperty('--grad-w', `${cRect.width}px`);
-        el.style.setProperty('--grad-h', `${cRect.height}px`);
-        el.style.setProperty('--grad-x', `${cRect.left - rects[i].left}px`);
-        el.style.setProperty('--grad-y', `${cRect.top - rects[i].top}px`);
+        // Смещение пузыря от верха контента (scroll-независимое):
+        // при прокрутке rect.top и scrollTop меняются встречно и сокращаются.
+        const offsetInContent = rects[i].top - cRect.top + scrollTop;
+        el.style.setProperty('--grad-h', `${fullH}px`);
+        el.style.setProperty('--grad-y', `${-offsetInContent}px`);
       });
     };
     const schedule = () => {
@@ -43,12 +46,14 @@ export function useBubbleGradientFlow(containerRef: RefObject<HTMLElement | null
     };
 
     schedule();
+    // Скролл не меняет цвет (математически), но держим слушатель: новые порции
+    // истории/медиа меняют scrollHeight, и пересчёт по факту скролла надёжнее.
     container.addEventListener('scroll', schedule, { passive: true });
     window.addEventListener('resize', schedule);
-    // Новые/удалённые сообщения
+    // Новые/удалённые сообщения меняют высоту → сдвигают все смещения
     const mo = new MutationObserver(schedule);
     mo.observe(container, { childList: true, subtree: true });
-    // Подгрузка медиа сдвигает пузыри без мутаций — ловим load в capture-фазе
+    // Подгрузка медиа меняет высоту без мутаций — ловим load в capture-фазе
     container.addEventListener('load', schedule, true);
 
     return () => {
@@ -58,9 +63,7 @@ export function useBubbleGradientFlow(containerRef: RefObject<HTMLElement | null
       mo.disconnect();
       if (raf) cancelAnimationFrame(raf);
       container.querySelectorAll<HTMLElement>('.bg-bubble-500').forEach((el) => {
-        el.style.removeProperty('--grad-w');
         el.style.removeProperty('--grad-h');
-        el.style.removeProperty('--grad-x');
         el.style.removeProperty('--grad-y');
       });
     };
