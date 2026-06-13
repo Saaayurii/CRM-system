@@ -13,9 +13,16 @@ import RecordingPill from '@/components/chat/RecordingPill';
 import ForcePasswordChangeModal from '@/components/layout/ForcePasswordChangeModal';
 import NoteReminder from '@/components/notes/NoteReminder';
 import { useFormEnterNav } from '@/hooks/useFormEnterNav';
+import { useEffect } from 'react';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   useFormEnterNav();
+  // Фиксируем документ только в оболочке приложения (см. globals.css
+  // html.app-shell) — гасим iOS-баунс body, не ломая скролл auth/лендинга.
+  useEffect(() => {
+    document.documentElement.classList.add('app-shell');
+    return () => document.documentElement.classList.remove('app-shell');
+  }, []);
   return (
     <MaintenanceGuard>
       <div className="flex h-screen overflow-hidden">

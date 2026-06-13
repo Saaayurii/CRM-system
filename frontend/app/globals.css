@@ -11,6 +11,48 @@
   display: none;
 }
 
+/* Запрет «резинового» оверскролла всего документа (как в нативном приложении):
+   при оттягивании страницы вверх/вниз не должно показываться чёрное поле.
+   Скролл живёт только во внутренних контейнерах. */
+html,
+body {
+  overscroll-behavior: none;
+}
+/* В оболочке дашборда (класс app-shell ставит DashboardLayout) жёстко фиксируем
+   body, чтобы iOS вообще не баунсил документ — весь скролл во внутренних
+   контейнерах. На auth/лендинге класса нет, поэтому высокие формы там скроллятся
+   как обычно. */
+html.app-shell {
+  overflow: hidden;
+}
+html.app-shell body {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+/* Долгий тап по сообщению открывает наше контекстное меню — нативное iOS-меню
+   выделения текста («Скопировать/Найти/Перевести») не должно всплывать поверх.
+   У нас уже есть пункт «Копировать текст», поэтому на сенсорных гасим callout
+   и системное выделение внутри пузырей. */
+@media (pointer: coarse) {
+  [data-message-id] {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  /* Поля редактирования сообщения остаются выделяемыми */
+  [data-message-id] input,
+  [data-message-id] textarea,
+  [data-message-id] [contenteditable] {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+}
+
 @plugin "@tailwindcss/forms" {
   strategy: base;
 }
