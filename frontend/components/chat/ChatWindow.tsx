@@ -785,13 +785,19 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
             )}
           </div>
 
-          {/* Channel info */}
-          <div className="flex-1 min-w-0">
+          {/* Channel info — клик открывает инфо-панель справа (как в Telegram) */}
+          <button
+            type="button"
+            onClick={() => { setShowInfo(true); setShowSearch(false); setShowCalendar(false); }}
+            className="flex-1 min-w-0 text-left"
+          >
             <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">
               {channelDisplayName}
             </h3>
-            <p className="text-xs text-gray-400 dark:text-gray-500 truncate">
-              {isSelf
+            <p className={`text-xs truncate ${presenceLabel ? 'text-violet-500 dark:text-violet-400' : 'text-gray-400 dark:text-gray-500'}`}>
+              {presenceLabel
+                ? presenceLabel
+                : isSelf
                 ? 'Личное пространство'
                 : activeChannel.channelType === 'group'
                 ? `${activeChannel.membersCount} участник${pluralize(activeChannel.membersCount)}`
@@ -801,7 +807,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
                 ? `был(а) в сети ${partnerLastSeenText}`
                 : 'Не в сети'}
             </p>
-          </div>
+          </button>
 
           {/* Calendar button */}
           <button
@@ -1052,19 +1058,6 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
             );
           })}
           </div>
-
-          {/* Индикатор «печатает…» / «отправляет фото…» — внутри ленты, чтобы
-              не наезжать на последнее сообщение и учитываться автоскроллом */}
-          {presenceLabel && (
-            <div className="animate-typing-in flex items-center gap-2 px-3 py-1.5 mt-1 w-fit rounded-2xl rounded-tl-sm bg-white/90 dark:bg-gray-800/90 shadow-sm backdrop-blur-sm">
-              <span className="flex gap-0.5">
-                <span className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-              </span>
-              <span className="text-xs text-gray-500 dark:text-gray-400">{presenceLabel}</span>
-            </div>
-          )}
 
           <div ref={messagesEndRef} />
         </div>
