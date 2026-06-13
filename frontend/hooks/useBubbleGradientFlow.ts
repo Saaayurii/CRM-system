@@ -43,6 +43,11 @@ export function useBubbleGradientFlow(containerRef: RefObject<HTMLElement | null
     };
 
     schedule();
+    // Контейнер сообщений (flex-1) получает реальную высоту асинхронно —
+    // ResizeObserver пересчитывает срез, когда размер появился/изменился
+    // (иначе первый замер ловит height 0 и градиент не виден в чате).
+    const ro = new ResizeObserver(schedule);
+    ro.observe(container);
     // Прокрутка двигает срез — это и есть «перелив» (как в Telegram)
     container.addEventListener('scroll', schedule, { passive: true });
     window.addEventListener('resize', schedule);
@@ -58,6 +63,7 @@ export function useBubbleGradientFlow(containerRef: RefObject<HTMLElement | null
       container.removeEventListener('scroll', schedule);
       container.removeEventListener('load', schedule, true);
       window.removeEventListener('resize', schedule);
+      ro.disconnect();
       mo.disconnect();
       if (raf) cancelAnimationFrame(raf);
       container.querySelectorAll<HTMLElement>('.bg-bubble-500').forEach((el) => {
