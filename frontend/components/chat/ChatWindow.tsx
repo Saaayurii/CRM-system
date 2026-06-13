@@ -150,6 +150,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
   const channels = useChatStore((s) => s.channels);
   const archivedChannels = useChatStore((s) => s.archivedChannels);
   const typingUsers = useChatStore((s) => s.typingUsers);
+  const activityUsers = useChatStore((s) => s.activityUsers);
   const hasMoreMessages = useChatStore((s) => s.hasMoreMessages);
   const isLoadingMessages = useChatStore((s) => s.isLoadingMessages);
   const fetchMessages = useChatStore((s) => s.fetchMessages);
@@ -280,6 +281,23 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
   const activeChannel = channels.find((ch) => ch.id === activeChannelId)
     ?? archivedChannels.find((ch) => ch.id === activeChannelId);
   const channelTyping = activeChannelId ? typingUsers[activeChannelId] || [] : [];
+  const channelActivity = activeChannelId ? activityUsers[activeChannelId] || [] : [];
+
+  // Подпись индикатора: загрузка медиа/файла приоритетнее «печатает»
+  const activityVerb = (kind: string): string =>
+    kind === 'photo' ? 'отправляет фото'
+    : kind === 'video' ? 'отправляет видео'
+    : kind === 'voice' ? 'записывает голосовое'
+    : 'отправляет файл';
+  const presenceLabel: string | null = channelActivity.length > 0
+    ? (channelActivity.length === 1
+        ? `${channelActivity[0].name} ${activityVerb(channelActivity[0].kind)}…`
+        : `${channelActivity.map((u) => u.name).join(', ')} отправляют файлы…`)
+    : channelTyping.length > 0
+    ? (channelTyping.length === 1
+        ? `${channelTyping[0].name} печатает…`
+        : `${channelTyping.map((u) => u.name).join(', ')} печатают…`)
+    : null;
 
   const currentMember = useMemo(
     () => activeChannel?.members?.find((m) => m.id === user?.id),
@@ -1035,20 +1053,16 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
           })}
           </div>
 
-          {/* Индикатор «печатает…» — внутри ленты, чтобы не наезжать на
-              последнее сообщение и учитываться автоскроллом (как в Telegram) */}
-          {channelTyping.length > 0 && (
+          {/* Индикатор «печатает…» / «отправляет фото…» — внутри ленты, чтобы
+              не наезжать на последнее сообщение и учитываться автоскроллом */}
+          {presenceLabel && (
             <div className="animate-typing-in flex items-center gap-2 px-3 py-1.5 mt-1 w-fit rounded-2xl rounded-tl-sm bg-white/90 dark:bg-gray-800/90 shadow-sm backdrop-blur-sm">
               <span className="flex gap-0.5">
                 <span className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                 <span className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                 <span className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
               </span>
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                {channelTyping.length === 1
-                  ? `${channelTyping[0].name} печатает…`
-                  : `${channelTyping.map((u) => u.name).join(', ')} печатают…`}
-              </span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">{presenceLabel}</span>
             </div>
           )}
 

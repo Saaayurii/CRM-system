@@ -42,6 +42,12 @@ export class ChatGateway
   // track which channels a socket is typing in for disconnect cleanup
   private readonly socketTypingChannels = new Map<string, { userId: number; channelId: number; name: string }[]>();
 
+  // Активность «отправляет фото/видео/файл/голосовое» — параллель typing,
+  // key: `${userId}:${channelId}`
+  private readonly activityTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
+  // отслеживаем, в каких каналах сокет показывает активность (для disconnect)
+  private readonly socketActivityChannels = new Map<string, { userId: number; channelId: number; name: string }[]>();
+
   constructor(
     private readonly configService: ConfigService,
     private readonly chatService: ChatService,
@@ -167,6 +173,16 @@ export class ChatGateway
       this.server.to(`channel:${channelId}`).emit('typing:stop', { userId, channelId, name });
     }
     this.socketTypingChannels.delete(client.id);
+
+    // Clear any pending upload-activity indicators for this socket
+    const activityEntries = this.socketActivityChannels.get(client.id) || [];
+    for (const { userId, channelId, name } of activityEntries) {
+      const key = `${userId}:${channelId}`;
+      const t = this.activityTimeouts.get(key);
+      if (t) { clearTimeout(t); this.activityTimeouts.delete(key); }
+      this.server.to(`channel:${channelId}`).emit('activity:stop', { userId, channelId, name });
+    }
+    this.socketActivityChannels.delete(client.id);
 
     this.logger.log(
       `User ${client.user.id} disconnected — socket: ${client.id}`,
@@ -394,6 +410,59 @@ export class ChatGateway
     this.socketTypingChannels.set(client.id, entries.filter((e) => e.channelId !== channelId));
 
     client.to(`channel:${channelId}`).emit('typing:stop', { userId, channelId, name });
+  }
+
+  // --- Upload activity («отправляет фото/видео/файл/голосовое») ---
+
+  @UseGuards(WsJwtGuard)
+  @SubscribeMessage('activity:start')
+  handleActivityStart(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() data: { channelId: number; kind?: string },
+  ) {
+    const { id: userId, name } = client.user;
+    const { channelId } = data;
+    const kind = data.kind || 'file';
+    const key = `${userId}:${channelId}`;
+
+    // Track for disconnect cleanup
+    const existing = this.socketActivityChannels.get(client.id) || [];
+    if (!existing.some((e) => e.channelId === channelId)) {
+      this.socketActivityChannels.set(client.id, [...existing, { userId, channelId, name }]);
+    }
+
+    // Авто-стоп через 30 с (загрузка может идти дольше typing; отправитель шлёт
+    // activity:start периодически, пока грузит — таймаут сбрасывается)
+    const prev = this.activityTimeouts.get(key);
+    if (prev) clearTimeout(prev);
+    const t = setTimeout(() => {
+      this.activityTimeouts.delete(key);
+      this.server.to(`channel:${channelId}`).emit('activity:stop', { userId, channelId, name });
+      const entries = this.socketActivityChannels.get(client.id) || [];
+      this.socketActivityChannels.set(client.id, entries.filter((e) => e.channelId !== channelId));
+    }, 30000);
+    this.activityTimeouts.set(key, t);
+
+    client.to(`channel:${channelId}`).emit('activity:start', { userId, name, channelId, kind });
+  }
+
+  @UseGuards(WsJwtGuard)
+  @SubscribeMessage('activity:stop')
+  handleActivityStop(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() data: { channelId: number },
+  ) {
+    const { id: userId, name } = client.user;
+    const { channelId } = data;
+    const key = `${userId}:${channelId}`;
+
+    const t = this.activityTimeouts.get(key);
+    if (t) { clearTimeout(t); this.activityTimeouts.delete(key); }
+
+    const entries = this.socketActivityChannels.get(client.id) || [];
+    this.socketActivityChannels.set(client.id, entries.filter((e) => e.channelId !== channelId));
+
+    client.to(`channel:${channelId}`).emit('activity:stop', { userId, channelId, name });
   }
 
   // --- Channel rooms ---

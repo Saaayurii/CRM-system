@@ -433,6 +433,7 @@ function MiniChatView() {
   const pinMessageSocket = useChatStore((s) => s.pinMessage);
   const unpinMessageSocket = useChatStore((s) => s.unpinMessage);
   const typingUsers = useChatStore((s) => s.typingUsers);
+  const activityUsers = useChatStore((s) => s.activityUsers);
   const channelReadAts = useChatStore((s) => s.channelReadAts);
   const channels = useChatStore((s) => s.channels);
   const setActiveChannel = useChatStore((s) => s.setActiveChannel);
@@ -589,6 +590,21 @@ function MiniChatView() {
   }, [setActiveChannel]);
 
   const typing = (typingUsers[activeChannelId ?? -1] || []).filter((u) => u.userId !== user?.id);
+  const activity = (activityUsers[activeChannelId ?? -1] || []).filter((u) => u.userId !== user?.id);
+  const activityVerb = (kind: string): string =>
+    kind === 'photo' ? 'отправляет фото'
+    : kind === 'video' ? 'отправляет видео'
+    : kind === 'voice' ? 'записывает голосовое'
+    : 'отправляет файл';
+  const presenceLabel: string | null = activity.length > 0
+    ? (activity.length === 1
+        ? `${activity[0].name} ${activityVerb(activity[0].kind)}…`
+        : `${activity.map((u) => u.name).join(', ')} отправляют файлы…`)
+    : typing.length > 0
+    ? (typing.length === 1
+        ? `${typing[0].name} печатает…`
+        : `${typing.map((u) => u.name).join(', ')} печатают…`)
+    : null;
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
@@ -691,12 +707,10 @@ function MiniChatView() {
         })}
       </div>
 
-      {/* Индикатор набора */}
-      {typing.length > 0 && (
+      {/* Индикатор набора / загрузки файла */}
+      {presenceLabel && (
         <div className="px-3 py-1 text-xs text-gray-400 dark:text-gray-500 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 shrink-0">
-          {typing.length === 1
-            ? `${typing[0].name} печатает...`
-            : `${typing.map((u) => u.name).join(', ')} печатают...`}
+          {presenceLabel}
         </div>
       )}
 

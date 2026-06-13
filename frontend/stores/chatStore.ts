@@ -250,6 +250,8 @@ interface ChatState {
   activeChannelId: number | null;
   messages: ChatMessage[];
   typingUsers: Record<number, { userId: number; name: string }[]>;
+  // channelId → пользователи, отправляющие медиа/файл («отправляет фото…»)
+  activityUsers: Record<number, { userId: number; name: string; kind: string }[]>;
   onlineUsers: Set<number>;
   // userId → ISO-время, когда пользователь был в сети последний раз
   lastSeenAt: Record<number, string>;
@@ -282,6 +284,8 @@ interface ChatState {
   markAsRead: (channelId: number) => void;
   startTyping: (channelId: number) => void;
   stopTyping: (channelId: number) => void;
+  startActivity: (channelId: number, kind: string) => void;
+  stopActivity: (channelId: number) => void;
   setActiveChannel: (channelId: number | null) => Promise<void>;
   fetchChannels: (page?: number) => Promise<void>;
   fetchUnreadSummary: () => Promise<void>;
@@ -305,6 +309,9 @@ interface ChatState {
 
 let socketRef: Socket | null = null;
 let typingTimeout: ReturnType<typeof setTimeout> | null = null;
+// keep-alive для индикатора загрузки: пока файл грузится, периодически
+// продлеваем серверный авто-стоп (см. startActivity)
+let activityKeepAlive: ReturnType<typeof setInterval> | null = null;
 let connectionRefs = 0;
 // Reads requested before the socket finished connecting (e.g. opening a
 // channel straight from a push notification). Flushed on 'connect'.
@@ -322,6 +329,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   activeChannelId: null,
   messages: [],
   typingUsers: {},
+  activityUsers: {},
   onlineUsers: new Set(),
   lastSeenAt: {},
   unreadCounts: {},
@@ -501,6 +509,32 @@ export const useChatStore = create<ChatState>((set, get) => ({
       });
     });
 
+    // Upload activity («отправляет фото/видео/файл/голосовое»)
+    socket.on('activity:start', (data: { channelId: number; userId: number; name: string; kind: string }) => {
+      set((state) => {
+        const current = state.activityUsers[data.channelId] || [];
+        const without = current.filter((u) => u.userId !== data.userId);
+        return {
+          activityUsers: {
+            ...state.activityUsers,
+            [data.channelId]: [...without, { userId: data.userId, name: data.name, kind: data.kind }],
+          },
+        };
+      });
+    });
+
+    socket.on('activity:stop', (data: { channelId: number; userId: number }) => {
+      set((state) => {
+        const current = state.activityUsers[data.channelId] || [];
+        return {
+          activityUsers: {
+            ...state.activityUsers,
+            [data.channelId]: current.filter((u) => u.userId !== data.userId),
+          },
+        };
+      });
+    });
+
     // Presence
     socket.on('presence:snapshot', (data: { userIds: number[] }) => {
       set({ onlineUsers: new Set(data.userIds) });
@@ -643,6 +677,26 @@ export const useChatStore = create<ChatState>((set, get) => ({
       clearTimeout(typingTimeout);
       typingTimeout = null;
     }
+  },
+
+  startActivity: (channelId, kind) => {
+    if (!socketRef?.connected) return;
+    // Шлём периодически, пока идёт загрузка — серверный авто-стоп (30 с)
+    // не должен погасить индикатор у долгих файлов. Стоп — явно по завершении.
+    socketRef.emit('activity:start', { channelId, kind });
+    if (activityKeepAlive) clearInterval(activityKeepAlive);
+    activityKeepAlive = setInterval(() => {
+      if (socketRef?.connected) socketRef.emit('activity:start', { channelId, kind });
+    }, 15000);
+  },
+
+  stopActivity: (channelId) => {
+    if (activityKeepAlive) {
+      clearInterval(activityKeepAlive);
+      activityKeepAlive = null;
+    }
+    if (!socketRef?.connected) return;
+    socketRef.emit('activity:stop', { channelId });
   },
 
   setActiveChannel: async (channelId) => {

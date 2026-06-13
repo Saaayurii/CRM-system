@@ -84,6 +84,16 @@ interface PendingFile {
 const DRAFT_KEY = (channelId: number) => `chat-draft-${channelId}`;
 const SHARE_MEDIA_KEY = (channelId: number) => `chat-share-media-${channelId}`;
 
+/** Тип активности для индикатора «отправляет …» по набору вложений */
+function activityKindOf(files: PendingFile[]): string {
+  if (files.length === 0) return 'file';
+  const types = files.map((f) => f.file.type || '');
+  if (types.every((t) => t.startsWith('image/'))) return 'photo';
+  if (types.every((t) => t.startsWith('video/'))) return 'video';
+  if (types.every((t) => t.startsWith('audio/'))) return 'voice';
+  return 'file';
+}
+
 // ── Pure DOM helpers (no React) ───────────────────────────────────────────
 
 function escapeHtml(str: string): string {
@@ -326,6 +336,8 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
   const editMessage = useChatStore((s) => s.editMessage);
   const startTyping = useChatStore((s) => s.startTyping);
   const stopTyping = useChatStore((s) => s.stopTyping);
+  const startActivity = useChatStore((s) => s.startActivity);
+  const stopActivity = useChatStore((s) => s.stopActivity);
   const replyToMessage = useChatStore((s) => s.replyToMessage);
   const setReplyToMessage = useChatStore((s) => s.setReplyToMessage);
   const editingMessage = useChatStore((s) => s.editingMessage);
@@ -968,6 +980,9 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
     let uploadedAttachments: UploadedAttachment[] = [];
 
     if (pendingFiles.length > 0) {
+      // Сообщаем собеседникам «отправляет фото/видео/файл…» на время загрузки
+      stopTyping(channelId);
+      startActivity(channelId, activityKindOf(pendingFiles));
       try {
         uploadedAttachments = await Promise.all(pendingFiles.map((pf) => uploadFileWithProgress(pf)));
         // Прокидываем таймер исчезновения (Promise.all сохраняет порядок)
@@ -977,9 +992,11 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
         });
       } catch {
         setUploadError('Не удалось загрузить файл. Попробуйте ещё раз.');
+        stopActivity(channelId);
         setIsSending(false);
         return;
       }
+      stopActivity(channelId);
     }
 
     const decorated = decorateAttachments(uploadedAttachments);
@@ -992,7 +1009,7 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
     xhrMapRef.current.clear();
     stopTyping(channelId);
     setIsSending(false);
-  }, [text, channelId, pendingFiles, sendMessage, editMessage, editingMessage, setEditingMessage, clearEditor, stopTyping, replyToMessage, uploadFileWithProgress, onFilesSent, projectId, openTaskCreateModal, decorateAttachments, pickNewMenuCreateTask, pickWizardAction, submitWizardComment, submitWizardSubtask]);
+  }, [text, channelId, pendingFiles, sendMessage, editMessage, editingMessage, setEditingMessage, clearEditor, stopTyping, startActivity, stopActivity, replyToMessage, uploadFileWithProgress, onFilesSent, projectId, openTaskCreateModal, decorateAttachments, pickNewMenuCreateTask, pickWizardAction, submitWizardComment, submitWizardSubtask]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent<HTMLDivElement>) => {
     // ── Wizard режим: Enter → меню / submit подзадачи или комментария ──
