@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useChatStore } from '@/stores/chatStore';
 import ChatSidebar from '@/components/chat/ChatSidebar';
@@ -17,6 +17,48 @@ export default function ChatPage() {
   const [showSidebar, setShowSidebar] = useState(true);
   const searchParams = useSearchParams();
   const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  // Resizable sidebar (desktop only) — drag the divider to widen/narrow the
+  // chat list, persisted in localStorage. Mobile keeps the full-width list.
+  const SIDEBAR_MIN = 260;
+  const SIDEBAR_MAX = 560;
+  const [sidebarWidth, setSidebarWidth] = useState(320);
+  const [isDesktop, setIsDesktop] = useState(false);
+  const isResizingRef = useRef(false);
+
+  useEffect(() => {
+    const saved = Number(localStorage.getItem('chat_sidebar_width'));
+    if (saved && saved >= SIDEBAR_MIN && saved <= SIDEBAR_MAX) setSidebarWidth(saved);
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const apply = () => setIsDesktop(mq.matches);
+    apply();
+    mq.addEventListener('change', apply);
+    return () => mq.removeEventListener('change', apply);
+  }, []);
+
+  const startResize = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isResizingRef.current = true;
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'col-resize';
+    const onMove = (ev: MouseEvent) => {
+      if (!isResizingRef.current) return;
+      const container = chatContainerRef.current;
+      const left = container ? container.getBoundingClientRect().left : 0;
+      const next = Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, ev.clientX - left));
+      setSidebarWidth(next);
+    };
+    const onUp = () => {
+      isResizingRef.current = false;
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      setSidebarWidth((w) => { localStorage.setItem('chat_sidebar_width', String(w)); return w; });
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }, []);
 
   // iOS: when keyboard opens, visual viewport shrinks but fixed elements don't move.
   // Track visualViewport and resize the container to fit the visible area.
@@ -109,9 +151,20 @@ export default function ChatPage() {
       <div
         className={`${
           showSidebar ? 'flex' : 'hidden'
-        } lg:flex w-full lg:w-80 shrink-0 flex-col border-r border-white dark:border-gray-700 bg-[#e9e9e9] dark:bg-gray-900`}
+        } lg:flex w-full lg:shrink-0 flex-col border-r border-white dark:border-gray-700 bg-[#e9e9e9] dark:bg-gray-900`}
+        style={isDesktop ? { width: sidebarWidth } : undefined}
       >
         <ChatSidebar onSelectChannel={handleSelectChannel} />
+      </div>
+
+      {/* Resize handle (desktop only) — drag to set sidebar width */}
+      <div
+        onMouseDown={startResize}
+        className="hidden lg:block relative w-1 shrink-0 cursor-col-resize group"
+        title="Потяните, чтобы изменить ширину"
+      >
+        <span className="absolute inset-y-0 -left-1 -right-1 z-10" />
+        <span className="absolute inset-y-0 left-0 w-px bg-transparent group-hover:bg-violet-400/70 group-active:bg-violet-500 transition-colors" />
       </div>
 
       {/* Chat window: always visible on lg+, toggle on mobile */}

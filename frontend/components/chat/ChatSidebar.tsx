@@ -462,25 +462,26 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
   // ── Normal view ───────────────────────────────────────────────────────────
   return (
     <>
-      {/* Header */}
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">{t('Чаты')}</h2>
+      {/* Header — Telegram-style */}
+      <div className="px-3 pt-3 pb-2.5 bg-white/70 dark:bg-gray-800/60 backdrop-blur-xl border-b border-gray-200/70 dark:border-gray-700/60">
+        <div className="flex items-center justify-between mb-2.5 pl-1">
+          <h2 className="text-xl font-bold tracking-tight text-gray-900 dark:text-gray-50">{t('Чаты')}</h2>
           {!isClient && (
             <button
               onClick={() => setShowCreateModal(true)}
-              className="p-2 text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-500/10 rounded-lg transition-colors"
+              className="w-9 h-9 flex items-center justify-center text-violet-500 hover:bg-violet-100/70 dark:hover:bg-violet-500/15 rounded-full transition-colors active:scale-95"
               title={t('Новый чат')}
             >
+              {/* compose / pencil */}
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7m-1.586-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
               </svg>
             </button>
           )}
         </div>
         <div className="relative">
           <svg
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -491,41 +492,47 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder={t('Поиск...')}
-            className="w-full pl-10 pr-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 border-0 rounded-lg text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-violet-500 focus:outline-none"
+            placeholder={t('Поиск')}
+            className="w-full pl-10 pr-4 py-2 text-sm bg-gray-100/90 dark:bg-gray-700/70 border-0 rounded-full text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-violet-500 focus:bg-white dark:focus:bg-gray-700 focus:outline-none transition-colors"
           />
         </div>
       </div>
 
-      {/* Folder tabs */}
+      {/* Folder tabs — Telegram-style underline tabs */}
       {projectFolders.length > 0 && (
-        <div className="border-b border-gray-100 dark:border-gray-700/60">
+        <div className="border-b border-gray-200/70 dark:border-gray-700/60 bg-white/60 dark:bg-gray-800/50 backdrop-blur-xl">
           <div className="relative">
-            <div ref={tabsScrollRef} className="flex gap-1 px-3 py-2" style={{ overflowX: 'scroll', scrollbarWidth: 'none', msOverflowStyle: 'none' } as React.CSSProperties}>
+            <div ref={tabsScrollRef} className="flex px-2" style={{ overflowX: 'scroll', scrollbarWidth: 'none', msOverflowStyle: 'none' } as React.CSSProperties}>
               <button
                 data-active={activeFolder === 'all' ? 'true' : 'false'}
                 onClick={() => setActiveFolder('all')}
-                className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${
+                className={`relative shrink-0 px-3.5 py-2.5 text-sm font-medium transition-colors whitespace-nowrap ${
                   activeFolder === 'all'
-                    ? 'bg-violet-500 text-white shadow-sm'
-                    : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-800 dark:hover:text-gray-200'
+                    ? 'text-violet-600 dark:text-violet-400'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
                 }`}
               >
                 Все чаты
+                {activeFolder === 'all' && (
+                  <span className="absolute bottom-0 left-2 right-2 h-[3px] rounded-t-full bg-violet-500" />
+                )}
               </button>
               {projectFolders.map(([pid, pname]) => (
                 <button
                   key={pid}
                   data-active={activeFolder === pid ? 'true' : 'false'}
                   onClick={() => setActiveFolder(pid)}
-                  className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap max-w-[120px] truncate ${
+                  className={`relative shrink-0 px-3.5 py-2.5 text-sm font-medium transition-colors whitespace-nowrap max-w-[140px] truncate ${
                     activeFolder === pid
-                      ? 'bg-violet-500 text-white shadow-sm'
-                      : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-800 dark:hover:text-gray-200'
+                      ? 'text-violet-600 dark:text-violet-400'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
                   }`}
                   title={pname ?? `Проект #${pid}`}
                 >
                   {pname ?? `Проект #${pid}`}
+                  {activeFolder === pid && (
+                    <span className="absolute bottom-0 left-2 right-2 h-[3px] rounded-t-full bg-violet-500" />
+                  )}
                 </button>
               ))}
             </div>

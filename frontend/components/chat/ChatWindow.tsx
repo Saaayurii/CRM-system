@@ -267,6 +267,20 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  // Плавающая «жидкое-стекло» шапка лежит поверх ленты — измеряем её высоту,
+  // чтобы добавить такой же отступ сверху списка сообщений (контент проступает
+  // сквозь матовое стекло, как в iOS). Высота меняется при показе поиска,
+  // закреплённого сообщения, плеера голосового — ResizeObserver ловит всё.
+  const topStackRef = useRef<HTMLDivElement>(null);
+  const [topStackHeight, setTopStackHeight] = useState(60);
+  useEffect(() => {
+    const el = topStackRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setTopStackHeight(el.offsetHeight));
+    ro.observe(el);
+    setTopStackHeight(el.offsetHeight);
+    return () => ro.disconnect();
+  }, [activeChannelId]);
   // «Градиент по всем сообщениям» — срез общего градиента на каждом пузыре
   useBubbleGradientFlow(messagesContainerRef);
   const messagesInnerRef = useRef<HTMLDivElement>(null);
@@ -734,8 +748,13 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
     <div className="flex flex-1 min-h-0 relative">
       {/* Main chat column */}
       <div className="flex flex-col flex-1 min-w-0 relative">
+        {/* Floating frosted "Liquid Glass" top stack — лежит поверх ленты */}
+        <div
+          ref={topStackRef}
+          className="absolute inset-x-0 top-0 z-20 bg-white/75 dark:bg-gray-800/70 backdrop-blur-xl border-b border-gray-200/70 dark:border-gray-700/60 shadow-[0_1px_8px_rgba(0,0,0,0.04)] dark:shadow-[0_1px_8px_rgba(0,0,0,0.25)]"
+        >
         {/* Header */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shrink-0">
+        <div className="flex items-center gap-3 px-4 py-3 shrink-0">
           {/* Back button (mobile) */}
           <button
             onClick={onBack}
@@ -857,7 +876,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
 
         {/* Search bar */}
         {showSearch && (
-          <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shrink-0">
+          <div className="flex items-center gap-2 px-3 py-2 border-t border-gray-200/70 dark:border-gray-700/60 shrink-0">
             <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
@@ -911,7 +930,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
         {/* Pinned message banner */}
         {currentPinned && (
           <div
-            className="flex items-center gap-3 px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors shrink-0"
+            className="flex items-center gap-3 px-4 py-2 border-t border-gray-200/70 dark:border-gray-700/60 cursor-pointer hover:bg-gray-50/70 dark:hover:bg-gray-700/40 transition-colors shrink-0"
             onClick={handleBannerClick}
           >
             {/* Полоска-индикатор слева */}
@@ -962,12 +981,14 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
 
         {/* Глобальный плеер голосового (играет и при навигации) */}
         <VoicePlayerBar />
+        </div>
+        {/* /Floating frosted top stack */}
 
         {/* Messages */}
         <div
           ref={messagesContainerRef}
-          className={`flex-1 overflow-y-auto overscroll-contain scrollbar-none px-4 py-3 space-y-1 ${wallpaperStyle ? '' : 'bg-[#e9e9e9] dark:bg-gray-900'}`}
-          style={{ ...(wallpaperStyle ?? {}), WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
+          className={`flex-1 overflow-y-auto overscroll-contain scrollbar-none px-4 pb-3 space-y-1 ${wallpaperStyle ? '' : 'bg-[#e9e9e9] dark:bg-gray-900'}`}
+          style={{ ...(wallpaperStyle ?? {}), paddingTop: topStackHeight + 12, WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
         >
           {/* Initial loading — full area spinner */}
           {isLoadingMessages && messages.length === 0 && (
