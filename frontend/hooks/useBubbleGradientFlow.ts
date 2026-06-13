@@ -30,6 +30,11 @@ export function useBubbleGradientFlow(containerRef: RefObject<HTMLElement | null
       if (bubbles.length === 0) return;
       // Сначала все чтения, потом все записи — иначе layout thrashing.
       const cRect = container.getBoundingClientRect();
+      // Контейнер ещё не получил высоту (flex-1 раскладывается асинхронно, или
+      // чат на ранних кадрах сворачивания панели) — НЕ выставляем нулевой срез,
+      // иначе пузыри застывают на base-цвете до перемонтажа. Ждём ResizeObserver/
+      // отложенные пересчёты ниже.
+      if (cRect.height === 0) return;
       const rects = Array.from(bubbles, (el) => el.getBoundingClientRect());
       bubbles.forEach((el, i) => {
         // Высота среза = видимая область (постоянна → нет перемасштабирования
@@ -43,6 +48,15 @@ export function useBubbleGradientFlow(containerRef: RefObject<HTMLElement | null
     };
 
     schedule();
+    // При первом открытии чата раскладка флекса + автоскролл вниз досаживаются
+    // асинхронно несколькими кадрами (ChatWindow «снапает» вниз на 60..1200мс по
+    // мере догрузки медиа). Если последний пересчёт среза пришёлся на ещё не
+    // устаканившуюся высоту/позицию, срез заедает на тёмном конце градиента до
+    // перемонтажа (заход в «Оформление» и обратно). Догоняем теми же таймингами —
+    // update идемпотентен в покое, лишние вызовы безвредны.
+    const settleTimers = [80, 200, 450, 900, 1400].map((ms) =>
+      setTimeout(schedule, ms),
+    );
     // Контейнер сообщений (flex-1) получает реальную высоту асинхронно —
     // ResizeObserver пересчитывает срез, когда размер появился/изменился
     // (иначе первый замер ловит height 0 и градиент не виден в чате).
@@ -60,6 +74,7 @@ export function useBubbleGradientFlow(containerRef: RefObject<HTMLElement | null
     container.addEventListener('load', schedule, true);
 
     return () => {
+      settleTimers.forEach(clearTimeout);
       container.removeEventListener('scroll', schedule);
       container.removeEventListener('load', schedule, true);
       window.removeEventListener('resize', schedule);
