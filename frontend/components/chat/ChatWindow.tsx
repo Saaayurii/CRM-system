@@ -960,7 +960,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
         {/* Messages */}
         <div
           ref={messagesContainerRef}
-          className={`flex-1 overflow-y-auto overscroll-contain px-4 py-3 space-y-1 ${wallpaperStyle ? '' : 'bg-[#e9e9e9] dark:bg-gray-900'}`}
+          className={`flex-1 overflow-y-auto overscroll-contain scrollbar-none px-4 py-3 space-y-1 ${wallpaperStyle ? '' : 'bg-[#e9e9e9] dark:bg-gray-900'}`}
           style={{ ...(wallpaperStyle ?? {}), WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
         >
           {/* Initial loading — full area spinner */}

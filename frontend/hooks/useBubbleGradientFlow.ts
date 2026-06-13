@@ -1,13 +1,13 @@
 'use client';
 
 // «Градиент по всем сообщениям» (как в Telegram): один вертикальный градиент
-// натянут на ВСЮ высоту переписки (scrollHeight), а не на видимую область.
-// Поэтому цвет пузыря зависит от его места в ленте — фиксирован за сообщением:
-// верхние (старые) у первого цвета, нижние (свежие) у последнего. При скролле
-// цвет каждого сообщения НЕ дёргается — просто видно разные участки градиента.
-// background-attachment: fixed на iOS не работает, поэтому срез позиционируем
-// вручную: --grad-h = полная высота контента, --grad-y = минус смещение пузыря
-// от верха контента (background-position сдвигает градиент к нужному участку).
+// натянут на ВИДИМУЮ область чата (как background-attachment: fixed, которого
+// нет на iOS). Верх экрана — первый цвет, низ — последний; пузырь показывает
+// срез под своей позицией на экране. При простое значения не меняются (высота
+// экрана постоянна → пересчёт идемпотентен, нет дёрганья от «печатает»/«в сети»
+// /галочек), а при прокрутке сообщение плавно перетекает из цвета в цвет.
+// Позиционируем вручную: --grad-h = высота видимой области, --grad-y = смещение
+// верха экрана относительно пузыря (сдвиг градиента к нужному срезу).
 
 import { useEffect, type RefObject } from 'react';
 import { useThemeStore } from '@/stores/themeStore';
@@ -30,15 +30,12 @@ export function useBubbleGradientFlow(containerRef: RefObject<HTMLElement | null
       if (bubbles.length === 0) return;
       // Сначала все чтения, потом все записи — иначе layout thrashing.
       const cRect = container.getBoundingClientRect();
-      const scrollTop = container.scrollTop;
-      const fullH = container.scrollHeight; // высота всей переписки
       const rects = Array.from(bubbles, (el) => el.getBoundingClientRect());
       bubbles.forEach((el, i) => {
-        // Смещение пузыря от верха контента (scroll-независимое):
-        // при прокрутке rect.top и scrollTop меняются встречно и сокращаются.
-        const offsetInContent = rects[i].top - cRect.top + scrollTop;
-        el.style.setProperty('--grad-h', `${fullH}px`);
-        el.style.setProperty('--grad-y', `${-offsetInContent}px`);
+        // Высота среза = видимая область (постоянна → нет перемасштабирования
+        // при изменении высоты контента). Сдвиг = позиция пузыря на экране.
+        el.style.setProperty('--grad-h', `${cRect.height}px`);
+        el.style.setProperty('--grad-y', `${cRect.top - rects[i].top}px`);
       });
     };
     const schedule = () => {
@@ -46,14 +43,15 @@ export function useBubbleGradientFlow(containerRef: RefObject<HTMLElement | null
     };
 
     schedule();
-    // Скролл не меняет цвет (математически), но держим слушатель: новые порции
-    // истории/медиа меняют scrollHeight, и пересчёт по факту скролла надёжнее.
+    // Прокрутка двигает срез — это и есть «перелив» (как в Telegram)
     container.addEventListener('scroll', schedule, { passive: true });
     window.addEventListener('resize', schedule);
-    // Новые/удалённые сообщения меняют высоту → сдвигают все смещения
+    // Новые/удалённые сообщения — выставить переменные на новых пузырях.
+    // Для существующих пузырей значения не меняются (высота экрана та же),
+    // поэтому индикатор «печатает»/«в сети» не вызывает видимого сдвига.
     const mo = new MutationObserver(schedule);
     mo.observe(container, { childList: true, subtree: true });
-    // Подгрузка медиа меняет высоту без мутаций — ловим load в capture-фазе
+    // Подгрузка медиа сдвигает пузыри — ловим load в capture-фазе
     container.addEventListener('load', schedule, true);
 
     return () => {
