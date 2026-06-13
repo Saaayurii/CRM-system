@@ -1953,11 +1953,11 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
         <div className="flex items-end gap-2">
           {/* Left capsule: скрепка + переключатель медиа — сгруппированы (как в шапке) */}
           <div className="relative shrink-0" ref={attachMenuRef}>
-            <div className={`flex items-center rounded-full overflow-hidden divide-x divide-black/[0.06] dark:divide-white/[0.08] ${GLASS_SURFACE}`}>
+            <div className={`flex items-center h-11 rounded-full overflow-hidden divide-x divide-black/[0.06] dark:divide-white/[0.08] ${GLASS_SURFACE}`}>
               <button
                 onClick={() => setShowAttachMenu((v) => !v)}
                 disabled={isSending}
-                className={`h-11 px-3 flex items-center justify-center transition-colors disabled:opacity-50 ${showAttachMenu ? 'text-violet-500' : 'text-gray-500 dark:text-gray-300 hover:text-violet-500 hover:bg-black/[0.04] dark:hover:bg-white/[0.06]'}`}
+                className={`h-full px-3 flex items-center justify-center transition-colors disabled:opacity-50 ${showAttachMenu ? 'text-violet-500' : 'text-gray-500 dark:text-gray-300 hover:text-violet-500 hover:bg-black/[0.04] dark:hover:bg-white/[0.06]'}`}
                 title={t('Прикрепить файл')}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
@@ -1970,7 +1970,7 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
                   type="button"
                   onClick={toggleShareMedia}
                   disabled={isSending}
-                  className={`h-11 px-3 flex items-center justify-center transition-colors disabled:opacity-50 ${
+                  className={`h-full px-3 flex items-center justify-center transition-colors disabled:opacity-50 ${
                     shareMedia
                       ? 'text-violet-500'
                       : 'text-gray-500 dark:text-gray-300 hover:text-violet-500 hover:bg-black/[0.04] dark:hover:bg-white/[0.06]'
@@ -2041,16 +2041,18 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
               }
               className={`w-full py-2.5 pl-4 pr-12 rounded-3xl text-sm text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-violet-500 focus:outline-none overflow-y-auto min-h-[44px] max-h-[120px] break-words leading-relaxed ${GLASS_SURFACE} ${isSending ? 'opacity-50 cursor-not-allowed' : ''}`}
             />
-            {/* Emoji button inside the input — выровнен по низу поля */}
-            <div className="absolute right-2 bottom-1 z-10" ref={emojiPickerRef}>
+            {/* Emoji button inside the input — закреплён в нижней зоне высотой
+                44px (как однострочное поле) и центрирован в ней, поэтому при
+                многострочном вводе остаётся ровно у нижней кромки */}
+            <div className="absolute right-1.5 bottom-0 h-[44px] flex items-center z-10" ref={emojiPickerRef}>
               <button
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => setShowEmojiPicker((v) => !v)}
                 disabled={isSending}
-                className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-yellow-500 transition-colors disabled:opacity-50 rounded-full"
+                className="w-9 h-9 flex items-center justify-center text-gray-400 hover:text-yellow-500 transition-colors disabled:opacity-50 rounded-full"
                 title={t('Смайлики')}
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </button>

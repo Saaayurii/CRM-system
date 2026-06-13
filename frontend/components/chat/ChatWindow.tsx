@@ -921,7 +921,7 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
                 if (e.key === 'Escape') setShowSearch(false);
               }}
               placeholder={t('Поиск в переписке…')}
-              className="flex-1 bg-transparent text-sm outline-none text-gray-800 dark:text-gray-100 placeholder:text-gray-400"
+              className="flex-1 bg-transparent text-sm outline-none focus:ring-0 focus:outline-none border-0 text-gray-800 dark:text-gray-100 placeholder:text-gray-400"
             />
             {searchQuery.trim().length >= 2 && (
               <span className="text-xs text-gray-400 shrink-0 tabular-nums">
@@ -1015,6 +1015,20 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
         <VoicePlayerBar />
         </div>
         {/* /Floating frosted top stack */}
+
+        {/* Прогрессивный блюр под плавающей шапкой: сообщения, заезжающие под
+            календарь/поиск/имя, мягко размываются к верхней кромке (как в iOS).
+            z-10 — выше ленты, но ниже стеклянных пилюль шапки (z-20). */}
+        <div
+          className="absolute inset-x-0 top-0 z-10 pointer-events-none"
+          style={{
+            height: topStackHeight,
+            WebkitBackdropFilter: 'blur(6px)',
+            backdropFilter: 'blur(6px)',
+            WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 50%, transparent 100%)',
+            maskImage: 'linear-gradient(to bottom, black 0%, black 50%, transparent 100%)',
+          }}
+        />
 
         {/* Messages */}
         <div
@@ -1158,8 +1172,13 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
           </div>
         )}
 
-        {/* Input — плавающий оверлей внизу (лента уходит за него при скролле) */}
-        <div ref={bottomBarRef} className="absolute inset-x-0 bottom-0 z-20">
+        {/* Input — плавающий оверлей внизу (лента уходит за него при скролле);
+            на мобиле приподнят над домашним индикатором (safe-area) */}
+        <div
+          ref={bottomBarRef}
+          className="absolute inset-x-0 bottom-0 z-20"
+          style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+        >
         {isCurrentUserMuted ? (
           <div className="px-3 pb-3 pt-2">
             <div className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl ${GLASS_SURFACE}`}>

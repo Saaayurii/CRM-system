@@ -39,17 +39,23 @@ html.app-shell body {
    У нас уже есть пункт «Копировать текст», поэтому на сенсорных гасим callout
    и системное выделение внутри пузырей. */
 @media (pointer: coarse) {
-  [data-message-id] {
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    user-select: none;
+  [data-message-id],
+  [data-message-id] * {
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+  }
+  /* Гасим синюю подсветку нативного выделения внутри пузырей */
+  [data-message-id] ::selection,
+  [data-message-id]::selection {
+    background: transparent;
   }
   /* Поля редактирования сообщения остаются выделяемыми */
   [data-message-id] input,
   [data-message-id] textarea,
   [data-message-id] [contenteditable] {
-    -webkit-user-select: text;
-    user-select: text;
+    -webkit-user-select: text !important;
+    user-select: text !important;
   }
 }
 
