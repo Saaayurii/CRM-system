@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import Link from 'next/link';
 import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { useToastStore } from '@/stores/toastStore';
@@ -75,7 +74,6 @@ export default function EmployeesPage() {
   });
 
   const canEdit = [1, 2].includes(currentUser?.roleId ?? 0);
-  const canManageInvites = [1, 2, 3].includes(currentUser?.roleId ?? 0);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterRole, setFilterRole] = useState('');
@@ -206,18 +204,6 @@ export default function EmployeesPage() {
                     </svg>
                     {pdfLoading ? 'PDF...' : 'Скачать PDF'}
                   </button>
-                  {canManageInvites && (
-                    <Link
-                      href="/dashboard/employees/invites"
-                      onClick={() => setShowSettings(false)}
-                      className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/60 transition-colors"
-                    >
-                      <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
-                      </svg>
-                      Заявки и инвайты
-                    </Link>
-                  )}
                   {hasActiveFilters && (
                     <>
                       <div className="mx-3 my-1 border-t border-gray-100 dark:border-gray-700" />

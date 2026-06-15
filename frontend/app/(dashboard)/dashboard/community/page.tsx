@@ -7,12 +7,14 @@ import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import EmployeesPage from '../employees/page';
 import ClientsPage from '../clients/page';
 import TeamsPage from '../teams/page';
+import RegistrationRequestsPanel from '@/components/dashboard/RegistrationRequestsPanel';
 import { useT } from '@/lib/i18n';
 
 const ALL_TABS = [
   { id: 'employees', label: 'Сотрудники' },
   { id: 'clients',   label: 'Клиенты' },
   { id: 'teams',     label: 'Команды' },
+  { id: 'requests',  label: 'Заявки' },
 ];
 
 function CommunityContent() {
@@ -30,6 +32,7 @@ function CommunityContent() {
   const visibleTabs = ALL_TABS.filter((t) => {
     if (t.id === 'clients') return isSuperAdmin || isAdmin || isPM;
     if (t.id === 'teams') return isSuperAdmin || isAdmin || isPM || isHR;
+    if (t.id === 'requests') return isSuperAdmin || isAdmin || isHR;
     return true;
   });
 
@@ -66,6 +69,15 @@ function CommunityContent() {
       {activeTab === 'employees' && <EmployeesPage />}
       {activeTab === 'clients'   && <ClientsPage />}
       {activeTab === 'teams'     && <TeamsPage />}
+      {activeTab === 'requests'  && (
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-2xl md:text-3xl text-gray-800 dark:text-gray-100 font-bold">{t('Заявки и инвайты')}</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('Управление заявками на регистрацию и инвайт-ссылками')}</p>
+          </div>
+          <RegistrationRequestsPanel />
+        </div>
+      )}
     </div>
   );
 }
