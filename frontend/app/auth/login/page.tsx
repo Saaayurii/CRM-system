@@ -8,6 +8,7 @@ import api from '@/lib/api';
 import { AxiosError } from 'axios';
 import type { TwoFactorChallenge } from '@/types/auth';
 import { useT } from '@/lib/i18n';
+import ForeignEmailNotice from '@/components/auth/ForeignEmailNotice';
 
 interface AccountChoice {
   id: number;
@@ -47,6 +48,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [emailFocus, setEmailFocus] = useState(false);
   const [loginError, setLoginError] = useState<LoginError | null>(null);
   const [loading, setLoading] = useState(false);
   const [accounts, setAccounts] = useState<AccountChoice[] | null>(null);
@@ -310,15 +312,24 @@ export default function LoginPage() {
             <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300" htmlFor="email">
               Email
             </label>
-            <input
-              id="email"
-              className="form-input w-full"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="your@email.com"
-              required
-            />
+            <div
+              className="relative"
+              onMouseEnter={() => setEmailFocus(true)}
+              onMouseLeave={() => setEmailFocus(false)}
+            >
+              <input
+                id="email"
+                className="form-input w-full"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                onFocus={() => setEmailFocus(true)}
+                onBlur={() => setEmailFocus(false)}
+                placeholder="your@email.com"
+                required
+              />
+              <ForeignEmailNotice value={email} open={emailFocus} />
+            </div>
           </div>
           <div>
             <div className="flex items-center justify-between mb-1">
