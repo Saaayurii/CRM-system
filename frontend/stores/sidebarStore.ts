@@ -25,11 +25,8 @@ export const useSidebarStore = create<SidebarState>((set) => ({
   },
 
   initialize: () => {
-    const stored = localStorage.getItem('sidebar-expanded');
-    const expanded = stored === null ? true : stored === 'true';
-    set({ sidebarExpanded: expanded });
-    if (expanded) {
-      document.querySelector('body')?.classList.add('sidebar-expanded');
-    }
+    // Сайдбар управляется наведением мыши: в покое он свёрнут.
+    set({ sidebarExpanded: false });
+    document.querySelector('body')?.classList.remove('sidebar-expanded');
   },
 }));
