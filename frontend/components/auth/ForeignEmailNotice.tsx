@@ -11,9 +11,9 @@ import { useState } from 'react';
  * Появляется при наведении/фокусе на поле (`open`) либо автоматически, когда в
  * поле введён адрес иностранного почтового провайдера.
  *
- * Раскладка: на десктопе (lg+) — справа от поля; на телефоне/планшете —
- * компактная плашка, зафиксированная вверху экрана (не перекрывает форму).
- * Фон полностью непрозрачный, поверх формы.
+ * Раскладка: на десктопе (lg+) — абсолютный поповер справа от поля; на
+ * телефоне/планшете — компактная плашка В ПОТОКЕ под полем (раздвигает форму,
+ * не перекрывает ввод и не всплывает поверх клавиатуры при каждом фокусе).
  */
 
 const FOREIGN_EMAIL_RE =
@@ -36,8 +36,8 @@ export default function ForeignEmailNotice({
 
   return (
     <div
-      className="fixed top-2 inset-x-2 z-[60]
-                 lg:absolute lg:top-0 lg:inset-x-auto lg:left-full lg:ml-4 lg:w-80"
+      className="relative mt-2 z-[60]
+                 lg:absolute lg:top-0 lg:mt-0 lg:inset-x-auto lg:left-full lg:ml-4 lg:w-80"
     >
       {/* стрелочка к полю — только на десктопе */}
       <div className="hidden lg:block absolute top-5 -left-1.5 w-3 h-3 rotate-45 bg-white dark:bg-gray-900 border-l border-b border-amber-300 dark:border-amber-500/40" />
