@@ -23,17 +23,30 @@ export default function ChatPage() {
   const SIDEBAR_MIN = 260;
   const SIDEBAR_MAX = 560;
   const [sidebarWidth, setSidebarWidth] = useState(320);
-  const [isDesktop, setIsDesktop] = useState(false);
+  // 'mobile' (<1024) — одна панель с переключением.
+  // 'tablet' (≥1024 + тач) — полноэкранный двухпанельный оверлей (перекрывает
+  //   icon-rail и глобальную шапку, как в Telegram на iPad).
+  // 'desktop' (≥1024 + мышь) — две панели внутри dashboard-раскладки.
+  const [layoutMode, setLayoutMode] = useState<'mobile' | 'tablet' | 'desktop'>('mobile');
+  const isDesktop = layoutMode !== 'mobile'; // обе двухпанельные раскладки используют sidebarWidth
   const isResizingRef = useRef(false);
 
   useEffect(() => {
     const saved = Number(localStorage.getItem('chat_sidebar_width'));
     if (saved && saved >= SIDEBAR_MIN && saved <= SIDEBAR_MAX) setSidebarWidth(saved);
-    const mq = window.matchMedia('(min-width: 1024px)');
-    const apply = () => setIsDesktop(mq.matches);
+    const wide = window.matchMedia('(min-width: 1024px)');
+    const coarse = window.matchMedia('(pointer: coarse)');
+    const apply = () => {
+      if (!wide.matches) setLayoutMode('mobile');
+      else setLayoutMode(coarse.matches ? 'tablet' : 'desktop');
+    };
     apply();
-    mq.addEventListener('change', apply);
-    return () => mq.removeEventListener('change', apply);
+    wide.addEventListener('change', apply);
+    coarse.addEventListener('change', apply);
+    return () => {
+      wide.removeEventListener('change', apply);
+      coarse.removeEventListener('change', apply);
+    };
   }, []);
 
   const startResize = useCallback((e: React.MouseEvent) => {
@@ -67,7 +80,12 @@ export default function ChatPage() {
     if (!vv) return;
     const update = () => {
       const el = chatContainerRef.current;
-      if (!el || window.innerWidth >= 1024) return;
+      if (!el) return;
+      // Десктоп (мышь, ≥1024) сохраняет высоту внутри раскладки; за клавиатурой
+      // следят только полноэкранные оверлеи — телефон и тач-планшет.
+      const wide = window.matchMedia('(min-width: 1024px)').matches;
+      const coarse = window.matchMedia('(pointer: coarse)').matches;
+      if (wide && !coarse) return;
       el.style.height = `${vv.height}px`;
       el.style.top = `${vv.offsetTop}px`;
       el.style.bottom = 'auto';
@@ -146,7 +164,11 @@ export default function ChatPage() {
     : 'max-lg:fixed max-lg:inset-0 max-lg:z-30';
 
   return (
-    <div ref={chatContainerRef} className={`flex ${mobileClass} lg:h-[calc(100dvh-4rem)] lg:rounded-2xl sm:max-lg:h-[calc(100dvh-64px)] sm:max-lg:-mx-6 sm:max-lg:-my-8 sm:max-lg:w-[calc(100%+3rem)] bg-[#e9e9e9] dark:bg-gray-900 max-lg:rounded-none shadow-xs overflow-hidden overscroll-none`}>
+    <div ref={chatContainerRef} className={`flex bg-[#e9e9e9] dark:bg-gray-900 shadow-xs overflow-hidden overscroll-none ${
+      layoutMode === 'tablet'
+        ? 'fixed inset-0 z-50'
+        : `${mobileClass} lg:h-[calc(100dvh-4rem)] lg:rounded-2xl sm:max-lg:h-[calc(100dvh-64px)] sm:max-lg:-mx-6 sm:max-lg:-my-8 sm:max-lg:w-[calc(100%+3rem)] max-lg:rounded-none`
+    }`}>
       {/* Sidebar: always visible on lg+, toggle on mobile */}
       <div
         className={`${
