@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useChatStore } from '@/stores/chatStore';
+import { useSidebarStore } from '@/stores/sidebarStore';
 import ChatSidebar from '@/components/chat/ChatSidebar';
 import ChatWindow from '@/components/chat/ChatWindow';
 
@@ -13,6 +14,9 @@ export default function ChatPage() {
   const activeChannelId = useChatStore((s) => s.activeChannelId);
   const setActiveChannel = useChatStore((s) => s.setActiveChannel);
   const channels = useChatStore((s) => s.channels);
+  // Раскрытие dashboard-рейла (по ховеру трекпада/пера на iPad) — двигаем левый
+  // край чата следом, чтобы рейл не налезал, а чат сдвигался как на ПК.
+  const sidebarExpanded = useSidebarStore((s) => s.sidebarExpanded);
 
   const [showSidebar, setShowSidebar] = useState(true);
   const searchParams = useSearchParams();
@@ -166,7 +170,7 @@ export default function ChatPage() {
   return (
     <div ref={chatContainerRef} className={`flex bg-[#e9e9e9] dark:bg-gray-900 shadow-xs overflow-hidden overscroll-none ${
       layoutMode === 'tablet'
-        ? 'fixed inset-y-0 right-0 left-20 z-50' // оставляем 80px слева под icon-rail меню
+        ? `fixed inset-y-0 right-0 z-50 transition-[left] duration-200 ${sidebarExpanded ? 'left-64' : 'left-20'}` // следуем ширине рейла: 80px свёрнут, 256px раскрыт
         : `${mobileClass} lg:h-[calc(100dvh-4rem)] lg:rounded-2xl sm:max-lg:h-[calc(100dvh-64px)] sm:max-lg:-mx-6 sm:max-lg:-my-8 sm:max-lg:w-[calc(100%+3rem)] max-lg:rounded-none`
     }`}>
       {/* Sidebar: always visible on lg+, toggle on mobile */}

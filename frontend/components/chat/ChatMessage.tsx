@@ -916,7 +916,7 @@ function ChatMessage({ message, isOwn, showAvatar, isRead, readers = [], onReply
 
           {/* Message preview bubble */}
           <div
-            className={`relative z-10 w-full flex animate-ctx-pop-in ${own ? 'justify-end' : 'justify-start'}`}
+            className={`relative z-10 w-full max-w-md flex animate-ctx-pop-in ${own ? 'justify-end' : 'justify-start'}`}
             onClick={(e) => e.stopPropagation()}
           >
             <div className={`max-w-[75%] rounded-2xl px-3 py-2 shadow-lg ${
