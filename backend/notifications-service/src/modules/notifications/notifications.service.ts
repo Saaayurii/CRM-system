@@ -143,12 +143,29 @@ export class NotificationsService implements OnModuleInit {
 
       if (!subscriptions.length) return;
 
+      // Текущее число непрочитанных — service worker выставит его на иконку PWA
+      // (Badging API). Без этого бейдж-счётчик не появляется, когда приложение
+      // в фоне/закрыто и пуш ловит только SW.
+      let badgeCount: number | undefined;
+      if (notification.accountId) {
+        try {
+          badgeCount = await this.notificationRepository.countNotifications(
+            notification.accountId,
+            userId,
+            false,
+          );
+        } catch {
+          badgeCount = undefined;
+        }
+      }
+
       const payload = JSON.stringify({
         title: notification.title,
         message: notification.message ?? '',
         notificationType: notification.notificationType,
         actionUrl: notification.actionUrl ?? '/dashboard',
         priority: notification.priority,
+        badgeCount,
       });
 
       const results = await Promise.allSettled(

@@ -290,6 +290,17 @@ self.addEventListener('push', (event) => {
     timestamp: Date.now(),
   };
 
+  // App icon badge (Badging API). The page sets this too when it's open, but
+  // when the app is backgrounded/closed only the SW runs — so set it here from
+  // the unread count the backend put in the payload.
+  if (typeof data.badgeCount === 'number' && 'setAppBadge' in self.navigator) {
+    if (data.badgeCount > 0) {
+      self.navigator.setAppBadge(data.badgeCount).catch(() => {});
+    } else {
+      self.navigator.clearAppBadge?.().catch(() => {});
+    }
+  }
+
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
       // Let any open window update its in-app UI…
