@@ -6,8 +6,8 @@
  * - Stale-while-revalidate for synced API routes
  */
 
-const CACHE_NAME = 'crm-v4';
-const API_CACHE_NAME = 'crm-api-v4';
+const CACHE_NAME = 'crm-v5';
+const API_CACHE_NAME = 'crm-api-v5';
 const OFFLINE_URL = '/dashboard';
 
 // Assets to pre-cache on install
@@ -290,27 +290,41 @@ self.addEventListener('push', (event) => {
     timestamp: Date.now(),
   };
 
-  // App icon badge (Badging API). The page sets this too when it's open, but
-  // when the app is backgrounded/closed only the SW runs — so set it here from
-  // the unread count the backend put in the payload.
-  if (typeof data.badgeCount === 'number' && 'setAppBadge' in self.navigator) {
-    if (data.badgeCount > 0) {
-      self.navigator.setAppBadge(data.badgeCount).catch(() => {});
-    } else {
-      self.navigator.clearAppBadge?.().catch(() => {});
-    }
-  }
-
   event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+    (async () => {
       // Let any open window update its in-app UI…
-      for (const c of windowClients) {
-        c.postMessage({ type: 'PUSH_NOTIFICATION', data });
+      try {
+        const windowClients = await self.clients.matchAll({
+          type: 'window',
+          includeUncontrolled: true,
+        });
+        for (const c of windowClients) {
+          c.postMessage({ type: 'PUSH_NOTIFICATION', data });
+        }
+      } catch {
+        // ignore — must not block the notification below
       }
-      // …but ALWAYS show a system notification. iOS revokes/throttles the push
-      // subscription if a push event does not result in a visible notification.
-      return self.registration.showNotification(title, options);
-    })
+
+      // …and ALWAYS show a system notification FIRST. iOS revokes/throttles the
+      // push subscription (and silently drops the push) if a push event does not
+      // result in a visible notification, so nothing above may throw before this.
+      await self.registration.showNotification(title, options);
+
+      // App icon badge (Badging API) — best-effort, AFTER the notification so a
+      // failure here can never suppress the push. Only the SW runs when the app
+      // is backgrounded/closed, so we set it from the count in the payload.
+      try {
+        if (typeof data.badgeCount === 'number' && 'setAppBadge' in self.navigator) {
+          if (data.badgeCount > 0) {
+            await self.navigator.setAppBadge(data.badgeCount);
+          } else if (self.navigator.clearAppBadge) {
+            await self.navigator.clearAppBadge();
+          }
+        }
+      } catch {
+        // ignore — badge is a progressive enhancement
+      }
+    })()
   );
 });
 
