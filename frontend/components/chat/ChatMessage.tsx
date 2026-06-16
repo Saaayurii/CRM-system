@@ -1017,23 +1017,37 @@ function ChatMessage({ message, isOwn, showAvatar, isRead, isDirect = false, rea
             onClick={(e) => e.stopPropagation()}
           >
             <div
-              className={`rounded-2xl px-3 py-2 shadow-lg ${
+              className={`rounded-2xl shadow-lg overflow-hidden ${
                 own
                   ? 'bg-bubble-500 text-white rounded-tr-sm'
                   : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-transparent rounded-tl-sm'
               }`}
-              style={{ width: anchorRect ? Math.min(Math.max(anchorRect.width, 72), 320) : undefined }}
+              style={
+                mediaItems.length > 0
+                  ? { maxWidth: 240 }
+                  : { width: anchorRect ? Math.min(Math.max(anchorRect.width, 72), 320) : undefined }
+              }
             >
-              {message.text && (
-                <p className="text-sm whitespace-pre-wrap break-words line-clamp-4">{message.text}</p>
+              {/* Медиа — реальная миниатюра (как в Telegram), а не «📎 имя» */}
+              {mediaItems.length > 0 && (
+                mediaItems[0].type === 'video' ? (
+                  <video src={mediaItems[0].url} muted playsInline className="block w-full max-h-60 object-cover" />
+                ) : (
+                  <img src={mediaItems[0].url} alt="" className="block w-full max-h-60 object-cover" />
+                )
               )}
-              {!message.text && message.attachments && message.attachments.length > 0 && (
-                <p className={`text-sm ${own ? 'text-bubble-200' : 'text-gray-500 dark:text-gray-400'}`}>
-                  📎 {message.attachments[0].fileName}
-                </p>
-              )}
-              <div className={`text-[10px] mt-0.5 ${own ? 'text-right text-bubble-200' : 'text-gray-400 dark:text-gray-500'}`}>
-                {formatTime(message.createdAt)}
+              <div className="px-3 py-2">
+                {message.text && (
+                  <p className="text-sm whitespace-pre-wrap break-words line-clamp-4">{message.text}</p>
+                )}
+                {mediaItems.length === 0 && !message.text && nonMediaAtts.length > 0 && (
+                  <p className={`text-sm ${own ? 'text-bubble-200' : 'text-gray-500 dark:text-gray-400'}`}>
+                    📎 {nonMediaAtts[0].fileName}
+                  </p>
+                )}
+                <div className={`text-[10px] ${message.text || mediaItems.length === 0 ? 'mt-0.5' : ''} ${own ? 'text-right text-bubble-200' : 'text-gray-400 dark:text-gray-500'}`}>
+                  {formatTime(message.createdAt)}
+                </div>
               </div>
             </div>
           </div>
