@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from 'react';
 import ServiceGrid from '@/components/admin/ServiceGrid';
 import ErrorBoundary from '@/components/admin/ErrorBoundary';
 import ErrorDiagnosticsPanel from '@/components/admin/ErrorDiagnosticsPanel';
+import StorageStatusPanel from '@/components/admin/StorageStatusPanel';
 import type { DiagnosticError, Severity } from '@/types/admin';
 import { useT } from '@/lib/i18n';
 
@@ -133,6 +134,9 @@ export default function AdminPage() {
 
       {/* Error Diagnostics */}
       <ErrorDiagnosticsPanel errors={errors} onCheckAll={handleCheckAll} isChecking={isChecking} />
+
+      {/* S3 Storage status & logs (super_admin) */}
+      <StorageStatusPanel />
 
       {/* Microservices */}
       <section className="mb-8">

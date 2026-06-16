@@ -33,6 +33,7 @@ import { AutomationGatewayModule } from './modules/automation/automation-gateway
 import { SettingsGatewayModule } from './modules/settings/settings-gateway.module';
 import { DashboardGatewayModule } from './modules/dashboard/dashboard-gateway.module';
 import { HealthModule } from './modules/health/health.module';
+import { AdminGatewayModule } from './modules/admin/admin-gateway.module';
 import { JwtStrategy } from './common/guards/jwt.strategy';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { ClientReadOnlyGuard } from './common/guards/client-readonly.guard';
@@ -103,6 +104,7 @@ import { RequestContextMiddleware } from './common/middleware/request-context.mi
     SettingsGatewayModule,
     DashboardGatewayModule,
     HealthModule,
+    AdminGatewayModule,
   ],
   providers: [
     JwtStrategy,
