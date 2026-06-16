@@ -937,16 +937,11 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
               </svg>
             </button>
 
-            {/* Info / settings toggle — в личных открывает карточку профиля */}
+            {/* Info / settings toggle — только в группах/Избранном. В личных
+                дублировал бы клик по шапке (карточка профиля), поэтому скрыт. */}
+            {!(activeChannel.channelType === 'direct' && !isSelf) && (
             <button
-              onClick={() => {
-                if (activeChannel.channelType === 'direct' && !isSelf && partner?.id) {
-                  setProfileUserId(partner.id);
-                } else {
-                  setShowInfo((v) => !v);
-                }
-                setShowSearch(false);
-              }}
+              onClick={() => { setShowInfo((v) => !v); setShowSearch(false); }}
               className={`p-2.5 cursor-pointer transition-colors ${
                 showInfo
                   ? 'bg-violet-500/15 text-violet-600 dark:text-violet-400'
@@ -958,6 +953,7 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </button>
+            )}
           </div>
         </div>
 
