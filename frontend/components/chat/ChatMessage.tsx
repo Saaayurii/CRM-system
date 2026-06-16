@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback, memo } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect, useCallback, memo } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useToastStore } from '@/stores/toastStore';
@@ -278,6 +278,15 @@ function ChatMessage({ message, isOwn, showAvatar, isRead, readers = [], onReply
   }[]>([]);
   const bubbleRef = useRef<HTMLDivElement>(null);
 
+  // ── Контекстное меню сообщения (как в Telegram): пузырь остаётся на своём
+  // месте, меню привязано к нему и лишь подвигается вверх/вниз, чтобы влезть ──
+  const [anchorRect, setAnchorRect] = useState<
+    { top: number; left: number; right: number; width: number } | null
+  >(null);
+  const [menuTop, setMenuTop] = useState<number | null>(null);
+  const menuGroupRef = useRef<HTMLDivElement>(null);
+  const menuPreviewRef = useRef<HTMLDivElement>(null);
+
   const openViewer = useCallback((mediaIndex: number) => setViewerIndex(mediaIndex), []);
 
   // «Копировать медиа» — картинка в буфер обмена. Clipboard API принимает
@@ -361,6 +370,9 @@ function ChatMessage({ message, isOwn, showAvatar, isRead, readers = [], onReply
         // уезжало под неё. Снимаем фокус — клавиатура убирается, меню на весь
         // экран, как в Telegram.
         (document.activeElement as HTMLElement | null)?.blur?.();
+        const r = bubbleRef.current?.getBoundingClientRect();
+        if (r) setAnchorRect({ top: r.top, left: r.left, right: r.right, width: r.width });
+        setMenuTop(null);
         setIsPressing(false); // пузырь пружинит обратно вместе с появлением меню
         setIsSelected(true); // brief selection glow on the bubble
         setShowMobileActions(true);
@@ -491,6 +503,52 @@ function ChatMessage({ message, isOwn, showAvatar, isRead, readers = [], onReply
     return () => window.removeEventListener('keydown', onKey);
   }, [ctxMenu]);
 
+  // Держим anchorRect в актуале, пока открыто мобильное меню: реальный пузырь
+  // остаётся в DOM под backdrop, а при закрытии клавиатуры лента реверсит — на
+  // resize visualViewport перечитываем его позицию, чтобы меню следовало за ним.
+  useEffect(() => {
+    if (!showMobileActions) {
+      setAnchorRect(null);
+      setMenuTop(null);
+      return;
+    }
+    const measure = () => {
+      const r = bubbleRef.current?.getBoundingClientRect();
+      if (r) setAnchorRect({ top: r.top, left: r.left, right: r.right, width: r.width });
+    };
+    const raf = requestAnimationFrame(measure);
+    const vv = window.visualViewport;
+    vv?.addEventListener('resize', measure);
+    vv?.addEventListener('scroll', measure);
+    return () => {
+      cancelAnimationFrame(raf);
+      vv?.removeEventListener('resize', measure);
+      vv?.removeEventListener('scroll', measure);
+    };
+  }, [showMobileActions]);
+
+  // Вертикальная позиция меню: пузырь на своём месте, а блок «реакции+пузырь+
+  // действия» подвигается вверх/вниз, чтобы влезть. Не влезает совсем — держим
+  // нижний край (карточку действий) видимой.
+  useLayoutEffect(() => {
+    if (!showMobileActions || !anchorRect) return;
+    const group = menuGroupRef.current;
+    const preview = menuPreviewRef.current;
+    if (!group || !preview) return;
+    const previewOffset = preview.offsetTop; // высота ряда реакций + gap над пузырём
+    const groupH = group.offsetHeight;
+    const vv = window.visualViewport;
+    const vTop = vv ? vv.offsetTop : 0;
+    const vH = vv ? vv.height : window.innerHeight;
+    const margin = 12;
+    let top = anchorRect.top - previewOffset; // пузырь остаётся на своём месте
+    const maxTop = vTop + vH - groupH - margin;
+    const minTop = vTop + margin;
+    if (maxTop < minTop) top = maxTop; // не влезает — приоритет нижней карточке
+    else top = Math.min(Math.max(top, minTop), maxTop);
+    setMenuTop(top);
+  }, [showMobileActions, anchorRect]);
+
   // Системное сообщение (закрепление, открепление и т.п.)
   if (message.messageType === 'system') {
     return (
@@ -547,6 +605,9 @@ function ChatMessage({ message, isOwn, showAvatar, isRead, readers = [], onReply
           window.matchMedia('(pointer: coarse)').matches;
         if (isCoarse) {
           (document.activeElement as HTMLElement | null)?.blur?.();
+          const r = bubbleRef.current?.getBoundingClientRect();
+          if (r) setAnchorRect({ top: r.top, left: r.left, right: r.right, width: r.width });
+          setMenuTop(null);
           setShowMobileActions(true);
         } else {
           // Запоминаем медиа под курсором — в альбоме «Копировать/Сохранить»
@@ -888,7 +949,7 @@ function ChatMessage({ message, isOwn, showAvatar, isRead, readers = [], onReply
       {showMobileActions && typeof document !== 'undefined' && createPortal(
         <div
           ref={mobileMenuRef}
-          className="fixed inset-0 z-[9999] flex flex-col items-center justify-center px-5 gap-2"
+          className="fixed inset-0 z-[9999]"
           onTouchStart={(e) => e.stopPropagation()}
           onTouchEnd={(e) => e.stopPropagation()}
           onTouchMove={(e) => e.stopPropagation()}
@@ -898,6 +959,22 @@ function ChatMessage({ message, isOwn, showAvatar, isRead, readers = [], onReply
           {/* Blurred backdrop */}
           <div className="absolute inset-0 bg-black/35 backdrop-blur-md animate-ctx-backdrop-in" />
 
+          {/* Группа меню привязана к пузырю: реакции сверху, превью сообщения на
+              своём месте, действия снизу. menuTop сдвигает блок вверх/вниз,
+              чтобы влезть (как в Telegram). До замера прячем, чтобы не мигало. */}
+          <div
+            ref={menuGroupRef}
+            className={`fixed flex flex-col gap-2 ${own ? 'items-end' : 'items-start'}`}
+            style={{
+              top: menuTop ?? (anchorRect ? anchorRect.top - 56 : 0),
+              visibility: menuTop == null ? 'hidden' : 'visible',
+              ...(own
+                ? { right: Math.max(8, (typeof window !== 'undefined' ? window.innerWidth : 0) - (anchorRect?.right ?? 0)) }
+                : { left: Math.max(8, anchorRect?.left ?? 0) }),
+              maxWidth: 'min(86vw, 340px)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
           {/* Emoji reaction row */}
           <div
             className="relative z-10 bg-[#1c1c1e]/40 backdrop-blur-2xl rounded-full px-2 py-1 flex items-center gap-0 shadow-xl animate-ctx-pop-in"
@@ -914,16 +991,20 @@ function ChatMessage({ message, isOwn, showAvatar, isRead, readers = [], onReply
             ))}
           </div>
 
-          {/* Message preview bubble */}
+          {/* Message preview bubble — остаётся на месте сообщения */}
           <div
-            className={`relative z-10 w-full max-w-md flex animate-ctx-pop-in ${own ? 'justify-end' : 'justify-start'}`}
+            ref={menuPreviewRef}
+            className="relative z-10 flex animate-ctx-pop-in"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className={`max-w-[75%] rounded-2xl px-3 py-2 shadow-lg ${
-              own
-                ? 'bg-bubble-500 text-white rounded-tr-sm'
-                : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-transparent rounded-tl-sm'
-            }`}>
+            <div
+              className={`rounded-2xl px-3 py-2 shadow-lg ${
+                own
+                  ? 'bg-bubble-500 text-white rounded-tr-sm'
+                  : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-transparent rounded-tl-sm'
+              }`}
+              style={{ width: anchorRect ? Math.min(Math.max(anchorRect.width, 72), 320) : undefined }}
+            >
               {message.text && (
                 <p className="text-sm whitespace-pre-wrap break-words line-clamp-4">{message.text}</p>
               )}
@@ -1047,6 +1128,7 @@ function ChatMessage({ message, isOwn, showAvatar, isRead, readers = [], onReply
                 </svg>
               </button>
             )}
+          </div>
           </div>
         </div>,
         document.body

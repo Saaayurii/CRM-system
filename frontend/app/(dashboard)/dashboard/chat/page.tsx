@@ -170,7 +170,9 @@ export default function ChatPage() {
   return (
     <div ref={chatContainerRef} className={`flex bg-[#e9e9e9] dark:bg-gray-900 shadow-xs overflow-hidden overscroll-none ${
       layoutMode === 'tablet'
-        ? `fixed inset-y-0 right-0 z-50 transition-[left] duration-200 ${sidebarExpanded ? 'left-64' : 'left-20'}` // следуем ширине рейла: 80px свёрнут, 256px раскрыт
+        // Карточка чата как на ПК: скруглённая, с отступами от рейла и краёв.
+        // Левый край следует ширине рейла (80/256px) + зазор 12px.
+        ? `fixed top-3 bottom-3 right-3 z-50 rounded-2xl transition-[left] duration-200 ${sidebarExpanded ? 'left-[16.75rem]' : 'left-[5.75rem]'}`
         : `${mobileClass} lg:h-[calc(100dvh-4rem)] lg:rounded-2xl sm:max-lg:h-[calc(100dvh-64px)] sm:max-lg:-mx-6 sm:max-lg:-my-8 sm:max-lg:w-[calc(100%+3rem)] max-lg:rounded-none`
     }`}>
       {/* Sidebar: always visible on lg+, toggle on mobile */}
