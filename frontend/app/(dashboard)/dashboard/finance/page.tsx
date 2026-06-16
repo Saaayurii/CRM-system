@@ -1254,9 +1254,9 @@ function SummaryCard({
     '';
   const displayValue = sign === true ? Math.abs(value) : value;
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-4">
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-4 min-w-0">
       <div className="text-xs uppercase text-gray-500 dark:text-gray-400 font-semibold">{label}</div>
-      <div className={`mt-1 text-2xl font-bold ${colorMap[color]} whitespace-nowrap`}>
+      <div className={`mt-1 text-lg sm:text-xl lg:text-2xl font-bold leading-tight break-words tabular-nums ${colorMap[color]}`}>
         {prefix}{formatMoney(displayValue)} ₽
       </div>
       {hint && <div className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">{hint}</div>}
