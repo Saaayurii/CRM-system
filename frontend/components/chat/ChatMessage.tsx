@@ -356,6 +356,11 @@ function ChatMessage({ message, isOwn, showAvatar, isRead, readers = [], onReply
     longPressTimer.current = setTimeout(() => {
       if (!touchMoved.current) {
         haptic(50);          // haptic feedback on long-press (Android + iOS fallback)
+        // Закрываем клавиатуру: web не может рисовать поверх системной
+        // клавиатуры, поэтому меню (fixed inset-0, центр по высоте) частью
+        // уезжало под неё. Снимаем фокус — клавиатура убирается, меню на весь
+        // экран, как в Telegram.
+        (document.activeElement as HTMLElement | null)?.blur?.();
         setIsPressing(false); // пузырь пружинит обратно вместе с появлением меню
         setIsSelected(true); // brief selection glow on the bubble
         setShowMobileActions(true);
@@ -541,6 +546,7 @@ function ChatMessage({ message, isOwn, showAvatar, isRead, readers = [], onReply
           typeof window !== 'undefined' &&
           window.matchMedia('(pointer: coarse)').matches;
         if (isCoarse) {
+          (document.activeElement as HTMLElement | null)?.blur?.();
           setShowMobileActions(true);
         } else {
           // Запоминаем медиа под курсором — в альбоме «Копировать/Сохранить»
