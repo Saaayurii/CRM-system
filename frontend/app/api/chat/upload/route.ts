@@ -133,9 +133,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
       const [gwData] = await gwRes.json() as { fileName: string; fileSize: number; mimeType: string; fileUrl: string }[];
 
-      // Normalize to path-only (gateway may include full domain in APP_PUBLIC_URL)
+      // Локальные загрузки (`/uploads/...`) режем до пути — они идут через Next-rewrite.
+      // Абсолютные внешние ссылки (S3, напр. https://s3.regru.cloud/<bucket>/...) оставляем как есть.
       let fileUrl = gwData.fileUrl ?? `/uploads/chat/${finalName}`;
-      try { fileUrl = new URL(fileUrl).pathname; } catch { /* already a path */ }
+      try {
+        const parsed = new URL(fileUrl);
+        if (parsed.pathname.startsWith('/uploads/')) fileUrl = parsed.pathname;
+      } catch { /* already a relative path */ }
 
       return NextResponse.json({
         fileName: displayName,
