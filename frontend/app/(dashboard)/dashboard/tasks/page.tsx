@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useSearchParams, useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import UserProfileModal from '@/components/chat/UserProfileModal';
@@ -209,15 +210,34 @@ function ColumnUserFilter({ users, selectedIds, onChange, multi = false }: {
   const t = useT();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const ref = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const popRef = useRef<HTMLDivElement>(null);
+  const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
 
   useEffect(() => {
     if (!open) return;
+    const updatePosition = () => {
+      const r = btnRef.current?.getBoundingClientRect();
+      if (!r) return;
+      const width = 224; // w-56
+      const left = Math.max(8, Math.min(r.left, window.innerWidth - width - 8));
+      setCoords({ top: r.bottom + 4, left });
+    };
+    updatePosition();
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) { setOpen(false); setSearch(''); }
+      const target = e.target as Node;
+      if (btnRef.current?.contains(target) || popRef.current?.contains(target)) return;
+      setOpen(false);
+      setSearch('');
     };
     document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('resize', updatePosition);
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('resize', updatePosition);
+    };
   }, [open]);
 
   const filtered = users.filter((u) =>
@@ -236,8 +256,9 @@ function ColumnUserFilter({ users, selectedIds, onChange, multi = false }: {
   const active = selectedIds.length > 0;
 
   return (
-    <div className="relative inline-flex items-center" ref={ref} onClick={(e) => e.stopPropagation()}>
+    <div className="relative inline-flex items-center" onClick={(e) => e.stopPropagation()}>
       <button
+        ref={btnRef}
         onClick={() => setOpen((v) => !v)}
         className={`inline-flex items-center gap-0.5 ml-1 rounded px-0.5 transition-colors ${active ? 'text-violet-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
         title={t('Фильтр')}
@@ -247,8 +268,12 @@ function ColumnUserFilter({ users, selectedIds, onChange, multi = false }: {
         </svg>
         {active && <span className="text-[9px] font-bold leading-none">{selectedIds.length}</span>}
       </button>
-      {open && (
-        <div className="absolute top-full left-0 mt-1 w-56 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-[200] overflow-hidden">
+      {open && coords && createPortal(
+        <div
+          ref={popRef}
+          style={{ position: 'fixed', top: coords.top, left: coords.left }}
+          onClick={(e) => e.stopPropagation()}
+          className="w-56 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-[200] overflow-hidden">
           <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-700">
             <input
               autoFocus
@@ -288,7 +313,8 @@ function ColumnUserFilter({ users, selectedIds, onChange, multi = false }: {
               </button>
             </div>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
