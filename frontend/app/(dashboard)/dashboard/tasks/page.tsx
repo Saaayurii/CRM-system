@@ -662,13 +662,15 @@ export default function TasksPage() {
     });
   }, [sortedTasks, searchQuery, filterStatus, filterProject, filterOverdue, filterAssigneeIds, filterCreatorId, assigneeOverrides, displaySettings]);
 
-  const hasActiveFilters = !!(searchQuery || filterStatus !== null || filterProject !== null || filterOverdue);
+  const hasActiveFilters = !!(searchQuery || filterStatus !== null || filterProject !== null || filterOverdue || filterAssigneeIds.length > 0 || filterCreatorId.length > 0);
 
   const resetFilters = () => {
     setSearchQuery('');
     setFilterStatus(null);
     setFilterProject(null);
     setFilterOverdue(false);
+    setFilterAssigneeIds([]);
+    setFilterCreatorId([]);
     setShowSearch(false);
     setShowFilter(false);
   };
@@ -991,6 +993,19 @@ export default function TasksPage() {
       ) : filteredTasks.length === 0 ? (
         <div className="bg-white dark:bg-gray-800 shadow-xs rounded-xl p-8 text-center text-gray-500 dark:text-gray-400">
           {hasActiveFilters ? 'Задачи не найдены — попробуйте изменить фильтры' : 'Задачи не найдены'}
+          {hasActiveFilters && (
+            <div className="mt-3">
+              <button
+                onClick={resetFilters}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20 hover:bg-violet-100 dark:hover:bg-violet-900/30 rounded-lg transition-colors"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                {t('Сбросить фильтры')}
+              </button>
+            </div>
+          )}
         </div>
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
