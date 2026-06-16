@@ -10,6 +10,7 @@ import { formatLastSeen } from '@/lib/chat/channelDisplay';
 import api from '@/lib/api';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
+import UserProfileModal from './UserProfileModal';
 import VoicePlayerBar from './VoicePlayerBar';
 import ForwardMessageModal from './ForwardMessageModal';
 import { useT } from '@/lib/i18n';
@@ -34,6 +35,12 @@ function toDateKey(dateStr: string): string {
 function formatDateSep(dateStr: string): string {
   const d = new Date(dateStr);
   const now = new Date();
+  const sameDay = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  if (sameDay(d, now)) return 'Сегодня';
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  if (sameDay(d, yesterday)) return 'Вчера';
   if (d.getFullYear() === now.getFullYear()) {
     return `${d.getDate()} ${RU_MONTHS[d.getMonth()]}`;
   }
@@ -198,6 +205,9 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
 
   const [forwardingMessage, setForwardingMessage] = useState<ChatMessageType | null>(null);
   const [showInfo, setShowInfo] = useState(false);
+  // Центральная карточка профиля (в личных диалогах клик по шапке открывает её
+  // вместо правой панели «О пользователе»)
+  const [profileUserId, setProfileUserId] = useState<number | null>(null);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [matchIdx, setMatchIdx] = useState(0);
@@ -821,11 +831,19 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
             </svg>
           </button>
 
-          {/* Левая пилюля: аватар + имя/статус (клик открывает инфо-панель) */}
+          {/* Левая пилюля: аватар + имя/статус. В личных — открывает карточку
+              профиля по центру; в группах/Избранном — правую инфо-панель */}
           <button
             type="button"
-            onClick={() => { setShowInfo(true); setShowSearch(false); setShowCalendar(false); }}
-            className={`flex items-center gap-2.5 min-w-0 mr-auto pl-1.5 pr-3.5 py-1.5 rounded-full text-left ${GLASS_SURFACE}`}
+            onClick={() => {
+              if (activeChannel.channelType === 'direct' && !isSelf && partner?.id) {
+                setProfileUserId(partner.id);
+              } else {
+                setShowInfo(true);
+              }
+              setShowSearch(false); setShowCalendar(false);
+            }}
+            className={`flex items-center gap-2.5 min-w-0 mr-auto pl-1.5 pr-3.5 py-1.5 rounded-full text-left cursor-pointer ${GLASS_SURFACE}`}
           >
           {/* Avatar */}
           <div className="relative shrink-0">
@@ -919,10 +937,17 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
               </svg>
             </button>
 
-            {/* Info / settings toggle */}
+            {/* Info / settings toggle — в личных открывает карточку профиля */}
             <button
-              onClick={() => { setShowInfo((v) => !v); setShowSearch(false); }}
-              className={`p-2.5 transition-colors ${
+              onClick={() => {
+                if (activeChannel.channelType === 'direct' && !isSelf && partner?.id) {
+                  setProfileUserId(partner.id);
+                } else {
+                  setShowInfo((v) => !v);
+                }
+                setShowSearch(false);
+              }}
+              className={`p-2.5 cursor-pointer transition-colors ${
                 showInfo
                   ? 'bg-violet-500/15 text-violet-600 dark:text-violet-400'
                   : 'text-gray-500 hover:text-gray-700 hover:bg-black/[0.04] dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-white/[0.06]'
@@ -1284,6 +1309,11 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
             />
           </div>
         </>
+      )}
+
+      {/* Карточка профиля по центру (личные диалоги) */}
+      {profileUserId != null && (
+        <UserProfileModal userId={profileUserId} onClose={() => setProfileUserId(null)} />
       )}
     </div>
   );

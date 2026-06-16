@@ -631,10 +631,10 @@ function ChatMessage({ message, isOwn, showAvatar, isRead, isDirect = false, rea
         }
       }}
     >
-      {/* Avatar placeholder / real avatar — только для чужих сообщений.
-          У своих колонка-аватар не нужна: иначе flex-row-reverse держит её
-          справа и пузырь не доходит до края (паразитный отступ справа). */}
-      {!own && (
+      {/* Avatar placeholder / real avatar — только для чужих сообщений в группах.
+          В личных диалогах аватар-колонка не нужна (и так понятно, кто пишет),
+          у своих — тоже (иначе flex-row-reverse держит её справа). */}
+      {!own && !isDirect && (
       <div className="w-8 shrink-0">
         {showAvatar && (() => {
           // For left-side forwarded messages use original sender's avatar/initials
