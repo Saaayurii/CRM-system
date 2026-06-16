@@ -123,7 +123,9 @@ export default function UserProfileModal({ userId, onClose }: Props) {
   const availLabel = manualLabel ? `${manualLabel} · ${presenceLabel}` : presenceLabel;
   const birthDate = fmtDate(user?.birthDate);
   const hireDate = fmtDate(user?.hireDate);
-  const displayName = user?.name || user?.email || 'Пользователь';
+  // Супер-админ (roleId=1) отображается как «Система», а не личным ФИО
+  const isSuperAdmin = user?.roleId === 1 || user?.role?.code === 'super_admin';
+  const displayName = isSuperAdmin ? 'Система' : (user?.name || user?.email || 'Пользователь');
 
   const modal = (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">

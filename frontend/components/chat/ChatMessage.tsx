@@ -78,6 +78,8 @@ interface ChatMessageProps {
   isOwn: boolean;
   showAvatar: boolean;
   isRead: boolean;
+  /** Личный диалог (1-на-1): не показываем имя отправителя и аватар прочтения */
+  isDirect?: boolean;
   readers?: Reader[];
   onReply: () => void;
   onScrollToReply?: () => void;
@@ -188,7 +190,7 @@ const isVideoAtt = (a: any): boolean =>
   !!a.mimeType?.startsWith('video/') ||
   (!a.mimeType && /\.(mp4|mov|avi|webm|mkv|m4v|3gp)$/i.test(a.fileName || ''));
 
-function ChatMessage({ message, isOwn, showAvatar, isRead, readers = [], onReply, onScrollToReply, onReact, onDelete, onEdit, onPin, onForward, onGoToOriginalChannel, isPinned, canPin, highlightQuery, readOnly = false }: ChatMessageProps) {
+function ChatMessage({ message, isOwn, showAvatar, isRead, isDirect = false, readers = [], onReply, onScrollToReply, onReact, onDelete, onEdit, onPin, onForward, onGoToOriginalChannel, isPinned, canPin, highlightQuery, readOnly = false }: ChatMessageProps) {
   const t = useT();
   const addToast = useToastStore((s) => s.addToast);
   const setEditingMessage = useChatStore((s) => s.setEditingMessage);
@@ -224,6 +226,15 @@ function ChatMessage({ message, isOwn, showAvatar, isRead, readers = [], onReply
   const tgBody: string | undefined = tgParsed?.body ?? (tgMeta ? message.text : undefined);
   // displayText: tg overrides forward which overrides raw
   const resolvedDisplayText = isTgMessage ? tgBody : displayText;
+
+  // Аватар «кто прочитал» — только в групповых (в личке и так понятно)
+  const showReaderAvatar = !isDirect && readers.length > 0;
+  // Время как в Telegram: для текстовых сообщений без вложений/реакц.-аватаров
+  // оно прижато к низу-справа пузыря (короткие → инлайн справа, длинные → внизу),
+  // через absolute + распорку в конце текста.
+  const hasAttachments = (message.attachments?.length ?? 0) > 0;
+  const inlineTime =
+    !hasAttachments && !isVoice && !isVideoNote && !showReaderAvatar && !!resolvedDisplayText;
 
   // Sender avatar/name open the employee profile — only for real CRM users
   const canOpenProfile = !isSenderDeleted && !forwardMeta && !isTgMessage && !!message.senderId;
@@ -657,8 +668,8 @@ function ChatMessage({ message, isOwn, showAvatar, isRead, readers = [], onReply
 
       {/* Bubble */}
       <div className={`${blockMode ? 'w-full max-w-full' : 'max-w-[70%]'} min-w-[80px] flex flex-col ${own ? 'items-end' : 'items-start'}`}>
-        {/* Sender name */}
-        {showAvatar && !own && (
+        {/* Sender name — только в групповых чатах (в личке и так понятно, кто это) */}
+        {showAvatar && !own && !isDirect && (
           <p
             onClick={openProfile}
             className={`text-xs font-medium mb-0.5 ml-1 ${
@@ -865,13 +876,21 @@ function ChatMessage({ message, isOwn, showAvatar, isRead, readers = [], onReply
                 </div>
               )}
 
-              {/* Text / caption — always rendered below all media and attachments */}
-              {resolvedDisplayText && renderText(resolvedDisplayText, own, highlightQuery)}
+              {/* Text / caption — always rendered below all media and attachments.
+                  inlineTime резервирует место под время в конце последней строки
+                  (как в TG: короткое — время справа, длинное — переносит вниз). */}
+              {resolvedDisplayText && renderText(resolvedDisplayText, own, highlightQuery, inlineTime ? (own ? 62 : 42) : 0)}
             </>
           )}
 
           {/* Time + edited + read checkmark + readers */}
-          <div className={`flex items-center gap-1 mt-0.5 ${own ? 'justify-end' : 'justify-start'}`}>
+          <div
+            className={`flex items-center gap-1 ${
+              inlineTime
+                ? 'absolute bottom-1 right-2.5 leading-none'
+                : `mt-0.5 ${own ? 'justify-end' : 'justify-start'}`
+            }`}
+          >
             {message.isEdited && (
               <span className={`text-[10px] ${own ? 'text-bubble-200' : 'text-gray-400 dark:text-gray-500'}`}>
                 ред.
@@ -882,8 +901,8 @@ function ChatMessage({ message, isOwn, showAvatar, isRead, readers = [], onReply
             </span>
             {isOwn && (
               <div className="flex items-center gap-1">
-                {/* Reader avatars (group chat) */}
-                {readers.length > 0 && (
+                {/* Reader avatars — только в групповых чатах */}
+                {showReaderAvatar && (
                   <ReadersTooltip readers={readers} />
                 )}
                 {/* Checkmark */}
@@ -1631,7 +1650,7 @@ function plainText(text?: string | null): string {
     .replace(/@\[([^\]]+)\]\(user:\d+\)/g, '@$1');
 }
 
-function renderText(text: string, isOwn: boolean, highlightQuery?: string) {
+function renderText(text: string, isOwn: boolean, highlightQuery?: string, trailingReserve = 0) {
   const textSegments: React.ReactNode[] = [];
   const cards: React.ReactNode[] = [];
   let lastIndex = 0;
@@ -1706,7 +1725,12 @@ function renderText(text: string, isOwn: boolean, highlightQuery?: string) {
   return (
     <div>
       {textSegments.length > 0 && (
-        <p className="chat-msg-text whitespace-pre-wrap break-words">{textSegments}</p>
+        <p className="chat-msg-text whitespace-pre-wrap break-words">
+          {textSegments}
+          {trailingReserve > 0 && cards.length === 0 && (
+            <span className="inline-block align-bottom select-none" style={{ width: trailingReserve, height: 1 }} aria-hidden />
+          )}
+        </p>
       )}
       {cards.length > 0 && (
         <div className={textSegments.length > 0 ? 'mt-2 space-y-1.5' : 'space-y-1.5'}>

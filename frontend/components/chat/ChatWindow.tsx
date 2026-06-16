@@ -304,6 +304,36 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
   // revision = messages.length + активный канал: при первой загрузке/смене канала
 // заново заводим серию пересчётов среза (важно для коротких, непрокручиваемых чатов)
 useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.length}`);
+  // Плавающая дата сверху: при скролле показываем день, к которому относится
+  // верхнее видимое сообщение (как в Telegram), и плавно прячем после паузы.
+  const [floatingDate, setFloatingDate] = useState<string | null>(null);
+  const [floatingDateShown, setFloatingDateShown] = useState(false);
+  const floatingHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    const onScroll = () => {
+      const cTop = container.getBoundingClientRect().top + topStackHeight + 8;
+      const nodes = container.querySelectorAll('[data-msgid]');
+      for (const node of Array.from(nodes)) {
+        const r = (node as HTMLElement).getBoundingClientRect();
+        if (r.bottom >= cTop) {
+          const id = Number((node as HTMLElement).dataset.msgid);
+          const m = messages.find((x) => x.id === id);
+          if (m) setFloatingDate(formatDateSep(m.createdAt));
+          break;
+        }
+      }
+      setFloatingDateShown(true);
+      if (floatingHideTimer.current) clearTimeout(floatingHideTimer.current);
+      floatingHideTimer.current = setTimeout(() => setFloatingDateShown(false), 1400);
+    };
+    container.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      container.removeEventListener('scroll', onScroll);
+      if (floatingHideTimer.current) clearTimeout(floatingHideTimer.current);
+    };
+  }, [messages, topStackHeight]);
   const messagesInnerRef = useRef<HTMLDivElement>(null);
   const prevMessagesLenRef = useRef(0);
   const lastMsgIdRef = useRef<number | null>(null);
@@ -1030,6 +1060,18 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
           }}
         />
 
+        {/* Плавающая дата сверху при скролле (как в Telegram) */}
+        {floatingDate && (
+          <div
+            className="absolute left-1/2 -translate-x-1/2 z-30 pointer-events-none transition-opacity duration-300"
+            style={{ top: topStackHeight + 8, opacity: floatingDateShown ? 1 : 0 }}
+          >
+            <span className="text-xs text-gray-500 dark:text-gray-200 bg-white/70 dark:bg-gray-800/70 backdrop-blur-md px-3 py-1 rounded-full shadow-sm">
+              {floatingDate}
+            </span>
+          </div>
+        )}
+
         {/* Messages */}
         <div
           ref={messagesContainerRef}
@@ -1107,6 +1149,7 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
                     isOwn={isOwn}
                     showAvatar={showAvatar}
                     isRead={read}
+                    isDirect={activeChannel.channelType === 'direct'}
                     readers={readers}
                     onReply={() => setReplyToMessage(msg)}
                     onScrollToReply={msg.replyToMessage?.id ? () => scrollToMessage(msg.replyToMessage!.id) : undefined}
