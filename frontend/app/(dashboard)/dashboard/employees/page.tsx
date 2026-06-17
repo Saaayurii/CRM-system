@@ -52,7 +52,29 @@ const ROLE_NAMES: Record<number, string> = {
 
 type ViewMode = 'table' | 'grid';
 
-export default function EmployeesPage() {
+interface EmployeesPageProps {
+  /** When provided, show only employees whose id is in this list (e.g. project members). */
+  restrictToUserIds?: number[];
+  /** Override the page heading. */
+  title?: string;
+  /** Override the page subheading. */
+  subtitle?: string;
+  /** Override the "+" action (e.g. assign an existing employee to a project). */
+  onAddEmployee?: () => void;
+  /** Override the delete action (e.g. remove from project instead of soft-deleting the user). */
+  onRemoveEmployee?: (employee: Employee) => Promise<void> | void;
+  /** Force the edit/add/delete controls on or off, ignoring the role-based default. */
+  canEdit?: boolean;
+}
+
+export default function EmployeesPage({
+  restrictToUserIds,
+  title,
+  subtitle,
+  onAddEmployee,
+  onRemoveEmployee,
+  canEdit: canEditProp,
+}: EmployeesPageProps = {}) {
   const t = useT();
   const addToast = useToastStore((s) => s.addToast);
   const currentUser = useAuthStore((s) => s.user);
@@ -73,7 +95,7 @@ export default function EmployeesPage() {
     return 'table';
   });
 
-  const canEdit = [1, 2].includes(currentUser?.roleId ?? 0);
+  const canEdit = canEditProp ?? [1, 2].includes(currentUser?.roleId ?? 0);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterRole, setFilterRole] = useState('');
@@ -90,8 +112,11 @@ export default function EmployeesPage() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  const restrictSet = restrictToUserIds ? new Set(restrictToUserIds) : null;
+
   const filteredEmployees = employees.filter((e) => {
     const roleId = e.roleId ?? e.role_id ?? 0;
+    if (restrictSet && !restrictSet.has(e.id)) return false;
     if (searchQuery && !((e.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || e.email.toLowerCase().includes(searchQuery.toLowerCase()))) return false;
     if (filterRole && String(roleId) !== filterRole) return false;
     return true;
@@ -129,6 +154,17 @@ export default function EmployeesPage() {
   }, []);
 
   const handleDelete = async (id: number) => {
+    if (onRemoveEmployee) {
+      const emp = employees.find((e) => e.id === id);
+      if (!emp) return;
+      setDeletingId(id);
+      try {
+        await onRemoveEmployee(emp);
+      } finally {
+        setDeletingId(null);
+      }
+      return;
+    }
     if (!confirm('Удалить сотрудника?')) return;
     setDeletingId(id);
     try {
@@ -146,8 +182,8 @@ export default function EmployeesPage() {
     <div>
       <div className="sm:flex sm:justify-between sm:items-center mb-4">
         <div>
-          <h1 className="text-2xl md:text-3xl text-gray-800 dark:text-gray-100 font-bold">{t('Сотрудники')}</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('Список всех сотрудников')}</p>
+          <h1 className="text-2xl md:text-3xl text-gray-800 dark:text-gray-100 font-bold">{title ?? t('Сотрудники')}</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{subtitle ?? t('Список всех сотрудников')}</p>
         </div>
         <div className="flex items-center gap-2 mt-3 sm:mt-0">
           <div className="flex items-center gap-0.5">
@@ -162,8 +198,8 @@ export default function EmployeesPage() {
             </button>
             {canEdit && (
               <button
-                onClick={() => setCreating(true)}
-                title={t('Создать сотрудника')}
+                onClick={() => (onAddEmployee ? onAddEmployee() : setCreating(true))}
+                title={onAddEmployee ? t('Добавить сотрудника') : t('Создать сотрудника')}
                 className="p-2 text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -195,8 +231,8 @@ export default function EmployeesPage() {
               {showSettings && (
                 <div className="absolute right-0 top-full mt-1 w-52 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl py-1.5 z-50">
                   <button
-                    onClick={() => { downloadPdf('employees', 'Сотрудники', employees.map((e) => ({ Имя: e.name || '—', Email: e.email, Роль: e.role?.name || ROLE_NAMES[e.roleId || e.role_id || 0] || '—', Должность: e.position || '—', Статус: (e.isActive ?? e.is_active ?? true) ? 'Активен' : 'Неактивен' }))); setShowSettings(false); }}
-                    disabled={pdfLoading || employees.length === 0}
+                    onClick={() => { const exportList = restrictSet ? filteredEmployees : employees; downloadPdf('employees', title ?? 'Сотрудники', exportList.map((e) => ({ Имя: e.name || '—', Email: e.email, Роль: e.role?.name || ROLE_NAMES[e.roleId || e.role_id || 0] || '—', Должность: e.position || '—', Статус: (e.isActive ?? e.is_active ?? true) ? 'Активен' : 'Неактивен' }))); setShowSettings(false); }}
+                    disabled={pdfLoading || (restrictSet ? filteredEmployees.length === 0 : employees.length === 0)}
                     className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/60 transition-colors disabled:opacity-50"
                   >
                     <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
