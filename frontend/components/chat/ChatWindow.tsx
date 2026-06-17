@@ -1592,7 +1592,10 @@ function AddMemberModal({
 
         if (channel.projectId) {
           try {
-            const { data: teams } = await api.get(`/projects/${channel.projectId}/team`);
+            const [{ data: teams }, assignRes] = await Promise.all([
+              api.get(`/projects/${channel.projectId}/team`),
+              api.get(`/projects/${channel.projectId}/assignments`).catch(() => ({ data: {} })),
+            ]);
             const teamList: any[] = Array.isArray(teams) ? teams : (teams.data ?? []);
             const memberSets = await Promise.all(
               teamList.map((t: any) =>
@@ -1601,7 +1604,12 @@ function AddMemberModal({
                 ).catch(() => [] as number[]),
               ),
             );
-            setProjectMemberIds(new Set(memberSets.flat()));
+            // Помимо командных участников, учитываем напрямую назначенных
+            // на проект сотрудников (вкладка «Сотрудники» = user-assignments),
+            // иначе у проекта без команд все показываются как «не в проекте».
+            const aData = (assignRes.data?.assignments || assignRes.data?.data || assignRes.data || []) as any[];
+            const assignedIds = (Array.isArray(aData) ? aData : []).map((a: any) => a.userId ?? a.id);
+            setProjectMemberIds(new Set([...memberSets.flat(), ...assignedIds]));
           } catch {
             setProjectMemberIds(new Set());
           }
