@@ -7,7 +7,6 @@ import Link from 'next/link';
 import api from '@/lib/api';
 import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 import ProjectFormModal from '@/components/dashboard/ProjectFormModal';
-import TaskFormModal from '@/components/dashboard/TaskFormModal';
 import { useToastStore } from '@/stores/toastStore';
 import { useChatStore } from '@/stores/chatStore';
 import { useAuthStore } from '@/stores/authStore';
@@ -21,7 +20,8 @@ import ImportFromCompanyPriceModal from '@/components/projects/ImportFromCompany
 import FinancialReportModal from '@/components/estimates/FinancialReportModal';
 import DocumentsOverview from '@/components/estimates/DocumentsOverview';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
-import DisplaySettingsPanel from '@/components/tasks/DisplaySettingsPanel';
+import TasksView from '@/components/tasks/TasksView';
+import EmployeesPage from '../../employees/page';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
@@ -302,85 +302,6 @@ const TASK_PRIORITY: Record<number, { label: string; color: string }> = {
   3: { label: 'Высокий', color: 'text-orange-500' },
   4: { label: 'Критический', color: 'text-red-500' },
 };
-
-function isTaskOverdue(t: { status?: number; dueDate?: string; due_date?: string }): boolean {
-  const due = t.dueDate || t.due_date;
-  if (!due) return false;
-  if (t.status === 4 || t.status === 5) return false;
-  return new Date(due).getTime() < Date.now();
-}
-
-/* ─── Настройки отображения задач проекта (шестерёнка, как на /dashboard/tasks) ─── */
-
-interface ProjTaskDisplaySettings {
-  colStatus: boolean;
-  colPriority: boolean;
-  colDueDate: boolean;
-  colAssignees: boolean;
-  colCreator: boolean;
-  showCreatedDate: boolean;
-  showOverdueBadge: boolean;
-  highlightOverdue: boolean;
-  showActions: boolean;
-  hideCompleted: boolean;
-  hideCancelled: boolean;
-}
-
-const DEFAULT_PROJ_TASK_DISPLAY: ProjTaskDisplaySettings = {
-  colStatus: true,
-  colPriority: true,
-  colDueDate: true,
-  colAssignees: true,
-  colCreator: true,
-  showCreatedDate: true,
-  showOverdueBadge: true,
-  highlightOverdue: true,
-  showActions: true,
-  hideCompleted: false,
-  hideCancelled: false,
-};
-
-const PROJ_TASK_DISPLAY_KEY = 'projectTasksDisplaySettings';
-
-function loadProjTaskDisplay(): ProjTaskDisplaySettings {
-  if (typeof window === 'undefined') return DEFAULT_PROJ_TASK_DISPLAY;
-  try {
-    const raw = localStorage.getItem(PROJ_TASK_DISPLAY_KEY);
-    if (!raw) return DEFAULT_PROJ_TASK_DISPLAY;
-    return { ...DEFAULT_PROJ_TASK_DISPLAY, ...JSON.parse(raw) };
-  } catch {
-    return DEFAULT_PROJ_TASK_DISPLAY;
-  }
-}
-
-const PROJ_TASK_DISPLAY_SECTIONS = [
-  {
-    title: 'Колонки таблицы',
-    items: [
-      { key: 'colStatus',    label: 'Статус' },
-      { key: 'colPriority',  label: 'Приоритет' },
-      { key: 'colDueDate',   label: 'Срок' },
-      { key: 'colAssignees', label: 'Исполнители' },
-      { key: 'colCreator',   label: 'Поставил' },
-    ],
-  },
-  {
-    title: 'Элементы строк',
-    items: [
-      { key: 'showCreatedDate',  label: 'Дата постановки',        hint: 'Мелкая дата под именем поставившего' },
-      { key: 'showOverdueBadge', label: 'Метка «Просрочена»',     hint: 'Надпись рядом со сроком' },
-      { key: 'highlightOverdue', label: 'Подсветка просроченных', hint: 'Красный фон строки' },
-      { key: 'showActions',      label: 'Кнопки действий',        hint: 'Редактировать и удалить' },
-    ],
-  },
-  {
-    title: 'Поведение',
-    items: [
-      { key: 'hideCompleted', label: 'Скрыть завершённые задачи' },
-      { key: 'hideCancelled', label: 'Скрыть отменённые задачи' },
-    ],
-  },
-];
 
 const DOC_TYPE_OPTIONS = [
   { value: 'contract', label: 'Договор' },
@@ -763,7 +684,6 @@ function ProjectDetailPage() {
   const searchParams = useSearchParams();
   const addToast = useToastStore((s) => s.addToast);
   const projectId = Number(id);
-  const onlineUsers = useChatStore((s) => s.onlineUsers);
   const fetchProjectChannels = useChatStore((s) => s.fetchProjectChannels);
   const createChannelInStore = useChatStore((s) => s.createChannel);
 
@@ -804,20 +724,6 @@ const [pdfLoading, setPdfLoading] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loadingTasks, setLoadingTasks] = useState(false);
   const [tasksLoaded, setTasksLoaded] = useState(false);
-  const [showCreateTask, setShowCreateTask] = useState(false);
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const [deletingTaskId, setDeletingTaskId] = useState<number | null>(null);
-  const [taskSearch, setTaskSearch] = useState('');
-  const [taskStatusFilter, setTaskStatusFilter] = useState<string>('');
-  const [taskPriorityFilter, setTaskPriorityFilter] = useState<string>('');
-  const [taskViewMode, setTaskViewMode] = useState<'table'|'grid'>(() =>
-    typeof window !== 'undefined' ? (localStorage.getItem('projTaskView') as 'table'|'grid') || 'table' : 'table'
-  );
-  const [taskDisplay, setTaskDisplay] = useState<ProjTaskDisplaySettings>(loadProjTaskDisplay);
-  const [showTaskDisplaySettings, setShowTaskDisplaySettings] = useState(false);
-  useEffect(() => {
-    try { localStorage.setItem(PROJ_TASK_DISPLAY_KEY, JSON.stringify(taskDisplay)); } catch {}
-  }, [taskDisplay]);
   const [teamViewMode, setTeamViewMode] = useState<'table'|'grid'>(() =>
     typeof window !== 'undefined' ? (localStorage.getItem('projTeamView') as 'table'|'grid') || 'table' : 'table'
   );
@@ -836,7 +742,6 @@ const [pdfLoading, setPdfLoading] = useState(false);
 
   /* Team search */
   const [teamGroupSearch, setTeamGroupSearch] = useState('');
-  const [employeeSearch, setEmployeeSearch] = useState('');
 
   /* Team modals */
   const [selectedTeamMember, setSelectedTeamMember] = useState<TeamMember | null>(null);
@@ -1094,19 +999,6 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
       if (!silent) setLoadingTasks(false);
     }
   }, [projectId]);
-
-  const handleDeleteTask = useCallback(async (taskId: number) => {
-    setDeletingTaskId(taskId);
-    try {
-      await api.delete(`/tasks/${taskId}`);
-      setTasks((prev) => prev.filter((t) => t.id !== taskId));
-      addToast('success', 'Задача удалена');
-    } catch {
-      addToast('error', 'Не удалось удалить задачу');
-    } finally {
-      setDeletingTaskId(null);
-    }
-  }, [addToast]);
 
   const reloadResources = useCallback(async (silent = false) => {
     if (!silent) setLoadingResources(true);
@@ -1757,7 +1649,6 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
     }
     if (activeTab === 'team' && !teamLoaded && !loadingTeam) reloadTeam();
     if (activeTab === 'documents' && !docsLoaded && !loadingDocs) reloadDocuments();
-    if (activeTab === 'tasks' && !tasksLoaded && !loadingTasks) reloadTasks();
     if ((activeTab === 'documents' || activeTab === 'photos') && !tasksLoaded && !loadingTasks) reloadTasks();
     if (activeTab === 'resources' && !resourcesLoaded && !loadingResources) reloadResources();
     if (activeTab === 'chat' && !channelChecked && !loadingChat) loadProjectChannels();
@@ -1820,8 +1711,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
 
   /* ─── Auto-refresh active tab every 30s + on window focus ─── */
   const activeTabRefresh = useCallback(() => {
-    if (activeTab === 'tasks' && tasksLoaded) reloadTasks(true);
-    else if (activeTab === 'team' && teamLoaded) reloadTeam();
+    if (activeTab === 'team' && teamLoaded) reloadTeam();
     else if (activeTab === 'documents' && docsLoaded) reloadDocuments();
     else if (activeTab === 'finance' && financeLoaded) reloadFinance();
     else if (activeTab === 'resources' && resourcesLoaded) reloadResources(true);
@@ -2443,213 +2333,14 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
 
       {/* ─── Tasks ─── */}
       {activeTab === 'tasks' && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
-          {/* Header */}
-          <div className="bg-white dark:bg-gray-800 px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <h2 className="font-semibold text-gray-800 dark:text-gray-100 shrink-0">{t('Задачи проекта')}</h2>
-            <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
-              {/* Search */}
-              <div className="relative flex-1 min-w-[120px] max-w-xs">
-                <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <input
-                  type="text" value={taskSearch} onChange={(e) => setTaskSearch(e.target.value)}
-                  placeholder={t('Поиск...')}
-                  className="w-full pl-8 pr-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-700 border-0 rounded-lg text-gray-800 dark:text-gray-200 placeholder-gray-400 focus:ring-2 focus:ring-violet-500 focus:outline-none"
-                />
-              </div>
-              {/* Status filter */}
-              <select value={taskStatusFilter} onChange={(e) => setTaskStatusFilter(e.target.value)}
-                className="text-xs px-2 py-1.5 bg-gray-100 dark:bg-gray-700 border-0 rounded-lg text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-violet-500 focus:outline-none">
-                <option value="">{t('Все статусы')}</option>
-                {Object.entries(TASK_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-              </select>
-              {/* Priority filter */}
-              <select value={taskPriorityFilter} onChange={(e) => setTaskPriorityFilter(e.target.value)}
-                className="text-xs px-2 py-1.5 bg-gray-100 dark:bg-gray-700 border-0 rounded-lg text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-violet-500 focus:outline-none">
-                <option value="">{t('Все приоритеты')}</option>
-                {Object.entries(TASK_PRIORITY).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-              </select>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              {/* View toggle */}
-              <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
-                <button onClick={() => { setTaskViewMode('table'); localStorage.setItem('projTaskView','table'); }}
-                  className={`p-1.5 rounded transition-colors ${taskViewMode==='table' ? 'bg-white dark:bg-gray-600 shadow-sm text-violet-600' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`} title={t('Таблица')}>
-                  <svg className="w-4 h-4 fill-current" viewBox="0 0 16 16"><path d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2zm15 2h-4v3h4V4zm0 4h-4v3h4V8zm0 4h-4v3h3a1 1 0 0 0 1-1v-2zm-5 3v-3H6v3h4zm-5 0v-3H1v2a1 1 0 0 0 1 1h3zm-4-4h4V8H1v3zm0-4h4V4H1v3zm5-3v3h4V4H6zm4 4H6v3h4V8z"/></svg>
-                </button>
-                <button onClick={() => { setTaskViewMode('grid'); localStorage.setItem('projTaskView','grid'); }}
-                  className={`p-1.5 rounded transition-colors ${taskViewMode==='grid' ? 'bg-white dark:bg-gray-600 shadow-sm text-violet-600' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`} title={t('Карточки')}>
-                  <svg className="w-4 h-4 fill-current" viewBox="0 0 16 16"><path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zm8 0A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm-8 8A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5v-3zm8 0A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 13.5v-3z"/></svg>
-                </button>
-              </div>
-              <button
-                onClick={() => setShowTaskDisplaySettings((v) => !v)}
-                title={t('Настройки отображения')}
-                className={`p-2 rounded-lg transition-colors ${showTaskDisplaySettings || JSON.stringify(taskDisplay) !== JSON.stringify(DEFAULT_PROJ_TASK_DISPLAY) ? 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20' : 'text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20'}`}
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-              </button>
-              <span className="text-xs text-gray-400">{tasks.length} задач</span>
-              <button onClick={() => setShowCreateTask(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                </svg>
-                <span className="hidden sm:inline">{t('Создать задачу')}</span>
-                <span className="sm:hidden">{t('Создать')}</span>
-              </button>
-            </div>
-          </div>
-          {loadingTasks ? <LoadingState /> : tasks.length === 0 ? <EmptyState text="Задачи не найдены" /> : (() => {
-            const filtered = tasks.filter((t) => {
-              const matchSearch = !taskSearch || t.title.toLowerCase().includes(taskSearch.toLowerCase());
-              const matchStatus = !taskStatusFilter || String(t.status ?? 0) === taskStatusFilter;
-              const matchPriority = !taskPriorityFilter || String(t.priority ?? 2) === taskPriorityFilter;
-              if (taskDisplay.hideCompleted && t.status === 4) return false;
-              if (taskDisplay.hideCancelled && t.status === 5) return false;
-              return matchSearch && matchStatus && matchPriority;
-            }).sort((a, b) => {
-              const ao = isTaskOverdue(a);
-              const bo = isTaskOverdue(b);
-              if (ao !== bo) return ao ? -1 : 1;
-              const ad = a.createdAt || a.created_at || '';
-              const bd = b.createdAt || b.created_at || '';
-              return new Date(bd).getTime() - new Date(ad).getTime();
-            });
-            if (filtered.length === 0) return <EmptyState text="Ничего не найдено" />;
-            if (taskViewMode === 'grid') return (
-              <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {filtered.map((task) => {
-                  const ts = TASK_STATUS[task.status ?? 0] || TASK_STATUS[0];
-                  const tp = TASK_PRIORITY[task.priority ?? 2] || TASK_PRIORITY[2];
-                  return (
-                    <div key={task.id} className={`rounded-xl p-4 cursor-pointer hover:ring-2 hover:ring-violet-300 dark:hover:ring-violet-600 transition-all ${taskDisplay.highlightOverdue && isTaskOverdue(task) ? 'bg-red-50 dark:bg-red-900/15 ring-1 ring-red-300 dark:ring-red-700/50' : 'bg-gray-50 dark:bg-gray-900/30'}`} onClick={() => setSelectedTask(task)}>
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <div className="font-medium text-gray-800 dark:text-gray-100 line-clamp-2 flex-1">{task.title}</div>
-                        {taskDisplay.showActions && (
-                          <div className="flex items-center gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
-                            <button onClick={() => setSelectedTask(task)} className="p-1 text-gray-400 hover:text-violet-500 transition-colors rounded" title={t('Редактировать')}>
-                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                            </button>
-                            <button onClick={() => handleDeleteTask(task.id)} disabled={deletingTaskId === task.id} className="p-1 text-gray-400 hover:text-red-500 transition-colors rounded disabled:opacity-40" title={t('Удалить')}>
-                              {deletingTaskId === task.id
-                                ? <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                                : <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                              }
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                      {(taskDisplay.colStatus || taskDisplay.colPriority) && (
-                        <div className="flex items-center gap-2 flex-wrap mb-2">
-                          {taskDisplay.colStatus && <span className={`text-xs px-2 py-0.5 rounded-full ${ts.color}`}>{ts.label}</span>}
-                          {taskDisplay.colPriority && <span className={`text-xs font-medium ${tp.color}`}>{tp.label}</span>}
-                        </div>
-                      )}
-                      {taskDisplay.colDueDate && (
-                        <div className={`text-xs ${isTaskOverdue(task) ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-gray-400'}`}>
-                          {fmt(task.dueDate || task.due_date) || '—'}
-                          {taskDisplay.showOverdueBadge && isTaskOverdue(task) && <span className="ml-1 text-[10px] uppercase">{t('просрочена')}</span>}
-                        </div>
-                      )}
-                      {taskDisplay.colAssignees && (task.assignees?.length ?? 0) > 0 && (
-                        <div className="mt-1 text-xs text-gray-400 truncate">{task.assignees?.map((a) => a.userName || `#${a.userId}`).join(', ')}</div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            );
-            return (
-              <div className="overflow-x-auto">
-                <table className="table-auto w-full text-sm min-w-[480px]">
-                  <thead>
-                    <tr className="text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
-                      <th className="py-3 px-4 text-left font-semibold">{t('Название')}</th>
-                      {taskDisplay.colStatus && <th className="py-3 px-4 text-left font-semibold">{t('Статус')}</th>}
-                      {taskDisplay.colPriority && <th className="py-3 px-4 text-left font-semibold">{t('Приоритет')}</th>}
-                      {taskDisplay.colDueDate && <th className="py-3 px-4 text-left font-semibold">{t('Срок')}</th>}
-                      {taskDisplay.colAssignees && <th className="py-3 px-4 text-left font-semibold">{t('Исполнители')}</th>}
-                      {taskDisplay.colCreator && <th className="py-3 px-4 text-left font-semibold">{t('Поставил')}</th>}
-                      {taskDisplay.showActions && <th className="py-3 px-4 text-center font-semibold w-20"></th>}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
-                    {filtered.map((task) => {
-                      const ts = TASK_STATUS[task.status ?? 0] || TASK_STATUS[0];
-                      const tp = TASK_PRIORITY[task.priority ?? 2] || TASK_PRIORITY[2];
-                      const creatorId = task.createdByUserId || task.created_by_user_id;
-                      const isCreatorSuperAdmin = !creatorId || (task.createdByUser as any)?.roleId === 1;
-                      const creatorName = isCreatorSuperAdmin
-                        ? 'Система'
-                        : task.createdByUser?.name || task.createdByUser?.email || '—';
-                      const taskCreatedAt = task.createdAt || task.created_at;
-                      return (
-                        <tr key={task.id} className={`hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer ${taskDisplay.highlightOverdue && isTaskOverdue(task) ? 'bg-red-50/70 dark:bg-red-900/10 hover:bg-red-50 dark:hover:bg-red-900/20' : ''}`} onClick={() => setSelectedTask(task)}>
-                          <td className="py-2.5 px-4 font-medium text-gray-800 dark:text-gray-100">{task.title}</td>
-                          {taskDisplay.colStatus && <td className="py-2.5 px-4"><span className={`text-xs px-2 py-0.5 rounded-full ${ts.color}`}>{ts.label}</span></td>}
-                          {taskDisplay.colPriority && <td className="py-2.5 px-4"><span className={`text-xs font-medium ${tp.color}`}>{tp.label}</span></td>}
-                          {taskDisplay.colDueDate && (
-                            <td className="py-2.5 px-4">
-                              <span className={isTaskOverdue(task) ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-gray-500 dark:text-gray-400'}>
-                                {fmt(task.dueDate || task.due_date)}
-                                {taskDisplay.showOverdueBadge && isTaskOverdue(task) && <span className="ml-1 text-[10px] uppercase tracking-wide">{t('просрочена')}</span>}
-                              </span>
-                            </td>
-                          )}
-                          {taskDisplay.colAssignees && (
-                            <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400 text-xs">
-                              {task.assignees?.map((a) => a.userName || `#${a.userId}`).join(', ') || '—'}
-                            </td>
-                          )}
-                          {taskDisplay.colCreator && (
-                            <td className="py-2.5 px-4">
-                              <span className="text-sm text-gray-700 dark:text-gray-300">{creatorName}</span>
-                              {taskDisplay.showCreatedDate && taskCreatedAt && (
-                                <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-                                  {fmt(taskCreatedAt)}
-                                </div>
-                              )}
-                            </td>
-                          )}
-                          {taskDisplay.showActions && (
-                            <td className="py-2.5 px-4" onClick={(e) => e.stopPropagation()}>
-                              <div className="flex items-center justify-end gap-0.5">
-                                <button onClick={() => setSelectedTask(task)} className="p-1.5 text-gray-400 hover:text-violet-500 transition-colors rounded" title={t('Редактировать')}>
-                                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                                </button>
-                                <button onClick={() => handleDeleteTask(task.id)} disabled={deletingTaskId === task.id} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors rounded disabled:opacity-40" title={t('Удалить')}>
-                                  {deletingTaskId === task.id
-                                    ? <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                                    : <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                  }
-                                </button>
-                              </div>
-                            </td>
-                          )}
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            );
-          })()}
-          {showTaskDisplaySettings && (
-            <DisplaySettingsPanel
-              sections={PROJ_TASK_DISPLAY_SECTIONS}
-              settings={taskDisplay}
-              defaults={DEFAULT_PROJ_TASK_DISPLAY}
-              onChange={setTaskDisplay}
-              onClose={() => setShowTaskDisplaySettings(false)}
-            />
-          )}
-        </div>
+        <TasksView
+          projectId={projectId}
+          title={t('Задачи проекта')}
+          subtitle=""
+          cacheKey={`tasks-project-${projectId}`}
+          settingsStorageKey="projectTasksDisplaySettings"
+          viewStorageKey="projTaskView"
+        />
       )}
 
       {/* ─── Team ─── */}
@@ -2749,115 +2440,20 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                 })()}
               </div>
 
-              {/* Employees section */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden">
-                <div className="bg-white dark:bg-gray-800 px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex flex-wrap items-center gap-2">
-                  <h2 className="font-semibold text-gray-800 dark:text-gray-100 shrink-0">{t('Сотрудники')}</h2>
-                  <div className="relative flex-1 min-w-[140px] max-w-xs">
-                    <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                    <input type="text" value={employeeSearch} onChange={(e) => setEmployeeSearch(e.target.value)} placeholder={t('Поиск...')}
-                      className="w-full pl-8 pr-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-700 border-0 rounded-lg text-gray-800 dark:text-gray-200 placeholder-gray-400 focus:ring-2 focus:ring-violet-500 focus:outline-none" />
-                  </div>
-                  <div className="flex items-center gap-2 ml-auto">
-                    <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
-                      <button onClick={() => { setTeamViewMode('table'); localStorage.setItem('projTeamView','table'); }}
-                        className={`p-1.5 rounded transition-colors ${teamViewMode==='table' ? 'bg-white dark:bg-gray-600 shadow-sm text-violet-600' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`} title={t('Таблица')}>
-                        <svg className="w-4 h-4 fill-current" viewBox="0 0 16 16"><path d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2zm15 2h-4v3h4V4zm0 4h-4v3h4V8zm0 4h-4v3h3a1 1 0 0 0 1-1v-2zm-5 3v-3H6v3h4zm-5 0v-3H1v2a1 1 0 0 0 1 1h3zm-4-4h4V8H1v3zm0-4h4V4H1v3zm5-3v3h4V4H6zm4 4H6v3h4V8z"/></svg>
-                      </button>
-                      <button onClick={() => { setTeamViewMode('grid'); localStorage.setItem('projTeamView','grid'); }}
-                        className={`p-1.5 rounded transition-colors ${teamViewMode==='grid' ? 'bg-white dark:bg-gray-600 shadow-sm text-violet-600' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`} title={t('Карточки')}>
-                        <svg className="w-4 h-4 fill-current" viewBox="0 0 16 16"><path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zm8 0A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm-8 8A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5v-3zm8 0A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 13.5v-3z"/></svg>
-                      </button>
-                    </div>
-                    <button onClick={() => setShowAssignEmployee(true)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-medium rounded-lg transition-colors">
-                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                      </svg>
-                      <span className="hidden sm:inline">{t('Добавить сотрудника')}</span>
-                      <span className="sm:hidden">{t('Добавить')}</span>
-                    </button>
-                  </div>
-                </div>
-                {(() => {
-                  const filteredAssignments = employeeSearch
-                    ? assignments.filter((a) => (a.userName || a.userEmail || '').toLowerCase().includes(employeeSearch.toLowerCase()))
-                    : assignments;
-                  return filteredAssignments.length === 0 ? <EmptyState text="Сотрудники не найдены" /> : teamViewMode === 'grid' ? (
-                  <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {filteredAssignments.map((a) => {
-                      const isOnline = onlineUsers.has(a.userId);
-                      return (
-                        <div key={a.id} className="bg-gray-50 dark:bg-gray-900/30 rounded-xl p-4 cursor-pointer hover:ring-2 hover:ring-violet-300 dark:hover:ring-violet-600 transition-all flex items-start justify-between" onClick={() => setSelectedAssignment(a)}>
-                          <div className="min-w-0">
-                            <div className="font-medium text-gray-800 dark:text-gray-100 truncate">{a.userName || `#${a.userId}`}</div>
-                            {a.userEmail && <div className="text-xs text-gray-400 truncate">{a.userEmail}</div>}
-                            <div className="text-xs text-gray-400 mt-1">{a.roleOnProject || '—'}</div>
-                            <span className="flex items-center gap-1.5 mt-2">
-                              <span className={`w-2 h-2 rounded-full shrink-0 ${isOnline ? 'bg-green-400' : 'bg-gray-400'}`} />
-                              <span className="text-xs text-gray-500 dark:text-gray-400">{isOnline ? 'В сети' : 'Офлайн'}</span>
-                            </span>
-                          </div>
-                          <button onClick={(e) => { e.stopPropagation(); handleRemoveAssignment(a.id); }} disabled={removingAssignId === a.id}
-                            className="p-1.5 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-40 shrink-0" title={t('Удалить')}>
-                            {removingAssignId === a.id
-                              ? <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                              : <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                            }
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="table-auto w-full text-sm min-w-[480px]">
-                      <thead>
-                        <tr className="text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
-                          <th className="py-3 px-4 text-left font-semibold">{t('Сотрудник')}</th>
-                          <th className="py-3 px-4 text-left font-semibold">{t('Роль')}</th>
-                          <th className="py-3 px-4 text-left font-semibold">{t('В сети')}</th>
-                          <th className="py-3 px-4 text-left font-semibold">{t('Назначен')}</th>
-                          <th className="py-3 px-4 text-center font-semibold w-20">{t('Удалить')}</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
-                        {filteredAssignments.map((a) => {
-                          const isOnline = onlineUsers.has(a.userId);
-                          return (
-                          <tr key={a.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/20 cursor-pointer" onClick={() => setSelectedAssignment(a)}>
-                            <td className="py-2.5 px-4">
-                              <div className="font-medium text-gray-800 dark:text-gray-100">{a.userName || `#${a.userId}`}</div>
-                              {a.userEmail && <div className="text-xs text-gray-400">{a.userEmail}</div>}
-                            </td>
-                            <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{a.roleOnProject || '—'}</td>
-                            <td className="py-2.5 px-4">
-                              <span className="flex items-center gap-1.5">
-                                <span className={`w-2 h-2 rounded-full shrink-0 ${isOnline ? 'bg-green-400' : 'bg-gray-400'}`} />
-                                <span className="text-xs text-gray-600 dark:text-gray-400">{isOnline ? 'В сети' : 'Офлайн'}</span>
-                              </span>
-                            </td>
-                            <td className="py-2.5 px-4 text-gray-500 dark:text-gray-400">{fmt(a.assignedAt)}</td>
-                            <td className="py-2.5 px-4 text-center" onClick={(e) => e.stopPropagation()}>
-                              <button onClick={() => handleRemoveAssignment(a.id)} disabled={removingAssignId === a.id}
-                                className="p-1.5 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-40" title={t('Удалить')}>
-                                {removingAssignId === a.id
-                                  ? <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                                  : <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                }
-                              </button>
-                            </td>
-                          </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                  );
-                })()}
-              </div>
+              {/* Employees section — reuses the main Сотрудники page, restricted to project members */}
+              <EmployeesPage
+                restrictToUserIds={assignments.map((a) => a.userId)}
+                title={t('Сотрудники')}
+                subtitle={t('Сотрудники, назначенные на проект')}
+                canEdit
+                onAddEmployee={() => setShowAssignEmployee(true)}
+                onRemoveEmployee={async (emp) => {
+                  const assignment = assignments.find((a) => a.userId === emp.id);
+                  if (!assignment) return;
+                  if (!confirm('Убрать сотрудника из проекта?')) return;
+                  await handleRemoveAssignment(assignment.id);
+                }}
+              />
             </>
           )}
         </div>
@@ -6137,15 +5733,6 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
         />
       )}
 
-      {/* Create Task Modal */}
-      {showCreateTask && (
-        <TaskFormModal
-          task={{ projectId } as any}
-          onClose={() => setShowCreateTask(false)}
-          onSaved={() => { setShowCreateTask(false); reloadTasks(true); }}
-        />
-      )}
-
       {/* Upload Document Modal */}
       {showUploadDoc && (
         <UploadDocumentModal
@@ -6154,15 +5741,6 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
             setShowUploadDoc(false);
           }}
           onClose={() => setShowUploadDoc(false)}
-        />
-      )}
-
-      {/* Edit Task Modal */}
-      {selectedTask && (
-        <TaskFormModal
-          task={selectedTask}
-          onClose={() => setSelectedTask(null)}
-          onSaved={() => { setSelectedTask(null); reloadTasks(); }}
         />
       )}
 
