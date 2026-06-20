@@ -4,12 +4,12 @@ import { Job, Queue } from 'bullmq';
 import { NotificationRepository } from './repositories/notification.repository';
 import { ReminderService } from './reminder.service';
 import { NotificationsService } from './notifications.service';
-
-/** Queue for background notification jobs: housekeeping, reminders, broadcast fan-out. */
-export const JOBS_QUEUE = 'notifications-jobs';
-export const JOB_CLEANUP = 'cleanup';
-export const JOB_REMINDERS = 'reminders';
-export const JOB_BROADCAST = 'broadcast';
+import {
+  JOBS_QUEUE,
+  JOB_CLEANUP,
+  JOB_REMINDERS,
+  JOB_BROADCAST,
+} from './notifications.constants';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 /** Read notifications older than this are purged by the cleanup job. */

@@ -4,9 +4,10 @@ import { ConfigService } from '@nestjs/config';
 import { NotificationsController } from './notifications.controller';
 import { NotificationsService } from './notifications.service';
 import { NotificationRepository } from './repositories/notification.repository';
-import { PushProcessor, PUSH_QUEUE } from './push.queue';
+import { PushProcessor } from './push.queue';
 import { ReminderService } from './reminder.service';
-import { JobsProcessor, JOBS_QUEUE } from './jobs.queue';
+import { JobsProcessor } from './jobs.queue';
+import { PUSH_QUEUE, JOBS_QUEUE } from './notifications.constants';
 
 @Module({
   imports: [

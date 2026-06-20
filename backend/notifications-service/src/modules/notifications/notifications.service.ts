@@ -11,8 +11,13 @@ import { Queue } from 'bullmq';
 import { Subject, Observable, merge, map, interval } from 'rxjs';
 import * as webpush from 'web-push';
 import { NotificationRepository } from './repositories/notification.repository';
-import { PUSH_QUEUE, PUSH_JOB_SEND, PushJob } from './push.queue';
-import { JOBS_QUEUE, JOB_BROADCAST } from './jobs.queue';
+import {
+  PUSH_QUEUE,
+  PUSH_JOB_SEND,
+  PushJob,
+  JOBS_QUEUE,
+  JOB_BROADCAST,
+} from './notifications.constants';
 import {
   CreateNotificationDto,
   UpdateNotificationDto,
