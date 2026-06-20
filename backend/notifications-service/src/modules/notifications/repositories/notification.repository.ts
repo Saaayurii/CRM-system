@@ -340,4 +340,50 @@ export class NotificationRepository {
         AND c.start_datetime <= NOW() + INTERVAL '1 day'
     `);
   }
+
+  /**
+   * Safety-training certificates expiring within `days` (or already expired).
+   * Considers only the latest record per (user, training) so renewed certs
+   * don't trigger on an old expired row. → notify the employee.
+   */
+  async findExpiringTrainingReminders(days: number): Promise<
+    Array<{ trainingId: number; accountId: number; name: string; expiryDate: Date; userId: number }>
+  > {
+    return (this.prisma as any).$queryRawUnsafe(`
+      SELECT * FROM (
+        SELECT DISTINCT ON (r.user_id, r.safety_training_id)
+          r.safety_training_id AS "trainingId", r.user_id AS "userId",
+          r.expiry_date AS "expiryDate", st.account_id AS "accountId",
+          st.training_name AS "name"
+        FROM safety_training_records r
+        JOIN safety_trainings st ON st.id = r.safety_training_id
+        WHERE r.expiry_date IS NOT NULL
+        ORDER BY r.user_id, r.safety_training_id, r.expiry_date DESC
+      ) latest
+      WHERE latest."expiryDate" <= CURRENT_DATE + INTERVAL '${days} days'
+    `);
+  }
+
+  /**
+   * Safety briefings whose validity expires within `days` (or expired).
+   * Latest signed briefing per user only. → notify the employee.
+   */
+  async findExpiringBriefingReminders(days: number): Promise<
+    Array<{ briefingId: number; accountId: number; title: string; validUntil: Date; userId: number }>
+  > {
+    return (this.prisma as any).$queryRawUnsafe(`
+      SELECT * FROM (
+        SELECT DISTINCT ON (p.user_id)
+          p.briefing_id AS "briefingId", p.user_id AS "userId",
+          p.valid_until AS "validUntil", b.account_id AS "accountId", b.title AS "title"
+        FROM safety_briefing_participants p
+        JOIN safety_briefings b ON b.id = p.briefing_id
+        WHERE p.valid_until IS NOT NULL
+          AND p.status = 'signed'
+          AND b.deleted_at IS NULL
+        ORDER BY p.user_id, p.valid_until DESC
+      ) latest
+      WHERE latest."validUntil" <= CURRENT_DATE + INTERVAL '${days} days'
+    `);
+  }
 }

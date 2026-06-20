@@ -13,6 +13,8 @@ export class ReminderService {
   private readonly logger = new Logger(ReminderService.name);
   /** Don't recreate the same reminder more than once per ~day. */
   private static readonly DEDUP_MS = 20 * 60 * 60 * 1000;
+  /** Lead time for renewable certifications/briefings (need time to re-train). */
+  private static readonly RENEWAL_WINDOW_DAYS = 7;
 
   constructor(
     private readonly repo: NotificationRepository,
@@ -24,9 +26,11 @@ export class ReminderService {
     const inspections = await this.scanInspections();
     const equipment = await this.scanEquipment();
     const calendar = await this.scanCalendar();
+    const training = await this.scanTraining();
+    const briefings = await this.scanBriefings();
     this.logger.log(
       `Reminders created: ${tasks} task(s), ${inspections} inspection(s), ` +
-        `${equipment} equipment, ${calendar} event(s)`,
+        `${equipment} equipment, ${calendar} event(s), ${training} training, ${briefings} briefing(s)`,
     );
   }
 
@@ -170,6 +174,74 @@ export class ReminderService {
         channels: ['in_app', 'push'],
         priority: 2,
         actionUrl: '/dashboard/calendar',
+      });
+      created++;
+    }
+    return created;
+  }
+
+  private async scanTraining(): Promise<number> {
+    const rows = await this.repo.findExpiringTrainingReminders(
+      ReminderService.RENEWAL_WINDOW_DAYS,
+    );
+    let created = 0;
+    for (const r of rows) {
+      const type = 'safety_training_reminder';
+      if (
+        await this.repo.hasRecentReminder(
+          r.userId,
+          'safety_training',
+          r.trainingId,
+          type,
+          ReminderService.DEDUP_MS,
+        )
+      )
+        continue;
+      const overdue = this.isOverdue(r.expiryDate);
+      await this.notifications.createNotification(r.accountId, {
+        userId: r.userId,
+        title: overdue ? 'Просрочено обучение по ОТ' : 'Истекает обучение по ОТ',
+        message: `«${r.name}» — действует до ${this.fmt(r.expiryDate)}`,
+        notificationType: type,
+        entityType: 'safety_training',
+        entityId: r.trainingId,
+        channels: ['in_app', 'push'],
+        priority: overdue ? 3 : 2,
+        actionUrl: '/dashboard/safety',
+      });
+      created++;
+    }
+    return created;
+  }
+
+  private async scanBriefings(): Promise<number> {
+    const rows = await this.repo.findExpiringBriefingReminders(
+      ReminderService.RENEWAL_WINDOW_DAYS,
+    );
+    let created = 0;
+    for (const r of rows) {
+      const type = 'safety_briefing_reminder';
+      if (
+        await this.repo.hasRecentReminder(
+          r.userId,
+          'safety_briefing',
+          r.briefingId,
+          type,
+          ReminderService.DEDUP_MS,
+        )
+      )
+        continue;
+      const overdue = this.isOverdue(r.validUntil);
+      await this.notifications.createNotification(r.accountId, {
+        userId: r.userId,
+        title: overdue ? 'Просрочен инструктаж' : 'Истекает инструктаж',
+        message: `«${r.title}» — действует до ${this.fmt(r.validUntil)}`,
+        notificationType: type,
+        entityType: 'safety_briefing',
+        entityId: r.briefingId,
+        channels: ['in_app', 'push'],
+        priority: overdue ? 3 : 2,
+        actionUrl: '/dashboard/safety',
       });
       created++;
     }
