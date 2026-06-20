@@ -386,4 +386,70 @@ export class NotificationRepository {
       WHERE latest."validUntil" <= CURRENT_DATE + INTERVAL '${days} days'
     `);
   }
+
+  /** Active HSE permits expiring within `days` (or expired) → notify the requester. */
+  async findExpiringHsePermitReminders(days: number): Promise<
+    Array<{ permitId: number; accountId: number; permitNumber: string | null; validUntil: Date; userId: number }>
+  > {
+    return (this.prisma as any).$queryRawUnsafe(`
+      SELECT h.id AS "permitId", h.account_id AS "accountId",
+             h.permit_number AS "permitNumber", h.valid_until AS "validUntil",
+             h.requested_by_user_id AS "userId"
+      FROM hse_permits h
+      WHERE h.deleted_at IS NULL
+        AND h.requested_by_user_id IS NOT NULL
+        AND h.status IN ('approved', 'active')
+        AND h.valid_until <= CURRENT_DATE + INTERVAL '${days} days'
+    `);
+  }
+
+  /** Supplier orders whose expected delivery is within a day (or overdue) → notify the creator. */
+  async findDueSupplierOrderReminders(): Promise<
+    Array<{ orderId: number; accountId: number; orderNumber: string; expectedDate: Date; userId: number }>
+  > {
+    return (this.prisma as any).$queryRawUnsafe(`
+      SELECT o.id AS "orderId", o.account_id AS "accountId",
+             o.order_number AS "orderNumber", o.expected_delivery_date AS "expectedDate",
+             o.created_by_user_id AS "userId"
+      FROM supplier_orders o
+      WHERE o.deleted_at IS NULL
+        AND o.created_by_user_id IS NOT NULL
+        AND o.status IN (1, 2, 3)
+        AND o.expected_delivery_date IS NOT NULL
+        AND o.expected_delivery_date <= CURRENT_DATE + INTERVAL '1 day'
+    `);
+  }
+
+  /** Documents (contracts/licenses) expiring within `days` (or expired) → notify the uploader. */
+  async findExpiringDocumentReminders(days: number): Promise<
+    Array<{ documentId: number; accountId: number; title: string; expiryDate: Date; userId: number }>
+  > {
+    return (this.prisma as any).$queryRawUnsafe(`
+      SELECT d.id AS "documentId", d.account_id AS "accountId", d.title AS "title",
+             d.expiry_date AS "expiryDate", d.uploaded_by_user_id AS "userId"
+      FROM documents d
+      WHERE d.deleted_at IS NULL
+        AND d.uploaded_by_user_id IS NOT NULL
+        AND COALESCE(d.status, '') <> 'archived'
+        AND d.expiry_date IS NOT NULL
+        AND d.expiry_date <= CURRENT_DATE + INTERVAL '${days} days'
+    `);
+  }
+
+  /** Client interactions with a follow-up date within a day (or overdue) → notify the manager who logged it. */
+  async findDueClientFollowupReminders(): Promise<
+    Array<{ interactionId: number; accountId: number; clientName: string; nextAction: string | null; nextActionDate: Date; userId: number }>
+  > {
+    return (this.prisma as any).$queryRawUnsafe(`
+      SELECT ci.id AS "interactionId", c.account_id AS "accountId",
+             COALESCE(NULLIF(TRIM(CONCAT_WS(' ', c.last_name, c.first_name)), ''), c.company_name, 'Клиент') AS "clientName",
+             ci.next_action AS "nextAction", ci.next_action_date AS "nextActionDate",
+             ci.user_id AS "userId"
+      FROM client_interactions ci
+      JOIN clients c ON c.id = ci.client_id
+      WHERE ci.user_id IS NOT NULL
+        AND ci.next_action_date IS NOT NULL
+        AND ci.next_action_date <= CURRENT_DATE + INTERVAL '1 day'
+    `);
+  }
 }

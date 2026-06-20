@@ -28,9 +28,14 @@ export class ReminderService {
     const calendar = await this.scanCalendar();
     const training = await this.scanTraining();
     const briefings = await this.scanBriefings();
+    const permits = await this.scanHsePermits();
+    const orders = await this.scanSupplierOrders();
+    const documents = await this.scanDocuments();
+    const followups = await this.scanClientFollowups();
     this.logger.log(
       `Reminders created: ${tasks} task(s), ${inspections} inspection(s), ` +
-        `${equipment} equipment, ${calendar} event(s), ${training} training, ${briefings} briefing(s)`,
+        `${equipment} equipment, ${calendar} event(s), ${training} training, ${briefings} briefing(s), ` +
+        `${permits} permit(s), ${orders} order(s), ${documents} document(s), ${followups} followup(s)`,
     );
   }
 
@@ -242,6 +247,139 @@ export class ReminderService {
         channels: ['in_app', 'push'],
         priority: overdue ? 3 : 2,
         actionUrl: '/dashboard/safety',
+      });
+      created++;
+    }
+    return created;
+  }
+
+  private async scanHsePermits(): Promise<number> {
+    const rows = await this.repo.findExpiringHsePermitReminders(
+      ReminderService.RENEWAL_WINDOW_DAYS,
+    );
+    let created = 0;
+    for (const r of rows) {
+      const type = 'hse_permit_reminder';
+      if (
+        await this.repo.hasRecentReminder(
+          r.userId,
+          'hse_permit',
+          r.permitId,
+          type,
+          ReminderService.DEDUP_MS,
+        )
+      )
+        continue;
+      const overdue = this.isOverdue(r.validUntil);
+      const num = r.permitNumber ? ` №${r.permitNumber}` : '';
+      await this.notifications.createNotification(r.accountId, {
+        userId: r.userId,
+        title: overdue ? 'Просрочен наряд-допуск' : 'Истекает наряд-допуск',
+        message: `Наряд-допуск${num} — действует до ${this.fmt(r.validUntil)}`,
+        notificationType: type,
+        entityType: 'hse_permit',
+        entityId: r.permitId,
+        channels: ['in_app', 'push'],
+        priority: 3,
+        actionUrl: '/dashboard/hse',
+      });
+      created++;
+    }
+    return created;
+  }
+
+  private async scanSupplierOrders(): Promise<number> {
+    const rows = await this.repo.findDueSupplierOrderReminders();
+    let created = 0;
+    for (const r of rows) {
+      const type = 'supplier_order_reminder';
+      if (
+        await this.repo.hasRecentReminder(
+          r.userId,
+          'supplier_order',
+          r.orderId,
+          type,
+          ReminderService.DEDUP_MS,
+        )
+      )
+        continue;
+      const overdue = this.isOverdue(r.expectedDate);
+      await this.notifications.createNotification(r.accountId, {
+        userId: r.userId,
+        title: overdue ? 'Просрочена поставка' : 'Скоро поставка',
+        message: `Заказ №${r.orderNumber} — поставка ${this.fmt(r.expectedDate)}`,
+        notificationType: type,
+        entityType: 'supplier_order',
+        entityId: r.orderId,
+        channels: ['in_app', 'push'],
+        priority: overdue ? 3 : 2,
+        actionUrl: '/dashboard/suppliers',
+      });
+      created++;
+    }
+    return created;
+  }
+
+  private async scanDocuments(): Promise<number> {
+    const rows = await this.repo.findExpiringDocumentReminders(
+      ReminderService.RENEWAL_WINDOW_DAYS,
+    );
+    let created = 0;
+    for (const r of rows) {
+      const type = 'document_expiry_reminder';
+      if (
+        await this.repo.hasRecentReminder(
+          r.userId,
+          'document',
+          r.documentId,
+          type,
+          ReminderService.DEDUP_MS,
+        )
+      )
+        continue;
+      const overdue = this.isOverdue(r.expiryDate);
+      await this.notifications.createNotification(r.accountId, {
+        userId: r.userId,
+        title: overdue ? 'Документ просрочен' : 'Истекает документ',
+        message: `«${r.title}» — действует до ${this.fmt(r.expiryDate)}`,
+        notificationType: type,
+        entityType: 'document',
+        entityId: r.documentId,
+        channels: ['in_app', 'push'],
+        priority: overdue ? 3 : 2,
+        actionUrl: '/dashboard/documents',
+      });
+      created++;
+    }
+    return created;
+  }
+
+  private async scanClientFollowups(): Promise<number> {
+    const rows = await this.repo.findDueClientFollowupReminders();
+    let created = 0;
+    for (const r of rows) {
+      const type = 'client_followup_reminder';
+      if (
+        await this.repo.hasRecentReminder(
+          r.userId,
+          'client_interaction',
+          r.interactionId,
+          type,
+          ReminderService.DEDUP_MS,
+        )
+      )
+        continue;
+      const action = r.nextAction ? `: ${r.nextAction}` : '';
+      await this.notifications.createNotification(r.accountId, {
+        userId: r.userId,
+        title: 'Напоминание по клиенту',
+        message: `${r.clientName} — ${this.fmt(r.nextActionDate)}${action}`,
+        notificationType: type,
+        entityType: 'client_interaction',
+        entityId: r.interactionId,
+        channels: ['in_app', 'push'],
+        priority: 2,
+        actionUrl: '/dashboard/clients',
       });
       created++;
     }
