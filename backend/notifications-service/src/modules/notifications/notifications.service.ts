@@ -6,9 +6,13 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import { Subject, Observable, merge, map, interval } from 'rxjs';
 import * as webpush from 'web-push';
 import { NotificationRepository } from './repositories/notification.repository';
+import { PUSH_QUEUE, PUSH_JOB_SEND, PushJob } from './push.queue';
+import { JOBS_QUEUE, JOB_BROADCAST } from './jobs.queue';
 import {
   CreateNotificationDto,
   UpdateNotificationDto,
@@ -30,6 +34,8 @@ export class NotificationsService implements OnModuleInit {
   constructor(
     private readonly notificationRepository: NotificationRepository,
     private readonly configService: ConfigService,
+    @InjectQueue(PUSH_QUEUE) private readonly pushQueue: Queue,
+    @InjectQueue(JOBS_QUEUE) private readonly jobsQueue: Queue,
   ) {}
 
   onModuleInit() {
@@ -131,7 +137,7 @@ export class NotificationsService implements OnModuleInit {
     return { message: 'Push subscription removed' };
   }
 
-  private async sendWebPushToUser(
+  async sendWebPushToUser(
     userId: number,
     notification: any,
   ): Promise<void> {
@@ -276,9 +282,16 @@ export class NotificationsService implements OnModuleInit {
     // SSE (in-app real-time)
     this.pushNotification(dto.userId, notification);
 
-    // Web Push (mobile / background)
+    // Web Push (mobile / background) — via BullMQ for retries/durability.
+    // Falls back to an inline fire-and-forget send if the queue is unavailable.
     if (channels.includes('push')) {
-      void this.sendWebPushToUser(dto.userId, notification);
+      const job: PushJob = { userId: dto.userId, notification };
+      this.pushQueue.add(PUSH_JOB_SEND, job).catch((err) => {
+        this.logger.warn(
+          `Push queue unavailable, sending inline: ${(err as Error).message}`,
+        );
+        void this.sendWebPushToUser(dto.userId, notification);
+      });
     }
 
     return notification;
@@ -329,7 +342,25 @@ export class NotificationsService implements OnModuleInit {
    * Broadcast a notification to a computed audience: every active user with one
    * of `roleIds`, plus explicit `userIds`, minus `excludeUserId` (the actor).
    */
+  /**
+   * Public entry: offload the (potentially large) fan-out to BullMQ so the
+   * caller returns immediately. Falls back to running inline if the queue is
+   * unavailable. Returns the audience size synchronously where possible.
+   */
   async broadcastNotification(dto: BroadcastNotificationDto) {
+    try {
+      await this.jobsQueue.add(JOB_BROADCAST, dto);
+      return { queued: true };
+    } catch (err) {
+      this.logger.warn(
+        `Broadcast queue unavailable, running inline: ${(err as Error).message}`,
+      );
+      return this.runBroadcast(dto);
+    }
+  }
+
+  /** Actual fan-out — runs in the BullMQ worker (or inline as a fallback). */
+  async runBroadcast(dto: BroadcastNotificationDto) {
     const recipientIds = new Set<number>();
 
     if (dto.userIds?.length) {

@@ -46,6 +46,14 @@ export class SessionRepository {
     });
   }
 
+  /** Housekeeping: drop every expired session across all users. Returns rows removed. */
+  async deleteAllExpired(): Promise<number> {
+    const res = await (this.prisma as any).userSession.deleteMany({
+      where: { expiresAt: { lt: new Date() } },
+    });
+    return res.count ?? 0;
+  }
+
   /** Delete oldest sessions so the user has at most `max` sessions total */
   async enforceLimit(userId: number, max = 5): Promise<void> {
     const sessions = await (this.prisma as any).userSession.findMany({

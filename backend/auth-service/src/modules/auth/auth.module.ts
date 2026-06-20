@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
+import { BullModule } from '@nestjs/bullmq';
 import { ConfigService } from '@nestjs/config';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
@@ -20,6 +21,8 @@ import { JwtStrategy } from '../../common/guards/jwt.strategy';
 import { SessionBlacklistService } from '../../common/services/session-blacklist.service';
 import { TotpService } from './services/totp.service';
 import { MailService } from './services/mail.service';
+import { MailProcessor, MAIL_QUEUE } from './queues/mail.queue';
+import { MaintenanceProcessor, MAINTENANCE_QUEUE } from './queues/maintenance.queue';
 import { LoginThrottleService } from '../../common/services/login-throttle.service';
 
 @Module({
@@ -37,6 +40,24 @@ import { LoginThrottleService } from '../../common/services/login-throttle.servi
           },
         }) as any,
     }),
+    // BullMQ shared Redis connection + the "mail" queue (emails off the request thread).
+    BullModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        connection: {
+          host: configService.get<string>('redis.host') || 'localhost',
+          port: configService.get<number>('redis.port') || 6379,
+        },
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: { type: 'exponential', delay: 5000 },
+          removeOnComplete: true,
+          removeOnFail: 100,
+        },
+      }),
+    }),
+    BullModule.registerQueue({ name: MAIL_QUEUE }),
+    BullModule.registerQueue({ name: MAINTENANCE_QUEUE }),
   ],
   controllers: [AuthController],
   providers: [
@@ -57,6 +78,8 @@ import { LoginThrottleService } from '../../common/services/login-throttle.servi
     SessionBlacklistService,
     TotpService,
     MailService,
+    MailProcessor,
+    MaintenanceProcessor,
     LoginThrottleService,
   ],
   exports: [AuthService, TokenService, PasswordService, SessionBlacklistService],

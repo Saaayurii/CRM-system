@@ -6,8 +6,16 @@ import {
   BadRequestException,
   Logger,
 } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import { ChatRepository } from './repositories/chat.repository';
 import { NotificationsClientService } from './notifications-client.service';
+import {
+  TG_IMPORT_QUEUE,
+  TG_IMPORT_JOB_CHUNK,
+  TG_IMPORT_CHUNK,
+  TelegramImportChunkJob,
+} from './queues/telegram-import.queue';
 import {
   CreateChannelDto,
   UpdateChannelDto,
@@ -24,6 +32,7 @@ export class ChatService {
   constructor(
     private readonly chatRepository: ChatRepository,
     private readonly notificationsClient: NotificationsClientService,
+    @InjectQueue(TG_IMPORT_QUEUE) private readonly tgImportQueue: Queue,
   ) {}
 
   // --- Channels ---
@@ -215,7 +224,9 @@ export class ChatService {
   async importTelegram(accountId: number, userId: number, body: any) {
     const { name, type, telegramId, messages = [] } = body;
 
-    // Create a group channel tagged as TG import
+    // Create the channel synchronously so the caller gets a usable channelId
+    // immediately; messages can be large (thousands), so insert them in the
+    // background via BullMQ instead of blocking the request until the end.
     const channel = await this.chatRepository.createChannel({
       accountId,
       channelType: 'group',
@@ -226,28 +237,57 @@ export class ChatService {
       members: { create: [{ userId, role: 'admin' }] },
     });
 
-    // Bulk-insert messages in chunks to avoid timeouts
-    const CHUNK = 100;
-    for (let i = 0; i < messages.length; i += CHUNK) {
-      const chunk = messages.slice(i, i + CHUNK);
-      await Promise.all(
-        chunk.map((m: any) => {
+    // Enqueue one job per chunk so message inserts run off the request thread,
+    // with retries. If the queue is unavailable, fall back to inline insertion.
+    let queued = false;
+    try {
+      for (let i = 0; i < messages.length; i += TG_IMPORT_CHUNK) {
+        const job: TelegramImportChunkJob = {
+          channelId: channel.id,
+          userId,
+          messages: messages.slice(i, i + TG_IMPORT_CHUNK),
+        };
+        await this.tgImportQueue.add(TG_IMPORT_JOB_CHUNK, job);
+      }
+      queued = true;
+    } catch (err) {
+      this.logger.warn(
+        `TG import queue unavailable, inserting inline: ${(err as Error).message}`,
+      );
+    }
+
+    if (!queued) {
+      for (let i = 0; i < messages.length; i += TG_IMPORT_CHUNK) {
+        await this.insertTelegramMessages(
+          channel.id,
+          userId,
+          messages.slice(i, i + TG_IMPORT_CHUNK),
+        );
+      }
+    }
+
+    return { channelId: channel.id, name: channel.name, imported: messages.length };
+  }
+
+  /** Insert one chunk of Telegram-export messages. Used by the queue processor and the inline fallback. */
+  async insertTelegramMessages(channelId: number, userId: number, messages: any[]): Promise<void> {
+    await Promise.all(
+      messages
+        .map((m: any) => {
           const senderPrefix = m.from && m.from !== 'Неизвестно' ? `**${m.from}:** ` : '';
           const text = `${senderPrefix}${m.text || ''}`.trim();
           if (!text) return null;
           return this.chatRepository.createMessage({
-            channelId: channel.id,
+            channelId,
             userId,
             messageText: text,
             messageType: 'text',
             attachments: [{ type: 'tg_meta', from: m.from, fromId: m.fromId, tgDate: m.date, mediaType: m.mediaType, forwardedFrom: m.forwardedFrom }],
             createdAt: m.date ? new Date(m.date) : undefined,
           });
-        }).filter(Boolean),
-      );
-    }
-
-    return { channelId: channel.id, name: channel.name, imported: messages.length };
+        })
+        .filter(Boolean),
+    );
   }
 
   async updateChannel(id: number, accountId: number, dto: UpdateChannelDto) {

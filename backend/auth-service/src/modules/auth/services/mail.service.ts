@@ -39,6 +39,11 @@ export class MailService {
     }
   }
 
+  /** Whether SMTP is configured (vs. the graceful "log the link" fallback). */
+  get isEnabled(): boolean {
+    return this.transporter !== null;
+  }
+
   /** Send a password-reset email. Returns true if actually dispatched via SMTP. */
   async sendPasswordReset(
     to: string,

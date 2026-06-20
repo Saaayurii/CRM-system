@@ -39,4 +39,17 @@ export class PasswordResetRepository {
       data: { usedAt: new Date() },
     });
   }
+
+  /**
+   * Housekeeping: drop tokens that can no longer be used — expired ones and
+   * those already consumed. Returns the number of rows removed.
+   */
+  async deleteSpent(): Promise<number> {
+    const res = await (this.prisma as any).passwordResetToken.deleteMany({
+      where: {
+        OR: [{ expiresAt: { lt: new Date() } }, { usedAt: { not: null } }],
+      },
+    });
+    return res.count ?? 0;
+  }
 }

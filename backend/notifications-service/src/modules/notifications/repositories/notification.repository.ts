@@ -247,4 +247,97 @@ export class NotificationRepository {
     });
     return users.map((u: { id: number }) => u.id);
   }
+
+  // --- Housekeeping & reminders ---
+
+  /** Delete read notifications older than `days`. Returns rows removed. */
+  async deleteReadOlderThan(days: number): Promise<number> {
+    const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    const res = await (this.prisma as any).notification.deleteMany({
+      where: { isRead: true, createdAt: { lt: cutoff } },
+    });
+    return res.count ?? 0;
+  }
+
+  /** True if a reminder for this entity was already created for the user recently (dedup). */
+  async hasRecentReminder(
+    userId: number,
+    entityType: string,
+    entityId: number,
+    notificationType: string,
+    sinceMs: number,
+  ): Promise<boolean> {
+    const since = new Date(Date.now() - sinceMs);
+    const count = await (this.prisma as any).notification.count({
+      where: { userId, entityType, entityId, notificationType, createdAt: { gte: since } },
+    });
+    return count > 0;
+  }
+
+  /**
+   * Active tasks due within a day (or overdue), one row per recipient
+   * (assignees, falling back to the single assigned user). Cross-domain read
+   * over the shared DB via raw SQL — tasks aren't modeled in this service.
+   */
+  async findDueTaskReminders(): Promise<
+    Array<{ taskId: number; accountId: number; title: string; dueDate: Date; userId: number }>
+  > {
+    return (this.prisma as any).$queryRawUnsafe(`
+      SELECT t.id AS "taskId", t.account_id AS "accountId", t.title AS "title",
+             t.due_date AS "dueDate",
+             COALESCE(ta.user_id, t.assigned_to_user_id) AS "userId"
+      FROM tasks t
+      LEFT JOIN task_assignees ta ON ta.task_id = t.id
+      WHERE t.deleted_at IS NULL
+        AND t.status NOT IN (4, 5)
+        AND t.due_date IS NOT NULL
+        AND t.due_date <= CURRENT_DATE + INTERVAL '1 day'
+        AND COALESCE(ta.user_id, t.assigned_to_user_id) IS NOT NULL
+    `);
+  }
+
+  /** Pending inspections scheduled within a day (or overdue) → notify the inspector. */
+  async findDueInspectionReminders(): Promise<
+    Array<{ inspectionId: number; accountId: number; scheduledDate: Date; userId: number; projectName: string | null }>
+  > {
+    return (this.prisma as any).$queryRawUnsafe(`
+      SELECT i.id AS "inspectionId", i.account_id AS "accountId",
+             i.scheduled_date AS "scheduledDate", i.inspector_id AS "userId",
+             p.name AS "projectName"
+      FROM inspections i
+      LEFT JOIN projects p ON p.id = i.project_id
+      WHERE i.status IN (0, 1)
+        AND i.scheduled_date IS NOT NULL
+        AND i.scheduled_date <= CURRENT_DATE + INTERVAL '1 day'
+        AND i.inspector_id IS NOT NULL
+    `);
+  }
+
+  /** Equipment whose maintenance is due within a day (or overdue) → notify the assigned user. */
+  async findDueEquipmentReminders(): Promise<
+    Array<{ equipmentId: number; accountId: number; name: string; dueDate: Date; userId: number }>
+  > {
+    return (this.prisma as any).$queryRawUnsafe(`
+      SELECT e.id AS "equipmentId", e.account_id AS "accountId", e.name AS "name",
+             e.next_maintenance_date AS "dueDate", e.assigned_to_user_id AS "userId"
+      FROM equipment e
+      WHERE e.next_maintenance_date IS NOT NULL
+        AND e.next_maintenance_date <= CURRENT_DATE + INTERVAL '1 day'
+        AND e.assigned_to_user_id IS NOT NULL
+    `);
+  }
+
+  /** Calendar events starting within the next day → notify the organizer. */
+  async findUpcomingCalendarReminders(): Promise<
+    Array<{ eventId: number; accountId: number; title: string; startAt: Date; userId: number }>
+  > {
+    return (this.prisma as any).$queryRawUnsafe(`
+      SELECT c.id AS "eventId", c.account_id AS "accountId", c.title AS "title",
+             c.start_datetime AS "startAt", c.organizer_id AS "userId"
+      FROM calendar_events c
+      WHERE c.organizer_id IS NOT NULL
+        AND c.start_datetime >= NOW()
+        AND c.start_datetime <= NOW() + INTERVAL '1 day'
+    `);
+  }
 }

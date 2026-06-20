@@ -4,4 +4,8 @@ export default () => ({
   jwt: {
     accessSecret: process.env.JWT_ACCESS_SECRET || 'default-access-secret',
   },
+  redis: {
+    host: process.env.REDIS_HOST || 'localhost',
+    port: parseInt(process.env.REDIS_PORT || '6379', 10),
+  },
 });

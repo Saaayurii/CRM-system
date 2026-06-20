@@ -34,6 +34,13 @@ import { PasswordService } from './services/password.service';
 import { TokenService } from './services/token.service';
 import { TotpService } from './services/totp.service';
 import { MailService } from './services/mail.service';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+import {
+  MAIL_QUEUE,
+  MAIL_JOB_PASSWORD_RESET,
+  PasswordResetMailJob,
+} from './queues/mail.queue';
 import * as crypto from 'crypto';
 import { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
 import { ConfigService } from '@nestjs/config';
@@ -90,6 +97,7 @@ export class AuthService {
     private readonly tokenService: TokenService,
     private readonly totpService: TotpService,
     private readonly mailService: MailService,
+    @InjectQueue(MAIL_QUEUE) private readonly mailQueue: Queue,
     private readonly sessionBlacklist: SessionBlacklistService,
     private readonly throttle: LoginThrottleService,
     private readonly configService: ConfigService,
@@ -1031,12 +1039,28 @@ export class AuthService {
       this.configService.get<string>('frontendUrl') || 'http://localhost:3001';
     const resetUrl = `${frontendUrl.replace(/\/$/, '')}/auth/reset-password?token=${rawToken}`;
 
-    await this.mailService.sendPasswordReset(
-      emailLower,
+    // Send off the request thread via BullMQ so the response is instant and the
+    // SMTP send is retried on transient failures. If the queue itself is
+    // unavailable (Redis down), fall back to sending inline so recovery still works.
+    const mailJob: PasswordResetMailJob = {
+      to: emailLower,
       resetUrl,
-      active.length,
+      accountsCount: active.length,
       expiresMinutes,
-    );
+    };
+    try {
+      await this.mailQueue.add(MAIL_JOB_PASSWORD_RESET, mailJob);
+    } catch (err) {
+      this.logger.warn(
+        `Mail queue unavailable, sending inline: ${(err as Error).message}`,
+      );
+      await this.mailService.sendPasswordReset(
+        mailJob.to,
+        mailJob.resetUrl,
+        mailJob.accountsCount,
+        mailJob.expiresMinutes,
+      );
+    }
 
     this.logger.log(`Password reset requested: ${emailLower} (${active.length} account(s))`);
     return generic;
