@@ -892,6 +892,9 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-this-secret-key-in-production-access}
+      # Kafka consumer (движок автоматизации). Пусто → движок не стартует.
+      KAFKA_BROKERS: ${KAFKA_BROKERS:-kafka:9092}
+      NOTIFICATIONS_SERVICE_URL: http://notifications-service:3010
     depends_on:
       postgres:
         condition: service_healthy

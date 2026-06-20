@@ -4,4 +4,12 @@ export default () => ({
   jwt: {
     accessSecret: process.env.JWT_ACCESS_SECRET || 'default-access-secret',
   },
+  // Comma-separated Kafka brokers. Empty → automation engine disabled.
+  kafka: {
+    brokers: process.env.KAFKA_BROKERS || '',
+  },
+  services: {
+    notifications:
+      process.env.NOTIFICATIONS_SERVICE_URL || 'http://notifications-service:3010',
+  },
 });

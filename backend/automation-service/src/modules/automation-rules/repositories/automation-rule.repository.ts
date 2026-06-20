@@ -47,4 +47,19 @@ export class AutomationRuleRepository {
       where: { id, accountId },
     });
   }
+
+  /** Active rules for an account — used by the engine to match incoming events. */
+  async findActiveByAccount(accountId: number) {
+    return (this.prisma as any).automationRule.findMany({
+      where: { accountId, isActive: true },
+    });
+  }
+
+  /** Bump execution counters after a rule fires. */
+  async recordExecution(id: number) {
+    return (this.prisma as any).automationRule.update({
+      where: { id },
+      data: { executionCount: { increment: 1 }, lastExecutedAt: new Date() },
+    });
+  }
 }

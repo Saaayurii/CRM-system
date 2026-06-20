@@ -44,8 +44,11 @@
     и создаёт напоминания (через `createNotification`): задачи (`due_date`→исполнителям),
     инспекции (`scheduled_date`→инспектору), ТО техники (`next_maintenance_date`→ответственному),
     события календаря (`start_datetime`→организатору), обучение ОТ
-    (`safety_training_records.expiry_date`) и инструктажи (`safety_briefing_participants.valid_until`)
-    →сотруднику. Дедуп — через саму таблицу `notifications` (`hasRecentReminder`, ~20ч);
-    берётся последняя запись на пользователя. Окно: сутки (даты/события), 7 дней (продление ОТ).
+    (`safety_training_records.expiry_date`), инструктажи (`safety_briefing_participants.valid_until`),
+    наряды-допуски HSE (`hse_permits.valid_until`→requester), документы/лицензии
+    (`documents.expiry_date`→uploader), заказы поставщикам (`supplier_orders.expected_delivery_date`
+    →creator), CRM-фоллоуапы (`client_interactions.next_action_date`→менеджер). Дедуп — через
+    саму таблицу `notifications` (`hasRecentReminder`, ~20ч); берётся последняя запись на
+    пользователя. Окно: сутки (даты/события/поставки/фоллоуапы), 7 дней (продление ОТ/HSE/документы).
   - `broadcast` — фан-аут `broadcastNotification` уносится в очередь (`runBroadcast` в воркере).
 - `jsonwebtoken` — явная зависимость (SSE авторизуется по токену в query).
