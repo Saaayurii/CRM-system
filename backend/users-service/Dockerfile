@@ -33,7 +33,6 @@ COPY --from=build /app/package*.json ./
 
 # Копируем Prisma файлы (если есть)
 COPY --from=build /app/prisma ./prisma
-COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
 
 # Создаем пользователя без root прав
 RUN addgroup -g 1001 -S nodejs && \

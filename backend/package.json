@@ -1,0 +1,14 @@
+{
+  "name": "crm-backend",
+  "private": true,
+  "packageManager": "pnpm@9.15.9",
+  "scripts": {
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "db:generate": "pnpm -r exec sh -c 'test -f prisma/schema.prisma && prisma generate || true'"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.3"
+  }
+}
