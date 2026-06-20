@@ -33,3 +33,19 @@
 - SSE-поток авторизуется по query-параметру `token` (не по заголовку Authorization)
 - Событие `force_logout` передаётся через SSE при отзыве сессии из другого сервиса
 - Объявления видны всем пользователям аккаунта, уведомления — персональные
+
+## Фоновые задачи (BullMQ)
+Работает на общем Redis (`redis.host/port`), воркеры — в процессе сервиса. Очереди:
+- **`push`** — Web Push (`sendWebPushToUser`) с ретраями; `createNotification` кладёт джобу,
+  с fallback на инлайн-отправку, если очередь недоступна.
+- **`notifications-jobs`** — три типа джоб:
+  - `cleanup` (repeatable, раз в сутки) — удаляет прочитанные уведомления старше 30 дней.
+  - `reminders` (repeatable, раз в сутки) — `ReminderService` сканирует общую БД **raw SQL**
+    и создаёт напоминания (через `createNotification`): задачи (`due_date`→исполнителям),
+    инспекции (`scheduled_date`→инспектору), ТО техники (`next_maintenance_date`→ответственному),
+    события календаря (`start_datetime`→организатору), обучение ОТ
+    (`safety_training_records.expiry_date`) и инструктажи (`safety_briefing_participants.valid_until`)
+    →сотруднику. Дедуп — через саму таблицу `notifications` (`hasRecentReminder`, ~20ч);
+    берётся последняя запись на пользователя. Окно: сутки (даты/события), 7 дней (продление ОТ).
+  - `broadcast` — фан-аут `broadcastNotification` уносится в очередь (`runBroadcast` в воркере).
+- `jsonwebtoken` — явная зависимость (SSE авторизуется по токену в query).

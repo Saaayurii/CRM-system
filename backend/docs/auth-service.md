@@ -51,6 +51,14 @@
 - IP-адрес нормализуется: IPv4-mapped IPv6 (`::ffff:x.x.x.x`) → `x.x.x.x`
 - Роли 1 (super_admin), 2 (admin), 3 (hr_manager) могут одобрять заявки
 
+## Фоновые задачи (BullMQ)
+На общем Redis, воркеры в процессе сервиса:
+- **`mail`** — письмо восстановления уходит в очередь (мгновенный ответ, 3 ретрая с backoff);
+  fallback на инлайн-отправку при недоступной очереди. `MailService.isEnabled` отличает
+  «SMTP выключен» (без ретрая) от «отправка упала» (ретрай).
+- **`maintenance`** — repeatable джоба `cleanup` раз в сутки: удаляет отработавшие
+  `password_reset_tokens` (`deleteSpent`) и протухшие сессии (`deleteAllExpired`).
+
 ## Восстановление доступа через почту (Account Recovery)
 - **Запрос** (`POST /auth/password-reset/request`): всегда возвращает один и тот же
   ответ (no email enumeration). Если есть активные пользователи с этим email —
