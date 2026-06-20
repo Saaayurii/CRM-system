@@ -156,61 +156,6 @@ export class AuthGatewayController {
     });
   }
 
-  @Post('phone-reset/request')
-  @Public()
-  @HttpCode(HttpStatus.OK)
-  @Throttle(AUTH_THROTTLE)
-  @ApiOperation({ summary: 'Request a recovery code via SMS' })
-  async requestPhoneReset(
-    @Body() body: unknown,
-    @Headers('user-agent') userAgent: string,
-    @Req() req: any,
-  ) {
-    return this.proxyService.forward('auth', {
-      method: 'POST',
-      path: '/auth/phone-reset/request',
-      data: body,
-      headers: {
-        'X-User-Agent': userAgent || '',
-        'X-Real-IP': req.ip || '',
-      },
-    });
-  }
-
-  @Post('phone-reset/verify')
-  @Public()
-  @HttpCode(HttpStatus.OK)
-  @Throttle(AUTH_THROTTLE)
-  @ApiOperation({ summary: 'Verify SMS code; returns one-time token + accounts' })
-  async verifyPhoneReset(@Body() body: unknown) {
-    return this.proxyService.forward('auth', {
-      method: 'POST',
-      path: '/auth/phone-reset/verify',
-      data: body,
-    });
-  }
-
-  @Post('phone-reset/confirm')
-  @Public()
-  @HttpCode(HttpStatus.OK)
-  @Throttle(AUTH_THROTTLE)
-  @ApiOperation({ summary: 'Confirm phone recovery and set a new password' })
-  async confirmPhoneReset(
-    @Body() body: unknown,
-    @Headers('user-agent') userAgent: string,
-    @Req() req: any,
-  ) {
-    return this.proxyService.forward('auth', {
-      method: 'POST',
-      path: '/auth/phone-reset/confirm',
-      data: body,
-      headers: {
-        'X-User-Agent': userAgent || '',
-        'X-Real-IP': req.ip || '',
-      },
-    });
-  }
-
   @Get('account-recovery-log')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Account recovery audit log for current company (Admin)' })

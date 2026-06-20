@@ -242,22 +242,3 @@ model AccountRecoveryLog {
   @@index([accountId], name: "idx_arl_account")
   @@map("account_recovery_log")
 }
-
-// ===========================================
-// Phone Reset Code (SMS account recovery, OTP)
-// Один код на нормализованный телефон (последние 10 цифр).
-// Хранится sha256-хеш, лимит попыток, короткий TTL.
-// ===========================================
-model PhoneResetCode {
-  id        Int       @id @default(autoincrement())
-  phone     String    @db.VarChar(32) // нормализованные последние 10 цифр
-  codeHash  String    @map("code_hash") @db.VarChar(255)
-  expiresAt DateTime  @map("expires_at")
-  attempts  Int       @default(0)
-  usedAt    DateTime? @map("used_at")
-  ipAddress String?   @map("ip_address") @db.VarChar(45)
-  createdAt DateTime  @default(now()) @map("created_at")
-
-  @@index([phone], name: "idx_prc_phone")
-  @@map("phone_reset_codes")
-}

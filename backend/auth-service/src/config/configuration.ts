@@ -41,20 +41,6 @@ export default () => ({
     expiresMinutes: parseInt(process.env.PASSWORD_RESET_EXPIRES_MINUTES || '60', 10),
   },
 
-  // Outgoing SMS (SMSC.ru) for phone-based account recovery.
-  sms: {
-    smscLogin: process.env.SMSC_LOGIN || '',
-    smscPassword: process.env.SMSC_PASSWORD || '',
-    smscSender: process.env.SMSC_SENDER || '',
-  },
-
-  // Phone reset OTP: lifetime and max verification attempts.
-  phoneReset: {
-    expiresMinutes: parseInt(process.env.PHONE_RESET_EXPIRES_MINUTES || '10', 10),
-    maxAttempts: parseInt(process.env.PHONE_RESET_MAX_ATTEMPTS || '5', 10),
-    resendCooldownSeconds: parseInt(process.env.PHONE_RESET_RESEND_COOLDOWN || '60', 10),
-  },
-
   bcrypt: {
     saltRounds: parseInt(process.env.BCRYPT_SALT_ROUNDS || '10', 10),
   },

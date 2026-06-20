@@ -29,14 +29,11 @@ import { CreateMemberInviteDto } from './dto/create-member-invite.dto';
 import { MemberInviteRepository } from './repositories/member-invite.repository';
 import { SessionRepository } from './repositories/session.repository';
 import { PasswordResetRepository } from './repositories/password-reset.repository';
-import { PhoneResetRepository } from './repositories/phone-reset.repository';
 import { RecoveryLogRepository } from './repositories/recovery-log.repository';
 import { PasswordService } from './services/password.service';
 import { TokenService } from './services/token.service';
 import { TotpService } from './services/totp.service';
 import { MailService } from './services/mail.service';
-import { SmsService } from './services/sms.service';
-import { normalizePhoneDigits } from './services/phone.util';
 import * as crypto from 'crypto';
 import { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
 import { ConfigService } from '@nestjs/config';
@@ -88,13 +85,11 @@ export class AuthService {
     private readonly memberInviteRepository: MemberInviteRepository,
     private readonly sessionRepository: SessionRepository,
     private readonly passwordResetRepository: PasswordResetRepository,
-    private readonly phoneResetRepository: PhoneResetRepository,
     private readonly recoveryLogRepository: RecoveryLogRepository,
     private readonly passwordService: PasswordService,
     private readonly tokenService: TokenService,
     private readonly totpService: TotpService,
     private readonly mailService: MailService,
-    private readonly smsService: SmsService,
     private readonly sessionBlacklist: SessionBlacklistService,
     private readonly throttle: LoginThrottleService,
     private readonly configService: ConfigService,
@@ -1137,152 +1132,6 @@ export class AuthService {
       userAgent: r.userAgent,
       recoveredAt: r.recoveredAt,
     }));
-  }
-
-  // ── Phone-based account recovery (SMS OTP) ──────────────────────────
-
-  /** Map active users to the recoverable-accounts shape used by the frontend. */
-  private mapRecoverableAccounts(users: any[]) {
-    return users
-      .filter((u: any) => u.isActive)
-      .map((u: any) => ({
-        userId: u.id,
-        accountId: u.accountId,
-        companyName: u.account?.name ?? `Компания #${u.accountId}`,
-        roleId: u.roleId ?? null,
-        roleName: u.role?.name ?? null,
-        isClientPortal: u.roleId === 15,
-      }));
-  }
-
-  /**
-   * Step 1: request an SMS code. Always returns the same generic message
-   * (no phone enumeration). One code covers all accounts tied to the phone.
-   */
-  async requestPhoneReset(phone: string, ipAddress = ''): Promise<MessageResponseDto> {
-    const generic: MessageResponseDto = {
-      message: 'Если аккаунт с таким номером существует, на него отправлен код восстановления.',
-    };
-
-    const last10 = normalizePhoneDigits(phone);
-    if (!last10) return generic;
-
-    const users = await this.userRepository.findActiveByPhoneDigits(last10);
-    if (users.length === 0) {
-      this.logger.log(`Phone reset requested for unknown phone: ...${last10.slice(-4)}`);
-      return generic;
-    }
-
-    // Resend cooldown: don't fire a new SMS if a fresh code already exists.
-    const cooldownSec =
-      this.configService.get<number>('phoneReset.resendCooldownSeconds') || 60;
-    const existing = await this.phoneResetRepository.findActiveByPhone(last10);
-    if (existing && Date.now() - new Date(existing.createdAt).getTime() < cooldownSec * 1000) {
-      this.logger.log(`Phone reset resend within cooldown, skipping SMS: ...${last10.slice(-4)}`);
-      return generic;
-    }
-
-    await this.phoneResetRepository.invalidateAllForPhone(last10);
-
-    const code = (crypto.randomInt(0, 1_000_000)).toString().padStart(6, '0');
-    const codeHash = this.hashToken(code);
-    const expiresMinutes = this.configService.get<number>('phoneReset.expiresMinutes') || 10;
-    const expiresAt = new Date(Date.now() + expiresMinutes * 60 * 1000);
-
-    await this.phoneResetRepository.create({
-      phone: last10,
-      codeHash,
-      expiresAt,
-      ipAddress: ipAddress || undefined,
-    });
-
-    await this.smsService.sendRecoveryCode(last10, code);
-    this.logger.log(`Phone reset code sent: ...${last10.slice(-4)} (${users.length} account(s))`);
-    return generic;
-  }
-
-  /**
-   * Step 2: verify the SMS code. On success returns a short-lived one-time
-   * token plus the list of accounts to choose from.
-   */
-  async verifyPhoneResetCode(phone: string, code: string) {
-    const invalid = new BadRequestException('Неверный код или срок его действия истёк');
-    const last10 = normalizePhoneDigits(phone);
-    if (!last10) throw invalid;
-
-    const entry = await this.phoneResetRepository.findActiveByPhone(last10);
-    if (!entry) throw invalid;
-
-    const maxAttempts = this.configService.get<number>('phoneReset.maxAttempts') || 5;
-    if (entry.attempts >= maxAttempts) {
-      throw new BadRequestException('Превышено число попыток. Запросите новый код.');
-    }
-
-    if (this.hashToken(code) !== entry.codeHash) {
-      await this.phoneResetRepository.incrementAttempts(entry.id);
-      throw invalid;
-    }
-
-    await this.phoneResetRepository.markUsed(entry.id);
-
-    const token = this.tokenService.signShortLived(
-      { purpose: 'phone-reset', phone: last10 },
-      '15m',
-    );
-    const users = await this.userRepository.findActiveByPhoneDigits(last10);
-    return { token, accounts: this.mapRecoverableAccounts(users) };
-  }
-
-  /**
-   * Step 3: confirm recovery for the selected accounts using the one-time token.
-   */
-  async confirmPhoneReset(
-    rawToken: string,
-    userIds: number[],
-    password: string,
-    ipAddress = '',
-    userAgent = '',
-  ): Promise<MessageResponseDto> {
-    let payload: { purpose?: string; phone?: string };
-    try {
-      payload = this.tokenService.verifyShortLived(rawToken);
-    } catch {
-      throw new BadRequestException('Сессия восстановления истекла — запросите код заново');
-    }
-    if (!payload || payload.purpose !== 'phone-reset' || !payload.phone) {
-      throw new BadRequestException('Недействительный токен восстановления');
-    }
-
-    const users = await this.userRepository.findActiveByPhoneDigits(payload.phone);
-    const active = users.filter((u: any) => u.isActive);
-    const selected = active.filter((u: any) => userIds.includes(u.id));
-    if (selected.length === 0) {
-      throw new BadRequestException('Не выбран ни один аккаунт для восстановления');
-    }
-
-    const digest = await this.passwordService.hash(password);
-    for (const u of selected) {
-      await this.userRepository.updatePassword(u.id, digest);
-      await this.sessionRepository.deleteAllByUserId(u.id);
-      await this.recoveryLogRepository.create({
-        accountId: u.accountId,
-        userId: u.id,
-        email: u.email,
-        userName: u.name ?? null,
-        roleId: u.roleId ?? null,
-        accountName: u.account?.name ?? null,
-        method: 'phone',
-        ipAddress: ipAddress || null,
-        userAgent: userAgent || null,
-      });
-    }
-
-    this.logger.log(
-      `Phone reset confirmed: ...${payload.phone.slice(-4)} for ${selected.length} account(s)`,
-    );
-    return {
-      message: `Пароль обновлён для выбранных аккаунтов (${selected.length}). Теперь вы можете войти.`,
-    };
   }
 
   private mapUserToResponse(user: any): UserResponseDto {
