@@ -22,6 +22,7 @@ jobs:
           command_timeout: 60m
           script: |
             cd /opt/crm-system
+            OLD_REF=$(git rev-parse HEAD)
             git pull origin main
             cd backend
-            bash /opt/crm-system/deploy.sh
+            OLD_REF=$OLD_REF bash /opt/crm-system/deploy.sh

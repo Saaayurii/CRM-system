@@ -95,11 +95,41 @@ if [ "$PULL" = true ]; then
 fi
 
 if [ "$NO_BUILD" = false ]; then
-  info "Building Docker images one at a time..."
-  docker compose config --services | while read -r service; do
-    info "Building $service..."
-    docker compose build "$service"
-  done
+  ALL_SERVICES=$(docker compose config --services)
+  BUILD_PARALLEL="${BUILD_PARALLEL:-4}"
+
+  # Determine which services actually need rebuilding (only changed ones).
+  # OLD_REF is the git HEAD captured by the CI workflow BEFORE `git pull`.
+  HAVE_BASE=false
+  CHANGED=""
+  if [ -n "${OLD_REF:-}" ] && git rev-parse --verify -q "${OLD_REF}^{commit}" >/dev/null 2>&1; then
+    CHANGED=$(git diff --name-only "$OLD_REF" HEAD 2>/dev/null || true)
+    HAVE_BASE=true
+  fi
+
+  if [ "$HAVE_BASE" = false ]; then
+    warn "No valid OLD_REF — rebuilding ALL services (safe fallback)."
+    TO_BUILD="$ALL_SERVICES"
+  elif echo "$CHANGED" | grep -qE '(^|/)docker-compose\.yml$'; then
+    warn "docker-compose.yml changed — rebuilding ALL services."
+    TO_BUILD="$ALL_SERVICES"
+  else
+    # A service is rebuilt if files under backend/<service>/ changed;
+    # the frontend service if anything under frontend/ changed.
+    TO_BUILD=$(echo "$ALL_SERVICES" | while read -r s; do
+      if echo "$CHANGED" | grep -q "^backend/${s}/"; then echo "$s"
+      elif [ "$s" = "frontend" ] && echo "$CHANGED" | grep -q "^frontend/"; then echo "$s"
+      fi
+    done)
+  fi
+
+  if [ -z "${TO_BUILD// /}" ]; then
+    info "No service sources changed — skipping build step."
+  else
+    info "Building (parallel=${BUILD_PARALLEL}): $(echo $TO_BUILD | tr '\n' ' ')"
+    echo "$TO_BUILD" | xargs -P "$BUILD_PARALLEL" -I {} \
+      sh -c 'echo "[INFO] building {}..."; docker compose build {}'
+  fi
 fi
 
 # ── SSL: First-time certificate issuance ─────────────────────
