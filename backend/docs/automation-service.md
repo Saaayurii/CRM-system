@@ -45,7 +45,12 @@
    инкрементит `execution_count` + `last_executed_at`.
 
 Старт не блокируется (переподключение к брокеру в фоне), упавшее правило логируется и не
-валит consumer. **UI для правил пока нет** — создаются через CRUD `/automation-rules`.
-Пример правила: `{ "name":"Уведомить админов об удалении проекта", "triggerEvent":"project.delete",
-"isActive":true, "actions":[{"type":"notify","roleIds":[1,2],"excludeActor":true,
-"title":"Удалён проект #{{entityId}}","message":"{{description}}"}] }`.
+валит consumer.
+
+**UI:** вкладка «Автоматизация» в админке (`/admin/automation`, super_admin) —
+визуальный конструктор: сущность+действие → триггер, действия notify (роли,
+заголовок/текст с плейсхолдерами, «не уведомлять инициатора») и webhook (URL),
+список правил с тумблером вкл/выкл и счётчиком срабатываний. Поверх CRUD `/automation-rules`.
+Пример правила (тело API): `{ "name":"Уведомить админов об удалении проекта",
+"triggerEvent":"project.delete", "isActive":true, "actions":[{"type":"notify","roleIds":[1,2],
+"excludeActor":true,"title":"Удалён проект #{{entityId}}","message":"{{description}}"}] }`.
