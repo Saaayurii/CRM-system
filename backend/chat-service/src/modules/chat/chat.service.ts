@@ -15,7 +15,7 @@ import {
   TG_IMPORT_JOB_CHUNK,
   TG_IMPORT_CHUNK,
   TelegramImportChunkJob,
-} from './queues/telegram-import.queue';
+} from './queues/telegram-import.constants';
 import {
   CreateChannelDto,
   UpdateChannelDto,

@@ -7,7 +7,8 @@ import { ChatGateway } from './chat.gateway';
 import { ChatRepository } from './repositories/chat.repository';
 import { WsJwtGuard } from '../../common/guards/ws-jwt.guard';
 import { NotificationsClientService } from './notifications-client.service';
-import { TelegramImportProcessor, TG_IMPORT_QUEUE } from './queues/telegram-import.queue';
+import { TelegramImportProcessor } from './queues/telegram-import.queue';
+import { TG_IMPORT_QUEUE } from './queues/telegram-import.constants';
 
 @Module({
   imports: [

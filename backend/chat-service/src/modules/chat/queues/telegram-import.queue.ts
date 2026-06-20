@@ -2,19 +2,11 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger, forwardRef, Inject } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { ChatService } from '../chat.service';
-
-/** Queue + job for importing Telegram-export messages off the request thread. */
-export const TG_IMPORT_QUEUE = 'telegram-import';
-export const TG_IMPORT_JOB_CHUNK = 'import-chunk';
-
-/** Messages per job — bounds each job's Redis payload and DB batch size. */
-export const TG_IMPORT_CHUNK = 100;
-
-export interface TelegramImportChunkJob {
-  channelId: number;
-  userId: number;
-  messages: any[];
-}
+import {
+  TG_IMPORT_QUEUE,
+  TG_IMPORT_JOB_CHUNK,
+  TelegramImportChunkJob,
+} from './telegram-import.constants';
 
 /**
  * Inserts a chunk of imported Telegram messages. The channel is created
