@@ -30,3 +30,6 @@
 - Rate limiting реализован через `@nestjs/throttler` с Redis-хранилищем
 - `ProxyService` пробрасывает заголовки `Authorization`, `X-User-Id`, `X-Account-Id` в downstream
 - Поддерживается импорт Telegram-экспорта через `POST /api/v1/chat-channels/import-telegram`
+- **Аудит через Kafka**: глобальный `AuditInterceptor` публикует write-действия в топик
+  `audit.events` (`KafkaProducerService`, raw `kafkajs`); при недоступной/выключенной Kafka
+  (`KAFKA_BROKERS` пуст) — fallback на `POST /event-logs` в audit-service по HTTP.

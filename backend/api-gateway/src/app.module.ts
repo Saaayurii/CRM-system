@@ -40,6 +40,7 @@ import { ClientReadOnlyGuard } from './common/guards/client-readonly.guard';
 import { GatewayExceptionFilter } from './common/filters/gateway-exception.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor';
+import { KafkaProducerService } from './common/services/kafka-producer.service';
 import { RequestContextMiddleware } from './common/middleware/request-context.middleware';
 
 @Module({
@@ -108,6 +109,7 @@ import { RequestContextMiddleware } from './common/middleware/request-context.mi
   ],
   providers: [
     JwtStrategy,
+    KafkaProducerService,
     // Global Guards
     {
       provide: APP_GUARD,

@@ -13,6 +13,8 @@ volumes:
     driver: local
   redis_data:
     driver: local
+  kafka_data:
+    driver: local
   chat_uploads:
     driver: local
   documents_pdfs:
@@ -77,6 +79,40 @@ services:
       timeout: 3s
       retries: 5
 
+  # Kafka (KRaft, single node) — шина доменных событий (аудит).
+  # Без Zookeeper. Авто-создание топиков включено (audit.events).
+  kafka:
+    image: apache/kafka:3.8.0
+    container_name: crm-kafka
+    restart: unless-stopped
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_HEAP_OPTS: "-Xmx1g -Xms1g"
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    networks:
+      - crm-network
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
   # ==========================================
   # API GATEWAY (ГЛАВНЫЙ ВХОД)
   # ==========================================
@@ -124,6 +160,9 @@ services:
       # Redis
       REDIS_HOST: redis
       REDIS_PORT: 6379
+
+      # Kafka (шина аудита). Пусто → fallback на HTTP POST в audit-service.
+      KAFKA_BROKERS: ${KAFKA_BROKERS:-kafka:9092}
 
       # CORS
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3030}
@@ -731,6 +770,8 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-this-secret-key-in-production-access}
+      # Kafka consumer (аудит). Пусто → consumer не стартует, остаётся HTTP-эндпоинт.
+      KAFKA_BROKERS: ${KAFKA_BROKERS:-kafka:9092}
     depends_on:
       postgres:
         condition: service_healthy

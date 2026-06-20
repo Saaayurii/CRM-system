@@ -7,6 +7,11 @@ export default () => ({
     port: parseInt(process.env.REDIS_PORT || '6379', 10),
   },
 
+  // Comma-separated Kafka brokers. Empty → audit falls back to HTTP POST.
+  kafka: {
+    brokers: process.env.KAFKA_BROKERS || '',
+  },
+
   jwt: {
     accessSecret: process.env.JWT_ACCESS_SECRET || 'default-access-secret',
   },

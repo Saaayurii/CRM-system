@@ -4,4 +4,8 @@ export default () => ({
   jwt: {
     accessSecret: process.env.JWT_ACCESS_SECRET || 'default-access-secret',
   },
+  // Comma-separated Kafka brokers. Empty → consumer disabled (HTTP endpoint only).
+  kafka: {
+    brokers: process.env.KAFKA_BROKERS || '',
+  },
 });

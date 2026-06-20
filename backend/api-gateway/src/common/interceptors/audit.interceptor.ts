@@ -9,6 +9,10 @@ import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { Request } from 'express';
 import axios from 'axios';
+import { KafkaProducerService } from '../services/kafka-producer.service';
+
+/** Kafka topic for audit/domain events consumed by audit-service. */
+const AUDIT_TOPIC = 'audit.events';
 
 // URL resource segment → entityType label
 const PATH_TO_ENTITY: Record<string, string> = {
@@ -109,6 +113,8 @@ export class AuditInterceptor implements NestInterceptor {
   private readonly auditUrl =
     process.env.AUDIT_SERVICE_URL || 'http://localhost:3017';
 
+  constructor(private readonly kafka: KafkaProducerService) {}
+
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const ctx = context.switchToHttp();
     const request = ctx.getRequest<Request>();
@@ -175,9 +181,14 @@ export class AuditInterceptor implements NestInterceptor {
       metadata: user?.email ? { userEmail: user.email } : undefined,
     };
 
-    await axios.post(`${this.auditUrl}/event-logs`, payload, {
-      timeout: 3000,
-    });
+    // Prefer Kafka (decoupled, survives audit-service downtime); fall back to a
+    // direct HTTP POST when Kafka is disabled or unreachable.
+    const sent = await this.kafka.emit(AUDIT_TOPIC, payload);
+    if (!sent) {
+      await axios.post(`${this.auditUrl}/event-logs`, payload, {
+        timeout: 3000,
+      });
+    }
   }
 
   private parseRequest(
