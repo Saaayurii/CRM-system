@@ -63,6 +63,12 @@ const STATUS_LABELS: Record<string, Record<number, string>> = {
   payments: { 0: 'Черновик', 1: 'Ожидает', 2: 'Оплачен', 3: 'Отменён' },
   leaves: { 0: 'Ожидает', 1: 'Одобрен', 2: 'Отклонён', 3: 'Отменён' },
   inspections: { 0: 'Запланирована', 1: 'В процессе', 2: 'Завершена', 3: 'Отменена' },
+  inspection: { 0: 'Запланирована', 1: 'В процессе', 2: 'Завершена', 3: 'Не пройдена' },
+  defect: { 0: 'Открыт', 1: 'Назначен', 2: 'В работе', 3: 'Устранён', 4: 'Проверен', 5: 'Закрыт' },
+};
+
+const SEVERITY_LABELS: Record<number, string> = {
+  1: 'Низкая', 2: 'Средняя', 3: 'Высокая', 4: 'Критическая',
 };
 
 const PRIORITY_LABELS: Record<number, string> = {
@@ -234,6 +240,38 @@ export class PdfService {
           { label: 'Оценка (ч)', value: val(data.estimatedHours) },
           { label: 'Прогресс', value: data.progressPercentage != null ? `${data.progressPercentage}%` : '—' },
           { label: 'Создан', value: fmtDate(data.createdAt) },
+        ];
+
+      case 'inspection':
+        return [
+          { label: 'Номер', value: val(data.inspectionNumber) },
+          { label: 'Тип', value: val(data.inspectionType) },
+          { label: 'Статус', value: statusLabel(data.status) },
+          { label: 'Область проверки', value: val(data.inspectionArea) },
+          { label: 'Дата (план)', value: fmtDate(data.scheduledDate) },
+          { label: 'Дата (факт)', value: fmtDate(data.actualDate) },
+          { label: 'Оценка', value: val(data.score) },
+          { label: 'Описание', value: val(data.description) },
+          { label: 'Выводы', value: val(data.findings) },
+          { label: 'Рекомендации', value: val(data.recommendations) },
+          { label: 'Дефектов выявлено', value: val(data.defectsCount) },
+          { label: 'Дефекты', value: val(data.defectsList) },
+        ];
+
+      case 'defect':
+        return [
+          { label: 'Номер', value: val(data.defectNumber) },
+          { label: 'Наименование', value: val(data.title) },
+          { label: 'Статус', value: statusLabel(data.status) },
+          { label: 'Критичность', value: SEVERITY_LABELS[Number(data.severity)] ?? val(data.severity) },
+          { label: 'Тип', value: val(data.defectType) },
+          { label: 'Категория', value: val(data.category) },
+          { label: 'Описание', value: val(data.description) },
+          { label: 'Местоположение', value: val(data.locationDescription) },
+          { label: 'Выявлен', value: fmtDate(data.reportedDate) },
+          { label: 'Плановый срок', value: fmtDate(data.dueDate) },
+          { label: 'Устранён', value: fmtDate(data.fixedDate) },
+          { label: 'Проверен', value: fmtDate(data.verifiedDate) },
         ];
 
       case 'users':
