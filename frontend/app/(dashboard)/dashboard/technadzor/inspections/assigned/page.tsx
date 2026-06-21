@@ -1,17 +1,6 @@
 'use client';
-import { useRouter } from 'next/navigation';
-import TechnadzorListPage from '@/components/technadzor/TechnadzorListPage';
-import InspectionsStatsHeader from '@/components/technadzor/InspectionsStatsHeader';
-import { technadzorInspectionConfigs } from '@/lib/admin/technadzorConfigs';
+import TechnadzorInspectionsList from '@/components/technadzor/TechnadzorInspectionsList';
 
 export default function Page() {
-  const router = useRouter();
-  return (
-    <TechnadzorListPage
-      config={technadzorInspectionConfigs.assigned()}
-      breadcrumbs={[{ label: 'Проверки' }, { label: 'Назначенные мне' }]}
-      header={<InspectionsStatsHeader />}
-      onRowClick={(row) => router.push(`/dashboard/technadzor/inspections/${row.id}`)}
-    />
-  );
+  return <TechnadzorInspectionsList variant="assigned" breadcrumbLabel="Назначенные мне" />;
 }
