@@ -27,12 +27,27 @@ if (!DATABASE_URL) {
   process.exit(1);
 }
 
+// fileUrl в БД относительный: /uploads/... (локальные файлы, отдаёт nginx с домена)
+// или /<bucket>/... (S3 path-style). Резолвим в абсолютный URL для fetch.
+const PUBLIC_BASE = (process.env.PUBLIC_BASE || 'https://crm.3stroy15.pro').replace(/\/$/, '');
+const S3_ENDPOINT = (process.env.S3_ENDPOINT || 'https://s3.regru.cloud').replace(/\/$/, '');
+
+function resolveUrl(u) {
+  if (!u || typeof u !== 'string') return null;
+  if (/^https?:\/\//i.test(u)) return u;
+  if (u.startsWith('/uploads/')) return PUBLIC_BASE + u;
+  if (u.startsWith('/')) return S3_ENDPOINT + u; // path-style S3, напр. /crm-315/...
+  return null;
+}
+
 const isImage = (a) =>
   typeof a?.fileUrl === 'string' &&
   (String(a.mimeType || '').startsWith('image/') ||
-    /\.(jpe?g|png|gif|webp|bmp|avif)(\?|$)/i.test(a.fileUrl));
+    /\.(jpe?g|png|gif|webp|bmp|avif|heic|heif)(\?|$)/i.test(a.fileUrl));
 
-async function fetchDims(url) {
+async function fetchDims(rawUrl) {
+  const url = resolveUrl(rawUrl);
+  if (!url) throw new Error('unresolvable url');
   const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const buf = new Uint8Array(await res.arrayBuffer());
