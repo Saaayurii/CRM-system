@@ -55,6 +55,45 @@ const emptyDefect = (): TypicalDefect => ({
   description: '', recommendation: '',
 });
 
+interface StatusText { text: string; use: boolean; importance: string }
+
+const STATUS_DEFS: Array<{ k: 'ok' | 'note' | 'fail'; label: string; code: string; color: string; icon: string }> = [
+  { k: 'ok', label: 'Соответствует', code: 'OK', color: 'green', icon: '✓' },
+  { k: 'note', label: 'С замечаниями', code: 'NOTE', color: 'yellow', icon: '!' },
+  { k: 'fail', label: 'Не соответствует', code: 'FAIL', color: 'red', icon: '✕' },
+];
+const IMPORTANCE = [
+  { v: 'info', label: 'Информационный' },
+  { v: 'note', label: 'Замечание' },
+  { v: 'critical', label: 'Критичный' },
+];
+const TEXT_VARS: Array<{ token: string; label: string }> = [
+  { token: '{object_name}', label: 'Название объекта' },
+  { token: '{room_name}', label: 'Название помещения' },
+  { token: '{address}', label: 'Адрес объекта' },
+  { token: '{inspection_date}', label: 'Дата проверки' },
+  { token: '{inspector_name}', label: 'ФИО инспектора' },
+  { token: '{company_name}', label: 'Название компании' },
+  { token: '{defect_name}', label: 'Название дефекта' },
+  { token: '{criticality}', label: 'Критичность' },
+  { token: '{normative}', label: 'Нормативный документ' },
+  { token: '{recommendation}', label: 'Рекомендация' },
+  { token: '{location}', label: 'Расположение' },
+];
+const SAMPLE_VARS: Record<string, string> = {
+  '{object_name}': 'ЖК «Солнечный», корпус 2',
+  '{room_name}': 'Кухня',
+  '{address}': 'г. Москва, ул. Лесная, 15',
+  '{inspection_date}': '21.05.2024',
+  '{inspector_name}': 'Иванов И.И.',
+  '{company_name}': 'ООО «ТехКонтроль»',
+  '{defect_name}': 'Царапина на стеклопакете',
+  '{criticality}': 'Высокая',
+  '{normative}': 'ГОСТ 30674-2013',
+  '{recommendation}': 'Замена стеклопакета',
+  '{location}': 'Окно W-01',
+};
+
 const CHECK_TYPES = [
   { v: 'visual', label: 'Визуальный' },
   { v: 'measuring', label: 'Измерительный' },
@@ -96,6 +135,17 @@ export default function ControlPointBuilderPage() {
   // Шаг 2 — типовые дефекты
   const [defects, setDefects] = useState<TypicalDefect[]>([]);
   const [selDefect, setSelDefect] = useState(0);
+
+  // Шаг 3 — шаблоны текстов
+  const [statusTexts, setStatusTexts] = useState<Record<string, StatusText>>({
+    ok: { text: '', use: true, importance: 'info' },
+    note: { text: '', use: true, importance: 'note' },
+    fail: { text: '', use: true, importance: 'critical' },
+  });
+  const [defectTexts, setDefectTexts] = useState<Array<{ name: string; description: string }>>([]);
+  const [previewStatus, setPreviewStatus] = useState<'ok' | 'note' | 'fail'>('fail');
+  const lastFocused = useRef<'ok' | 'note' | 'fail' | null>(null);
+  const textRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
 
   // Шаг 1 — основные поля
   const [name, setName] = useState('');
@@ -154,6 +204,9 @@ export default function ControlPointBuilderPage() {
       const sc = data.scheme || {};
       setSchemeImageUrl(sc.imageUrl || ''); setPins(Array.isArray(sc.pins) ? sc.pins : []);
       setDefects(Array.isArray(data.typicalDefects) ? data.typicalDefects : []);
+      const tt = data.textTemplates || {};
+      if (tt.statuses) setStatusTexts((prev) => ({ ...prev, ...tt.statuses }));
+      setDefectTexts(Array.isArray(tt.defectTemplates) ? tt.defectTemplates : []);
     } catch {
       addToast('error', 'Не удалось загрузить пункт');
     } finally {
@@ -200,7 +253,25 @@ export default function ControlPointBuilderPage() {
       tags: tags.split(',').map((s) => s.trim()).filter(Boolean), sortOrder,
     },
     typicalDefects: defects.filter((d) => d.name.trim()),
+    textTemplates: {
+      statuses: statusTexts,
+      defectTemplates: defectTexts.filter((d) => d.name.trim()),
+    },
   });
+
+  // вставка переменной в активный textarea статуса
+  const insertVar = (token: string) => {
+    const k = lastFocused.current;
+    if (!k) { addToast('warning', 'Сначала кликните в поле текста статуса'); return; }
+    const el = textRefs.current[k];
+    const cur = statusTexts[k]?.text ?? '';
+    const start = el?.selectionStart ?? cur.length;
+    const end = el?.selectionEnd ?? cur.length;
+    const next = cur.slice(0, start) + token + cur.slice(end);
+    setStatusTexts((s) => ({ ...s, [k]: { ...s[k], text: next } }));
+  };
+  const renderPreview = (text: string) =>
+    Object.entries(SAMPLE_VARS).reduce((acc, [tok, val]) => acc.split(tok).join(val), text);
 
   const save = async (st: string, goNext = false) => {
     if (!name.trim()) { addToast('error', 'Укажите наименование пункта'); return; }
@@ -504,7 +575,85 @@ export default function ControlPointBuilderPage() {
         </div>
       )}
 
-      {step >= 3 && (
+      {step === 3 && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          {/* Тексты по статусам */}
+          <div className="lg:col-span-2 space-y-4">
+            <Card title="Шаблоны текстов по статусам проверки">
+              <div className="space-y-4">
+                {STATUS_DEFS.map((s) => {
+                  const v = statusTexts[s.k];
+                  return (
+                    <div key={s.k} className="rounded-xl border border-gray-100 dark:border-gray-700 p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="flex items-center gap-2 text-sm font-medium text-gray-800 dark:text-gray-100">
+                          <span className={`w-5 h-5 rounded-full text-white text-xs flex items-center justify-center bg-${s.color}-500`} style={{ background: s.color === 'green' ? '#22c55e' : s.color === 'yellow' ? '#eab308' : '#ef4444' }}>{s.icon}</span>
+                          {t(s.label)} <span className="text-xs text-gray-400">({s.code})</span>
+                        </span>
+                        <span className="flex items-center gap-2">
+                          <select value={v.importance} onChange={(e) => setStatusTexts((st) => ({ ...st, [s.k]: { ...st[s.k], importance: e.target.value } }))} className="text-xs rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-gray-700 dark:text-gray-200">
+                            {IMPORTANCE.map((im) => <option key={im.v} value={im.v}>{t(im.label)}</option>)}
+                          </select>
+                          <Toggle on={v.use} set={(on) => setStatusTexts((st) => ({ ...st, [s.k]: { ...st[s.k], use: on } }))} />
+                        </span>
+                      </div>
+                      <textarea
+                        ref={(el) => { textRefs.current[s.k] = el; }}
+                        value={v.text}
+                        onFocus={() => { lastFocused.current = s.k; }}
+                        onChange={(e) => setStatusTexts((st) => ({ ...st, [s.k]: { ...st[s.k], text: e.target.value } }))}
+                        rows={3}
+                        placeholder={t('Текст, который подставится в отчёт при этом статусе…')}
+                        className={inputCls}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+
+            {/* Шаблоны текстов для дефектов */}
+            <Card title="Шаблоны текстов для дефектов">
+              <div className="space-y-2">
+                {defectTexts.length === 0 && <p className="text-sm text-gray-400">{t('Нет шаблонов')}</p>}
+                {defectTexts.map((d, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <input value={d.name} onChange={(e) => setDefectTexts((ds) => ds.map((x, j) => j === i ? { ...x, name: e.target.value } : x))} placeholder={t('Название шаблона')} className={`${inputCls} w-1/3`} />
+                    <input value={d.description} onChange={(e) => setDefectTexts((ds) => ds.map((x, j) => j === i ? { ...x, description: e.target.value } : x))} placeholder={t('Описание / текст')} className={inputCls} />
+                    <button onClick={() => setDefectTexts((ds) => ds.filter((_, j) => j !== i))} className="text-red-400 hover:text-red-600 shrink-0">✕</button>
+                  </div>
+                ))}
+                <button onClick={() => setDefectTexts((ds) => [...ds, { name: '', description: '' }])} className="w-full py-2 text-sm text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-500/10 rounded-lg">+ {t('Добавить шаблон текста')}</button>
+              </div>
+            </Card>
+          </div>
+
+          {/* Переменные + предпросмотр */}
+          <div className="space-y-4">
+            <Card title="Доступные переменные">
+              <p className="text-xs text-gray-400 mb-3">{t('Кликните в поле текста, затем по переменной — она вставится в позицию курсора')}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {TEXT_VARS.map((v) => (
+                  <button key={v.token} onClick={() => insertVar(v.token)} title={t(v.label)} className="px-2 py-1 rounded-lg text-xs font-mono bg-violet-50 dark:bg-violet-500/15 text-violet-600 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-500/25">
+                    {v.token}
+                  </button>
+                ))}
+              </div>
+            </Card>
+
+            <Card title="Предпросмотр шаблона">
+              <select value={previewStatus} onChange={(e) => setPreviewStatus(e.target.value as 'ok' | 'note' | 'fail')} className={`${inputCls} mb-3`}>
+                {STATUS_DEFS.map((s) => <option key={s.k} value={s.k}>{t(s.label)}</option>)}
+              </select>
+              <div className="rounded-xl bg-gray-50 dark:bg-gray-900/40 p-3 text-sm text-gray-700 dark:text-gray-200 whitespace-pre-wrap min-h-[80px]">
+                {renderPreview(statusTexts[previewStatus]?.text || '') || <span className="text-gray-400">{t('Текст не задан')}</span>}
+              </div>
+            </Card>
+          </div>
+        </div>
+      )}
+
+      {step >= 4 && (
         <div className="rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 p-10 text-center text-sm text-gray-400">
           {t('Этот шаг в разработке')} — {t(STEPS[step - 1].label)}. {t('Данные сохраняются; наполнение подключается следующей итерацией.')}
         </div>
