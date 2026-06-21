@@ -117,9 +117,6 @@ fi
 
 info "Pre-flight checks passed."
 
-# ── Maintenance ON (пока старые контейнеры ещё живы — SSE долетит мгновенно) ──
-maintenance_set true
-
 # ── Cleanup stale Docker networks ────────────────────────────
 info "Pruning unused Docker networks..."
 docker network prune -f 2>/dev/null || true
@@ -195,6 +192,12 @@ if [ "$SSL" = true ]; then
   info "Certificate issued. Reloading nginx with HTTPS config..."
   docker compose exec nginx nginx -s reload
 fi
+
+# ── Maintenance ON — только теперь, когда сборка УЖЕ прошла успешно ──────────
+# (упавший build выше прервал бы скрипт по set -e, не тронув пользователей).
+# Старые контейнеры ещё работают → SSE-событие долетает мгновенно. Окно заглушки
+# = только пересоздание контейнеров ниже (секунды), а не вся сборка.
+maintenance_set true
 
 # ── Deploy ───────────────────────────────────────────────────
 info "Removing stale containers that conflict by container_name..."

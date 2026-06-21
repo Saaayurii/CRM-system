@@ -5,81 +5,12 @@ on:
     branches:
       - main
 
+# Гейта-сборки на раннере НЕТ намеренно: deploy.sh собирает Docker-образы ДО
+# пересоздания контейнеров и ДО включения заглушки, поэтому упавший билд не
+# трогает прод (старые контейнеры продолжают работать) — серверная сборка и есть
+# гейт. Отдельный CI-build удваивал бы компиляцию и замедлял каждый деплой.
 jobs:
-  # ── Quality gate: компиляция должна пройти ДО того, как сервер начнёт
-  #    останавливать/пересобирать контейнеры. Если build падает — deploy не
-  #    запускается, прод остаётся нетронутым. Билд = typecheck + компиляция
-  #    (nest build / next build); ловит ошибки сборки, которые иначе уронили бы
-  #    деплой на полпути. Lint — информационный (в коде есть давние lint-замечания,
-  #    блокировать ими нельзя).
-  quality:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0   # нужна история для turbo affected-фильтра
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Setup pnpm
-        run: npm install -g pnpm@9.15.9
-
-      # ── Backend ──────────────────────────────────────────────────────────
-      - name: Backend — install deps
-        working-directory: backend
-        run: pnpm install --frozen-lockfile
-
-      - name: Backend — prisma generate
-        working-directory: backend
-        run: pnpm db:generate
-
-      - name: Backend — build (typecheck + compile, only affected services)
-        working-directory: backend
-        run: |
-          BASE="${{ github.event.before }}"
-          if [ -z "$BASE" ] || echo "$BASE" | grep -qE '^0+$' || ! git cat-file -e "${BASE}^{commit}" 2>/dev/null; then
-            echo "No valid base ref — building ALL services"
-            pnpm exec turbo run build
-          else
-            echo "Building services affected since $BASE"
-            pnpm exec turbo run build --filter="...[${BASE}]"
-          fi
-
-      - name: Backend — lint (informational)
-        working-directory: backend
-        continue-on-error: true
-        run: pnpm exec turbo run lint
-
-      # ── Frontend (только если менялся frontend/) ─────────────────────────
-      - name: Detect frontend changes
-        id: fe
-        run: |
-          BASE="${{ github.event.before }}"
-          if [ -z "$BASE" ] || echo "$BASE" | grep -qE '^0+$' || ! git cat-file -e "${BASE}^{commit}" 2>/dev/null; then
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          elif git diff --name-only "$BASE" HEAD | grep -q '^frontend/'; then
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Frontend — install deps
-        if: steps.fe.outputs.changed == 'true'
-        working-directory: frontend
-        run: npm ci
-
-      - name: Frontend — build (typecheck + compile)
-        if: steps.fe.outputs.changed == 'true'
-        working-directory: frontend
-        run: npm run build
-
-  # ── Deploy: только если quality прошёл ───────────────────────────────────
   deploy:
-    needs: quality
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
