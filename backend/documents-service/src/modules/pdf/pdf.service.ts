@@ -44,6 +44,7 @@ const ENTITY_TITLES: Record<string, string> = {
   leaves: 'Отпуск',
   teams: 'Команда',
   inspections: 'Инспекция',
+  report: 'Отчёт технадзора',
 };
 
 // Normalize slug: 'task' → 'tasks', 'project' → 'projects' (frontend sends plural slugs)
@@ -202,6 +203,14 @@ export class PdfService {
     data: Record<string, unknown>,
   ): { label: string; value: string }[] {
     const statusLabel = (v: unknown) => STATUS_LABELS[entityType]?.[Number(v)] ?? val(v);
+
+    // Универсальный отчёт: фронт присылает готовый массив полей { label, value }.
+    // Заголовок-секция передаётся как { label: '§ Название', value: '' } (рендерится крупнее).
+    if (entityType === 'report' && Array.isArray((data as any).fields)) {
+      return ((data as any).fields as any[])
+        .filter((f) => f && typeof f === 'object')
+        .map((f) => ({ label: String(f.label ?? ''), value: f.value == null ? '' : String(f.value) }));
+    }
 
     switch (entityType) {
       case 'projects':

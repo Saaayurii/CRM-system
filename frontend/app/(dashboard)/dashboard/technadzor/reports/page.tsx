@@ -46,6 +46,111 @@ const SECTIONS = [
   { k: 'signatures', label: 'Подписи' },
 ];
 
+const SEV_LABEL: Record<number, string> = { 1: 'Низкая', 2: 'Средняя', 3: 'Высокая', 4: 'Критическая' };
+const rdate = (v?: string) => { if (!v) return '—'; const d = new Date(v); return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('ru-RU'); };
+
+type Field = { label: string; value: string };
+
+// Содержательный, типоспецифичный набор полей для каждого отчёта.
+function buildReportFields(
+  tpl: ReportTemplate,
+  insp: any,
+  defects: Defect[],
+  sections: string[],
+  t: (s: string) => string,
+): Field[] {
+  const f: Field[] = [];
+  const has = (k: string) => sections.includes(k);
+  const sec = (title: string) => f.push({ label: `§ ${t(title)}`, value: '' });
+  const row = (label: string, value: any) => f.push({ label: t(label), value: value == null || value === '' ? '—' : String(value) });
+
+  // ── аналитика по дефектам ──
+  const total = defects.length;
+  const bySev = (n: number) => defects.filter((d) => (d.severity ?? 0) === n).length;
+  const critical = defects.filter((d) => (d.severity ?? 0) >= 3).length;
+  const resolved = defects.filter((d) => (d.status ?? 0) >= 3).length;
+  const open = total - resolved;
+  const resolvedPct = total ? Math.round((resolved / total) * 100) : 0;
+  const objectLine = insp.inspectionArea || '—';
+
+  // ── Общая информация ──
+  if (has('general')) {
+    sec('Общая информация');
+    row('Номер', insp.inspectionNumber || `INSP-${insp.id}`);
+    row('Объект / область', objectLine);
+    row('Тип инспекции', insp.inspectionType);
+    row('Дата проведения', rdate(insp.actualDate || insp.scheduledDate));
+    if (tpl.id === 'warranty') row('Гарантийный период', 'в течение гарантийного срока');
+    if (tpl.id === 'interim') row('Этап работ', insp.inspectionType || 'промежуточный');
+    if (insp.description) row('Описание', insp.description);
+  }
+
+  // ── Результаты проверок ──
+  if (has('results')) {
+    sec('Результаты проверок');
+    if (insp.score != null) row('Итоговая оценка', `${insp.score} из 100`);
+    row('Выявлено дефектов', total);
+    row('Из них критических', critical);
+    row('Устранено', `${resolved} (${resolvedPct}%)`);
+    row('В работе / открыто', open);
+    if (tpl.id === 'tn') row('Заключение технадзора', open > 0 ? 'требуется устранение замечаний' : 'замечания отсутствуют');
+    if (tpl.id === 'flat') row('Решение о приёмке', critical > 0 ? 'с устранением критических замечаний' : open > 0 ? 'принято с замечаниями' : 'принято без замечаний');
+    if (tpl.id === 'interim') row('Соответствие графику', open > 0 ? 'с отставанием по замечаниям' : 'в соответствии с графиком');
+    if (tpl.id === 'exec') row('Комплектность документации', 'проверена');
+  }
+
+  // ── Выявленные дефекты ──
+  if (has('defects')) {
+    sec('Выявленные дефекты');
+    if (total === 0) {
+      row('Итог', 'дефектов не выявлено');
+    } else {
+      row('Распределение по критичности',
+        [4, 3, 2, 1].map((n) => `${SEV_LABEL[n]}: ${bySev(n)}`).filter((_, i) => bySev([4, 3, 2, 1][i]) > 0).join(', ') || '—');
+      defects.slice(0, 30).forEach((d, i) => {
+        const sevL = d.severity != null ? SEV_LABEL[d.severity] : '';
+        const st = t((DEFECT_STATUS[d.status ?? 0] ?? DEFECT_STATUS[0]).label);
+        row(`${i + 1}. ${d.defectNumber || `DEF-${d.id}`}`, `${d.title}${sevL ? ` — ${sevL}` : ''} (${st})`);
+      });
+      if (defects.length > 30) row('…', `и ещё ${defects.length - 30}`);
+    }
+  }
+
+  // ── Фотоматериалы ──
+  if (has('photos')) {
+    const photoCount = defects.reduce((acc, d: any) => acc + (Array.isArray(d.photos) ? d.photos.length : 0), 0);
+    sec('Фотоматериалы');
+    row('Приложено фотоматериалов', photoCount || 'фотоматериалы прилагаются отдельным приложением');
+  }
+
+  // ── Замечания ──
+  if (has('remarks')) {
+    sec('Замечания');
+    row('Замечания', insp.findings || (open > 0 ? `Имеются неустранённые замечания (${open})` : 'Существенных замечаний нет'));
+  }
+
+  // ── Рекомендации ──
+  if (has('recommendations')) {
+    sec('Рекомендации');
+    if (insp.recommendations) row('Рекомендации', insp.recommendations);
+    else if (tpl.id === 'warranty') row('Рекомендации', 'Устранить выявленные гарантийные случаи силами подрядчика в установленный срок.');
+    else if (critical > 0) row('Рекомендации', 'Устранить критические дефекты в первоочередном порядке, повторная проверка обязательна.');
+    else row('Рекомендации', 'Устранить выявленные замечания в установленные сроки.');
+  }
+
+  // ── Подписи ──
+  if (has('signatures')) {
+    sec('Подписи');
+    row('Инспектор', '______________ /_____________/');
+    if (tpl.id === 'flat') row('Заказчик (дольщик)', '______________ /_____________/');
+    else if (tpl.id === 'warranty') row('Представитель подрядчика', '______________ /_____________/');
+    else row('Заказчик', '______________ /_____________/');
+    if (tpl.id === 'tn' || tpl.id === 'exec') row('Представитель технадзора', '______________ /_____________/');
+  }
+
+  return f;
+}
+
 export default function ReportsPage() {
   const t = useT();
   const addToast = useToastStore((s) => s.addToast);
@@ -98,29 +203,16 @@ export default function ReportsPage() {
     try {
       const { data: insp } = await api.get(`/inspections/${selected}`);
       const defects: Defect[] = Array.isArray(insp.defects) ? insp.defects : [];
-      const defectsList = defects.length
-        ? defects.map((d) => `• ${d.defectNumber || `DEF-${d.id}`}: ${d.title} (${t((DEFECT_STATUS[d.status ?? 0] ?? DEFECT_STATUS[0]).label)})`).join('\n')
-        : 'Дефектов не выявлено';
       const tpl = TEMPLATES.find((x) => x.id === template) ?? TEMPLATES[0];
-      const entityData: Record<string, unknown> = {
-        sections,
-        // заголовок отчёта = название выбранного шаблона
-        title: `${tpl.heading}${insp.inspectionNumber ? ` № ${insp.inspectionNumber}` : ''}`,
-      };
-      if (sections.includes('general')) {
-        Object.assign(entityData, {
-          inspectionNumber: insp.inspectionNumber, inspectionType: insp.inspectionType,
-          status: insp.status, inspectionArea: insp.inspectionArea,
-          scheduledDate: insp.scheduledDate, actualDate: insp.actualDate, score: insp.score,
-        });
-      }
-      if (sections.includes('results') || sections.includes('general')) entityData.description = insp.description;
-      if (sections.includes('defects')) { entityData.defectsCount = defects.length; entityData.defectsList = defectsList; }
-      if (sections.includes('remarks')) entityData.findings = insp.findings;
-      if (sections.includes('recommendations')) entityData.recommendations = insp.recommendations;
+      const fields = buildReportFields(tpl, insp, defects, sections, t);
 
       const { data: gen } = await api.post('/documents/pdf/generate', {
-        entityType: 'inspection', entityId: selected, entityData,
+        entityType: 'report',
+        entityId: selected,
+        entityData: {
+          title: `${tpl.heading}${insp.inspectionNumber ? ` № ${insp.inspectionNumber}` : ''}`,
+          fields,
+        },
       });
       const { data: blob } = await api.get(`/documents/pdf/download/${gen.filename}`, { responseType: 'blob' });
       const url = URL.createObjectURL(blob);
@@ -128,7 +220,7 @@ export default function ReportsPage() {
       a.href = url; a.download = gen.filename;
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      addToast('success', 'Акт осмотра сформирован');
+      addToast('success', 'Отчёт сформирован');
     } catch {
       addToast('error', 'Не удалось сформировать отчёт');
     } finally {
