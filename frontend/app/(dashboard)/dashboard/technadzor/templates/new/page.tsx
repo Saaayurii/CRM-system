@@ -7,8 +7,9 @@ import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import { useT } from '@/lib/i18n';
 
-interface Point { code: string; name: string; required: boolean; }
+interface Point { code: string; name: string; required: boolean; controlPointId?: number; }
 interface Section { title: string; items: Point[]; collapsed?: boolean; }
+interface LibPoint { id: number; code?: string; name: string; section?: string; subsection?: string; required?: boolean; }
 
 const emptyPoint = (): Point => ({ code: '', name: '', required: true });
 const emptySection = (): Section => ({ title: '', items: [emptyPoint()] });
@@ -31,7 +32,7 @@ function fromChecklistItems(items: any): Section[] {
       items: (s.items || s.points || []).map((p: any) =>
         typeof p === 'string'
           ? { code: '', name: p, required: true }
-          : { code: String(p.code ?? p.id ?? ''), name: p.name || p.title || p.label || '', required: p.required ?? p.isRequired ?? true },
+          : { code: String(p.code ?? p.id ?? ''), name: p.name || p.title || p.label || '', required: p.required ?? p.isRequired ?? true, controlPointId: p.controlPointId },
       ),
     }));
   }
@@ -51,6 +52,10 @@ export default function TemplateConstructorPage() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(!!editId);
   const [tab, setTab] = useState<'structure' | 'settings' | 'access'>('structure');
+  // Библиотека контрольных пунктов
+  const [library, setLibrary] = useState<LibPoint[]>([]);
+  const [pickerFor, setPickerFor] = useState<number | null>(null); // индекс секции
+  const [pickerQ, setPickerQ] = useState('');
   // Настройки инспекции
   const [objectApplication, setObjectApplication] = useState('');
   const [ratingWeight, setRatingWeight] = useState<number>(100);
@@ -81,6 +86,22 @@ export default function TemplateConstructorPage() {
   }, [editId, addToast]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Загрузка библиотеки контрольных пунктов (только опубликованные)
+  useEffect(() => {
+    api.get('/control-points', { params: { limit: 500, status: 'active' } })
+      .then(({ data }) => setLibrary(data?.data || data?.items || (Array.isArray(data) ? data : [])))
+      .catch(() => {});
+  }, []);
+
+  const addFromLibrary = (si: number, lp: LibPoint) => {
+    setSections((s) => s.map((sec, i) => i !== si ? sec : {
+      ...sec,
+      items: [...sec.items.filter((p) => p.name.trim() || p.code.trim()), {
+        code: lp.code || '', name: lp.name, required: lp.required ?? true, controlPointId: lp.id,
+      }],
+    }));
+  };
 
   // ─── мутации секций ───
   const updateSection = (si: number, patch: Partial<Section>) =>
@@ -135,7 +156,7 @@ export default function TemplateConstructorPage() {
         title: s.title.trim() || 'Без названия',
         items: s.items
           .filter((p) => p.name.trim())
-          .map((p) => ({ code: p.code.trim() || undefined, name: p.name.trim(), required: p.required })),
+          .map((p) => ({ code: p.code.trim() || undefined, name: p.name.trim(), required: p.required, controlPointId: p.controlPointId })),
       })),
   });
 
@@ -302,7 +323,10 @@ export default function TemplateConstructorPage() {
                       <button onClick={() => removePoint(si, pi)} className="p-1 text-red-400 hover:text-red-600">✕</button>
                     </div>
                   ))}
-                  <button onClick={() => addPoint(si)} className="w-full py-2 text-sm text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-500/10">+ {t('Добавить пункт')}</button>
+                  <div className="flex gap-2">
+                    <button onClick={() => addPoint(si)} className="flex-1 py-2 text-sm text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-500/10 rounded-lg">+ {t('Добавить пункт')}</button>
+                    <button onClick={() => { setPickerFor(si); setPickerQ(''); }} className="flex-1 py-2 text-sm text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-500/10 rounded-lg border border-violet-200 dark:border-violet-500/30">{t('Из библиотеки')}</button>
+                  </div>
                 </div>
               )}
             </div>
@@ -352,6 +376,47 @@ export default function TemplateConstructorPage() {
           </div>
         </div>
       </div>
+      )}
+
+      {/* Модалка выбора пунктов из библиотеки */}
+      {pickerFor !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setPickerFor(null)}>
+          <div className="w-full max-w-2xl max-h-[80vh] flex flex-col rounded-2xl bg-white dark:bg-gray-800 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+              <h3 className="font-semibold text-gray-800 dark:text-gray-100">{t('Пункты из библиотеки')}</h3>
+              <button onClick={() => setPickerFor(null)} className="text-gray-400 hover:text-gray-600">✕</button>
+            </div>
+            <div className="p-4 border-b border-gray-100 dark:border-gray-700">
+              <input value={pickerQ} onChange={(e) => setPickerQ(e.target.value)} placeholder={t('Поиск по названию или коду…')} className="w-full text-sm rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-800 dark:text-gray-100" />
+            </div>
+            <div className="flex-1 overflow-y-auto p-2">
+              {library.length === 0 ? (
+                <p className="text-sm text-gray-400 p-6 text-center">{t('В библиотеке нет опубликованных пунктов. Создайте их в разделе «Пункты контроля».')}</p>
+              ) : (
+                (() => {
+                  const list = pickerQ.trim() ? library.filter((l) => `${l.code ?? ''} ${l.name}`.toLowerCase().includes(pickerQ.toLowerCase())) : library;
+                  if (list.length === 0) return <p className="text-sm text-gray-400 p-6 text-center">{t('Ничего не найдено')}</p>;
+                  return list.map((lp) => (
+                    <button
+                      key={lp.id}
+                      onClick={() => { addFromLibrary(pickerFor, lp); addToast('success', 'Пункт добавлен'); }}
+                      className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-violet-50 dark:hover:bg-violet-500/10 flex items-center justify-between gap-3"
+                    >
+                      <span className="min-w-0">
+                        <span className="block text-sm text-gray-800 dark:text-gray-100 truncate">{lp.name}</span>
+                        <span className="block text-xs text-gray-400">{[lp.code, lp.section, lp.subsection].filter(Boolean).join(' · ') || '—'}</span>
+                      </span>
+                      <span className="text-violet-500 shrink-0">+</span>
+                    </button>
+                  ));
+                })()
+              )}
+            </div>
+            <div className="px-5 py-3 border-t border-gray-100 dark:border-gray-700 text-right">
+              <button onClick={() => setPickerFor(null)} className="px-4 py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-700 text-white">{t('Готово')}</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
