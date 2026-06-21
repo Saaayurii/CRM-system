@@ -77,6 +77,13 @@ export class InspectionsController {
     );
   }
 
+  @Get('stats')
+  @ApiOperation({ summary: 'Get aggregated stats for inspections & defects' })
+  @ApiResponse({ status: 200, description: 'Aggregated stats' })
+  async getStats(@CurrentUser() user: RequestUser) {
+    return this.inspectionsService.getStats(user);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get inspection by ID' })
   @ApiResponse({ status: 200, description: 'Inspection details' })

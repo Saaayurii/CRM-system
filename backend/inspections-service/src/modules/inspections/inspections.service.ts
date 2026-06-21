@@ -59,6 +59,16 @@ export class InspectionsService {
     return inspection;
   }
 
+  // Агрегаты для аналитики технадзора (инспекции + дефекты)
+  async getStats(user: RequestUser) {
+    const allowedProjectIds = await getClientAllowedProjectIds(this.prisma, user);
+    const [inspections, defects] = await Promise.all([
+      this.inspectionRepository.statsInspections(user.accountId, allowedProjectIds),
+      this.inspectionRepository.statsDefects(user.accountId, allowedProjectIds),
+    ]);
+    return { inspections, defects };
+  }
+
   // Сохранение результатов чек-листа при проведении инспекции
   async saveChecklist(
     inspectionId: number,

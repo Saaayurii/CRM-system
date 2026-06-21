@@ -53,6 +53,16 @@ export class InspectionsGatewayController {
     });
   }
 
+  @Get('inspections/stats')
+  @ApiOperation({ summary: 'Get aggregated inspections & defects stats' })
+  async inspectionsStats(@Req() req: Request) {
+    return this.proxyService.forward('inspections', {
+      method: 'GET',
+      path: '/inspections/stats',
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
   @Get('inspections/:id')
   @ApiOperation({ summary: 'Get inspection by ID' })
   async findOneInspection(@Req() req: Request, @Param('id') id: string) {

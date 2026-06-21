@@ -43,6 +43,50 @@ export class InspectionRepository {
     });
   }
 
+  // Агрегаты для аналитики технадзора
+  async statsInspections(accountId: number, allowedProjectIds?: number[]) {
+    const where: any = { accountId };
+    if (allowedProjectIds) {
+      where.projectId = allowedProjectIds.length > 0 ? { in: allowedProjectIds } : -1;
+    }
+    const [byStatus, total, overdue] = await Promise.all([
+      (this.prisma as any).inspection.groupBy({
+        by: ['status'],
+        where,
+        _count: { _all: true },
+      }),
+      (this.prisma as any).inspection.count({ where }),
+      (this.prisma as any).inspection.count({
+        where: { ...where, status: { lt: 2 }, scheduledDate: { lt: new Date() } },
+      }),
+    ]);
+    return { byStatus, total, overdue };
+  }
+
+  async statsDefects(accountId: number, allowedProjectIds?: number[]) {
+    const where: any = { accountId };
+    if (allowedProjectIds) {
+      where.projectId = allowedProjectIds.length > 0 ? { in: allowedProjectIds } : -1;
+    }
+    const [byStatus, bySeverity, total, overdue] = await Promise.all([
+      (this.prisma as any).defect.groupBy({
+        by: ['status'],
+        where,
+        _count: { _all: true },
+      }),
+      (this.prisma as any).defect.groupBy({
+        by: ['severity'],
+        where,
+        _count: { _all: true },
+      }),
+      (this.prisma as any).defect.count({ where }),
+      (this.prisma as any).defect.count({
+        where: { ...where, status: { lt: 3 }, dueDate: { lt: new Date() } },
+      }),
+    ]);
+    return { byStatus, bySeverity, total, overdue };
+  }
+
   async create(data: any) {
     return (this.prisma as any).inspection.create({ data });
   }
