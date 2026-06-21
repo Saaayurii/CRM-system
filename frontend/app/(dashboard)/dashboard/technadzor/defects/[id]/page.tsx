@@ -45,6 +45,8 @@ const fmtDate = (v?: string) => {
 const fileUrl = (f: string | { url?: string; fileUrl?: string }) =>
   typeof f === 'string' ? f : f.url || f.fileUrl || '';
 
+interface UserInfo { name: string; phone?: string; email?: string; roleName?: string; avatarUrl?: string }
+
 const STAGES = [0, 1, 2, 3, 4, 5];
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -57,6 +59,30 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
+function AssigneeRow({ label, u, t }: { label: string; u?: UserInfo; t: (s: string) => string }) {
+  return (
+    <div>
+      <div className="text-xs uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-1.5">{t(label)}</div>
+      {u ? (
+        <div className="flex items-center gap-2">
+          <div className="w-9 h-9 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden flex items-center justify-center text-xs font-semibold text-gray-500 shrink-0">
+            {u.avatarUrl ? <img src={u.avatarUrl} alt="" className="w-full h-full object-cover" /> : (u.name[0] ?? '?')}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-sm text-gray-800 dark:text-gray-100 truncate">{u.name}</div>
+            <div className="text-xs text-gray-400 truncate">{u.roleName || ''}{u.phone ? ` · ${u.phone}` : ''}</div>
+          </div>
+          <div className="flex items-center gap-1 shrink-0">
+            <a href="/dashboard/chat" title={t('Чат')} className="w-7 h-7 rounded-lg border border-gray-200 dark:border-gray-600 flex items-center justify-center text-gray-400 hover:text-violet-500">💬</a>
+            {u.phone && <a href={`tel:${u.phone}`} title={t('Позвонить')} className="w-7 h-7 rounded-lg border border-gray-200 dark:border-gray-600 flex items-center justify-center text-gray-400 hover:text-violet-500">📞</a>}
+            {u.email && <a href={`mailto:${u.email}`} title={t('Написать')} className="w-7 h-7 rounded-lg border border-gray-200 dark:border-gray-600 flex items-center justify-center text-gray-400 hover:text-violet-500">✉️</a>}
+          </div>
+        </div>
+      ) : <div className="text-sm text-gray-400">—</div>}
+    </div>
+  );
+}
+
 export default function DefectDetailPage() {
   const { id } = useParams<{ id: string }>();
   const t = useT();
@@ -65,8 +91,9 @@ export default function DefectDetailPage() {
   const [defect, setDefect] = useState<Defect | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [users, setUsers] = useState<Record<number, string>>({});
+  const [users, setUsers] = useState<Record<number, UserInfo>>({});
   const [activePhoto, setActivePhoto] = useState(0);
+  const [source, setSource] = useState<{ code?: string; name?: string } | null>(null);
   const [tab, setTab] = useState<'desc' | 'media' | 'links' | 'history' | 'comments'>('desc');
   const [comments, setComments] = useState<Array<{ id: number; userName?: string; commentText: string; createdAt?: string }>>([]);
   const [newComment, setNewComment] = useState('');
@@ -76,6 +103,11 @@ export default function DefectDetailPage() {
     try {
       const { data } = await api.get<Defect>(`/defects/${id}`);
       setDefect(data);
+      // «Источник» — привязанный пункт контроля (если есть)
+      const cpId = (data as any).controlPointId;
+      if (cpId) {
+        api.get(`/control-points/${cpId}`).then(({ data: cp }) => setSource({ code: cp.code, name: cp.name })).catch(() => {});
+      }
     } catch {
       setDefect(null);
     } finally {
@@ -107,9 +139,15 @@ export default function DefectDetailPage() {
   useEffect(() => {
     api.get('/users', { params: { limit: 200 } }).then(({ data }) => {
       const list: any[] = data?.data || data?.users || (Array.isArray(data) ? data : []);
-      const map: Record<number, string> = {};
+      const map: Record<number, UserInfo> = {};
       for (const u of list) {
-        map[u.id] = [u.firstName, u.lastName].filter(Boolean).join(' ') || u.name || u.email || `#${u.id}`;
+        map[u.id] = {
+          name: [u.firstName, u.lastName].filter(Boolean).join(' ') || u.name || u.email || `#${u.id}`,
+          phone: u.phone,
+          email: u.email,
+          roleName: u.role?.name || u.roleName,
+          avatarUrl: u.avatarUrl || u.avatar_url,
+        };
       }
       setUsers(map);
     }).catch(() => {});
@@ -180,12 +218,20 @@ export default function DefectDetailPage() {
 
   // История строится из дат самого дефекта (без отдельной таблицы)
   const timeline: Array<{ label: string; date?: string; who?: string }> = [
-    { label: 'Дефект выявлен', date: defect.reportedDate || defect.createdAt, who: defect.reportedByUserId ? users[defect.reportedByUserId] : undefined },
-    ...(defect.assignedToUserId ? [{ label: 'Назначен исполнитель', date: defect.createdAt, who: users[defect.assignedToUserId] }] : []),
+    { label: 'Дефект создан', date: defect.reportedDate || defect.createdAt, who: defect.reportedByUserId ? users[defect.reportedByUserId]?.name : undefined },
+    ...(defect.assignedToUserId ? [{ label: 'Назначен исполнитель', date: defect.createdAt, who: users[defect.assignedToUserId]?.name }] : []),
     ...(defect.fixedDate ? [{ label: 'Отмечен устранённым', date: defect.fixedDate }] : []),
-    ...(defect.verifiedDate ? [{ label: 'Проверен', date: defect.verifiedDate, who: defect.verifiedByUserId ? users[defect.verifiedByUserId] : undefined }] : []),
+    ...(defect.verifiedDate ? [{ label: 'Проверен', date: defect.verifiedDate, who: defect.verifiedByUserId ? users[defect.verifiedByUserId]?.name : undefined }] : []),
     ...((defect.status ?? 0) === 5 ? [{ label: 'Дефект закрыт', date: defect.updatedAt }] : []),
   ].filter((e) => e.date);
+
+  // SLA по плановому сроку устранения
+  const slaDays = defect.dueDate && defect.reportedDate
+    ? Math.round((new Date(defect.dueDate).getTime() - new Date(defect.reportedDate).getTime()) / 86400000)
+    : undefined;
+  const daysLeft = defect.dueDate && (defect.status ?? 0) < 3
+    ? Math.ceil((new Date(defect.dueDate).getTime() - Date.now()) / 86400000)
+    : undefined;
 
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-9xl mx-auto">
@@ -205,7 +251,10 @@ export default function DefectDetailPage() {
             {sev && <Badge label={t(sev.label)} color={sev.color} />}
           </div>
           <p className="mt-1 text-lg text-gray-700 dark:text-gray-200">{defect.title}</p>
-          {defect.locationDescription && <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">📍 {defect.locationDescription}</p>}
+          <div className="mt-1 flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400 flex-wrap">
+            {defect.locationDescription && <span>📍 {defect.locationDescription}</span>}
+            {defect.category && <Badge label={defect.category} color="violet" />}
+          </div>
         </div>
       </div>
 
@@ -213,6 +262,18 @@ export default function DefectDetailPage() {
         <div className="lg:col-span-2 space-y-6">
           {/* Мета (всегда видна) */}
           <div className="rounded-2xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-gray-800 p-5 shadow-xs grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <Field label="ID дефекта">
+              <button onClick={() => { navigator.clipboard?.writeText(defect.defectNumber || `DEF-${defect.id}`); addToast('success', 'Скопировано'); }} className="inline-flex items-center gap-1 hover:text-violet-500">
+                {defect.defectNumber || `DEF-${defect.id}`}
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" /></svg>
+              </button>
+            </Field>
+            <Field label="Критичность">{sev ? <Badge label={t(sev.label)} color={sev.color} /> : '—'}</Field>
+            <Field label="Тип дефекта">{defect.defectType || '—'}</Field>
+            <Field label="Создан">
+              <div>{fmtDate(defect.createdAt)}</div>
+              {defect.reportedByUserId && <div className="text-xs text-gray-400">{users[defect.reportedByUserId]?.name}</div>}
+            </Field>
             <Field label="Статус">
               <select
                 value={defect.status ?? 0}
@@ -225,9 +286,11 @@ export default function DefectDetailPage() {
                 ))}
               </select>
             </Field>
-            <Field label="Тип">{defect.defectType || '—'}</Field>
             <Field label="Категория">{defect.category || '—'}</Field>
-            <Field label="Создан">{fmtDate(defect.createdAt)}</Field>
+            <Field label="Источник">
+              {source ? <Link href={`/dashboard/technadzor/control-points/new?id=${(defect as any).controlPointId}`} className="text-violet-600 dark:text-violet-400 hover:underline">{[source.code, source.name].filter(Boolean).join(' ')}</Link> : '—'}
+            </Field>
+            <Field label="Обновлён">{fmtDate(defect.updatedAt)}</Field>
           </div>
 
           {/* Вкладки */}
@@ -360,20 +423,29 @@ export default function DefectDetailPage() {
         </div>
 
         <div className="space-y-6">
-          <div className="rounded-2xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-gray-800 p-5 shadow-xs">
-            <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-3">{t('Назначение')}</h3>
-            <Field label="Кто выявил">{defect.reportedByUserId ? users[defect.reportedByUserId] || `#${defect.reportedByUserId}` : '—'}</Field>
-            <div className="mt-3"><Field label="Исполнитель">{defect.assignedToUserId ? users[defect.assignedToUserId] || `#${defect.assignedToUserId}` : '—'}</Field></div>
-            <div className="mt-3"><Field label="Проверил">{defect.verifiedByUserId ? users[defect.verifiedByUserId] || `#${defect.verifiedByUserId}` : '—'}</Field></div>
+          <div className="rounded-2xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-gray-800 p-5 shadow-xs space-y-4">
+            <h3 className="font-semibold text-gray-800 dark:text-gray-100">{t('Назначение')}</h3>
+            <AssigneeRow label="Ответственный" u={defect.assignedToUserId ? users[defect.assignedToUserId] : undefined} t={t} />
+            <AssigneeRow label="Кто выявил" u={defect.reportedByUserId ? users[defect.reportedByUserId] : undefined} t={t} />
+            <AssigneeRow label="Проверил" u={defect.verifiedByUserId ? users[defect.verifiedByUserId] : undefined} t={t} />
           </div>
 
           <div className="rounded-2xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-gray-800 p-5 shadow-xs">
-            <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-3">{t('Сроки и контроль')}</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-gray-800 dark:text-gray-100">{t('Сроки и контроль')}</h3>
+              {slaDays != null && <span className="text-xs px-2 py-0.5 rounded bg-violet-50 dark:bg-violet-500/15 text-violet-600 dark:text-violet-300">SLA: {slaDays} {t('дн.')}</span>}
+            </div>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Выявлен">{fmtDate(defect.reportedDate)}</Field>
               <Field label="Плановый срок"><span className={overdue ? 'text-red-500 font-medium' : ''}>{fmtDate(defect.dueDate)}</span></Field>
-              <Field label="Устранён">{fmtDate(defect.fixedDate)}</Field>
-              <Field label="Проверен">{fmtDate(defect.verifiedDate)}</Field>
+              <Field label="Фактический срок">{fmtDate(defect.fixedDate)}</Field>
+            </div>
+            <div className="mt-3">
+              <div className="text-xs uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-1">{t('Осталось')}</div>
+              {overdue ? (
+                <span className="text-sm text-red-500 font-medium">{t('Просрочено на')} {Math.abs(daysLeft ?? 0)} {t('дн.')}</span>
+              ) : daysLeft != null ? (
+                <span className="text-sm text-gray-700 dark:text-gray-200">{daysLeft} {t('дн.')}</span>
+              ) : <span className="text-sm text-gray-400">—</span>}
             </div>
             <div className="flex items-center justify-between mt-4">
               {STAGES.map((s) => {
@@ -386,6 +458,21 @@ export default function DefectDetailPage() {
                 );
               })}
             </div>
+          </div>
+
+          {/* История изменений (компактная) */}
+          <div className="rounded-2xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-gray-800 p-5 shadow-xs">
+            <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-3">{t('История изменений')}</h3>
+            <ol className="relative border-l border-gray-200 dark:border-gray-700 ml-1 space-y-3">
+              {timeline.length === 0 && <p className="text-sm text-gray-400 ml-3">{t('Нет событий')}</p>}
+              {timeline.map((e, i) => (
+                <li key={i} className="ml-3">
+                  <span className="absolute -left-1.5 w-3 h-3 rounded-full bg-violet-500" />
+                  <div className="text-sm text-gray-800 dark:text-gray-100">{t(e.label)}</div>
+                  <div className="text-xs text-gray-400">{fmtDate(e.date)}{e.who ? ` · ${e.who}` : ''}</div>
+                </li>
+              ))}
+            </ol>
           </div>
 
           <div className="rounded-2xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-gray-800 p-5 shadow-xs space-y-2">
