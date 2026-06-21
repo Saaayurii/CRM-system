@@ -57,6 +57,18 @@ export function setMediaDims(url: string | undefined, w: number, h: number): voi
   saveLs();
 }
 
+/** Fit raw dimensions into a max box (no crop). */
+export function boxFromDims(
+  w: number | undefined,
+  h: number | undefined,
+  maxW = 320,
+  maxH = 320,
+): { width: number; height: number } | null {
+  if (!w || !h) return null;
+  const scale = Math.min(maxW / w, maxH / h, 1);
+  return { width: Math.round(w * scale), height: Math.round(h * scale) };
+}
+
 /**
  * Compute a display box (no crop) for known dimensions, fitted within max bounds.
  * Returns null when dimensions are unknown (caller falls back to natural sizing).
@@ -67,7 +79,34 @@ export function reservedBox(
   maxH = 320,
 ): { width: number; height: number } | null {
   const dims = getMediaDims(url);
-  if (!dims) return null;
-  const scale = Math.min(maxW / dims.w, maxH / dims.h, 1);
-  return { width: Math.round(dims.w * scale), height: Math.round(dims.h * scale) };
+  return boxFromDims(dims?.w, dims?.h, maxW, maxH);
+}
+
+/**
+ * Read pixel dimensions from a local image/video File before upload, so they can
+ * be stored on the attachment and the box reserved on the very first render.
+ */
+export function readFileDims(file: File): Promise<{ w: number; h: number } | null> {
+  return new Promise((resolve) => {
+    if (typeof window === 'undefined') return resolve(null);
+    const url = URL.createObjectURL(file);
+    const done = (r: { w: number; h: number } | null) => {
+      URL.revokeObjectURL(url);
+      resolve(r);
+    };
+    if (file.type.startsWith('image/')) {
+      const img = new Image();
+      img.onload = () => done(img.naturalWidth ? { w: img.naturalWidth, h: img.naturalHeight } : null);
+      img.onerror = () => done(null);
+      img.src = url;
+    } else if (file.type.startsWith('video/')) {
+      const v = document.createElement('video');
+      v.preload = 'metadata';
+      v.onloadedmetadata = () => done(v.videoWidth ? { w: v.videoWidth, h: v.videoHeight } : null);
+      v.onerror = () => done(null);
+      v.src = url;
+    } else {
+      done(null);
+    }
+  });
 }

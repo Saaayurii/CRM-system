@@ -16,6 +16,9 @@ export interface UploadedAttachment {
   excludeFromMedia?: boolean;
   /** Исчезающее медиа: секунды до исчезновения после открытия; -1 — один просмотр */
   ttl?: number;
+  /** Пиксельные размеры медиа — резерв бокса без сдвига при первой загрузке */
+  width?: number;
+  height?: number;
 }
 
 export interface ChatAttachment {
@@ -28,6 +31,9 @@ export interface ChatAttachment {
   ttl?: number;
   /** Исчезающее медиа сгорело: файл удалён с сервера */
   burned?: boolean;
+  /** Пиксельные размеры медиа (если известны при отправке) — резерв бокса */
+  width?: number;
+  height?: number;
 }
 
 export interface ChatReaction {

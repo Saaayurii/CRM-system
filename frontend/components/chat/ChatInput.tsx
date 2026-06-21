@@ -8,6 +8,7 @@ import { useVoiceRecorderStore } from '@/stores/voiceRecorderStore';
 import { useToastStore } from '@/stores/toastStore';
 import api from '@/lib/api';
 import { useT } from '@/lib/i18n';
+import { readFileDims } from '@/lib/mediaAspect';
 
 const TaskFormModal = dynamic(() => import('@/components/dashboard/TaskFormModal'), { ssr: false });
 const PhotoEditor = dynamic(() => import('./PhotoEditor'), { ssr: false });
@@ -990,11 +991,21 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
       startActivity(channelId, activityKindOf(pendingFiles));
       try {
         uploadedAttachments = await Promise.all(pendingFiles.map((pf) => uploadFileWithProgress(pf)));
-        // Прокидываем таймер исчезновения (Promise.all сохраняет порядок)
-        uploadedAttachments = uploadedAttachments.map((att, i) => {
-          const ttl = pendingFiles[i]?.ttl;
-          return ttl ? { ...att, ttl } : att;
-        });
+        // Прокидываем таймер исчезновения + пиксельные размеры (Promise.all
+        // сохраняет порядок). Размеры читаем из самого файла, чтобы у получателя
+        // бокс резервировался сразу, без прыжка ленты при первой загрузке.
+        uploadedAttachments = await Promise.all(
+          uploadedAttachments.map(async (att, i) => {
+            const pf = pendingFiles[i];
+            const ttl = pf?.ttl;
+            const dims = pf?.file ? await readFileDims(pf.file).catch(() => null) : null;
+            return {
+              ...att,
+              ...(ttl ? { ttl } : {}),
+              ...(dims ? { width: dims.w, height: dims.h } : {}),
+            };
+          }),
+        );
       } catch {
         setUploadError('Не удалось загрузить файл. Попробуйте ещё раз.');
         stopActivity(channelId);

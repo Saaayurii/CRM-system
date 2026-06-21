@@ -14,7 +14,7 @@ import { useVoicePlayerStore } from '@/stores/voicePlayerStore';
 import { useThemeStore } from '@/stores/themeStore';
 import { nameColorClass } from '@/lib/appearance';
 import { useT } from '@/lib/i18n';
-import { reservedBox, setMediaDims } from '@/lib/mediaAspect';
+import { reservedBox, boxFromDims, setMediaDims } from '@/lib/mediaAspect';
 
 const QUICK_EMOJIS = ['❤️', '🤗', '👍', '😄', '👎', '🔥', '👏'];
 
@@ -770,9 +770,11 @@ function ChatMessage({ message, isOwn, showAvatar, isRead, isDirect = false, rea
               {!hasAlbum && mediaAtts.length === 1 && isImageAtt(mediaAtts[0]) && (() => {
                 const att = mediaAtts[0];
                 const mediaIndex = mediaItems.findIndex((m) => m.url === att.fileUrl);
-                // Reserve the exact box from cached dimensions so the bubble
-                // doesn't grow (and shove the list) when the image finally loads.
-                const box = reservedBox(att.fileUrl, 320, 320);
+                // Reserve the exact box: prefer dimensions saved on the
+                // attachment at send time (covers the very first load), else the
+                // client-side cache. Avoids the bubble growing (and shoving the
+                // list) when the image finally decodes.
+                const box = boxFromDims((att as any).width, (att as any).height, 320, 320) ?? reservedBox(att.fileUrl, 320, 320);
                 const imageContent = (
                   <div className="relative group/img mt-1">
                     <img src={att.fileUrl} alt={att.fileName} loading="lazy" decoding="async"
@@ -805,8 +807,8 @@ function ChatMessage({ message, isOwn, showAvatar, isRead, isDirect = false, rea
               {!hasAlbum && mediaAtts.length === 1 && isVideoAtt(mediaAtts[0]) && (() => {
                 const att = mediaAtts[0];
                 const mediaIndex = mediaItems.findIndex((m) => m.url === att.fileUrl);
-                // Reserve the exact box from cached dimensions (no shift on load).
-                const box = reservedBox(att.fileUrl, 320, 320);
+                // Reserve the exact box: attachment dims (first load) → cache.
+                const box = boxFromDims((att as any).width, (att as any).height, 320, 320) ?? reservedBox(att.fileUrl, 320, 320);
                 const videoContent = (
                   <div className="relative group/vid mt-1 w-fit max-w-full">
                     <div
