@@ -40,6 +40,33 @@ export function getPermissionState(): NotificationPermission {
 }
 
 /**
+ * Get the existing push subscription, tolerating iOS PWA flakiness: right after
+ * a PWA relaunch, `pushManager.getSubscription()` can return null for a moment
+ * even though the subscription is still alive. We retry a few times after the SW
+ * is ready before concluding there's no subscription — otherwise the UI wrongly
+ * shows push as "off" and a silent re-subscribe (forbidden on iOS without a user
+ * gesture) fails, forcing the user to tap the button again on every reload.
+ */
+async function getActiveSubscription(
+  retries = 3,
+  delayMs = 400,
+): Promise<PushSubscription | null> {
+  if (!isPushSupported()) return null;
+  let registration: ServiceWorkerRegistration;
+  try {
+    registration = await navigator.serviceWorker.ready;
+  } catch {
+    return null;
+  }
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const sub = await registration.pushManager.getSubscription();
+    if (sub) return sub;
+    if (attempt < retries) await new Promise((r) => setTimeout(r, delayMs));
+  }
+  return null;
+}
+
+/**
  * Full subscription flow:
  * - Requests permission
  * - Subscribes via PushManager
@@ -75,8 +102,10 @@ export async function enablePushNotifications(
   // 3. Wait for SW registration
   const registration = await navigator.serviceWorker.ready;
 
-  // 4. Re-use existing subscription if the endpoint is already registered
-  let subscription = await registration.pushManager.getSubscription();
+  // 4. Re-use existing subscription if the endpoint is already registered.
+  // Use the retrying lookup so a transient null on iOS doesn't trigger an
+  // unnecessary fresh subscribe() (which fails outside a user gesture on iOS).
+  let subscription = await getActiveSubscription();
 
   if (!subscription) {
     subscription = await registration.pushManager.subscribe({
@@ -126,12 +155,5 @@ export async function disablePushNotifications(): Promise<void> {
  * registered with our backend (quick local check via PushManager).
  */
 export async function isPushSubscribed(): Promise<boolean> {
-  if (!isPushSupported()) return false;
-  try {
-    const registration = await navigator.serviceWorker.ready;
-    const sub = await registration.pushManager.getSubscription();
-    return !!sub;
-  } catch {
-    return false;
-  }
+  return !!(await getActiveSubscription());
 }

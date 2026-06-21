@@ -349,7 +349,12 @@ export const useNotificationStore = create<NotificationState>()(
         set({ pushLoading: true });
         try {
           const sub = await enablePushNotifications(roleId);
-          set({ pushEnabled: !!sub, pushPermission: 'granted' });
+          // Only flip to enabled on success. On iOS a silent re-subscribe can
+          // fail without a user gesture — don't clobber the existing state to
+          // false in that case (the user can re-tap the button to fix it).
+          if (sub) set({ pushEnabled: true, pushPermission: 'granted' });
+        } catch {
+          // silent — failed background re-subscribe leaves current state as-is
         } finally {
           set({ pushLoading: false });
         }
