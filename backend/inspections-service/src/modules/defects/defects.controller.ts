@@ -101,9 +101,9 @@ export class DefectsController {
   async addComment(
     @CurrentUser() user: RequestUser,
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: { commentText: string; userName?: string },
+    @Body() body: { commentText?: string; userName?: string; attachments?: any[] },
   ) {
-    return this.defectsService.addComment(id, user, body.commentText, body.userName);
+    return this.defectsService.addComment(id, user, body.commentText || '', body.userName, body.attachments);
   }
 
   @Post()

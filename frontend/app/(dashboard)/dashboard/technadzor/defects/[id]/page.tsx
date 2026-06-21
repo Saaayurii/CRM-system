@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
+import { useAuthStore } from '@/stores/authStore';
 import { useT } from '@/lib/i18n';
 import Badge, { DEFECT_STATUS, DEFECT_SEVERITY } from '@/components/technadzor/Badge';
 
@@ -46,6 +47,14 @@ const fileUrl = (f: string | { url?: string; fileUrl?: string }) =>
   typeof f === 'string' ? f : f.url || f.fileUrl || '';
 
 interface UserInfo { name: string; phone?: string; email?: string; roleName?: string; avatarUrl?: string }
+interface CommentAttachment { url: string; name?: string; mimeType?: string; kind?: 'image' | 'audio' | 'file'; size?: number }
+interface CommentItem { id: number; userName?: string; commentText: string; createdAt?: string; attachments?: CommentAttachment[] }
+
+const fmtDateTime = (v?: string) => {
+  if (!v) return '';
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? '' : d.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+};
 
 const STAGES = [0, 1, 2, 3, 4, 5];
 
@@ -95,8 +104,14 @@ export default function DefectDetailPage() {
   const [activePhoto, setActivePhoto] = useState(0);
   const [source, setSource] = useState<{ code?: string; name?: string } | null>(null);
   const [tab, setTab] = useState<'desc' | 'media' | 'links' | 'history' | 'comments'>('desc');
-  const [comments, setComments] = useState<Array<{ id: number; userName?: string; commentText: string; createdAt?: string }>>([]);
+  const [comments, setComments] = useState<CommentItem[]>([]);
   const [newComment, setNewComment] = useState('');
+  const [pendingFiles, setPendingFiles] = useState<CommentAttachment[]>([]);
+  const [recording, setRecording] = useState(false);
+  const [sendingComment, setSendingComment] = useState(false);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const authUser = useAuthStore((s) => s.user);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -124,15 +139,61 @@ export default function DefectDetailPage() {
 
   useEffect(() => { load(); loadComments(); }, [load, loadComments]);
 
+  const uploadCommentFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const fd = new FormData();
+    Array.from(files).forEach((f) => fd.append('files', f));
+    try {
+      const { data } = await api.post('/inspections/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const arr: CommentAttachment[] = (Array.isArray(data) ? data : []).map((x: any) => ({
+        url: x.fileUrl, name: x.fileName, mimeType: x.mimeType, size: x.fileSize,
+        kind: x.mimeType?.startsWith('image/') ? 'image' : x.mimeType?.startsWith('audio/') ? 'audio' : 'file',
+      }));
+      setPendingFiles((p) => [...p, ...arr]);
+    } catch { addToast('error', 'Не удалось загрузить файл'); }
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const rec = new MediaRecorder(stream);
+      chunksRef.current = [];
+      rec.ondataavailable = (e) => { if (e.data.size) chunksRef.current.push(e.data); };
+      rec.onstop = async () => {
+        stream.getTracks().forEach((tr) => tr.stop());
+        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        const fd = new FormData();
+        fd.append('files', new File([blob], `voice-${Date.now()}.webm`, { type: 'audio/webm' }));
+        try {
+          const { data } = await api.post('/inspections/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+          const x = Array.isArray(data) ? data[0] : null;
+          if (x?.fileUrl) setPendingFiles((p) => [...p, { url: x.fileUrl, name: 'Голосовое сообщение', mimeType: 'audio/webm', kind: 'audio' }]);
+        } catch { addToast('error', 'Не удалось сохранить запись'); }
+      };
+      rec.start();
+      recorderRef.current = rec;
+      setRecording(true);
+    } catch { addToast('error', 'Нет доступа к микрофону'); }
+  };
+  const stopRecording = () => { recorderRef.current?.stop(); setRecording(false); };
+
   const sendComment = async () => {
     const text = newComment.trim();
-    if (!text) return;
+    if (!text && pendingFiles.length === 0) return;
+    setSendingComment(true);
     try {
-      await api.post(`/defects/${id}/comments`, { commentText: text });
+      await api.post(`/defects/${id}/comments`, {
+        commentText: text,
+        userName: authUser?.name || undefined,
+        attachments: pendingFiles,
+      });
       setNewComment('');
+      setPendingFiles([]);
       loadComments();
     } catch {
       addToast('error', 'Не удалось отправить комментарий');
+    } finally {
+      setSendingComment(false);
     }
   };
 
@@ -387,21 +448,52 @@ export default function DefectDetailPage() {
                       <li key={c.id} className="rounded-xl bg-gray-50 dark:bg-gray-900/40 p-3">
                         <div className="flex items-center justify-between gap-2 mb-1">
                           <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{c.userName || t('Пользователь')}</span>
-                          <span className="text-xs text-gray-400">{fmtDate(c.createdAt)}</span>
+                          <span className="text-xs text-gray-400">{fmtDateTime(c.createdAt)}</span>
                         </div>
-                        <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{c.commentText}</p>
+                        {c.commentText && <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{c.commentText}</p>}
+                        {(c.attachments ?? []).length > 0 && (
+                          <div className="mt-2 space-y-2">
+                            {(c.attachments ?? []).map((a, i) => (
+                              <CommentAttachmentView key={i} a={a} />
+                            ))}
+                          </div>
+                        )}
                       </li>
                     ))}
                   </ul>
+
+                  {/* Превью прикреплённого до отправки */}
+                  {pendingFiles.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {pendingFiles.map((a, i) => (
+                        <span key={i} className="inline-flex items-center gap-1 text-xs rounded-lg bg-violet-50 dark:bg-violet-500/15 text-violet-600 dark:text-violet-300 px-2 py-1">
+                          {a.kind === 'image' ? '🖼' : a.kind === 'audio' ? '🎤' : '📎'} {a.name || 'файл'}
+                          <button onClick={() => setPendingFiles((p) => p.filter((_, j) => j !== i))} className="hover:text-red-500">×</button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
                   <div className="flex items-center gap-2">
+                    <label className="w-9 h-9 rounded-lg border border-gray-200 dark:border-gray-600 flex items-center justify-center cursor-pointer text-gray-400 hover:text-violet-500 shrink-0" title={t('Прикрепить файл')}>
+                      <input type="file" multiple className="hidden" onChange={(e) => { uploadCommentFiles(e.target.files); e.currentTarget.value = ''; }} />
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}><path strokeLinecap="round" strokeLinejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.112 2.13" /></svg>
+                    </label>
+                    <button
+                      onClick={recording ? stopRecording : startRecording}
+                      title={recording ? t('Остановить запись') : t('Голосовое сообщение')}
+                      className={`w-9 h-9 rounded-lg border flex items-center justify-center shrink-0 ${recording ? 'border-red-400 text-red-500 animate-pulse' : 'border-gray-200 dark:border-gray-600 text-gray-400 hover:text-violet-500'}`}
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}><path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 0 0 6-6v-1.5m-6 7.5a6 6 0 0 1-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 0 1-3-3V4.5a3 3 0 1 1 6 0v8.25a3 3 0 0 1-3 3Z" /></svg>
+                    </button>
                     <input
                       value={newComment}
                       onChange={(e) => setNewComment(e.target.value)}
                       onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendComment(); } }}
-                      placeholder={t('Написать комментарий…')}
+                      placeholder={recording ? t('Идёт запись…') : t('Написать комментарий…')}
                       className="flex-1 text-sm rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-800 dark:text-gray-100"
                     />
-                    <button onClick={sendComment} disabled={!newComment.trim()} className="px-4 py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-700 text-white disabled:opacity-50">{t('Отправить')}</button>
+                    <button onClick={sendComment} disabled={sendingComment || (!newComment.trim() && pendingFiles.length === 0)} className="px-4 py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-700 text-white disabled:opacity-50 shrink-0">{t('Отправить')}</button>
                   </div>
                 </div>
               )}
@@ -484,5 +576,20 @@ export default function DefectDetailPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function CommentAttachmentView({ a }: { a: CommentAttachment }) {
+  if (a.kind === 'image') {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <a href={a.url} target="_blank" rel="noreferrer"><img src={a.url} alt={a.name || ''} className="max-w-[200px] max-h-40 rounded-lg object-cover" /></a>;
+  }
+  if (a.kind === 'audio') {
+    return <audio controls src={a.url} className="w-full max-w-[260px] h-9" />;
+  }
+  return (
+    <a href={a.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm text-violet-600 dark:text-violet-400 hover:underline">
+      📎 {a.name || a.url.split('/').pop()}
+    </a>
   );
 }

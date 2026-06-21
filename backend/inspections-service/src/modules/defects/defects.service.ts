@@ -107,6 +107,7 @@ export class DefectsService {
     user: RequestUser,
     commentText: string,
     userName?: string,
+    attachments?: any[],
   ) {
     const defect = await this.findById(defectId, user);
     return this.defectRepository.addComment({
@@ -114,7 +115,8 @@ export class DefectsService {
       accountId: defect.accountId,
       userId: user.id,
       userName,
-      commentText,
+      commentText: commentText || '',
+      attachments: Array.isArray(attachments) ? attachments : [],
     });
   }
 

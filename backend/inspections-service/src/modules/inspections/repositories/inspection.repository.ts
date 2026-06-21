@@ -33,7 +33,34 @@ export class InspectionRepository {
       (this.prisma as any).inspection.count({ where }),
     ]);
 
+    await this.enrichNames(data);
+
     return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
+  }
+
+  // Подставляем имена проекта и инспектора (общая БД, raw SQL — без cross-service HTTP)
+  private async enrichNames(rows: any[]) {
+    if (!rows?.length) return;
+    const projectIds = [...new Set(rows.map((r) => r.projectId).filter(Boolean))];
+    const userIds = [...new Set(rows.map((r) => r.inspectorId).filter(Boolean))];
+    const [projects, users] = await Promise.all([
+      projectIds.length
+        ? (this.prisma as any).$queryRawUnsafe(
+            `SELECT id, name FROM projects WHERE id IN (${projectIds.join(',')})`,
+          )
+        : [],
+      userIds.length
+        ? (this.prisma as any).$queryRawUnsafe(
+            `SELECT id, name FROM users WHERE id IN (${userIds.join(',')})`,
+          )
+        : [],
+    ]);
+    const pMap = new Map((projects as any[]).map((p) => [Number(p.id), p.name]));
+    const uMap = new Map((users as any[]).map((u) => [Number(u.id), u.name]));
+    for (const r of rows) {
+      r.projectName = r.projectId ? pMap.get(Number(r.projectId)) ?? null : null;
+      r.inspectorName = r.inspectorId ? uMap.get(Number(r.inspectorId)) ?? null : null;
+    }
   }
 
   async findById(id: number, accountId: number) {

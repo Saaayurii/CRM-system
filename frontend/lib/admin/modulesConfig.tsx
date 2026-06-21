@@ -1354,14 +1354,22 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
       {
         key: 'projectId',
         header: 'Проект',
-        render: (v) => v ? <span className="text-sm text-gray-500 dark:text-gray-400">#{String(v)}</span> : <span className="text-gray-400">—</span>,
+        render: (v, row) => {
+          const name = (row as any)?.projectName;
+          if (name) return <span className="text-sm text-gray-700 dark:text-gray-200">{String(name)}</span>;
+          return v ? <span className="text-sm text-gray-500 dark:text-gray-400">#{String(v)}</span> : <span className="text-gray-400">—</span>;
+        },
       },
       { key: 'scheduledDate', header: 'Дата', sortable: true, width: '120px', render: (v) => fmtDate(v) },
       {
         key: 'inspectorId',
         header: 'Инспектор',
-        width: '110px',
-        render: (v) => v ? <span className="text-sm text-gray-500 dark:text-gray-400">#{String(v)}</span> : <span className="text-gray-400">—</span>,
+        width: '130px',
+        render: (v, row) => {
+          const name = (row as any)?.inspectorName;
+          if (name) return <span className="text-sm text-gray-700 dark:text-gray-200">{String(name)}</span>;
+          return v ? <span className="text-sm text-gray-500 dark:text-gray-400">#{String(v)}</span> : <span className="text-gray-400">—</span>;
+        },
       },
       {
         key: 'inspectionArea',

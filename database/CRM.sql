@@ -1088,7 +1088,8 @@ CREATE TABLE defect_comments (
     account_id INTEGER NOT NULL,
     user_id INTEGER,
     user_name VARCHAR(255),
-    comment_text TEXT NOT NULL,
+    comment_text TEXT DEFAULT '',
+    attachments JSONB DEFAULT '[]',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX idx_defect_comments_defect ON defect_comments(defect_id);

@@ -115,6 +115,7 @@ export class DefectRepository {
     userId?: number;
     userName?: string;
     commentText: string;
+    attachments?: any[];
   }) {
     return (this.prisma as any).defectComment.create({ data });
   }
