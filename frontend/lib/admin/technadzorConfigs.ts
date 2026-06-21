@@ -16,11 +16,12 @@ function withVariant(
 
 // ─── Инспекции ───
 export const technadzorInspectionConfigs = {
+  // «Мои инспекции» — основной рабочий список (все инспекции аккаунта, как на макете)
   mine: () =>
     withVariant(ADMIN_MODULES.inspections, {
       title: 'Мои инспекции',
-      listParams: { mine: 1 },
     }),
+  // «Назначенные мне» — где текущий пользователь инспектор
   assigned: () =>
     withVariant(ADMIN_MODULES.inspections, {
       title: 'Назначенные мне',
