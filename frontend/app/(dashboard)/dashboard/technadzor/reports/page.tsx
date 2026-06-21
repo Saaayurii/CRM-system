@@ -11,13 +11,23 @@ interface InspectionLite { id: number; inspectionNumber?: string; inspectionType
 interface Defect { id: number; defectNumber?: string; title: string; status?: number; severity?: number; }
 interface GenFile { filename: string; createdAt?: string; size?: number; }
 
-const TEMPLATES = [
-  { id: 'act', icon: '📄', color: 'violet', title: 'Акт осмотра', desc: 'Акт осмотра объекта с перечнем выявленных дефектов', ready: true },
-  { id: 'tn', icon: '📋', color: 'blue', title: 'Отчёт технадзора', desc: 'Комплексный отчёт о проведении технического надзора', ready: false },
-  { id: 'flat', icon: '📗', color: 'green', title: 'Отчёт приёмки квартиры', desc: 'Отчёт о приёмке квартиры с результатами проверок', ready: false },
-  { id: 'warranty', icon: '📙', color: 'orange', title: 'Гарантийный осмотр', desc: 'Отчёт по результатам гарантийного осмотра объекта', ready: false },
-  { id: 'interim', icon: '📘', color: 'teal', title: 'Промежуточный контроль', desc: 'Отчёт о промежуточном контроле на объекте', ready: false },
-  { id: 'exec', icon: '📑', color: 'violet', title: 'Исполнительная документация', desc: 'Сводный отчёт по исполнительной документации', ready: false },
+interface ReportTemplate {
+  id: string; icon: string; color: string; title: string; heading: string; desc: string;
+  sections: string[];
+}
+const TEMPLATES: ReportTemplate[] = [
+  { id: 'act', icon: '📄', color: 'violet', title: 'Акт осмотра', heading: 'АКТ ОСМОТРА', desc: 'Акт осмотра объекта с перечнем выявленных дефектов',
+    sections: ['general', 'results', 'defects', 'photos', 'remarks', 'recommendations', 'signatures'] },
+  { id: 'tn', icon: '📋', color: 'blue', title: 'Отчёт технадзора', heading: 'ОТЧЁТ ТЕХНИЧЕСКОГО НАДЗОРА', desc: 'Комплексный отчёт о проведении технического надзора',
+    sections: ['general', 'results', 'defects', 'photos', 'remarks', 'recommendations', 'signatures'] },
+  { id: 'flat', icon: '📗', color: 'green', title: 'Отчёт приёмки квартиры', heading: 'ОТЧЁТ О ПРИЁМКЕ КВАРТИРЫ', desc: 'Отчёт о приёмке квартиры с результатами проверок',
+    sections: ['general', 'results', 'defects', 'photos', 'signatures'] },
+  { id: 'warranty', icon: '📙', color: 'orange', title: 'Гарантийный осмотр', heading: 'АКТ ГАРАНТИЙНОГО ОСМОТРА', desc: 'Отчёт по результатам гарантийного осмотра объекта',
+    sections: ['general', 'defects', 'photos', 'recommendations', 'signatures'] },
+  { id: 'interim', icon: '📘', color: 'teal', title: 'Промежуточный контроль', heading: 'ОТЧЁТ О ПРОМЕЖУТОЧНОМ КОНТРОЛЕ', desc: 'Отчёт о промежуточном контроле на объекте',
+    sections: ['general', 'results', 'defects', 'remarks', 'signatures'] },
+  { id: 'exec', icon: '📑', color: 'violet', title: 'Исполнительная документация', heading: 'ИСПОЛНИТЕЛЬНАЯ ДОКУМЕНТАЦИЯ', desc: 'Сводный отчёт по исполнительной документации',
+    sections: ['general', 'results', 'defects', 'signatures'] },
 ];
 const COLOR_MAP: Record<string, string> = {
   violet: 'bg-violet-50 dark:bg-violet-500/15 text-violet-600 dark:text-violet-400',
@@ -43,7 +53,12 @@ export default function ReportsPage() {
   const [inspections, setInspections] = useState<InspectionLite[]>([]);
   const [selected, setSelected] = useState<number | null>(null);
   const [template, setTemplate] = useState('act');
-  const [sections, setSections] = useState<string[]>(SECTIONS.map((s) => s.k));
+  const [sections, setSections] = useState<string[]>(TEMPLATES[0].sections);
+
+  const selectTemplate = (tpl: ReportTemplate) => {
+    setTemplate(tpl.id);
+    setSections(tpl.sections);
+  };
   const [style, setStyle] = useState('standard');
   const [lang, setLang] = useState('ru');
   const [generating, setGenerating] = useState(false);
@@ -86,7 +101,12 @@ export default function ReportsPage() {
       const defectsList = defects.length
         ? defects.map((d) => `• ${d.defectNumber || `DEF-${d.id}`}: ${d.title} (${t((DEFECT_STATUS[d.status ?? 0] ?? DEFECT_STATUS[0]).label)})`).join('\n')
         : 'Дефектов не выявлено';
-      const entityData: Record<string, unknown> = { sections };
+      const tpl = TEMPLATES.find((x) => x.id === template) ?? TEMPLATES[0];
+      const entityData: Record<string, unknown> = {
+        sections,
+        // заголовок отчёта = название выбранного шаблона
+        title: `${tpl.heading}${insp.inspectionNumber ? ` № ${insp.inspectionNumber}` : ''}`,
+      };
       if (sections.includes('general')) {
         Object.assign(entityData, {
           inspectionNumber: insp.inspectionNumber, inspectionType: insp.inspectionType,
@@ -145,14 +165,13 @@ export default function ReportsPage() {
                 {TEMPLATES.map((tpl) => (
                   <button
                     key={tpl.id}
-                    onClick={() => tpl.ready ? setTemplate(tpl.id) : addToast('warning', 'Шаблон в разработке')}
-                    className={`relative text-left p-4 rounded-2xl border transition ${template === tpl.id ? 'border-violet-500 bg-violet-50/50 dark:bg-violet-500/5' : 'border-gray-200 dark:border-gray-700/60 bg-white dark:bg-gray-800'} ${!tpl.ready ? 'opacity-60' : 'hover:border-violet-300'}`}
+                    onClick={() => selectTemplate(tpl)}
+                    className={`relative text-left p-4 rounded-2xl border transition ${template === tpl.id ? 'border-violet-500 bg-violet-50/50 dark:bg-violet-500/5' : 'border-gray-200 dark:border-gray-700/60 bg-white dark:bg-gray-800 hover:border-violet-300'}`}
                   >
                     {template === tpl.id && <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-violet-600 text-white text-xs flex items-center justify-center">✓</span>}
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg mb-2 ${COLOR_MAP[tpl.color]}`}>{tpl.icon}</div>
                     <div className="text-sm font-semibold text-gray-800 dark:text-gray-100">{t(tpl.title)}</div>
                     <div className="text-[11px] text-gray-400 mt-1 leading-snug">{t(tpl.desc)}</div>
-                    {!tpl.ready && <div className="text-[10px] text-amber-500 mt-1">{t('в разработке')}</div>}
                   </button>
                 ))}
               </div>
@@ -171,12 +190,20 @@ export default function ReportsPage() {
               <div>
                 <label className="block text-xs text-gray-500 dark:text-gray-400 mb-2">{t('Разделы отчёта')}</label>
                 <div className="grid grid-cols-2 gap-2">
-                  {SECTIONS.map((s) => (
-                    <label key={s.k} className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200 cursor-pointer">
-                      <input type="checkbox" checked={sections.includes(s.k)} onChange={() => toggleSection(s.k)} />
+                  {SECTIONS.map((s) => {
+                    const on = sections.includes(s.k);
+                    return (
+                    <button
+                      key={s.k}
+                      type="button"
+                      onClick={() => toggleSection(s.k)}
+                      className={`flex items-center gap-2 text-sm rounded-lg border px-3 py-2 text-left transition ${on ? 'border-violet-500 bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-300' : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-violet-300'}`}
+                    >
+                      <span className={`w-4 h-4 rounded flex items-center justify-center text-[10px] shrink-0 ${on ? 'bg-violet-600 text-white' : 'border border-gray-300 dark:border-gray-500'}`}>{on ? '✓' : ''}</span>
                       {t(s.label)}
-                    </label>
-                  ))}
+                    </button>
+                    );
+                  })}
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -205,7 +232,7 @@ export default function ReportsPage() {
             <h2 className="text-xs uppercase tracking-wide font-semibold text-gray-400 dark:text-gray-500 mb-3">{t('Предпросмотр отчёта')}</h2>
             <div className="rounded-xl bg-white border border-gray-200 p-6 text-[13px] text-gray-800 max-h-[600px] overflow-y-auto">
               <div className="text-center mb-4">
-                <div className="font-bold text-lg">{t('АКТ ОСМОТРА')}</div>
+                <div className="font-bold text-lg">{t((TEMPLATES.find((x) => x.id === template) ?? TEMPLATES[0]).heading)}</div>
                 <div className="text-xs text-gray-500">{sel ? (sel.inspectionNumber || `INSP-${sel.id}`) : '—'}</div>
               </div>
               {sections.includes('general') && (
