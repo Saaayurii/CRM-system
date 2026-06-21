@@ -19,13 +19,46 @@ error() { echo -e "${RED}[ERROR]${NC} $*" >&2; }
 NO_BUILD=false
 PULL=false
 SSL=false
+# Auto «технические работы» на время деплоя (вкл в начале, выкл в конце).
+# Отключить: DEPLOY_MAINTENANCE=false  или флаг --no-maintenance.
+MAINTENANCE="${DEPLOY_MAINTENANCE:-true}"
 for arg in "$@"; do
   case $arg in
-    --no-build) NO_BUILD=true ;;
-    --pull)     PULL=true ;;
-    --ssl)      SSL=true ;;
+    --no-build)       NO_BUILD=true ;;
+    --pull)           PULL=true ;;
+    --ssl)            SSL=true ;;
+    --no-maintenance) MAINTENANCE=false ;;
   esac
 done
+
+# ── Maintenance toggle ────────────────────────────────────────
+# Переключает accounts.settings.maintenance_mode для всех активных аккаунтов
+# (источник истины фронта) и публикует SSE-событие подключённым клиентам, чтобы
+# заглушка появлялась/снималась мгновенно, без перезагрузки. Не критично для
+# самого деплоя: любые сбои здесь только предупреждают, но не валят процесс.
+# ВАЖНО: при падении деплоя режим остаётся ВКЛючённым (пользователи не видят
+# полусломанную систему) — снять можно тумблером супер-админа или ручным off.
+maintenance_set() {
+  local mode="$1"  # true | false
+  [ "$MAINTENANCE" = true ] || return 0
+  local pg=crm-postgres redis=crm-redis db=construction_crm
+  if ! docker ps --format '{{.Names}}' | grep -q "^${pg}$"; then
+    warn "Контейнер ${pg} не запущен — пропускаю maintenance=${mode}"
+    return 0
+  fi
+  info "Устанавливаю maintenance_mode=${mode} для активных аккаунтов..."
+  docker exec -i "$pg" psql -U postgres -d "$db" -v ON_ERROR_STOP=1 -c \
+    "UPDATE accounts SET settings = jsonb_set(coalesce(settings,'{}'::jsonb), '{maintenance_mode}', '${mode}'::jsonb) WHERE status = 1;" \
+    >/dev/null 2>&1 || { warn "Не удалось обновить maintenance в БД"; return 0; }
+  # Мгновенный SSE-пуш уже подключённым клиентам
+  local ids
+  ids=$(docker exec "$pg" psql -U postgres -d "$db" -tAc "SELECT id FROM accounts WHERE status = 1;" 2>/dev/null || true)
+  for id in $ids; do
+    docker exec "$redis" redis-cli PUBLISH "crm:maintenance:${id}" \
+      "{\"accountId\":${id},\"mode\":${mode},\"allowedRoles\":[]}" >/dev/null 2>&1 || true
+  done
+  info "maintenance_mode=${mode} применён."
+}
 
 # ── Pre-flight checks ─────────────────────────────────────────
 info "Running pre-flight checks..."
@@ -83,6 +116,9 @@ if [ "$SSL" = true ]; then
 fi
 
 info "Pre-flight checks passed."
+
+# ── Maintenance ON (пока старые контейнеры ещё живы — SSE долетит мгновенно) ──
+maintenance_set true
 
 # ── Cleanup stale Docker networks ────────────────────────────
 info "Pruning unused Docker networks..."
@@ -186,6 +222,20 @@ until docker compose exec -T postgres pg_isready -U postgres -q 2>/dev/null; do
   sleep 2; elapsed=$((elapsed+2))
 done
 info "PostgreSQL is ready."
+
+# ── Maintenance OFF (после готовности шлюза, чтобы SSE-выключение долетело) ──
+if [ "$MAINTENANCE" = true ]; then
+  info "Waiting for api-gateway before lifting maintenance..."
+  gw_timeout=60; gw_elapsed=0
+  until docker exec crm-api-gateway wget -q --spider http://localhost:3000/api/v1/health 2>/dev/null; do
+    if [ $gw_elapsed -ge $gw_timeout ]; then
+      warn "api-gateway не ответил за ${gw_timeout}s — снимаю maintenance всё равно (клиенты добьют поллингом)"
+      break
+    fi
+    sleep 3; gw_elapsed=$((gw_elapsed+3))
+  done
+  maintenance_set false
+fi
 
 # ── Status ───────────────────────────────────────────────────
 info "Deployment complete. Container status:"

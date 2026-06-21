@@ -4,6 +4,7 @@ import Sidebar from '@/components/layout/Sidebar';
 import Header from '@/components/layout/Header';
 import ToastContainer from '@/components/ui/ToastContainer';
 import MaintenanceGuard from '@/components/layout/MaintenanceGuard';
+import MaintenanceIndicator from '@/components/layout/MaintenanceIndicator';
 import PushInit from '@/components/layout/PushInit';
 import PendingSync from '@/components/ui/PendingSync';
 import OfflineBanner from '@/components/ui/OfflineBanner';
@@ -44,6 +45,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <OfflineBanner />
         <ForcePasswordChangeModal />
         <NoteReminder />
+        <MaintenanceIndicator />
       </div>
     </MaintenanceGuard>
   );
