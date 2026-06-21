@@ -30,6 +30,7 @@
     "@nestjs/swagger": "^11.2.6",
     "@nestjs/terminus": "^11.0.0",
     "@nestjs/websockets": "^11.0.1",
+    "@opentelemetry/auto-instrumentations-node": "^0.77.0",
     "@prisma/client": "^6.19.2",
     "@socket.io/redis-adapter": "^8.3.0",
     "bullmq": "^5.79.0",
