@@ -12,12 +12,14 @@ interface TechnadzorListPageProps {
   onRowClick?: (row: Record<string, unknown>) => void;
   /** Доп. действия справа от хлебных крошек (например, ссылка на конструктор). */
   actions?: React.ReactNode;
+  /** Контент над таблицей (например, KPI-карточки и сводка). */
+  header?: React.ReactNode;
 }
 
 /**
  * Страница-список раздела «Технадзор»: хлебные крошки + переиспользуемый CrudPage.
  */
-export default function TechnadzorListPage({ config, breadcrumbs, onRowClick, actions }: TechnadzorListPageProps) {
+export default function TechnadzorListPage({ config, breadcrumbs, onRowClick, actions, header }: TechnadzorListPageProps) {
   const t = useT();
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-9xl mx-auto">
@@ -41,6 +43,7 @@ export default function TechnadzorListPage({ config, breadcrumbs, onRowClick, ac
         </nav>
         {actions}
       </div>
+      {header}
       <CrudPage config={config} onRowClick={onRowClick} />
     </div>
   );

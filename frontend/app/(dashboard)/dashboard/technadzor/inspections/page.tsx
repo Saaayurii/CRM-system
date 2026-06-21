@@ -1,6 +1,7 @@
 'use client';
 import { useRouter } from 'next/navigation';
 import TechnadzorListPage from '@/components/technadzor/TechnadzorListPage';
+import InspectionsStatsHeader from '@/components/technadzor/InspectionsStatsHeader';
 import { technadzorInspectionConfigs } from '@/lib/admin/technadzorConfigs';
 
 export default function Page() {
@@ -9,6 +10,7 @@ export default function Page() {
     <TechnadzorListPage
       config={technadzorInspectionConfigs.mine()}
       breadcrumbs={[{ label: 'Проверки' }, { label: 'Мои инспекции' }]}
+      header={<InspectionsStatsHeader />}
       onRowClick={(row) => router.push(`/dashboard/technadzor/inspections/${row.id}`)}
     />
   );
