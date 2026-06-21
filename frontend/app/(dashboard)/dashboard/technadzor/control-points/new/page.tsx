@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
+import { useAuthStore } from '@/stores/authStore';
 import { useT } from '@/lib/i18n';
 
 interface Pin { n: number; x: number; y: number; label?: string; color?: string }
@@ -152,6 +153,8 @@ export default function ControlPointBuilderPage() {
   const params = useSearchParams();
   const editId = params.get('id');
   const addToast = useToastStore((s) => s.addToast);
+  const authUser = useAuthStore((s) => s.user);
+  const authorName = authUser ? (authUser.name || authUser.email || `#${authUser.id}`) : undefined;
   const [step, setStep] = useState(Number(params.get('step')) || 1);
 
   // Шаг 2 — типовые дефекты
@@ -186,6 +189,7 @@ export default function ControlPointBuilderPage() {
   const [allowEditAfter, setAllowEditAfter] = useState(true);
   const [notifyOnUse, setNotifyOnUse] = useState(false);
   const [autoUpdateTemplates, setAutoUpdateTemplates] = useState(true);
+  const [versions, setVersions] = useState<Array<{ version: string; date: string; author?: string; comment?: string }>>([]);
 
   // Шаг 1 — основные поля
   const [name, setName] = useState('');
@@ -263,6 +267,7 @@ export default function ControlPointBuilderPage() {
       if (typeof pub.allowEditAfter === 'boolean') setAllowEditAfter(pub.allowEditAfter);
       if (typeof pub.notifyOnUse === 'boolean') setNotifyOnUse(pub.notifyOnUse);
       if (typeof pub.autoUpdateTemplates === 'boolean') setAutoUpdateTemplates(pub.autoUpdateTemplates);
+      setVersions(Array.isArray(data.versions) ? data.versions : []);
     } catch {
       addToast('error', 'Не удалось загрузить пункт');
     } finally {
@@ -321,7 +326,26 @@ export default function ControlPointBuilderPage() {
       scope, compat, versionComment, pubComment,
       allowEditAfter, notifyOnUse, autoUpdateTemplates,
     },
+    versions,
   });
+
+  // Создать новую версию: текущую кладём в историю, бампим минорную версию
+  const createNewVersion = async () => {
+    if (!editId) { addToast('warning', 'Сначала сохраните пункт'); return; }
+    const parts = version.split('.');
+    const minor = (parseInt(parts[1] ?? '0', 10) || 0) + 1;
+    const next = `${parts[0] || '1'}.${minor}`;
+    const historyEntry = { version, date: new Date().toISOString(), author: authorName, comment: versionComment || undefined };
+    const newVersions = [historyEntry, ...versions];
+    setSaving(true);
+    try {
+      await api.put(`/control-points/${editId}`, { ...buildPayload(status), versions: newVersions, version: next });
+      setVersions(newVersions);
+      setVersion(next);
+      addToast('success', `Создана версия ${next}`);
+    } catch { addToast('error', 'Не удалось создать версию'); }
+    finally { setSaving(false); }
+  };
 
   const moveBlock = (i: number, dir: -1 | 1) => setReportBlocks((bs) => {
     const j = i + dir; if (j < 0 || j >= bs.length) return bs;
@@ -826,7 +850,22 @@ export default function ControlPointBuilderPage() {
             <Card title="Версионирование">
               <div className="space-y-3">
                 <div><label className={lbl}>{t('Текущая версия')}</label><input value={version} onChange={(e) => setVersion(e.target.value)} className={inputCls} /></div>
-                <div><label className={lbl}>{t('Комментарий к версии')}</label><textarea value={versionComment} onChange={(e) => setVersionComment(e.target.value)} rows={3} className={inputCls} /></div>
+                <div><label className={lbl}>{t('Комментарий к версии')}</label><textarea value={versionComment} onChange={(e) => setVersionComment(e.target.value)} rows={2} className={inputCls} /></div>
+                <button onClick={createNewVersion} disabled={saving || !editId} className="w-full py-2 rounded-lg text-sm font-medium border border-violet-300 text-violet-600 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-500/10 disabled:opacity-50">{t('Создать новую версию')}</button>
+                {versions.length > 0 && (
+                  <div className="pt-2 border-t border-gray-100 dark:border-gray-700">
+                    <div className="text-xs uppercase tracking-wide text-gray-400 mb-2">{t('История версий')}</div>
+                    <ol className="space-y-2">
+                      {versions.map((v, i) => (
+                        <li key={i} className="text-sm">
+                          <span className="font-medium text-gray-700 dark:text-gray-200">v{v.version}</span>
+                          <span className="text-xs text-gray-400 ml-2">{new Date(v.date).toLocaleDateString('ru-RU')}{v.author ? ` · ${v.author}` : ''}</span>
+                          {v.comment && <span className="block text-xs text-gray-500 dark:text-gray-400">{v.comment}</span>}
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
               </div>
             </Card>
           </div>
