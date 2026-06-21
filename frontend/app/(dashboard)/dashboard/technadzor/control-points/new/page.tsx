@@ -9,6 +9,52 @@ import { useT } from '@/lib/i18n';
 
 interface Pin { n: number; x: number; y: number; label?: string; color?: string }
 
+interface TypicalDefect {
+  name: string;
+  code?: string;
+  category?: string;
+  defectType?: string;
+  criticality?: number;
+  weight?: number;
+  blocksAcceptance?: boolean;
+  blocksOperation?: boolean;
+  requiresFix?: boolean;
+  photoRequired?: boolean;
+  requiresSchemeMark?: boolean;
+  photoMin?: number;
+  photoMax?: number;
+  description?: string;
+  recommendation?: string;
+}
+
+const inputCls = 'w-full text-sm rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-800 dark:text-gray-100';
+const lbl = 'block text-xs text-gray-500 dark:text-gray-400 mb-1';
+
+function Toggle({ on, set }: { on: boolean; set: (v: boolean) => void }) {
+  return (
+    <button onClick={() => set(!on)} className={`relative w-10 h-6 rounded-full transition shrink-0 ${on ? 'bg-violet-500' : 'bg-gray-300 dark:bg-gray-600'}`}>
+      <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${on ? 'translate-x-4' : ''}`} />
+    </button>
+  );
+}
+
+function Card({ title, children }: { title: string; children: React.ReactNode }) {
+  const t = useT();
+  return (
+    <div className="rounded-2xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-gray-800 p-5 shadow-xs">
+      <h3 className="text-xs uppercase tracking-wide font-semibold text-violet-500 mb-4">{t(title)}</h3>
+      {children}
+    </div>
+  );
+}
+
+const emptyDefect = (): TypicalDefect => ({
+  name: '', code: '', category: '', defectType: '', criticality: 2, weight: 10,
+  blocksAcceptance: false, blocksOperation: false, requiresFix: true,
+  photoRequired: true, requiresSchemeMark: false, photoMin: 1, photoMax: 5,
+  description: '', recommendation: '',
+});
+
 const CHECK_TYPES = [
   { v: 'visual', label: 'Визуальный' },
   { v: 'measuring', label: 'Измерительный' },
@@ -31,6 +77,13 @@ const STEPS = [
   { n: 4, label: 'Настройки отчёта' },
   { n: 5, label: 'Публикация' },
 ];
+const STEP_SUB: Record<number, string> = {
+  1: 'Создайте новый пункт проверки и задайте его основные параметры',
+  2: 'Добавьте типовые дефекты, которые могут быть выявлены по данному пункту',
+  3: 'Настройте шаблоны текстов для разных статусов проверки',
+  4: 'Настройте структуру и внешний вид отчёта по данной проверке',
+  5: 'Опубликуйте пункт и сделайте его доступным для использования',
+};
 
 export default function ControlPointBuilderPage() {
   const t = useT();
@@ -38,6 +91,11 @@ export default function ControlPointBuilderPage() {
   const params = useSearchParams();
   const editId = params.get('id');
   const addToast = useToastStore((s) => s.addToast);
+  const [step, setStep] = useState(Number(params.get('step')) || 1);
+
+  // Шаг 2 — типовые дефекты
+  const [defects, setDefects] = useState<TypicalDefect[]>([]);
+  const [selDefect, setSelDefect] = useState(0);
 
   // Шаг 1 — основные поля
   const [name, setName] = useState('');
@@ -95,6 +153,7 @@ export default function ControlPointBuilderPage() {
       setTags(Array.isArray(s.tags) ? s.tags.join(', ') : (s.tags || '')); setSortOrder(s.sortOrder ?? 10);
       const sc = data.scheme || {};
       setSchemeImageUrl(sc.imageUrl || ''); setPins(Array.isArray(sc.pins) ? sc.pins : []);
+      setDefects(Array.isArray(data.typicalDefects) ? data.typicalDefects : []);
     } catch {
       addToast('error', 'Не удалось загрузить пункт');
     } finally {
@@ -140,6 +199,7 @@ export default function ControlPointBuilderPage() {
       autoCreateDefect, defaultFixDays: defaultFixDays === '' ? undefined : defaultFixDays,
       tags: tags.split(',').map((s) => s.trim()).filter(Boolean), sortOrder,
     },
+    typicalDefects: defects.filter((d) => d.name.trim()),
   });
 
   const save = async (st: string, goNext = false) => {
@@ -151,29 +211,29 @@ export default function ControlPointBuilderPage() {
       if (editId) await api.put(`/control-points/${editId}`, payload);
       else { const { data } = await api.post('/control-points', payload); id = String(data.id); }
       addToast('success', st === 'active' ? 'Пункт опубликован' : 'Сохранено');
-      if (goNext && id) router.replace(`/dashboard/technadzor/control-points/new?id=${id}`);
-      else if (!goNext) router.push('/dashboard/technadzor/control-points');
+      if (goNext) {
+        const next = Math.min(step + 1, STEPS.length);
+        if (id) router.replace(`/dashboard/technadzor/control-points/new?id=${id}&step=${next}`);
+        setStep(next);
+      } else {
+        router.push('/dashboard/technadzor/control-points');
+      }
     } catch { addToast('error', 'Не удалось сохранить пункт'); }
     finally { setSaving(false); }
+  };
+
+  // мутации типовых дефектов
+  const updateDefect = (i: number, patch: Partial<TypicalDefect>) =>
+    setDefects((ds) => ds.map((d, j) => j === i ? { ...d, ...patch } : d));
+  const addDefect = () => { setDefects((ds) => [...ds, emptyDefect()]); setSelDefect(defects.length); };
+  const removeDefect = (i: number) => {
+    setDefects((ds) => ds.filter((_, j) => j !== i));
+    setSelDefect((s) => Math.max(0, s >= i ? s - 1 : s));
   };
 
   if (loading) {
     return <div className="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-9xl mx-auto"><div className="animate-pulse h-96 bg-gray-100 dark:bg-gray-800 rounded-2xl" /></div>;
   }
-
-  const Toggle = ({ on, set }: { on: boolean; set: (v: boolean) => void }) => (
-    <button onClick={() => set(!on)} className={`relative w-10 h-6 rounded-full transition ${on ? 'bg-violet-500' : 'bg-gray-300 dark:bg-gray-600'}`}>
-      <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${on ? 'translate-x-4' : ''}`} />
-    </button>
-  );
-  const Card = ({ title, children }: { title: string; children: React.ReactNode }) => (
-    <div className="rounded-2xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-gray-800 p-5 shadow-xs">
-      <h3 className="text-xs uppercase tracking-wide font-semibold text-violet-500 mb-4">{t(title)}</h3>
-      {children}
-    </div>
-  );
-  const inputCls = 'w-full text-sm rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-800 dark:text-gray-100';
-  const lbl = 'block text-xs text-gray-500 dark:text-gray-400 mb-1';
 
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-6 w-full max-w-9xl mx-auto">
@@ -187,29 +247,42 @@ export default function ControlPointBuilderPage() {
 
       <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3">
-          <span className="w-9 h-9 rounded-full bg-violet-600 text-white flex items-center justify-center font-bold">1</span>
+          <span className="w-9 h-9 rounded-full bg-violet-600 text-white flex items-center justify-center font-bold">{step}</span>
           <div>
-            <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">{t('Создание контрольного пункта')}</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">{t('Создайте новый пункт проверки и задайте его основные параметры')}</p>
+            <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">{t(STEPS[step - 1]?.label || 'Создание пункта')}</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{t(STEP_SUB[step] || '')}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <Link href="/dashboard/technadzor/control-points" className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50">{t('Отмена')}</Link>
           <button onClick={() => save('draft')} disabled={saving} className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 disabled:opacity-50">{t('Сохранить черновик')}</button>
-          <button onClick={() => save('draft', true)} disabled={saving} className="px-4 py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-700 text-white disabled:opacity-50">{t('Сохранить и далее')} →</button>
+          {step < STEPS.length ? (
+            <button onClick={() => save('draft', true)} disabled={saving} className="px-4 py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-700 text-white disabled:opacity-50">{t('Сохранить и далее')} →</button>
+          ) : (
+            <button onClick={() => save('active')} disabled={saving} className="px-4 py-2 rounded-lg text-sm font-medium bg-green-600 hover:bg-green-700 text-white disabled:opacity-50">{t('Опубликовать пункт')}</button>
+          )}
         </div>
       </div>
 
       {/* Степпер */}
       <div className="flex items-center gap-2 mb-6 overflow-x-auto no-scrollbar">
-        {STEPS.map((s) => (
-          <div key={s.n} className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm shrink-0 ${s.n === 1 ? 'bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400 font-medium' : 'text-gray-400'}`}>
-            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${s.n === 1 ? 'bg-violet-600 text-white' : 'bg-gray-200 dark:bg-gray-700'}`}>{s.n}</span>
-            {t(s.label)}
-          </div>
-        ))}
+        {STEPS.map((s) => {
+          const clickable = s.n === 1 || !!editId;
+          return (
+            <button
+              key={s.n}
+              onClick={() => clickable && setStep(s.n)}
+              disabled={!clickable}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm shrink-0 ${step === s.n ? 'bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400 font-medium' : 'text-gray-400'} ${clickable ? 'hover:text-gray-600 dark:hover:text-gray-200' : 'opacity-50 cursor-not-allowed'}`}
+            >
+              <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${step === s.n ? 'bg-violet-600 text-white' : 'bg-gray-200 dark:bg-gray-700'}`}>{s.n}</span>
+              {t(s.label)}
+            </button>
+          );
+        })}
       </div>
 
+      {step === 1 && (
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-5">
         <Card title="Основная информация">
           <div className="space-y-3">
@@ -344,6 +417,98 @@ export default function ControlPointBuilderPage() {
           </div>
         </Card>
       </div>
+      )}
+
+      {step === 2 && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          {/* Список дефектов */}
+          <div className="rounded-2xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-gray-800 p-4 shadow-xs">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-xs uppercase tracking-wide font-semibold text-violet-500">{t('Список дефектов')}</h3>
+              <button onClick={addDefect} className="text-sm text-violet-600 dark:text-violet-400 hover:underline">+ {t('Добавить')}</button>
+            </div>
+            {defects.length === 0 ? (
+              <p className="text-sm text-gray-400 py-6 text-center">{t('Дефектов нет')}</p>
+            ) : (
+              <ul className="space-y-1">
+                {defects.map((d, i) => {
+                  const cr = d.criticality != null ? CRITICALITY.find((c) => c.v === d.criticality) : undefined;
+                  return (
+                    <li key={i}>
+                      <button onClick={() => setSelDefect(i)} className={`w-full text-left px-3 py-2 rounded-lg flex items-center justify-between gap-2 ${i === selDefect ? 'bg-violet-50 dark:bg-violet-500/10' : 'hover:bg-gray-50 dark:hover:bg-gray-700/30'}`}>
+                        <span className="min-w-0">
+                          <span className="block text-sm text-gray-800 dark:text-gray-100 truncate">{d.name || t('Без названия')}</span>
+                          <span className="block text-xs text-gray-400 font-mono">{d.code || '—'}</span>
+                        </span>
+                        <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${d.criticality === 4 || d.criticality === 3 ? 'bg-red-500' : d.criticality === 2 ? 'bg-yellow-500' : 'bg-green-500'}`} title={cr ? t(cr.label) : ''} />
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+
+          {/* Параметры дефекта */}
+          <div className="lg:col-span-2 rounded-2xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-gray-800 p-5 shadow-xs">
+            {defects[selDefect] ? (() => {
+              const d = defects[selDefect];
+              const set = (patch: Partial<TypicalDefect>) => updateDefect(selDefect, patch);
+              return (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs uppercase tracking-wide font-semibold text-violet-500">{t('Параметры дефекта')}</h3>
+                    <button onClick={() => removeDefect(selDefect)} className="text-red-400 hover:text-red-600 text-sm">{t('Удалить')}</button>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div><label className={lbl}>{t('Название дефекта')} *</label><input value={d.name} onChange={(e) => set({ name: e.target.value })} className={inputCls} /></div>
+                    <div><label className={lbl}>{t('Код дефекта')}</label><input value={d.code ?? ''} onChange={(e) => set({ code: e.target.value })} className={inputCls} placeholder="WIN-001-DEF-001" /></div>
+                    <div><label className={lbl}>{t('Категория')}</label><input value={d.category ?? ''} onChange={(e) => set({ category: e.target.value })} className={inputCls} placeholder={t('Внешний вид')} /></div>
+                    <div><label className={lbl}>{t('Тип дефекта')}</label><input value={d.defectType ?? ''} onChange={(e) => set({ defectType: e.target.value })} className={inputCls} placeholder={t('Повреждение поверхности')} /></div>
+                    <div>
+                      <label className={lbl}>{t('Критичность')}</label>
+                      <select value={d.criticality ?? 2} onChange={(e) => set({ criticality: Number(e.target.value) })} className={inputCls}>
+                        {CRITICALITY.map((c) => <option key={c.v} value={c.v}>{t(c.label)}</option>)}
+                      </select>
+                    </div>
+                    <div><label className={lbl}>{t('Вес дефекта (для рейтинга)')}</label><input type="number" value={d.weight ?? 0} onChange={(e) => set({ weight: Number(e.target.value) })} className={inputCls} /></div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {([
+                      { k: 'blocksAcceptance', label: 'Блокирует приёмку' },
+                      { k: 'blocksOperation', label: 'Блокирует эксплуатацию' },
+                      { k: 'requiresFix', label: 'Требует устранения' },
+                      { k: 'photoRequired', label: 'Фото обязательно' },
+                      { k: 'requiresSchemeMark', label: 'Отметка на схеме' },
+                    ] as const).map((row) => (
+                      <label key={row.k} className="flex items-center justify-between gap-2 rounded-lg border border-gray-100 dark:border-gray-700 px-3 py-2">
+                        <span className="text-sm text-gray-700 dark:text-gray-200">{t(row.label)}</span>
+                        <Toggle on={!!d[row.k]} set={(v) => set({ [row.k]: v } as Partial<TypicalDefect>)} />
+                      </label>
+                    ))}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div><label className={lbl}>{t('Фото мин')}</label><input type="number" value={d.photoMin ?? 0} onChange={(e) => set({ photoMin: Number(e.target.value) })} className={inputCls} /></div>
+                      <div><label className={lbl}>{t('Фото макс')}</label><input type="number" value={d.photoMax ?? 0} onChange={(e) => set({ photoMax: Number(e.target.value) })} className={inputCls} /></div>
+                    </div>
+                  </div>
+
+                  <div><label className={lbl}>{t('Описание дефекта (в отчёте)')}</label><textarea value={d.description ?? ''} onChange={(e) => set({ description: e.target.value })} rows={3} className={inputCls} /></div>
+                  <div><label className={lbl}>{t('Рекомендации по устранению')}</label><textarea value={d.recommendation ?? ''} onChange={(e) => set({ recommendation: e.target.value })} rows={2} className={inputCls} /></div>
+                </div>
+              );
+            })() : (
+              <div className="py-12 text-center text-sm text-gray-400">{t('Добавьте дефект или выберите из списка')}</div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {step >= 3 && (
+        <div className="rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 p-10 text-center text-sm text-gray-400">
+          {t('Этот шаг в разработке')} — {t(STEPS[step - 1].label)}. {t('Данные сохраняются; наполнение подключается следующей итерацией.')}
+        </div>
+      )}
     </div>
   );
 }
