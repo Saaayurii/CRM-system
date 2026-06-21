@@ -1017,6 +1017,7 @@ CREATE TABLE inspection_checklist_templates (
     name VARCHAR(255) NOT NULL,
     inspection_type VARCHAR(100),
     checklist_items JSONB DEFAULT '[]',
+    settings JSONB DEFAULT '{}',
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

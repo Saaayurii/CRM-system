@@ -5,6 +5,7 @@ import {
   IsString,
   IsBoolean,
   IsArray,
+  IsObject,
   MaxLength,
 } from 'class-validator';
 
@@ -33,4 +34,12 @@ export class CreateInspectionTemplateDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Настройки инспекции (требовать фото, авто-создавать дефекты, вес и т.п.)',
+    default: {},
+  })
+  @IsOptional()
+  @IsObject()
+  settings?: Record<string, unknown>;
 }

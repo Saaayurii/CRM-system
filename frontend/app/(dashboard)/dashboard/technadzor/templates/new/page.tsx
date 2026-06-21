@@ -13,6 +13,14 @@ interface Section { title: string; items: Point[]; collapsed?: boolean; }
 const emptyPoint = (): Point => ({ code: '', name: '', required: true });
 const emptySection = (): Section => ({ title: '', items: [emptyPoint()] });
 
+const ROLE_OPTIONS: Array<{ id: number; label: string }> = [
+  { id: 1, label: 'Супер-админ' },
+  { id: 2, label: 'Админ' },
+  { id: 4, label: 'Проект-менеджер' },
+  { id: 5, label: 'Прораб' },
+  { id: 9, label: 'Инспектор' },
+];
+
 // Нормализуем что угодно из БД в секции (совместимо с проведением инспекции)
 function fromChecklistItems(items: any): Section[] {
   if (!Array.isArray(items) || items.length === 0) return [emptySection()];
@@ -42,6 +50,14 @@ export default function TemplateConstructorPage() {
   const [sections, setSections] = useState<Section[]>([emptySection()]);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(!!editId);
+  const [tab, setTab] = useState<'structure' | 'settings' | 'access'>('structure');
+  // Настройки инспекции
+  const [objectApplication, setObjectApplication] = useState('');
+  const [ratingWeight, setRatingWeight] = useState<number>(100);
+  const [requirePhoto, setRequirePhoto] = useState(false);
+  const [allowSkip, setAllowSkip] = useState(false);
+  const [autoCreateDefects, setAutoCreateDefects] = useState(false);
+  const [allowedRoleIds, setAllowedRoleIds] = useState<number[]>([]);
 
   const load = useCallback(async () => {
     if (!editId) return;
@@ -50,6 +66,13 @@ export default function TemplateConstructorPage() {
       setName(data.name || '');
       setInspectionType(data.inspectionType || '');
       setSections(fromChecklistItems(data.checklistItems));
+      const s = data.settings || {};
+      setObjectApplication(s.objectApplication || '');
+      setRatingWeight(typeof s.ratingWeight === 'number' ? s.ratingWeight : 100);
+      setRequirePhoto(!!s.requirePhoto);
+      setAllowSkip(!!s.allowSkip);
+      setAutoCreateDefects(!!s.autoCreateDefects);
+      setAllowedRoleIds(Array.isArray(s.allowedRoleIds) ? s.allowedRoleIds : []);
     } catch {
       addToast('error', 'Не удалось загрузить шаблон');
     } finally {
@@ -98,6 +121,14 @@ export default function TemplateConstructorPage() {
     name: name.trim(),
     inspectionType: inspectionType.trim() || undefined,
     isActive,
+    settings: {
+      objectApplication: objectApplication.trim() || undefined,
+      ratingWeight,
+      requirePhoto,
+      allowSkip,
+      autoCreateDefects,
+      allowedRoleIds,
+    },
     checklistItems: sections
       .filter((s) => s.title.trim() || s.items.some((p) => p.name.trim()))
       .map((s) => ({
@@ -150,6 +181,78 @@ export default function TemplateConstructorPage() {
         </div>
       </div>
 
+      {/* Вкладки конструктора */}
+      <div className="flex border-b border-gray-200 dark:border-gray-700 mb-6">
+        {([
+          { k: 'structure', label: 'Структура шаблона' },
+          { k: 'settings', label: 'Настройки инспекции' },
+          { k: 'access', label: 'Права доступа' },
+        ] as const).map((it) => (
+          <button
+            key={it.k}
+            onClick={() => setTab(it.k)}
+            className={`px-4 py-3 text-sm font-medium border-b-2 -mb-px transition ${
+              tab === it.k
+                ? 'border-violet-500 text-violet-600 dark:text-violet-400'
+                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+            }`}
+          >
+            {t(it.label)}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'settings' && (
+        <div className="max-w-2xl rounded-2xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-gray-800 p-5 shadow-xs space-y-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('Объект применения')}</label>
+              <input value={objectApplication} onChange={(e) => setObjectApplication(e.target.value)} placeholder={t('Напр.: Квартира / Помещение')} className="w-full text-sm rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-800 dark:text-gray-100" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('Вес инспекции для рейтинга')}</label>
+              <input type="number" value={ratingWeight} onChange={(e) => setRatingWeight(Number(e.target.value))} className="w-full text-sm rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-800 dark:text-gray-100" />
+            </div>
+          </div>
+          {([
+            { v: requirePhoto, set: setRequirePhoto, label: 'Требовать фото по каждому пункту', hint: 'Завершение инспекции потребует фото на каждом проверенном пункте' },
+            { v: allowSkip, set: setAllowSkip, label: 'Разрешить пропуск пунктов', hint: 'Можно завершить инспекцию с непроверенными пунктами' },
+            { v: autoCreateDefects, set: setAutoCreateDefects, label: 'Автоматически создавать дефекты', hint: 'При статусе «Не соответствует» дефект создаётся автоматически' },
+          ] as const).map((row, i) => (
+            <label key={i} className="flex items-start justify-between gap-4 cursor-pointer">
+              <span>
+                <span className="text-sm text-gray-800 dark:text-gray-100">{t(row.label)}</span>
+                <span className="block text-xs text-gray-400">{t(row.hint)}</span>
+              </span>
+              <input type="checkbox" checked={row.v} onChange={(e) => row.set(e.target.checked)} className="mt-1 shrink-0" />
+            </label>
+          ))}
+        </div>
+      )}
+
+      {tab === 'access' && (
+        <div className="max-w-2xl rounded-2xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-gray-800 p-5 shadow-xs">
+          <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-1">{t('Кто может проводить инспекции по шаблону')}</h3>
+          <p className="text-xs text-gray-400 mb-4">{t('Пусто = доступно всем ролям с доступом к технадзору')}</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {ROLE_OPTIONS.map((r) => {
+              const on = allowedRoleIds.includes(r.id);
+              return (
+                <label key={r.id} className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200 cursor-pointer rounded-lg border border-gray-100 dark:border-gray-700 px-3 py-2">
+                  <input
+                    type="checkbox"
+                    checked={on}
+                    onChange={(e) => setAllowedRoleIds((ids) => e.target.checked ? [...ids, r.id] : ids.filter((x) => x !== r.id))}
+                  />
+                  {t(r.label)}
+                </label>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {tab === 'structure' && (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Структура */}
         <div className="lg:col-span-2 space-y-4">
@@ -249,6 +352,7 @@ export default function TemplateConstructorPage() {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }
