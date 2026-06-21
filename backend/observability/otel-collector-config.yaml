@@ -1,4 +1,7 @@
-# OpenTelemetry Collector — принимает OTLP от сервисов, отправляет трейсы в Tempo.
+# OpenTelemetry Collector:
+#  - принимает OTLP от сервисов;
+#  - складывает трейсы в Tempo;
+#  - из тех же трейсов считает RED-метрики (spanmetrics) и отдаёт их Prometheus.
 receivers:
   otlp:
     protocols:
@@ -6,6 +9,18 @@ receivers:
         endpoint: 0.0.0.0:4317
       http:
         endpoint: 0.0.0.0:4318
+
+connectors:
+  # Считает метрики (rate/errors/duration) из спанов — без изменений в сервисах.
+  spanmetrics:
+    histogram:
+      explicit:
+        buckets: [5ms, 10ms, 25ms, 50ms, 100ms, 250ms, 500ms, 1s, 2s, 5s, 10s]
+    dimensions:
+      - name: http.method
+      - name: http.route
+      - name: http.status_code
+    metrics_flush_interval: 15s
 
 processors:
   batch:
@@ -16,10 +31,20 @@ exporters:
     endpoint: tempo:4317
     tls:
       insecure: true
+  # Prometheus скрейпит этот endpoint (см. prometheus.yml).
+  prometheus:
+    endpoint: 0.0.0.0:8889
+    send_timestamps: true
+    resource_to_telemetry_conversion:
+      enabled: true
 
 service:
   pipelines:
     traces:
       receivers: [otlp]
       processors: [batch]
-      exporters: [otlp/tempo]
+      exporters: [otlp/tempo, spanmetrics]
+    metrics:
+      receivers: [spanmetrics]
+      processors: [batch]
+      exporters: [prometheus]

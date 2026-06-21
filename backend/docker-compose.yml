@@ -23,6 +23,8 @@ volumes:
     driver: local
   grafana_data:
     driver: local
+  prometheus_data:
+    driver: local
 
 # Общие OTel-переменные для всех Node-сервисов (zero-code авто-инструментация).
 # В каждом сервисе мержится через `<<: *otel-env` + свой OTEL_SERVICE_NAME.
@@ -1122,6 +1124,22 @@ services:
     networks:
       - crm-network
 
+  # Prometheus — хранит RED-метрики, скрейпит их из otel-collector:8889.
+  prometheus:
+    image: prom/prometheus:v3.1.0
+    container_name: crm-prometheus
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=15d"
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - crm-network
+    depends_on:
+      - otel-collector
+
   grafana:
     image: grafana/grafana:11.4.0
     container_name: crm-grafana
@@ -1133,9 +1151,12 @@ services:
       GF_AUTH_ANONYMOUS_ORG_ROLE: "Admin"
       GF_AUTH_DISABLE_LOGIN_FORM: "true"
     volumes:
-      - ./observability/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/tempo.yaml:ro
+      - ./observability/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml:ro
+      - ./observability/grafana-dashboards.yaml:/etc/grafana/provisioning/dashboards/crm.yaml:ro
+      - ./observability/dashboards:/etc/grafana/provisioning/dashboards/json:ro
       - grafana_data:/var/lib/grafana
     networks:
       - crm-network
     depends_on:
       - tempo
+      - prometheus
