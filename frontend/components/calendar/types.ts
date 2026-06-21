@@ -2,6 +2,7 @@ export type CalendarSource =
   | 'calendar'
   | 'tasks'
   | 'inspections'
+  | 'defects'
   | 'timeoff'
   | 'attendance'
   | 'projects'
@@ -41,6 +42,7 @@ export const SOURCE_LABELS: Record<string, string> = {
   calendar: 'События',
   tasks: 'Задачи',
   inspections: 'Инспекции',
+  defects: 'Дефекты',
   timeoff: 'Отпуска',
   attendance: 'Табель',
   projects: 'Вехи проектов',
@@ -51,6 +53,7 @@ export const SOURCE_COLORS: Record<string, string> = {
   calendar: '#3b82f6',
   tasks: '#f59e0b',
   inspections: '#10b981',
+  defects: '#ef4444',
   timeoff: '#a855f7',
   attendance: '#64748b',
   projects: '#0ea5e9',
@@ -70,6 +73,8 @@ export const TYPE_META: Record<
   tasks:           { label: 'Задача',   color: '#f59e0b', icon: 'task' },
   inspection:      { label: 'Инспекция',color: '#10b981', icon: 'inspection' },
   inspections:     { label: 'Инспекция',color: '#10b981', icon: 'inspection' },
+  defect:          { label: 'Дефект',   color: '#ef4444', icon: 'inspection' },
+  defects:         { label: 'Дефект',   color: '#ef4444', icon: 'inspection' },
   time_off:        { label: 'Отпуск',   color: '#a855f7', icon: 'time_off' },
   timeoff:         { label: 'Отпуск',   color: '#a855f7', icon: 'time_off' },
   attendance:      { label: 'Табель',   color: '#64748b', icon: 'time_off' },

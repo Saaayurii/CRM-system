@@ -26,6 +26,7 @@ const COLOR_BY_SOURCE: Record<string, string> = {
   manual: '#3b82f6',
   task: '#f59e0b',
   inspection: '#10b981',
+  defect: '#ef4444',
   time_off: '#a855f7',
   attendance: '#64748b',
   project: '#0ea5e9',
@@ -68,6 +69,8 @@ export class CalendarFeedService {
       tasks.push(this.fromTasks(accountId, userId, query, authToken, accountHeader));
     if (sources.includes('inspections'))
       tasks.push(this.fromInspections(accountId, userId, query, authToken, accountHeader));
+    if (sources.includes('defects'))
+      tasks.push(this.fromDefects(accountId, userId, query, authToken, accountHeader));
     if (sources.includes('timeoff'))
       tasks.push(this.fromTimeOff(accountId, userId, query, authToken, accountHeader));
     if (sources.includes('attendance'))
@@ -109,6 +112,7 @@ export class CalendarFeedService {
       probe('calendar', () => this.fromCalendarEvents(accountId, userId, query, sources)),
       probe('tasks', () => this.fromTasks(accountId, userId, query, authToken, accountHeader)),
       probe('inspections', () => this.fromInspections(accountId, userId, query, authToken, accountHeader)),
+      probe('defects', () => this.fromDefects(accountId, userId, query, authToken, accountHeader)),
       probe('timeoff', () => this.fromTimeOff(accountId, userId, query, authToken, accountHeader)),
       probe('attendance', () => this.fromAttendance(accountId, userId, query, authToken, accountHeader)),
       probe('projects', () => this.fromProjects(accountId, userId, query, authToken, accountHeader)),
@@ -318,11 +322,58 @@ export class CalendarFeedService {
             userId: i.inspectorId ?? i.inspector_id ?? undefined,
             status: i.status,
             editable: false,
-            url: `/dashboard/inspector/inspections?id=${i.id}`,
+            url: `/dashboard/technadzor/inspections/${i.id}`,
           }),
         );
     } catch (e: any) {
       this.logger.warn(`inspections feed failed: ${e?.message}`);
+      return [];
+    }
+  }
+
+  // Сроки устранения дефектов (dueDate) — для календаря технадзора
+  private async fromDefects(
+    accountId: number,
+    userId: number,
+    query: { start: string; end: string; projectId?: number; mine?: boolean },
+    authToken?: string,
+    accountHeader?: string,
+  ): Promise<FeedEvent[]> {
+    const baseUrl = this.config.get<string>('INSPECTIONS_SERVICE_URL') ||
+      'http://inspections-service:3008';
+    try {
+      const url = `${baseUrl}/defects?limit=500${query.projectId ? `&projectId=${query.projectId}` : ''}`;
+      const { data } = await firstValueFrom(
+        this.http.get(url, { headers: this.auth(authToken, accountHeader) }),
+      );
+      const items: any[] = data?.data ?? data ?? [];
+      const startD = new Date(query.start).getTime();
+      const endD = new Date(query.end).getTime();
+      return items
+        .filter((d) => d.dueDate || d.due_date)
+        .filter((d) => {
+          if (query.mine && d.assignedToUserId !== userId) return false;
+          const t = new Date(d.dueDate ?? d.due_date).getTime();
+          return t >= startD && t <= endD;
+        })
+        .map(
+          (d): FeedEvent => ({
+            id: `defect:${d.id}`,
+            title: `[Дефект] ${d.title ?? d.defectNumber ?? `#${d.id}`}`,
+            start: new Date(d.dueDate ?? d.due_date).toISOString(),
+            allDay: true,
+            color: COLOR_BY_SOURCE.defect ?? '#ef4444',
+            sourceType: 'defect',
+            sourceId: d.id,
+            projectId: d.projectId,
+            userId: d.assignedToUserId ?? d.assigned_to_user_id ?? undefined,
+            status: d.status,
+            editable: false,
+            url: `/dashboard/technadzor/defects/${d.id}`,
+          }),
+        );
+    } catch (e: any) {
+      this.logger.warn(`defects feed failed: ${e?.message}`);
       return [];
     }
   }

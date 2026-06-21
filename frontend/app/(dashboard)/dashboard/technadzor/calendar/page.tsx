@@ -15,8 +15,8 @@ export default function Page() {
       <UnifiedCalendar
         title={t('Календарь инспекций')}
         subtitle={t('Запланированные инспекции и сроки устранения дефектов')}
-        defaultSources={['inspections', 'tasks', 'calendar', 'external']}
-        availableSources={['inspections', 'tasks', 'calendar', 'projects', 'external']}
+        defaultSources={['inspections', 'defects']}
+        availableSources={['inspections', 'defects']}
         defaultView="month"
       />
     </div>
