@@ -1,16 +1,12 @@
 'use client';
-import TechnadzorScaffold from '@/components/technadzor/TechnadzorScaffold';
+import TechnadzorListPage from '@/components/technadzor/TechnadzorListPage';
+import { technadzorContractorsConfig } from '@/lib/admin/technadzorConfigs';
 
 export default function Page() {
   return (
-    <TechnadzorScaffold
-      title="Подрядчики"
-      subtitle="Контрагенты и подрядчики (suppliers-service)"
+    <TechnadzorListPage
+      config={technadzorContractorsConfig()}
       breadcrumbs={[{ label: 'Справочники' }, { label: 'Подрядчики' }]}
-      planned={[
-        { title: 'Справочник подрядчиков', description: 'Данные подтягиваются из suppliers-service (contractors), не дублируются.' },
-        { title: 'Качество', description: 'Сводка по дефектам и рейтингу подрядчика.' },
-      ]}
     />
   );
 }

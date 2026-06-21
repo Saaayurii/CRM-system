@@ -64,3 +64,15 @@ export const technadzorObjectsConfig = () =>
   withVariant(ADMIN_MODULES['construction-sites'], {
     title: 'Объекты',
   });
+
+// ─── Шаблоны инспекций (inspections-service) ───
+export const technadzorTemplatesConfig = () =>
+  withVariant(ADMIN_MODULES['inspection-templates'], {
+    title: 'Шаблоны инспекций',
+  });
+
+// ─── Подрядчики (suppliers-service) ───
+export const technadzorContractorsConfig = () =>
+  withVariant(ADMIN_MODULES.contractors, {
+    title: 'Подрядчики',
+  });

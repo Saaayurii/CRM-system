@@ -1,16 +1,12 @@
 'use client';
-import TechnadzorScaffold from '@/components/technadzor/TechnadzorScaffold';
+import TechnadzorListPage from '@/components/technadzor/TechnadzorListPage';
+import { technadzorTemplatesConfig } from '@/lib/admin/technadzorConfigs';
 
 export default function Page() {
   return (
-    <TechnadzorScaffold
-      title="Шаблоны инспекций"
-      subtitle="Конструктор чек-листов для инспекций"
+    <TechnadzorListPage
+      config={technadzorTemplatesConfig()}
       breadcrumbs={[{ label: 'Справочники' }, { label: 'Шаблоны инспекций' }]}
-      planned={[
-        { title: 'Список шаблонов', description: 'Шаблоны чек-листов с типом инспекции и кол-вом пунктов.' },
-        { title: 'Новый шаблон', description: 'Переход в конструктор: разделы + пункты из библиотеки.' },
-      ]}
     />
   );
 }

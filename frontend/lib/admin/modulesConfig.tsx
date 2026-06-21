@@ -164,6 +164,105 @@ const PROJECT_STATUS_MAP: Record<number, { label: string; color: string }> = {
 // ─── Module configs ───────────────────────────────────────────────────────────
 
 export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
+  'inspection-templates': {
+    slug: 'inspection-templates',
+    title: 'Шаблоны инспекций',
+    apiEndpoint: '/inspection-templates',
+    searchField: 'названию',
+    columns: [
+      { key: 'id', header: 'ID', sortable: true, width: '70px' },
+      { key: 'name', header: 'Название', sortable: true },
+      {
+        key: 'inspectionType',
+        header: 'Тип',
+        render: (v) => v ? <span className="text-sm text-gray-700 dark:text-gray-200">{String(v)}</span> : <span className="text-gray-400">—</span>,
+      },
+      {
+        key: 'checklistItems',
+        header: 'Пунктов',
+        width: '100px',
+        render: (v) => {
+          const arr = Array.isArray(v) ? v : [];
+          const count = arr.reduce((acc: number, s: any) => acc + (Array.isArray(s?.items) ? s.items.length : Array.isArray(s?.points) ? s.points.length : 1), 0);
+          return <span className="text-sm text-gray-500 dark:text-gray-400">{arr.length ? count : 0}</span>;
+        },
+      },
+      {
+        key: 'isActive',
+        header: 'Статус',
+        width: '110px',
+        render: (v) => v === false
+          ? <StatusBadge label="Черновик" color="gray" />
+          : <StatusBadge label="Активен" color="green" />,
+      },
+      { key: 'createdAt', header: 'Создан', sortable: true, render: (v) => fmtDate(v) },
+    ],
+    formFields: [
+      { key: 'name', label: 'Название', type: 'text', required: true },
+      { key: 'inspectionType', label: 'Тип инспекции', type: 'text' },
+      { key: 'isActive', label: 'Активен', type: 'checkbox' },
+    ],
+  },
+  contractors: {
+    slug: 'contractors',
+    title: 'Подрядчики',
+    apiEndpoint: '/contractors',
+    searchField: 'названию',
+    columns: [
+      { key: 'id', header: 'ID', sortable: true, width: '70px' },
+      { key: 'name', header: 'Название', sortable: true },
+      {
+        key: 'inn',
+        header: 'ИНН',
+        render: (v) => v ? <span className="text-sm text-gray-700 dark:text-gray-200">{String(v)}</span> : <span className="text-gray-400">—</span>,
+      },
+      {
+        key: 'contactPerson',
+        header: 'Контакт',
+        render: (v) => v ? <span className="text-sm text-gray-700 dark:text-gray-200">{String(v)}</span> : <span className="text-gray-400">—</span>,
+      },
+      {
+        key: 'phone',
+        header: 'Телефон',
+        render: (v) => v ? <span className="text-sm text-gray-500 dark:text-gray-400">{String(v)}</span> : <span className="text-gray-400">—</span>,
+      },
+      {
+        key: 'rating',
+        header: 'Рейтинг',
+        width: '90px',
+        render: (v) => v != null ? <span className="text-sm text-gray-700 dark:text-gray-200">★ {String(v)}</span> : <span className="text-gray-400">—</span>,
+      },
+      {
+        key: 'status',
+        header: 'Статус',
+        width: '110px',
+        render: (v) => Number(v) === 1
+          ? <StatusBadge label="Активен" color="green" />
+          : <StatusBadge label="Неактивен" color="gray" />,
+      },
+    ],
+    formFields: [
+      { key: 'name', label: 'Название', type: 'text', required: true },
+      { key: 'legalName', label: 'Юр. название', type: 'text' },
+      { key: 'inn', label: 'ИНН', type: 'text' },
+      { key: 'kpp', label: 'КПП', type: 'text' },
+      { key: 'contactPerson', label: 'Контактное лицо', type: 'text' },
+      { key: 'phone', label: 'Телефон', type: 'text' },
+      { key: 'email', label: 'Email', type: 'text' },
+      { key: 'legalAddress', label: 'Юр. адрес', type: 'textarea' },
+      { key: 'paymentTerms', label: 'Условия оплаты', type: 'text' },
+      {
+        key: 'status',
+        label: 'Статус',
+        type: 'select',
+        options: [
+          { value: 1, label: 'Активен' },
+          { value: 0, label: 'Неактивен' },
+        ],
+      },
+      { key: 'notes', label: 'Заметки', type: 'textarea' },
+    ],
+  },
   users: {
     slug: 'users',
     title: 'Пользователи',
