@@ -67,6 +67,7 @@ export default function DefectDetailPage() {
   const [saving, setSaving] = useState(false);
   const [users, setUsers] = useState<Record<number, string>>({});
   const [activePhoto, setActivePhoto] = useState(0);
+  const [tab, setTab] = useState<'desc' | 'media' | 'links' | 'history'>('desc');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -156,6 +157,15 @@ export default function DefectDetailPage() {
   const docs = defect.documents ?? [];
   const overdue = defect.dueDate && (defect.status ?? 0) < 3 && new Date(defect.dueDate) < new Date();
 
+  // История строится из дат самого дефекта (без отдельной таблицы)
+  const timeline: Array<{ label: string; date?: string; who?: string }> = [
+    { label: 'Дефект выявлен', date: defect.reportedDate || defect.createdAt, who: defect.reportedByUserId ? users[defect.reportedByUserId] : undefined },
+    ...(defect.assignedToUserId ? [{ label: 'Назначен исполнитель', date: defect.createdAt, who: users[defect.assignedToUserId] }] : []),
+    ...(defect.fixedDate ? [{ label: 'Отмечен устранённым', date: defect.fixedDate }] : []),
+    ...(defect.verifiedDate ? [{ label: 'Проверен', date: defect.verifiedDate, who: defect.verifiedByUserId ? users[defect.verifiedByUserId] : undefined }] : []),
+    ...((defect.status ?? 0) === 5 ? [{ label: 'Дефект закрыт', date: defect.updatedAt }] : []),
+  ].filter((e) => e.date);
+
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-9xl mx-auto">
       <nav className="mb-4 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 flex-wrap">
@@ -180,6 +190,7 @@ export default function DefectDetailPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
+          {/* Мета (всегда видна) */}
           <div className="rounded-2xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-gray-800 p-5 shadow-xs grid grid-cols-2 sm:grid-cols-4 gap-4">
             <Field label="Статус">
               <select
@@ -198,53 +209,105 @@ export default function DefectDetailPage() {
             <Field label="Создан">{fmtDate(defect.createdAt)}</Field>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-gray-800 p-5 shadow-xs">
-            <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-3">{t('Описание')}</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{defect.description || t('Описание не указано')}</p>
-            {defect.correctionDescription && (
-              <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
-                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">{t('Описание устранения')}</h4>
-                <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{defect.correctionDescription}</p>
-              </div>
-            )}
-          </div>
+          {/* Вкладки */}
+          <div className="rounded-2xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-gray-800 shadow-xs overflow-hidden">
+            <div className="flex border-b border-gray-100 dark:border-gray-700 px-2">
+              {([
+                { k: 'desc', label: 'Описание' },
+                { k: 'media', label: `Фото и файлы (${photos.length + docs.length})` },
+                { k: 'links', label: 'Связи' },
+                { k: 'history', label: 'История' },
+              ] as const).map((it) => (
+                <button
+                  key={it.k}
+                  onClick={() => setTab(it.k)}
+                  className={`px-4 py-3 text-sm font-medium border-b-2 -mb-px transition ${
+                    tab === it.k
+                      ? 'border-violet-500 text-violet-600 dark:text-violet-400'
+                      : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                  }`}
+                >
+                  {t(it.label)}
+                </button>
+              ))}
+            </div>
 
-          {photos.length > 0 && (
-            <div className="rounded-2xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-gray-800 p-5 shadow-xs">
-              <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-3">{t('Фото дефекта')} ({photos.length})</h3>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={photos[activePhoto]} alt="" className="w-full max-h-[420px] object-contain rounded-xl bg-gray-50 dark:bg-gray-900" />
-              {photos.length > 1 && (
-                <div className="flex gap-2 mt-3 overflow-x-auto no-scrollbar">
-                  {photos.map((p, i) => (
-                    <button key={i} onClick={() => setActivePhoto(i)} className={`shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 ${i === activePhoto ? 'border-violet-500' : 'border-transparent'}`}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={p} alt="" className="w-full h-full object-cover" />
-                    </button>
-                  ))}
+            <div className="p-5">
+              {tab === 'desc' && (
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{defect.description || t('Описание не указано')}</p>
+                  {defect.correctionDescription && (
+                    <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+                      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">{t('Описание устранения')}</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{defect.correctionDescription}</p>
+                    </div>
+                  )}
                 </div>
               )}
-            </div>
-          )}
 
-          {docs.length > 0 && (
-            <div className="rounded-2xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-gray-800 p-5 shadow-xs">
-              <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-3">{t('Файлы')}</h3>
-              <ul className="space-y-2">
-                {docs.map((d, i) => {
-                  const url = fileUrl(d);
-                  const name = typeof d === 'object' && d.name ? d.name : url.split('/').pop() || `file-${i}`;
-                  return (
-                    <li key={i}>
-                      <a href={url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-violet-600 dark:text-violet-400 hover:underline">
-                        <span>📄</span> {name}
-                      </a>
+              {tab === 'media' && (
+                <div className="space-y-5">
+                  {photos.length > 0 ? (
+                    <div>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={photos[activePhoto]} alt="" className="w-full max-h-[420px] object-contain rounded-xl bg-gray-50 dark:bg-gray-900" />
+                      {photos.length > 1 && (
+                        <div className="flex gap-2 mt-3 overflow-x-auto no-scrollbar">
+                          {photos.map((p, i) => (
+                            <button key={i} onClick={() => setActivePhoto(i)} className={`shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 ${i === activePhoto ? 'border-violet-500' : 'border-transparent'}`}>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={p} alt="" className="w-full h-full object-cover" />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : <p className="text-sm text-gray-400">{t('Фото не прикреплены')}</p>}
+                  {docs.length > 0 && (
+                    <ul className="space-y-2 pt-2 border-t border-gray-100 dark:border-gray-700">
+                      {docs.map((d, i) => {
+                        const url = fileUrl(d);
+                        const name = typeof d === 'object' && d.name ? d.name : url.split('/').pop() || `file-${i}`;
+                        return (
+                          <li key={i}>
+                            <a href={url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-violet-600 dark:text-violet-400 hover:underline">
+                              <span>📄</span> {name}
+                            </a>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </div>
+              )}
+
+              {tab === 'links' && (
+                <div className="space-y-2 text-sm">
+                  {defect.inspectionId ? (
+                    <Link href={`/dashboard/technadzor/inspections/${defect.inspectionId}`} className="block text-violet-600 dark:text-violet-400 hover:underline">🔍 {t('Инспекция')} #{defect.inspectionId}</Link>
+                  ) : <p className="text-gray-400">{t('Инспекция не привязана')}</p>}
+                  {defect.taskId ? (
+                    <Link href={`/dashboard/tasks?id=${defect.taskId}`} className="block text-violet-600 dark:text-violet-400 hover:underline">✅ {t('Задача')} #{defect.taskId}</Link>
+                  ) : <p className="text-gray-400">{t('Задача не создана')}</p>}
+                  {defect.projectId ? <p className="text-gray-500 dark:text-gray-400">🏢 {t('Проект')} #{defect.projectId}</p> : null}
+                  {defect.constructionSiteId ? <p className="text-gray-500 dark:text-gray-400">📍 {t('Объект')} #{defect.constructionSiteId}</p> : null}
+                </div>
+              )}
+
+              {tab === 'history' && (
+                <ol className="relative border-l border-gray-200 dark:border-gray-700 ml-2 space-y-4">
+                  {timeline.length === 0 && <p className="text-sm text-gray-400 ml-4">{t('Нет событий')}</p>}
+                  {timeline.map((e, i) => (
+                    <li key={i} className="ml-4">
+                      <span className="absolute -left-1.5 w-3 h-3 rounded-full bg-violet-500" />
+                      <div className="text-sm text-gray-800 dark:text-gray-100">{t(e.label)}</div>
+                      <div className="text-xs text-gray-400">{fmtDate(e.date)}{e.who ? ` · ${e.who}` : ''}</div>
                     </li>
-                  );
-                })}
-              </ul>
+                  ))}
+                </ol>
+              )}
             </div>
-          )}
+          </div>
         </div>
 
         <div className="space-y-6">
@@ -273,19 +336,6 @@ export default function DefectDetailPage() {
                   </div>
                 );
               })}
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-gray-800 p-5 shadow-xs">
-            <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-3">{t('Связи')}</h3>
-            <div className="space-y-2 text-sm">
-              {defect.inspectionId ? (
-                <Link href={`/dashboard/technadzor/inspections/${defect.inspectionId}`} className="block text-violet-600 dark:text-violet-400 hover:underline">🔍 {t('Инспекция')} #{defect.inspectionId}</Link>
-              ) : <p className="text-gray-400">{t('Инспекция не привязана')}</p>}
-              {defect.taskId ? (
-                <Link href={`/dashboard/tasks?id=${defect.taskId}`} className="block text-violet-600 dark:text-violet-400 hover:underline">✅ {t('Задача')} #{defect.taskId}</Link>
-              ) : <p className="text-gray-400">{t('Задача не создана')}</p>}
-              {defect.projectId && <p className="text-gray-500 dark:text-gray-400">🏢 {t('Проект')} #{defect.projectId}</p>}
             </div>
           </div>
 
