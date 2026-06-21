@@ -25,6 +25,7 @@ import {
   UpdateInspectionDto,
   CreateInspectionTemplateDto,
   UpdateInspectionTemplateDto,
+  SaveChecklistDto,
 } from './dto';
 
 interface RequestUser {
@@ -118,6 +119,22 @@ export class InspectionsController {
     @Param('id', ParseIntPipe) id: number,
   ) {
     return this.inspectionsService.delete(id, user.accountId);
+  }
+
+  @Put(':id/checklist')
+  @ApiOperation({ summary: 'Save inspection checklist results (conduct)' })
+  @ApiResponse({ status: 200, description: 'Checklist saved' })
+  async saveChecklist(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: SaveChecklistDto,
+  ) {
+    return this.inspectionsService.saveChecklist(
+      id,
+      user,
+      dto.checklistTemplateId,
+      dto.results,
+    );
   }
 }
 

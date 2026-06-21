@@ -33,17 +33,23 @@ export class InspectionsGatewayController {
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
   @ApiQuery({ name: 'status', required: false })
+  @ApiQuery({ name: 'projectId', required: false })
+  @ApiQuery({ name: 'inspectorId', required: false })
+  @ApiQuery({ name: 'mine', required: false })
   async findAllInspections(
     @Req() req: Request,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
     @Query('status') status?: number,
+    @Query('projectId') projectId?: number,
+    @Query('inspectorId') inspectorId?: number,
+    @Query('mine') mine?: string,
   ) {
     return this.proxyService.forward('inspections', {
       method: 'GET',
       path: '/inspections',
       headers: { authorization: req.headers.authorization || '' },
-      params: { page, limit, status },
+      params: { page, limit, status, projectId, inspectorId, mine },
     });
   }
 
@@ -81,6 +87,24 @@ export class InspectionsGatewayController {
     return this.proxyService.forward('inspections', {
       method: 'PUT',
       path: `/inspections/${id}`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Put('inspections/:id/checklist')
+  @ApiOperation({ summary: 'Save inspection checklist results (conduct)' })
+  async saveInspectionChecklist(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
+    return this.proxyService.forward('inspections', {
+      method: 'PUT',
+      path: `/inspections/${id}/checklist`,
       headers: {
         authorization: req.headers.authorization || '',
         'content-type': 'application/json',
@@ -175,17 +199,23 @@ export class InspectionsGatewayController {
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
   @ApiQuery({ name: 'status', required: false })
+  @ApiQuery({ name: 'projectId', required: false })
+  @ApiQuery({ name: 'assignedToUserId', required: false })
+  @ApiQuery({ name: 'assignedToMe', required: false })
   async findAllDefects(
     @Req() req: Request,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
     @Query('status') status?: number,
+    @Query('projectId') projectId?: number,
+    @Query('assignedToUserId') assignedToUserId?: number,
+    @Query('assignedToMe') assignedToMe?: string,
   ) {
     return this.proxyService.forward('inspections', {
       method: 'GET',
       path: '/defects',
       headers: { authorization: req.headers.authorization || '' },
-      params: { page, limit, status },
+      params: { page, limit, status, projectId, assignedToUserId, assignedToMe },
     });
   }
 

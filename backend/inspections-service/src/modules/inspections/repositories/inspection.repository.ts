@@ -100,4 +100,29 @@ export class InspectionRepository {
       where: { id, accountId },
     });
   }
+
+  // Checklist Results (по одной строке на инспекцию — upsert)
+  async findChecklistResult(inspectionId: number) {
+    return (this.prisma as any).inspectionChecklistResult.findFirst({
+      where: { inspectionId },
+      orderBy: { id: 'desc' },
+    });
+  }
+
+  async saveChecklistResult(
+    inspectionId: number,
+    checklistTemplateId: number | undefined,
+    results: any,
+  ) {
+    const existing = await this.findChecklistResult(inspectionId);
+    if (existing) {
+      return (this.prisma as any).inspectionChecklistResult.update({
+        where: { id: existing.id },
+        data: { results, checklistTemplateId: checklistTemplateId ?? existing.checklistTemplateId },
+      });
+    }
+    return (this.prisma as any).inspectionChecklistResult.create({
+      data: { inspectionId, checklistTemplateId, results },
+    });
+  }
 }

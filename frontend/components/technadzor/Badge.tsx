@@ -35,3 +35,18 @@ export const DEFECT_SEVERITY: Record<number, { label: string; color: string }> =
   3: { label: 'Высокая', color: 'orange' },
   4: { label: 'Критическая', color: 'red' },
 };
+
+export const INSPECTION_STATUS: Record<number, { label: string; color: string }> = {
+  0: { label: 'Запланирована', color: 'gray' },
+  1: { label: 'В процессе', color: 'yellow' },
+  2: { label: 'Завершена', color: 'green' },
+  3: { label: 'Не пройдена', color: 'red' },
+};
+
+// Статусы проверки пункта чек-листа
+export const CHECK_STATUS: Record<string, { label: string; color: string }> = {
+  pass: { label: 'Соответствует', color: 'green' },
+  remark: { label: 'Замечание', color: 'yellow' },
+  fail: { label: 'Не соответствует', color: 'red' },
+  none: { label: 'Не проверено', color: 'gray' },
+};

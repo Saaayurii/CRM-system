@@ -59,6 +59,22 @@ export class InspectionsService {
     return inspection;
   }
 
+  // Сохранение результатов чек-листа при проведении инспекции
+  async saveChecklist(
+    inspectionId: number,
+    user: RequestUser,
+    checklistTemplateId: number | undefined,
+    results: any[],
+  ) {
+    // Проверка доступа/существования через findById (бросит 404/403)
+    await this.findById(inspectionId, user);
+    return this.inspectionRepository.saveChecklistResult(
+      inspectionId,
+      checklistTemplateId,
+      results,
+    );
+  }
+
   async create(accountId: number, dto: CreateInspectionDto, actorUserId?: number) {
     const inspection = await this.inspectionRepository.create({
       ...dto,
