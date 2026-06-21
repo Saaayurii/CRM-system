@@ -6,6 +6,7 @@ import configuration from './config/configuration';
 import { DatabaseModule } from './database/database.module';
 import { InspectionsModule } from './modules/inspections/inspections.module';
 import { DefectsModule } from './modules/defects/defects.module';
+import { ControlPointsModule } from './modules/control-points/control-points.module';
 import { HseModule } from './modules/hse/hse.module';
 import { HealthModule } from './modules/health/health.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
@@ -22,6 +23,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     DatabaseModule,
     InspectionsModule,
     DefectsModule,
+    ControlPointsModule,
     HseModule,
     HealthModule,
   ],

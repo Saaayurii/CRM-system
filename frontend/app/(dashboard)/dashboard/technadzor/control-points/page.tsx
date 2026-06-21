@@ -1,58 +1,52 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { useT } from '@/lib/i18n';
+import Badge from '@/components/technadzor/Badge';
 
-interface Template { id: number; name: string; checklistItems?: any; }
-interface Point { code?: string; name: string; templates: string[]; }
-
-function extractPoints(items: any): Array<{ code?: string; name: string }> {
-  if (!Array.isArray(items)) return [];
-  const out: Array<{ code?: string; name: string }> = [];
-  const pushPoint = (p: any) => {
-    if (typeof p === 'string') { out.push({ name: p }); return; }
-    const name = p?.name || p?.title || p?.label || p?.text || p?.description || p?.code;
-    if (name) out.push({ code: p?.code ?? p?.id, name: String(name) });
-  };
-  for (const el of items) {
-    const nested = el?.items || el?.points || el?.children;
-    if (Array.isArray(nested)) nested.forEach(pushPoint);
-    else pushPoint(el);
-  }
-  return out;
+interface ControlPoint {
+  id: number; code?: string; name: string; section?: string; subsection?: string;
+  checkType?: string; criticality?: number; status?: string;
 }
+
+const STATUS_META: Record<string, { label: string; color: string }> = {
+  draft: { label: 'Черновик', color: 'gray' },
+  active: { label: 'Активен', color: 'green' },
+  archived: { label: 'Архив', color: 'gray' },
+};
+const CRIT: Record<number, { label: string; color: string }> = {
+  1: { label: 'Низкая', color: 'green' }, 2: { label: 'Средняя', color: 'yellow' },
+  3: { label: 'Высокая', color: 'orange' }, 4: { label: 'Критическая', color: 'red' },
+};
+const CHECK_LABEL: Record<string, string> = {
+  visual: 'Визуальный', measuring: 'Измерительный', functional: 'Функциональный',
+  documentary: 'Документальный', complex: 'Комплексный',
+};
 
 export default function ControlPointsPage() {
   const t = useT();
-  const [templates, setTemplates] = useState<Template[]>([]);
+  const router = useRouter();
+  const [items, setItems] = useState<ControlPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState('');
 
-  useEffect(() => {
-    api.get('/inspection-templates', { params: { limit: 200 } })
-      .then(({ data }) => setTemplates(data?.data || data?.items || (Array.isArray(data) ? data : [])))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data } = await api.get('/control-points', { params: { limit: 200 } });
+      setItems(data?.data || data?.items || (Array.isArray(data) ? data : []));
+    } catch { setItems([]); }
+    finally { setLoading(false); }
   }, []);
 
-  const points = useMemo<Point[]>(() => {
-    const map = new Map<string, Point>();
-    for (const tpl of templates) {
-      for (const p of extractPoints(tpl.checklistItems)) {
-        const key = (p.code || p.name).toLowerCase();
-        const ex = map.get(key);
-        if (ex) { if (!ex.templates.includes(tpl.name)) ex.templates.push(tpl.name); }
-        else map.set(key, { code: p.code, name: p.name, templates: [tpl.name] });
-      }
-    }
-    return Array.from(map.values());
-  }, [templates]);
+  useEffect(() => { load(); }, [load]);
 
   const filtered = q.trim()
-    ? points.filter((p) => `${p.code ?? ''} ${p.name}`.toLowerCase().includes(q.toLowerCase()))
-    : points;
+    ? items.filter((p) => `${p.code ?? ''} ${p.name}`.toLowerCase().includes(q.toLowerCase()))
+    : items;
 
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-9xl mx-auto">
@@ -64,51 +58,51 @@ export default function ControlPointsPage() {
       <div className="mb-6 flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-gray-100">{t('Пункты контроля')}</h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{t('Библиотека контрольных пунктов из шаблонов инспекций')}</p>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{t('Библиотека контрольных пунктов (конструктор чек-листов)')}</p>
         </div>
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder={t('Поиск пунктов…')}
-          className="text-sm rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-800 dark:text-gray-100 w-64 max-w-full"
-        />
+        <div className="flex items-center gap-2">
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('Поиск пунктов…')} className="text-sm rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-800 dark:text-gray-100 w-56 max-w-full" />
+          <Link href="/dashboard/technadzor/control-points/new" className="px-4 py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-700 text-white whitespace-nowrap">+ {t('Создать пункт')}</Link>
+        </div>
       </div>
 
       {loading ? (
         <div className="animate-pulse h-64 bg-gray-100 dark:bg-gray-800 rounded-2xl" />
       ) : filtered.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 p-8 text-center text-sm text-gray-400">
-          {points.length === 0 ? t('В шаблонах инспекций пока нет пунктов контроля') : t('Ничего не найдено')}
+        <div className="rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 p-10 text-center">
+          <p className="text-sm text-gray-400 mb-3">{items.length === 0 ? t('Пунктов пока нет — создайте первый через конструктор') : t('Ничего не найдено')}</p>
+          <Link href="/dashboard/technadzor/control-points/new" className="text-violet-600 dark:text-violet-400 hover:underline text-sm">+ {t('Создать пункт')}</Link>
         </div>
       ) : (
         <div className="rounded-2xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-gray-800 shadow-xs overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 dark:bg-gray-900/40 text-gray-500 dark:text-gray-400">
               <tr>
-                <th className="text-left px-5 py-3 font-medium w-32">{t('Код')}</th>
+                <th className="text-left px-5 py-3 font-medium w-28">{t('Код')}</th>
                 <th className="text-left px-5 py-3 font-medium">{t('Контрольный пункт')}</th>
-                <th className="text-left px-5 py-3 font-medium">{t('Шаблоны')}</th>
+                <th className="text-left px-5 py-3 font-medium">{t('Категория')}</th>
+                <th className="text-left px-5 py-3 font-medium w-32">{t('Тип контроля')}</th>
+                <th className="text-left px-5 py-3 font-medium w-28">{t('Критичность')}</th>
+                <th className="text-left px-5 py-3 font-medium w-28">{t('Статус')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-              {filtered.map((p, i) => (
-                <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                  <td className="px-5 py-3 text-gray-500 dark:text-gray-400">{p.code || '—'}</td>
-                  <td className="px-5 py-3 text-gray-800 dark:text-gray-100">{p.name}</td>
-                  <td className="px-5 py-3">
-                    <div className="flex flex-wrap gap-1">
-                      {p.templates.map((tn, ti) => (
-                        <span key={ti} className="px-2 py-0.5 rounded text-xs bg-violet-50 dark:bg-violet-500/15 text-violet-600 dark:text-violet-300">{tn}</span>
-                      ))}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {filtered.map((p) => {
+                const cr = p.criticality != null ? CRIT[p.criticality] : undefined;
+                const st = STATUS_META[p.status || 'draft'] ?? STATUS_META.draft;
+                return (
+                  <tr key={p.id} onClick={() => router.push(`/dashboard/technadzor/control-points/new?id=${p.id}`)} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 cursor-pointer">
+                    <td className="px-5 py-3 font-mono text-gray-500 dark:text-gray-400">{p.code || '—'}</td>
+                    <td className="px-5 py-3 text-gray-800 dark:text-gray-100">{p.name}</td>
+                    <td className="px-5 py-3 text-gray-500 dark:text-gray-400">{[p.section, p.subsection].filter(Boolean).join(' › ') || '—'}</td>
+                    <td className="px-5 py-3 text-gray-500 dark:text-gray-400">{p.checkType ? t(CHECK_LABEL[p.checkType] || p.checkType) : '—'}</td>
+                    <td className="px-5 py-3">{cr ? <Badge label={t(cr.label)} color={cr.color} /> : '—'}</td>
+                    <td className="px-5 py-3"><Badge label={t(st.label)} color={st.color} /></td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
-          <div className="px-5 py-3 text-xs text-gray-400 border-t border-gray-100 dark:border-gray-700">
-            {t('Всего пунктов')}: {filtered.length}
-          </div>
         </div>
       )}
     </div>

@@ -19,6 +19,7 @@ model Account {
   inspectionChecklistTemplates InspectionChecklistTemplate[]
   defects                      Defect[]
   defectTemplates              DefectTemplate[]
+  controlPoints                ControlPoint[]
   hseRisks                     HseRisk[]
   hseIncidents                 HseIncident[]
   hsePermits                   HsePermit[]
@@ -27,6 +28,42 @@ model Account {
   hseMonitoring                HseMonitoring[]
 
   @@map("accounts")
+}
+
+// Контрольный пункт (конструктор чек-листов) — самостоятельная сущность-библиотека.
+// Базовые фильтруемые поля вынесены в колонки, остальные данные шагов мастера — в JSON.
+model ControlPoint {
+  id               Int      @id @default(autoincrement())
+  accountId        Int      @map("account_id")
+  code             String?  @db.VarChar(100)
+  version          String   @default("1.0") @db.VarChar(20)
+  status           String   @default("draft") @db.VarChar(20) // draft | active | archived
+  name             String   @db.VarChar(500)
+  description      String?  @db.Text
+  section          String?  @db.VarChar(255)
+  subsection       String?  @db.VarChar(255)
+  checkType        String?  @map("check_type") @db.VarChar(50) // visual | measuring | functional | documentary | complex
+  criticality      Int      @default(2)
+  weight           Int      @default(100)
+  required         Boolean  @default(true)
+  normativeDoc     String?  @map("normative_doc") @db.VarChar(255)
+  normativeSection String?  @map("normative_section") @db.VarChar(100)
+  instruction      String?  @db.Text
+  scheme           Json     @default("{}") // { type, imageUrl, pins: [{ n, x, y, label, color }] }
+  settings         Json     @default("{}") // фото/видео, доп.настройки, объект, теги, sortOrder и т.п.
+  typicalDefects   Json     @default("[]") @map("typical_defects") // шаг 2
+  textTemplates    Json     @default("{}") @map("text_templates")  // шаг 3
+  reportSettings   Json     @default("{}") @map("report_settings") // шаг 4
+  publication      Json     @default("{}") // шаг 5: область действия, совместимость, связанные шаблоны
+  versions         Json     @default("[]") // история версий
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @default(now()) @updatedAt @map("updated_at")
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
+  @@index([status])
+  @@map("control_points")
 }
 
 model Inspection {

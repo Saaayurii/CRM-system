@@ -374,4 +374,76 @@ export class InspectionsGatewayController {
       headers: { authorization: req.headers.authorization || '' },
     });
   }
+
+  // Control Points (конструктор чек-листов)
+  @Get('control-points')
+  @ApiOperation({ summary: 'List control points' })
+  @ApiQuery({ name: 'page', required: false })
+  @ApiQuery({ name: 'limit', required: false })
+  @ApiQuery({ name: 'status', required: false })
+  @ApiQuery({ name: 'section', required: false })
+  @ApiQuery({ name: 'q', required: false })
+  async findAllControlPoints(
+    @Req() req: Request,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('status') status?: string,
+    @Query('section') section?: string,
+    @Query('q') q?: string,
+  ) {
+    return this.proxyService.forward('inspections', {
+      method: 'GET',
+      path: '/control-points',
+      headers: { authorization: req.headers.authorization || '' },
+      params: { page, limit, status, section, q },
+    });
+  }
+
+  @Get('control-points/:id')
+  @ApiOperation({ summary: 'Get control point by ID' })
+  async findOneControlPoint(@Req() req: Request, @Param('id') id: string) {
+    return this.proxyService.forward('inspections', {
+      method: 'GET',
+      path: `/control-points/${id}`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  @Post('control-points')
+  @ApiOperation({ summary: 'Create control point' })
+  async createControlPoint(@Req() req: Request, @Body() body: any) {
+    return this.proxyService.forward('inspections', {
+      method: 'POST',
+      path: '/control-points',
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Put('control-points/:id')
+  @ApiOperation({ summary: 'Update control point' })
+  async updateControlPoint(@Req() req: Request, @Param('id') id: string, @Body() body: any) {
+    return this.proxyService.forward('inspections', {
+      method: 'PUT',
+      path: `/control-points/${id}`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Delete('control-points/:id')
+  @ApiOperation({ summary: 'Delete control point' })
+  async removeControlPoint(@Req() req: Request, @Param('id') id: string) {
+    return this.proxyService.forward('inspections', {
+      method: 'DELETE',
+      path: `/control-points/${id}`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
 }
