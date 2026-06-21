@@ -213,6 +213,9 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
   const [matchIdx, setMatchIdx] = useState(0);
   const [highlightedMsgId, setHighlightedMsgId] = useState<number | null>(null);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
+  // Скрываем ленту до первого прыжка к низу при открытии канала — иначе на iOS
+  // видно, как сообщения сначала рисуются сверху, а потом скачком уезжают вниз.
+  const [initialScrollReady, setInitialScrollReady] = useState(false);
   // Сколько новых сообщений пришло, пока читаем историю выше — бейдж на стрелке «вниз»
   const [newBelowCount, setNewBelowCount] = useState(0);
   const [snapParticles, setSnapParticles] = useState<{ id: number; tx: number; ty: number; size: number; hue: number; delay: number }[]>([]);
@@ -483,6 +486,7 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
       initialLoadRef.current = true;
       isInitialLoadingRef.current = true;
       prevMessagesLenRef.current = 0;
+      setInitialScrollReady(false); // hide list until first snap-to-bottom
     }
   }, [activeChannelId]);
 
@@ -513,6 +517,9 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
         programmaticScrollTimerRef.current = setTimeout(() => { isProgrammaticScrollRef.current = false; }, 80);
       };
       snap();
+      // Reveal the list only after the snap is applied (next frames), so the
+      // top→bottom jump happens off-screen instead of flashing on iOS.
+      requestAnimationFrame(() => requestAnimationFrame(() => setInitialScrollReady(true)));
       // Catch layout shifts from media (img/video) loading after first paint.
       const timers = [60, 150, 300, 600, 1200].map((ms) => setTimeout(snap, ms));
       // Wire onload on every <img> currently inside the messages container.
@@ -1121,7 +1128,13 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
             </div>
           )}
 
-          <div ref={messagesInnerRef}>
+          <div
+            ref={messagesInnerRef}
+            style={{
+              opacity: initialScrollReady || messages.length === 0 ? 1 : 0,
+              transition: 'opacity 0.12s ease-out',
+            }}
+          >
           {messages.map((msg, idx) => {
             // In self-chat, forwarded messages from another person appear on the left
             const isOwn = isSelf && msg.forwardMeta
