@@ -12,7 +12,7 @@ type CheckStatus = 'pass' | 'remark' | 'fail' | 'none';
 
 interface Point { key: string; code?: string; name: string; required?: boolean; }
 interface Section { title: string; points: Point[]; }
-interface ResultEntry { key: string; code?: string; name?: string; status: CheckStatus; comment?: string; }
+interface ResultEntry { key: string; code?: string; name?: string; status: CheckStatus; comment?: string; photos?: string[]; }
 
 interface Inspection {
   id: number; inspectionNumber?: string; inspectionType?: string;
@@ -99,7 +99,36 @@ export default function ConductInspectionPage() {
     setResMap((m) => ({ ...m, [p.key]: { ...m[p.key], key: p.key, code: p.code, name: p.name, status } }));
   };
   const setComment = (p: Point, comment: string) => {
-    setResMap((m) => ({ ...m, [p.key]: { key: p.key, code: p.code, name: p.name, status: m[p.key]?.status ?? 'none', comment } }));
+    setResMap((m) => ({ ...m, [p.key]: { ...m[p.key], key: p.key, code: p.code, name: p.name, status: m[p.key]?.status ?? 'none', comment } }));
+  };
+
+  const uploadPhotos = async (p: Point, files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const fd = new FormData();
+    Array.from(files).forEach((f) => fd.append('files', f));
+    setSaving(true);
+    try {
+      const { data } = await api.post('/inspections/upload', fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      const urls: string[] = (Array.isArray(data) ? data : []).map((x: any) => x.fileUrl).filter(Boolean);
+      setResMap((m) => {
+        const prev = m[p.key];
+        return { ...m, [p.key]: { ...prev, key: p.key, code: p.code, name: p.name, status: prev?.status ?? 'none', photos: [...(prev?.photos ?? []), ...urls] } };
+      });
+    } catch {
+      addToast('error', 'Не удалось загрузить фото');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const removePhoto = (p: Point, url: string) => {
+    setResMap((m) => {
+      const prev = m[p.key];
+      if (!prev) return m;
+      return { ...m, [p.key]: { ...prev, photos: (prev.photos ?? []).filter((u) => u !== url) } };
+    });
   };
 
   const allPoints = useMemo(() => sections.flatMap((s) => s.points), [sections]);
@@ -150,6 +179,7 @@ export default function ConductInspectionPage() {
     if (!insp) return;
     setSaving(true);
     try {
+      const photos = resMap[p.key]?.photos ?? [];
       const { data: d } = await api.post('/defects', {
         title: p.name,
         description: resMap[p.key]?.comment || undefined,
@@ -159,6 +189,7 @@ export default function ConductInspectionPage() {
         severity: 2,
         status: 0,
         reportedDate: new Date().toISOString().slice(0, 10),
+        ...(photos.length ? { photos } : {}),
       });
       setStatus(p, 'fail');
       addToast('success', `Дефект создан${d?.defectNumber ? `: ${d.defectNumber}` : ''}`);
@@ -298,6 +329,23 @@ export default function ConductInspectionPage() {
                           className="mt-2 w-full text-sm rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-1.5 text-gray-800 dark:text-gray-100"
                         />
                       )}
+                      {/* Фотофиксация */}
+                      <div className="mt-2 flex items-center gap-2 flex-wrap">
+                        {(resMap[p.key]?.photos ?? []).map((url) => (
+                          <div key={url} className="relative w-16 h-16 rounded-lg overflow-hidden group">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={url} alt="" className="w-full h-full object-cover" />
+                            <button
+                              onClick={() => removePhoto(p, url)}
+                              className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-black/60 text-white text-xs flex items-center justify-center opacity-0 group-hover:opacity-100"
+                            >×</button>
+                          </div>
+                        ))}
+                        <label className="w-16 h-16 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center cursor-pointer text-gray-400 hover:border-violet-400 hover:text-violet-400">
+                          <input type="file" accept="image/*" multiple capture="environment" className="hidden" disabled={saving} onChange={(e) => { uploadPhotos(p, e.target.files); e.currentTarget.value = ''; }} />
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}><path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0Z" /></svg>
+                        </label>
+                      </div>
                     </li>
                   );
                 })}
