@@ -136,7 +136,7 @@ describe('DefectsController', () => {
 
       await controller.update(mockUser, 1, dto);
 
-      expect(service.update).toHaveBeenCalledWith(1, 1, dto);
+      expect(service.update).toHaveBeenCalledWith(1, 1, dto, 1);
     });
   });
 

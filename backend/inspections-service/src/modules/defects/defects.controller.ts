@@ -103,7 +103,7 @@ export class DefectsController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateDefectDto,
   ) {
-    return this.defectsService.update(id, user.accountId, dto);
+    return this.defectsService.update(id, user.accountId, dto, user.id);
   }
 
   @Delete(':id')

@@ -16,6 +16,15 @@ import {
 
 const INSPECT_ROLES = [1, 2, 4, 9];
 
+const DEFECT_STATUS_LABEL: Record<number, string> = {
+  0: 'открыт',
+  1: 'назначен',
+  2: 'в работе',
+  3: 'устранён',
+  4: 'проверен',
+  5: 'закрыт',
+};
+
 @Injectable()
 export class DefectsService {
   constructor(
@@ -79,7 +88,7 @@ export class DefectsService {
       notificationType: 'defect_found',
       priority: isCritical ? 3 : 2,
       channels: isCritical ? ['in_app', 'push'] : ['in_app'],
-      actionUrl: `/dashboard/inspections/defects/${defect.id}`,
+      actionUrl: `/dashboard/technadzor/defects/${defect.id}`,
       entityType: 'defect',
       entityId: defect.id,
     });
@@ -87,7 +96,12 @@ export class DefectsService {
     return defect;
   }
 
-  async update(id: number, accountId: number, dto: UpdateDefectDto) {
+  async update(
+    id: number,
+    accountId: number,
+    dto: UpdateDefectDto,
+    actorUserId?: number,
+  ) {
     const existing = await this.defectRepository.findById(id, accountId);
     if (!existing) throw new NotFoundException(`Defect with ID ${id} not found`);
     const data: any = { ...dto };
@@ -96,7 +110,28 @@ export class DefectsService {
     if (dto.fixedDate) data.fixedDate = new Date(dto.fixedDate);
     if (dto.verifiedDate) data.verifiedDate = new Date(dto.verifiedDate);
     await this.defectRepository.update(id, accountId, data);
-    return this.defectRepository.findById(id, accountId);
+    const updated = await this.defectRepository.findById(id, accountId);
+
+    // Уведомление при смене статуса дефекта (исполнитель + инспекторы)
+    if (dto.status !== undefined && dto.status !== existing.status) {
+      const label = DEFECT_STATUS_LABEL[dto.status] ?? `статус ${dto.status}`;
+      void this.notificationsClient.broadcast({
+        accountId,
+        roleIds: INSPECT_ROLES,
+        userIds: updated.assignedToUserId ? [updated.assignedToUserId] : [],
+        excludeUserId: actorUserId,
+        title: `Дефект «${updated.title}»: ${label}`,
+        message: updated.description || undefined,
+        notificationType: 'defect_status_changed',
+        priority: 2,
+        channels: ['in_app'],
+        actionUrl: `/dashboard/technadzor/defects/${updated.id}`,
+        entityType: 'defect',
+        entityId: updated.id,
+      });
+    }
+
+    return updated;
   }
 
   async delete(id: number, accountId: number) {
