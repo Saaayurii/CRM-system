@@ -30,18 +30,33 @@ export default function MaintenanceGuard({ children }: { children: React.ReactNo
     let closed = false;
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
-    // 1. Initial check — catches the case where maintenance was already on before opening the page
-    api.get('/system-settings').then((res) => {
-      const settings: Record<string, unknown> = res.data?.settings ?? {};
-      const event: MaintenanceEvent = {
-        mode: Boolean(settings.maintenance_mode),
-        allowedRoles: (settings.maintenance_allowed_roles as string[]) ?? [],
-      };
-      if (shouldBlock(event, userRole)) router.push('/maintenance');
-    }).catch(() => {});
+    // Source of truth: poll the current setting. SSE is just the fast path —
+    // because Redis pub/sub keeps no history, an event fired while this client
+    // was disconnected (e.g. api-gateway restarting during a deploy) is lost
+    // forever, so we re-check on every (re)connect + on a 30s interval. This is
+    // what makes maintenance show up without a page reload.
+    const checkNow = async () => {
+      if (closed) return;
+      try {
+        const res = await api.get('/system-settings');
+        const settings: Record<string, unknown> = res.data?.settings ?? {};
+        const event: MaintenanceEvent = {
+          mode: Boolean(settings.maintenance_mode),
+          allowedRoles: (settings.maintenance_allowed_roles as string[]) ?? [],
+        };
+        if (shouldBlock(event, userRole)) router.push('/maintenance');
+      } catch {
+        // ignore — next poll/SSE will retry
+      }
+    };
 
-    // 2. SSE — catches real-time changes; reconnects with a fresh token so a
+    // 1. Immediate check on mount.
+    void checkNow();
+
+    // 2. SSE — instant push on changes; reconnects with a fresh token so a
     //    15-min token expiry (or a backgrounded tab) never strands the stream.
+    //    Re-checks the setting on every (re)connect to catch events missed
+    //    while disconnected.
     const connect = async () => {
       if (closed) return;
       const token = await getFreshAccessToken();
@@ -49,6 +64,8 @@ export default function MaintenanceGuard({ children }: { children: React.ReactNo
 
       const es = new EventSource(sseUrl('/system-settings/events', token));
       esRef.current = es;
+
+      es.onopen = () => { void checkNow(); };
 
       es.addEventListener('maintenance', (e: MessageEvent) => {
         try {
@@ -69,14 +86,21 @@ export default function MaintenanceGuard({ children }: { children: React.ReactNo
 
     void connect();
 
+    // 3. Safety-net polling — guarantees the maintenance screen appears even if
+    //    the SSE event was missed entirely (deploy window, dropped connection).
+    const pollTimer = setInterval(() => { void checkNow(); }, 30000);
+
     const onVisible = () => {
-      if (!document.hidden && !esRef.current && !closed) void connect();
+      if (document.hidden || closed) return;
+      void checkNow();
+      if (!esRef.current) void connect();
     };
     document.addEventListener('visibilitychange', onVisible);
 
     return () => {
       closed = true;
       if (reconnectTimer) clearTimeout(reconnectTimer);
+      clearInterval(pollTimer);
       document.removeEventListener('visibilitychange', onVisible);
       esRef.current?.close();
       esRef.current = null;

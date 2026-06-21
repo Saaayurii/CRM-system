@@ -79,7 +79,9 @@ export default function MaintenancePage() {
     }).catch(() => {});
   }, [isSuperAdmin, router]);
 
-  // SSE: when admin turns maintenance off — redirect back
+  // Send the user back as soon as maintenance is turned off. SSE is the fast
+  // path; a 30s poll is the safety-net so a missed "off" event never strands
+  // the user on this screen (mirror of MaintenanceGuard).
   useEffect(() => {
     if (isAuthLoading) return;
     if (isSuperAdmin) return;
@@ -87,20 +89,36 @@ export default function MaintenancePage() {
     const token = localStorage.getItem('accessToken');
     if (!token) return;
 
-    const es = new EventSource(sseUrl('/system-settings/events', token));
+    let closed = false;
 
+    const checkOff = async () => {
+      if (closed) return;
+      try {
+        const res = await api.get('/system-settings');
+        if (!res.data?.settings?.maintenance_mode) router.push('/dashboard');
+      } catch {
+        // ignore — next poll/SSE will retry
+      }
+    };
+
+    const es = new EventSource(sseUrl('/system-settings/events', token));
+    es.onopen = () => { void checkOff(); };
     es.addEventListener('maintenance', (e: MessageEvent) => {
       try {
         const event = JSON.parse(e.data);
-        if (!event.mode) {
-          router.push('/dashboard');
-        }
+        if (!event.mode) router.push('/dashboard');
       } catch {
         // ignore
       }
     });
 
-    return () => es.close();
+    const pollTimer = setInterval(() => { void checkOff(); }, 30000);
+
+    return () => {
+      closed = true;
+      clearInterval(pollTimer);
+      es.close();
+    };
   }, [isAuthLoading, isSuperAdmin, router]);
 
   return (
