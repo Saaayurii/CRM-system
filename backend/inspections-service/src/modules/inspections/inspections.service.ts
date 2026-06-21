@@ -31,6 +31,7 @@ export class InspectionsService {
     limit: number,
     status?: number,
     projectId?: number,
+    inspectorId?: number,
   ) {
     const allowedProjectIds = await getClientAllowedProjectIds(this.prisma, user);
     return this.inspectionRepository.findAll(
@@ -40,6 +41,7 @@ export class InspectionsService {
       status,
       projectId,
       allowedProjectIds,
+      inspectorId,
     );
   }
 

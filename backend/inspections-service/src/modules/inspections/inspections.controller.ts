@@ -49,19 +49,30 @@ export class InspectionsController {
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'status', required: false, type: Number })
   @ApiQuery({ name: 'projectId', required: false, type: Number })
+  @ApiQuery({ name: 'inspectorId', required: false, type: Number })
+  @ApiQuery({ name: 'mine', required: false, type: Boolean, description: 'Только инспекции текущего пользователя (inspectorId = me)' })
   async findAll(
     @CurrentUser() user: RequestUser,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('status') status?: string,
     @Query('projectId') projectId?: string,
+    @Query('inspectorId') inspectorId?: string,
+    @Query('mine') mine?: string,
   ) {
+    const inspectorFilter =
+      mine === '1' || mine === 'true'
+        ? user.id
+        : inspectorId !== undefined
+          ? parseInt(inspectorId, 10)
+          : undefined;
     return this.inspectionsService.findAll(
       user,
       page ? parseInt(page, 10) : 1,
       limit ? parseInt(limit, 10) : 20,
       status !== undefined ? parseInt(status, 10) : undefined,
       projectId !== undefined ? parseInt(projectId, 10) : undefined,
+      inspectorFilter,
     );
   }
 

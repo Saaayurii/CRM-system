@@ -1,17 +1,15 @@
 'use client';
-import TechnadzorScaffold from '@/components/technadzor/TechnadzorScaffold';
+import { useRouter } from 'next/navigation';
+import TechnadzorListPage from '@/components/technadzor/TechnadzorListPage';
+import { technadzorDefectConfigs } from '@/lib/admin/technadzorConfigs';
 
 export default function Page() {
+  const router = useRouter();
   return (
-    <TechnadzorScaffold
-      title="Все дефекты"
-      subtitle="Реестр выявленных дефектов и нарушений"
+    <TechnadzorListPage
+      config={technadzorDefectConfigs.all()}
       breadcrumbs={[{ label: 'Дефекты' }, { label: 'Все дефекты' }]}
-      planned={[
-        { title: 'Реестр дефектов', description: 'Таблица: ID, наименование, объект/помещение, критичность, тип, статус, срок устранения (SLA).' },
-        { title: 'Фильтры', description: 'По объекту, критичности, статусу, исполнителю, просрочке SLA.' },
-        { title: 'Создать дефект', description: 'Создание дефекта вручную или из пункта инспекции.' },
-      ]}
+      onRowClick={(row) => router.push(`/dashboard/technadzor/defects/${row.id}`)}
     />
   );
 }

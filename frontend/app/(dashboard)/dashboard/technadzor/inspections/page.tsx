@@ -1,18 +1,15 @@
 'use client';
-import TechnadzorScaffold from '@/components/technadzor/TechnadzorScaffold';
+import { useRouter } from 'next/navigation';
+import TechnadzorListPage from '@/components/technadzor/TechnadzorListPage';
+import { technadzorInspectionConfigs } from '@/lib/admin/technadzorConfigs';
 
 export default function Page() {
+  const router = useRouter();
   return (
-    <TechnadzorScaffold
-      title="Мои инспекции"
-      subtitle="Инспекции, назначенные на текущего пользователя"
+    <TechnadzorListPage
+      config={technadzorInspectionConfigs.mine()}
       breadcrumbs={[{ label: 'Проверки' }, { label: 'Мои инспекции' }]}
-      planned={[
-        { title: 'Список инспекций', description: 'Таблица: № инспекции, объект, шаблон, тип, статус, прогресс, срок. Фильтры по объекту/шаблону/типу/статусу/периоду.' },
-        { title: 'Сводка', description: 'Счётчики: всего, в работе, на проверке, завершено. Кольцевая диаграмма по статусам.' },
-        { title: 'Вкладки', description: 'Список / Календарь / Карта объектов. Кнопки «Новая инспекция» и «Импорт инспекций».' },
-        { title: 'Ближайшие сроки', description: 'Виджет с просроченными и сегодняшними инспекциями.' },
-      ]}
+      onRowClick={(row) => router.push(`/dashboard/technadzor/inspections/${row.id}`)}
     />
   );
 }

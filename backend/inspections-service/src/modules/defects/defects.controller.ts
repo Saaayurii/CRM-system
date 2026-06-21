@@ -49,19 +49,30 @@ export class DefectsController {
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'status', required: false, type: Number })
   @ApiQuery({ name: 'projectId', required: false, type: Number })
+  @ApiQuery({ name: 'assignedToUserId', required: false, type: Number })
+  @ApiQuery({ name: 'assignedToMe', required: false, type: Boolean, description: 'Только дефекты, назначенные текущему пользователю' })
   async findAll(
     @CurrentUser() user: RequestUser,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('status') status?: string,
     @Query('projectId') projectId?: string,
+    @Query('assignedToUserId') assignedToUserId?: string,
+    @Query('assignedToMe') assignedToMe?: string,
   ) {
+    const assignedFilter =
+      assignedToMe === '1' || assignedToMe === 'true'
+        ? user.id
+        : assignedToUserId !== undefined
+          ? parseInt(assignedToUserId, 10)
+          : undefined;
     return this.defectsService.findAll(
       user,
       page ? parseInt(page, 10) : 1,
       limit ? parseInt(limit, 10) : 20,
       status !== undefined ? parseInt(status, 10) : undefined,
       projectId !== undefined ? parseInt(projectId, 10) : undefined,
+      assignedFilter,
     );
   }
 

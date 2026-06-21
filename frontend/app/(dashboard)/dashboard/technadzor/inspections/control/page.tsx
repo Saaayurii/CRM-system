@@ -1,16 +1,15 @@
 'use client';
-import TechnadzorScaffold from '@/components/technadzor/TechnadzorScaffold';
+import { useRouter } from 'next/navigation';
+import TechnadzorListPage from '@/components/technadzor/TechnadzorListPage';
+import { technadzorInspectionConfigs } from '@/lib/admin/technadzorConfigs';
 
 export default function Page() {
+  const router = useRouter();
   return (
-    <TechnadzorScaffold
-      title="На контроле"
-      subtitle="Инспекции под моим наблюдением"
+    <TechnadzorListPage
+      config={technadzorInspectionConfigs.control()}
       breadcrumbs={[{ label: 'Проверки' }, { label: 'На контроле' }]}
-      planned={[
-        { title: 'Наблюдаемые инспекции', description: 'Инспекции, добавленные в наблюдение (watchers).' },
-        { title: 'Уведомления о статусах', description: 'Сигналы при смене статуса/просрочке (через notifications-service).' },
-      ]}
+      onRowClick={(row) => router.push(`/dashboard/technadzor/inspections/${row.id}`)}
     />
   );
 }

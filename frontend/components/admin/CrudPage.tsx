@@ -40,7 +40,7 @@ interface Assignee {
 
 export default function CrudPage({ config, onExtraAction, hideTitle, onRowClick }: CrudPageProps) {
   const t = useT();
-  const crud = useCrudData<Record<string, unknown>>({ apiEndpoint: config.apiEndpoint, prepareCreate: config.prepareCreate, prepareUpdate: config.prepareUpdate });
+  const crud = useCrudData<Record<string, unknown>>({ apiEndpoint: config.apiEndpoint, listParams: config.listParams, prepareCreate: config.prepareCreate, prepareUpdate: config.prepareUpdate });
   const addToast = useToastStore((s) => s.addToast);
   const [pdfLoading, setPdfLoading] = useState<number | null>(null);
   const [pdfListLoading, setPdfListLoading] = useState(false);

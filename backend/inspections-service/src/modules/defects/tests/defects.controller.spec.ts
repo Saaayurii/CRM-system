@@ -66,6 +66,7 @@ describe('DefectsController', () => {
         20,
         undefined,
         undefined,
+        undefined,
       );
     });
 
@@ -86,6 +87,7 @@ describe('DefectsController', () => {
         20,
         undefined,
         undefined,
+        undefined,
       );
     });
 
@@ -100,7 +102,7 @@ describe('DefectsController', () => {
 
       await controller.findAll(mockUser, '1', '20', '2', '5');
 
-      expect(service.findAll).toHaveBeenCalledWith(mockUser, 1, 20, 2, 5);
+      expect(service.findAll).toHaveBeenCalledWith(mockUser, 1, 20, 2, 5, undefined);
     });
   });
 

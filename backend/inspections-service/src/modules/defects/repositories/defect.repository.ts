@@ -12,11 +12,13 @@ export class DefectRepository {
     status?: number,
     projectId?: number,
     allowedProjectIds?: number[],
+    assignedToUserId?: number,
   ) {
     const skip = (page - 1) * limit;
     const where: any = { accountId };
     if (status !== undefined) where.status = status;
     if (projectId !== undefined) where.projectId = projectId;
+    if (assignedToUserId !== undefined) where.assignedToUserId = assignedToUserId;
     if (allowedProjectIds) {
       where.projectId = allowedProjectIds.length > 0 ? { in: allowedProjectIds } : -1;
     }

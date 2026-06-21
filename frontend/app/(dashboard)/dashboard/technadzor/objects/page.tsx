@@ -1,16 +1,12 @@
 'use client';
-import TechnadzorScaffold from '@/components/technadzor/TechnadzorScaffold';
+import TechnadzorListPage from '@/components/technadzor/TechnadzorListPage';
+import { technadzorObjectsConfig } from '@/lib/admin/technadzorConfigs';
 
 export default function Page() {
   return (
-    <TechnadzorScaffold
-      title="Объекты"
-      subtitle="Строительные объекты (projects-service)"
+    <TechnadzorListPage
+      config={technadzorObjectsConfig()}
       breadcrumbs={[{ label: 'Справочники' }, { label: 'Объекты' }]}
-      planned={[
-        { title: 'Справочник объектов', description: 'Объекты из projects-service (construction-sites), не дублируются.' },
-        { title: 'Карточка объекта', description: 'Инспекции и дефекты по объекту, технический паспорт.' },
-      ]}
     />
   );
 }

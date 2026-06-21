@@ -12,11 +12,13 @@ export class InspectionRepository {
     status?: number,
     projectId?: number,
     allowedProjectIds?: number[],
+    inspectorId?: number,
   ) {
     const skip = (page - 1) * limit;
     const where: any = { accountId };
     if (status !== undefined) where.status = status;
     if (projectId !== undefined) where.projectId = projectId;
+    if (inspectorId !== undefined) where.inspectorId = inspectorId;
     if (allowedProjectIds) {
       where.projectId = allowedProjectIds.length > 0 ? { in: allowedProjectIds } : -1;
     }

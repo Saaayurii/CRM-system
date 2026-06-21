@@ -1,16 +1,15 @@
 'use client';
-import TechnadzorScaffold from '@/components/technadzor/TechnadzorScaffold';
+import { useRouter } from 'next/navigation';
+import TechnadzorListPage from '@/components/technadzor/TechnadzorListPage';
+import { technadzorDefectConfigs } from '@/lib/admin/technadzorConfigs';
 
 export default function Page() {
+  const router = useRouter();
   return (
-    <TechnadzorScaffold
-      title="Назначенные мне"
-      subtitle="Дефекты, где я ответственный или исполнитель"
+    <TechnadzorListPage
+      config={technadzorDefectConfigs.assigned()}
       breadcrumbs={[{ label: 'Дефекты' }, { label: 'Назначенные мне' }]}
-      planned={[
-        { title: 'Мои дефекты', description: 'Дефекты в моей зоне ответственности с приоритетом по SLA.' },
-        { title: 'Быстрые статусы', description: 'Отметить устранённым / отправить на проверку.' },
-      ]}
+      onRowClick={(row) => router.push(`/dashboard/technadzor/defects/${row.id}`)}
     />
   );
 }

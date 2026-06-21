@@ -1,16 +1,15 @@
 'use client';
-import TechnadzorScaffold from '@/components/technadzor/TechnadzorScaffold';
+import { useRouter } from 'next/navigation';
+import TechnadzorListPage from '@/components/technadzor/TechnadzorListPage';
+import { technadzorInspectionConfigs } from '@/lib/admin/technadzorConfigs';
 
 export default function Page() {
+  const router = useRouter();
   return (
-    <TechnadzorScaffold
-      title="Все инспекции"
-      subtitle="Полный реестр инспекций компании"
+    <TechnadzorListPage
+      config={technadzorInspectionConfigs.all()}
       breadcrumbs={[{ label: 'Проверки' }, { label: 'Все инспекции' }]}
-      planned={[
-        { title: 'Реестр', description: 'Все инспекции аккаунта с расширенными фильтрами и экспортом.' },
-        { title: 'Массовые действия', description: 'Назначение, смена статуса, экспорт выборки.' },
-      ]}
+      onRowClick={(row) => router.push(`/dashboard/technadzor/inspections/${row.id}`)}
     />
   );
 }

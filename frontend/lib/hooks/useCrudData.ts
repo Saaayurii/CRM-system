@@ -10,6 +10,8 @@ import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 interface UseCrudDataOptions {
   apiEndpoint: string;
   defaultLimit?: number;
+  /** Extra query params merged into the LIST request only. */
+  listParams?: Record<string, string | number | boolean>;
   prepareCreate?: (data: Record<string, unknown>) => Record<string, unknown>;
   prepareUpdate?: (data: Record<string, unknown>) => Record<string, unknown>;
 }
@@ -25,7 +27,9 @@ interface CrudState<T> {
   sortDir: 'asc' | 'desc';
 }
 
-export function useCrudData<T extends Record<string, unknown>>({ apiEndpoint, defaultLimit = 20, prepareCreate, prepareUpdate }: UseCrudDataOptions) {
+export function useCrudData<T extends Record<string, unknown>>({ apiEndpoint, defaultLimit = 20, listParams, prepareCreate, prepareUpdate }: UseCrudDataOptions) {
+  // Stable key so the fetch callback re-runs when filter params change.
+  const listParamsKey = listParams ? JSON.stringify(listParams) : '';
   const addToast = useToastStore((s) => s.addToast);
   const [state, setState] = useState<CrudState<T>>({
     data: [],
@@ -43,7 +47,7 @@ export function useCrudData<T extends Record<string, unknown>>({ apiEndpoint, de
   const fetchData = useCallback(async () => {
     setState((s) => ({ ...s, loading: true }));
     try {
-      const params: Record<string, string | number> = {
+      const params: Record<string, string | number | boolean> = {
         page: state.page,
         limit: state.limit,
       };
@@ -51,6 +55,7 @@ export function useCrudData<T extends Record<string, unknown>>({ apiEndpoint, de
         params.sortBy = state.sortKey;
         params.sortOrder = state.sortDir;
       }
+      if (listParams) Object.assign(params, listParams);
 
       const { data: response } = await api.get(apiEndpoint, { params });
       errorShownRef.current = false;
@@ -87,7 +92,8 @@ export function useCrudData<T extends Record<string, unknown>>({ apiEndpoint, de
       }
       setState((s) => ({ ...s, data: [], total: 0, loading: false }));
     }
-  }, [apiEndpoint, state.page, state.limit, state.sortKey, state.sortDir, addToast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiEndpoint, state.page, state.limit, state.sortKey, state.sortDir, listParamsKey, addToast]);
 
   useEffect(() => {
     fetchData();

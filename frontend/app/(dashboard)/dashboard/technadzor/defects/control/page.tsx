@@ -1,16 +1,15 @@
 'use client';
-import TechnadzorScaffold from '@/components/technadzor/TechnadzorScaffold';
+import { useRouter } from 'next/navigation';
+import TechnadzorListPage from '@/components/technadzor/TechnadzorListPage';
+import { technadzorDefectConfigs } from '@/lib/admin/technadzorConfigs';
 
 export default function Page() {
+  const router = useRouter();
   return (
-    <TechnadzorScaffold
-      title="На контроле"
-      subtitle="Дефекты под наблюдением до устранения"
+    <TechnadzorListPage
+      config={technadzorDefectConfigs.control()}
       breadcrumbs={[{ label: 'Дефекты' }, { label: 'На контроле' }]}
-      planned={[
-        { title: 'Наблюдаемые дефекты', description: 'Дефекты, добавленные в наблюдение (watchers).' },
-        { title: 'Контроль SLA', description: 'Просроченные сроки устранения с эскалацией через уведомления.' },
-      ]}
+      onRowClick={(row) => router.push(`/dashboard/technadzor/defects/${row.id}`)}
     />
   );
 }

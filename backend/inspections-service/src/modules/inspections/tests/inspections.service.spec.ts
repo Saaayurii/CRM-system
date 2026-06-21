@@ -86,6 +86,7 @@ describe('InspectionsService', () => {
         undefined,
         undefined,
         undefined,
+        undefined,
       );
     });
 
@@ -100,7 +101,7 @@ describe('InspectionsService', () => {
 
       await service.findAll(mockUser, 1, 20, 1, 5);
 
-      expect(repository.findAll).toHaveBeenCalledWith(1, 1, 20, 1, 5, undefined);
+      expect(repository.findAll).toHaveBeenCalledWith(1, 1, 20, 1, 5, undefined, undefined);
     });
   });
 

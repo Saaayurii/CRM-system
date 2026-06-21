@@ -30,6 +30,7 @@ export class DefectsService {
     limit: number,
     status?: number,
     projectId?: number,
+    assignedToUserId?: number,
   ) {
     const allowedProjectIds = await getClientAllowedProjectIds(this.prisma, user);
     return this.defectRepository.findAll(
@@ -39,6 +40,7 @@ export class DefectsService {
       status,
       projectId,
       allowedProjectIds,
+      assignedToUserId,
     );
   }
 

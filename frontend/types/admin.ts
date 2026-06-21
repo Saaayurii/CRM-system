@@ -46,6 +46,8 @@ export interface CrudModuleConfig {
   customRowActions?: CustomRowAction[];
   /** Show a "Download PDF" button in the page header for each row via row-level action */
   hasPdf?: boolean;
+  /** Extra query params merged into the LIST request only (not into /:id update/delete URLs). */
+  listParams?: Record<string, string | number | boolean>;
   /** Transform form data before POST (create) */
   prepareCreate?: (data: Record<string, unknown>) => Record<string, unknown>;
   /** Transform form data before PUT (update) */

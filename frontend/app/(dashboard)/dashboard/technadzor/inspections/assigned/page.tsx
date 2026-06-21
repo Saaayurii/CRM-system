@@ -1,16 +1,15 @@
 'use client';
-import TechnadzorScaffold from '@/components/technadzor/TechnadzorScaffold';
+import { useRouter } from 'next/navigation';
+import TechnadzorListPage from '@/components/technadzor/TechnadzorListPage';
+import { technadzorInspectionConfigs } from '@/lib/admin/technadzorConfigs';
 
 export default function Page() {
+  const router = useRouter();
   return (
-    <TechnadzorScaffold
-      title="Назначенные мне"
-      subtitle="Инспекции, назначенные мне другими сотрудниками"
+    <TechnadzorListPage
+      config={technadzorInspectionConfigs.assigned()}
       breadcrumbs={[{ label: 'Проверки' }, { label: 'Назначенные мне' }]}
-      planned={[
-        { title: 'Входящие назначения', description: 'Список инспекций, где я исполнитель/инспектор, с приоритетом по сроку.' },
-        { title: 'Принять / Отклонить', description: 'Быстрые действия по входящему назначению.' },
-      ]}
+      onRowClick={(row) => router.push(`/dashboard/technadzor/inspections/${row.id}`)}
     />
   );
 }
