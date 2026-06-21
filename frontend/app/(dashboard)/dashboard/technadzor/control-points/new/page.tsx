@@ -74,6 +74,11 @@ const REPORT_FORMATS = [
 ];
 const REPORT_FONTS = ['Inter', 'Roboto', 'Arial', 'Times New Roman'];
 
+const COMPAT_OPTIONS = [
+  'Приёмка квартиры', 'Технический надзор', 'Гарантийный осмотр',
+  'Исполнительная документация', 'Периодический осмотр', 'Аудит качества',
+];
+
 const STATUS_DEFS: Array<{ k: 'ok' | 'note' | 'fail'; label: string; code: string; color: string; icon: string }> = [
   { k: 'ok', label: 'Соответствует', code: 'OK', color: 'green', icon: '✓' },
   { k: 'note', label: 'С замечаниями', code: 'NOTE', color: 'yellow', icon: '!' },
@@ -173,6 +178,15 @@ export default function ControlPointBuilderPage() {
   const [reportFontSize, setReportFontSize] = useState(12);
   const [showPageNumbers, setShowPageNumbers] = useState(true);
 
+  // Шаг 5 — публикация
+  const [scope, setScope] = useState('company'); // company | project | division
+  const [compat, setCompat] = useState<string[]>(['Технический надзор', 'Приёмка квартиры']);
+  const [versionComment, setVersionComment] = useState('Первоначальная версия пункта');
+  const [pubComment, setPubComment] = useState('');
+  const [allowEditAfter, setAllowEditAfter] = useState(true);
+  const [notifyOnUse, setNotifyOnUse] = useState(false);
+  const [autoUpdateTemplates, setAutoUpdateTemplates] = useState(true);
+
   // Шаг 1 — основные поля
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
@@ -241,6 +255,14 @@ export default function ControlPointBuilderPage() {
       if (rs.font) setReportFont(rs.font);
       if (rs.fontSize) setReportFontSize(rs.fontSize);
       if (typeof rs.showPageNumbers === 'boolean') setShowPageNumbers(rs.showPageNumbers);
+      const pub = data.publication || {};
+      if (pub.scope) setScope(pub.scope);
+      if (Array.isArray(pub.compat)) setCompat(pub.compat);
+      if (pub.versionComment) setVersionComment(pub.versionComment);
+      if (pub.pubComment) setPubComment(pub.pubComment);
+      if (typeof pub.allowEditAfter === 'boolean') setAllowEditAfter(pub.allowEditAfter);
+      if (typeof pub.notifyOnUse === 'boolean') setNotifyOnUse(pub.notifyOnUse);
+      if (typeof pub.autoUpdateTemplates === 'boolean') setAutoUpdateTemplates(pub.autoUpdateTemplates);
     } catch {
       addToast('error', 'Не удалось загрузить пункт');
     } finally {
@@ -294,6 +316,10 @@ export default function ControlPointBuilderPage() {
     reportSettings: {
       format: reportFormat, blocks: reportBlocks,
       primaryColor, textColor, font: reportFont, fontSize: reportFontSize, showPageNumbers,
+    },
+    publication: {
+      scope, compat, versionComment, pubComment,
+      allowEditAfter, notifyOnUse, autoUpdateTemplates,
     },
   });
 
@@ -765,9 +791,83 @@ export default function ControlPointBuilderPage() {
         </div>
       )}
 
-      {step >= 5 && (
-        <div className="rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 p-10 text-center text-sm text-gray-400">
-          {t('Этот шаг в разработке')} — {t(STEPS[step - 1].label)}. {t('Данные сохраняются; наполнение подключается следующей итерацией.')}
+      {step === 5 && (
+        <div className="space-y-5">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+            <Card title="Область действия">
+              <div className="space-y-2">
+                {([
+                  { v: 'company', label: 'Вся компания', hint: 'Доступен всем пользователям компании' },
+                  { v: 'project', label: 'Конкретный проект', hint: 'Выберите проекты' },
+                  { v: 'division', label: 'Подразделение', hint: 'Выберите подразделение' },
+                ] as const).map((o) => (
+                  <label key={o.v} className={`flex items-start gap-2 rounded-lg border px-3 py-2 cursor-pointer ${scope === o.v ? 'border-violet-500 bg-violet-50 dark:bg-violet-500/10' : 'border-gray-200 dark:border-gray-600'}`}>
+                    <input type="radio" checked={scope === o.v} onChange={() => setScope(o.v)} className="mt-1" />
+                    <span><span className="block text-sm text-gray-800 dark:text-gray-100">{t(o.label)}</span><span className="block text-xs text-gray-400">{t(o.hint)}</span></span>
+                  </label>
+                ))}
+              </div>
+            </Card>
+
+            <Card title="Совместимость с инспекциями">
+              <div className="space-y-2">
+                {COMPAT_OPTIONS.map((c) => {
+                  const on = compat.includes(c);
+                  return (
+                    <label key={c} className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200 cursor-pointer">
+                      <input type="checkbox" checked={on} onChange={(e) => setCompat((cs) => e.target.checked ? [...cs, c] : cs.filter((x) => x !== c))} />
+                      {t(c)}
+                    </label>
+                  );
+                })}
+              </div>
+            </Card>
+
+            <Card title="Версионирование">
+              <div className="space-y-3">
+                <div><label className={lbl}>{t('Текущая версия')}</label><input value={version} onChange={(e) => setVersion(e.target.value)} className={inputCls} /></div>
+                <div><label className={lbl}>{t('Комментарий к версии')}</label><textarea value={versionComment} onChange={(e) => setVersionComment(e.target.value)} rows={3} className={inputCls} /></div>
+              </div>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <Card title="Дополнительные настройки публикации">
+              <div className="space-y-3">
+                <label className="flex items-center justify-between gap-3"><span className="text-sm text-gray-700 dark:text-gray-200">{t('Разрешить редактирование после публикации')}</span><Toggle on={allowEditAfter} set={setAllowEditAfter} /></label>
+                <label className="flex items-center justify-between gap-3"><span className="text-sm text-gray-700 dark:text-gray-200">{t('Уведомлять об использовании')}</span><Toggle on={notifyOnUse} set={setNotifyOnUse} /></label>
+                <label className="flex items-center justify-between gap-3"><span className="text-sm text-gray-700 dark:text-gray-200">{t('Автоматически обновлять в шаблонах')}</span><Toggle on={autoUpdateTemplates} set={setAutoUpdateTemplates} /></label>
+                <div><label className={lbl}>{t('Комментарий к публикации')}</label><textarea value={pubComment} onChange={(e) => setPubComment(e.target.value)} rows={2} className={inputCls} /></div>
+              </div>
+            </Card>
+
+            <Card title="Что произойдёт при публикации">
+              <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
+                <li className="flex items-center gap-2"><span className="text-green-500">✓</span> {t('Пункт станет доступен для создания инспекций')}</li>
+                <li className="flex items-center gap-2"><span className="text-green-500">✓</span> {t('Появится в библиотеке, поиске и фильтрах')}</li>
+                <li className="flex items-center gap-2"><span className="text-green-500">✓</span> {t('Будет добавлен в выбранные шаблоны инспекций')}</li>
+                <li className="flex items-center gap-2 text-amber-600 dark:text-amber-400"><span>⚠</span> {t('После публикации пункт можно только архивировать')}</li>
+              </ul>
+            </Card>
+          </div>
+
+          {/* Финальная проверка */}
+          <Card title="Финальная проверка перед публикацией">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 text-sm">
+              {[
+                { ok: !!name.trim(), label: 'Основная информация' },
+                { ok: defects.filter((d) => d.name.trim()).length > 0, label: `Типовые дефекты (${defects.filter((d) => d.name.trim()).length})` },
+                { ok: Object.values(statusTexts).some((s) => s.text.trim()), label: 'Шаблоны текстов' },
+                { ok: reportBlocks.some((b) => b.on), label: 'Настройки отчёта' },
+                { ok: !!normativeDoc.trim(), label: 'Нормативы указаны' },
+              ].map((c, i) => (
+                <div key={i} className={`flex items-center gap-2 rounded-lg border px-3 py-2 ${c.ok ? 'border-green-200 dark:border-green-900' : 'border-amber-200 dark:border-amber-900'}`}>
+                  <span className={c.ok ? 'text-green-500' : 'text-amber-500'}>{c.ok ? '✓' : '!'}</span>
+                  <span className="text-gray-700 dark:text-gray-200">{t(c.label)}</span>
+                </div>
+              ))}
+            </div>
+          </Card>
         </div>
       )}
     </div>
