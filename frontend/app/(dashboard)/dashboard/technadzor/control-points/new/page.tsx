@@ -57,6 +57,23 @@ const emptyDefect = (): TypicalDefect => ({
 
 interface StatusText { text: string; use: boolean; importance: string }
 
+const DEFAULT_REPORT_BLOCKS: Array<{ key: string; label: string; on: boolean }> = [
+  { key: 'cover', label: 'Титульная страница', on: true },
+  { key: 'object', label: 'Данные объекта', on: true },
+  { key: 'inspection', label: 'Данные проверки', on: true },
+  { key: 'summary', label: 'Сводная статистика', on: true },
+  { key: 'checks', label: 'Список проверок и дефектов', on: true },
+  { key: 'photos', label: 'Фотофиксация', on: true },
+  { key: 'remarks', label: 'Замечания и рекомендации', on: true },
+  { key: 'signatures', label: 'Подписи', on: true },
+];
+const REPORT_FORMATS = [
+  { v: 'pdf', label: 'PDF', hint: 'Для печати и отправки' },
+  { v: 'docx', label: 'DOCX', hint: 'Для редактирования' },
+  { v: 'xlsx', label: 'XLSX', hint: 'Для анализа данных' },
+];
+const REPORT_FONTS = ['Inter', 'Roboto', 'Arial', 'Times New Roman'];
+
 const STATUS_DEFS: Array<{ k: 'ok' | 'note' | 'fail'; label: string; code: string; color: string; icon: string }> = [
   { k: 'ok', label: 'Соответствует', code: 'OK', color: 'green', icon: '✓' },
   { k: 'note', label: 'С замечаниями', code: 'NOTE', color: 'yellow', icon: '!' },
@@ -147,6 +164,15 @@ export default function ControlPointBuilderPage() {
   const lastFocused = useRef<'ok' | 'note' | 'fail' | null>(null);
   const textRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
 
+  // Шаг 4 — настройки отчёта
+  const [reportFormat, setReportFormat] = useState('pdf');
+  const [reportBlocks, setReportBlocks] = useState<Array<{ key: string; label: string; on: boolean }>>(DEFAULT_REPORT_BLOCKS);
+  const [primaryColor, setPrimaryColor] = useState('#6C4DFF');
+  const [textColor, setTextColor] = useState('#1A1F2C');
+  const [reportFont, setReportFont] = useState('Inter');
+  const [reportFontSize, setReportFontSize] = useState(12);
+  const [showPageNumbers, setShowPageNumbers] = useState(true);
+
   // Шаг 1 — основные поля
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
@@ -207,6 +233,14 @@ export default function ControlPointBuilderPage() {
       const tt = data.textTemplates || {};
       if (tt.statuses) setStatusTexts((prev) => ({ ...prev, ...tt.statuses }));
       setDefectTexts(Array.isArray(tt.defectTemplates) ? tt.defectTemplates : []);
+      const rs = data.reportSettings || {};
+      if (rs.format) setReportFormat(rs.format);
+      if (Array.isArray(rs.blocks) && rs.blocks.length) setReportBlocks(rs.blocks);
+      if (rs.primaryColor) setPrimaryColor(rs.primaryColor);
+      if (rs.textColor) setTextColor(rs.textColor);
+      if (rs.font) setReportFont(rs.font);
+      if (rs.fontSize) setReportFontSize(rs.fontSize);
+      if (typeof rs.showPageNumbers === 'boolean') setShowPageNumbers(rs.showPageNumbers);
     } catch {
       addToast('error', 'Не удалось загрузить пункт');
     } finally {
@@ -257,6 +291,15 @@ export default function ControlPointBuilderPage() {
       statuses: statusTexts,
       defectTemplates: defectTexts.filter((d) => d.name.trim()),
     },
+    reportSettings: {
+      format: reportFormat, blocks: reportBlocks,
+      primaryColor, textColor, font: reportFont, fontSize: reportFontSize, showPageNumbers,
+    },
+  });
+
+  const moveBlock = (i: number, dir: -1 | 1) => setReportBlocks((bs) => {
+    const j = i + dir; if (j < 0 || j >= bs.length) return bs;
+    const c = [...bs]; [c[i], c[j]] = [c[j], c[i]]; return c;
   });
 
   // вставка переменной в активный textarea статуса
@@ -653,7 +696,76 @@ export default function ControlPointBuilderPage() {
         </div>
       )}
 
-      {step >= 4 && (
+      {step === 4 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div className="space-y-4">
+            <Card title="Формат отчёта">
+              <div className="grid grid-cols-3 gap-2">
+                {REPORT_FORMATS.map((f) => (
+                  <button key={f.v} onClick={() => setReportFormat(f.v)} className={`text-left p-3 rounded-xl border ${reportFormat === f.v ? 'border-violet-500 bg-violet-50 dark:bg-violet-500/10' : 'border-gray-200 dark:border-gray-600'}`}>
+                    <div className="text-sm font-semibold text-gray-800 dark:text-gray-100">{f.label}</div>
+                    <div className="text-[11px] text-gray-400">{t(f.hint)}</div>
+                  </button>
+                ))}
+              </div>
+            </Card>
+
+            <Card title="Структура отчёта">
+              <ul className="space-y-1.5">
+                {reportBlocks.map((b, i) => (
+                  <li key={b.key} className="flex items-center gap-2 rounded-lg border border-gray-100 dark:border-gray-700 px-3 py-2">
+                    <span className="flex-1 text-sm text-gray-800 dark:text-gray-100">{i + 1}. {t(b.label)}</span>
+                    <button onClick={() => moveBlock(i, -1)} disabled={i === 0} className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30">▲</button>
+                    <button onClick={() => moveBlock(i, 1)} disabled={i === reportBlocks.length - 1} className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30">▼</button>
+                    <Toggle on={b.on} set={(on) => setReportBlocks((bs) => bs.map((x, j) => j === i ? { ...x, on } : x))} />
+                  </li>
+                ))}
+              </ul>
+            </Card>
+
+            <Card title="Оформление отчёта">
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={lbl}>{t('Основной цвет')}</label>
+                    <div className="flex items-center gap-2"><input type="color" value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} className="w-9 h-9 rounded border border-gray-200 dark:border-gray-600 bg-transparent" /><input value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} className={inputCls} /></div>
+                  </div>
+                  <div>
+                    <label className={lbl}>{t('Цвет текста')}</label>
+                    <div className="flex items-center gap-2"><input type="color" value={textColor} onChange={(e) => setTextColor(e.target.value)} className="w-9 h-9 rounded border border-gray-200 dark:border-gray-600 bg-transparent" /><input value={textColor} onChange={(e) => setTextColor(e.target.value)} className={inputCls} /></div>
+                  </div>
+                  <div>
+                    <label className={lbl}>{t('Шрифт')}</label>
+                    <select value={reportFont} onChange={(e) => setReportFont(e.target.value)} className={inputCls}>{REPORT_FONTS.map((f) => <option key={f} value={f}>{f}</option>)}</select>
+                  </div>
+                  <div><label className={lbl}>{t('Размер шрифта')}</label><input type="number" value={reportFontSize} onChange={(e) => setReportFontSize(Number(e.target.value))} className={inputCls} /></div>
+                </div>
+                <label className="flex items-center justify-between"><span className="text-sm text-gray-700 dark:text-gray-200">{t('Показывать номера страниц')}</span><Toggle on={showPageNumbers} set={setShowPageNumbers} /></label>
+              </div>
+            </Card>
+          </div>
+
+          {/* Предпросмотр отчёта */}
+          <Card title="Предпросмотр отчёта">
+            <div className="rounded-xl bg-white border border-gray-200 p-5 text-[13px]" style={{ color: textColor, fontFamily: reportFont, fontSize: reportFontSize }}>
+              <div className="flex items-center justify-between border-b pb-3 mb-3" style={{ borderColor: primaryColor }}>
+                <span className="font-bold" style={{ color: primaryColor }}>{name || 'ТехКонтроль'}</span>
+                <span className="text-gray-500 text-xs">{t('ОТЧЁТ по результатам инспекции')}</span>
+              </div>
+              {reportBlocks.filter((b) => b.on).map((b, i) => (
+                <div key={b.key} className="mb-2">
+                  <div className="text-xs font-semibold uppercase tracking-wide" style={{ color: primaryColor }}>{i + 1}. {t(b.label)}</div>
+                  <div className="h-6 rounded bg-gray-100 mt-1" />
+                </div>
+              ))}
+              {showPageNumbers && <div className="text-center text-[10px] text-gray-400 mt-3">— 1 —</div>}
+            </div>
+            <p className="text-xs text-gray-400 mt-2">{t('Формат экспорта')}: {reportFormat.toUpperCase()}{reportFormat !== 'pdf' ? ` (${t('подключим позже')})` : ''}</p>
+          </Card>
+        </div>
+      )}
+
+      {step >= 5 && (
         <div className="rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 p-10 text-center text-sm text-gray-400">
           {t('Этот шаг в разработке')} — {t(STEPS[step - 1].label)}. {t('Данные сохраняются; наполнение подключается следующей итерацией.')}
         </div>
