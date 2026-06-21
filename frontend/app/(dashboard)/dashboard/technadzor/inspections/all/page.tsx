@@ -1,6 +1,10 @@
 'use client';
-import TechnadzorInspectionsList from '@/components/technadzor/TechnadzorInspectionsList';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
+// «Все инспекции» теперь основная страница /inspections — редиректим для старых ссылок.
 export default function Page() {
-  return <TechnadzorInspectionsList variant="all" breadcrumbLabel="Все инспекции" />;
+  const router = useRouter();
+  useEffect(() => { router.replace('/dashboard/technadzor/inspections'); }, [router]);
+  return null;
 }

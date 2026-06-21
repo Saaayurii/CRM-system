@@ -385,10 +385,9 @@ function linkCls(active: boolean) {
 /* ─── Технадзор: раскрывающаяся группа (паддинги как у остальных пунктов) ─── */
 const TECHNADZOR_ITEMS: Array<{ header?: string; href?: string; label?: string }> = [
   { header: 'Проверки' },
-  { href: '/dashboard/technadzor/inspections', label: 'Мои инспекции' },
+  { href: '/dashboard/technadzor/inspections', label: 'Все инспекции' },
   { href: '/dashboard/technadzor/inspections/assigned', label: 'Назначенные мне' },
   { href: '/dashboard/technadzor/inspections/control', label: 'На контроле' },
-  { href: '/dashboard/technadzor/inspections/all', label: 'Все инспекции' },
   { href: '/dashboard/technadzor/calendar', label: 'Календарь' },
   { header: 'Дефекты' },
   { href: '/dashboard/technadzor/defects', label: 'Все дефекты' },

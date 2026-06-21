@@ -15,10 +15,9 @@ const GROUPS: Array<{ group: string; items: NavCard[] }> = [
   {
     group: 'Проверки',
     items: [
-      { title: 'Мои инспекции', href: '/dashboard/technadzor/inspections', description: 'Инспекции, назначенные на меня', icon: '🔍', color: 'violet' },
+      { title: 'Все инспекции', href: '/dashboard/technadzor/inspections', description: 'Полный реестр инспекций', icon: '📋', color: 'violet' },
       { title: 'Назначенные мне', href: '/dashboard/technadzor/inspections/assigned', description: 'Входящие назначения', icon: '📥', color: 'blue' },
       { title: 'На контроле', href: '/dashboard/technadzor/inspections/control', description: 'Под наблюдением', icon: '👁️', color: 'amber' },
-      { title: 'Все инспекции', href: '/dashboard/technadzor/inspections/all', description: 'Полный реестр инспекций', icon: '📋', color: 'green' },
       { title: 'Календарь', href: '/dashboard/technadzor/calendar', description: 'Сроки и расписание проверок', icon: '📅', color: 'blue' },
     ],
   },
