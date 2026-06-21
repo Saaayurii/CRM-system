@@ -14,6 +14,7 @@ import { useVoicePlayerStore } from '@/stores/voicePlayerStore';
 import { useThemeStore } from '@/stores/themeStore';
 import { nameColorClass } from '@/lib/appearance';
 import { useT } from '@/lib/i18n';
+import { reservedBox, setMediaDims } from '@/lib/mediaAspect';
 
 const QUICK_EMOJIS = ['❤️', '🤗', '👍', '😄', '👎', '🔥', '👏'];
 
@@ -769,10 +770,15 @@ function ChatMessage({ message, isOwn, showAvatar, isRead, isDirect = false, rea
               {!hasAlbum && mediaAtts.length === 1 && isImageAtt(mediaAtts[0]) && (() => {
                 const att = mediaAtts[0];
                 const mediaIndex = mediaItems.findIndex((m) => m.url === att.fileUrl);
+                // Reserve the exact box from cached dimensions so the bubble
+                // doesn't grow (and shove the list) when the image finally loads.
+                const box = reservedBox(att.fileUrl, 320, 320);
                 const imageContent = (
                   <div className="relative group/img mt-1">
                     <img src={att.fileUrl} alt={att.fileName} loading="lazy" decoding="async"
-                      className="max-w-full max-h-60 rounded-lg object-cover block cursor-zoom-in"
+                      className={`rounded-lg block cursor-zoom-in ${box ? '' : 'max-w-full max-h-60 object-cover'}`}
+                      style={box ? { width: box.width, height: box.height, maxWidth: '100%' } : undefined}
+                      onLoad={(e) => setMediaDims(att.fileUrl, e.currentTarget.naturalWidth, e.currentTarget.naturalHeight)}
                       onClick={() => openViewer(mediaIndex)}
                       onError={(e) => { e.currentTarget.style.display = 'none'; (e.currentTarget.nextElementSibling as HTMLElement)?.classList.remove('hidden'); }}
                     />
@@ -799,10 +805,20 @@ function ChatMessage({ message, isOwn, showAvatar, isRead, isDirect = false, rea
               {!hasAlbum && mediaAtts.length === 1 && isVideoAtt(mediaAtts[0]) && (() => {
                 const att = mediaAtts[0];
                 const mediaIndex = mediaItems.findIndex((m) => m.url === att.fileUrl);
+                // Reserve the exact box from cached dimensions (no shift on load).
+                const box = reservedBox(att.fileUrl, 320, 320);
                 const videoContent = (
                   <div className="relative group/vid mt-1 w-fit max-w-full">
-                    <div className="relative cursor-pointer rounded-lg overflow-hidden min-w-[180px]" onClick={() => openViewer(mediaIndex)}>
-                      <VideoThumbnail src={att.fileUrl} className="max-h-52 w-full rounded-lg block" />
+                    <div
+                      className="relative cursor-pointer rounded-lg overflow-hidden min-w-[180px]"
+                      style={box ? { width: box.width, height: box.height, maxWidth: '100%' } : undefined}
+                      onClick={() => openViewer(mediaIndex)}
+                    >
+                      <VideoThumbnail
+                        src={att.fileUrl}
+                        className={box ? 'w-full h-full object-cover rounded-lg block' : 'max-h-52 w-full rounded-lg block'}
+                        onDims={(w, h) => setMediaDims(att.fileUrl, w, h)}
+                      />
                       <div className="absolute inset-0 flex items-center justify-center bg-black/25 group-hover/vid:bg-black/40 transition-colors rounded-lg">
                         <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
                           <svg className="w-5 h-5 text-gray-800 ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
@@ -1844,7 +1860,17 @@ function MediaAlbum({
 // Seeking to 0.001 s on metadata load forces first-frame display
 // in browsers that otherwise show a blank frame.
 
-function VideoThumbnail({ src, className }: { src: string; className?: string }) {
+function VideoThumbnail({
+  src,
+  className,
+  style,
+  onDims,
+}: {
+  src: string;
+  className?: string;
+  style?: React.CSSProperties;
+  onDims?: (w: number, h: number) => void;
+}) {
   const t = useT();
   return (
     <video
@@ -1852,9 +1878,12 @@ function VideoThumbnail({ src, className }: { src: string; className?: string })
       preload="metadata"
       muted
       playsInline
-      onLoadedMetadata={(e) => { e.currentTarget.currentTime = 0.001; }}
+      onLoadedMetadata={(e) => {
+        e.currentTarget.currentTime = 0.001;
+        if (e.currentTarget.videoWidth) onDims?.(e.currentTarget.videoWidth, e.currentTarget.videoHeight);
+      }}
       className={className}
-      style={{ background: '#000', pointerEvents: 'none', minHeight: 80, display: 'block' }}
+      style={{ background: '#000', pointerEvents: 'none', minHeight: 80, display: 'block', ...style }}
     />
   );
 }
