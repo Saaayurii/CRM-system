@@ -100,4 +100,22 @@ export class DefectRepository {
       where: { id, accountId },
     });
   }
+
+  // Комментарии к дефекту
+  async findComments(defectId: number) {
+    return (this.prisma as any).defectComment.findMany({
+      where: { defectId },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  async addComment(data: {
+    defectId: number;
+    accountId: number;
+    userId?: number;
+    userName?: string;
+    commentText: string;
+  }) {
+    return (this.prisma as any).defectComment.create({ data });
+  }
 }

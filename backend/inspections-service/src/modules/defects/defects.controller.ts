@@ -87,6 +87,25 @@ export class DefectsController {
     return this.defectsService.findById(id, user);
   }
 
+  @Get(':id/comments')
+  @ApiOperation({ summary: 'Get defect comments' })
+  async getComments(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.defectsService.getComments(id, user);
+  }
+
+  @Post(':id/comments')
+  @ApiOperation({ summary: 'Add a comment to a defect' })
+  async addComment(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { commentText: string; userName?: string },
+  ) {
+    return this.defectsService.addComment(id, user, body.commentText, body.userName);
+  }
+
   @Post()
   @ApiOperation({ summary: 'Create a new defect' })
   @ApiResponse({ status: 201, description: 'Defect created' })

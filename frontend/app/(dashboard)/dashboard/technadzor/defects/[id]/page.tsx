@@ -67,7 +67,9 @@ export default function DefectDetailPage() {
   const [saving, setSaving] = useState(false);
   const [users, setUsers] = useState<Record<number, string>>({});
   const [activePhoto, setActivePhoto] = useState(0);
-  const [tab, setTab] = useState<'desc' | 'media' | 'links' | 'history'>('desc');
+  const [tab, setTab] = useState<'desc' | 'media' | 'links' | 'history' | 'comments'>('desc');
+  const [comments, setComments] = useState<Array<{ id: number; userName?: string; commentText: string; createdAt?: string }>>([]);
+  const [newComment, setNewComment] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -81,7 +83,26 @@ export default function DefectDetailPage() {
     }
   }, [id]);
 
-  useEffect(() => { load(); }, [load]);
+  const loadComments = useCallback(async () => {
+    try {
+      const { data } = await api.get(`/defects/${id}/comments`);
+      setComments(Array.isArray(data) ? data : (data?.data ?? []));
+    } catch { /* пусто */ }
+  }, [id]);
+
+  useEffect(() => { load(); loadComments(); }, [load, loadComments]);
+
+  const sendComment = async () => {
+    const text = newComment.trim();
+    if (!text) return;
+    try {
+      await api.post(`/defects/${id}/comments`, { commentText: text });
+      setNewComment('');
+      loadComments();
+    } catch {
+      addToast('error', 'Не удалось отправить комментарий');
+    }
+  };
 
   useEffect(() => {
     api.get('/users', { params: { limit: 200 } }).then(({ data }) => {
@@ -216,6 +237,7 @@ export default function DefectDetailPage() {
                 { k: 'desc', label: 'Описание' },
                 { k: 'media', label: `Фото и файлы (${photos.length + docs.length})` },
                 { k: 'links', label: 'Связи' },
+                { k: 'comments', label: `Комментарии (${comments.length})` },
                 { k: 'history', label: 'История' },
               ] as const).map((it) => (
                 <button
@@ -291,6 +313,33 @@ export default function DefectDetailPage() {
                   ) : <p className="text-gray-400">{t('Задача не создана')}</p>}
                   {defect.projectId ? <p className="text-gray-500 dark:text-gray-400">🏢 {t('Проект')} #{defect.projectId}</p> : null}
                   {defect.constructionSiteId ? <p className="text-gray-500 dark:text-gray-400">📍 {t('Объект')} #{defect.constructionSiteId}</p> : null}
+                </div>
+              )}
+
+              {tab === 'comments' && (
+                <div>
+                  <ul className="space-y-3 mb-4">
+                    {comments.length === 0 && <p className="text-sm text-gray-400">{t('Комментариев пока нет')}</p>}
+                    {comments.map((c) => (
+                      <li key={c.id} className="rounded-xl bg-gray-50 dark:bg-gray-900/40 p-3">
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{c.userName || t('Пользователь')}</span>
+                          <span className="text-xs text-gray-400">{fmtDate(c.createdAt)}</span>
+                        </div>
+                        <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{c.commentText}</p>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="flex items-center gap-2">
+                    <input
+                      value={newComment}
+                      onChange={(e) => setNewComment(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendComment(); } }}
+                      placeholder={t('Написать комментарий…')}
+                      className="flex-1 text-sm rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-800 dark:text-gray-100"
+                    />
+                    <button onClick={sendComment} disabled={!newComment.trim()} className="px-4 py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-700 text-white disabled:opacity-50">{t('Отправить')}</button>
+                  </div>
                 </div>
               )}
 

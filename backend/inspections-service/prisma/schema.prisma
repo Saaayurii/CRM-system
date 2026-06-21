@@ -123,14 +123,30 @@ model Defect {
   createdAt             DateTime  @default(now()) @map("created_at")
   updatedAt             DateTime  @default(now()) @updatedAt @map("updated_at")
 
-  account    Account     @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  inspection Inspection? @relation(fields: [inspectionId], references: [id])
+  account    Account         @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  inspection Inspection?     @relation(fields: [inspectionId], references: [id])
+  comments   DefectComment[]
 
   @@index([accountId])
   @@index([projectId])
   @@index([constructionSiteId])
   @@index([status])
   @@map("defects")
+}
+
+model DefectComment {
+  id          Int      @id @default(autoincrement())
+  defectId    Int      @map("defect_id")
+  accountId   Int      @map("account_id")
+  userId      Int?     @map("user_id")
+  userName    String?  @map("user_name") @db.VarChar(255)
+  commentText String   @map("comment_text") @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  defect Defect @relation(fields: [defectId], references: [id], onDelete: Cascade)
+
+  @@index([defectId])
+  @@map("defect_comments")
 }
 
 model DefectTemplate {

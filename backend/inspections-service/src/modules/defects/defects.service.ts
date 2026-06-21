@@ -96,6 +96,28 @@ export class DefectsService {
     return defect;
   }
 
+  // Комментарии к дефекту
+  async getComments(defectId: number, user: RequestUser) {
+    await this.findById(defectId, user); // проверка доступа/существования (404/403)
+    return this.defectRepository.findComments(defectId);
+  }
+
+  async addComment(
+    defectId: number,
+    user: RequestUser,
+    commentText: string,
+    userName?: string,
+  ) {
+    const defect = await this.findById(defectId, user);
+    return this.defectRepository.addComment({
+      defectId,
+      accountId: defect.accountId,
+      userId: user.id,
+      userName,
+      commentText,
+    });
+  }
+
   async update(
     id: number,
     accountId: number,

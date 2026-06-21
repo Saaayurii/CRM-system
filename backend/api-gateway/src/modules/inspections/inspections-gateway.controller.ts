@@ -229,6 +229,30 @@ export class InspectionsGatewayController {
     });
   }
 
+  @Get('defects/:id/comments')
+  @ApiOperation({ summary: 'Get defect comments' })
+  async getDefectComments(@Req() req: Request, @Param('id') id: string) {
+    return this.proxyService.forward('inspections', {
+      method: 'GET',
+      path: `/defects/${id}/comments`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  @Post('defects/:id/comments')
+  @ApiOperation({ summary: 'Add a comment to a defect' })
+  async addDefectComment(@Req() req: Request, @Param('id') id: string, @Body() body: any) {
+    return this.proxyService.forward('inspections', {
+      method: 'POST',
+      path: `/defects/${id}/comments`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
   @Get('defects/:id')
   @ApiOperation({ summary: 'Get defect by ID' })
   async findOneDefect(@Req() req: Request, @Param('id') id: string) {

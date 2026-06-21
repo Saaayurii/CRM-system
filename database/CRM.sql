@@ -1081,6 +1081,17 @@ CREATE INDEX idx_defects_project ON defects(project_id);
 CREATE INDEX idx_defects_site ON defects(construction_site_id);
 CREATE INDEX idx_defects_status ON defects(status);
 
+CREATE TABLE defect_comments (
+    id SERIAL PRIMARY KEY,
+    defect_id INTEGER NOT NULL REFERENCES defects(id) ON DELETE CASCADE,
+    account_id INTEGER NOT NULL,
+    user_id INTEGER,
+    user_name VARCHAR(255),
+    comment_text TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_defect_comments_defect ON defect_comments(defect_id);
+
 CREATE TABLE defect_templates (
     id SERIAL PRIMARY KEY,
     account_id INTEGER REFERENCES accounts(id) ON DELETE CASCADE,
