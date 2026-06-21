@@ -451,6 +451,22 @@ export default function Sidebar() {
 
   const trigger = useRef<HTMLButtonElement>(null);
   const sidebar = useRef<HTMLDivElement>(null);
+  const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Hover-intent: разворачиваем с небольшой задержкой (чтобы случайный проход
+  // курсора не дёргал меню) и сворачиваем чуть позже — переход выглядит плавнее.
+  const isDesktop = () => window.matchMedia('(min-width: 1024px)').matches;
+  const handleSidebarEnter = () => {
+    if (!isDesktop()) return;
+    if (hoverTimer.current) clearTimeout(hoverTimer.current);
+    hoverTimer.current = setTimeout(() => setSidebarExpanded(true), 90);
+  };
+  const handleSidebarLeave = () => {
+    if (!isDesktop()) return;
+    if (hoverTimer.current) clearTimeout(hoverTimer.current);
+    hoverTimer.current = setTimeout(() => setSidebarExpanded(false), 180);
+  };
+  useEffect(() => () => { if (hoverTimer.current) clearTimeout(hoverTimer.current); }, []);
 
   useEffect(() => { initialize(); }, [initialize]);
 
@@ -539,9 +555,9 @@ export default function Sidebar() {
       <div
         id="sidebar"
         ref={sidebar}
-        onMouseEnter={() => { if (window.matchMedia('(min-width: 1024px)').matches) setSidebarExpanded(true); }}
-        onMouseLeave={() => { if (window.matchMedia('(min-width: 1024px)').matches) setSidebarExpanded(false); }}
-        className={`flex lg:flex! flex-col absolute z-40 left-0 top-0 lg:static lg:left-auto lg:top-auto lg:translate-x-0 h-[100dvh] w-64 lg:w-20 lg:sidebar-expanded:!w-64 shrink-0 bg-white dark:bg-gray-800 transition-all duration-200 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-64'} rounded-r-2xl shadow-xs`}
+        onMouseEnter={handleSidebarEnter}
+        onMouseLeave={handleSidebarLeave}
+        className={`flex lg:flex! flex-col absolute z-40 left-0 top-0 lg:static lg:left-auto lg:top-auto lg:translate-x-0 h-[100dvh] w-64 lg:w-20 lg:sidebar-expanded:!w-64 shrink-0 bg-white dark:bg-gray-800 transition-[width,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[width] ${sidebarOpen ? 'translate-x-0' : '-translate-x-64'} rounded-r-2xl shadow-xs`}
       >
         {/* Top: company switcher + utility buttons */}
         <div className="shrink-0 px-4 pt-4 pb-3">

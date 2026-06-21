@@ -752,6 +752,18 @@ html[data-glass] .fixed > div > .bg-white {
   backdrop-filter: blur(22px) saturate(170%);
 }
 
+/* Плавная подгрузка подписей меню при раскрытии по наведению (десктоп):
+   подписи проявляются чуть позже роста ширины — переход выглядит цельным.
+   На сворачивании задержки нет, поэтому текст гаснет сразу. */
+@media (min-width: 1024px) {
+  #sidebar a > span {
+    transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .sidebar-expanded #sidebar a > span {
+    transition-delay: 70ms;
+  }
+}
+
 /* Лёгкий блюр затемняющих подложек модалок и мобильного меню */
 html[data-glass] .fixed.inset-0[class*='bg-black'],
 html[data-glass] .fixed.inset-0[class*='bg-gray-900/'] {
