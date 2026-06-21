@@ -238,7 +238,15 @@ export default function NotificationDropdown({ navItem }: { navItem?: boolean })
     <div ref={dropdown}>
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700/60">
-        <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">{t('Уведомления')}</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">{t('Уведомления')}</h3>
+          {isLoading && (
+            <svg className="animate-spin w-3.5 h-3.5 text-violet-500" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+          )}
+        </div>
         <div className="flex items-center gap-3">
           {unreadCount > 0 && (
             <button
@@ -298,8 +306,12 @@ export default function NotificationDropdown({ navItem }: { navItem?: boolean })
       {/* Notification list */}
       <div className="max-h-80 overflow-y-auto">
         {isLoading && notifications.length === 0 ? (
-          <div className="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
-            Загрузка...
+          <div className="px-4 py-8 flex flex-col items-center justify-center gap-2 text-gray-500 dark:text-gray-400">
+            <svg className="animate-spin w-6 h-6 text-violet-500" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            <span className="text-sm">{t('Загрузка...')}</span>
           </div>
         ) : notifications.length === 0 ? (
           <div className="px-4 py-8 text-center">
