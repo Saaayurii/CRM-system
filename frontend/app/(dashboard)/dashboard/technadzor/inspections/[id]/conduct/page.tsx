@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import { useT } from '@/lib/i18n';
-import { CHECK_STATUS } from '@/components/technadzor/Badge';
+import Badge, { CHECK_STATUS } from '@/components/technadzor/Badge';
 
 type CheckStatus = 'pass' | 'remark' | 'fail' | 'none';
 
@@ -51,6 +51,7 @@ export default function ConductInspectionPage() {
   const [templateId, setTemplateId] = useState<number | null>(null);
   const [sections, setSections] = useState<Section[]>([]);
   const [resMap, setResMap] = useState<Record<string, ResultEntry>>({});
+  const [currentKey, setCurrentKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -138,6 +139,17 @@ export default function ConductInspectionPage() {
     return c;
   }, [allPoints, resMap]);
   const checked = counts.pass + counts.remark + counts.fail;
+
+  // Текущий пункт для пошагового мастера
+  useEffect(() => {
+    if (allPoints.length && (!currentKey || !allPoints.some((p) => p.key === currentKey))) {
+      setCurrentKey(allPoints[0].key);
+    }
+  }, [allPoints, currentKey]);
+  const currentIndex = allPoints.findIndex((p) => p.key === currentKey);
+  const currentPoint = currentIndex >= 0 ? allPoints[currentIndex] : null;
+  const goPrev = () => { if (currentIndex > 0) setCurrentKey(allPoints[currentIndex - 1].key); };
+  const goNext = () => { if (currentIndex < allPoints.length - 1) setCurrentKey(allPoints[currentIndex + 1].key); };
 
   const buildResults = (): ResultEntry[] =>
     allPoints.map((p) => resMap[p.key] ?? { key: p.key, code: p.code, name: p.name, status: 'none' });
@@ -274,84 +286,115 @@ export default function ConductInspectionPage() {
         </div>
       </div>
 
-      {/* Чек-лист */}
+      {/* Чек-лист: слева структура, справа панель текущего пункта */}
       {sections.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 p-8 text-center text-sm text-gray-400">
           {t('В выбранном шаблоне нет пунктов контроля')}
         </div>
       ) : (
-        <div className="space-y-6">
-          {sections.map((sec, si) => (
-            <div key={si} className="rounded-2xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-gray-800 shadow-xs overflow-hidden">
-              <div className="px-5 py-3 border-b border-gray-100 dark:border-gray-700 font-semibold text-gray-800 dark:text-gray-100">
-                {si + 1}. {sec.title}
-                <span className="ml-2 text-xs font-normal text-gray-400">
-                  {sec.points.filter((p) => (resMap[p.key]?.status ?? 'none') !== 'none').length}/{sec.points.length}
-                </span>
-              </div>
-              <ul className="divide-y divide-gray-100 dark:divide-gray-700">
-                {sec.points.map((p) => {
-                  const cur = resMap[p.key]?.status ?? 'none';
-                  return (
-                    <li key={p.key} className="px-5 py-3">
-                      <div className="flex items-start justify-between gap-4 flex-wrap">
-                        <div className="min-w-0 flex-1">
-                          <div className="text-sm text-gray-800 dark:text-gray-100">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+          {/* Структура */}
+          <div className="lg:col-span-3 space-y-4">
+            {sections.map((sec, si) => (
+              <div key={si} className="rounded-2xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-gray-800 shadow-xs overflow-hidden">
+                <div className="px-5 py-3 border-b border-gray-100 dark:border-gray-700 font-semibold text-gray-800 dark:text-gray-100">
+                  {si + 1}. {sec.title}
+                  <span className="ml-2 text-xs font-normal text-gray-400">
+                    {sec.points.filter((p) => (resMap[p.key]?.status ?? 'none') !== 'none').length}/{sec.points.length}
+                  </span>
+                </div>
+                <ul className="divide-y divide-gray-100 dark:divide-gray-700">
+                  {sec.points.map((p) => {
+                    const cur = resMap[p.key]?.status ?? 'none';
+                    const meta = CHECK_STATUS[cur];
+                    const nPhotos = resMap[p.key]?.photos?.length ?? 0;
+                    return (
+                      <li key={p.key}>
+                        <button
+                          onClick={() => setCurrentKey(p.key)}
+                          className={`w-full text-left px-5 py-3 flex items-center justify-between gap-3 transition ${p.key === currentKey ? 'bg-violet-50 dark:bg-violet-500/10' : 'hover:bg-gray-50 dark:hover:bg-gray-700/30'}`}
+                        >
+                          <span className="min-w-0 text-sm text-gray-800 dark:text-gray-100 truncate">
                             {p.code && <span className="text-gray-400 mr-1">{p.code}</span>}{p.name}
                             {p.required && <span className="ml-1 text-red-400">*</span>}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          {STATUS_BTNS.map(({ k, cls }) => (
-                            <button
-                              key={k}
-                              data-on={cur === k}
-                              onClick={() => setStatus(p, cur === k ? 'none' : k)}
-                              className={`px-2.5 py-1 rounded-lg text-xs font-medium border bg-white dark:bg-gray-700/40 ${cls}`}
-                            >
-                              {t(CHECK_STATUS[k].label)}
-                            </button>
-                          ))}
-                          <button
-                            onClick={() => createDefect(p)}
-                            disabled={saving}
-                            className="px-2.5 py-1 rounded-lg text-xs font-medium border border-violet-300 text-violet-600 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-500/10 disabled:opacity-50"
-                          >
-                            + {t('Дефект')}
-                          </button>
-                        </div>
+                          </span>
+                          <span className="flex items-center gap-2 shrink-0">
+                            {nPhotos > 0 && <span className="text-[11px] text-gray-400">📷 {nPhotos}</span>}
+                            <Badge label={t(meta.label)} color={meta.color} />
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))}
+          </div>
+
+          {/* Панель текущего пункта */}
+          <div className="lg:col-span-2">
+            {currentPoint && (() => {
+              const p = currentPoint;
+              const cur = resMap[p.key]?.status ?? 'none';
+              return (
+                <div className="rounded-2xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-gray-800 shadow-xs p-5 lg:sticky lg:top-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs uppercase tracking-wide font-semibold text-gray-400 dark:text-gray-500">{t('Текущий пункт контроля')}</span>
+                    <span className="text-xs text-gray-400">{currentIndex + 1} {t('из')} {allPoints.length}</span>
+                  </div>
+                  {p.code && <div className="text-xs text-gray-400 mb-1">{p.code}</div>}
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">{p.name}{p.required && <span className="ml-1 text-red-400">*</span>}</h3>
+
+                  <div className="text-xs uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">{t('Статус проверки')}</div>
+                  <div className="grid grid-cols-3 gap-2 mb-4">
+                    {STATUS_BTNS.map(({ k, cls }) => (
+                      <button
+                        key={k}
+                        data-on={cur === k}
+                        onClick={() => setStatus(p, cur === k ? 'none' : k)}
+                        className={`px-2 py-2 rounded-lg text-xs font-medium border bg-white dark:bg-gray-700/40 ${cls}`}
+                      >
+                        {t(CHECK_STATUS[k].label)}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="text-xs uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">{t('Фотофиксация')}</div>
+                  <div className="flex items-center gap-2 flex-wrap mb-4">
+                    {(resMap[p.key]?.photos ?? []).map((url) => (
+                      <div key={url} className="relative w-16 h-16 rounded-lg overflow-hidden group">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={url} alt="" className="w-full h-full object-cover" />
+                        <button onClick={() => removePhoto(p, url)} className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-black/60 text-white text-xs flex items-center justify-center opacity-0 group-hover:opacity-100">×</button>
                       </div>
-                      {(cur === 'remark' || cur === 'fail' || resMap[p.key]?.comment) && (
-                        <input
-                          value={resMap[p.key]?.comment ?? ''}
-                          onChange={(e) => setComment(p, e.target.value)}
-                          placeholder={t('Комментарий…')}
-                          className="mt-2 w-full text-sm rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-1.5 text-gray-800 dark:text-gray-100"
-                        />
-                      )}
-                      {/* Фотофиксация */}
-                      <div className="mt-2 flex items-center gap-2 flex-wrap">
-                        {(resMap[p.key]?.photos ?? []).map((url) => (
-                          <div key={url} className="relative w-16 h-16 rounded-lg overflow-hidden group">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={url} alt="" className="w-full h-full object-cover" />
-                            <button
-                              onClick={() => removePhoto(p, url)}
-                              className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-black/60 text-white text-xs flex items-center justify-center opacity-0 group-hover:opacity-100"
-                            >×</button>
-                          </div>
-                        ))}
-                        <label className="w-16 h-16 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center cursor-pointer text-gray-400 hover:border-violet-400 hover:text-violet-400">
-                          <input type="file" accept="image/*" multiple capture="environment" className="hidden" disabled={saving} onChange={(e) => { uploadPhotos(p, e.target.files); e.currentTarget.value = ''; }} />
-                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}><path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0Z" /></svg>
-                        </label>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          ))}
+                    ))}
+                    <label className="w-16 h-16 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center cursor-pointer text-gray-400 hover:border-violet-400 hover:text-violet-400">
+                      <input type="file" accept="image/*" multiple capture="environment" className="hidden" disabled={saving} onChange={(e) => { uploadPhotos(p, e.target.files); e.currentTarget.value = ''; }} />
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}><path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0Z" /></svg>
+                    </label>
+                  </div>
+
+                  <div className="text-xs uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">{t('Комментарий')}</div>
+                  <textarea
+                    value={resMap[p.key]?.comment ?? ''}
+                    onChange={(e) => setComment(p, e.target.value)}
+                    rows={2}
+                    placeholder={t('Комментарий…')}
+                    className="w-full text-sm rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-800 dark:text-gray-100 mb-3"
+                  />
+
+                  <button onClick={() => createDefect(p)} disabled={saving} className="w-full mb-4 px-3 py-2 rounded-lg text-sm font-medium border border-violet-300 text-violet-600 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-500/10 disabled:opacity-50">
+                    + {t('Создать дефект по этому пункту')}
+                  </button>
+
+                  <div className="flex items-center gap-2 pt-3 border-t border-gray-100 dark:border-gray-700">
+                    <button onClick={goPrev} disabled={currentIndex <= 0} className="flex-1 px-3 py-2 rounded-lg text-sm font-medium border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 disabled:opacity-40">← {t('Предыдущий')}</button>
+                    <button onClick={goNext} disabled={currentIndex >= allPoints.length - 1} className="flex-1 px-3 py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-700 text-white disabled:opacity-40">{t('Следующий')} →</button>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
         </div>
       )}
     </div>
