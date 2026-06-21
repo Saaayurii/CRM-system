@@ -414,14 +414,12 @@ function TechnadzorGroup({ pathname }: { pathname: string }) {
       <a
         href="#0"
         onClick={(e) => { e.preventDefault(); setOpen((o) => !o); }}
-        className={`${linkCls(active)} !justify-between cursor-pointer`}
+        className={`${linkCls(active)} cursor-pointer`}
       >
-        <span className="flex items-center gap-3 truncate">
-          <IconTechnadzor />
-          <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">{t('Технадзор')}</span>
-        </span>
+        <IconTechnadzor />
+        <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">{t('Технадзор')}</span>
         <svg
-          className={`w-3 h-3 shrink-0 fill-current text-gray-400 lg:opacity-0 lg:sidebar-expanded:opacity-100 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+          className={`w-3 h-3 shrink-0 fill-current text-gray-400 ml-auto lg:opacity-0 lg:sidebar-expanded:opacity-100 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
           viewBox="0 0 12 12"
         >
           <path d="M5.9 11.4L.5 6l1.4-1.4 4 4 4-4L11.3 6z" />
