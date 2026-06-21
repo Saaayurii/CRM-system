@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, Cell } from 'recharts';
 import api from '@/lib/api';
 import { useT } from '@/lib/i18n';
 import { INSPECTION_STATUS } from '@/components/technadzor/Badge';
@@ -84,13 +84,11 @@ export default function InspectionsStatsHeader() {
       <div className="rounded-2xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-gray-800 p-4 shadow-xs flex items-center gap-3">
         <div className="w-20 h-20 shrink-0 relative">
           {donut.length > 0 ? (
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={donut} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={26} outerRadius={38} paddingAngle={2}>
-                  {donut.map((e, i) => <Cell key={i} fill={e.color} />)}
-                </Pie>
-              </PieChart>
-            </ResponsiveContainer>
+            <PieChart width={80} height={80}>
+              <Pie data={donut} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={26} outerRadius={38} paddingAngle={2}>
+                {donut.map((e, i) => <Cell key={i} fill={e.color} />)}
+              </Pie>
+            </PieChart>
           ) : <div className="w-full h-full rounded-full bg-gray-100 dark:bg-gray-700" />}
           <div className="absolute inset-0 flex items-center justify-center text-sm font-bold text-gray-700 dark:text-gray-200">{insp?.total ?? 0}</div>
         </div>
