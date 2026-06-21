@@ -47,7 +47,7 @@ const fileUrl = (f: string | { url?: string; fileUrl?: string }) =>
   typeof f === 'string' ? f : f.url || f.fileUrl || '';
 
 interface UserInfo { name: string; phone?: string; email?: string; roleName?: string; avatarUrl?: string }
-interface CommentAttachment { url: string; name?: string; mimeType?: string; kind?: 'image' | 'audio' | 'file'; size?: number }
+interface CommentAttachment { url: string; name?: string; mimeType?: string; kind?: 'image' | 'audio' | 'video' | 'file'; size?: number }
 interface CommentItem { id: number; userName?: string; commentText: string; createdAt?: string; attachments?: CommentAttachment[] }
 
 const fmtDateTime = (v?: string) => {
@@ -107,6 +107,7 @@ export default function DefectDetailPage() {
   const [comments, setComments] = useState<CommentItem[]>([]);
   const [newComment, setNewComment] = useState('');
   const [pendingFiles, setPendingFiles] = useState<CommentAttachment[]>([]);
+  const [attachOpen, setAttachOpen] = useState(false);
   const [recording, setRecording] = useState(false);
   const [sendingComment, setSendingComment] = useState(false);
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -147,7 +148,7 @@ export default function DefectDetailPage() {
       const { data } = await api.post('/inspections/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
       const arr: CommentAttachment[] = (Array.isArray(data) ? data : []).map((x: any) => ({
         url: x.fileUrl, name: x.fileName, mimeType: x.mimeType, size: x.fileSize,
-        kind: x.mimeType?.startsWith('image/') ? 'image' : x.mimeType?.startsWith('audio/') ? 'audio' : 'file',
+        kind: x.mimeType?.startsWith('image/') ? 'image' : x.mimeType?.startsWith('audio/') ? 'audio' : x.mimeType?.startsWith('video/') ? 'video' : 'file',
       }));
       setPendingFiles((p) => [...p, ...arr]);
     } catch { addToast('error', 'Не удалось загрузить файл'); }
@@ -467,7 +468,7 @@ export default function DefectDetailPage() {
                     <div className="flex flex-wrap gap-2 mb-2">
                       {pendingFiles.map((a, i) => (
                         <span key={i} className="inline-flex items-center gap-1 text-xs rounded-lg bg-violet-50 dark:bg-violet-500/15 text-violet-600 dark:text-violet-300 px-2 py-1">
-                          {a.kind === 'image' ? '🖼' : a.kind === 'audio' ? '🎤' : '📎'} {a.name || 'файл'}
+                          {a.kind === 'image' ? '🖼' : a.kind === 'audio' ? '🎤' : a.kind === 'video' ? '🎬' : '📎'} {a.name || 'файл'}
                           <button onClick={() => setPendingFiles((p) => p.filter((_, j) => j !== i))} className="hover:text-red-500">×</button>
                         </span>
                       ))}
@@ -475,10 +476,42 @@ export default function DefectDetailPage() {
                   )}
 
                   <div className="flex items-center gap-2">
-                    <label className="w-9 h-9 rounded-lg border border-gray-200 dark:border-gray-600 flex items-center justify-center cursor-pointer text-gray-400 hover:text-violet-500 shrink-0" title={t('Прикрепить файл')}>
-                      <input type="file" multiple className="hidden" onChange={(e) => { uploadCommentFiles(e.target.files); e.currentTarget.value = ''; }} />
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}><path strokeLinecap="round" strokeLinejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.112 2.13" /></svg>
-                    </label>
+                    <div className="relative shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setAttachOpen((o) => !o)}
+                        title={t('Прикрепить')}
+                        className="w-9 h-9 rounded-lg border border-gray-200 dark:border-gray-600 flex items-center justify-center text-gray-400 hover:text-violet-500"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}><path strokeLinecap="round" strokeLinejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.112 2.13" /></svg>
+                      </button>
+                      {attachOpen && (
+                        <>
+                          <div className="fixed inset-0 z-10" onClick={() => setAttachOpen(false)} />
+                          <div className="absolute bottom-11 left-0 z-20 w-52 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg py-1">
+                            {([
+                              { icon: '🖼', label: 'Прикрепить фото', accept: 'image/*' },
+                              { icon: '📷', label: 'Сделать фото', accept: 'image/*', capture: 'environment' },
+                              { icon: '🎬', label: 'Снять видео', accept: 'video/*', capture: 'environment' },
+                              { icon: '📹', label: 'Прикрепить видео', accept: 'video/*' },
+                              { icon: '📎', label: 'Прикрепить файл', accept: '' },
+                            ] as const).map((opt, i) => (
+                              <label key={i} className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer">
+                                <span>{opt.icon}</span>{t(opt.label)}
+                                <input
+                                  type="file"
+                                  multiple
+                                  accept={opt.accept || undefined}
+                                  {...(('capture' in opt && opt.capture) ? { capture: opt.capture } : {})}
+                                  className="hidden"
+                                  onChange={(e) => { uploadCommentFiles(e.target.files); e.currentTarget.value = ''; setAttachOpen(false); }}
+                                />
+                              </label>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
                     <button
                       onClick={recording ? stopRecording : startRecording}
                       title={recording ? t('Остановить запись') : t('Голосовое сообщение')}
@@ -586,6 +619,9 @@ function CommentAttachmentView({ a }: { a: CommentAttachment }) {
   }
   if (a.kind === 'audio') {
     return <audio controls src={a.url} className="w-full max-w-[260px] h-9" />;
+  }
+  if (a.kind === 'video') {
+    return <video controls src={a.url} className="max-w-[260px] max-h-48 rounded-lg" />;
   }
   return (
     <a href={a.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm text-violet-600 dark:text-violet-400 hover:underline">
