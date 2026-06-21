@@ -22,6 +22,20 @@ const ROLE_OPTIONS: Array<{ id: number; label: string }> = [
   { id: 9, label: 'Инспектор' },
 ];
 
+// Тумблер-переключатель (как на макете), вместо нативного чекбокса
+function Toggle({ on, set }: { on: boolean; set: (v: boolean) => void }) {
+  return (
+    <button
+      type="button"
+      onClick={() => set(!on)}
+      className={`relative w-11 h-6 rounded-full transition shrink-0 ${on ? 'bg-violet-500' : 'bg-gray-300 dark:bg-gray-600'}`}
+      aria-pressed={on}
+    >
+      <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${on ? 'translate-x-5' : ''}`} />
+    </button>
+  );
+}
+
 // Нормализуем что угодно из БД в секции (совместимо с проведением инспекции)
 function fromChecklistItems(items: any): Section[] {
   if (!Array.isArray(items) || items.length === 0) return [emptySection()];
@@ -240,13 +254,13 @@ export default function TemplateConstructorPage() {
             { v: allowSkip, set: setAllowSkip, label: 'Разрешить пропуск пунктов', hint: 'Можно завершить инспекцию с непроверенными пунктами' },
             { v: autoCreateDefects, set: setAutoCreateDefects, label: 'Автоматически создавать дефекты', hint: 'При статусе «Не соответствует» дефект создаётся автоматически' },
           ] as const).map((row, i) => (
-            <label key={i} className="flex items-start justify-between gap-4 cursor-pointer">
+            <div key={i} className="flex items-start justify-between gap-4">
               <span>
                 <span className="text-sm text-gray-800 dark:text-gray-100">{t(row.label)}</span>
                 <span className="block text-xs text-gray-400">{t(row.hint)}</span>
               </span>
-              <input type="checkbox" checked={row.v} onChange={(e) => row.set(e.target.checked)} className="mt-1 shrink-0" />
-            </label>
+              <Toggle on={row.v} set={row.set} />
+            </div>
           ))}
         </div>
       )}
@@ -259,14 +273,15 @@ export default function TemplateConstructorPage() {
             {ROLE_OPTIONS.map((r) => {
               const on = allowedRoleIds.includes(r.id);
               return (
-                <label key={r.id} className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200 cursor-pointer rounded-lg border border-gray-100 dark:border-gray-700 px-3 py-2">
-                  <input
-                    type="checkbox"
-                    checked={on}
-                    onChange={(e) => setAllowedRoleIds((ids) => e.target.checked ? [...ids, r.id] : ids.filter((x) => x !== r.id))}
-                  />
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => setAllowedRoleIds((ids) => on ? ids.filter((x) => x !== r.id) : [...ids, r.id])}
+                  className={`flex items-center gap-2 text-sm rounded-lg border px-3 py-2 transition ${on ? 'border-violet-500 bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-300' : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-violet-300'}`}
+                >
+                  <span className={`w-4 h-4 rounded flex items-center justify-center text-[10px] ${on ? 'bg-violet-600 text-white' : 'border border-gray-300 dark:border-gray-500'}`}>{on ? '✓' : ''}</span>
                   {t(r.label)}
-                </label>
+                </button>
               );
             })}
           </div>
