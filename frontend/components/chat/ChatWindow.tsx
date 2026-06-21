@@ -512,7 +512,12 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
       const snap = () => {
         if (!wasAtBottomRef.current) return;
         isProgrammaticScrollRef.current = true;
-        messagesEndRef.current?.scrollIntoView();
+        // Direct scrollTop is instant & synchronous on iOS, unlike scrollIntoView
+        // (which can apply a frame late → the list is revealed before the scroll
+        // lands → visible jump). Fall back to the anchor if the ref isn't ready.
+        const c = messagesContainerRef.current;
+        if (c) c.scrollTop = c.scrollHeight;
+        else messagesEndRef.current?.scrollIntoView();
         if (programmaticScrollTimerRef.current) clearTimeout(programmaticScrollTimerRef.current);
         programmaticScrollTimerRef.current = setTimeout(() => { isProgrammaticScrollRef.current = false; }, 80);
       };
