@@ -10,7 +10,8 @@ import Badge, { CHECK_STATUS } from '@/components/technadzor/Badge';
 
 type CheckStatus = 'pass' | 'remark' | 'fail' | 'none';
 
-interface Point { key: string; code?: string; name: string; required?: boolean; }
+interface Point { key: string; code?: string; name: string; required?: boolean; controlPointId?: number; }
+interface TypicalDefect { name: string; code?: string; category?: string; criticality?: number; description?: string; recommendation?: string; }
 interface Section { title: string; points: Point[]; }
 interface ResultEntry { key: string; code?: string; name?: string; status: CheckStatus; comment?: string; photos?: string[]; }
 
@@ -27,7 +28,7 @@ function normalize(items: any): Section[] {
   const asPoint = (p: any, si: number, pi: number): Point => {
     if (typeof p === 'string') return { key: `${si}.${pi}`, name: p };
     const name = p.name || p.title || p.label || p.text || p.description || p.code || `Пункт ${pi + 1}`;
-    return { key: String(p.code ?? p.id ?? `${si}.${pi}`), code: p.code ?? p.id, name, required: p.required ?? p.isRequired };
+    return { key: String(p.code ?? p.id ?? `${si}.${pi}`), code: p.code ?? p.id, name, required: p.required ?? p.isRequired, controlPointId: p.controlPointId };
   };
   const looksLikeSection = (el: any) =>
     el && typeof el === 'object' && (Array.isArray(el.items) || Array.isArray(el.points) || Array.isArray(el.children));
@@ -54,6 +55,8 @@ export default function ConductInspectionPage() {
   const [currentKey, setCurrentKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  // Выбор типового дефекта из привязанного контрольного пункта
+  const [defectPicker, setDefectPicker] = useState<{ point: Point; defects: TypicalDefect[] } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -187,26 +190,46 @@ export default function ConductInspectionPage() {
     }
   };
 
-  const createDefect = async (p: Point) => {
+  // Создание дефекта; defTpl — выбранный типовой дефект (если есть)
+  const createDefect = async (p: Point, defTpl?: TypicalDefect) => {
     if (!insp) return;
     setSaving(true);
     try {
       const photos = resMap[p.key]?.photos ?? [];
       const { data: d } = await api.post('/defects', {
-        title: p.name,
-        description: resMap[p.key]?.comment || undefined,
+        title: defTpl?.name || p.name,
+        description: defTpl?.description || resMap[p.key]?.comment || undefined,
+        category: defTpl?.category || undefined,
         inspectionId: insp.id,
         projectId: insp.projectId,
         defectType: 'quality',
-        severity: 2,
+        severity: defTpl?.criticality ?? 2,
         status: 0,
         reportedDate: new Date().toISOString().slice(0, 10),
         ...(photos.length ? { photos } : {}),
       });
       setStatus(p, 'fail');
+      setDefectPicker(null);
       addToast('success', `Дефект создан${d?.defectNumber ? `: ${d.defectNumber}` : ''}`);
     } catch {
       addToast('error', 'Не удалось создать дефект');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Старт создания: если у пункта есть привязанный контрольный пункт с типовыми
+  // дефектами — предложить выбрать из них; иначе создать сразу.
+  const startCreateDefect = async (p: Point) => {
+    if (!p.controlPointId) { createDefect(p); return; }
+    setSaving(true);
+    try {
+      const { data } = await api.get(`/control-points/${p.controlPointId}`);
+      const list: TypicalDefect[] = Array.isArray(data?.typicalDefects) ? data.typicalDefects : [];
+      if (list.length > 0) setDefectPicker({ point: p, defects: list });
+      else createDefect(p);
+    } catch {
+      createDefect(p);
     } finally {
       setSaving(false);
     }
@@ -383,7 +406,7 @@ export default function ConductInspectionPage() {
                     className="w-full text-sm rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-800 dark:text-gray-100 mb-3"
                   />
 
-                  <button onClick={() => createDefect(p)} disabled={saving} className="w-full mb-4 px-3 py-2 rounded-lg text-sm font-medium border border-violet-300 text-violet-600 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-500/10 disabled:opacity-50">
+                  <button onClick={() => startCreateDefect(p)} disabled={saving} className="w-full mb-4 px-3 py-2 rounded-lg text-sm font-medium border border-violet-300 text-violet-600 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-500/10 disabled:opacity-50">
                     + {t('Создать дефект по этому пункту')}
                   </button>
 
@@ -397,6 +420,40 @@ export default function ConductInspectionPage() {
           </div>
         </div>
       )}
+
+      {/* Выбор типового дефекта из контрольного пункта */}
+      {defectPicker && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setDefectPicker(null)}>
+          <div className="w-full max-w-lg max-h-[80vh] flex flex-col rounded-2xl bg-white dark:bg-gray-800 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+              <h3 className="font-semibold text-gray-800 dark:text-gray-100">{t('Типовой дефект')}</h3>
+              <button onClick={() => setDefectPicker(null)} className="text-gray-400 hover:text-gray-600">✕</button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-2">
+              {defectPicker.defects.map((d, i) => (
+                <button key={i} onClick={() => createDefect(defectPicker.point, d)} disabled={saving} className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-violet-50 dark:hover:bg-violet-500/10 disabled:opacity-50">
+                  <span className="flex items-center gap-2">
+                    <Badge label={t((CRITICALITY_META[d.criticality ?? 2] ?? CRITICALITY_META[2]).label)} color={(CRITICALITY_META[d.criticality ?? 2] ?? CRITICALITY_META[2]).color} />
+                    <span className="text-sm text-gray-800 dark:text-gray-100">{d.name}</span>
+                  </span>
+                  {d.description && <span className="block text-xs text-gray-400 mt-1 line-clamp-2">{d.description}</span>}
+                </button>
+              ))}
+            </div>
+            <div className="px-5 py-3 border-t border-gray-100 dark:border-gray-700 flex justify-between">
+              <button onClick={() => createDefect(defectPicker.point)} disabled={saving} className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 disabled:opacity-50">{t('Свой дефект')}</button>
+              <button onClick={() => setDefectPicker(null)} className="px-4 py-2 rounded-lg text-sm font-medium text-gray-500 hover:text-gray-700">{t('Отмена')}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
+const CRITICALITY_META: Record<number, { label: string; color: string }> = {
+  1: { label: 'Низкая', color: 'green' },
+  2: { label: 'Средняя', color: 'yellow' },
+  3: { label: 'Высокая', color: 'orange' },
+  4: { label: 'Критическая', color: 'red' },
+};
