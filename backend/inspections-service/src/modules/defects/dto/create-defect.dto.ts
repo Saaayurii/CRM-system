@@ -30,6 +30,11 @@ export class CreateDefectDto {
   @IsNumber()
   inspectionId?: number;
 
+  @ApiPropertyOptional({ description: 'Site plan ID (pin on a drawing)' })
+  @IsOptional()
+  @IsNumber()
+  planId?: number;
+
   @ApiProperty({ description: 'Unique defect number', maxLength: 100 })
   @IsNotEmpty()
   @IsString()

@@ -305,4 +305,131 @@ export class ClientsGatewayController {
       data: body,
     });
   }
+
+  // ─── Воронка продаж: стадии ───
+  @Get('deal-stages')
+  @ApiOperation({ summary: 'List pipeline stages' })
+  async findDealStages(@Req() req: Request) {
+    return this.proxyService.forward('clients', {
+      method: 'GET',
+      path: '/deal-stages',
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  @Post('deal-stages')
+  @ApiOperation({ summary: 'Create pipeline stage' })
+  async createDealStage(@Req() req: Request, @Body() body: any) {
+    return this.proxyService.forward('clients', {
+      method: 'POST',
+      path: '/deal-stages',
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Put('deal-stages/:id')
+  @ApiOperation({ summary: 'Update pipeline stage' })
+  async updateDealStage(@Req() req: Request, @Param('id') id: string, @Body() body: any) {
+    return this.proxyService.forward('clients', {
+      method: 'PUT',
+      path: `/deal-stages/${id}`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Delete('deal-stages/:id')
+  @ApiOperation({ summary: 'Delete pipeline stage' })
+  async deleteDealStage(@Req() req: Request, @Param('id') id: string) {
+    return this.proxyService.forward('clients', {
+      method: 'DELETE',
+      path: `/deal-stages/${id}`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  // ─── Воронка продаж: сделки ───
+  @Get('deals')
+  @ApiOperation({ summary: 'List deals' })
+  @ApiQuery({ name: 'status', required: false })
+  @ApiQuery({ name: 'managerId', required: false })
+  @ApiQuery({ name: 'clientId', required: false })
+  async findDeals(
+    @Req() req: Request,
+    @Query('status') status?: string,
+    @Query('managerId') managerId?: number,
+    @Query('clientId') clientId?: number,
+  ) {
+    return this.proxyService.forward('clients', {
+      method: 'GET',
+      path: '/deals',
+      headers: { authorization: req.headers.authorization || '' },
+      params: { status, managerId, clientId },
+    });
+  }
+
+  @Get('deals/stats')
+  @ApiOperation({ summary: 'Deals stats per stage' })
+  async dealsStats(@Req() req: Request) {
+    return this.proxyService.forward('clients', {
+      method: 'GET',
+      path: '/deals/stats',
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  @Get('deals/:id')
+  @ApiOperation({ summary: 'Get deal by ID' })
+  async findDeal(@Req() req: Request, @Param('id') id: string) {
+    return this.proxyService.forward('clients', {
+      method: 'GET',
+      path: `/deals/${id}`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  @Post('deals')
+  @ApiOperation({ summary: 'Create deal' })
+  async createDeal(@Req() req: Request, @Body() body: any) {
+    return this.proxyService.forward('clients', {
+      method: 'POST',
+      path: '/deals',
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Put('deals/:id')
+  @ApiOperation({ summary: 'Update deal (incl. stage move)' })
+  async updateDeal(@Req() req: Request, @Param('id') id: string, @Body() body: any) {
+    return this.proxyService.forward('clients', {
+      method: 'PUT',
+      path: `/deals/${id}`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Delete('deals/:id')
+  @ApiOperation({ summary: 'Delete deal' })
+  async deleteDeal(@Req() req: Request, @Param('id') id: string) {
+    return this.proxyService.forward('clients', {
+      method: 'DELETE',
+      path: `/deals/${id}`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
 }

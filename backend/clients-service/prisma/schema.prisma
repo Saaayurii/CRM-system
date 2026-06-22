@@ -12,10 +12,12 @@ model Account {
   id        Int      @id @default(autoincrement())
   name      String   @db.VarChar(255)
   status    Int      @default(1)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
-  clients   Client[]
-  users     User[]
+  createdAt  DateTime    @default(now()) @map("created_at")
+  updatedAt  DateTime    @default(now()) @updatedAt @map("updated_at")
+  clients    Client[]
+  users      User[]
+  deals      Deal[]
+  dealStages DealStage[]
 
   @@map("accounts")
 }
@@ -79,10 +81,63 @@ model Client {
   account      Account              @relation(fields: [accountId], references: [id], onDelete: Cascade)
   interactions ClientInteraction[]
   portalAccess ClientPortalAccess[]
+  deals        Deal[]
 
   @@index([accountId])
   @@index([assignedManagerId])
   @@map("clients")
+}
+
+// Стадия воронки продаж — настраивается на уровне аккаунта (колонки Kanban).
+model DealStage {
+  id        Int      @id @default(autoincrement())
+  accountId Int      @map("account_id")
+  name      String   @db.VarChar(255)
+  color     String   @default("#64748b") @db.VarChar(20)
+  sortOrder Int      @default(0) @map("sort_order")
+  isWon     Boolean  @default(false) @map("is_won")
+  isLost    Boolean  @default(false) @map("is_lost")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  deals   Deal[]
+
+  @@index([accountId])
+  @@map("deal_stages")
+}
+
+// Сделка (карточка воронки продаж).
+model Deal {
+  id                Int       @id @default(autoincrement())
+  accountId         Int       @map("account_id")
+  stageId           Int       @map("stage_id")
+  clientId          Int?      @map("client_id")
+  projectId         Int?      @map("project_id")
+  title             String    @db.VarChar(255)
+  description       String?   @db.Text
+  amount            Decimal?  @db.Decimal(14, 2)
+  currency          String    @default("RUB") @db.VarChar(10)
+  status            String    @default("open") @db.VarChar(20) // open | won | lost
+  assignedManagerId Int?      @map("assigned_manager_id")
+  expectedCloseDate DateTime? @map("expected_close_date") @db.Date
+  source            String?   @db.VarChar(100)
+  sortOrder         Int       @default(0) @map("sort_order")
+  wonAt             DateTime? @map("won_at")
+  lostAt            DateTime? @map("lost_at")
+  lostReason        String?   @map("lost_reason") @db.Text
+  createdByUserId   Int?      @map("created_by_user_id")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  account Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  stage   DealStage @relation(fields: [stageId], references: [id])
+  client  Client?   @relation(fields: [clientId], references: [id])
+
+  @@index([accountId, stageId])
+  @@index([clientId])
+  @@index([assignedManagerId])
+  @@map("deals")
 }
 
 model ClientInteraction {

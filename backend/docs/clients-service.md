@@ -30,6 +30,24 @@
 - Клиентский портал — отдельная функция, позволяющая клиенту просматривать статус проекта
 - История взаимодействий фиксирует звонки, встречи, письма
 
+## Воронка продаж (Deals / Kanban)
+Модуль `deals` (две сущности в одном модуле): сделки + настраиваемые стадии воронки.
+- Эндпоинты: `GET /deals` (фильтры `status`/`managerId`/`clientId`), `GET /deals/stats`
+  (сумма+кол-во открытых по стадиям), `GET/POST /deals`, `GET/PUT/DELETE /deals/:id`;
+  `GET/POST /deal-stages`, `PUT/DELETE /deal-stages/:id`.
+- Модели: `DealStage` (`deal_stages`: name, color, sortOrder, isWon, isLost) —
+  кастомные колонки Kanban на аккаунт; `GET /deal-stages` **сидирует дефолтную воронку**
+  (Новая→Квалификация→Переговоры→Договор→Выиграна/Проиграна), если стадий ещё нет.
+  `Deal` (`deals`: title, amount, currency, status `open|won|lost`, stageId, clientId?,
+  projectId?, assignedManagerId?, expectedCloseDate?, sortOrder).
+- Перемещение между стадиями = `PUT /deals/:id { stageId }`. Если у стадии `isWon`/`isLost` —
+  сервис сам выставляет `status` + `wonAt`/`lostAt`. При первом переходе в won —
+  broadcast-уведомление (`deal_won`) админам/PM + менеджеру.
+- Удаление стадии запрещено, если в ней есть сделки (перенесите сначала).
+- Фронт: `/dashboard/deals` — Kanban с native HTML5 drag-drop (без новых зависимостей),
+  отдельный пункт сайдбара «Сделки» (super_admin/admin/PM). Миграция
+  `database/migrations/deals_pipeline.sql`.
+
 ## Клиентский портал (MVP)
 
 ### Создание доступа

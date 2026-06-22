@@ -446,4 +446,74 @@ export class InspectionsGatewayController {
       headers: { authorization: req.headers.authorization || '' },
     });
   }
+
+  // Site Plans (планы/чертежи с разметкой дефектов)
+  @Get('site-plans')
+  @ApiOperation({ summary: 'List site plans' })
+  @ApiQuery({ name: 'projectId', required: false })
+  @ApiQuery({ name: 'constructionSiteId', required: false })
+  async findAllSitePlans(
+    @Req() req: Request,
+    @Query('projectId') projectId?: number,
+    @Query('constructionSiteId') constructionSiteId?: number,
+  ) {
+    return this.proxyService.forward('inspections', {
+      method: 'GET',
+      path: '/site-plans',
+      headers: { authorization: req.headers.authorization || '' },
+      params: { projectId, constructionSiteId },
+    });
+  }
+
+  @Get('site-plans/:id')
+  @ApiOperation({ summary: 'Get site plan with pinned defects' })
+  async findOneSitePlan(@Req() req: Request, @Param('id') id: string) {
+    return this.proxyService.forward('inspections', {
+      method: 'GET',
+      path: `/site-plans/${id}`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  @Post('site-plans')
+  @ApiOperation({ summary: 'Create site plan' })
+  async createSitePlan(@Req() req: Request, @Body() body: any) {
+    return this.proxyService.forward('inspections', {
+      method: 'POST',
+      path: '/site-plans',
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Put('site-plans/:id')
+  @ApiOperation({ summary: 'Update site plan' })
+  async updateSitePlan(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
+    return this.proxyService.forward('inspections', {
+      method: 'PUT',
+      path: `/site-plans/${id}`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Delete('site-plans/:id')
+  @ApiOperation({ summary: 'Delete site plan' })
+  async removeSitePlan(@Req() req: Request, @Param('id') id: string) {
+    return this.proxyService.forward('inspections', {
+      method: 'DELETE',
+      path: `/site-plans/${id}`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
 }

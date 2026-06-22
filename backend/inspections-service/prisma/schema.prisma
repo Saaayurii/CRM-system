@@ -20,6 +20,7 @@ model Account {
   defects                      Defect[]
   defectTemplates              DefectTemplate[]
   controlPoints                ControlPoint[]
+  sitePlans                    SitePlan[]
   hseRisks                     HseRisk[]
   hseIncidents                 HseIncident[]
   hsePermits                   HsePermit[]
@@ -138,6 +139,7 @@ model Defect {
   constructionSiteId    Int?      @map("construction_site_id")
   taskId                Int?      @map("task_id")
   inspectionId          Int?      @map("inspection_id")
+  planId                Int?      @map("plan_id")
   defectNumber          String    @unique @map("defect_number") @db.VarChar(100)
   defectType            String?   @map("defect_type") @db.VarChar(100)
   category              String?   @db.VarChar(100)
@@ -163,13 +165,43 @@ model Defect {
 
   account    Account         @relation(fields: [accountId], references: [id], onDelete: Cascade)
   inspection Inspection?     @relation(fields: [inspectionId], references: [id])
+  plan       SitePlan?       @relation(fields: [planId], references: [id])
   comments   DefectComment[]
 
   @@index([accountId])
   @@index([projectId])
   @@index([constructionSiteId])
   @@index([status])
+  @@index([planId])
   @@map("defects")
+}
+
+// План / чертёж объекта (этаж, фасад, разрез) — растровая подложка, на которой
+// дефекты расставляются пинами. Координаты пина хранятся в Defect.coordinates
+// как { x, y } (доли 0..1 от размеров изображения, как в ControlPoint.scheme).
+model SitePlan {
+  id                 Int       @id @default(autoincrement())
+  accountId          Int       @map("account_id")
+  projectId          Int?      @map("project_id")
+  constructionSiteId Int?      @map("construction_site_id")
+  title              String    @db.VarChar(255)
+  description        String?   @db.Text
+  imageUrl           String    @map("image_url") @db.Text
+  width              Int?
+  height             Int?
+  sortOrder          Int       @default(0) @map("sort_order")
+  createdByUserId    Int?      @map("created_by_user_id")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @default(now()) @updatedAt @map("updated_at")
+  deletedAt          DateTime? @map("deleted_at")
+
+  account Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  defects Defect[]
+
+  @@index([accountId, deletedAt])
+  @@index([projectId])
+  @@index([constructionSiteId])
+  @@map("site_plans")
 }
 
 model DefectComment {

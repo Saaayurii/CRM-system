@@ -32,3 +32,21 @@
 - Шаблоны инспекций содержат JSONB-поле с пунктами чек-листа
 - Дефекты привязаны к конкретной инспекции
 - Доступ контролируется через `JwtAuthGuard`
+
+## Планы/чертежи с разметкой дефектов (Site Plans, как в PlanRadar)
+Модуль `site-plans`: растровая подложка (этаж/фасад/разрез), на которой дефекты
+расставляются точками-пинами.
+- Эндпоинты: `GET/POST /site-plans`, `GET/PUT/DELETE /site-plans/:id`
+  (`GET /site-plans/:id` отдаёт план вместе с его дефектами-пинами). Мягкое удаление
+  через `deleted_at`.
+- Модель `SitePlan` (таблица `site_plans`): `title`, `imageUrl`, `projectId?`,
+  `constructionSiteId?`, `width/height` (натуральные размеры картинки). Картинка
+  грузится через существующий `POST /inspections/upload` (S3, отдаёт `fileUrl`).
+- Привязка дефекта к плану: у `Defect` добавлено поле `planId` (+ существующее
+  `coordinates`). Координата пина хранится в `coordinates` как `{ x, y }` (доли 0..1
+  от размеров изображения, как `ControlPoint.scheme.pins`). Пин = `POST /defects`
+  с `planId`+`coordinates` (новый дефект) либо `PUT /defects/:id` с
+  `planId`+`coordinates` (привязать существующий); снятие — `planId:null, coordinates:null`.
+- Фронт: `/dashboard/technadzor/plans` (список+загрузка) и `/plans/[id]`
+  (просмотрщик: клик по плану → новый/привязать дефект, клик по пину → карточка).
+- Миграция `database/migrations/technadzor_site_plans.sql`.

@@ -393,6 +393,7 @@ const TECHNADZOR_ITEMS: Array<{ header?: string; href?: string; label?: string }
   { href: '/dashboard/technadzor/defects', label: 'Все дефекты' },
   { href: '/dashboard/technadzor/defects/assigned', label: 'Назначенные мне' },
   { href: '/dashboard/technadzor/defects/control', label: 'На контроле' },
+  { href: '/dashboard/technadzor/plans', label: 'Планы и чертежи' },
   { header: 'Отчёты' },
   { href: '/dashboard/technadzor/analytics', label: 'Аналитика' },
   { href: '/dashboard/technadzor/reports', label: 'PDF отчёты' },
@@ -913,6 +914,18 @@ export default function Sidebar() {
                     </NavLink>
                   </li>
                 </>
+              )}
+
+              {/* Сделки — воронка продаж для admin/super_admin/PM */}
+              {(isSuperAdmin || isAdmin || isPM) && (
+                <li className="mb-1 last:mb-0">
+                  <NavLink href="/dashboard/deals" className={linkCls(pathname.startsWith('/dashboard/deals'))}>
+                    <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 5.25h16.5m-15 4.5h13.5m-12 4.5h10.5m-9 4.5h7.5" />
+                    </svg>
+                    <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">{t("Сделки")}</span>
+                  </NavLink>
+                </li>
               )}
 
               {/* Finance — для admin/super_admin/accountant/PM */}
