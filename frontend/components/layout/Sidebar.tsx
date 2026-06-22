@@ -519,6 +519,7 @@ export default function Sidebar() {
       { key: 'i', href: '/dashboard/safety-briefings' },
       { key: 'h', href: '/dashboard/hse' },
     ];
+    if (showTechnadzor) list.push({ key: 't', href: '/dashboard/technadzor' });
     if (showTeams) list.push({ key: '6', href: '/dashboard/teams' });
     if (isSuperAdmin || isAdmin || isPM) list.push({ key: '7', href: '/dashboard/clients' });
     if (showChat) list.push({ key: '8', href: '/dashboard/chat' });
@@ -528,7 +529,7 @@ export default function Sidebar() {
     list.push({ key: '0', href: settingsHref });
     if (isSuperAdmin) list.push({ key: 'a', href: '/admin' });
     return list;
-  }, [showTeams, isAdmin, isHR, isPM, isSuperAdmin, showChat, settingsHref, calendarHref, isAccountant, isForeman, isWarehouse]);
+  }, [showTeams, showTechnadzor, isAdmin, isHR, isPM, isSuperAdmin, showChat, settingsHref, calendarHref, isAccountant, isForeman, isWarehouse]);
 
   useNavHotkeys(hotkeys);
   const hkByHref = useMemo(() => Object.fromEntries(hotkeys.map((h) => [h.href, h])), [hotkeys]);
