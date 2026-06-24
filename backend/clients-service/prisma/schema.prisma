@@ -202,3 +202,24 @@ model ClientInvite {
   @@index([accountId])
   @@map("client_invites")
 }
+
+// Внешняя UUID-ссылка на сущность (публичный read-only доступ без логина).
+model ShareLink {
+  id              Int       @id @default(autoincrement())
+  token           String    @unique @default(uuid()) @db.Uuid
+  accountId       Int       @map("account_id")
+  entityType      String    @map("entity_type") @db.VarChar(64)
+  entityId        Int       @map("entity_id")
+  createdByUserId Int?      @map("created_by_user_id")
+  title           String?   @db.VarChar(255)
+  permissions     Json      @default("{}")
+  expiresAt       DateTime? @map("expires_at")
+  revokedAt       DateTime? @map("revoked_at")
+  viewCount       Int       @default(0) @map("view_count")
+  lastViewedAt    DateTime? @map("last_viewed_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  @@index([accountId, entityType, entityId])
+  @@map("share_links")
+}

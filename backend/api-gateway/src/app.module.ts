@@ -34,6 +34,7 @@ import { SettingsGatewayModule } from './modules/settings/settings-gateway.modul
 import { DashboardGatewayModule } from './modules/dashboard/dashboard-gateway.module';
 import { HealthModule } from './modules/health/health.module';
 import { AdminGatewayModule } from './modules/admin/admin-gateway.module';
+import { ShareGatewayModule } from './modules/share/share-gateway.module';
 import { JwtStrategy } from './common/guards/jwt.strategy';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { ClientReadOnlyGuard } from './common/guards/client-readonly.guard';
@@ -106,6 +107,7 @@ import { RequestContextMiddleware } from './common/middleware/request-context.mi
     DashboardGatewayModule,
     HealthModule,
     AdminGatewayModule,
+    ShareGatewayModule,
   ],
   providers: [
     JwtStrategy,

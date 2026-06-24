@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
+import ShareButton from '@/components/share/ShareButton';
 
 interface Stage {
   id: number;
@@ -303,12 +304,15 @@ export default function DealsPage() {
             />
             <div className="flex items-center gap-2">
               {editing && (
-                <button
-                  onClick={removeDeal}
-                  className="px-3 py-2 rounded-lg text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10"
-                >
-                  Удалить
-                </button>
+                <>
+                  <button
+                    onClick={removeDeal}
+                    className="px-3 py-2 rounded-lg text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10"
+                  >
+                    Удалить
+                  </button>
+                  <ShareButton entityType="deal" entityId={editing.id} title={editing.title} />
+                </>
               )}
               <div className="ml-auto flex gap-2">
                 <button

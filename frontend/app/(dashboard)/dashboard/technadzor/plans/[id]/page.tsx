@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import Badge, { DEFECT_STATUS, DEFECT_SEVERITY } from '@/components/technadzor/Badge';
+import ShareButton from '@/components/share/ShareButton';
 
 interface Coord {
   x: number;
@@ -177,8 +178,11 @@ export default function PlanViewerPage() {
           <span className="text-gray-400">/</span>
           <span className="font-medium text-gray-900 dark:text-gray-100">{plan.title}</span>
         </div>
-        <div className="text-xs text-gray-500 dark:text-gray-400">
-          Дефектов на плане: {placed.length}
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-gray-500 dark:text-gray-400">
+            Дефектов на плане: {placed.length}
+          </span>
+          <ShareButton entityType="site-plan" entityId={plan.id} title={plan.title} />
         </div>
       </div>
 

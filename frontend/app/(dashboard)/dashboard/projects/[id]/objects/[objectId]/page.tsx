@@ -12,6 +12,7 @@ import type { ReactElement } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import TasksPanel from '@/components/dashboard/TasksPanel';
+import ShareButton from '@/components/share/ShareButton';
 import { usePassport } from './passport/usePassport';
 import { sectionCompletion, overallCompletion, SITE_STATUS_LABEL } from './passport/types';
 
@@ -130,11 +131,14 @@ export default function ObjectPassportPage() {
           </div>
           {site.address && <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{site.address}</p>}
         </div>
-        <button onClick={() => router.push(`/dashboard/projects/${projectId}?tab=objects`)}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-600 rounded-lg hover:border-gray-300 transition-colors shrink-0 self-start">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-          Назад
-        </button>
+        <div className="flex items-center gap-2 shrink-0 self-start">
+          <ShareButton entityType="construction-site" entityId={objectId} title={site.name} />
+          <button onClick={() => router.push(`/dashboard/projects/${projectId}?tab=objects`)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-600 rounded-lg hover:border-gray-300 transition-colors">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+            Назад
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-5">

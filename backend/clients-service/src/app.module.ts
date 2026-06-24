@@ -13,6 +13,7 @@ import { ClientInteractionsModule } from './modules/client-interactions/client-i
 import { ClientPortalAccessModule } from './modules/client-portal-access/client-portal-access.module';
 import { ClientInvitesModule } from './modules/client-invites/client-invites.module';
 import { DealsModule } from './modules/deals/deals.module';
+import { ShareLinksModule } from './modules/share-links/share-links.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { DealsModule } from './modules/deals/deals.module';
     ClientPortalAccessModule,
     ClientInvitesModule,
     DealsModule,
+    ShareLinksModule,
     HealthModule,
   ],
   providers: [
