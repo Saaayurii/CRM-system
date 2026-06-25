@@ -382,80 +382,16 @@ function linkCls(active: boolean) {
   }`;
 }
 
-/* ─── Технадзор: раскрывающаяся группа (паддинги как у остальных пунктов) ─── */
-const TECHNADZOR_ITEMS: Array<{ header?: string; href?: string; label?: string }> = [
-  { header: 'Проверки' },
-  { href: '/dashboard/technadzor/inspections', label: 'Все инспекции' },
-  { href: '/dashboard/technadzor/inspections/assigned', label: 'Назначенные мне' },
-  { href: '/dashboard/technadzor/inspections/control', label: 'На контроле' },
-  { href: '/dashboard/technadzor/calendar', label: 'Календарь' },
-  { header: 'Дефекты' },
-  { href: '/dashboard/technadzor/defects', label: 'Все дефекты' },
-  { href: '/dashboard/technadzor/defects/assigned', label: 'Назначенные мне' },
-  { href: '/dashboard/technadzor/defects/control', label: 'На контроле' },
-  { href: '/dashboard/technadzor/plans', label: 'Планы и чертежи' },
-  { header: 'Отчёты' },
-  { href: '/dashboard/technadzor/analytics', label: 'Аналитика' },
-  { href: '/dashboard/technadzor/reports', label: 'PDF отчёты' },
-  { header: 'Конструктор чек-листов' },
-  { href: '/dashboard/technadzor/control-points', label: 'Пункты контроля' },
-  { href: '/dashboard/technadzor/templates', label: 'Чек-листы' },
-  { href: '/dashboard/technadzor/control-points/new?step=2', label: 'Типовые дефекты' },
-  { href: '/dashboard/technadzor/control-points/new?step=3', label: 'Шаблоны текстов' },
-  { href: '/dashboard/technadzor/control-points/new?step=4', label: 'Настройки отчёта' },
-  { href: '/dashboard/technadzor/control-points/new?step=5', label: 'Публикация' },
-  { href: '/dashboard/technadzor/norms', label: 'Нормативы (ГОСТ, СП)' },
-  { header: 'Справочники' },
-  { href: '/dashboard/technadzor/contractors', label: 'Подрядчики' },
-  { href: '/dashboard/technadzor/objects', label: 'Объекты' },
-];
-
+/* ─── Технадзор: одиночная ссылка на хаб-страницу (навигация — на самой странице) ─── */
 function TechnadzorGroup({ pathname }: { pathname: string }) {
   const t = useT();
   const active = pathname.startsWith('/dashboard/technadzor');
-  const [open, setOpen] = useState(active);
   return (
     <li className="mb-1 last:mb-0">
-      <a
-        href="#0"
-        onClick={(e) => { e.preventDefault(); setOpen((o) => !o); }}
-        className={`${linkCls(active)} cursor-pointer`}
-      >
+      <NavLink href="/dashboard/technadzor" className={linkCls(active)}>
         <IconTechnadzor />
         <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 duration-200">{t('Технадзор')}</span>
-        <svg
-          className={`w-3 h-3 shrink-0 fill-current text-gray-400 ml-auto lg:opacity-0 lg:sidebar-expanded:opacity-100 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
-          viewBox="0 0 12 12"
-        >
-          <path d="M5.9 11.4L.5 6l1.4-1.4 4 4 4-4L11.3 6z" />
-        </svg>
-      </a>
-      {open && (
-        <div className="lg:hidden lg:sidebar-expanded:block mt-1">
-          <ul className="pl-3">
-            {TECHNADZOR_ITEMS.map((it, i) =>
-              it.header ? (
-                <li key={`h-${i}`} className="px-3 pt-3 pb-1 first:pt-1">
-                  <span className="text-[10px] uppercase tracking-wide font-semibold text-gray-400 dark:text-gray-500">{t(it.header)}</span>
-                </li>
-              ) : (
-                <li key={it.href} className="mb-0.5 last:mb-0">
-                  <NavLink
-                    href={it.href!}
-                    className={`flex items-center py-1.5 px-3 rounded-lg text-sm transition duration-150 truncate ${
-                      pathname === it.href
-                        ? 'text-violet-500 bg-violet-50 dark:bg-violet-500/10'
-                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                    }`}
-                  >
-                    {t(it.label!)}
-                  </NavLink>
-                </li>
-              )
-            )}
-          </ul>
-        </div>
-      )}
+      </NavLink>
     </li>
   );
 }
