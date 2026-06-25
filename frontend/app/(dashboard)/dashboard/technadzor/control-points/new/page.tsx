@@ -417,13 +417,13 @@ export default function ControlPointBuilderPage() {
             <p className="text-sm text-gray-500 dark:text-gray-400">{t(STEP_SUB[step] || '')}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Link href="/dashboard/technadzor/control-points" className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50">{t('Отмена')}</Link>
-          <button onClick={() => save('draft')} disabled={saving} className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 disabled:opacity-50">{t('Сохранить черновик')}</button>
+        <div className="flex items-center gap-1">
+          <Link href="/dashboard/technadzor/control-points" className="px-3 py-1.5 rounded-lg text-sm text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700/40 transition">{t('Отмена')}</Link>
+          <button onClick={() => save('draft')} disabled={saving} className="px-3 py-1.5 rounded-lg text-sm text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700/40 transition disabled:opacity-50">{t('Сохранить черновик')}</button>
           {step < STEPS.length ? (
-            <button onClick={() => save('draft', true)} disabled={saving} className="px-4 py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-700 text-white disabled:opacity-50">{t('Сохранить и далее')} →</button>
+            <button onClick={() => save('draft', true)} disabled={saving} title={t('Сохранить и далее')} className="px-3.5 py-1.5 rounded-lg text-base font-medium text-violet-600 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-500/10 transition disabled:opacity-50">→</button>
           ) : (
-            <button onClick={() => save('active')} disabled={saving} className="px-4 py-2 rounded-lg text-sm font-medium bg-green-600 hover:bg-green-700 text-white disabled:opacity-50">{t('Опубликовать пункт')}</button>
+            <button onClick={() => save('active')} disabled={saving} className="px-3.5 py-1.5 rounded-lg text-sm font-medium text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-500/10 transition disabled:opacity-50">{t('Опубликовать пункт')}</button>
           )}
         </div>
       </div>

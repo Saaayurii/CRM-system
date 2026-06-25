@@ -209,10 +209,10 @@ export default function TemplateConstructorPage() {
           <h1 className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-gray-100">{editId ? t('Редактирование шаблона') : t('Новый шаблон инспекции')}</h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{t('Создайте структуру инспекции: разделы и контрольные пункты')}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Link href="/dashboard/technadzor/templates" className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50">{t('Отмена')}</Link>
-          <button onClick={() => save(false)} disabled={saving} className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 disabled:opacity-50">{t('Сохранить черновик')}</button>
-          <button onClick={() => save(true)} disabled={saving} className="px-4 py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-700 text-white disabled:opacity-50">{t('Сохранить и опубликовать')}</button>
+        <div className="flex items-center gap-1">
+          <Link href="/dashboard/technadzor/templates" className="px-3 py-1.5 rounded-lg text-sm text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700/40 transition">{t('Отмена')}</Link>
+          <button onClick={() => save(false)} disabled={saving} className="px-3 py-1.5 rounded-lg text-sm text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700/40 transition disabled:opacity-50">{t('Сохранить черновик')}</button>
+          <button onClick={() => save(true)} disabled={saving} className="px-3.5 py-1.5 rounded-lg text-sm font-medium text-violet-600 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-500/10 transition disabled:opacity-50">{t('Сохранить и опубликовать')}</button>
         </div>
       </div>
 

@@ -1532,28 +1532,30 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
         key: 'severity',
         header: 'Серьёзность',
         render: (v) => {
-          const map: Record<string, { label: string; color: string }> = {
-            low:      { label: 'Низкая',      color: 'green' },
-            medium:   { label: 'Средняя',     color: 'yellow' },
-            high:     { label: 'Высокая',     color: 'orange' },
-            critical: { label: 'Критическая', color: 'red' },
+          const map: Record<number, { label: string; color: string }> = {
+            1: { label: 'Низкая',      color: 'green' },
+            2: { label: 'Средняя',     color: 'yellow' },
+            3: { label: 'Высокая',     color: 'orange' },
+            4: { label: 'Критическая', color: 'red' },
           };
-          const s = map[String(v ?? '')];
-          return s ? <StatusBadge label={s.label} color={s.color} /> : <span className="text-gray-400">{String(v ?? '—')}</span>;
+          const s = v != null ? map[Number(v)] : undefined;
+          return s ? <StatusBadge label={s.label} color={s.color} /> : <span className="text-gray-400">—</span>;
         },
       },
       {
         key: 'status',
         header: 'Статус',
         render: (v) => {
-          const map: Record<string, { label: string; color: string }> = {
-            open:        { label: 'Открыт',     color: 'red' },
-            in_progress: { label: 'В работе',   color: 'yellow' },
-            resolved:    { label: 'Исправлен',  color: 'green' },
-            closed:      { label: 'Закрыт',     color: 'gray' },
+          const map: Record<number, { label: string; color: string }> = {
+            0: { label: 'Открыт',   color: 'red' },
+            1: { label: 'Назначен', color: 'blue' },
+            2: { label: 'В работе', color: 'yellow' },
+            3: { label: 'Устранён', color: 'green' },
+            4: { label: 'Проверен', color: 'purple' },
+            5: { label: 'Закрыт',   color: 'gray' },
           };
-          const s = map[String(v ?? '')];
-          return s ? <StatusBadge label={s.label} color={s.color} /> : <span className="text-gray-400">{String(v ?? '—')}</span>;
+          const s = v != null ? map[Number(v)] : undefined;
+          return s ? <StatusBadge label={s.label} color={s.color} /> : <span className="text-gray-400">—</span>;
         },
       },
       { key: 'createdAt', header: 'Дата', sortable: true, render: (v) => fmtDate(v) },
@@ -1567,10 +1569,10 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
         label: 'Серьёзность',
         type: 'select',
         options: [
-          { value: 'low', label: 'Низкая' },
-          { value: 'medium', label: 'Средняя' },
-          { value: 'high', label: 'Высокая' },
-          { value: 'critical', label: 'Критическая' },
+          { value: 1, label: 'Низкая' },
+          { value: 2, label: 'Средняя' },
+          { value: 3, label: 'Высокая' },
+          { value: 4, label: 'Критическая' },
         ],
       },
       {
@@ -1578,10 +1580,12 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
         label: 'Статус',
         type: 'select',
         options: [
-          { value: 'open', label: 'Открыт' },
-          { value: 'in_progress', label: 'В работе' },
-          { value: 'resolved', label: 'Исправлен' },
-          { value: 'closed', label: 'Закрыт' },
+          { value: 0, label: 'Открыт' },
+          { value: 1, label: 'Назначен' },
+          { value: 2, label: 'В работе' },
+          { value: 3, label: 'Устранён' },
+          { value: 4, label: 'Проверен' },
+          { value: 5, label: 'Закрыт' },
         ],
       },
     ],

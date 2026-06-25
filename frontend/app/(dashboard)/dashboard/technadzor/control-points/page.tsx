@@ -32,6 +32,7 @@ export default function ControlPointsPage() {
   const [items, setItems] = useState<ControlPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -60,11 +61,50 @@ export default function ControlPointsPage() {
           <h1 className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-gray-100">{t('Пункты контроля')}</h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{t('Библиотека контрольных пунктов (конструктор чек-листов)')}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('Поиск пунктов…')} className="text-sm rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-800 dark:text-gray-100 w-56 max-w-full" />
-          <Link href="/dashboard/technadzor/control-points/new" className="px-4 py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-700 text-white whitespace-nowrap">+ {t('Создать пункт')}</Link>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setShowSearch((v) => !v)}
+            title={t('Поиск пунктов…')}
+            className={`p-2 rounded-lg transition-colors ${showSearch || q ? 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20' : 'text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20'}`}
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </button>
+          <Link
+            href="/dashboard/technadzor/control-points/new"
+            title={t('Создать пункт')}
+            className="p-2 text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+          </Link>
         </div>
       </div>
+
+      {showSearch && (
+        <div className="mb-3 flex items-center gap-2 bg-white dark:bg-gray-800 rounded-xl px-4 py-2.5 shadow-xs border border-gray-100 dark:border-gray-700">
+          <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            autoFocus
+            type="text"
+            placeholder={t('Поиск пунктов…')}
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            className="flex-1 text-sm bg-transparent text-gray-800 dark:text-gray-100 placeholder-gray-400 outline-none"
+          />
+          {q && (
+            <button onClick={() => setQ('')} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+      )}
 
       {loading ? (
         <div className="animate-pulse h-64 bg-gray-100 dark:bg-gray-800 rounded-2xl" />
