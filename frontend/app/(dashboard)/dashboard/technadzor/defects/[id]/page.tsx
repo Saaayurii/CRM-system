@@ -46,6 +46,17 @@ const fmtDate = (v?: string) => {
 const fileUrl = (f: string | { url?: string; fileUrl?: string }) =>
   typeof f === 'string' ? f : f.url || f.fileUrl || '';
 
+const DEFECT_TYPE_LABEL: Record<string, string> = {
+  quality: 'Качество', safety: 'Безопасность', compliance: 'Соответствие',
+  critical: 'Критический', major: 'Существенный', minor: 'Незначительный',
+  structural: 'Конструктивный', finishing: 'Отделочный', engineering: 'Инженерный',
+  cosmetic: 'Косметический', functional: 'Функциональный',
+};
+const defectTypeLabel = (v?: string) => {
+  if (!v) return '—';
+  return DEFECT_TYPE_LABEL[v] ?? (v.charAt(0).toUpperCase() + v.slice(1));
+};
+
 interface UserInfo { name: string; phone?: string; email?: string; roleName?: string; avatarUrl?: string }
 interface CommentAttachment { url: string; name?: string; mimeType?: string; kind?: 'image' | 'audio' | 'video' | 'file'; size?: number }
 interface CommentItem { id: number; userName?: string; commentText: string; createdAt?: string; attachments?: CommentAttachment[] }
@@ -331,7 +342,7 @@ export default function DefectDetailPage() {
               </button>
             </Field>
             <Field label="Критичность">{sev ? <Badge label={t(sev.label)} color={sev.color} /> : '—'}</Field>
-            <Field label="Тип дефекта">{defect.defectType || '—'}</Field>
+            <Field label="Тип дефекта">{defectTypeLabel(defect.defectType)}</Field>
             <Field label="Создан">
               <div>{fmtDate(defect.createdAt)}</div>
               {defect.reportedByUserId && <div className="text-xs text-gray-400">{users[defect.reportedByUserId]?.name}</div>}
