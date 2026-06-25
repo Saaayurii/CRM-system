@@ -453,7 +453,7 @@ export default function ControlPointBuilderPage() {
               key={s.n}
               onClick={() => clickable && setStep(s.n)}
               disabled={!clickable}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm shrink-0 ${step === s.n ? 'bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400 font-medium' : 'text-gray-400'} ${clickable ? 'hover:text-gray-600 dark:hover:text-gray-200' : 'opacity-50 cursor-not-allowed'}`}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm shrink-0 ${step === s.n ? 'bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400 font-medium' : 'text-gray-400'} ${clickable ? 'hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer' : 'opacity-50 cursor-not-allowed'}`}
             >
               <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${step === s.n ? 'bg-violet-600 text-white' : 'bg-gray-200 dark:bg-gray-700'}`}>{s.n}</span>
               {t(s.label)}
