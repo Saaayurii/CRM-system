@@ -37,6 +37,11 @@ const fmtDate = (v?: string) => {
   return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('ru-RU');
 };
 
+const INSPECTION_TYPE_LABEL: Record<string, string> = {
+  quality: 'Качество', safety: 'Безопасность', compliance: 'Соответствие', routine: 'Плановая',
+};
+const typeLabel = (v?: string) => (v ? INSPECTION_TYPE_LABEL[v] ?? v : '');
+
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   const t = useT();
   return (
@@ -52,12 +57,30 @@ export default function InspectionDetailPage() {
   const t = useT();
   const [insp, setInsp] = useState<Inspection | null>(null);
   const [loading, setLoading] = useState(true);
+  const [projectName, setProjectName] = useState<string>('');
+  const [siteName, setSiteName] = useState<string>('');
+  const [inspectorName, setInspectorName] = useState<string>('');
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const { data } = await api.get<Inspection>(`/inspections/${id}`);
       setInsp(data);
+      // Подтягиваем человекочитаемые имена связей (мягко, без падений)
+      if (data.projectId) {
+        api.get(`/projects/${data.projectId}`).then((r) => setProjectName(r.data?.name || '')).catch(() => {});
+      }
+      if (data.constructionSiteId) {
+        api.get(`/construction-sites/${data.constructionSiteId}`)
+          .then((r) => setSiteName(r.data?.name || r.data?.address || '')).catch(() => {});
+      }
+      if (data.inspectorId) {
+        api.get(`/users/${data.inspectorId}`)
+          .then((r) => {
+            const u = r.data || {};
+            setInspectorName([u.firstName, u.lastName].filter(Boolean).join(' ') || u.name || u.email || '');
+          }).catch(() => {});
+      }
     } catch {
       setInsp(null);
     } finally {
@@ -107,7 +130,7 @@ export default function InspectionDetailPage() {
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-gray-100">{insp.inspectionNumber || `INSP-${insp.id}`}</h1>
             <Badge label={t(st.label)} color={st.color} />
-            {insp.inspectionType && <Badge label={insp.inspectionType} color="violet" />}
+            {insp.inspectionType && <Badge label={typeLabel(insp.inspectionType)} color="violet" />}
           </div>
           {insp.inspectionArea && <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{insp.inspectionArea}</p>}
         </div>
@@ -182,8 +205,8 @@ export default function InspectionDetailPage() {
         {/* Правая колонка */}
         <div className="space-y-6">
           <div className="rounded-2xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-gray-800 p-5 shadow-xs grid grid-cols-2 gap-4">
-            <Field label="Тип">{insp.inspectionType || '—'}</Field>
-            <Field label="Инспектор">{insp.inspectorId ? `#${insp.inspectorId}` : '—'}</Field>
+            <Field label="Тип">{typeLabel(insp.inspectionType) || '—'}</Field>
+            <Field label="Инспектор">{inspectorName || (insp.inspectorId ? `#${insp.inspectorId}` : '—')}</Field>
             <Field label="Дата (план)">{fmtDate(insp.scheduledDate)}</Field>
             <Field label="Дата (факт)">{fmtDate(insp.actualDate)}</Field>
             <Field label="Оценка">{insp.score != null ? insp.score : '—'}</Field>
@@ -192,8 +215,10 @@ export default function InspectionDetailPage() {
           <div className="rounded-2xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-gray-800 p-5 shadow-xs">
             <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-3">{t('Связи')}</h3>
             <div className="space-y-2 text-sm text-gray-500 dark:text-gray-400">
-              {insp.projectId ? <p>🏢 {t('Проект')} #{insp.projectId}</p> : <p>{t('Проект не привязан')}</p>}
-              {insp.constructionSiteId ? <p>📍 {t('Объект')} #{insp.constructionSiteId}</p> : null}
+              {insp.projectId ? (
+                <Link href={`/dashboard/projects/${insp.projectId}`} className="block hover:text-violet-600 dark:hover:text-violet-400">🏢 {projectName || `${t('Проект')} #${insp.projectId}`}</Link>
+              ) : <p>{t('Проект не привязан')}</p>}
+              {insp.constructionSiteId ? <p>📍 {siteName || `${t('Объект')} #${insp.constructionSiteId}`}</p> : null}
             </div>
           </div>
         </div>
