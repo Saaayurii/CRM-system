@@ -246,9 +246,10 @@ fi
 # Требует SMOKE_EMAIL/SMOKE_PASSWORD в .env (сервисный аккаунт, 1 компания, без 2FA).
 # По умолчанию advisory: при провале только предупреждаем. SMOKE_GATE=true →
 # жёсткий гейт: оставляем maintenance ВКЛ и выходим с ошибкой.
-SMOKE_EMAIL=$(grep "^SMOKE_EMAIL=" .env | cut -d= -f2-)
-SMOKE_PASSWORD=$(grep "^SMOKE_PASSWORD=" .env | cut -d= -f2-)
-SMOKE_GATE=$(grep "^SMOKE_GATE=" .env | cut -d= -f2-)
+# `|| true` — иначе grep без совпадения (код 1) при set -euo pipefail валит деплой.
+SMOKE_EMAIL=$(grep "^SMOKE_EMAIL=" .env | cut -d= -f2- || true)
+SMOKE_PASSWORD=$(grep "^SMOKE_PASSWORD=" .env | cut -d= -f2- || true)
+SMOKE_GATE=$(grep "^SMOKE_GATE=" .env | cut -d= -f2- || true)
 if [ -n "$SMOKE_EMAIL" ] && [ -n "$SMOKE_PASSWORD" ] && [ -f "scripts/smoke.mjs" ]; then
   info "Running smoke-тест всех ручек..."
   if docker exec -i \
