@@ -94,7 +94,9 @@ DECLARE
         'payroll', 'bonuses',
         'supplier_orders', 'supplier_order_items',
         'commercial_proposals', 'proposal_lines',
-        'price_lists', 'price_list_items',
+        -- NB: price_lists / price_list_items — мёртвые таблицы (в коде не
+        -- используются). Живой параметрический прайс (price_items, price_*) —
+        -- это справочник/конфиг, аудитом не покрывается (как dictionary_*).
         -- Контрагенты
         'clients', 'client_portal_access', 'contractors', 'suppliers',
         -- Доступ / личности / безопасность

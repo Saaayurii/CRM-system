@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { NestModule, MiddlewareConsumer } from '@nestjs/common';
+import { UserContextMiddleware } from './common/context/user-context.middleware';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD, APP_FILTER } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
@@ -66,4 +68,8 @@ import { winstonConfig } from './common/logger/winston.config';
     },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(UserContextMiddleware).forRoutes('*');
+  }
+}

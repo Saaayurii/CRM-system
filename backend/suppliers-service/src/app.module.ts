@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { NestModule, MiddlewareConsumer } from '@nestjs/common';
+import { UserContextMiddleware } from './common/context/user-context.middleware';
 import { ConfigModule } from '@nestjs/config';
 import { PassportModule } from '@nestjs/passport';
 import { APP_GUARD, APP_FILTER } from '@nestjs/core';
@@ -28,4 +30,8 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     { provide: APP_FILTER, useClass: HttpExceptionFilter },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(UserContextMiddleware).forRoutes('*');
+  }
+}
