@@ -2,6 +2,7 @@
 // into a URL (EventSource/SSE), where the Axios 401-refresh interceptor can't
 // help. Refreshes proactively when the current token is close to expiry.
 import axios from 'axios';
+import { writeSsoTokens } from '@/lib/ssoCookie';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
 
@@ -32,6 +33,7 @@ async function doRefresh(): Promise<string | null> {
     });
     localStorage.setItem('accessToken', data.accessToken);
     localStorage.setItem('refreshToken', data.refreshToken);
+    writeSsoTokens(data.accessToken, data.refreshToken);
     return data.accessToken as string;
   } catch {
     return null;

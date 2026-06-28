@@ -15,8 +15,41 @@ import { useThemeStore } from '@/stores/themeStore';
 import { nameColorClass } from '@/lib/appearance';
 import { useT } from '@/lib/i18n';
 import { reservedBox, boxFromDims, setMediaDims } from '@/lib/mediaAspect';
+import { useChatOnly } from './ChatOnlyContext';
 
 const QUICK_EMOJIS = ['❤️', '🤗', '👍', '😄', '👎', '🔥', '👏'];
+
+// A task chip/card that links to the task editor in the dashboard. On the chat
+// subdomain those pages don't exist, so it renders as a plain (non-navigating)
+// container with the same styling.
+function TaskLink({
+  taskId,
+  className,
+  children,
+}: {
+  taskId: string | number;
+  className: string;
+  children: React.ReactNode;
+}) {
+  const { chatOnly } = useChatOnly();
+  if (chatOnly) {
+    return <div className={`${className} cursor-default`}>{children}</div>;
+  }
+  return (
+    <Link
+      href={`/dashboard/tasks?edit=${taskId}`}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (typeof window !== 'undefined' && window.location.pathname.startsWith('/dashboard/chat')) {
+          try { sessionStorage.setItem('taskBackTo', window.location.pathname + window.location.search); } catch {}
+        }
+      }}
+      className={className}
+    >
+      {children}
+    </Link>
+  );
+}
 
 // Desktop context-menu (right-click) styling — matches ChatContextMenu
 const CTX_ITEM =
@@ -1427,14 +1460,8 @@ function TaskCard({ id, title, status, priority, dueDate, isOwn }: {
   const due = fmtDate(dueDate);
 
   return (
-    <Link
-      href={`/dashboard/tasks?edit=${id}`}
-      onClick={(e) => {
-        e.stopPropagation();
-        if (typeof window !== 'undefined' && window.location.pathname.startsWith('/dashboard/chat')) {
-          try { sessionStorage.setItem('taskBackTo', window.location.pathname + window.location.search); } catch {}
-        }
-      }}
+    <TaskLink
+      taskId={id}
       className={`flex flex-col gap-1.5 rounded-xl p-2.5 border transition-colors no-underline ${
         isOwn
           ? 'bg-white/10 hover:bg-white/20 border-white/20'
@@ -1482,7 +1509,7 @@ function TaskCard({ id, title, status, priority, dueDate, isOwn }: {
           )}
         </div>
       )}
-    </Link>
+    </TaskLink>
   );
 }
 // ── Task card message (created via /task slash command) ──────────
@@ -1519,14 +1546,8 @@ function TaskCardMessage({ card, isOwn, senderName, createdAt, messageId }: {
 
   return (
     <div data-message-id={messageId} className={`flex ${isOwn ? 'justify-end' : 'justify-start'} my-1.5`}>
-      <Link
-        href={`/dashboard/tasks?edit=${card.taskId}`}
-        onClick={(e) => {
-          e.stopPropagation();
-          if (typeof window !== 'undefined' && window.location.pathname.startsWith('/dashboard/chat')) {
-            try { sessionStorage.setItem('taskBackTo', window.location.pathname + window.location.search); } catch {}
-          }
-        }}
+      <TaskLink
+        taskId={card.taskId}
         className="block max-w-md w-full rounded-2xl border border-violet-200 dark:border-violet-700/60 bg-gradient-to-br from-violet-50 to-white dark:from-violet-900/30 dark:to-gray-800 hover:from-violet-100 hover:to-violet-50 dark:hover:from-violet-900/40 dark:hover:to-gray-800/80 transition-colors shadow-sm no-underline p-3"
       >
         {/* Header */}
@@ -1603,7 +1624,7 @@ function TaskCardMessage({ card, isOwn, senderName, createdAt, messageId }: {
             от {senderName || 'Пользователь'}
           </span>
         </div>
-      </Link>
+      </TaskLink>
     </div>
   );
 }
@@ -1723,15 +1744,9 @@ function renderText(text: string, isOwn: boolean, highlightQuery?: string, trail
         );
       } else {
         textSegments.push(
-          <Link
+          <TaskLink
             key={match.index}
-            href={`/dashboard/tasks?edit=${id}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              if (typeof window !== 'undefined' && window.location.pathname.startsWith('/dashboard/chat')) {
-                try { sessionStorage.setItem('taskBackTo', window.location.pathname + window.location.search); } catch {}
-              }
-            }}
+            taskId={id}
             className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium transition-colors ${
               isOwn
                 ? 'bg-white/20 hover:bg-white/30 text-white'
@@ -1742,7 +1757,7 @@ function renderText(text: string, isOwn: boolean, highlightQuery?: string, trail
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
             </svg>
             {title}
-          </Link>
+          </TaskLink>
         );
       }
     }

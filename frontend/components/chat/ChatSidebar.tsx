@@ -11,6 +11,7 @@ import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import { previewMessageText } from '@/lib/chat/messagePreview';
 import { useT } from '@/lib/i18n';
+import { useChatOnly } from './ChatOnlyContext';
 
 interface ChatSidebarProps {
   onSelectChannel: () => void;
@@ -18,6 +19,7 @@ interface ChatSidebarProps {
 
 export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
   const t = useT();
+  const { basePath } = useChatOnly();
   const channels = useChatStore((s) => s.channels);
   const archivedChannels = useChatStore((s) => s.archivedChannels);
   const archivedCount = useChatStore((s) => s.archivedCount);
@@ -244,7 +246,8 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
       onClose={closeCtxMenu}
       actions={{
         onOpenInNewWindow: () => {
-          const url = `/dashboard/chat?channelId=${ctxMenu.channel.id}`;
+          const sep = basePath.includes('?') ? '&' : '?';
+          const url = `${basePath}${sep}channelId=${ctxMenu.channel.id}`;
           window.open(url, '_blank', 'noopener,noreferrer,width=900,height=720');
         },
         onTogglePin: async () => {

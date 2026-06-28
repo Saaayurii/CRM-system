@@ -1,4 +1,5 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
+import { writeSsoTokens, clearSsoTokens } from '@/lib/ssoCookie';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
@@ -85,6 +86,7 @@ api.interceptors.response.use(
         const { accessToken, refreshToken: newRefreshToken } = data;
         localStorage.setItem('accessToken', accessToken);
         localStorage.setItem('refreshToken', newRefreshToken);
+        writeSsoTokens(accessToken, newRefreshToken);
 
         processQueue(null, accessToken);
 
@@ -95,9 +97,13 @@ api.interceptors.response.use(
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
         document.cookie = 'crm-session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        clearSsoTokens();
         if (typeof window !== 'undefined') {
           const path = window.location.pathname;
-          if (path.startsWith('/portal')) {
+          if (window.location.hostname.startsWith('chat.')) {
+            // Чат-поддомен: сессия истекла — на форму входа (middleware вернёт в чат)
+            window.location.href = '/auth/login';
+          } else if (path.startsWith('/portal')) {
             // Клиента портала возвращаем на его форму входа, а не на сотрудничью
             window.location.href = '/portal/login';
           } else if (path.startsWith('/dashboard') || path.startsWith('/admin')) {

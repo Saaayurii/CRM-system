@@ -5,6 +5,7 @@ import { updateBadge } from '@/stores/notificationStore';
 import { normalizeFileUrl } from '@/lib/utils';
 import { clearAllCached } from '@/lib/offlineCache';
 import { disablePushNotifications } from '@/lib/pushNotifications';
+import { writeSsoTokens, clearSsoTokens, hydrateTokensFromCookie } from '@/lib/ssoCookie';
 import type { User, LoginRequest, LoginResponse, JwtPayload } from '@/types/auth';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
@@ -139,6 +140,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       localStorage.setItem('refreshToken', data.refreshToken);
       if (data.sessionId) localStorage.setItem('sessionId', String(data.sessionId));
       document.cookie = `crm-session=true; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+      writeSsoTokens(data.accessToken, data.refreshToken);
 
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.ready.then((reg) => {
@@ -196,6 +198,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     localStorage.setItem('refreshToken', data.refreshToken);
     if (data.sessionId) localStorage.setItem('sessionId', String(data.sessionId));
     document.cookie = `crm-session=true; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+    writeSsoTokens(data.accessToken, data.refreshToken);
 
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.ready.then((reg) => {
@@ -243,6 +246,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('sessionId');
     document.cookie = 'crm-session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    clearSsoTokens();
 
     updateBadge(0);
 
@@ -302,6 +306,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     localStorage.setItem('refreshToken', data.refreshToken);
     if (data.sessionId) localStorage.setItem('sessionId', String(data.sessionId));
     document.cookie = `crm-session=true; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+    writeSsoTokens(data.accessToken, data.refreshToken);
 
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.ready.then((reg) => {
@@ -358,6 +363,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         if (tokens) {
           localStorage.setItem('accessToken', tokens.accessToken);
           localStorage.setItem('refreshToken', tokens.refreshToken);
+          writeSsoTokens(tokens.accessToken, tokens.refreshToken);
         }
       }
     } catch {
@@ -366,6 +372,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   initialize: () => {
+    // First visit to the chat subdomain carries the session only in the shared
+    // cross-subdomain cookie — pull it into localStorage before reading.
+    hydrateTokensFromCookie();
+
     const token = localStorage.getItem('accessToken');
     if (!token) {
       set({ isLoading: false, isAuthenticated: false });
@@ -377,6 +387,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
       document.cookie = 'crm-session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      clearSsoTokens();
       set({ isLoading: false, isAuthenticated: false });
       return;
     }

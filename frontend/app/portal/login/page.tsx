@@ -4,6 +4,7 @@ import { useState, FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
+import { writeSsoTokens } from '@/lib/ssoCookie';
 import { AxiosError } from 'axios';
 import { useT } from '@/lib/i18n';
 import ForeignEmailNotice from '@/components/auth/ForeignEmailNotice';
@@ -28,6 +29,7 @@ export default function PortalLoginPage() {
       localStorage.setItem('refreshToken', data.refreshToken);
       if (data.sessionId) localStorage.setItem('sessionId', String(data.sessionId));
       document.cookie = `crm-session=true; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+      writeSsoTokens(data.accessToken, data.refreshToken);
       window.location.href = '/dashboard';
     } catch (err) {
       const status = err instanceof AxiosError ? err.response?.status : undefined;
