@@ -15,15 +15,18 @@ const ACCESS_COOKIE = 'crm_at';
 const REFRESH_COOKIE = 'crm_rt';
 const MAX_AGE = 60 * 60 * 24 * 7; // 7d — matches the crm-session cookie lifetime
 
-// Parent domain shared by the main app and the chat subdomain. Derived from the
-// current host by dropping a leading `chat.` label. On localhost/IP we return
-// null — browsers reject domain-scoped cookies there, so the cookie stays
-// host-only (dev still works, just without cross-subdomain sharing).
+// Registrable parent domain shared by the main app and the chat subdomain, so a
+// login on `crm.3stroy15.pro` carries over to its sibling `chat.3stroy15.pro`
+// (common parent `3stroy15.pro`). We take the last two labels of the host. On
+// localhost/IP/apex we return null — browsers reject domain-scoped cookies
+// there, so the cookie stays host-only (dev still works, just without sharing).
 function rootDomain(): string | null {
   if (typeof window === 'undefined') return null;
   const host = window.location.hostname;
   if (host === 'localhost' || /^[0-9.]+$/.test(host)) return null;
-  return host.startsWith('chat.') ? host.slice('chat.'.length) : host;
+  const parts = host.split('.');
+  if (parts.length <= 2) return host; // already apex (e.g. 3stroy15.pro)
+  return parts.slice(-2).join('.');
 }
 
 function cookieSuffix(): string {
