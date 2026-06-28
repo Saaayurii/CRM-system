@@ -1,7 +1,8 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { PassportModule } from '@nestjs/passport';
 import { APP_GUARD, APP_FILTER } from '@nestjs/core';
+import { UserContextMiddleware } from './common/context/user-context.middleware';
 import configuration from './config/configuration';
 import { DatabaseModule } from './database/database.module';
 import { PaymentsModule } from './modules/payments/payments.module';
@@ -42,4 +43,9 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     { provide: APP_FILTER, useClass: HttpExceptionFilter },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    // ALS-контекст пользователя на все маршруты — для атрибуции DB-аудита.
+    consumer.apply(UserContextMiddleware).forRoutes('*');
+  }
+}

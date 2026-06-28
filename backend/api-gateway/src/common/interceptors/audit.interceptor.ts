@@ -185,8 +185,10 @@ export class AuditInterceptor implements NestInterceptor {
     // direct HTTP POST when Kafka is disabled or unreachable.
     const sent = await this.kafka.emit(AUDIT_TOPIC, payload);
     if (!sent) {
+      const internalToken = process.env.INTERNAL_AUDIT_TOKEN;
       await axios.post(`${this.auditUrl}/event-logs`, payload, {
         timeout: 3000,
+        headers: internalToken ? { 'x-internal-token': internalToken } : undefined,
       });
     }
   }

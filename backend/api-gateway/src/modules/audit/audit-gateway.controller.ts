@@ -1,8 +1,6 @@
 import {
   Controller,
   Get,
-  Post,
-  Body,
   Param,
   Query,
   Req,
@@ -53,17 +51,9 @@ export class AuditGatewayController {
     });
   }
 
-  @Post('event-logs')
-  @ApiOperation({ summary: 'Create event log' })
-  async createEventLog(@Req() req: Request, @Body() body: any) {
-    return this.proxyService.forward('audit', {
-      method: 'POST',
-      path: '/event-logs',
-      headers: {
-        authorization: req.headers.authorization || '',
-        'content-type': 'application/json',
-      },
-      data: body,
-    });
-  }
+  // NB: write-доступ к event-logs наружу НЕ проксируется намеренно.
+  // Аудит пишется только сервером: gateway AuditInterceptor → Kafka (топик
+  // audit.events) либо прямой internal HTTP POST в audit-service:3017 (минуя
+  // этот контроллер). Публичный POST позволял подделывать записи в чужой
+  // accountId — удалён.
 }

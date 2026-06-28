@@ -6,7 +6,10 @@ import {
   Param,
   Query,
   ParseIntPipe,
+  Req,
+  ForbiddenException,
 } from '@nestjs/common';
+import { Request } from 'express';
 import {
   ApiTags,
   ApiOperation,
@@ -57,11 +60,26 @@ export class EventLogsController {
 
   @Post()
   @Public()
-  @ApiOperation({ summary: 'Create event log (internal)' })
+  @ApiOperation({ summary: 'Create event log (internal-only)' })
   create(
+    @Req() req: Request,
     @Body() dto: CreateEventLogDto,
     @CurrentUser('accountId') jwtAccountId?: number,
   ) {
+    // Этот эндпоинт — только для серверного аудита (gateway AuditInterceptor
+    // HTTP-fallback / другие сервисы). Наружу gateway его не проксирует, а сам
+    // audit-service слушает 127.0.0.1. Дополнительно: если задан
+    // INTERNAL_AUDIT_TOKEN — требуем совпадающий заголовок x-internal-token
+    // (защита от записи из скомпрометированного контейнера во внутренней сети).
+    const expected = process.env.INTERNAL_AUDIT_TOKEN;
+    if (expected) {
+      const provided = req.headers['x-internal-token'];
+      if (provided !== expected) {
+        throw new ForbiddenException('Invalid internal token');
+      }
+    }
+    // accountId из валидного JWT приоритетнее тела (никогда не доверяем
+    // accountId из body поверх токена — иначе кросс-тенант подделка).
     const accountId = jwtAccountId ?? dto.accountId ?? 1;
     return this.eventLogsService.create(accountId, dto);
   }
