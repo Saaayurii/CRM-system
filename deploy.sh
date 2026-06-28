@@ -240,6 +240,36 @@ if [ "$MAINTENANCE" = true ]; then
   maintenance_set false
 fi
 
+# ── Smoke-тест всех ручек (advisory-гейт) ────────────────────
+# Логинится через gateway и дёргает по ручке на каждый сервис; падение = 5xx.
+# Запуск ВНУТРИ контейнера gateway (там есть node), скрипт подаётся по stdin.
+# Требует SMOKE_EMAIL/SMOKE_PASSWORD в .env (сервисный аккаунт, 1 компания, без 2FA).
+# По умолчанию advisory: при провале только предупреждаем. SMOKE_GATE=true →
+# жёсткий гейт: оставляем maintenance ВКЛ и выходим с ошибкой.
+SMOKE_EMAIL=$(grep "^SMOKE_EMAIL=" .env | cut -d= -f2-)
+SMOKE_PASSWORD=$(grep "^SMOKE_PASSWORD=" .env | cut -d= -f2-)
+SMOKE_GATE=$(grep "^SMOKE_GATE=" .env | cut -d= -f2-)
+if [ -n "$SMOKE_EMAIL" ] && [ -n "$SMOKE_PASSWORD" ] && [ -f "scripts/smoke.mjs" ]; then
+  info "Running smoke-тест всех ручек..."
+  if docker exec -i \
+      -e SMOKE_BASE_URL=http://localhost:3000 \
+      -e SMOKE_EMAIL="$SMOKE_EMAIL" \
+      -e SMOKE_PASSWORD="$SMOKE_PASSWORD" \
+      crm-api-gateway node < scripts/smoke.mjs; then
+    info "Smoke-тест пройден."
+  else
+    if [ "$SMOKE_GATE" = "true" ]; then
+      maintenance_set true
+      error "Smoke-тест ПРОВАЛЕН — оставляю maintenance ВКЛ. Разберись и передеплой."
+      exit 1
+    else
+      warn "Smoke-тест провалился (advisory). Проверь сервисы: docker compose ps / logs."
+    fi
+  fi
+else
+  info "Smoke-тест пропущен (нет SMOKE_EMAIL/SMOKE_PASSWORD в .env или нет scripts/smoke.mjs)."
+fi
+
 # ── Status ───────────────────────────────────────────────────
 info "Deployment complete. Container status:"
 docker compose ps
