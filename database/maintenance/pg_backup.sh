@@ -39,9 +39,45 @@ PG_DB="${PG_DB:-construction_crm}"
 GATEWAY_CONTAINER="${GATEWAY_CONTAINER:-crm-api-gateway}"
 LOCAL_RETENTION="${LOCAL_RETENTION:-8}"   # keep last N local dumps (~2 months weekly)
 MIN_BYTES="${MIN_BYTES:-10240}"           # sanity floor: a real dump is > 10KB
+ALERT_ACCOUNT_ID="${ALERT_ACCOUNT_ID:-1}" # account whose super-admins get failure alerts
 
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
 die() { log "ERROR: $*"; exit 1; }
+
+# Best-effort alert to super-admins (roleId 1) via notifications-service, routed
+# through the gateway container (on the docker network). Never fails the script.
+notify_failure() {
+  local msg="$1"
+  docker exec -e MSG="$msg" -e ALERT_ACCOUNT_ID="$ALERT_ACCOUNT_ID" "$GATEWAY_CONTAINER" node -e '
+    const url = (process.env.NOTIFICATIONS_SERVICE_URL || "http://notifications-service:3010")
+      + "/notifications/internal/broadcast";
+    fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        accountId: Number(process.env.ALERT_ACCOUNT_ID || 1),
+        roleIds: [1],
+        title: "⚠️ Бэкап БД упал",
+        message: process.env.MSG,
+        notificationType: "error",
+        priority: 3,
+        channels: ["in_app", "push"],
+      }),
+      signal: AbortSignal.timeout(5000),
+    }).then((r) => console.log("alert sent", r.status))
+      .catch((e) => console.error("alert failed:", e.message));
+  ' >/dev/null 2>&1 || true
+}
+
+# On any non-zero exit, ping the admins so a silently-failing cron is noticed.
+on_exit() {
+  local rc=$?
+  if [ "$rc" -ne 0 ]; then
+    log "BACKUP FAILED (rc=$rc)"
+    notify_failure "Еженедельный бэкап БД упал (rc=$rc) на $(hostname) в $(date '+%F %T'). Логи: /var/log/crm-pg-backup.log"
+  fi
+}
+trap on_exit EXIT
 
 # ── Load S3 credentials from backend/.env ────────────────────────────────────
 [ -f "$ENV_FILE" ] || die "env file not found: $ENV_FILE"
@@ -110,5 +146,8 @@ ls -1t "$BACKUP_DIR"/${PG_DB}-*.sql.gz 2>/dev/null | tail -n +"$((LOCAL_RETENTIO
   log "  rm $(basename "$old")"
   rm -f "$old"
 done
+
+# Heartbeat: a monitor (or the restore-verify) can alert if this goes stale.
+date '+%s' > "$BACKUP_DIR/.last_success" 2>/dev/null || true
 
 log "Backup complete: ${FILE}"

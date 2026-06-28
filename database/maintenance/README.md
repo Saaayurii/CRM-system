@@ -42,11 +42,40 @@ crontab -e
 
 > Пользователь cron должен иметь доступ к `docker` (группа `docker` или root).
 
-## Restore (ВНИМАНИЕ: перезапишет базу)
+### Алерт о провале
+При любом ненулевом выходе `pg_backup.sh` шлёт broadcast-уведомление супер-админам
+(roleId 1, `notificationType: error`) через `notifications-service`
+(`/notifications/internal/broadcast`), маршрутизируя запрос через gateway-контейнер.
+Так молча падающий cron не останется незамеченным. На успехе пишет heartbeat
+`backups/.last_success` (unix-время) — для внешнего мониторинга на «протухание».
+
+## Проверка восстановления — `pg_restore_verify.sh`
+
+Непроверенный бэкап = кот Шрёдингера. Скрипт скачивает **последний** дамп из S3
+(через gateway), разворачивает его во **временную** БД `construction_crm_restore_check`,
+проверяет целостность gzip и считает строки в `accounts`/`users` (прод-дамп не пустой),
+затем дропает временную БД. **Прод не трогается.** Падение → тот же алерт супер-админам.
 
 ```bash
-# скачать нужный дамп из S3 (через тот же aws-cli контейнер) или взять локальный
-gunzip -c construction_crm-YYYY-MM-DD.sql.gz \
+/opt/crm-system/database/maintenance/pg_restore_verify.sh
+```
+
+Ежемесячный cron (1-го числа, 04:00):
+```bash
+0 4 1 * *  /opt/crm-system/database/maintenance/pg_restore_verify.sh >> /var/log/crm-pg-restore-verify.log 2>&1
+```
+
+## Restore (ВНИМАНИЕ: перезапишет прод-базу)
+
+```bash
+# взять локальную копию из backups/ ИЛИ скачать дамп из S3 через gateway:
+docker exec -e BK_KEY="backups/db/construction_crm-YYYY-MM-DD.sql.gz" crm-api-gateway node -e '
+const {S3Client,GetObjectCommand}=require("@aws-sdk/client-s3");
+const s3=new S3Client({region:process.env.AWS_S3_REGION||"ru-1",endpoint:process.env.AWS_S3_ENDPOINT,forcePathStyle:true,credentials:{accessKeyId:process.env.AWS_S3_ACCESS_KEY_ID,secretAccessKey:process.env.AWS_S3_SECRET_ACCESS_KEY}});
+s3.send(new GetObjectCommand({Bucket:process.env.AWS_S3_BUCKET_NAME,Key:process.env.BK_KEY})).then(r=>r.Body.pipe(process.stdout)).catch(e=>{console.error(e.message);process.exit(1)});
+' > restore.sql.gz
+
+gunzip -c restore.sql.gz \
   | docker exec -i crm-postgres psql -U postgres -d construction_crm
 ```
 
@@ -57,10 +86,13 @@ gunzip -c construction_crm-YYYY-MM-DD.sql.gz \
 | Переменная | Дефолт | Назначение |
 |------------|--------|------------|
 | `ENV_FILE` | `<repo>/backend/.env` | откуда брать `AWS_S3_*` |
-| `BACKUP_DIR` | `<script>/local` | где держать локальные копии |
+| `BACKUP_DIR` | `<script>/backups` | где держать локальные копии (под `.gitignore`) |
 | `PG_CONTAINER` | `crm-postgres` | имя контейнера Postgres |
+| `GATEWAY_CONTAINER` | `crm-api-gateway` | контейнер для заливки/скачивания S3 |
 | `PG_DB` | `construction_crm` | имя БД |
 | `LOCAL_RETENTION` | `8` | сколько локальных дампов хранить |
+| `ALERT_ACCOUNT_ID` | `1` | аккаунт, чьи супер-админы получают алерт о провале |
+| `VERIFY_DB` | `construction_crm_restore_check` | временная БД для restore-drill |
 
 ## RPO / RTO
 
