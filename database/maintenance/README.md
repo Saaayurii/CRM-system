@@ -9,8 +9,9 @@
 1. `pg_dump --clean --if-exists --no-owner` из контейнера `crm-postgres`, gzip.
 2. Проверка, что дамп не пустой (> 10 КБ), иначе аборт без заливки.
 3. Заливка в `s3://crm-315/backups/db/construction_crm-YYYY-MM-DD.sql.gz`
-   **через контейнер `crm-api-gateway`** (`docker cp` дампа внутрь + `node` с
-   `@aws-sdk/client-s3`). Так переиспользуется тот же путь, что у приложения:
+   **через контейнер `crm-api-gateway`** (дамп стримится в `node` по stdin,
+   `@aws-sdk/client-s3`; без временных файлов внутри контейнера). Так
+   переиспользуется тот же путь, что у приложения:
    те же креды и — главное — то же доверие к TLS. REG.RU отдаёт цепочку с
    корнем, которого нет в CA-bundle у `amazon/aws-cli` (Python/certifi) →
    `self-signed certificate in chain`; Node-бандл его принимает. Заливать через

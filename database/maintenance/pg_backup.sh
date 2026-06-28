@@ -77,11 +77,11 @@ log "Uploading to s3://${S3_BUCKET}/backups/db/${FILE} (via ${GATEWAY_CONTAINER}
 docker inspect -f '{{.State.Running}}' "$GATEWAY_CONTAINER" >/dev/null 2>&1 \
   || die "gateway container ${GATEWAY_CONTAINER} not running — cannot upload (local dump kept at $DEST)"
 
-docker cp "$DEST" "${GATEWAY_CONTAINER}:/tmp/${FILE}"
-docker exec -e BK_FILE="$FILE" "$GATEWAY_CONTAINER" node -e '
+# Stream the dump into the container over stdin — no temp file inside it (the
+# gateway runs as non-root, so a root-owned `docker cp` file couldn't be cleaned
+# up), no docker cp, no rm.
+docker exec -i -e BK_FILE="$FILE" "$GATEWAY_CONTAINER" node -e '
   const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
-  const fs = require("fs");
-  const f = process.env.BK_FILE;
   const s3 = new S3Client({
     region: process.env.AWS_S3_REGION || "ru-1",
     endpoint: process.env.AWS_S3_ENDPOINT,
@@ -91,14 +91,17 @@ docker exec -e BK_FILE="$FILE" "$GATEWAY_CONTAINER" node -e '
       secretAccessKey: process.env.AWS_S3_SECRET_ACCESS_KEY,
     },
   });
-  s3.send(new PutObjectCommand({
-    Bucket: process.env.AWS_S3_BUCKET_NAME,
-    Key: "backups/db/" + f,
-    Body: fs.readFileSync("/tmp/" + f),
-  })).then(() => console.log("uploaded"))
-    .catch((e) => { console.error(e.message); process.exit(1); });
-'
-docker exec "$GATEWAY_CONTAINER" rm -f "/tmp/${FILE}" || true
+  const chunks = [];
+  process.stdin.on("data", (c) => chunks.push(c));
+  process.stdin.on("end", () => {
+    s3.send(new PutObjectCommand({
+      Bucket: process.env.AWS_S3_BUCKET_NAME,
+      Key: "backups/db/" + process.env.BK_FILE,
+      Body: Buffer.concat(chunks),
+    })).then(() => console.log("uploaded"))
+      .catch((e) => { console.error(e.message); process.exit(1); });
+  });
+' < "$DEST"
 log "Upload OK"
 
 # ── Rotate local copies ──────────────────────────────────────────────────────
