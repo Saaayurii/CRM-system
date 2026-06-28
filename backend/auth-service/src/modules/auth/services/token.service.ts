@@ -20,9 +20,23 @@ export class TokenService {
   ) {}
 
   generateAccessToken(payload: JwtPayload): string {
+    const expiresIn = this.configService.get<string>(
+      'jwt.accessExpiration',
+    ) as any;
+    // RS256, если задан приватный ключ (асимметричная подпись: auth подписывает
+    // приватным, все сервисы валидируют публичным — компрометация одного сервиса
+    // больше не раскрывает секрет подписи). Иначе — прежний HS256 по секрету.
+    const privateKey = (process.env.JWT_PRIVATE_KEY || '').replace(/\\n/g, '\n');
+    if (privateKey) {
+      return this.jwtService.sign(payload as any, {
+        privateKey,
+        algorithm: 'RS256',
+        expiresIn,
+      });
+    }
     return this.jwtService.sign(payload as any, {
       secret: this.configService.get<string>('jwt.accessSecret'),
-      expiresIn: this.configService.get<string>('jwt.accessExpiration') as any,
+      expiresIn,
     });
   }
 

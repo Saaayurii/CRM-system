@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+import { buildJwtKeyOptions } from './jwt-key.options';
 import { Request } from 'express';
 import { JwtPayload } from '../interfaces/jwt-payload.interface';
 import { SessionRevocationService } from '../services/session-revocation.service';
@@ -25,7 +26,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         (req) => req?.query?.token as string | null,
       ]),
       ignoreExpiration: false,
-      secretOrKey: secret,
+      ...buildJwtKeyOptions(configService),
       passReqToCallback: true,
     });
   }
