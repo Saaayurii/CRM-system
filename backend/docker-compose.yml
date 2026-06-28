@@ -79,11 +79,17 @@ services:
     image: redis:7-alpine
     container_name: crm-redis
     restart: unless-stopped
+    # This Redis is NOT a pure cache — it holds BullMQ queues, user sessions,
+    # the session-revocation blacklist (sess:revoked:<sid>) and rate-limit
+    # counters. `allkeys-lru` would evict those under memory pressure (BullMQ
+    # explicitly requires `noeviction`; an evicted blacklist key silently
+    # un-revokes a logged-out token). So: never evict, and give it more headroom
+    # (server has 30GB RAM). Cache-like data must carry its own TTL.
     command: >
       redis-server
       --appendonly yes
-      --maxmemory 512mb
-      --maxmemory-policy allkeys-lru
+      --maxmemory 1gb
+      --maxmemory-policy noeviction
       --save 60 1000
     ports:
       - "127.0.0.1:${REDIS_PORT:-6379}:6379"
