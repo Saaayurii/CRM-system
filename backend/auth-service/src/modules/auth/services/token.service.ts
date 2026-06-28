@@ -14,6 +14,14 @@ export interface TokenPair {
 
 @Injectable()
 export class TokenService {
+  /**
+   * Отдельный JwtService для RS256-подписи. Нельзя переиспользовать основной:
+   * он сконфигурирован модулем с `secret` (HS256), а getSecretKey в @nestjs/jwt
+   * отдаёт приоритет `this.options.secret` над sign-опцией `privateKey` — поэтому
+   * privateKey из sign() игнорируется. Экземпляр без `secret`, только с privateKey.
+   */
+  private rs256Signer?: JwtService;
+
   constructor(
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
@@ -28,11 +36,13 @@ export class TokenService {
     // больше не раскрывает секрет подписи). Иначе — прежний HS256 по секрету.
     const privateKey = (process.env.JWT_PRIVATE_KEY || '').replace(/\\n/g, '\n');
     if (privateKey) {
-      return this.jwtService.sign(payload as any, {
-        privateKey,
-        algorithm: 'RS256',
-        expiresIn,
-      });
+      if (!this.rs256Signer) {
+        this.rs256Signer = new JwtService({
+          privateKey,
+          signOptions: { algorithm: 'RS256', expiresIn },
+        });
+      }
+      return this.rs256Signer.sign(payload as any);
     }
     return this.jwtService.sign(payload as any, {
       secret: this.configService.get<string>('jwt.accessSecret'),
