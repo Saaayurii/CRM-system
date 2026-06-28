@@ -10,6 +10,7 @@ import {
   type NormDocumentDetail,
 } from '@/lib/wiki/constants';
 import { useT } from '@/lib/i18n';
+import { toLocalYmd } from '@/lib/utils';
 
 interface Props {
   doc?: NormDocumentDetail | null; // undefined/null → create
@@ -42,7 +43,7 @@ function flattenCategoryOptions(cats: NormCategory[]): { id: number; label: stri
 function toDateInput(v?: string | null): string {
   if (!v) return '';
   try {
-    return new Date(v).toISOString().slice(0, 10);
+    return toLocalYmd(new Date(v));
   } catch {
     return '';
   }

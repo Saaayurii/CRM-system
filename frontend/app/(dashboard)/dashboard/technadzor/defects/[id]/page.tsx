@@ -8,6 +8,7 @@ import { useToastStore } from '@/stores/toastStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useT } from '@/lib/i18n';
 import Badge, { DEFECT_STATUS, DEFECT_SEVERITY } from '@/components/technadzor/Badge';
+import { toLocalYmd } from '@/lib/utils';
 
 interface Defect {
   id: number;
@@ -240,7 +241,7 @@ export default function DefectDetailPage() {
     }
   };
 
-  const today = () => new Date().toISOString().slice(0, 10);
+  const today = () => toLocalYmd();
 
   const createTask = async () => {
     if (!defect) return;

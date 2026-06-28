@@ -5,6 +5,7 @@ import api from '@/lib/api';
 import { useDraft } from '@/hooks/useDraft';
 import DraftBanner from '@/components/ui/DraftBanner';
 import { useT } from '@/lib/i18n';
+import { toLocalYmd } from '@/lib/utils';
 
 function formatThousands(s: string): string {
   const [intPart, ...rest] = s.replace(/\s/g, '').split(/[.,]/);
@@ -288,7 +289,7 @@ export default function ProjectFormModal({ project, onClose, onSaved }: ProjectF
                   const newStatus = Number(e.target.value);
                   setStatus(newStatus);
                   if ((newStatus === 3 || newStatus === 4) && !actualEndDate) {
-                    setActualEndDate(new Date().toISOString().split('T')[0]);
+                    setActualEndDate(toLocalYmd());
                   }
                 }}
                 className={INPUT_CLS}

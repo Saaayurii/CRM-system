@@ -14,6 +14,19 @@ export const formatValue = (value: number) =>
   }).format(value);
 
 /**
+ * Локальная дата в формате YYYY-MM-DD.
+ * НЕ использовать `new Date().toISOString().slice(0,10)` — он даёт дату в UTC,
+ * из-за чего поздним вечером (МСК = UTC+3) «сегодня» сдвигается на вчера.
+ * Здесь берутся локальные компоненты даты браузера пользователя.
+ */
+export function toLocalYmd(d: Date = new Date()): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/**
  * Normalizes file URLs from the backend.
  * Old records in DB may have absolute URLs like http://localhost:3000/uploads/...
  * These cause Mixed Content errors when the app is served over HTTPS.

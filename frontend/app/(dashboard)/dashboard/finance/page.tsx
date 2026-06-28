@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import api from '@/lib/api';
-import { formatMoney } from '@/lib/utils';
+import { formatMoney, toLocalYmd } from '@/lib/utils';
 import { useDownloadPdf } from '@/lib/hooks/useDownloadPdf';
 import FinanceOperationModal from '@/components/finance/FinanceOperationModal';
 import FinanceOperationDrawer from '@/components/finance/FinanceOperationDrawer';
@@ -97,7 +97,7 @@ const PIE_COLORS = ['#8b5cf6', '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#ec4
 function periodRange(p: QuickPeriod): { from: string; to: string } | null {
   if (p === 'custom') return null;
   const now = new Date();
-  const to = now.toISOString().slice(0, 10);
+  const to = toLocalYmd(now);
   const start = new Date(now);
   if (p === 'today') {
     // start stays today
@@ -111,7 +111,7 @@ function periodRange(p: QuickPeriod): { from: string; to: string } | null {
   } else if (p === 'year') {
     start.setMonth(0, 1);
   }
-  return { from: start.toISOString().slice(0, 10), to };
+  return { from: toLocalYmd(start), to };
 }
 
 function formatDateShort(value?: string) {

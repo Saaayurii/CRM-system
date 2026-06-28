@@ -10,6 +10,7 @@ import {
   PieChart, Pie, Cell,
 } from 'recharts';
 import { useT } from '@/lib/i18n';
+import { toLocalYmd } from '@/lib/utils';
 
 function getGreeting(): string {
   const h = new Date().getHours();
@@ -177,9 +178,9 @@ export default function HRDashboard({ user }: { user: any }) {
     const docs = docsRes.status === 'fulfilled' ? extractArray(docsRes.value.data) : [];
 
     const pending = leaves.filter((l: any) => l.status === 0 || l.status === 'pending');
-    const today = new Date().toISOString().slice(0, 10);
+    const today = toLocalYmd();
     const todayAtt = attendance.filter((a: any) => {
-      const d = a.attendanceDate ? new Date(a.attendanceDate).toISOString().slice(0, 10) : '';
+      const d = a.attendanceDate ? toLocalYmd(new Date(a.attendanceDate)) : '';
       return d === today;
     });
     const presentCount = todayAtt.filter((a: any) => a.status === 'present' || a.status === 'late').length;
@@ -215,13 +216,13 @@ export default function HRDashboard({ user }: { user: any }) {
     for (let i = 6; i >= 0; i--) {
       const d = new Date(now);
       d.setDate(d.getDate() - i);
-      const key = d.toISOString().slice(0, 10);
+      const key = toLocalYmd(d);
       days[key] = { present: 0, absent: 0, late: 0, sick: 0, vacation: 0 };
     }
 
     attendance.forEach((a: any) => {
       if (!a.attendanceDate) return;
-      const key = new Date(a.attendanceDate).toISOString().slice(0, 10);
+      const key = toLocalYmd(new Date(a.attendanceDate));
       if (days[key] && a.status) {
         days[key][a.status] = (days[key][a.status] || 0) + 1;
       }

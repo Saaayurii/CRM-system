@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import { useT } from '@/lib/i18n';
+import { toLocalYmd } from '@/lib/utils';
 
 interface Equipment {
   id: number;
@@ -70,8 +71,8 @@ export default function InventoryStartModal({ warehouse, onClose, onCreated }: P
       const { data: session } = await api.post('/inventory-sessions', {
         name: name.trim(),
         status: complete ? 2 : 1,
-        scheduledDate: new Date().toISOString().slice(0, 10),
-        completedDate: complete ? new Date().toISOString().slice(0, 10) : undefined,
+        scheduledDate: toLocalYmd(),
+        completedDate: complete ? toLocalYmd() : undefined,
       });
       const sessionId = session?.id || session?.data?.id;
       if (!sessionId) throw new Error('Не удалось создать сессию');

@@ -5,6 +5,7 @@ import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import EstimateImportFromPriceModal from './EstimateImportFromPriceModal';
 import { useT } from '@/lib/i18n';
+import { toLocalYmd } from '@/lib/utils';
 
 interface EstimateItem {
   id: number;
@@ -245,7 +246,7 @@ function EstimateEditor({
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      const stamp = new Date().toISOString().slice(0, 10);
+      const stamp = toLocalYmd();
       a.download = `estimate-${estimate.id}-${format}-${stamp}.pdf`;
       document.body.appendChild(a);
       a.click();
@@ -411,7 +412,7 @@ function SectionCard({
       await api.put(`/estimates/${estimateId}/sections/${section.id}`, {
         name: section.name,
         status: isConfirmed ? 0 : 1,
-        confirmedAt: isConfirmed ? null : new Date().toISOString().slice(0, 10),
+        confirmedAt: isConfirmed ? null : toLocalYmd(),
       });
       onChanged();
     } catch {
@@ -850,7 +851,7 @@ function CreateEstimateModal({
   const [name, setName] = useState('');
   const [article, setArticle] = useState('Работа');
   const [docNumber, setDocNumber] = useState('');
-  const [docDate, setDocDate] = useState(new Date().toISOString().slice(0, 10));
+  const [docDate, setDocDate] = useState(toLocalYmd());
   const [periodFrom, setPeriodFrom] = useState('');
   const [periodTo, setPeriodTo] = useState('');
   const [markupPercent, setMarkupPercent] = useState('20');

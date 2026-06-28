@@ -9,6 +9,7 @@ import ParameterLibraryModal from './price/ParameterLibraryModal';
 import UnitsModal from './price/UnitsModal';
 import CreateServiceWizard from './price/CreateServiceWizard';
 import { useT } from '@/lib/i18n';
+import { toLocalYmd } from '@/lib/utils';
 
 interface ProjectCategory {
   id: number;
@@ -150,7 +151,7 @@ export default function PriceTab() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `price-list-${new Date().toISOString().slice(0, 10)}.${format}`;
+      a.download = `price-list-${toLocalYmd()}.${format}`;
       document.body.appendChild(a);
       a.click();
       a.remove();

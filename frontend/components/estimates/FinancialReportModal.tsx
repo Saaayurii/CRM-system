@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import { useT } from '@/lib/i18n';
+import { toLocalYmd } from '@/lib/utils';
 
 type Format = 'expense-statement' | 'balance-detail';
 
@@ -51,7 +52,7 @@ export default function FinancialReportModal({
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      const stamp = new Date().toISOString().slice(0, 10);
+      const stamp = toLocalYmd();
       const slug = format === 'expense-statement' ? 'expense' : 'balance';
       a.download = `${slug}-project-${projectId}-${stamp}.pdf`;
       document.body.appendChild(a);

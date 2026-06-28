@@ -8,6 +8,7 @@ import {
   PieChart, Pie, Cell, Legend,
 } from 'recharts';
 import { useT } from '@/lib/i18n';
+import { toLocalYmd } from '@/lib/utils';
 
 function getGreeting(): string {
   const h = new Date().getHours();
@@ -218,7 +219,7 @@ export default function WorkerDashboard({ user }: { user: any }) {
   const inProgressTasks = myTasks.filter((t: any) => Number(t.status) === 2);
 
   // Today's tasks
-  const today = new Date().toISOString().slice(0, 10);
+  const today = toLocalYmd();
   const todayTasks = myTasks.filter((t: any) => {
     if (!t.dueDate) return false;
     return String(t.dueDate).slice(0, 10) === today;

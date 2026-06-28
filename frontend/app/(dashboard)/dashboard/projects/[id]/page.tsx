@@ -26,6 +26,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
 import { useT } from '@/lib/i18n';
+import { toLocalYmd } from '@/lib/utils';
 
 /* ─── Types ─── */
 
@@ -1587,7 +1588,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
     if (!project) return;
     setClosingProject(true);
     try {
-      const today = new Date().toISOString().split('T')[0];
+      const today = toLocalYmd();
       const r = await api.put(`/projects/${projectId}`, { status: 3, actualEndDate: today });
       setProject(r.data);
       setShowInactiveModal(false);
@@ -1607,7 +1608,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
 
   const handleQuickStatusChange = useCallback(async (newStatus: number) => {
     if (!project) return;
-    const today = new Date().toISOString().split('T')[0];
+    const today = toLocalYmd();
     const payload: Record<string, unknown> = { status: newStatus };
     if ((newStatus === 3 || newStatus === 4) && !project.actualEndDate) {
       payload.actualEndDate = today;
@@ -7155,7 +7156,7 @@ function FinanceModal({ title, fields, initialData, saving, onClose, onSave }: {
       } else if (f.type === 'select' && f.options?.length) {
         defaults[f.key] = f.options[0].value;
       } else {
-        defaults[f.key] = f.type === 'date' ? new Date().toISOString().slice(0, 10) : '';
+        defaults[f.key] = f.type === 'date' ? toLocalYmd() : '';
       }
     }
     return defaults;

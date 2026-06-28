@@ -7,6 +7,7 @@ import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import { useT } from '@/lib/i18n';
 import Badge, { CHECK_STATUS } from '@/components/technadzor/Badge';
+import { toLocalYmd } from '@/lib/utils';
 
 type CheckStatus = 'pass' | 'remark' | 'fail' | 'none';
 
@@ -180,7 +181,7 @@ export default function ConductInspectionPage() {
     if (!ok || !insp) return;
     setSaving(true);
     try {
-      await api.put(`/inspections/${insp.id}`, { status: 2, actualDate: new Date().toISOString().slice(0, 10) });
+      await api.put(`/inspections/${insp.id}`, { status: 2, actualDate: toLocalYmd() });
       addToast('success', 'Инспекция завершена');
       router.push(`/dashboard/technadzor/inspections/${insp.id}`);
     } catch {
@@ -205,7 +206,7 @@ export default function ConductInspectionPage() {
         defectType: 'quality',
         severity: defTpl?.criticality ?? 2,
         status: 0,
-        reportedDate: new Date().toISOString().slice(0, 10),
+        reportedDate: toLocalYmd(),
         ...(photos.length ? { photos } : {}),
       });
       setStatus(p, 'fail');
