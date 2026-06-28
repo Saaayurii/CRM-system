@@ -33,6 +33,10 @@ BACKUP_DIR="${BACKUP_DIR:-$SCRIPT_DIR/backups}"
 PG_CONTAINER="${PG_CONTAINER:-crm-postgres}"
 PG_USER="${PG_USER:-postgres}"
 PG_DB="${PG_DB:-construction_crm}"
+# Upload runs inside the gateway container: it already has @aws-sdk/client-s3,
+# the AWS_S3_* env, and — crucially — a CA store that trusts s3.regru.cloud
+# (REG.RU's chain isn't in aws-cli's certifi bundle → "self-signed in chain").
+GATEWAY_CONTAINER="${GATEWAY_CONTAINER:-crm-api-gateway}"
 LOCAL_RETENTION="${LOCAL_RETENTION:-8}"   # keep last N local dumps (~2 months weekly)
 MIN_BYTES="${MIN_BYTES:-10240}"           # sanity floor: a real dump is > 10KB
 
@@ -44,9 +48,9 @@ die() { log "ERROR: $*"; exit 1; }
 # shellcheck disable=SC1090
 set -a; . "$ENV_FILE"; set +a
 
+# The actual upload reads AWS_S3_* from inside the gateway container; here we
+# only sanity-check that backend/.env is populated (same source via compose).
 S3_BUCKET="${AWS_S3_BUCKET_NAME:-crm-315}"
-S3_ENDPOINT="${AWS_S3_ENDPOINT:-https://s3.regru.cloud}"
-S3_REGION="${AWS_S3_REGION:-ru-1}"
 : "${AWS_S3_ACCESS_KEY_ID:?AWS_S3_ACCESS_KEY_ID missing in $ENV_FILE}"
 : "${AWS_S3_SECRET_ACCESS_KEY:?AWS_S3_SECRET_ACCESS_KEY missing in $ENV_FILE}"
 
@@ -66,16 +70,35 @@ SIZE=$(wc -c < "$DEST")
 [ "$SIZE" -ge "$MIN_BYTES" ] || die "dump suspiciously small (${SIZE} bytes) — aborting upload"
 log "Dump OK (${SIZE} bytes)"
 
-# ── Upload to S3 (dockerized aws-cli — no host install required) ─────────────
-log "Uploading to s3://${S3_BUCKET}/backups/db/${FILE}"
-docker run --rm \
-  -v "$BACKUP_DIR:/backups:ro" \
-  -e AWS_ACCESS_KEY_ID="$AWS_S3_ACCESS_KEY_ID" \
-  -e AWS_SECRET_ACCESS_KEY="$AWS_S3_SECRET_ACCESS_KEY" \
-  -e AWS_DEFAULT_REGION="$S3_REGION" \
-  amazon/aws-cli:latest \
-  s3 cp "/backups/${FILE}" "s3://${S3_BUCKET}/backups/db/${FILE}" \
-  --endpoint-url "$S3_ENDPOINT"
+# ── Upload to S3 via the gateway container ───────────────────────────────────
+# Reuses the exact S3 path the app uses (same SDK, creds, and TLS trust), so we
+# don't have to disable cert verification for a dump full of customer data.
+log "Uploading to s3://${S3_BUCKET}/backups/db/${FILE} (via ${GATEWAY_CONTAINER})"
+docker inspect -f '{{.State.Running}}' "$GATEWAY_CONTAINER" >/dev/null 2>&1 \
+  || die "gateway container ${GATEWAY_CONTAINER} not running — cannot upload (local dump kept at $DEST)"
+
+docker cp "$DEST" "${GATEWAY_CONTAINER}:/tmp/${FILE}"
+docker exec -e BK_FILE="$FILE" "$GATEWAY_CONTAINER" node -e '
+  const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+  const fs = require("fs");
+  const f = process.env.BK_FILE;
+  const s3 = new S3Client({
+    region: process.env.AWS_S3_REGION || "ru-1",
+    endpoint: process.env.AWS_S3_ENDPOINT,
+    forcePathStyle: true,
+    credentials: {
+      accessKeyId: process.env.AWS_S3_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_S3_SECRET_ACCESS_KEY,
+    },
+  });
+  s3.send(new PutObjectCommand({
+    Bucket: process.env.AWS_S3_BUCKET_NAME,
+    Key: "backups/db/" + f,
+    Body: fs.readFileSync("/tmp/" + f),
+  })).then(() => console.log("uploaded"))
+    .catch((e) => { console.error(e.message); process.exit(1); });
+'
+docker exec "$GATEWAY_CONTAINER" rm -f "/tmp/${FILE}" || true
 log "Upload OK"
 
 # ── Rotate local copies ──────────────────────────────────────────────────────
