@@ -182,6 +182,7 @@ services:
 
       # JWT (must match auth-service secret to verify tokens)
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-this-secret-key-in-production-access}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
 
       # Redis
       REDIS_HOST: redis
@@ -249,7 +250,9 @@ services:
       
       # JWT
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-this-secret-key-in-production-access}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change-this-secret-key-in-production-refresh}
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY:-}
       JWT_ACCESS_EXPIRATION: ${JWT_ACCESS_EXPIRATION:-15m}
       JWT_REFRESH_EXPIRATION: ${JWT_REFRESH_EXPIRATION:-7d}
       
@@ -312,6 +315,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-this-secret-key-in-production-access}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -348,6 +352,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-this-secret-key-in-production-access}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -382,6 +387,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-this-secret-key-in-production-access}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
       NOTIFICATIONS_SERVICE_URL: http://notifications-service:3010
     depends_on:
       postgres:
@@ -417,6 +423,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-this-secret-key-in-production-access}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -451,6 +458,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-this-secret-key-in-production-access}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -485,6 +493,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-this-secret-key-in-production-access}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -519,6 +528,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-this-secret-key-in-production-access}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -553,6 +563,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-this-secret-key-in-production-access}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -587,6 +598,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-this-secret-key-in-production-access}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
       
       # Web Push / VAPID
       VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
@@ -632,6 +644,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-this-secret-key-in-production-access}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
       NOTIFICATIONS_SERVICE_URL: http://notifications-service:3010
     depends_on:
@@ -668,6 +681,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-this-secret-key-in-production-access}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -700,6 +714,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-this-secret-key-in-production-access}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -732,6 +747,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-this-secret-key-in-production-access}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
     volumes:
       - documents_pdfs:/app/public/pdfs
     depends_on:
@@ -766,6 +782,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-this-secret-key-in-production-access}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -798,6 +815,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-this-secret-key-in-production-access}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -830,6 +848,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-this-secret-key-in-production-access}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
       # Kafka consumer (аудит). Пусто → consumer не стартует, остаётся HTTP-эндпоинт.
       KAFKA_BROKERS: ${KAFKA_BROKERS:-kafka:9092}
     depends_on:
@@ -864,6 +883,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-this-secret-key-in-production-access}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -896,6 +916,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-this-secret-key-in-production-access}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -928,6 +949,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-this-secret-key-in-production-access}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -960,6 +982,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-this-secret-key-in-production-access}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
       # Kafka consumer (движок автоматизации). Пусто → движок не стартует.
       KAFKA_BROKERS: ${KAFKA_BROKERS:-kafka:9092}
       NOTIFICATIONS_SERVICE_URL: http://notifications-service:3010
@@ -995,6 +1018,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-this-secret-key-in-production-access}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -1027,6 +1051,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-this-secret-key-in-production-access}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy
