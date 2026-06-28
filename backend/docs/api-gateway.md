@@ -27,6 +27,14 @@
 
 ## Особенности
 - Все маршруты защищены `JwtAuthGuard` по умолчанию; публичные помечены `@Public()`
+- **JWT валидируется локально** (HS256 по общему `JWT_ACCESS_SECRET`) — без HTTP-запроса в
+  auth-service на каждый запрос. Дополнительно `JwtStrategy` проверяет Redis-блэклист
+  `sess:revoked:<sid>` (`SessionRevocationService`) → отозванная сессия отвергается 401 в
+  пределах ~TTL токена. Lookup fail-open при недоступном Redis.
+- **Устойчивость межсервисных вызовов** (`ProxyService.forward`): per-request таймаут (15с
+  дефолт, override `timeoutMs`), ретраи только для идемпотентных GET (exp backoff), и
+  circuit breaker на каждый downstream (5 отказов сети/таймаута/5xx → circuit open, fail-fast
+  503 на 15с, затем half-open проба). 4xx брейкер не трогает.
 - Rate limiting реализован через `@nestjs/throttler` с Redis-хранилищем
 - `ProxyService` пробрасывает заголовки `Authorization`, `X-User-Id`, `X-Account-Id` в downstream
 - Поддерживается импорт Telegram-экспорта через `POST /api/v1/chat-channels/import-telegram`

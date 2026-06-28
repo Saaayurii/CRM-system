@@ -50,6 +50,11 @@
 - При логине на один email с несколькими аккаунтами возвращается список аккаунтов для выбора
 - IP-адрес нормализуется: IPv4-mapped IPv6 (`::ffff:x.x.x.x`) → `x.x.x.x`
 - Роли 1 (super_admin), 2 (admin), 3 (hr_manager) могут одобрять заявки
+- **Отзыв сессий (Redis blacklist)**: access-токен несёт `sid` (id сессии). `SessionBlacklistService`
+  пишет ключ `sess:revoked:<sid>` (TTL = остаток жизни access-токена, 900с) при `logout`,
+  `logout-all` (по всем сессиям пользователя) и `revokeSession`. **Gateway читает этот же ключ**
+  в `JwtStrategy` и отвергает отозванный токен, не дожидаясь `exp`. Чтение fail-open (Redis лёг —
+  пользователей не блокируем).
 
 ## Фоновые задачи (BullMQ)
 На общем Redis, воркеры в процессе сервиса:

@@ -36,6 +36,7 @@ import { HealthModule } from './modules/health/health.module';
 import { AdminGatewayModule } from './modules/admin/admin-gateway.module';
 import { ShareGatewayModule } from './modules/share/share-gateway.module';
 import { JwtStrategy } from './common/guards/jwt.strategy';
+import { SessionRevocationService } from './common/services/session-revocation.service';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { ClientReadOnlyGuard } from './common/guards/client-readonly.guard';
 import { GatewayExceptionFilter } from './common/filters/gateway-exception.filter';
@@ -111,6 +112,7 @@ import { RequestContextMiddleware } from './common/middleware/request-context.mi
   ],
   providers: [
     JwtStrategy,
+    SessionRevocationService,
     KafkaProducerService,
     // Global Guards
     {

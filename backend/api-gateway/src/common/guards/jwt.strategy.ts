@@ -1,15 +1,19 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { Request } from 'express';
 import { JwtPayload } from '../interfaces/jwt-payload.interface';
+import { SessionRevocationService } from '../services/session-revocation.service';
 
 const SUPER_ADMIN_ROLE_ID = 1;
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(configService: ConfigService) {
+  constructor(
+    configService: ConfigService,
+    private readonly revocation: SessionRevocationService,
+  ) {
     const secret = configService.get<string>('jwt.accessSecret');
     if (!secret) {
       throw new Error('JWT_ACCESS_SECRET is not configured');
@@ -27,6 +31,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(req: Request, payload: JwtPayload): Promise<JwtPayload> {
+    // Reject access tokens whose session was logged out / revoked. The
+    // signature is still valid (stateless JWT), so without this check the token
+    // would live until `exp`. Fails open if Redis is down (see service).
+    if (payload.sid && (await this.revocation.isRevoked(payload.sid))) {
+      throw new UnauthorizedException('Session has been revoked');
+    }
+
     let accountId = payload.accountId;
 
     // Super admin can impersonate any account via X-Account-Id header

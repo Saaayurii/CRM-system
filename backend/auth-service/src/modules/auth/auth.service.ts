@@ -584,6 +584,9 @@ export class AuthService {
   async logout(userId: number, sessionId?: number): Promise<MessageResponseDto> {
     if (sessionId) {
       await this.sessionRepository.deleteByIdAndUserId(sessionId, userId);
+      // Blacklist so the still-valid access token is rejected at the gateway
+      // immediately, instead of living until exp (~15m).
+      await this.sessionBlacklist.revoke(sessionId, 900);
     }
     await this.userRepository.updateRefreshToken(userId, null, null);
     this.logger.log(`User logged out: ${userId}`);
@@ -591,8 +594,16 @@ export class AuthService {
   }
 
   async logoutAll(userId: number): Promise<MessageResponseDto> {
+    // Snapshot session ids before deleting so each access token can be
+    // blacklisted (instant invalidation across all the user's devices).
+    const sessions = await this.sessionRepository.findAllByUserId(userId);
     await this.sessionRepository.deleteAllByUserId(userId);
     await this.userRepository.clearAllRefreshTokens(userId);
+    await Promise.all(
+      sessions.map((s: { id: number }) =>
+        this.sessionBlacklist.revoke(s.id, 900),
+      ),
+    );
     this.logger.log(`All sessions cleared for user: ${userId}`);
     return { message: 'All sessions terminated successfully' };
   }
