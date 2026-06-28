@@ -89,7 +89,12 @@ export class ClientPortalAccessService {
     });
 
     if (dto.createChat !== false) {
-      await this.tryCreateClientChat(client, dto.projectId, userId, authHeader);
+      // Fire-and-forget: chat-channel creation is a side effect, not part of
+      // the portal-access critical path. Awaiting it here would couple portal
+      // creation's availability to chat-service's — a hung chat would hold this
+      // request open. tryCreateClientChat swallows its own errors and bounds
+      // itself with a timeout.
+      void this.tryCreateClientChat(client, dto.projectId, userId, authHeader);
     }
 
     const { passwordHash: _ph, ...safe } = access as any;
@@ -152,7 +157,7 @@ export class ClientPortalAccessService {
             projectId,
             memberIds,
           },
-          { headers: { Authorization: authHeader } },
+          { headers: { Authorization: authHeader }, timeout: 8000 },
         ),
       );
     } catch (e: any) {

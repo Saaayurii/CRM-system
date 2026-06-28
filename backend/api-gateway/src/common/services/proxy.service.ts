@@ -1,9 +1,14 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
-import { firstValueFrom } from 'rxjs';
-import { AxiosRequestConfig, AxiosResponse } from 'axios';
+import { firstValueFrom, retry, throwError, timer } from 'rxjs';
+import { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { RequestContextService } from './request-context.service';
+import { CircuitBreaker } from './circuit-breaker';
 
 export interface ProxyOptions {
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
@@ -11,12 +16,26 @@ export interface ProxyOptions {
   data?: unknown;
   headers?: Record<string, string>;
   params?: Record<string, unknown>;
+  /** Per-request timeout override (ms). Use a higher value for heavy endpoints. */
+  timeoutMs?: number;
 }
+
+/** Default per-request timeout — bounds hung downstreams without breaking heavy syncs. */
+const DEFAULT_TIMEOUT_MS = 15_000;
+/** Retries for idempotent (GET) requests only — POST/PUT/PATCH/DELETE are never retried. */
+const MAX_RETRIES = 2;
+const RETRY_BASE_DELAY_MS = 200;
+const RETRY_MAX_DELAY_MS = 2_000;
 
 @Injectable()
 export class ProxyService {
   private readonly logger = new Logger(ProxyService.name);
   private readonly serviceUrls: Record<string, string>;
+  /** One breaker shared per gateway instance, keyed by downstream service name. */
+  private readonly breaker = new CircuitBreaker({
+    failureThreshold: 5,
+    resetTimeoutMs: 15_000,
+  });
 
   constructor(
     private readonly httpService: HttpService,
@@ -102,6 +121,14 @@ export class ProxyService {
       throw new Error(`Unknown service: ${service}`);
     }
 
+    // Fail fast while the downstream is known-bad — don't pile requests onto it.
+    if (!this.breaker.canRequest(service)) {
+      this.logger.warn(`Circuit OPEN for "${service}" — short-circuiting request`);
+      throw new ServiceUnavailableException(
+        `Service "${service}" is temporarily unavailable`,
+      );
+    }
+
     const url = `${baseUrl}${options.path}`;
     const accountIdOverride = this.requestContext.getAccountIdOverride();
     const extraHeaders: Record<string, string> = accountIdOverride
@@ -113,15 +140,53 @@ export class ProxyService {
       data: options.data,
       headers: { ...extraHeaders, ...options.headers },
       params: options.params,
+      timeout: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
     };
 
     this.logger.debug(`Proxying ${options.method} ${url}`);
 
-    const response: AxiosResponse<T> = await firstValueFrom(
-      this.httpService.request<T>(config),
-    );
+    const isIdempotent = options.method === 'GET';
 
-    return response.data;
+    try {
+      const response: AxiosResponse<T> = await firstValueFrom(
+        this.httpService.request<T>(config).pipe(
+          retry({
+            count: isIdempotent ? MAX_RETRIES : 0,
+            delay: (error, retryCount) => {
+              // Only retry transient infra failures; surface 4xx immediately.
+              if (!this.isInfraFailure(error)) {
+                return throwError(() => error);
+              }
+              const backoff = Math.min(
+                RETRY_BASE_DELAY_MS * 2 ** (retryCount - 1),
+                RETRY_MAX_DELAY_MS,
+              );
+              return timer(backoff);
+            },
+          }),
+        ),
+      );
+
+      this.breaker.recordSuccess(service);
+      return response.data;
+    } catch (error) {
+      // 4xx (validation/not-found/conflict) is a normal business response — it
+      // must not trip the breaker. Only network/timeout/5xx count as failures.
+      if (this.isInfraFailure(error)) {
+        this.breaker.recordFailure(service);
+      }
+      throw error;
+    }
+  }
+
+  /** Network error, timeout, or upstream 5xx — i.e. the downstream is unhealthy. */
+  private isInfraFailure(error: unknown): boolean {
+    const axiosError = error as AxiosError;
+    if (axiosError?.isAxiosError) {
+      if (!axiosError.response) return true; // ECONNREFUSED / ECONNABORTED (timeout) / etc.
+      return axiosError.response.status >= 500;
+    }
+    return false;
   }
 
   getServiceUrl(service: string): string {

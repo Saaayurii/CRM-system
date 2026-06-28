@@ -51,10 +51,18 @@ export class GatewayExceptionFilter implements ExceptionFilter {
         status = HttpStatus.SERVICE_UNAVAILABLE;
         message = 'Service unavailable';
         error = 'Service Unavailable';
-      } else if (axiosError.code === 'ETIMEDOUT') {
+      } else if (
+        axiosError.code === 'ETIMEDOUT' ||
+        axiosError.code === 'ECONNABORTED'
+      ) {
+        // ECONNABORTED is what axios raises when its own `timeout` elapses.
         status = HttpStatus.GATEWAY_TIMEOUT;
         message = 'Service timeout';
         error = 'Gateway Timeout';
+      } else {
+        status = HttpStatus.SERVICE_UNAVAILABLE;
+        message = 'Service unavailable';
+        error = 'Service Unavailable';
       }
     }
     // Handle other errors
