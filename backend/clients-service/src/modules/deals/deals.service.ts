@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { DealRepository } from './repositories/deal.repository';
 import { DealStageRepository } from './repositories/deal-stage.repository';
 import { NotificationsClientService } from '../../common/notifications/notifications-client.service';
+import { OutboxEvent } from '../../common/outbox/outbox.service';
 import { CreateDealDto, UpdateDealDto } from './dto';
 
 // Admins + PM получают уведомления о выигранных сделках
@@ -92,7 +93,35 @@ export class DealsService {
       }
     }
 
-    const updated = await this.repo.update(id, accountId, data);
+    // Semantic domain event on a won/lost transition (deals aren't under the
+    // row-history triggers, so this is the ONLY event source for them) — emitted
+    // atomically with the deal write. Automation can trigger on deal.won/deal.lost.
+    let outboxEvent: OutboxEvent | undefined;
+    if (data.status === 'won' && existing.status !== 'won') {
+      outboxEvent = {
+        accountId,
+        entityType: 'deal',
+        entityId: id,
+        action: 'won',
+        userId: actorUserId,
+        description: `Сделка «${existing.title}» выиграна`,
+        changes: { status: { from: existing.status, to: 'won' } },
+        projectId: existing.projectId ?? undefined,
+      };
+    } else if (data.status === 'lost' && existing.status !== 'lost') {
+      outboxEvent = {
+        accountId,
+        entityType: 'deal',
+        entityId: id,
+        action: 'lost',
+        userId: actorUserId,
+        description: `Сделка «${existing.title}» проиграна`,
+        changes: { status: { from: existing.status, to: 'lost' } },
+        projectId: existing.projectId ?? undefined,
+      };
+    }
+
+    const updated = await this.repo.update(id, accountId, data, outboxEvent);
 
     if (data.status === 'won' && existing.status !== 'won') {
       const amount = updated.amount ? Number(updated.amount) : 0;

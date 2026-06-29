@@ -166,10 +166,12 @@ describe('InspectionsService', () => {
 
       const result = await service.update(1, 1, dto);
 
+      // No status change → no semantic outbox event (4th arg undefined)
       expect(repository.update).toHaveBeenCalledWith(
         1,
         1,
         expect.objectContaining({ title: 'Updated' }),
+        undefined,
       );
     });
 

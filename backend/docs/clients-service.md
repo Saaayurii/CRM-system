@@ -52,6 +52,12 @@
 - Перемещение между стадиями = `PUT /deals/:id { stageId }`. Если у стадии `isWon`/`isLost` —
   сервис сам выставляет `status` + `wonAt`/`lostAt`. При первом переходе в won —
   broadcast-уведомление (`deal_won`) админам/PM + менеджеру.
+- **Семантические события `deal.won` / `deal.lost`** (transactional outbox, вариант B): при
+  первом переходе сделки в won/lost сервис кладёт событие в `public.event_outbox` **в той же
+  транзакции**, что и апдейт сделки (`DealRepository.update` обёрнут в `$transaction`,
+  `OutboxService.emitWith`). `deals` НЕ под row-history-триггерами, поэтому это **единственный**
+  источник событий по сделкам → automation может триггериться на `deal.won`/`deal.lost`.
+  См. audit-service.md (вариант B).
 - Удаление стадии запрещено, если в ней есть сделки (перенесите сначала).
 - Фронт: `/dashboard/deals` — Kanban с native HTML5 drag-drop (без новых зависимостей),
   отдельный пункт сайдбара «Сделки» (super_admin/admin/PM). Миграция

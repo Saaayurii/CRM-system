@@ -6,6 +6,7 @@ import { DealStagesService } from './deal-stages.service';
 import { DealRepository } from './repositories/deal.repository';
 import { DealStageRepository } from './repositories/deal-stage.repository';
 import { NotificationsClientModule } from '../../common/notifications/notifications-client.module';
+import { OutboxService } from '../../common/outbox/outbox.service';
 
 @Module({
   imports: [NotificationsClientModule],
@@ -15,6 +16,7 @@ import { NotificationsClientModule } from '../../common/notifications/notificati
     DealStagesService,
     DealRepository,
     DealStageRepository,
+    OutboxService,
   ],
   exports: [DealsService],
 })

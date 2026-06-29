@@ -1,9 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service';
+import { OutboxService, OutboxEvent } from '../../../common/outbox/outbox.service';
 
 @Injectable()
 export class DealRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly outbox: OutboxService,
+  ) {}
 
   async findAll(
     accountId: number,
@@ -33,8 +37,12 @@ export class DealRepository {
     return (this.prisma as any).deal.create({ data: { ...data, accountId } });
   }
 
-  async update(id: number, accountId: number, data: any) {
-    await (this.prisma as any).deal.updateMany({ where: { id, accountId }, data });
+  async update(id: number, accountId: number, data: any, outboxEvent?: OutboxEvent) {
+    // The deal write and the domain event commit together (transactional outbox).
+    await this.prisma.$transaction(async (tx: any) => {
+      await tx.deal.updateMany({ where: { id, accountId }, data });
+      if (outboxEvent) await this.outbox.emitWith(tx, outboxEvent);
+    });
     return (this.prisma as any).deal.findFirst({ where: { id, accountId } });
   }
 

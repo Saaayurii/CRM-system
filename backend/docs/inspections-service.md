@@ -32,6 +32,12 @@
 - Шаблоны инспекций содержат JSONB-поле с пунктами чек-листа
 - Дефекты привязаны к конкретной инспекции
 - Доступ контролируется через `JwtAuthGuard`
+- **Семантическое событие при смене статуса** (transactional outbox, вариант B): сервис кладёт
+  событие в `public.event_outbox` **в той же транзакции**, что и апдейт инспекции
+  (`InspectionRepository.update` в `$transaction`, `OutboxService.emitWith`). Статус 3
+  («провалена») → distinct action **`inspection.failed`** (можно триггерить automation); прочие
+  переходы → `inspection.status_changed` (`changes.status.{from,to}`). Дополняет плоский
+  `inspection.update` от row-history relay (вариант A). См. audit-service.md.
 
 ## Планы/чертежи с разметкой дефектов (Site Plans, как в PlanRadar)
 Модуль `site-plans`: растровая подложка (этаж/фасад/разрез), на которой дефекты

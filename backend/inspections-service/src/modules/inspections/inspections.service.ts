@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InspectionRepository } from './repositories/inspection.repository';
 import { NotificationsClientService } from '../../common/notifications/notifications-client.service';
+import { OutboxEvent } from '../../common/outbox/outbox.service';
 import {
   CreateInspectionDto,
   UpdateInspectionDto,
@@ -123,7 +124,26 @@ export class InspectionsService {
     const data: any = { ...dto };
     if (dto.scheduledDate) data.scheduledDate = new Date(dto.scheduledDate);
     if (dto.actualDate) data.actualDate = new Date(dto.actualDate);
-    await this.inspectionRepository.update(id, accountId, data);
+
+    // Semantic domain event on a status change, atomic with the write. status 3
+    // = «провалена» → distinct `inspection.failed` action (targetable by
+    // automation); other transitions → `inspection.status_changed`. This adds
+    // business intent on top of the flat `inspection.update` from variant A.
+    let outboxEvent: OutboxEvent | undefined;
+    if (dto.status !== undefined && dto.status !== existing.status) {
+      outboxEvent = {
+        accountId,
+        entityType: 'inspection',
+        entityId: id,
+        action: dto.status === 3 ? 'failed' : 'status_changed',
+        userId: actorUserId,
+        description: `Инспекция №${existing.inspectionNumber}: смена статуса`,
+        changes: { status: { from: existing.status, to: dto.status } },
+        projectId: existing.projectId ?? undefined,
+      };
+    }
+
+    await this.inspectionRepository.update(id, accountId, data, outboxEvent);
     const updated = await this.inspectionRepository.findById(id, accountId);
 
     // Notify on status change (e.g. approved / failed / corrected)
