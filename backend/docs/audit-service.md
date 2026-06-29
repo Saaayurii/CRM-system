@@ -29,3 +29,34 @@
 - **Consumer** — `AuditConsumerService` (group `audit-service`) читает `audit.events` и пишет через тот же
   `EventLogsService.create`. Старт не блокируется: при недоступном брокере переподключается в фоне (раз в 10с).
 - `KAFKA_BROKERS` пустой → consumer не поднимается, gateway шлёт аудит по HTTP. Топик авто-создаётся.
+
+## Источник событий: relay поверх `audit.row_history` (transactional outbox)
+Раньше доменные события порождал **только** `AuditInterceptor` в gateway — по HTTP-глаголу.
+Минус: запись в обход gateway (фоновые джобы BullMQ, ручной SQL) **не порождала событие**,
+и automation такие изменения молча пропускала. Теперь источник правды — **сама запись в БД**.
+
+- **`RowHistoryRelayService`** (audit-service) тейлит таблицу `audit.row_history` (её
+  заполняют DB-триггеры на 38 таблиц — ловят ЛЮБУЮ запись, даже мимо gateway) по
+  durable-курсору `audit.row_history_relay_cursor (last_id)` и публикует каждое изменение в
+  тот же топик `audit.events`. Форма payload идентична gateway-варианту, поэтому оба
+  consumer'а (audit-persist + automation-react) работают без изменений.
+- **Маппинг строки → событие:** `table_name`→`entityType` (как в gateway `PATH_TO_ENTITY`),
+  `op`→`action` (INSERT→create, DELETE→delete, UPDATE→update; UPDATE с выставленным
+  `deleted_at`→delete = soft-delete), `accountId`/`projectId` из JSONB-строки, `userId` из
+  `changed_by`, `entityId` из `row_id`. Секреты (`password_*`, `*_token`, `passport_data`…)
+  вырезаются.
+- **At-least-once:** курсор двигается только за успешно опубликованные строки — сбой
+  Kafka/БД ставит поток на паузу (не теряет) и продолжает с того же места; consumer'ы
+  терпят редкий дубль. Первый старт начинает с текущего `MAX(id)` (не переигрывает бэклог).
+  Курсор само-создаётся на boot (`ensureCursor`) — деплой кода не гонится с SQL-миграцией
+  `database/migrations/audit_row_history_relay.sql`.
+- **Дедуп с gateway:** каждая таблица принадлежит ровно одному producer'у. При включённой
+  Kafka `AuditInterceptor` **уступает** релею ресурсы, чьи таблицы под триггерами
+  (`RELAY_OWNED_SEGMENTS` ≈ `audited_tables`) — не эмитит по ним. Не-аудируемые ресурсы
+  (tasks, materials, calendar) и auth-события (login/logout) по-прежнему эмитит gateway.
+  **Исключение — `registration_requests`:** остаётся за gateway (богатые `approve`/`reject`),
+  поэтому его НЕТ в `RELAY_OWNED_SEGMENTS`, а релей его пропускает через
+  `RELAY_EXCLUDED_TABLES`. При выключенной Kafka релей не активен, gateway шлёт всё по
+  HTTP-фоллбэку, как раньше.
+- ⚠️ `RELAY_OWNED_SEGMENTS` (gateway) и `TABLE_TO_ENTITY` (релей) надо держать в синхроне с
+  массивом `audited_tables` в `audit_row_history.sql` при добавлении новых аудируемых таблиц.

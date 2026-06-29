@@ -92,6 +92,27 @@ const ENTITY_NAMES: Record<string, string> = {
   auth: 'сессии',
 };
 
+// Gateway resource segments whose primary table is under DB audit triggers
+// (audit.row_history). When Kafka is on, the audit-service row-history relay is
+// the single source of truth for these — it captures even non-gateway writes
+// (BullMQ jobs, raw SQL) — so the interceptor yields ownership to avoid emitting
+// the event twice. Keep in sync with audited_tables in
+// database/migrations/audit_row_history.sql. NB: `registration-requests` is
+// deliberately NOT here — the gateway keeps it to preserve its approve/reject
+// semantics, and the relay excludes that table (RELAY_EXCLUDED_TABLES) so there
+// is no double-emit. Registration writes always go through the gateway.
+const RELAY_OWNED_SEGMENTS = new Set([
+  'payments', 'payment-accounts', 'company-bank-accounts',
+  'budgets', 'acts', 'payroll', 'bonuses',
+  'supplier-orders', 'commercial-proposals',
+  'clients', 'client-portal-access', 'contractors', 'suppliers',
+  'accounts', 'users', 'roles',
+  'employee-documents', 'attendance', 'time-off', 'safety',
+  'inspections', 'defects', 'control-points', 'quality-standards',
+  'projects', 'construction-sites', 'building-objects', 'unique-facilities',
+  'documents', 'equipment', 'equipment-maintenance',
+]);
+
 // Paths that must not be audited
 const SKIP_PATTERNS = [
   /\/health/,
@@ -125,6 +146,13 @@ export class AuditInterceptor implements NestInterceptor {
     }
 
     if (SKIP_PATTERNS.some((p) => p.test(url))) {
+      return next.handle();
+    }
+
+    // When Kafka is on, the DB-trigger relay owns audited tables (see
+    // RELAY_OWNED_SEGMENTS) — don't double-emit. When Kafka is off, the relay is
+    // inactive, so fall through to the HTTP fallback for everything as before.
+    if (this.kafka.enabled && this.isRelayOwned(url)) {
       return next.handle();
     }
 
@@ -191,6 +219,14 @@ export class AuditInterceptor implements NestInterceptor {
         headers: internalToken ? { 'x-internal-token': internalToken } : undefined,
       });
     }
+  }
+
+  /** True if the request's top-level resource is owned by the DB-trigger relay. */
+  private isRelayOwned(url: string): boolean {
+    const segments = url.split('?')[0].split('/').filter(Boolean);
+    const v1Index = segments.indexOf('v1');
+    const seg = v1Index >= 0 ? segments[v1Index + 1] : segments[0];
+    return !!seg && RELAY_OWNED_SEGMENTS.has(seg);
   }
 
   private parseRequest(
