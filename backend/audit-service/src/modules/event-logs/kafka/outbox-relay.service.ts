@@ -77,9 +77,25 @@ export class OutboxRelayService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  /** Self-create cursor (table created by event_outbox.sql; start from MAX id). */
+  /** Self-create outbox table + cursor on boot (no dependency on the migration). */
   private async ensureCursor(): Promise<void> {
     if (this.cursorReady) return;
+    // The producer services also self-create this, but create it here too so
+    // audit-service can bootstrap alone and MAX(id) below never hits a missing table.
+    await this.prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS event_outbox (
+        id          BIGSERIAL    PRIMARY KEY,
+        account_id  INTEGER,
+        entity_type TEXT         NOT NULL,
+        entity_id   BIGINT,
+        action      TEXT         NOT NULL,
+        user_id     BIGINT,
+        description TEXT,
+        changes     JSONB,
+        metadata    JSONB,
+        project_id  INTEGER,
+        created_at  TIMESTAMPTZ  NOT NULL DEFAULT now()
+      )`);
     await this.prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS event_outbox_relay_cursor (
         id          SMALLINT     PRIMARY KEY DEFAULT 1,

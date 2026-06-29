@@ -1,5 +1,21 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
+
+/** Canonical event_outbox DDL — kept identical to database/migrations/event_outbox.sql. */
+const EVENT_OUTBOX_DDL = `
+  CREATE TABLE IF NOT EXISTS event_outbox (
+    id          BIGSERIAL    PRIMARY KEY,
+    account_id  INTEGER,
+    entity_type TEXT         NOT NULL,
+    entity_id   BIGINT,
+    action      TEXT         NOT NULL,
+    user_id     BIGINT,
+    description TEXT,
+    changes     JSONB,
+    metadata    JSONB,
+    project_id  INTEGER,
+    created_at  TIMESTAMPTZ  NOT NULL DEFAULT now()
+  )`;
 
 /**
  * A semantic domain event, written to the transactional outbox (event_outbox)
@@ -28,10 +44,24 @@ export interface OutboxEvent {
  * copying this file — no schema/generate changes. Reusable across services.
  */
 @Injectable()
-export class OutboxService {
+export class OutboxService implements OnModuleInit {
   private readonly logger = new Logger(OutboxService.name);
 
   constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * Self-create the outbox table on boot so the writer never fails on a missing
+   * table — critically, the outbox INSERT runs inside the business transaction,
+   * so a missing table would otherwise roll back the actual write (e.g. a task
+   * status update). Idempotent; removes any dependency on migration ordering.
+   */
+  async onModuleInit(): Promise<void> {
+    try {
+      await this.prisma.$executeRawUnsafe(EVENT_OUTBOX_DDL);
+    } catch (err) {
+      this.logger.warn(`Ensuring event_outbox table failed: ${(err as Error).message}`);
+    }
+  }
 
   /** Insert the event using a caller-provided transaction client (atomic path). */
   async emitWith(tx: any, e: OutboxEvent): Promise<void> {
