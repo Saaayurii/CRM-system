@@ -32,10 +32,12 @@ export class ReminderService {
     const orders = await this.scanSupplierOrders();
     const documents = await this.scanDocuments();
     const followups = await this.scanClientFollowups();
+    const birthdays = await this.scanBirthdays();
     this.logger.log(
       `Reminders created: ${tasks} task(s), ${inspections} inspection(s), ` +
         `${equipment} equipment, ${calendar} event(s), ${training} training, ${briefings} briefing(s), ` +
-        `${permits} permit(s), ${orders} order(s), ${documents} document(s), ${followups} followup(s)`,
+        `${permits} permit(s), ${orders} order(s), ${documents} document(s), ${followups} followup(s), ` +
+        `${birthdays} birthday notification(s)`,
     );
   }
 
@@ -382,6 +384,80 @@ export class ReminderService {
         actionUrl: '/dashboard/clients',
       });
       created++;
+    }
+    return created;
+  }
+
+  /**
+   * Employee birthdays today: a warm personal greeting to the birthday person
+   * plus a "don't forget to congratulate" nudge to every colleague in the same
+   * account. Colleague lists are fetched once per account. Dedup keys on the
+   * birthday user's id, so each recipient gets exactly one of each per day.
+   */
+  private async scanBirthdays(): Promise<number> {
+    const birthdays = await this.repo.findTodayBirthdayUsers();
+    if (birthdays.length === 0) return 0;
+    let created = 0;
+    const colleaguesByAccount = new Map<number, number[]>();
+
+    for (const b of birthdays) {
+      // 1. Personal greeting to the birthday person.
+      const selfType = 'birthday_self';
+      if (
+        !(await this.repo.hasRecentReminder(
+          b.userId,
+          'user',
+          b.userId,
+          selfType,
+          ReminderService.DEDUP_MS,
+        ))
+      ) {
+        await this.notifications.createNotification(b.accountId, {
+          userId: b.userId,
+          title: 'С днём рождения! 🎉',
+          message: `${b.name}, поздравляем вас с днём рождения! Команда желает здоровья, сил и успехов.`,
+          notificationType: selfType,
+          entityType: 'user',
+          entityId: b.userId,
+          channels: ['in_app', 'push'],
+          priority: 2,
+          actionUrl: '/dashboard/employees',
+        });
+        created++;
+      }
+
+      // 2. Nudge colleagues to congratulate.
+      let colleagues = colleaguesByAccount.get(b.accountId);
+      if (!colleagues) {
+        colleagues = await this.repo.findAccountColleagueIds(b.accountId);
+        colleaguesByAccount.set(b.accountId, colleagues);
+      }
+      const colType = 'birthday_colleague';
+      for (const uid of colleagues) {
+        if (uid === b.userId) continue;
+        if (
+          await this.repo.hasRecentReminder(
+            uid,
+            'user',
+            b.userId,
+            colType,
+            ReminderService.DEDUP_MS,
+          )
+        )
+          continue;
+        await this.notifications.createNotification(b.accountId, {
+          userId: uid,
+          title: 'День рождения у коллеги 🎂',
+          message: `Сегодня день рождения у ${b.name} — не забудьте поздравить!`,
+          notificationType: colType,
+          entityType: 'user',
+          entityId: b.userId,
+          channels: ['in_app', 'push'],
+          priority: 2,
+          actionUrl: '/dashboard/employees',
+        });
+        created++;
+      }
     }
     return created;
   }

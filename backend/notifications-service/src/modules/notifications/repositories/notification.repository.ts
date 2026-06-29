@@ -452,4 +452,41 @@ export class NotificationRepository {
         AND ci.next_action_date <= CURRENT_DATE + INTERVAL '1 day'
     `);
   }
+
+  /**
+   * Active employees whose birthday (month + day of `birth_date`) is today.
+   * Excludes deleted/inactive users and the client-portal role (15) — we only
+   * celebrate staff. Feb-29 birthdays simply don't fire on non-leap years.
+   */
+  async findTodayBirthdayUsers(): Promise<
+    Array<{ userId: number; accountId: number; name: string }>
+  > {
+    return (this.prisma as any).$queryRawUnsafe(`
+      SELECT u.id AS "userId", u.account_id AS "accountId",
+             COALESCE(NULLIF(TRIM(u.name), ''), 'Сотрудник') AS "name"
+      FROM users u
+      WHERE u.birth_date IS NOT NULL
+        AND u.deleted_at IS NULL
+        AND u.is_active = TRUE
+        AND COALESCE(u.role_id, 0) <> 15
+        AND EXTRACT(MONTH FROM u.birth_date) = EXTRACT(MONTH FROM CURRENT_DATE)
+        AND EXTRACT(DAY FROM u.birth_date) = EXTRACT(DAY FROM CURRENT_DATE)
+    `);
+  }
+
+  /** IDs of active staff in an account (for fan-out of a colleague's birthday). */
+  async findAccountColleagueIds(accountId: number): Promise<number[]> {
+    const rows: Array<{ userId: number }> = await (this.prisma as any).$queryRawUnsafe(
+      `
+      SELECT u.id AS "userId"
+      FROM users u
+      WHERE u.account_id = $1
+        AND u.deleted_at IS NULL
+        AND u.is_active = TRUE
+        AND COALESCE(u.role_id, 0) <> 15
+    `,
+      accountId,
+    );
+    return rows.map((r) => r.userId);
+  }
 }

@@ -47,8 +47,12 @@
     (`safety_training_records.expiry_date`), инструктажи (`safety_briefing_participants.valid_until`),
     наряды-допуски HSE (`hse_permits.valid_until`→requester), документы/лицензии
     (`documents.expiry_date`→uploader), заказы поставщикам (`supplier_orders.expected_delivery_date`
-    →creator), CRM-фоллоуапы (`client_interactions.next_action_date`→менеджер). Дедуп — через
-    саму таблицу `notifications` (`hasRecentReminder`, ~20ч); берётся последняя запись на
-    пользователя. Окно: сутки (даты/события/поставки/фоллоуапы), 7 дней (продление ОТ/HSE/документы).
+    →creator), CRM-фоллоуапы (`client_interactions.next_action_date`→менеджер) и
+    **дни рождения сотрудников** (`users.birth_date`, совпадение месяц+день с сегодня):
+    личное поздравление имениннику (`birthday_self`) + напоминание «поздравьте» всем
+    активным коллегам аккаунта (`birthday_colleague`, фан-аут, roleId=15/клиенты исключены).
+    Дедуп — через саму таблицу `notifications` (`hasRecentReminder`, ~20ч); берётся последняя
+    запись на пользователя. Окно: сутки (даты/события/поставки/фоллоуапы/ДР), 7 дней (продление
+    ОТ/HSE/документы).
   - `broadcast` — фан-аут `broadcastNotification` уносится в очередь (`runBroadcast` в воркере).
 - `jsonwebtoken` — явная зависимость (SSE авторизуется по токену в query).
