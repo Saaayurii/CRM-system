@@ -5,6 +5,7 @@ import { EventLogRepository } from './repositories/event-log.repository';
 import { AuditConsumerService } from './kafka/audit-consumer.service';
 import { KafkaProducerService } from './kafka/kafka-producer.service';
 import { RowHistoryRelayService } from './kafka/row-history-relay.service';
+import { OutboxRelayService } from './kafka/outbox-relay.service';
 
 @Module({
   controllers: [EventLogsController],
@@ -14,6 +15,7 @@ import { RowHistoryRelayService } from './kafka/row-history-relay.service';
     AuditConsumerService,
     KafkaProducerService,
     RowHistoryRelayService,
+    OutboxRelayService,
   ],
   exports: [EventLogsService],
 })

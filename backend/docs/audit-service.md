@@ -60,3 +60,16 @@
   HTTP-фоллбэку, как раньше.
 - ⚠️ `RELAY_OWNED_SEGMENTS` (gateway) и `TABLE_TO_ENTITY` (релей) надо держать в синхроне с
   массивом `audited_tables` в `audit_row_history.sql` при добавлении новых аудируемых таблиц.
+
+### Семантические события: transactional outbox (`OutboxRelayService`, вариант B)
+Row-history relay даёт события на уровне строки (`entity.create/update/delete`) — ловит всё,
+но не знает бизнес-смысла. Для **семантических** событий (`task.status_changed`, `deal.won`…)
+есть второй релей-сиблинг `OutboxRelayService`: тейлит `public.event_outbox` по своему
+курсору (`event_outbox_relay_cursor`) и публикует в тот же `audit.events` (eventType
+`domain_event`). Тот же at-least-once / self-create cursor / старт с MAX(id).
+- **Producer — доменные сервисы**, а не audit-service: `OutboxService.emitWith(tx, event)`
+  пишет строку в `event_outbox` **в той же транзакции**, что и бизнес-запись (атомарно —
+  событие комитится ⇔ изменение комитится; raw SQL, без Prisma-модели, копируется в любой
+  сервис). Эталон — `tasks-service` (`task.status_changed`, см. tasks-service.md).
+- Миграция `database/migrations/event_outbox.sql` (релей и сам создаёт курсор на boot).
+- A и B дополняют друг друга: A — полнота (любая запись), B — смысл (для конкретных событий).

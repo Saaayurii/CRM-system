@@ -134,7 +134,25 @@ export class TasksService {
     if (task.accountId !== requestingUserAccountId)
       throw new ForbiddenException('Access denied');
 
-    const updated = await this.taskRepository.update(id, updateTaskDto);
+    // Semantic domain event: emit `task.status_changed` (with from→to) in the
+    // SAME transaction as the write — richer + atomic vs the gateway's flat
+    // `task.update`. Automation rules can trigger on it. See OutboxService.
+    const statusChanged =
+      updateTaskDto.status !== undefined && updateTaskDto.status !== task.status;
+    const outboxEvent = statusChanged
+      ? {
+          accountId: requestingUserAccountId,
+          entityType: 'task',
+          entityId: id,
+          action: 'status_changed',
+          userId: requestingUserId,
+          description: `Статус задачи «${task.title}» изменён`,
+          changes: { status: { from: task.status, to: updateTaskDto.status } },
+          projectId: task.projectId,
+        }
+      : undefined;
+
+    const updated = await this.taskRepository.update(id, updateTaskDto, outboxEvent);
 
     // Notify admins/PMs on any status change (excluding the actor)
     if (updateTaskDto.status !== undefined && updateTaskDto.status !== task.status) {

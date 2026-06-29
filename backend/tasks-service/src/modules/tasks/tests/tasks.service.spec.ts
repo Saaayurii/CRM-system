@@ -183,7 +183,8 @@ describe('TasksService', () => {
       const result = await service.update(1, updateDto, 1);
 
       expect(result.title).toBe('Updated Task');
-      expect(repository.update).toHaveBeenCalledWith(1, updateDto);
+      // No status change → no semantic outbox event (3rd arg undefined)
+      expect(repository.update).toHaveBeenCalledWith(1, updateDto, undefined);
     });
 
     it('should throw NotFoundException when task not found', async () => {

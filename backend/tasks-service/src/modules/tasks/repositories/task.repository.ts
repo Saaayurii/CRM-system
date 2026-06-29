@@ -1,10 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service';
 import { CreateTaskDto, UpdateTaskDto } from '../dto';
+import { OutboxService, OutboxEvent } from '../../../common/outbox/outbox.service';
 
 @Injectable()
 export class TaskRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly outbox: OutboxService,
+  ) {}
 
   async findAll(
     accountId: number,
@@ -93,7 +97,7 @@ export class TaskRepository {
     });
   }
 
-  async update(id: number, data: UpdateTaskDto) {
+  async update(id: number, data: UpdateTaskDto, outboxEvent?: OutboxEvent) {
     const updateData: any = JSON.parse(JSON.stringify(data));
     if (data.startDate) updateData.startDate = new Date(data.startDate);
     if (data.dueDate) updateData.dueDate = new Date(data.dueDate);
@@ -107,20 +111,24 @@ export class TaskRepository {
       updateData.progressPercentage = 100;
     }
 
-    await (this.prisma as any).task.update({
-      where: { id },
-      data: updateData,
-    });
+    // One transaction: the task write, the assignee sync, AND the domain event
+    // commit together — the event can never be lost or emitted for a write that
+    // rolled back (transactional outbox; see OutboxService).
+    await this.prisma.$transaction(async (tx: any) => {
+      await tx.task.update({ where: { id }, data: updateData });
 
-    // Keep task_assignees in sync with assignedToUserId
-    if (data.assignedToUserId !== undefined) {
-      await (this.prisma as any).taskAssignee.deleteMany({ where: { taskId: id } });
-      if (data.assignedToUserId) {
-        await (this.prisma as any).taskAssignee.create({
-          data: { taskId: id, userId: data.assignedToUserId, userName: null },
-        });
+      // Keep task_assignees in sync with assignedToUserId
+      if (data.assignedToUserId !== undefined) {
+        await tx.taskAssignee.deleteMany({ where: { taskId: id } });
+        if (data.assignedToUserId) {
+          await tx.taskAssignee.create({
+            data: { taskId: id, userId: data.assignedToUserId, userName: null },
+          });
+        }
       }
-    }
+
+      if (outboxEvent) await this.outbox.emitWith(tx, outboxEvent);
+    });
 
     // Return the full task with relations so the caller has fresh data
     return (this.prisma as any).task.findFirst({

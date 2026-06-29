@@ -32,3 +32,14 @@
 ## Особенности
 - При назначении исполнителей через `POST /tasks/:id/assignees` старый список заменяется новым полностью
 - Поддерживается два формата тела: `{ assignees: [{userId, userName}] }` и устаревший `{ userIds: [] }`
+
+## Семантическое событие `task.status_changed` (transactional outbox, вариант B)
+При смене статуса (`PUT /tasks/:id` с другим `status`) сервис кладёт доменное событие
+`task.status_changed` в `public.event_outbox` **в той же транзакции**, что и сам апдейт задачи
+(`TaskRepository.update` обёрнут в `$transaction`; событие через `OutboxService.emitWith(tx,…)`).
+`changes` несёт `{ status: { from, to } }`, есть `projectId`/`userId`. audit-service
+(`OutboxRelayService`) публикует его в Kafka `audit.events` → automation может триггериться на
+`task.status_changed` (богаче плоского `task.update`, который шлёт gateway-интерсептор; оба
+сосуществуют). Атомарность: событие не потеряется и не уйдёт при откате транзакции.
+Эталон для остальных сервисов — копируется `common/outbox/outbox.service.ts` (raw SQL, без
+изменения Prisma-схемы), вызывается из бизнес-tx. См. audit-service.md (вариант B).
