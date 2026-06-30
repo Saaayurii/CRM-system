@@ -324,23 +324,31 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
 // заново заводим серию пересчётов среза (важно для коротких, непрокручиваемых чатов)
 useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.length}`);
 
-  // Deep-link на сообщение: когда оно появилось в ленте — скроллим и подсвечиваем
+  // Deep-link на сообщение: скроллим и подсвечиваем; если не загружено —
+  // подгружаем историю старше, пока не найдём (или не кончится).
   useEffect(() => {
     if (!highlightMessageId) return;
     const el = messagesContainerRef.current?.querySelector(
       `[data-msgid="${highlightMessageId}"]`,
     ) as HTMLElement | null;
-    if (!el) return; // ещё не загружено — ждём обновления messages
-    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    el.style.transition = 'background-color 0.4s';
-    el.style.backgroundColor = 'rgba(139,92,246,0.16)';
-    el.style.borderRadius = '12px';
-    const tmr = setTimeout(() => {
-      el.style.backgroundColor = '';
-      setHighlightMessageId(null);
-    }, 2000);
-    return () => clearTimeout(tmr);
-  }, [messages, highlightMessageId, setHighlightMessageId]);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.style.transition = 'background-color 0.4s';
+      el.style.backgroundColor = 'rgba(139,92,246,0.16)';
+      el.style.borderRadius = '12px';
+      const tmr = setTimeout(() => {
+        el.style.backgroundColor = '';
+        setHighlightMessageId(null);
+      }, 2000);
+      return () => clearTimeout(tmr);
+    }
+    // не найдено в загруженных — тянем старше
+    if (activeChannelId && messages.length > 0 && hasMoreMessages && !isLoadingMessages) {
+      fetchMessages(activeChannelId, messages[0]?.id);
+    } else if (!hasMoreMessages) {
+      setHighlightMessageId(null); // нигде нет — прекращаем поиск
+    }
+  }, [messages, highlightMessageId, hasMoreMessages, isLoadingMessages, activeChannelId, fetchMessages, setHighlightMessageId]);
   // Плавающая дата сверху: при скролле показываем день, к которому относится
   // верхнее видимое сообщение (как в Telegram), и плавно прячем после паузы.
   const [floatingDate, setFloatingDate] = useState<string | null>(null);
@@ -1545,7 +1553,7 @@ function InfoPanel({ channel, partner, isSelf, isPartnerOnline, isAdmin, isCompa
             <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">
               {t('Темы')}
             </p>
-            <label className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-700/40 cursor-pointer">
+            <div className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-700/40">
               <span className="text-sm text-gray-700 dark:text-gray-200">{t('Разделить чат на темы')}</span>
               <button
                 type="button"
@@ -1556,7 +1564,7 @@ function InfoPanel({ channel, partner, isSelf, isPartnerOnline, isAdmin, isCompa
               >
                 <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${channel.topicsEnabled ? 'translate-x-4' : ''}`} />
               </button>
-            </label>
+            </div>
             {channel.topicsEnabled && (
               <div className="px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-700/40">
                 <p className="text-sm text-gray-700 dark:text-gray-200 mb-2">{t('Кто может создавать темы')}</p>

@@ -82,7 +82,8 @@ export default function CreateChannelModal({ onClose }: CreateChannelModalProps)
   };
 
   const handleSubmit = async () => {
-    if (selectedUsers.length === 0) return;
+    // Личному чату нужен собеседник; группу можно создать и одному
+    if (channelType === 'direct' && selectedUsers.length === 0) return;
     setLoading(true);
 
     let avatarUrl: string | undefined;
@@ -291,7 +292,7 @@ export default function CreateChannelModal({ onClose }: CreateChannelModalProps)
         {/* Submit */}
         <button
           onClick={handleSubmit}
-          disabled={loading || selectedUsers.length === 0 || (channelType === 'group' && !channelName.trim())}
+          disabled={loading || (channelType === 'direct' && selectedUsers.length === 0) || (channelType === 'group' && !channelName.trim())}
           className="w-full py-2 bg-violet-500 hover:bg-violet-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
         >
           {loading ? 'Создание...' : 'Создать'}

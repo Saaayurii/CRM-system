@@ -142,6 +142,16 @@ function serializeEditor(el: HTMLDivElement): string {
         return `#[${title}](task:${taskId}|${status}|${priority}|${dueDate}) `;
       }
       if (node.tagName === 'BR') return '\n';
+      // Живое форматирование: стилизованные ноды → markdown-маркеры
+      const innerOf = () => [...node.childNodes].map(process).join('');
+      if (node.dataset.spoiler) return `||${innerOf()}||`;
+      const tag = node.tagName;
+      if (tag === 'STRONG' || tag === 'B') return `**${innerOf()}**`;
+      if (tag === 'EM' || tag === 'I') return `_${innerOf()}_`;
+      if (tag === 'U') return `__${innerOf()}__`;
+      if (tag === 'S' || tag === 'STRIKE' || tag === 'DEL') return `~~${innerOf()}~~`;
+      if (tag === 'CODE') return `\`${innerOf()}\``;
+      if (tag === 'A' && node.getAttribute('href')) return `[${innerOf()}](${node.getAttribute('href')})`;
       if (node.tagName === 'DIV' || node.tagName === 'P') {
         const inner = [...node.childNodes].map(process).join('');
         return node.previousSibling ? '\n' + inner : inner;
@@ -150,7 +160,8 @@ function serializeEditor(el: HTMLDivElement): string {
     }
     return '';
   };
-  return [...el.childNodes].map(process).join('');
+  // zero-width пробел, которым «выходим» из форматирования; в текст не нужен
+  return [...el.childNodes].map(process).join('').replace(/​/g, '');
 }
 
 function renderMarkdownInEditor(el: HTMLDivElement, md: string) {
@@ -631,11 +642,61 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
     startTyping(channelId);
   }, [channelId, startTyping]);
 
+  // Живое форматирование: оборачивает выделение настоящей стилизованной нодой
+  // (видно сразу в поле); serializeEditor превратит её обратно в markdown.
+  const wrapInline = useCallback((make: () => HTMLElement, placeholder = '') => {
+    const el = editorRef.current;
+    if (!el) return;
+    el.focus();
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    const range = sel.getRangeAt(0);
+    if (!el.contains(range.commonAncestorContainer)) return;
+    const selected = range.toString();
+    const wrapper = make();
+    wrapper.textContent = selected || placeholder;
+    range.deleteContents();
+    range.insertNode(wrapper);
+    // ZWSP после ноды — чтобы при печати можно было «выйти» из форматирования
+    const zwsp = document.createTextNode('​');
+    wrapper.after(zwsp);
+    const r = document.createRange();
+    if (selected) { r.setStartAfter(zwsp); r.collapse(true); }
+    else { r.selectNodeContents(wrapper); }
+    sel.removeAllRanges();
+    sel.addRange(r);
+    setText(serializeEditor(el));
+    startTyping(channelId);
+  }, [channelId, startTyping]);
+
+  const mkSpoiler = () => {
+    const s = document.createElement('span');
+    s.dataset.spoiler = '1';
+    s.style.background = 'rgba(128,128,128,0.35)';
+    s.style.borderRadius = '3px';
+    return s;
+  };
+  const mkCode = () => {
+    const c = document.createElement('code');
+    c.style.fontFamily = 'monospace';
+    c.style.background = 'rgba(128,128,128,0.18)';
+    c.style.borderRadius = '3px';
+    c.style.padding = '0 2px';
+    return c;
+  };
+
   const applyLink = useCallback(() => {
-    const url = window.prompt(t('Ссылка (URL):'));
-    if (!url) return;
-    applyFormat('[', `](${url.trim()})`, t('текст'));
-  }, [applyFormat, t]);
+    const raw = window.prompt(t('Ссылка (URL):'));
+    if (!raw) return;
+    const url = raw.trim();
+    wrapInline(() => {
+      const a = document.createElement('a');
+      a.setAttribute('href', url);
+      a.style.textDecoration = 'underline';
+      a.style.color = '#3b82f6';
+      return a;
+    }, t('текст'));
+  }, [wrapInline, t]);
 
   // Цитата: каждую выделенную строку префиксуем «> » (или вставляем «> » на строке)
   const applyQuote = useCallback(() => {
@@ -1104,9 +1165,9 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
     // Шорткаты форматирования (Ctrl/Cmd + B/I/U)
     if ((e.ctrlKey || e.metaKey) && !e.altKey) {
       const k = e.key.toLowerCase();
-      if (k === 'b') { e.preventDefault(); applyFormat('**', '**', t('текст')); return; }
-      if (k === 'i') { e.preventDefault(); applyFormat('_', '_', t('текст')); return; }
-      if (k === 'u') { e.preventDefault(); applyFormat('__', '__', t('текст')); return; }
+      if (k === 'b') { e.preventDefault(); wrapInline(() => document.createElement('strong'), t('текст')); return; }
+      if (k === 'i') { e.preventDefault(); wrapInline(() => document.createElement('em'), t('текст')); return; }
+      if (k === 'u') { e.preventDefault(); wrapInline(() => document.createElement('u'), t('текст')); return; }
     }
     // ── Wizard режим: Enter → меню / submit подзадачи или комментария ──
     const w = wizardRef.current;
@@ -2148,12 +2209,12 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
                 {showFormatMenu && (
                   <div className="absolute bottom-full mb-2 right-0 z-50 w-44 py-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl shadow-xl">
                     {[
-                      { label: t('Жирный'), run: () => applyFormat('**', '**', t('текст')), cls: 'font-bold' },
-                      { label: t('Курсив'), run: () => applyFormat('_', '_', t('текст')), cls: 'italic' },
-                      { label: t('Подчёркнутый'), run: () => applyFormat('__', '__', t('текст')), cls: 'underline' },
-                      { label: t('Зачёркнутый'), run: () => applyFormat('~~', '~~', t('текст')), cls: 'line-through' },
-                      { label: t('Спойлер'), run: () => applyFormat('||', '||', t('текст')), cls: '' },
-                      { label: t('Моноширинный'), run: () => applyFormat('`', '`', t('код')), cls: 'font-mono' },
+                      { label: t('Жирный'), run: () => wrapInline(() => document.createElement('strong'), t('текст')), cls: 'font-bold' },
+                      { label: t('Курсив'), run: () => wrapInline(() => document.createElement('em'), t('текст')), cls: 'italic' },
+                      { label: t('Подчёркнутый'), run: () => wrapInline(() => document.createElement('u'), t('текст')), cls: 'underline' },
+                      { label: t('Зачёркнутый'), run: () => wrapInline(() => document.createElement('s'), t('текст')), cls: 'line-through' },
+                      { label: t('Спойлер'), run: () => wrapInline(mkSpoiler, t('текст')), cls: '' },
+                      { label: t('Моноширинный'), run: () => wrapInline(mkCode, t('код')), cls: 'font-mono' },
                       { label: t('Ссылка'), run: applyLink, cls: '' },
                       { label: t('Цитата'), run: applyQuote, cls: '' },
                       { label: t('Код'), run: () => applyFormat('```\n', '\n```', t('код')), cls: 'font-mono' },

@@ -1036,15 +1036,43 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   setTopicsConfig: async (channelId, dto) => {
-    const { data } = await api.patch(`/chat-channels/${channelId}/topics-config`, dto);
+    // Оптимистично применяем, чтобы тумблер реагировал сразу; при ошибке откат + тост
+    const prev = get().channels.find((c) => c.id === channelId);
     set((state) => ({
       channels: state.channels.map((c) =>
         c.id === channelId
-          ? { ...c, topicsEnabled: data.topicsEnabled, createTopicsPermission: data.createTopicsPermission }
+          ? {
+              ...c,
+              topicsEnabled: dto.topicsEnabled ?? c.topicsEnabled,
+              createTopicsPermission: dto.createTopicsPermission ?? c.createTopicsPermission,
+            }
           : c,
       ),
     }));
-    if (data.topicsEnabled) await get().fetchTopics(channelId);
+    try {
+      const { data } = await api.patch(`/chat-channels/${channelId}/topics-config`, dto);
+      set((state) => ({
+        channels: state.channels.map((c) =>
+          c.id === channelId
+            ? { ...c, topicsEnabled: data.topicsEnabled, createTopicsPermission: data.createTopicsPermission }
+            : c,
+        ),
+      }));
+      if (data.topicsEnabled) await get().fetchTopics(channelId);
+    } catch (e: any) {
+      // откат
+      set((state) => ({
+        channels: state.channels.map((c) =>
+          c.id === channelId
+            ? { ...c, topicsEnabled: prev?.topicsEnabled, createTopicsPermission: prev?.createTopicsPermission }
+            : c,
+        ),
+      }));
+      const msg = e?.response?.status === 403
+        ? 'Только админ канала может включать темы'
+        : 'Не удалось изменить настройки тем';
+      useToastStore.getState().addToast('error', msg);
+    }
   },
 
   markTopicRead: (channelId, topicId) => {

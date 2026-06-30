@@ -31,6 +31,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { PresenceService } from '../presence/presence.service';
 import { ChatGateway } from './chat.gateway';
 
+// Topics (forum): /topics, /topics-config, /topics/:id/{read,mute,hide}
 @ApiTags('Chat')
 @ApiBearerAuth()
 @Controller('chat-channels')
