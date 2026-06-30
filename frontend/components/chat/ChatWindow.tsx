@@ -775,15 +775,15 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
     deleteMessageSocket(msg.id);
   }, [deleteMessageSocket]);
 
-  // Pinned messages
+  // Pinned messages — в форум-теме закреп свой (у темы), иначе на канал
   const canPin = activeChannel?.channelType === 'direct' || isCurrentUserAdmin;
-  const pinnedMessages = activeChannel?.pinnedMessages ?? [];
+  const pinnedMessages = (activeTopic ? activeTopic.pinnedMessages : activeChannel?.pinnedMessages) ?? [];
   const [pinnedIndex, setPinnedIndex] = useState(0);
 
-  // При смене канала или изменении списка — показываем последнее закреплённое
+  // При смене канала/темы или изменении списка — показываем последнее закреплённое
   useEffect(() => {
     setPinnedIndex(pinnedMessages.length > 0 ? pinnedMessages.length - 1 : 0);
-  }, [activeChannelId, pinnedMessages.length]);
+  }, [activeChannelId, activeTopicId, pinnedMessages.length]);
 
   const currentPinned = pinnedMessages.length > 0 ? pinnedMessages[pinnedIndex] : null;
 
@@ -791,11 +791,11 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
     if (!activeChannelId) return;
     const alreadyPinned = pinnedMessages.some((p) => p.id === msg.id);
     if (alreadyPinned) {
-      unpinMessageSocket(activeChannelId, msg.id);
+      unpinMessageSocket(activeChannelId, msg.id, activeTopicId ?? undefined);
     } else {
-      pinMessageSocket(activeChannelId, msg.id, msg.text, msg.senderName);
+      pinMessageSocket(activeChannelId, msg.id, msg.text, msg.senderName, activeTopicId ?? undefined);
     }
-  }, [activeChannelId, pinnedMessages, pinMessageSocket, unpinMessageSocket]);
+  }, [activeChannelId, activeTopicId, pinnedMessages, pinMessageSocket, unpinMessageSocket]);
 
   const handleBannerClick = useCallback(() => {
     if (!currentPinned) return;
@@ -1098,7 +1098,7 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (activeChannelId && currentPinned) unpinMessageSocket(activeChannelId, currentPinned.id);
+                  if (activeChannelId && currentPinned) unpinMessageSocket(activeChannelId, currentPinned.id, activeTopicId ?? undefined);
                 }}
                 className="shrink-0 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded transition-colors"
                 title={t('Открепить')}

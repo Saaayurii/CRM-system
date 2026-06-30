@@ -386,6 +386,30 @@ export class ChatController {
     return this.chatService.markTopicRead(id, userId, topicId);
   }
 
+  @Patch(':id/topics/:topicId/mute')
+  @ApiOperation({ summary: 'Mute/unmute a topic for the current user' })
+  @ApiResponse({ status: 200, description: 'Topic mute updated' })
+  muteTopic(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('topicId', ParseIntPipe) topicId: number,
+    @CurrentUser('id') userId: number,
+    @Body('mutedUntil') mutedUntil: string | null,
+  ) {
+    return this.chatService.muteTopic(id, userId, topicId, mutedUntil ? new Date(mutedUntil) : null);
+  }
+
+  @Patch(':id/topics/:topicId/hide')
+  @ApiOperation({ summary: 'Hide/show a topic for the current user' })
+  @ApiResponse({ status: 200, description: 'Topic hidden state updated' })
+  hideTopic(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('topicId', ParseIntPipe) topicId: number,
+    @CurrentUser('id') userId: number,
+    @Body('hidden') hidden: boolean,
+  ) {
+    return this.chatService.hideTopic(id, userId, topicId, !!hidden);
+  }
+
   // --- Members ---
 
   @Get(':id/members')

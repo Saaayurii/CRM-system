@@ -24,6 +24,8 @@
 - `PUT    /chat-channels/:id/topics/:topicId` — изменить тему (имя/иконка/цвет, закрепить/закрыть)
 - `DELETE /chat-channels/:id/topics/:topicId` — удалить тему (General защищена)
 - `PATCH  /chat-channels/:id/topics/:topicId/read` — отметить тему прочитанной
+- `PATCH  /chat-channels/:id/topics/:topicId/mute` — мут/анмут темы (per-user)
+- `PATCH  /chat-channels/:id/topics/:topicId/hide` — скрыть/показать тему (per-user)
 - `PATCH  /chat-channels/:id/topics-config` — вкл/выкл режим тем + право на создание (админ)
 
 ## Модели данных (Prisma)
@@ -68,3 +70,8 @@
   редактирование/удаление — admin или создатель темы; General удалить нельзя.
 - Фронт: `TopicListView` (список тем вместо ленты) + `TopicFormModal` (имя/эмодзи/цвет);
   тумблеры «Темы»/«Создание тем» — в инфо-панели группы (`ChatWindow` → `InfoPanel`).
+- **Per-topic закреп**: закреплённые сообщения у каждой темы свои (`chat_topics.pinned_messages`),
+  не общие на канал; `message:pin/unpin` несут `topicId`. Миграция `chat_topics_extras.sql`.
+- **Per-user мут/скрытие темы** (`chat_topic_reads.is_muted/muted_until/is_hidden`): мут темы
+  исключает юзера из пуш-фан-аута по её сообщениям; скрытая тема не показывается в его списке
+  (сворачивается в раздел «Скрытые темы»). Ссылка на тему — `?channelId=&topicId=` (copy в меню).

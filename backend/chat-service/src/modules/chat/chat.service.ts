@@ -625,32 +625,46 @@ export class ChatService {
     senderName: string,
     accountId: number,
     pinnerName: string,
+    topicId?: number,
   ) {
     const channel = await this.chatRepository.findChannelById(channelId, accountId);
     if (!channel) throw new NotFoundException('Channel not found');
-    const pinnedMessages = await this.chatRepository.pinMessage(channelId, messageId, messageText, senderName);
+    // В форум-канале закреп у каждой темы свой; иначе — на канал
+    const pinnedMessages = topicId
+      ? await this.chatRepository.pinMessageTopic(topicId, messageId, messageText, senderName)
+      : await this.chatRepository.pinMessage(channelId, messageId, messageText, senderName);
     const systemMessage = await this.chatRepository.createMessage({
       channelId,
+      topicId: topicId ?? null,
       userId: null,
       messageText: `📌 ${pinnerName} закрепил сообщение`,
       messageType: 'system',
       attachments: [],
     });
-    return { pinnedMessages, systemMessage };
+    return { pinnedMessages, systemMessage, topicId: topicId ?? null };
   }
 
-  async unpinMessage(channelId: number, messageId: number, accountId: number, pinnerName: string) {
+  async unpinMessage(
+    channelId: number,
+    messageId: number,
+    accountId: number,
+    pinnerName: string,
+    topicId?: number,
+  ) {
     const channel = await this.chatRepository.findChannelById(channelId, accountId);
     if (!channel) throw new NotFoundException('Channel not found');
-    const pinnedMessages = await this.chatRepository.unpinMessage(channelId, messageId);
+    const pinnedMessages = topicId
+      ? await this.chatRepository.unpinMessageTopic(topicId, messageId)
+      : await this.chatRepository.unpinMessage(channelId, messageId);
     const systemMessage = await this.chatRepository.createMessage({
       channelId,
+      topicId: topicId ?? null,
       userId: null,
       messageText: `🔓 ${pinnerName} открепил сообщение`,
       messageType: 'system',
       attachments: [],
     });
-    return { pinnedMessages, systemMessage };
+    return { pinnedMessages, systemMessage, topicId: topicId ?? null };
   }
 
   // --- Topics (Telegram-style forum topics) ---
@@ -684,18 +698,54 @@ export class ChatService {
     user: { id: number; roleId: number; accountId: number },
   ) {
     await this.findChannelByIdForUser(channelId, user);
-    const [topics, unreadMap, lastMsgs] = await Promise.all([
+    const [topics, states, lastMsgs] = await Promise.all([
       this.chatRepository.findTopicsByChannel(channelId),
-      this.chatRepository.getTopicUnreadMap(channelId, user.id),
+      this.chatRepository.getTopicUserStates(channelId, user.id),
       this.chatRepository.getTopicLastMessages(channelId),
     ]);
-    const unreadById = new Map(unreadMap.map((u) => [u.topicId, u.unread]));
+    const stateById = new Map(states.map((s) => [s.topicId, s]));
     const lastById = new Map(lastMsgs.map((m) => [m.topicId, m]));
-    return topics.map((t: any) => ({
-      ...t,
-      unreadCount: unreadById.get(t.id) ?? 0,
-      lastMessage: lastById.get(t.id) ?? null,
-    }));
+    return topics.map((t: any) => {
+      const st = stateById.get(t.id);
+      return {
+        ...t,
+        unreadCount: st?.unread ?? 0,
+        isMutedForMe: st?.isMuted ?? false,
+        mutedUntil: st?.mutedUntil ?? null,
+        isHiddenForMe: st?.isHidden ?? false,
+        lastMessage: lastById.get(t.id) ?? null,
+      };
+    });
+  }
+
+  async muteTopic(
+    channelId: number,
+    userId: number,
+    topicId: number,
+    mutedUntil: Date | null,
+  ) {
+    const topic = await this.chatRepository.findTopicById(topicId);
+    if (!topic || topic.channelId !== channelId) {
+      throw new NotFoundException('Topic not found');
+    }
+    await this.assertMember(channelId, userId);
+    await this.chatRepository.setTopicMute(topicId, userId, mutedUntil);
+    return { success: true, topicId, mutedUntil };
+  }
+
+  async hideTopic(
+    channelId: number,
+    userId: number,
+    topicId: number,
+    hidden: boolean,
+  ) {
+    const topic = await this.chatRepository.findTopicById(topicId);
+    if (!topic || topic.channelId !== channelId) {
+      throw new NotFoundException('Topic not found');
+    }
+    await this.assertMember(channelId, userId);
+    await this.chatRepository.setTopicHidden(topicId, userId, hidden);
+    return { success: true, topicId, hidden };
   }
 
   async createTopic(
@@ -789,6 +839,10 @@ export class ChatService {
     }
     await this.chatRepository.softDeleteTopic(topicId);
     return { success: true, topicId };
+  }
+
+  async getTopicMutedUserIds(topicId: number): Promise<number[]> {
+    return this.chatRepository.getTopicMutedUserIds(topicId);
   }
 
   async markTopicRead(channelId: number, userId: number, topicId: number) {

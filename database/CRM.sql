@@ -1716,6 +1716,7 @@ CREATE TABLE chat_topics (
     pinned_at TIMESTAMP,
     sort_order INTEGER DEFAULT 0,
     last_message_at TIMESTAMP,
+    pinned_messages JSONB DEFAULT '[]',  -- свои закреплённые сообщения у темы
     deleted_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -1727,6 +1728,9 @@ CREATE TABLE chat_topic_reads (
     topic_id INTEGER NOT NULL REFERENCES chat_topics(id) ON DELETE CASCADE,
     user_id INTEGER NOT NULL,
     last_read_at TIMESTAMP,
+    is_muted BOOLEAN DEFAULT FALSE,   -- мут уведомлений темы для пользователя
+    muted_until TIMESTAMP,
+    is_hidden BOOLEAN DEFAULT FALSE,  -- тема скрыта из списка у пользователя
     UNIQUE(topic_id, user_id)
 );
 CREATE INDEX idx_chat_topic_reads_user ON chat_topic_reads(user_id);

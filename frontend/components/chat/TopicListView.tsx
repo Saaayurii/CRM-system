@@ -36,6 +36,8 @@ export default function TopicListView({ channel, onBack, onOpenInfo }: TopicList
   const createTopic = useChatStore((s) => s.createTopic);
   const updateTopic = useChatStore((s) => s.updateTopic);
   const deleteTopic = useChatStore((s) => s.deleteTopic);
+  const muteTopic = useChatStore((s) => s.muteTopic);
+  const hideTopic = useChatStore((s) => s.hideTopic);
 
   const chatWallpaper = useThemeStore((s) => s.appearance.chatWallpaper);
   const customWallpaperUrl = useThemeStore((s) => s.appearance.customWallpaperUrl);
@@ -52,7 +54,13 @@ export default function TopicListView({ channel, onBack, onOpenInfo }: TopicList
   const [showCreate, setShowCreate] = useState(false);
   const [editing, setEditing] = useState<ChatTopic | null>(null);
   const [menuId, setMenuId] = useState<number | null>(null);
+  const [showHidden, setShowHidden] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const copyTopicLink = (topicId: number) => {
+    const url = `${window.location.origin}/dashboard/chat?channelId=${channel.id}&topicId=${topicId}`;
+    navigator.clipboard?.writeText(url).catch(() => {});
+  };
 
   const isAdmin = channel.myRole === 'admin';
   const canCreate = (channel.createTopicsPermission ?? 'all') === 'all' || isAdmin;
@@ -71,6 +79,140 @@ export default function TopicListView({ channel, onBack, onOpenInfo }: TopicList
   }, [menuId]);
 
   const list = topics ?? [];
+  const visible = list.filter((tp) => !tp.isHiddenForMe);
+  const hidden = list.filter((tp) => tp.isHiddenForMe);
+
+  const renderRow = (topic: ChatTopic) => {
+    const canEdit = isAdmin || topic.createdByUserId === user?.id;
+    const canDelete = canEdit && !topic.isGeneral;
+    return (
+      <div
+        key={topic.id}
+        className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-2xl cursor-pointer transition-colors ${GLASS_SURFACE} hover:bg-white/90 dark:hover:bg-gray-900/70`}
+        onClick={() => setActiveTopic(channel.id, topic.id)}
+      >
+        {/* Icon */}
+        <div
+          className="w-11 h-11 rounded-full flex items-center justify-center text-xl shrink-0"
+          style={{ backgroundColor: `${topic.color || '#64748b'}22` }}
+        >
+          <span>{topic.iconEmoji || '💬'}</span>
+        </div>
+
+        {/* Text */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5">
+            {topic.isPinned && (
+              <svg className="w-3 h-3 text-violet-500 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z" />
+              </svg>
+            )}
+            {topic.isClosed && (
+              <svg className="w-3 h-3 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            )}
+            {topic.isMutedForMe && (
+              <svg className="w-3 h-3 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z M17 14l4-4m0 4l-4-4" />
+              </svg>
+            )}
+            <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{topic.name}</h4>
+          </div>
+          <p className="text-xs text-gray-400 dark:text-gray-500 truncate">
+            {topic.lastMessage
+              ? `${topic.lastMessage.senderName ? topic.lastMessage.senderName + ': ' : ''}${topic.lastMessage.text}`
+              : t('Нет сообщений')}
+          </p>
+        </div>
+
+        {/* Meta */}
+        <div className="flex flex-col items-end gap-1 shrink-0">
+          <span className="text-[10px] text-gray-400 dark:text-gray-500 tabular-nums">
+            {fmtTime(topic.lastMessage?.createdAt || topic.lastMessageAt)}
+          </span>
+          {topic.unreadCount > 0 && (
+            <span className={`min-w-[18px] h-[18px] px-1 flex items-center justify-center text-[10px] font-bold text-white rounded-full ${topic.isMutedForMe ? 'bg-gray-400 dark:bg-gray-600' : 'bg-violet-500'}`}>
+              {topic.unreadCount > 99 ? '99+' : topic.unreadCount}
+            </span>
+          )}
+        </div>
+
+        {/* Actions menu (доступно всем; редактирование/закрытие/удаление — по правам) */}
+        <button
+          onClick={(e) => { e.stopPropagation(); setMenuId(menuId === topic.id ? null : topic.id); }}
+          className="shrink-0 p-1 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 opacity-0 group-hover:opacity-100 transition-opacity"
+          title={t('Действия')}
+        >
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 8a2 2 0 100-4 2 2 0 000 4zm0 6a2 2 0 100-4 2 2 0 000 4zm0 6a2 2 0 100-4 2 2 0 000 4z" />
+          </svg>
+        </button>
+
+        {menuId === topic.id && (
+          <div
+            ref={menuRef}
+            onClick={(e) => e.stopPropagation()}
+            className="absolute right-3 top-12 z-30 w-52 py-1 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700"
+          >
+            <button
+              onClick={() => { copyTopicLink(topic.id); setMenuId(null); }}
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
+              {t('Скопировать ссылку')}
+            </button>
+            <button
+              onClick={() => { muteTopic(channel.id, topic.id, topic.isMutedForMe ? null : new Date(Date.now() + 100 * 365 * 24 * 3600 * 1000)); setMenuId(null); }}
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
+              {topic.isMutedForMe ? t('Включить уведомления') : t('Выключить уведомления')}
+            </button>
+            <button
+              onClick={() => { hideTopic(channel.id, topic.id, !topic.isHiddenForMe); setMenuId(null); }}
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
+              {topic.isHiddenForMe ? t('Показать тему') : t('Скрыть тему')}
+            </button>
+            {canEdit && (
+              <button
+                onClick={() => { setEditing(topic); setMenuId(null); }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
+                {t('Изменить')}
+              </button>
+            )}
+            {isAdmin && (
+              <button
+                onClick={() => { updateTopic(channel.id, topic.id, { isPinned: !topic.isPinned }); setMenuId(null); }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
+                {topic.isPinned ? t('Открепить') : t('Закрепить')}
+              </button>
+            )}
+            {isAdmin && (
+              <button
+                onClick={() => { updateTopic(channel.id, topic.id, { isClosed: !topic.isClosed }); setMenuId(null); }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
+                {topic.isClosed ? t('Переоткрыть') : t('Закрыть')}
+              </button>
+            )}
+            {canDelete && (
+              <button
+                onClick={() => {
+                  if (confirm(t('Удалить тему вместе с сообщениями?'))) deleteTopic(channel.id, topic.id);
+                  setMenuId(null);
+                }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10"
+              >
+                {t('Удалить')}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div
@@ -105,7 +247,7 @@ export default function TopicListView({ channel, onBack, onOpenInfo }: TopicList
               {channel.channelName || t('Группа')}
             </h3>
             <p className="text-xs text-gray-400 dark:text-gray-500 truncate">
-              {list.length} {t('тем')}
+              {visible.length} {t('тем')}
             </p>
           </div>
         </button>
@@ -148,114 +290,23 @@ export default function TopicListView({ channel, onBack, onOpenInfo }: TopicList
           </div>
         )}
 
-        {list.map((topic) => {
-          const canEdit = isAdmin || topic.createdByUserId === user?.id;
-          const canDelete = canEdit && !topic.isGeneral;
-          return (
-            <div
-              key={topic.id}
-              className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-2xl cursor-pointer transition-colors ${GLASS_SURFACE} hover:bg-white/90 dark:hover:bg-gray-900/70`}
-              onClick={() => setActiveTopic(channel.id, topic.id)}
+        {visible.map(renderRow)}
+
+        {/* Скрытые темы */}
+        {hidden.length > 0 && (
+          <div className="pt-1">
+            <button
+              onClick={() => setShowHidden((v) => !v)}
+              className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
             >
-              {/* Icon */}
-              <div
-                className="w-11 h-11 rounded-full flex items-center justify-center text-xl shrink-0"
-                style={{ backgroundColor: `${topic.color || '#64748b'}22` }}
-              >
-                <span>{topic.iconEmoji || '💬'}</span>
-              </div>
-
-              {/* Text */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5">
-                  {topic.isPinned && (
-                    <svg className="w-3 h-3 text-violet-500 shrink-0" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z" />
-                    </svg>
-                  )}
-                  {topic.isClosed && (
-                    <svg className="w-3 h-3 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                    </svg>
-                  )}
-                  <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{topic.name}</h4>
-                </div>
-                <p className="text-xs text-gray-400 dark:text-gray-500 truncate">
-                  {topic.lastMessage
-                    ? `${topic.lastMessage.senderName ? topic.lastMessage.senderName + ': ' : ''}${topic.lastMessage.text}`
-                    : t('Нет сообщений')}
-                </p>
-              </div>
-
-              {/* Meta */}
-              <div className="flex flex-col items-end gap-1 shrink-0">
-                <span className="text-[10px] text-gray-400 dark:text-gray-500 tabular-nums">
-                  {fmtTime(topic.lastMessage?.createdAt || topic.lastMessageAt)}
-                </span>
-                {topic.unreadCount > 0 && (
-                  <span className="min-w-[18px] h-[18px] px-1 flex items-center justify-center text-[10px] font-bold text-white bg-violet-500 rounded-full">
-                    {topic.unreadCount > 99 ? '99+' : topic.unreadCount}
-                  </span>
-                )}
-              </div>
-
-              {/* Actions menu */}
-              {canEdit && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); setMenuId(menuId === topic.id ? null : topic.id); }}
-                  className="shrink-0 p-1 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 opacity-0 group-hover:opacity-100 transition-opacity"
-                  title={t('Действия')}
-                >
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 8a2 2 0 100-4 2 2 0 000 4zm0 6a2 2 0 100-4 2 2 0 000 4zm0 6a2 2 0 100-4 2 2 0 000 4z" />
-                  </svg>
-                </button>
-              )}
-
-              {menuId === topic.id && (
-                <div
-                  ref={menuRef}
-                  onClick={(e) => e.stopPropagation()}
-                  className="absolute right-3 top-12 z-30 w-48 py-1 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700"
-                >
-                  <button
-                    onClick={() => { setEditing(topic); setMenuId(null); }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                  >
-                    {t('Изменить')}
-                  </button>
-                  {isAdmin && (
-                    <button
-                      onClick={() => { updateTopic(channel.id, topic.id, { isPinned: !topic.isPinned }); setMenuId(null); }}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                    >
-                      {topic.isPinned ? t('Открепить') : t('Закрепить')}
-                    </button>
-                  )}
-                  {isAdmin && (
-                    <button
-                      onClick={() => { updateTopic(channel.id, topic.id, { isClosed: !topic.isClosed }); setMenuId(null); }}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                    >
-                      {topic.isClosed ? t('Переоткрыть') : t('Закрыть')}
-                    </button>
-                  )}
-                  {canDelete && (
-                    <button
-                      onClick={() => {
-                        if (confirm(t('Удалить тему вместе с сообщениями?'))) deleteTopic(channel.id, topic.id);
-                        setMenuId(null);
-                      }}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10"
-                    >
-                      {t('Удалить')}
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
+              <span>{t('Скрытые темы')} ({hidden.length})</span>
+              <svg className={`w-4 h-4 transition-transform ${showHidden ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {showHidden && <div className="space-y-0.5 opacity-70">{hidden.map(renderRow)}</div>}
+          </div>
+        )}
       </div>
 
       {showCreate && (

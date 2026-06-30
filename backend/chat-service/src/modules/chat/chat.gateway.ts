@@ -231,8 +231,12 @@ export class ChatGateway
     // Push notifications to all channel members except the sender (fire-and-forget)
     void this.chatService
       .getChannelForNotification(data.channelId)
-      .then((channel) => {
+      .then(async (channel) => {
         if (!channel) return;
+        // Форум: исключаем тех, кто замьютил конкретную тему
+        const topicMuted = message.topicId
+          ? new Set(await this.chatService.getTopicMutedUserIds(message.topicId))
+          : new Set<number>();
         const senderName = client.user.name || 'Пользователь';
         const isDirect = channel.channelType === 'direct';
         const title = isDirect
@@ -250,6 +254,7 @@ export class ChatGateway
           .filter((m: { userId: number; isMuted?: boolean; mutedUntil?: Date | null }) => {
             if (m.userId === client.user.id) return false;
             if (activeViewerIds.has(m.userId)) return false; // already viewing the channel
+            if (topicMuted.has(m.userId)) return false; // muted this topic
             if (m.isMuted) {
               const until = m.mutedUntil ? new Date(m.mutedUntil).getTime() : Infinity;
               if (until > now) return false; // still muted
@@ -509,19 +514,22 @@ export class ChatGateway
       messageId: number;
       messageText?: string;
       senderName?: string;
+      topicId?: number;
     },
   ) {
-    const { pinnedMessages, systemMessage } = await this.chatService.pinMessage(
+    const { pinnedMessages, systemMessage, topicId } = await this.chatService.pinMessage(
       data.channelId,
       data.messageId,
       (data.messageText || '').slice(0, 200),
       data.senderName || '',
       client.user.accountId,
       client.user.name,
+      data.topicId,
     );
 
     this.server.to(`channel:${data.channelId}`).emit('message:pinned', {
       channelId: data.channelId,
+      topicId,
       pinnedMessages,
     });
 
@@ -534,17 +542,19 @@ export class ChatGateway
   @SubscribeMessage('message:unpin')
   async handleUnpinMessage(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() data: { channelId: number; messageId: number },
+    @MessageBody() data: { channelId: number; messageId: number; topicId?: number },
   ) {
-    const { pinnedMessages, systemMessage } = await this.chatService.unpinMessage(
+    const { pinnedMessages, systemMessage, topicId } = await this.chatService.unpinMessage(
       data.channelId,
       data.messageId,
       client.user.accountId,
       client.user.name,
+      data.topicId,
     );
 
     this.server.to(`channel:${data.channelId}`).emit('message:unpinned', {
       channelId: data.channelId,
+      topicId,
       pinnedMessages,
     });
 

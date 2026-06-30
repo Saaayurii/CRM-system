@@ -110,6 +110,12 @@ export interface ChatTopic {
   isPinned: boolean;
   lastMessageAt?: string | null;
   unreadCount: number;
+  // Per-current-user
+  isMutedForMe?: boolean;
+  mutedUntil?: string | null;
+  isHiddenForMe?: boolean;
+  // Закреплённые сообщения темы (свои, не общие на канал)
+  pinnedMessages?: { id: number; text: string; senderName: string; pinnedAt: string }[];
   lastMessage?: {
     text: string;
     senderName: string;
@@ -286,6 +292,10 @@ function mapRawTopic(raw: any): ChatTopic {
     isPinned: !!raw.isPinned,
     lastMessageAt: raw.lastMessageAt ?? null,
     unreadCount: raw.unreadCount ?? 0,
+    isMutedForMe: !!raw.isMutedForMe,
+    mutedUntil: raw.mutedUntil ?? null,
+    isHiddenForMe: !!raw.isHiddenForMe,
+    pinnedMessages: Array.isArray(raw.pinnedMessages) ? raw.pinnedMessages : [],
     lastMessage: lm
       ? {
           text: previewFromMessage(
@@ -358,6 +368,8 @@ interface ChatState {
   deleteTopic: (channelId: number, topicId: number) => Promise<void>;
   setTopicsConfig: (channelId: number, dto: { topicsEnabled?: boolean; createTopicsPermission?: 'all' | 'admins' }) => Promise<void>;
   markTopicRead: (channelId: number, topicId: number) => void;
+  muteTopic: (channelId: number, topicId: number, mutedUntil: Date | null) => Promise<void>;
+  hideTopic: (channelId: number, topicId: number, hidden: boolean) => Promise<void>;
   fetchChannels: (page?: number) => Promise<void>;
   fetchUnreadSummary: () => Promise<void>;
   fetchArchivedChannels: () => Promise<void>;
@@ -374,8 +386,8 @@ interface ChatState {
   createChannel: (dto: CreateChannelDto) => Promise<ChatChannel | null>;
   setReplyToMessage: (message: ChatMessage | null) => void;
   setEditingMessage: (message: ChatMessage | null) => void;
-  pinMessage: (channelId: number, messageId: number, messageText: string, senderName: string) => void;
-  unpinMessage: (channelId: number, messageId: number) => void;
+  pinMessage: (channelId: number, messageId: number, messageText: string, senderName: string, topicId?: number) => void;
+  unpinMessage: (channelId: number, messageId: number, topicId?: number) => void;
 }
 
 let socketRef: Socket | null = null;
@@ -698,22 +710,30 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }
     );
 
-    // Pinned messages
-    socket.on('message:pinned', (data: { channelId: number; pinnedMessages: { id: number; text: string; senderName: string; pinnedAt: string }[] }) => {
-      set((state) => ({
-        channels: state.channels.map((ch) =>
-          ch.id === data.channelId ? { ...ch, pinnedMessages: data.pinnedMessages } : ch
-        ),
-      }));
-    });
-
-    socket.on('message:unpinned', (data: { channelId: number; pinnedMessages: { id: number; text: string; senderName: string; pinnedAt: string }[] }) => {
-      set((state) => ({
-        channels: state.channels.map((ch) =>
-          ch.id === data.channelId ? { ...ch, pinnedMessages: data.pinnedMessages } : ch
-        ),
-      }));
-    });
+    // Pinned messages — в форум-теме закреп свой (topicId), иначе на канал
+    const applyPinned = (data: { channelId: number; topicId?: number | null; pinnedMessages: { id: number; text: string; senderName: string; pinnedAt: string }[] }) => {
+      if (data.topicId) {
+        set((state) => {
+          const list = state.topicsByChannel[data.channelId] || [];
+          return {
+            topicsByChannel: {
+              ...state.topicsByChannel,
+              [data.channelId]: list.map((t) =>
+                t.id === data.topicId ? { ...t, pinnedMessages: data.pinnedMessages } : t,
+              ),
+            },
+          };
+        });
+      } else {
+        set((state) => ({
+          channels: state.channels.map((ch) =>
+            ch.id === data.channelId ? { ...ch, pinnedMessages: data.pinnedMessages } : ch,
+          ),
+        }));
+      }
+    };
+    socket.on('message:pinned', applyPinned);
+    socket.on('message:unpinned', applyPinned);
 
     // --- Topics ---
     socket.on('topic:created', (data: { channelId: number; topic: any }) => {
@@ -1368,13 +1388,45 @@ export const useChatStore = create<ChatState>((set, get) => ({
     set({ editingMessage: message });
   },
 
-  pinMessage: (channelId, messageId, messageText, senderName) => {
+  pinMessage: (channelId, messageId, messageText, senderName, topicId) => {
     if (!socketRef?.connected) return;
-    socketRef.emit('message:pin', { channelId, messageId, messageText, senderName });
+    socketRef.emit('message:pin', { channelId, messageId, messageText, senderName, topicId });
   },
 
-  unpinMessage: (channelId, messageId) => {
+  unpinMessage: (channelId, messageId, topicId) => {
     if (!socketRef?.connected) return;
-    socketRef.emit('message:unpin', { channelId, messageId });
+    socketRef.emit('message:unpin', { channelId, messageId, topicId });
+  },
+
+  muteTopic: async (channelId, topicId, mutedUntil) => {
+    await api.patch(`/chat-channels/${channelId}/topics/${topicId}/mute`, {
+      mutedUntil: mutedUntil ? mutedUntil.toISOString() : null,
+    });
+    set((state) => {
+      const list = state.topicsByChannel[channelId] || [];
+      return {
+        topicsByChannel: {
+          ...state.topicsByChannel,
+          [channelId]: list.map((t) =>
+            t.id === topicId
+              ? { ...t, isMutedForMe: mutedUntil !== null, mutedUntil: mutedUntil ? mutedUntil.toISOString() : null }
+              : t,
+          ),
+        },
+      };
+    });
+  },
+
+  hideTopic: async (channelId, topicId, hidden) => {
+    await api.patch(`/chat-channels/${channelId}/topics/${topicId}/hide`, { hidden });
+    set((state) => {
+      const list = state.topicsByChannel[channelId] || [];
+      return {
+        topicsByChannel: {
+          ...state.topicsByChannel,
+          [channelId]: list.map((t) => (t.id === topicId ? { ...t, isHiddenForMe: hidden } : t)),
+        },
+      };
+    });
   },
 }));

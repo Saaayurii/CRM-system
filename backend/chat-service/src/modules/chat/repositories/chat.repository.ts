@@ -539,26 +539,111 @@ export class ChatRepository {
     });
   }
 
-  /** Непрочитанное по каждой теме канала для пользователя: [{ topicId, unread }]. */
-  async getTopicUnreadMap(
+  async setTopicMute(topicId: number, userId: number, mutedUntil: Date | null) {
+    const isMuted = mutedUntil !== null;
+    return (this.prisma as any).chatTopicRead.upsert({
+      where: { topicId_userId: { topicId, userId } },
+      update: { isMuted, mutedUntil },
+      create: { topicId, userId, isMuted, mutedUntil },
+    });
+  }
+
+  async setTopicHidden(topicId: number, userId: number, isHidden: boolean) {
+    return (this.prisma as any).chatTopicRead.upsert({
+      where: { topicId_userId: { topicId, userId } },
+      update: { isHidden },
+      create: { topicId, userId, isHidden },
+    });
+  }
+
+  /** id пользователей, замьютивших тему (с учётом mutedUntil). */
+  async getTopicMutedUserIds(topicId: number): Promise<number[]> {
+    const now = new Date();
+    const rows = await (this.prisma as any).chatTopicRead.findMany({
+      where: { topicId, isMuted: true },
+      select: { userId: true, mutedUntil: true },
+    });
+    return (rows as { userId: number; mutedUntil: Date | null }[])
+      .filter((r) => !r.mutedUntil || r.mutedUntil.getTime() > now.getTime())
+      .map((r) => r.userId);
+  }
+
+  // --- Per-topic pinned messages ---
+
+  async pinMessageTopic(
+    topicId: number,
+    messageId: number,
+    messageText: string,
+    senderName: string,
+  ) {
+    const topic = await (this.prisma as any).chatTopic.findFirst({
+      where: { id: topicId },
+      select: { pinnedMessages: true },
+    });
+    const list: any[] = Array.isArray(topic?.pinnedMessages) ? topic.pinnedMessages : [];
+    const filtered = list.filter((p: any) => p.id !== messageId);
+    filtered.push({
+      id: messageId,
+      text: messageText,
+      senderName,
+      pinnedAt: new Date().toISOString(),
+    });
+    const updated = await (this.prisma as any).chatTopic.update({
+      where: { id: topicId },
+      data: { pinnedMessages: filtered },
+    });
+    return (updated.pinnedMessages as any[]) || [];
+  }
+
+  async unpinMessageTopic(topicId: number, messageId: number) {
+    const topic = await (this.prisma as any).chatTopic.findFirst({
+      where: { id: topicId },
+      select: { pinnedMessages: true },
+    });
+    const list: any[] = Array.isArray(topic?.pinnedMessages) ? topic.pinnedMessages : [];
+    const updated = await (this.prisma as any).chatTopic.update({
+      where: { id: topicId },
+      data: { pinnedMessages: list.filter((p: any) => p.id !== messageId) },
+    });
+    return (updated.pinnedMessages as any[]) || [];
+  }
+
+  /**
+   * Per-user состояние каждой темы канала: непрочитанное + мут + скрытие.
+   */
+  async getTopicUserStates(
     channelId: number,
     userId: number,
-  ): Promise<{ topicId: number; unread: number }[]> {
+  ): Promise<
+    {
+      topicId: number;
+      unread: number;
+      isMuted: boolean;
+      mutedUntil: Date | null;
+      isHidden: boolean;
+    }[]
+  > {
     const rows = await (this.prisma as any).$queryRawUnsafe(
       `SELECT t.id AS topic_id,
               (SELECT COUNT(*) FROM chat_messages m
                  WHERE m.topic_id = t.id AND m.is_deleted = false
                    AND (r.last_read_at IS NULL OR m.created_at > r.last_read_at)
-              ) AS unread
+              ) AS unread,
+              COALESCE(r.is_muted, false) AS is_muted,
+              r.muted_until AS muted_until,
+              COALESCE(r.is_hidden, false) AS is_hidden
        FROM chat_topics t
        LEFT JOIN chat_topic_reads r ON r.topic_id = t.id AND r.user_id = $2
        WHERE t.channel_id = $1 AND t.deleted_at IS NULL`,
       channelId,
       userId,
     );
-    return (rows as { topic_id: number; unread: bigint }[]).map((r) => ({
+    return (rows as any[]).map((r) => ({
       topicId: Number(r.topic_id),
       unread: Number(r.unread),
+      isMuted: !!r.is_muted,
+      mutedUntil: r.muted_until ? new Date(r.muted_until) : null,
+      isHidden: !!r.is_hidden,
     }));
   }
 
