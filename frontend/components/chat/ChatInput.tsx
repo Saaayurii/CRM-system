@@ -306,6 +306,8 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const formatMenuRef = useRef<HTMLDivElement>(null);
+  const [showFormatMenu, setShowFormatMenu] = useState(false);
   const attachMenuRef = useRef<HTMLDivElement>(null);
   const taskPickerRef = useRef<HTMLDivElement>(null);
   const xhrMapRef = useRef<Map<string, XMLHttpRequest[]>>(new Map());
@@ -475,6 +477,18 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
     return () => document.removeEventListener('mousedown', handler);
   }, [showAttachMenu]);
 
+  // Закрытие меню форматирования по клику вне
+  useEffect(() => {
+    if (!showFormatMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (formatMenuRef.current && !formatMenuRef.current.contains(e.target as Node)) {
+        setShowFormatMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showFormatMenu]);
+
   const addFilesToPending = useCallback((fileList: File[]) => {
     if (fileList.length === 0) return;
     const oversized = fileList.find((f) => f.size > MAX_FILE_SIZE);
@@ -587,6 +601,65 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
     startTyping(channelId);
     setShowEmojiPicker(false);
   }, [channelId, startTyping]);
+
+  // Оборачивает выделение markdown-маркерами (текст хранится как markdown,
+  // рендерится форматированным). Без выделения — вставляет плейсхолдер.
+  const applyFormat = useCallback((prefix: string, suffix: string, placeholder = '') => {
+    const el = editorRef.current;
+    if (!el) return;
+    el.focus();
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    const range = sel.getRangeAt(0);
+    if (!el.contains(range.commonAncestorContainer)) return;
+    const selected = range.toString();
+    const node = document.createTextNode(prefix + (selected || placeholder) + suffix);
+    range.deleteContents();
+    range.insertNode(node);
+    const newRange = document.createRange();
+    if (selected) {
+      newRange.setStartAfter(node);
+      newRange.collapse(true);
+    } else {
+      // каретку — между маркерами (или выделяем плейсхолдер)
+      newRange.setStart(node, prefix.length);
+      newRange.setEnd(node, prefix.length + placeholder.length);
+    }
+    sel.removeAllRanges();
+    sel.addRange(newRange);
+    setText(serializeEditor(el));
+    startTyping(channelId);
+  }, [channelId, startTyping]);
+
+  const applyLink = useCallback(() => {
+    const url = window.prompt(t('Ссылка (URL):'));
+    if (!url) return;
+    applyFormat('[', `](${url.trim()})`, t('текст'));
+  }, [applyFormat, t]);
+
+  // Цитата: каждую выделенную строку префиксуем «> » (или вставляем «> » на строке)
+  const applyQuote = useCallback(() => {
+    const el = editorRef.current;
+    if (!el) return;
+    el.focus();
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    const range = sel.getRangeAt(0);
+    if (!el.contains(range.commonAncestorContainer)) return;
+    const selected = range.toString();
+    const quoted = selected
+      ? selected.split('\n').map((l) => `> ${l}`).join('\n')
+      : '> ';
+    const node = document.createTextNode(quoted);
+    range.deleteContents();
+    range.insertNode(node);
+    const r = document.createRange();
+    r.setStartAfter(node);
+    r.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(r);
+    setText(serializeEditor(el));
+  }, []);
 
   // MAX_FILE_SIZE and CHUNK_SIZE are defined at module level
 
@@ -1028,6 +1101,13 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
   }, [text, channelId, pendingFiles, sendMessage, editMessage, editingMessage, setEditingMessage, clearEditor, stopTyping, startActivity, stopActivity, replyToMessage, uploadFileWithProgress, onFilesSent, projectId, openTaskCreateModal, decorateAttachments, pickNewMenuCreateTask, pickWizardAction, submitWizardComment, submitWizardSubtask]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent<HTMLDivElement>) => {
+    // Шорткаты форматирования (Ctrl/Cmd + B/I/U)
+    if ((e.ctrlKey || e.metaKey) && !e.altKey) {
+      const k = e.key.toLowerCase();
+      if (k === 'b') { e.preventDefault(); applyFormat('**', '**', t('текст')); return; }
+      if (k === 'i') { e.preventDefault(); applyFormat('_', '_', t('текст')); return; }
+      if (k === 'u') { e.preventDefault(); applyFormat('__', '__', t('текст')); return; }
+    }
     // ── Wizard режим: Enter → меню / submit подзадачи или комментария ──
     const w = wizardRef.current;
     if (w) {
@@ -2050,15 +2130,49 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
                     ? 'Текст комментария…'
                     : projectId ? 'Сообщение... (# задача, @ упоминание, #new)' : 'Сообщение'
               }
-              className={`w-full py-2.5 pl-4 pr-12 rounded-3xl text-sm text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-violet-500 focus:outline-none overflow-y-auto min-h-[44px] max-h-[120px] break-words leading-relaxed ${GLASS_SURFACE} ${isSending ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`w-full py-2.5 pl-4 pr-[5rem] rounded-3xl text-sm text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-violet-500 focus:outline-none overflow-y-auto min-h-[44px] max-h-[120px] break-words leading-relaxed ${GLASS_SURFACE} ${isSending ? 'opacity-50 cursor-not-allowed' : ''}`}
             />
-            {/* Emoji button inside the input — закреплён в нижней зоне высотой
-                44px (как однострочное поле) и центрирован в ней, поэтому при
-                многострочном вводе остаётся ровно у нижней кромки */}
-            <div className="absolute right-1.5 bottom-0 h-[44px] flex items-center z-10" ref={emojiPickerRef}>
+            {/* Кнопки в нижней зоне input (высота 44px) — форматирование + смайлики */}
+            <div className="absolute right-1.5 bottom-0 h-[44px] flex items-center gap-0.5 z-10" ref={emojiPickerRef}>
+              {/* Форматирование текста */}
+              <div className="relative" ref={formatMenuRef}>
+                <button
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => { setShowFormatMenu((v) => !v); setShowEmojiPicker(false); }}
+                  disabled={isSending}
+                  className="w-9 h-9 flex items-center justify-center text-gray-400 hover:text-violet-500 transition-colors disabled:opacity-50 rounded-full"
+                  title={t('Форматирование')}
+                >
+                  <span className="text-[15px] font-semibold leading-none"><span className="font-bold">A</span><span className="italic text-[11px]">a</span></span>
+                </button>
+                {showFormatMenu && (
+                  <div className="absolute bottom-full mb-2 right-0 z-50 w-44 py-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl shadow-xl">
+                    {[
+                      { label: t('Жирный'), run: () => applyFormat('**', '**', t('текст')), cls: 'font-bold' },
+                      { label: t('Курсив'), run: () => applyFormat('_', '_', t('текст')), cls: 'italic' },
+                      { label: t('Подчёркнутый'), run: () => applyFormat('__', '__', t('текст')), cls: 'underline' },
+                      { label: t('Зачёркнутый'), run: () => applyFormat('~~', '~~', t('текст')), cls: 'line-through' },
+                      { label: t('Спойлер'), run: () => applyFormat('||', '||', t('текст')), cls: '' },
+                      { label: t('Моноширинный'), run: () => applyFormat('`', '`', t('код')), cls: 'font-mono' },
+                      { label: t('Ссылка'), run: applyLink, cls: '' },
+                      { label: t('Цитата'), run: applyQuote, cls: '' },
+                      { label: t('Код'), run: () => applyFormat('```\n', '\n```', t('код')), cls: 'font-mono' },
+                    ].map((item) => (
+                      <button
+                        key={item.label}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => { item.run(); setShowFormatMenu(false); }}
+                        className={`w-full text-left px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 ${item.cls}`}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <button
                 onMouseDown={(e) => e.preventDefault()}
-                onClick={() => setShowEmojiPicker((v) => !v)}
+                onClick={() => { setShowEmojiPicker((v) => !v); setShowFormatMenu(false); }}
                 disabled={isSending}
                 className="w-9 h-9 flex items-center justify-center text-gray-400 hover:text-yellow-500 transition-colors disabled:opacity-50 rounded-full"
                 title={t('Смайлики')}

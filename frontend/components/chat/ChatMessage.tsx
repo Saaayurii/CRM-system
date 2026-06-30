@@ -88,6 +88,11 @@ const ICON_TRASH = (
     <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
   </svg>
 );
+const ICON_LINK = (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 010 5.656l-3 3a4 4 0 11-5.656-5.656l1.5-1.5m6.656-1.828a4 4 0 010-5.656l3-3a4 4 0 115.656 5.656l-1.5 1.5" />
+  </svg>
+);
 const ICON_COPY_MEDIA = (
   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
     <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
@@ -502,6 +507,18 @@ function ChatMessage({ message, isOwn, showAvatar, isRead, isDirect = false, rea
   const handleEditStart = useCallback(() => {
     if (onEdit) setEditingMessage(message);
   }, [message, onEdit, setEditingMessage]);
+
+  const copyMessageLink = useCallback(() => {
+    const params = new URLSearchParams({
+      channelId: String(message.channelId),
+      messageId: String(message.id),
+    });
+    if (message.topicId) params.set('topicId', String(message.topicId));
+    const url = `${window.location.origin}/dashboard/chat?${params.toString()}`;
+    navigator.clipboard?.writeText(url)
+      .then(() => addToast('success', 'Ссылка скопирована'))
+      .catch(() => {});
+  }, [message.channelId, message.id, message.topicId, addToast]);
 
   // Close context menu on outside click/tap
   useEffect(() => {
@@ -1173,6 +1190,17 @@ function ChatMessage({ message, isOwn, showAvatar, isRead, isDirect = false, rea
               </button>
             )}
 
+            {/* Copy link */}
+            <button
+              onClick={() => { copyMessageLink(); setShowMobileActions(false); setIsSelected(false); }}
+              className="w-full flex items-center justify-between px-3.5 py-2 text-white hover:bg-white/10 active:bg-white/15 transition-colors border-b border-white/10"
+            >
+              <span className="text-[13px]">{t('Копировать ссылку')}</span>
+              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 010 5.656l-3 3a4 4 0 11-5.656-5.656l1.5-1.5m6.656-1.828a4 4 0 010-5.656l3-3a4 4 0 115.656 5.656l-1.5 1.5" />
+              </svg>
+            </button>
+
             {/* Pin / Unpin */}
             {canPin && (
               <button
@@ -1270,6 +1298,11 @@ function ChatMessage({ message, isOwn, showAvatar, isRead, isDirect = false, rea
                   <span className="flex-1">{t('Копировать текст')}</span>
                 </button>
               )}
+
+              <button onClick={() => { copyMessageLink(); setCtxMenu(null); }} className={CTX_ITEM}>
+                <span className={CTX_ICON}>{ICON_LINK}</span>
+                <span className="flex-1">{t('Копировать ссылку')}</span>
+              </button>
 
               {ctxCopyableImage && (
                 <button
@@ -1682,28 +1715,144 @@ function renderUrlsInSegment(text: string, isOwn: boolean, highlightQuery: strin
   return parts;
 }
 
-function renderInlineBold(text: string, isOwn: boolean, highlightQuery?: string): React.ReactNode[] {
+// Спойлер: скрытый текст, раскрывается по клику (как в Telegram)
+function Spoiler({ children }: { children: React.ReactNode }) {
+  const [revealed, setRevealed] = useState(false);
+  return (
+    <span
+      onClick={(e) => { if (!revealed) { e.stopPropagation(); setRevealed(true); } }}
+      className={revealed ? '' : 'rounded bg-gray-500/40 text-transparent select-none cursor-pointer blur-[3px]'}
+    >
+      {children}
+    </span>
+  );
+}
+
+// Инлайн-форматирование: ссылка [t](u), **жирный**, ~~зачёркнутый~~,
+// ||спойлер||, __подчёркнутый__, `моно`, _курсив_. Новый regex на каждый вызов —
+// чтобы рекурсия не сбивала lastIndex общего объекта.
+const INLINE_PATTERN =
+  '\\[([^\\]]+)\\]\\(([^)\\s]+)\\)|\\*\\*([\\s\\S]+?)\\*\\*|~~([\\s\\S]+?)~~|\\|\\|([\\s\\S]+?)\\|\\||__([\\s\\S]+?)__|`([^`]+?)`|_([\\s\\S]+?)_';
+
+function renderInline(text: string, isOwn: boolean, highlightQuery?: string, keyBase = 0): React.ReactNode[] {
   const parts: React.ReactNode[] = [];
-  const boldRe = /\*\*(.+?)\*\*/g;
+  const re = new RegExp(INLINE_PATTERN, 'g');
   let last = 0;
   let m: RegExpExecArray | null;
-  while ((m = boldRe.exec(text)) !== null) {
-    if (m.index > last) parts.push(...renderUrlsInSegment(text.slice(last, m.index), isOwn, highlightQuery, last));
-    parts.push(<strong key={m.index} className="font-semibold">{m[1]}</strong>);
-    last = boldRe.lastIndex;
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) {
+      parts.push(...renderUrlsInSegment(text.slice(last, m.index), isOwn, highlightQuery, keyBase + m.index));
+    }
+    const key = `i-${keyBase}-${m.index}`;
+    const inner = (s: string) => renderInline(s, isOwn, highlightQuery, keyBase + m!.index + 1);
+    if (m[1] !== undefined) {
+      let url = m[2];
+      if (!/^https?:\/\//i.test(url) && !url.startsWith('/')) url = 'https://' + url;
+      parts.push(
+        <a key={key} href={url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+          className={`underline break-all ${isOwn ? 'text-white/90 hover:text-white' : 'text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300'}`}>
+          {inner(m[1])}
+        </a>,
+      );
+    } else if (m[3] !== undefined) {
+      parts.push(<strong key={key} className="font-semibold">{inner(m[3])}</strong>);
+    } else if (m[4] !== undefined) {
+      parts.push(<s key={key}>{inner(m[4])}</s>);
+    } else if (m[5] !== undefined) {
+      parts.push(<Spoiler key={key}>{inner(m[5])}</Spoiler>);
+    } else if (m[6] !== undefined) {
+      parts.push(<u key={key}>{inner(m[6])}</u>);
+    } else if (m[7] !== undefined) {
+      parts.push(
+        <code key={key} className={`px-1 py-0.5 rounded text-[0.85em] font-mono ${isOwn ? 'bg-white/20' : 'bg-black/10 dark:bg-white/10'}`}>
+          {m[7]}
+        </code>,
+      );
+    } else if (m[8] !== undefined) {
+      parts.push(<em key={key} className="italic">{inner(m[8])}</em>);
+    }
+    last = re.lastIndex;
   }
-  if (last < text.length) parts.push(...renderUrlsInSegment(text.slice(last), isOwn, highlightQuery, last));
+  if (last < text.length) {
+    parts.push(...renderUrlsInSegment(text.slice(last), isOwn, highlightQuery, keyBase + last));
+  }
   return parts;
+}
+
+// Разбивает текст на блоки: код-блок ```…```, цитата (строки `> …`), обычный текст
+function splitMessageBlocks(text: string): { type: 'code' | 'quote' | 'normal'; content: string }[] {
+  const blocks: { type: 'code' | 'quote' | 'normal'; content: string }[] = [];
+  const fence = /```([\s\S]*?)```/g;
+  let idx = 0;
+  let m: RegExpExecArray | null;
+  const pushText = (chunk: string) => {
+    const lines = chunk.split('\n');
+    let buf: string[] = [];
+    let quoteBuf: string[] = [];
+    const flushText = () => { if (buf.join('').trim() !== '' || buf.length > 1) { blocks.push({ type: 'normal', content: buf.join('\n') }); } buf = []; };
+    const flushQuote = () => { if (quoteBuf.length) { blocks.push({ type: 'quote', content: quoteBuf.join('\n') }); quoteBuf = []; } };
+    for (const line of lines) {
+      if (/^>\s?/.test(line)) { if (buf.length) flushText(); quoteBuf.push(line.replace(/^>\s?/, '')); }
+      else { if (quoteBuf.length) flushQuote(); buf.push(line); }
+    }
+    if (buf.length) flushText();
+    if (quoteBuf.length) flushQuote();
+  };
+  while ((m = fence.exec(text)) !== null) {
+    if (m.index > idx) pushText(text.slice(idx, m.index));
+    blocks.push({ type: 'code', content: m[1].replace(/^\n/, '').replace(/\n$/, '') });
+    idx = fence.lastIndex;
+  }
+  if (idx < text.length) pushText(text.slice(idx));
+  return blocks;
 }
 
 function plainText(text?: string | null): string {
   if (!text) return '';
   return text
     .replace(/#\[([^\]]+)\]\(task:[^)]*\)/g, '📋 $1')
-    .replace(/@\[([^\]]+)\]\(user:\d+\)/g, '@$1');
+    .replace(/@\[([^\]]+)\]\(user:\d+\)/g, '@$1')
+    .replace(/```([\s\S]*?)```/g, '$1')
+    .replace(/\[([^\]]+)\]\([^)\s]+\)/g, '$1')
+    .replace(/\*\*([\s\S]+?)\*\*/g, '$1')
+    .replace(/~~([\s\S]+?)~~/g, '$1')
+    .replace(/\|\|([\s\S]+?)\|\|/g, '$1')
+    .replace(/__([\s\S]+?)__/g, '$1')
+    .replace(/`([^`]+?)`/g, '$1');
 }
 
 function renderText(text: string, isOwn: boolean, highlightQuery?: string, trailingReserve = 0) {
+  // Блочное форматирование (код-блок/цитата) только если оно реально есть —
+  // иначе обычный путь без изменений поведения.
+  const hasBlocks = text.includes('```') || /(^|\n)>\s?/.test(text);
+  if (!hasBlocks) {
+    return renderNormalContent(text, isOwn, highlightQuery, trailingReserve);
+  }
+  const blocks = splitMessageBlocks(text);
+  return (
+    <div className="space-y-1.5">
+      {blocks.map((b, i) => {
+        if (b.type === 'code') {
+          return (
+            <pre key={i} className={`whitespace-pre-wrap break-words text-[0.85em] font-mono rounded-lg px-2.5 py-1.5 overflow-x-auto ${isOwn ? 'bg-white/15' : 'bg-black/10 dark:bg-white/10'}`}>
+              {b.content}
+            </pre>
+          );
+        }
+        if (b.type === 'quote') {
+          return (
+            <blockquote key={i} className={`pl-3 border-l-2 whitespace-pre-wrap break-words ${isOwn ? 'border-white/50' : 'border-violet-400 dark:border-violet-500'}`}>
+              {renderInline(b.content, isOwn, highlightQuery, i * 100000)}
+            </blockquote>
+          );
+        }
+        return <div key={i}>{renderNormalContent(b.content, isOwn, highlightQuery, i === blocks.length - 1 ? trailingReserve : 0)}</div>;
+      })}
+    </div>
+  );
+}
+
+function renderNormalContent(text: string, isOwn: boolean, highlightQuery?: string, trailingReserve = 0) {
   const textSegments: React.ReactNode[] = [];
   const cards: React.ReactNode[] = [];
   let lastIndex = 0;
@@ -1713,7 +1862,7 @@ function renderText(text: string, isOwn: boolean, highlightQuery?: string, trail
   while ((match = MENTION_RE.exec(text)) !== null) {
     if (match.index > lastIndex) {
       const raw = text.slice(lastIndex, match.index);
-      textSegments.push(<span key={lastIndex}>{renderInlineBold(raw, isOwn, highlightQuery)}</span>);
+      textSegments.push(<span key={lastIndex}>{renderInline(raw, isOwn, highlightQuery, lastIndex)}</span>);
     }
 
     if (match[0].startsWith('@')) {
@@ -1766,7 +1915,7 @@ function renderText(text: string, isOwn: boolean, highlightQuery?: string, trail
 
   if (lastIndex < text.length) {
     const raw = text.slice(lastIndex);
-    textSegments.push(<span key={lastIndex}>{renderInlineBold(raw, isOwn, highlightQuery)}</span>);
+    textSegments.push(<span key={lastIndex}>{renderInline(raw, isOwn, highlightQuery, lastIndex)}</span>);
   }
 
   return (

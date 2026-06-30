@@ -183,6 +183,8 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
   const topicsByChannel = useChatStore((s) => s.topicsByChannel);
   const activeTopicId = useChatStore((s) => s.activeTopicId);
   const setActiveTopic = useChatStore((s) => s.setActiveTopic);
+  const highlightMessageId = useChatStore((s) => s.highlightMessageId);
+  const setHighlightMessageId = useChatStore((s) => s.setHighlightMessageId);
   const user = useAuthStore((s) => s.user);
 
   const handleGoToOriginalChannel = useCallback((channelId: number) => {
@@ -321,6 +323,24 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
   // revision = messages.length + активный канал: при первой загрузке/смене канала
 // заново заводим серию пересчётов среза (важно для коротких, непрокручиваемых чатов)
 useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.length}`);
+
+  // Deep-link на сообщение: когда оно появилось в ленте — скроллим и подсвечиваем
+  useEffect(() => {
+    if (!highlightMessageId) return;
+    const el = messagesContainerRef.current?.querySelector(
+      `[data-msgid="${highlightMessageId}"]`,
+    ) as HTMLElement | null;
+    if (!el) return; // ещё не загружено — ждём обновления messages
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.style.transition = 'background-color 0.4s';
+    el.style.backgroundColor = 'rgba(139,92,246,0.16)';
+    el.style.borderRadius = '12px';
+    const tmr = setTimeout(() => {
+      el.style.backgroundColor = '';
+      setHighlightMessageId(null);
+    }, 2000);
+    return () => clearTimeout(tmr);
+  }, [messages, highlightMessageId, setHighlightMessageId]);
   // Плавающая дата сверху: при скролле показываем день, к которому относится
   // верхнее видимое сообщение (как в Telegram), и плавно прячем после паузы.
   const [floatingDate, setFloatingDate] = useState<string | null>(null);

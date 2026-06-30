@@ -20,6 +20,7 @@ export default function ChatScreen() {
   const activeChannelId = useChatStore((s) => s.activeChannelId);
   const setActiveChannel = useChatStore((s) => s.setActiveChannel);
   const setActiveTopic = useChatStore((s) => s.setActiveTopic);
+  const setHighlightMessageId = useChatStore((s) => s.setHighlightMessageId);
   const channels = useChatStore((s) => s.channels);
   // Раскрытие dashboard-рейла (по ховеру трекпада/пера на iPad) — двигаем левый
   // край чата следом, чтобы рейл не налезал, а чат сдвигался как на ПК.
@@ -141,9 +142,12 @@ export default function ChatScreen() {
         appliedUrlChannelRef.current = id;
         restoredRef.current = true;
         const topicIdParam = searchParams.get('topicId');
+        const messageIdParam = searchParams.get('messageId');
         setActiveChannel(id).then(() => {
           // Глубокая ссылка на тему форума (из пуша) — открываем тему сразу
           if (topicIdParam) setActiveTopic(id, Number(topicIdParam));
+          // Глубокая ссылка на сообщение — скролл + подсветка
+          if (messageIdParam) setHighlightMessageId(Number(messageIdParam));
         });
         setShowSidebar(false);
         window.history.replaceState(null, '', basePath);
@@ -161,7 +165,7 @@ export default function ChatScreen() {
         setActiveChannel(saved);
       }
     }
-  }, [channels, searchParams, setActiveChannel, setActiveTopic, basePath]);
+  }, [channels, searchParams, setActiveChannel, setActiveTopic, setHighlightMessageId, basePath]);
 
   // On mobile, selecting a channel hides sidebar
   const handleSelectChannel = () => {

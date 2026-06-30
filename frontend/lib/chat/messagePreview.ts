@@ -12,7 +12,14 @@ export function previewMessageText(raw: string | null | undefined): string {
   return raw
     .replace(/@\[([^\]]+)\]\(user:\d+\)/g, '@$1')
     .replace(/#\[([^\]]+)\]\(task:\d+(?:\|[^)]*)?\)/g, '#$1')
-    .replace(/\*\*(.+?)\*\*/g, '$1');
+    .replace(/```([\s\S]*?)```/g, '$1')
+    .replace(/\[([^\]]+)\]\([^)\s]+\)/g, '$1') // именованная ссылка → текст
+    .replace(/\*\*([\s\S]+?)\*\*/g, '$1')
+    .replace(/~~([\s\S]+?)~~/g, '$1')
+    .replace(/\|\|([\s\S]+?)\|\|/g, '$1')
+    .replace(/__([\s\S]+?)__/g, '$1')
+    .replace(/`([^`]+?)`/g, '$1')
+    .replace(/(^|\n)>\s?/g, '$1');
 }
 
 interface PreviewAttachment {

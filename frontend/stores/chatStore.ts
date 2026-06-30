@@ -340,10 +340,13 @@ interface ChatState {
   replyToMessage: ChatMessage | null;
   editingMessage: ChatMessage | null;
   chatWindowOpen: boolean;
+  // Сообщение, к которому надо проскроллить и подсветить (deep-link на сообщение)
+  highlightMessageId: number | null;
 
   // Actions
   setChatWindowOpen: (open: boolean) => void;
   setShowArchive: (show: boolean) => void;
+  setHighlightMessageId: (id: number | null) => void;
   connect: () => void;
   disconnect: () => void;
   // Refcounted socket lifecycle: several consumers (страница чата + мини-чат)
@@ -428,6 +431,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   replyToMessage: null,
   editingMessage: null,
   chatWindowOpen: false,
+  highlightMessageId: null,
 
   connect: () => {
     if (socketRef?.connected) return;
@@ -1290,6 +1294,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   setChatWindowOpen: (open) => set({ chatWindowOpen: open }),
   setShowArchive: (show) => set({ showArchive: show }),
+  setHighlightMessageId: (id) => set({ highlightMessageId: id }),
 
   fetchArchivedCount: async () => {
     try {
