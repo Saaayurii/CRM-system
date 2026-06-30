@@ -283,8 +283,12 @@ export class ChatRepository {
     channelId: number,
     cursor?: number,
     limit: number = 50,
+    topicId?: number,
   ) {
     const where: any = { channelId, isDeleted: false };
+    if (topicId) {
+      where.topicId = topicId;
+    }
     if (cursor) {
       where.id = { lt: cursor };
     }
@@ -425,12 +429,25 @@ export class ChatRepository {
   async getUnreadSummary(userId: number) {
     const memberships = await (this.prisma as any).chatChannelMember.findMany({
       where: { userId },
-      select: { channelId: true, lastReadAt: true },
+      select: {
+        channelId: true,
+        lastReadAt: true,
+        channel: { select: { settings: true } },
+      },
     });
 
     const summary: { channelId: number; unreadCount: number }[] = [];
 
     for (const membership of memberships) {
+      // Форум-каналы: непрочитанное = сумма по темам (chat_topic_reads),
+      // т.к. lastReadAt участника по каналу не двигается при чтении тем.
+      const topicsEnabled = !!(membership.channel?.settings as any)?.topicsEnabled;
+      if (topicsEnabled) {
+        const count = await this.getForumChannelUnread(membership.channelId, userId);
+        summary.push({ channelId: membership.channelId, unreadCount: count });
+        continue;
+      }
+
       const where: any = {
         channelId: membership.channelId,
         isDeleted: false,
@@ -444,6 +461,153 @@ export class ChatRepository {
     }
 
     return summary;
+  }
+
+  // --- Topics ---
+
+  async createTopic(data: {
+    channelId: number;
+    accountId: number;
+    name: string;
+    iconEmoji?: string;
+    color?: string;
+    createdByUserId?: number | null;
+    isGeneral?: boolean;
+    sortOrder?: number;
+  }) {
+    return (this.prisma as any).chatTopic.create({ data });
+  }
+
+  async findTopicById(topicId: number) {
+    return (this.prisma as any).chatTopic.findFirst({
+      where: { id: topicId, deletedAt: null },
+    });
+  }
+
+  async findTopicsByChannel(channelId: number) {
+    return (this.prisma as any).chatTopic.findMany({
+      where: { channelId, deletedAt: null },
+      orderBy: [
+        { isPinned: 'desc' },
+        { isGeneral: 'desc' },
+        { lastMessageAt: 'desc' },
+        { id: 'desc' },
+      ],
+    });
+  }
+
+  async findGeneralTopic(channelId: number) {
+    return (this.prisma as any).chatTopic.findFirst({
+      where: { channelId, isGeneral: true, deletedAt: null },
+    });
+  }
+
+  async updateTopic(topicId: number, data: any) {
+    return (this.prisma as any).chatTopic.update({
+      where: { id: topicId },
+      data,
+    });
+  }
+
+  async softDeleteTopic(topicId: number) {
+    return (this.prisma as any).chatTopic.update({
+      where: { id: topicId },
+      data: { deletedAt: new Date() },
+    });
+  }
+
+  async bumpTopicLastMessageAt(topicId: number, when: Date) {
+    return (this.prisma as any).chatTopic.update({
+      where: { id: topicId },
+      data: { lastMessageAt: when },
+    });
+  }
+
+  /** При включении режима тем переносим все «бестемные» сообщения в General. */
+  async setMessagesTopic(channelId: number, topicId: number) {
+    return (this.prisma as any).chatMessage.updateMany({
+      where: { channelId, topicId: null },
+      data: { topicId },
+    });
+  }
+
+  async markTopicRead(topicId: number, userId: number) {
+    return (this.prisma as any).chatTopicRead.upsert({
+      where: { topicId_userId: { topicId, userId } },
+      update: { lastReadAt: new Date() },
+      create: { topicId, userId, lastReadAt: new Date() },
+    });
+  }
+
+  /** Непрочитанное по каждой теме канала для пользователя: [{ topicId, unread }]. */
+  async getTopicUnreadMap(
+    channelId: number,
+    userId: number,
+  ): Promise<{ topicId: number; unread: number }[]> {
+    const rows = await (this.prisma as any).$queryRawUnsafe(
+      `SELECT t.id AS topic_id,
+              (SELECT COUNT(*) FROM chat_messages m
+                 WHERE m.topic_id = t.id AND m.is_deleted = false
+                   AND (r.last_read_at IS NULL OR m.created_at > r.last_read_at)
+              ) AS unread
+       FROM chat_topics t
+       LEFT JOIN chat_topic_reads r ON r.topic_id = t.id AND r.user_id = $2
+       WHERE t.channel_id = $1 AND t.deleted_at IS NULL`,
+      channelId,
+      userId,
+    );
+    return (rows as { topic_id: number; unread: bigint }[]).map((r) => ({
+      topicId: Number(r.topic_id),
+      unread: Number(r.unread),
+    }));
+  }
+
+  async getForumChannelUnread(channelId: number, userId: number): Promise<number> {
+    const rows = await (this.prisma as any).$queryRawUnsafe(
+      `SELECT COALESCE(SUM(s.cnt), 0) AS total FROM (
+         SELECT (SELECT COUNT(*) FROM chat_messages m
+                   WHERE m.topic_id = t.id AND m.is_deleted = false
+                     AND (r.last_read_at IS NULL OR m.created_at > r.last_read_at)
+                ) AS cnt
+         FROM chat_topics t
+         LEFT JOIN chat_topic_reads r ON r.topic_id = t.id AND r.user_id = $2
+         WHERE t.channel_id = $1 AND t.deleted_at IS NULL
+       ) s`,
+      channelId,
+      userId,
+    );
+    return Number((rows as { total: bigint }[])[0]?.total || 0);
+  }
+
+  /** Последнее сообщение каждой темы канала (для превью в списке тем). */
+  async getTopicLastMessages(channelId: number): Promise<
+    {
+      topicId: number;
+      text: string | null;
+      messageType: string;
+      attachments: any;
+      senderName: string | null;
+      createdAt: Date;
+    }[]
+  > {
+    const rows = await (this.prisma as any).$queryRawUnsafe(
+      `SELECT DISTINCT ON (m.topic_id)
+              m.topic_id, m.message_text, m.message_type, m.attachments,
+              m.created_at, u.name AS sender_name
+       FROM chat_messages m
+       LEFT JOIN users u ON u.id = m.user_id
+       WHERE m.channel_id = $1 AND m.topic_id IS NOT NULL AND m.is_deleted = false
+       ORDER BY m.topic_id, m.created_at DESC`,
+      channelId,
+    );
+    return (rows as any[]).map((r) => ({
+      topicId: Number(r.topic_id),
+      text: r.message_text,
+      messageType: r.message_type,
+      attachments: r.attachments,
+      senderName: r.sender_name,
+      createdAt: r.created_at,
+    }));
   }
 
   /**

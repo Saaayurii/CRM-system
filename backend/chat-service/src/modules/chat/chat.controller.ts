@@ -24,6 +24,8 @@ import {
   AddMemberDto,
   SendMessageDto,
   EditMessageDto,
+  CreateTopicDto,
+  UpdateTopicDto,
 } from './dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { PresenceService } from '../presence/presence.service';
@@ -297,6 +299,93 @@ export class ChatController {
     return this.chatService.clearChannelHistory(id, accountId, userId);
   }
 
+  // --- Topics (Telegram-style forum topics) ---
+
+  @Get(':id/topics')
+  @ApiOperation({ summary: 'List topics of a forum channel' })
+  @ApiResponse({ status: 200, description: 'Topics retrieved' })
+  listTopics(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
+    return this.chatService.listTopics(id, user);
+  }
+
+  @Patch(':id/topics-config')
+  @ApiOperation({ summary: 'Enable/disable topics mode + create-topics permission' })
+  @ApiResponse({ status: 200, description: 'Topics config updated' })
+  async setTopicsConfig(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser('accountId') accountId: number,
+    @CurrentUser('id') userId: number,
+    @Body() body: { topicsEnabled?: boolean; createTopicsPermission?: 'all' | 'admins' },
+  ) {
+    const result = await this.chatService.setTopicsConfig(id, accountId, userId, body);
+    this.chatGateway.server.to(`channel:${id}`).emit('topics:config', {
+      channelId: id,
+      topicsEnabled: result.topicsEnabled,
+      createTopicsPermission: result.createTopicsPermission,
+    });
+    return result;
+  }
+
+  @Post(':id/topics')
+  @ApiOperation({ summary: 'Create a topic in a forum channel' })
+  @ApiResponse({ status: 201, description: 'Topic created' })
+  async createTopic(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser('accountId') accountId: number,
+    @CurrentUser('id') userId: number,
+    @Body() dto: CreateTopicDto,
+  ) {
+    const topic = await this.chatService.createTopic(id, accountId, userId, dto);
+    this.chatGateway.server
+      .to(`channel:${id}`)
+      .emit('topic:created', { channelId: id, topic });
+    return topic;
+  }
+
+  @Put(':id/topics/:topicId')
+  @ApiOperation({ summary: 'Edit a topic (name/icon/color, pin/close)' })
+  @ApiResponse({ status: 200, description: 'Topic updated' })
+  async updateTopic(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('topicId', ParseIntPipe) topicId: number,
+    @CurrentUser('accountId') accountId: number,
+    @CurrentUser('id') userId: number,
+    @Body() dto: UpdateTopicDto,
+  ) {
+    const topic = await this.chatService.updateTopic(id, accountId, userId, topicId, dto);
+    this.chatGateway.server
+      .to(`channel:${id}`)
+      .emit('topic:updated', { channelId: id, topic });
+    return topic;
+  }
+
+  @Delete(':id/topics/:topicId')
+  @ApiOperation({ summary: 'Delete a topic (soft delete; General is protected)' })
+  @ApiResponse({ status: 200, description: 'Topic deleted' })
+  async deleteTopic(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('topicId', ParseIntPipe) topicId: number,
+    @CurrentUser('accountId') accountId: number,
+    @CurrentUser('id') userId: number,
+  ) {
+    const result = await this.chatService.deleteTopic(id, accountId, userId, topicId);
+    this.chatGateway.server
+      .to(`channel:${id}`)
+      .emit('topic:deleted', { channelId: id, topicId });
+    return result;
+  }
+
+  @Patch(':id/topics/:topicId/read')
+  @ApiOperation({ summary: 'Mark a topic as read for the current user' })
+  @ApiResponse({ status: 200, description: 'Topic marked as read' })
+  markTopicRead(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('topicId', ParseIntPipe) topicId: number,
+    @CurrentUser('id') userId: number,
+  ) {
+    return this.chatService.markTopicRead(id, userId, topicId);
+  }
+
   // --- Members ---
 
   @Get(':id/members')
@@ -357,18 +446,21 @@ export class ChatController {
   @ApiOperation({ summary: 'Get channel messages (cursor-based pagination)' })
   @ApiQuery({ name: 'cursor', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'topicId', required: false, type: Number })
   @ApiResponse({ status: 200, description: 'Messages retrieved' })
   findChannelMessages(
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser() user: any,
     @Query('cursor') cursor?: string,
     @Query('limit') limit?: string,
+    @Query('topicId') topicId?: string,
   ) {
     return this.chatService.findChannelMessagesCursor(
       id,
       user,
       cursor ? parseInt(cursor, 10) : undefined,
       limit ? parseInt(limit, 10) : 50,
+      topicId ? parseInt(topicId, 10) : undefined,
     );
   }
 

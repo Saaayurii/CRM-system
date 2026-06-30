@@ -35,4 +35,9 @@ export class SendMessageDto {
   @IsOptional()
   @IsInt()
   replyToMessageId?: number;
+
+  @ApiPropertyOptional({ description: 'Topic ID (forum channels)' })
+  @IsOptional()
+  @IsInt()
+  topicId?: number;
 }

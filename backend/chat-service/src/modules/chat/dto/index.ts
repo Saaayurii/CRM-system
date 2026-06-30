@@ -6,3 +6,5 @@ export { EditMessageDto } from './edit-message.dto';
 export { ReactMessageDto } from './react-message.dto';
 export { MarkReadDto } from './mark-read.dto';
 export { TypingDto } from './typing.dto';
+export { CreateTopicDto } from './create-topic.dto';
+export { UpdateTopicDto } from './update-topic.dto';

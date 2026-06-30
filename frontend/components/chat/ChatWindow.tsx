@@ -13,6 +13,7 @@ import ChatInput from './ChatInput';
 import UserProfileModal from './UserProfileModal';
 import VoicePlayerBar from './VoicePlayerBar';
 import ForwardMessageModal from './ForwardMessageModal';
+import TopicListView from './TopicListView';
 import { useT } from '@/lib/i18n';
 
 /* Плавающие «стеклянные» поверхности шапки и input-бара чата (Liquid Glass,
@@ -179,6 +180,9 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
   const setEditingMessage = useChatStore((s) => s.setEditingMessage);
   const setActiveChannel = useChatStore((s) => s.setActiveChannel);
   const setShowArchive = useChatStore((s) => s.setShowArchive);
+  const topicsByChannel = useChatStore((s) => s.topicsByChannel);
+  const activeTopicId = useChatStore((s) => s.activeTopicId);
+  const setActiveTopic = useChatStore((s) => s.setActiveTopic);
   const user = useAuthStore((s) => s.user);
 
   const handleGoToOriginalChannel = useCallback((channelId: number) => {
@@ -358,6 +362,14 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
 
   const activeChannel = channels.find((ch) => ch.id === activeChannelId)
     ?? archivedChannels.find((ch) => ch.id === activeChannelId);
+  // Темы (Telegram-style forum): форум-канал с включёнными темами.
+  const isForum = activeChannel?.channelType === 'group' && !!activeChannel?.topicsEnabled;
+  const channelTopics = activeChannelId ? topicsByChannel[activeChannelId] : undefined;
+  const activeTopic = isForum && activeTopicId
+    ? channelTopics?.find((t) => t.id === activeTopicId) ?? null
+    : null;
+  // Список тем показываем, когда форум открыт, но конкретная тема не выбрана
+  const showTopicList = isForum && activeTopicId == null;
   const channelTyping = activeChannelId ? typingUsers[activeChannelId] || [] : [];
   const channelActivity = activeChannelId ? activityUsers[activeChannelId] || [] : [];
 
@@ -383,6 +395,8 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
   );
   const isCurrentUserMuted = currentMember?.isMuted ?? false;
   const isCurrentUserAdmin = currentMember?.role === 'admin';
+  // Закрытая тема: писать могут только админы канала
+  const topicClosed = !!(activeTopic?.isClosed && !isCurrentUserAdmin);
   const isCompanyAdmin = user?.roleId === 1 || user?.roleId === 2;
 
   // Self-chat detection
@@ -819,6 +833,16 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
 
   return (
     <div className="flex flex-1 min-h-0 relative">
+      {/* Форум с включёнными темами и без открытой темы — показываем список тем
+          вместо ленты сообщений (как в Telegram) */}
+      {showTopicList ? (
+        <TopicListView
+          channel={activeChannel}
+          onBack={onBack}
+          onOpenInfo={() => { setShowInfo(true); setShowSearch(false); setShowCalendar(false); }}
+        />
+      ) : (
+      <>
       {/* Main chat column — обои/фон на самой колонке (статичны), лента и
           input-бар прозрачны, поэтому стеклянные шапка и контролы парят над
           единым фоном (как в Telegram), а не над сплошными панелями */}
@@ -833,10 +857,14 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
         >
         {/* Header — плавающие стеклянные пилюли поверх ленты (как в Telegram) */}
         <div className="flex items-center gap-2 px-3 py-2.5 shrink-0">
-          {/* Back button (mobile) — стеклянный кружок */}
+          {/* Back button — на мобиле всегда; в теме форума виден на всех размерах
+              и возвращает к списку тем (как в Telegram) */}
           <button
-            onClick={onBack}
-            className={`lg:hidden shrink-0 w-9 h-9 flex items-center justify-center rounded-full text-gray-600 dark:text-gray-200 ${GLASS_SURFACE}`}
+            onClick={() => {
+              if (activeTopic && activeChannelId) setActiveTopic(activeChannelId, null);
+              else onBack();
+            }}
+            className={`${activeTopic ? '' : 'lg:hidden'} shrink-0 w-9 h-9 flex items-center justify-center rounded-full text-gray-600 dark:text-gray-200 ${GLASS_SURFACE}`}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -859,7 +887,14 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
           >
           {/* Avatar */}
           <div className="relative shrink-0">
-            {(() => {
+            {activeTopic ? (
+              <div
+                className="w-9 h-9 rounded-full flex items-center justify-center text-lg shrink-0"
+                style={{ backgroundColor: `${activeTopic.color || '#64748b'}22` }}
+              >
+                <span>{activeTopic.iconEmoji || '💬'}</span>
+              </div>
+            ) : (() => {
               const avatarSrc = activeChannel.channelType === 'direct'
                 ? (partner?.avatarUrl ?? activeChannel.avatarUrl)
                 : activeChannel.avatarUrl;
@@ -899,11 +934,13 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
           {/* Channel info — текст внутри пилюли */}
           <div className="min-w-0">
             <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">
-              {channelDisplayName}
+              {activeTopic ? activeTopic.name : channelDisplayName}
             </h3>
             <p className={`text-xs truncate ${presenceLabel ? 'text-violet-500 dark:text-violet-400' : 'text-gray-400 dark:text-gray-500'}`}>
               {presenceLabel
                 ? presenceLabel
+                : activeTopic
+                ? channelDisplayName
                 : isSelf
                 ? 'Личное пространство'
                 : activeChannel.channelType === 'group'
@@ -1261,13 +1298,15 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
           className="absolute inset-x-0 bottom-0 z-20"
           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         >
-        {isCurrentUserMuted ? (
+        {isCurrentUserMuted || topicClosed ? (
           <div className="px-3 pb-3 pt-2">
             <div className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl ${GLASS_SURFACE}`}>
               <svg className="w-4 h-4 text-red-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
               </svg>
-              <span className="text-sm text-red-500 dark:text-red-400">{t('Администратор ограничил возможность отправки сообщений')}</span>
+              <span className="text-sm text-red-500 dark:text-red-400">
+                {topicClosed ? t('Тема закрыта — писать могут только администраторы') : t('Администратор ограничил возможность отправки сообщений')}
+              </span>
             </div>
           </div>
         ) : (
@@ -1275,6 +1314,8 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
         )}
         </div>
       </div>
+      </>
+      )}
 
       {/* Forward message modal */}
       {forwardingMessage && (
@@ -1353,6 +1394,7 @@ function InfoPanel({ channel, partner, isSelf, isPartnerOnline, isAdmin, isCompa
   const [mutingId, setMutingId] = useState<number | null>(null);
   const [showAddMember, setShowAddMember] = useState(false);
   const updateChannels = useChatStore((s) => s.fetchChannels);
+  const setTopicsConfig = useChatStore((s) => s.setTopicsConfig);
   const canManageMembers = isAdmin || isCompanyAdmin;
   const lastSeenAt = useChatStore((s) => s.lastSeenAt);
   const partnerLastSeenText = partner ? formatLastSeen(lastSeenAt[partner.id]) : null;
@@ -1474,6 +1516,47 @@ function InfoPanel({ channel, partner, isSelf, isPartnerOnline, isAdmin, isCompa
               label={t('В компании с')}
               value={details?.hireDate ? new Date(details.hireDate).toLocaleDateString('ru-RU') : undefined}
             />
+          </div>
+        )}
+
+        {/* Темы (Telegram-style forum topics) — управление доступно админам канала */}
+        {channel.channelType === 'group' && isAdmin && (
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">
+              {t('Темы')}
+            </p>
+            <label className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-700/40 cursor-pointer">
+              <span className="text-sm text-gray-700 dark:text-gray-200">{t('Разделить чат на темы')}</span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={!!channel.topicsEnabled}
+                onClick={() => setTopicsConfig(channel.id, { topicsEnabled: !channel.topicsEnabled })}
+                className={`relative w-10 h-6 rounded-full transition-colors shrink-0 ${channel.topicsEnabled ? 'bg-violet-500' : 'bg-gray-300 dark:bg-gray-600'}`}
+              >
+                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${channel.topicsEnabled ? 'translate-x-4' : ''}`} />
+              </button>
+            </label>
+            {channel.topicsEnabled && (
+              <div className="px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-700/40">
+                <p className="text-sm text-gray-700 dark:text-gray-200 mb-2">{t('Кто может создавать темы')}</p>
+                <div className="flex gap-2">
+                  {(['all', 'admins'] as const).map((perm) => (
+                    <button
+                      key={perm}
+                      onClick={() => setTopicsConfig(channel.id, { createTopicsPermission: perm })}
+                      className={`flex-1 px-3 py-1.5 text-xs rounded-lg transition-colors ${
+                        (channel.createTopicsPermission ?? 'all') === perm
+                          ? 'bg-violet-500 text-white'
+                          : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600'
+                      }`}
+                    >
+                      {perm === 'all' ? t('Все участники') : t('Только админы')}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 

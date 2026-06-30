@@ -1700,6 +1700,40 @@ CREATE INDEX idx_chat_messages_channel ON chat_messages(channel_id);
 CREATE INDEX idx_chat_messages_user ON chat_messages(user_id);
 CREATE INDEX idx_chat_messages_created ON chat_messages(created_at);
 
+-- Темы чата (Telegram-style forum topics): группа делится на именованные ветки.
+-- Режим тем хранится в chat_channels.settings.topicsEnabled (JSONB).
+CREATE TABLE chat_topics (
+    id SERIAL PRIMARY KEY,
+    channel_id INTEGER NOT NULL REFERENCES chat_channels(id) ON DELETE CASCADE,
+    account_id INTEGER NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    icon_emoji VARCHAR(32),
+    color VARCHAR(20),
+    created_by_user_id INTEGER,
+    is_general BOOLEAN DEFAULT FALSE,   -- несносимая тема «Общее»
+    is_closed BOOLEAN DEFAULT FALSE,    -- закрыта: писать могут только админы
+    is_pinned BOOLEAN DEFAULT FALSE,
+    pinned_at TIMESTAMP,
+    sort_order INTEGER DEFAULT 0,
+    last_message_at TIMESTAMP,
+    deleted_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_chat_topics_channel ON chat_topics(channel_id) WHERE deleted_at IS NULL;
+
+CREATE TABLE chat_topic_reads (
+    id SERIAL PRIMARY KEY,
+    topic_id INTEGER NOT NULL REFERENCES chat_topics(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL,
+    last_read_at TIMESTAMP,
+    UNIQUE(topic_id, user_id)
+);
+CREATE INDEX idx_chat_topic_reads_user ON chat_topic_reads(user_id);
+
+ALTER TABLE chat_messages ADD COLUMN topic_id INTEGER REFERENCES chat_topics(id) ON DELETE SET NULL;
+CREATE INDEX idx_chat_messages_topic ON chat_messages(channel_id, topic_id, created_at);
+
 CREATE TABLE announcements (
     id SERIAL PRIMARY KEY,
     account_id INTEGER REFERENCES accounts(id) ON DELETE CASCADE,

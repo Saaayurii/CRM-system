@@ -202,6 +202,7 @@ export class ChatGateway
       messageType?: string;
       attachments?: any[];
       replyToMessageId?: number;
+      topicId?: number;
     },
   ) {
     const message = await this.chatService.createMessage(
@@ -213,6 +214,7 @@ export class ChatGateway
         messageType: data.messageType,
         attachments: data.attachments,
         replyToMessageId: data.replyToMessageId,
+        topicId: data.topicId,
       },
     );
 
@@ -239,7 +241,9 @@ export class ChatGateway
         const preview = data.messageText
           ? data.messageText.slice(0, 120)
           : '📎 Вложение';
-        const actionUrl = `/dashboard/chat?channelId=${data.channelId}`;
+        const actionUrl = message.topicId
+          ? `/dashboard/chat?channelId=${data.channelId}&topicId=${message.topicId}`
+          : `/dashboard/chat?channelId=${data.channelId}`;
 
         const now = Date.now();
         const payloads = channel.members
@@ -547,5 +551,30 @@ export class ChatGateway
     this.server.to(`channel:${data.channelId}`).emit('message:new', systemMessage);
 
     return { event: 'message:unpin:ack' };
+  }
+
+  // --- Topics ---
+
+  @UseGuards(WsJwtGuard)
+  @SubscribeMessage('topic:read')
+  async handleTopicRead(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() data: { channelId: number; topicId: number },
+  ) {
+    await this.chatService.markTopicRead(
+      data.channelId,
+      client.user.id,
+      data.topicId,
+    );
+
+    // Уведомляем другие устройства пользователя того же канала, чтобы счётчики
+    // непрочитанного по теме синхронизировались.
+    this.server.to(`channel:${data.channelId}`).emit('topic:read:updated', {
+      channelId: data.channelId,
+      topicId: data.topicId,
+      userId: client.user.id,
+    });
+
+    return { event: 'topic:read:ack', data: { topicId: data.topicId } };
   }
 }

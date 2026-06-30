@@ -53,6 +53,7 @@ export interface ForwardMeta {
 export interface ChatMessage {
   id: number;
   channelId: number;
+  topicId?: number | null;
   senderId: number;
   senderName: string;
   senderAvatarUrl?: string;
@@ -92,6 +93,28 @@ export interface ChatChannel {
   mutedUntil?: string | null;
   isMutedForMe?: boolean;
   myRole?: string;
+  // Темы (Telegram-style forum topics)
+  topicsEnabled?: boolean;
+  createTopicsPermission?: 'all' | 'admins';
+}
+
+export interface ChatTopic {
+  id: number;
+  channelId: number;
+  name: string;
+  iconEmoji?: string | null;
+  color?: string | null;
+  createdByUserId?: number | null;
+  isGeneral: boolean;
+  isClosed: boolean;
+  isPinned: boolean;
+  lastMessageAt?: string | null;
+  unreadCount: number;
+  lastMessage?: {
+    text: string;
+    senderName: string;
+    createdAt: string;
+  } | null;
 }
 
 export interface CreateChannelDto {
@@ -137,6 +160,7 @@ export function mapRawMessage(raw: any): ChatMessage {
   return {
     id: raw.id,
     channelId: raw.channelId,
+    topicId: raw.topicId ?? null,
     senderId: raw.senderId ?? raw.userId,
     senderName: raw.senderName ?? getFullName(user),
     senderAvatarUrl: raw.senderAvatarUrl ?? user.avatarUrl ?? undefined,
@@ -243,6 +267,36 @@ function mapRawChannel(raw: any, currentUserId?: number): ChatChannel {
     mutedUntil,
     isMutedForMe,
     myRole,
+    topicsEnabled: !!settings.topicsEnabled,
+    createTopicsPermission: (settings.createTopicsPermission as 'all' | 'admins') ?? 'all',
+  };
+}
+
+function mapRawTopic(raw: any): ChatTopic {
+  const lm = raw.lastMessage;
+  return {
+    id: raw.id,
+    channelId: raw.channelId,
+    name: raw.name,
+    iconEmoji: raw.iconEmoji ?? null,
+    color: raw.color ?? null,
+    createdByUserId: raw.createdByUserId ?? null,
+    isGeneral: !!raw.isGeneral,
+    isClosed: !!raw.isClosed,
+    isPinned: !!raw.isPinned,
+    lastMessageAt: raw.lastMessageAt ?? null,
+    unreadCount: raw.unreadCount ?? 0,
+    lastMessage: lm
+      ? {
+          text: previewFromMessage(
+            lm.text ?? lm.message_text ?? '',
+            lm.messageType ?? lm.message_type,
+            lm.attachments ?? [],
+          ),
+          senderName: lm.senderName ?? lm.sender_name ?? '',
+          createdAt: lm.createdAt ?? lm.created_at,
+        }
+      : null,
   };
 }
 
@@ -254,6 +308,9 @@ interface ChatState {
   archivedCount: number;
   showArchive: boolean;
   activeChannelId: number | null;
+  // Темы: id канала → список тем; активная открытая тема внутри форум-канала
+  topicsByChannel: Record<number, ChatTopic[]>;
+  activeTopicId: number | null;
   messages: ChatMessage[];
   typingUsers: Record<number, { userId: number; name: string }[]>;
   // channelId → пользователи, отправляющие медиа/файл («отправляет фото…»)
@@ -293,6 +350,14 @@ interface ChatState {
   startActivity: (channelId: number, kind: string) => void;
   stopActivity: (channelId: number) => void;
   setActiveChannel: (channelId: number | null) => Promise<void>;
+  // Темы
+  fetchTopics: (channelId: number) => Promise<void>;
+  setActiveTopic: (channelId: number, topicId: number | null) => Promise<void>;
+  createTopic: (channelId: number, dto: { name: string; iconEmoji?: string; color?: string }) => Promise<ChatTopic | null>;
+  updateTopic: (channelId: number, topicId: number, dto: { name?: string; iconEmoji?: string; color?: string; isClosed?: boolean; isPinned?: boolean }) => Promise<void>;
+  deleteTopic: (channelId: number, topicId: number) => Promise<void>;
+  setTopicsConfig: (channelId: number, dto: { topicsEnabled?: boolean; createTopicsPermission?: 'all' | 'admins' }) => Promise<void>;
+  markTopicRead: (channelId: number, topicId: number) => void;
   fetchChannels: (page?: number) => Promise<void>;
   fetchUnreadSummary: () => Promise<void>;
   fetchArchivedChannels: () => Promise<void>;
@@ -333,6 +398,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
   archivedCount: 0,
   showArchive: false,
   activeChannelId: null,
+  topicsByChannel: {},
+  activeTopicId: null,
   messages: [],
   typingUsers: {},
   activityUsers: {},
@@ -383,7 +450,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     // New message
     socket.on('message:new', (raw: any) => {
       const message = mapRawMessage(raw);
-      const { activeChannelId, channels, unreadCounts } = get();
+      const { activeChannelId, activeTopicId, channels, unreadCounts, topicsByChannel } = get();
 
       // Превью для списка чатов: сообщения без текста описываем по вложению
       // («📷 Фотография», «🎤 Голосовое сообщение» и т.д. — как в Telegram)
@@ -414,23 +481,66 @@ export const useChatStore = create<ChatState>((set, get) => ({
         updatedChannels.unshift(withNewMsg);
       }
 
-      if (message.channelId === activeChannelId) {
+      const isForum = !!updatedChannel?.topicsEnabled;
+      const viewingThisTopic =
+        message.channelId === activeChannelId && message.topicId === activeTopicId;
+
+      // Обновляем тему в списке тем: превью последнего сообщения + бейдж
+      // непрочитанного (если это не открытая сейчас тема).
+      let topicsUpdate = topicsByChannel;
+      if (isForum && message.topicId) {
+        const list = topicsByChannel[message.channelId] || [];
+        topicsUpdate = {
+          ...topicsByChannel,
+          [message.channelId]: list.map((t) =>
+            t.id === message.topicId
+              ? {
+                  ...t,
+                  lastMessageAt: message.createdAt,
+                  lastMessage: {
+                    text: previewText,
+                    senderName: message.senderName,
+                    createdAt: message.createdAt,
+                  },
+                  unreadCount: viewingThisTopic ? t.unreadCount : t.unreadCount + 1,
+                }
+              : t,
+          ),
+        };
+      }
+
+      // Лента: добавляем только если открыт этот канал и (не форум, либо открыта эта тема)
+      const appendToOpen =
+        message.channelId === activeChannelId && (!isForum || message.topicId === activeTopicId);
+
+      if (appendToOpen) {
         set((state) => ({
           messages: [...state.messages, message],
           channels: updatedChannels,
+          topicsByChannel: topicsUpdate,
         }));
-        // Auto-mark as read when viewing the channel
-        get().markAsRead(activeChannelId);
+        // Auto-mark as read when viewing the channel/topic
+        if (isForum && activeTopicId) get().markTopicRead(message.channelId, activeTopicId);
+        else get().markAsRead(activeChannelId!);
       } else {
+        // Сообщение не в открытой ленте — растим агрегат канала и (если канал не
+        // активен) показываем тост.
+        const bumpChannelUnread =
+          message.channelId !== activeChannelId || (isForum && message.topicId !== activeTopicId);
         set({
           channels: updatedChannels,
-          unreadCounts: {
-            ...unreadCounts,
-            [message.channelId]: (unreadCounts[message.channelId] || 0) + 1,
-          },
+          topicsByChannel: topicsUpdate,
+          unreadCounts: bumpChannelUnread
+            ? {
+                ...unreadCounts,
+                [message.channelId]: (unreadCounts[message.channelId] || 0) + 1,
+              }
+            : unreadCounts,
         });
-        const preview = previewText ? previewText.slice(0, 60) : 'Новое сообщение';
-        useToastStore.getState().addToast('info', `${message.senderName}: ${preview}`);
+        if (message.channelId !== activeChannelId) {
+          const preview = previewText ? previewText.slice(0, 60) : 'Новое сообщение';
+          useToastStore.getState().addToast('info', `${message.senderName}: ${preview}`);
+        }
       }
     });
 
@@ -605,6 +715,89 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }));
     });
 
+    // --- Topics ---
+    socket.on('topic:created', (data: { channelId: number; topic: any }) => {
+      const topic = mapRawTopic(data.topic);
+      set((state) => {
+        const list = state.topicsByChannel[data.channelId] || [];
+        if (list.some((t) => t.id === topic.id)) return state;
+        return {
+          topicsByChannel: { ...state.topicsByChannel, [data.channelId]: [topic, ...list] },
+        };
+      });
+    });
+
+    socket.on('topic:updated', (data: { channelId: number; topic: any }) => {
+      const updated = mapRawTopic(data.topic);
+      set((state) => {
+        const list = state.topicsByChannel[data.channelId] || [];
+        return {
+          topicsByChannel: {
+            ...state.topicsByChannel,
+            // редактируемые поля перезаписываем, счётчик/превью сохраняем
+            [data.channelId]: list.map((t) =>
+              t.id === updated.id
+                ? {
+                    ...t,
+                    name: updated.name,
+                    iconEmoji: updated.iconEmoji,
+                    color: updated.color,
+                    isClosed: updated.isClosed,
+                    isPinned: updated.isPinned,
+                  }
+                : t,
+            ),
+          },
+        };
+      });
+    });
+
+    socket.on('topic:deleted', (data: { channelId: number; topicId: number }) => {
+      set((state) => {
+        const list = state.topicsByChannel[data.channelId] || [];
+        const clearActive =
+          state.activeChannelId === data.channelId && state.activeTopicId === data.topicId;
+        return {
+          topicsByChannel: {
+            ...state.topicsByChannel,
+            [data.channelId]: list.filter((t) => t.id !== data.topicId),
+          },
+          ...(clearActive ? { activeTopicId: null, messages: [] } : {}),
+        };
+      });
+    });
+
+    socket.on('topic:read:updated', (data: { channelId: number; topicId: number; userId: number }) => {
+      // Своё прочтение с другого устройства — гасим бейдж темы и агрегат канала
+      if (data.userId !== useAuthStore.getState().user?.id) return;
+      set((state) => {
+        const list = state.topicsByChannel[data.channelId] || [];
+        const prev = list.find((t) => t.id === data.topicId)?.unreadCount || 0;
+        return {
+          topicsByChannel: {
+            ...state.topicsByChannel,
+            [data.channelId]: list.map((t) =>
+              t.id === data.topicId ? { ...t, unreadCount: 0 } : t,
+            ),
+          },
+          unreadCounts: {
+            ...state.unreadCounts,
+            [data.channelId]: Math.max(0, (state.unreadCounts[data.channelId] || 0) - prev),
+          },
+        };
+      });
+    });
+
+    socket.on('topics:config', (data: { channelId: number; topicsEnabled: boolean; createTopicsPermission: 'all' | 'admins' }) => {
+      set((state) => ({
+        channels: state.channels.map((c) =>
+          c.id === data.channelId
+            ? { ...c, topicsEnabled: data.topicsEnabled, createTopicsPermission: data.createTopicsPermission }
+            : c,
+        ),
+      }));
+    });
+
     socket.connect();
   },
 
@@ -630,12 +823,17 @@ export const useChatStore = create<ChatState>((set, get) => ({
   sendMessage: (channelId, text, attachments, replyToMessageId, messageType) => {
     if (!socketRef?.connected) return;
 
+    // Форум-канал: сообщение уходит в открытую тему
+    const { activeChannelId, activeTopicId } = get();
+    const topicId = channelId === activeChannelId ? activeTopicId ?? undefined : undefined;
+
     socketRef.emit('message:send', {
       channelId,
       messageText: text,
       attachments: attachments ?? [],
       replyToMessageId,
       messageType: messageType ?? 'text',
+      topicId,
     });
 
     set({ replyToMessage: null });
@@ -711,7 +909,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   setActiveChannel: async (channelId) => {
     const prevId = get().activeChannelId;
-    set({ activeChannelId: channelId, messages: [], hasMoreMessages: true });
+    set({ activeChannelId: channelId, activeTopicId: null, messages: [], hasMoreMessages: true });
 
     // Remember the open channel so it can be restored after a reload
     try {
@@ -728,8 +926,120 @@ export const useChatStore = create<ChatState>((set, get) => ({
       socketRef.emit('channel:join', { channelId });
     }
 
+    // Форум-канал: показываем список тем, ленту не грузим (тему выберет пользователь)
+    const channel = get().channels.find((c) => c.id === channelId);
+    if (channel?.topicsEnabled) {
+      await get().fetchTopics(channelId);
+      return;
+    }
+
     get().markAsRead(channelId);
     await get().fetchMessages(channelId);
+  },
+
+  fetchTopics: async (channelId) => {
+    try {
+      const { data } = await api.get(`/chat-channels/${channelId}/topics`);
+      const list: ChatTopic[] = Array.isArray(data) ? data.map(mapRawTopic) : [];
+      set((state) => ({
+        topicsByChannel: { ...state.topicsByChannel, [channelId]: list },
+      }));
+    } catch {
+      // ignore
+    }
+  },
+
+  setActiveTopic: async (channelId, topicId) => {
+    set({ activeTopicId: topicId, messages: [], hasMoreMessages: true });
+    if (topicId === null) return;
+    get().markTopicRead(channelId, topicId);
+    await get().fetchMessages(channelId);
+  },
+
+  createTopic: async (channelId, dto) => {
+    try {
+      const { data } = await api.post(`/chat-channels/${channelId}/topics`, dto);
+      const topic = mapRawTopic(data);
+      set((state) => {
+        const list = state.topicsByChannel[channelId] || [];
+        if (list.some((t) => t.id === topic.id)) return state;
+        return { topicsByChannel: { ...state.topicsByChannel, [channelId]: [topic, ...list] } };
+      });
+      return topic;
+    } catch {
+      return null;
+    }
+  },
+
+  updateTopic: async (channelId, topicId, dto) => {
+    const { data } = await api.put(`/chat-channels/${channelId}/topics/${topicId}`, dto);
+    const updated = mapRawTopic(data);
+    set((state) => {
+      const list = state.topicsByChannel[channelId] || [];
+      return {
+        topicsByChannel: {
+          ...state.topicsByChannel,
+          [channelId]: list.map((t) =>
+            t.id === topicId
+              ? {
+                  ...t,
+                  name: updated.name,
+                  iconEmoji: updated.iconEmoji,
+                  color: updated.color,
+                  isClosed: updated.isClosed,
+                  isPinned: updated.isPinned,
+                }
+              : t,
+          ),
+        },
+      };
+    });
+  },
+
+  deleteTopic: async (channelId, topicId) => {
+    await api.delete(`/chat-channels/${channelId}/topics/${topicId}`);
+    set((state) => {
+      const list = state.topicsByChannel[channelId] || [];
+      const clearActive = state.activeChannelId === channelId && state.activeTopicId === topicId;
+      return {
+        topicsByChannel: {
+          ...state.topicsByChannel,
+          [channelId]: list.filter((t) => t.id !== topicId),
+        },
+        ...(clearActive ? { activeTopicId: null, messages: [] } : {}),
+      };
+    });
+  },
+
+  setTopicsConfig: async (channelId, dto) => {
+    const { data } = await api.patch(`/chat-channels/${channelId}/topics-config`, dto);
+    set((state) => ({
+      channels: state.channels.map((c) =>
+        c.id === channelId
+          ? { ...c, topicsEnabled: data.topicsEnabled, createTopicsPermission: data.createTopicsPermission }
+          : c,
+      ),
+    }));
+    if (data.topicsEnabled) await get().fetchTopics(channelId);
+  },
+
+  markTopicRead: (channelId, topicId) => {
+    // Локально гасим бейдж темы и уменьшаем агрегат канала
+    set((state) => {
+      const list = state.topicsByChannel[channelId] || [];
+      const prev = list.find((t) => t.id === topicId)?.unreadCount || 0;
+      return {
+        topicsByChannel: {
+          ...state.topicsByChannel,
+          [channelId]: list.map((t) => (t.id === topicId ? { ...t, unreadCount: 0 } : t)),
+        },
+        unreadCounts: {
+          ...state.unreadCounts,
+          [channelId]: Math.max(0, (state.unreadCounts[channelId] || 0) - prev),
+        },
+      };
+    });
+    if (socketRef?.connected) socketRef.emit('topic:read', { channelId, topicId });
   },
 
   fetchUnreadSummary: async () => {
@@ -917,6 +1227,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
     try {
       const params: Record<string, unknown> = { limit: 50 };
       if (cursor) params.cursor = cursor;
+      // Форум-канал: грузим ленту только открытой темы
+      const topicId = get().activeTopicId;
+      if (topicId) params.topicId = topicId;
 
       const { data } = await api.get(`/chat-channels/${channelId}/messages`, { params });
 

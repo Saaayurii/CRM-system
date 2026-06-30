@@ -16,6 +16,7 @@ model Account {
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
 
   chatChannels ChatChannel[]
+  chatTopics   ChatTopic[]
 
   @@map("accounts")
 }
@@ -52,6 +53,7 @@ model ChatChannel {
   account  Account             @relation(fields: [accountId], references: [id], onDelete: Cascade)
   members  ChatChannelMember[]
   messages ChatMessage[]
+  topics   ChatTopic[]
 
   @@map("chat_channels")
 }
@@ -76,9 +78,50 @@ model ChatChannelMember {
   @@map("chat_channel_members")
 }
 
+model ChatTopic {
+  id              Int       @id @default(autoincrement())
+  channelId       Int       @map("channel_id")
+  accountId       Int       @map("account_id")
+  name            String    @db.VarChar(255)
+  iconEmoji       String?   @map("icon_emoji") @db.VarChar(32)
+  color           String?   @db.VarChar(20)
+  createdByUserId Int?      @map("created_by_user_id")
+  isGeneral       Boolean   @default(false) @map("is_general")
+  isClosed        Boolean   @default(false) @map("is_closed")
+  isPinned        Boolean   @default(false) @map("is_pinned")
+  pinnedAt        DateTime? @map("pinned_at")
+  sortOrder       Int       @default(0) @map("sort_order")
+  lastMessageAt   DateTime? @map("last_message_at")
+  deletedAt       DateTime? @map("deleted_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  channel  ChatChannel     @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  account  Account         @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  messages ChatMessage[]
+  reads    ChatTopicRead[]
+
+  @@index([channelId])
+  @@map("chat_topics")
+}
+
+model ChatTopicRead {
+  id         Int       @id @default(autoincrement())
+  topicId    Int       @map("topic_id")
+  userId     Int       @map("user_id")
+  lastReadAt DateTime? @map("last_read_at")
+
+  topic ChatTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@unique([topicId, userId])
+  @@index([userId])
+  @@map("chat_topic_reads")
+}
+
 model ChatMessage {
   id               Int       @id @default(autoincrement())
   channelId        Int       @map("channel_id")
+  topicId          Int?      @map("topic_id")
   userId           Int?      @map("user_id")
   messageText      String?   @map("message_text") @db.Text
   messageType      String    @default("text") @map("message_type") @db.VarChar(50)
@@ -92,11 +135,13 @@ model ChatMessage {
   createdAt        DateTime  @default(now()) @map("created_at")
 
   channel        ChatChannel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  topic          ChatTopic?   @relation(fields: [topicId], references: [id], onDelete: SetNull)
   user           User?        @relation(fields: [userId], references: [id])
   replyToMessage ChatMessage? @relation("MessageReplies", fields: [replyToMessageId], references: [id])
   replies        ChatMessage[] @relation("MessageReplies")
 
   @@index([channelId])
+  @@index([topicId])
   @@index([userId])
   @@index([createdAt])
   @@map("chat_messages")

@@ -372,6 +372,7 @@ export class ChatService {
     user: { id: number; roleId: number; accountId: number },
     cursor?: number,
     limit: number = 50,
+    topicId?: number,
   ) {
     await this.findChannelById(channelId, user.accountId);
     if (user.roleId === 15) {
@@ -384,6 +385,7 @@ export class ChatService {
       channelId,
       cursor,
       limit,
+      topicId,
     );
   }
 
@@ -408,21 +410,50 @@ export class ChatService {
     userId: number,
     dto: SendMessageDto,
   ) {
-    await this.findChannelById(channelId, accountId);
+    const channel = await this.findChannelById(channelId, accountId);
 
     const member = await this.chatRepository.findChannelMember(channelId, userId);
     if (member?.isMuted) {
       throw new ForbiddenException('You are restricted from sending messages in this channel');
     }
 
-    return this.chatRepository.createMessage({
+    // Форум-каналы: каждое сообщение принадлежит теме. Без topicId — пишем в
+    // General. Валидируем принадлежность теме и закрытость (в закрытую тему
+    // пишут только админы канала).
+    let topicId: number | null = null;
+    const settings = (channel.settings as Record<string, unknown>) || {};
+    if (settings.topicsEnabled) {
+      let resolved = dto.topicId
+        ? await this.chatRepository.findTopicById(dto.topicId)
+        : await this.chatRepository.findGeneralTopic(channelId);
+      if (!resolved) {
+        // На всякий случай (включили режим, но General отсутствует) — создаём.
+        resolved = await this.ensureGeneralTopic(channelId, accountId);
+      }
+      if (resolved.channelId !== channelId) {
+        throw new BadRequestException('Topic does not belong to this channel');
+      }
+      if (resolved.isClosed && member?.role !== 'admin') {
+        throw new ForbiddenException('This topic is closed');
+      }
+      topicId = resolved.id;
+    }
+
+    const message = await this.chatRepository.createMessage({
       channelId,
+      topicId,
       userId,
       messageText: dto.messageText,
       messageType: dto.messageType || 'text',
       attachments: dto.attachments || [],
       replyToMessageId: dto.replyToMessageId,
     });
+
+    if (topicId) {
+      await this.chatRepository.bumpTopicLastMessageAt(topicId, message.createdAt);
+    }
+
+    return message;
   }
 
   /** Returns channel meta + member IDs needed for push notification fan-out. */
@@ -620,5 +651,188 @@ export class ChatService {
       attachments: [],
     });
     return { pinnedMessages, systemMessage };
+  }
+
+  // --- Topics (Telegram-style forum topics) ---
+
+  private async assertMember(channelId: number, userId: number) {
+    const member = await this.chatRepository.findChannelMember(channelId, userId);
+    if (!member) {
+      throw new ForbiddenException('You are not a member of this channel');
+    }
+    return member;
+  }
+
+  /** Создаёт «Общее» (General), если её ещё нет в канале. */
+  async ensureGeneralTopic(channelId: number, accountId: number) {
+    const existing = await this.chatRepository.findGeneralTopic(channelId);
+    if (existing) return existing;
+    return this.chatRepository.createTopic({
+      channelId,
+      accountId,
+      name: 'Общее',
+      iconEmoji: '💬',
+      color: '#64748b',
+      isGeneral: true,
+      sortOrder: -1,
+    });
+  }
+
+  /** Список тем форум-канала с непрочитанным и превью последнего сообщения. */
+  async listTopics(
+    channelId: number,
+    user: { id: number; roleId: number; accountId: number },
+  ) {
+    await this.findChannelByIdForUser(channelId, user);
+    const [topics, unreadMap, lastMsgs] = await Promise.all([
+      this.chatRepository.findTopicsByChannel(channelId),
+      this.chatRepository.getTopicUnreadMap(channelId, user.id),
+      this.chatRepository.getTopicLastMessages(channelId),
+    ]);
+    const unreadById = new Map(unreadMap.map((u) => [u.topicId, u.unread]));
+    const lastById = new Map(lastMsgs.map((m) => [m.topicId, m]));
+    return topics.map((t: any) => ({
+      ...t,
+      unreadCount: unreadById.get(t.id) ?? 0,
+      lastMessage: lastById.get(t.id) ?? null,
+    }));
+  }
+
+  async createTopic(
+    channelId: number,
+    accountId: number,
+    userId: number,
+    dto: { name: string; iconEmoji?: string; color?: string },
+  ) {
+    const channel = await this.findChannelById(channelId, accountId);
+    const settings = (channel.settings as Record<string, unknown>) || {};
+    if (!settings.topicsEnabled) {
+      throw new BadRequestException('Topics are not enabled for this channel');
+    }
+    const member = await this.assertMember(channelId, userId);
+    const permission = (settings.createTopicsPermission as string) || 'all';
+    if (permission === 'admins' && member.role !== 'admin') {
+      throw new ForbiddenException('Only admins can create topics here');
+    }
+    return this.chatRepository.createTopic({
+      channelId,
+      accountId,
+      name: dto.name,
+      iconEmoji: dto.iconEmoji,
+      color: dto.color,
+      createdByUserId: userId,
+    });
+  }
+
+  async updateTopic(
+    channelId: number,
+    accountId: number,
+    userId: number,
+    topicId: number,
+    dto: {
+      name?: string;
+      iconEmoji?: string;
+      color?: string;
+      isClosed?: boolean;
+      isPinned?: boolean;
+    },
+  ) {
+    await this.findChannelById(channelId, accountId);
+    const topic = await this.chatRepository.findTopicById(topicId);
+    if (!topic || topic.channelId !== channelId) {
+      throw new NotFoundException('Topic not found');
+    }
+    const member = await this.assertMember(channelId, userId);
+    const isAdmin = member.role === 'admin';
+    const isCreator = topic.createdByUserId === userId;
+    if (!isAdmin && !isCreator) {
+      throw new ForbiddenException('You cannot edit this topic');
+    }
+
+    const data: any = {};
+    if (dto.name !== undefined) data.name = dto.name;
+    if (dto.iconEmoji !== undefined) data.iconEmoji = dto.iconEmoji;
+    if (dto.color !== undefined) data.color = dto.color;
+    // Закрытие/закрепление темы — действие администратора.
+    if (dto.isClosed !== undefined) {
+      if (!isAdmin) throw new ForbiddenException('Only admins can close/reopen topics');
+      data.isClosed = dto.isClosed;
+    }
+    if (dto.isPinned !== undefined) {
+      if (!isAdmin) throw new ForbiddenException('Only admins can pin topics');
+      data.isPinned = dto.isPinned;
+      data.pinnedAt = dto.isPinned ? new Date() : null;
+    }
+
+    return this.chatRepository.updateTopic(topicId, data);
+  }
+
+  async deleteTopic(
+    channelId: number,
+    accountId: number,
+    userId: number,
+    topicId: number,
+  ) {
+    await this.findChannelById(channelId, accountId);
+    const topic = await this.chatRepository.findTopicById(topicId);
+    if (!topic || topic.channelId !== channelId) {
+      throw new NotFoundException('Topic not found');
+    }
+    if (topic.isGeneral) {
+      throw new ForbiddenException('The General topic cannot be deleted');
+    }
+    const member = await this.assertMember(channelId, userId);
+    const isAdmin = member.role === 'admin';
+    const isCreator = topic.createdByUserId === userId;
+    if (!isAdmin && !isCreator) {
+      throw new ForbiddenException('You cannot delete this topic');
+    }
+    await this.chatRepository.softDeleteTopic(topicId);
+    return { success: true, topicId };
+  }
+
+  async markTopicRead(channelId: number, userId: number, topicId: number) {
+    const topic = await this.chatRepository.findTopicById(topicId);
+    if (!topic || topic.channelId !== channelId) {
+      throw new NotFoundException('Topic not found');
+    }
+    await this.assertMember(channelId, userId);
+    await this.chatRepository.markTopicRead(topicId, userId);
+    return { success: true, topicId };
+  }
+
+  /** Включение/выключение режима тем + право на создание (только админ канала). */
+  async setTopicsConfig(
+    channelId: number,
+    accountId: number,
+    userId: number,
+    dto: { topicsEnabled?: boolean; createTopicsPermission?: 'all' | 'admins' },
+  ) {
+    const channel = await this.findChannelById(channelId, accountId);
+    const member = await this.assertMember(channelId, userId);
+    if (member.role !== 'admin') {
+      throw new ForbiddenException('Only admins can change topic settings');
+    }
+
+    const settings = { ...((channel.settings as Record<string, unknown>) || {}) };
+    const wasEnabled = !!settings.topicsEnabled;
+
+    if (dto.topicsEnabled !== undefined) settings.topicsEnabled = dto.topicsEnabled;
+    if (dto.createTopicsPermission !== undefined) {
+      settings.createTopicsPermission = dto.createTopicsPermission;
+    }
+
+    // Первое включение: создаём General и переносим в неё все старые сообщения.
+    if (!wasEnabled && settings.topicsEnabled) {
+      const general = await this.ensureGeneralTopic(channelId, accountId);
+      await this.chatRepository.setMessagesTopic(channelId, general.id);
+    }
+
+    await this.chatRepository.updateChannel(channelId, accountId, { settings });
+    return {
+      success: true,
+      topicsEnabled: !!settings.topicsEnabled,
+      createTopicsPermission: settings.createTopicsPermission || 'all',
+    };
   }
 }

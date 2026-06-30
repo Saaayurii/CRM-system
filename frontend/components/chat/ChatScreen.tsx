@@ -19,6 +19,7 @@ export default function ChatScreen() {
   const fetchChannels = useChatStore((s) => s.fetchChannels);
   const activeChannelId = useChatStore((s) => s.activeChannelId);
   const setActiveChannel = useChatStore((s) => s.setActiveChannel);
+  const setActiveTopic = useChatStore((s) => s.setActiveTopic);
   const channels = useChatStore((s) => s.channels);
   // Раскрытие dashboard-рейла (по ховеру трекпада/пера на iPad) — двигаем левый
   // край чата следом, чтобы рейл не налезал, а чат сдвигался как на ПК.
@@ -139,7 +140,11 @@ export default function ChatScreen() {
       if (appliedUrlChannelRef.current !== id && channels.find((c) => c.id === id)) {
         appliedUrlChannelRef.current = id;
         restoredRef.current = true;
-        setActiveChannel(id);
+        const topicIdParam = searchParams.get('topicId');
+        setActiveChannel(id).then(() => {
+          // Глубокая ссылка на тему форума (из пуша) — открываем тему сразу
+          if (topicIdParam) setActiveTopic(id, Number(topicIdParam));
+        });
         setShowSidebar(false);
         window.history.replaceState(null, '', basePath);
       }
@@ -156,7 +161,7 @@ export default function ChatScreen() {
         setActiveChannel(saved);
       }
     }
-  }, [channels, searchParams, setActiveChannel, basePath]);
+  }, [channels, searchParams, setActiveChannel, setActiveTopic, basePath]);
 
   // On mobile, selecting a channel hides sidebar
   const handleSelectChannel = () => {
