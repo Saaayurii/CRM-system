@@ -72,5 +72,8 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  // ВАЖНО: исключаем socket.io (и api) — иначе Next прогоняет WebSocket-upgrade
+  // через middleware-слой и апгрейд рвётся («WebSocket is closed before the
+  // connection is established»). Сокет должен идти мимо middleware к rewrite/прокси.
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|api|socket.io).*)'],
 };
