@@ -270,6 +270,108 @@ export class ChatGatewayController {
     });
   }
 
+  // --- Topics (forum) ---
+
+  @Get('chat-channels/:id/topics')
+  @ApiOperation({ summary: 'List forum topics of a channel' })
+  async listTopics(@Req() req: Request, @Param('id') id: string) {
+    return this.proxyService.forward('chat', {
+      method: 'GET',
+      path: `/chat-channels/${id}/topics`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  @Patch('chat-channels/:id/topics-config')
+  @ApiOperation({ summary: 'Enable/disable topics mode + create-topics permission' })
+  async setTopicsConfig(@Req() req: Request, @Param('id') id: string, @Body() body: any) {
+    return this.proxyService.forward('chat', {
+      method: 'PATCH',
+      path: `/chat-channels/${id}/topics-config`,
+      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+      data: body,
+    });
+  }
+
+  @Post('chat-channels/:id/topics')
+  @ApiOperation({ summary: 'Create a forum topic' })
+  async createTopic(@Req() req: Request, @Param('id') id: string, @Body() body: any) {
+    return this.proxyService.forward('chat', {
+      method: 'POST',
+      path: `/chat-channels/${id}/topics`,
+      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+      data: body,
+    });
+  }
+
+  @Put('chat-channels/:id/topics/:topicId')
+  @ApiOperation({ summary: 'Edit a forum topic' })
+  async updateTopic(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Param('topicId') topicId: string,
+    @Body() body: any,
+  ) {
+    return this.proxyService.forward('chat', {
+      method: 'PUT',
+      path: `/chat-channels/${id}/topics/${topicId}`,
+      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+      data: body,
+    });
+  }
+
+  @Delete('chat-channels/:id/topics/:topicId')
+  @ApiOperation({ summary: 'Delete a forum topic' })
+  async deleteTopic(@Req() req: Request, @Param('id') id: string, @Param('topicId') topicId: string) {
+    return this.proxyService.forward('chat', {
+      method: 'DELETE',
+      path: `/chat-channels/${id}/topics/${topicId}`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  @Patch('chat-channels/:id/topics/:topicId/read')
+  @ApiOperation({ summary: 'Mark a topic as read' })
+  async markTopicRead(@Req() req: Request, @Param('id') id: string, @Param('topicId') topicId: string) {
+    return this.proxyService.forward('chat', {
+      method: 'PATCH',
+      path: `/chat-channels/${id}/topics/${topicId}/read`,
+      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+    });
+  }
+
+  @Patch('chat-channels/:id/topics/:topicId/mute')
+  @ApiOperation({ summary: 'Mute/unmute a topic' })
+  async muteTopic(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Param('topicId') topicId: string,
+    @Body() body: any,
+  ) {
+    return this.proxyService.forward('chat', {
+      method: 'PATCH',
+      path: `/chat-channels/${id}/topics/${topicId}/mute`,
+      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+      data: body,
+    });
+  }
+
+  @Patch('chat-channels/:id/topics/:topicId/hide')
+  @ApiOperation({ summary: 'Hide/show a topic' })
+  async hideTopic(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Param('topicId') topicId: string,
+    @Body() body: any,
+  ) {
+    return this.proxyService.forward('chat', {
+      method: 'PATCH',
+      path: `/chat-channels/${id}/topics/${topicId}/hide`,
+      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' },
+      data: body,
+    });
+  }
+
   // --- Members ---
 
   @Get('chat-channels/:id/members')
@@ -339,17 +441,19 @@ export class ChatGatewayController {
   @ApiOperation({ summary: 'Get chat channel messages' })
   @ApiQuery({ name: 'cursor', required: false })
   @ApiQuery({ name: 'limit', required: false })
+  @ApiQuery({ name: 'topicId', required: false })
   async getChannelMessages(
     @Req() req: Request,
     @Param('id') id: string,
     @Query('cursor') cursor?: number,
     @Query('limit') limit?: number,
+    @Query('topicId') topicId?: number,
   ) {
     return this.proxyService.forward('chat', {
       method: 'GET',
       path: `/chat-channels/${id}/messages`,
       headers: { authorization: req.headers.authorization || '' },
-      params: { cursor, limit },
+      params: { cursor, limit, topicId },
     });
   }
 
