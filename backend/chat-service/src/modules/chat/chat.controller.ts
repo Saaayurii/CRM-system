@@ -222,12 +222,23 @@ export class ChatController {
   @ApiOperation({ summary: 'Update chat channel' })
   @ApiResponse({ status: 200, description: 'Channel updated' })
   @ApiResponse({ status: 404, description: 'Channel not found' })
-  updateChannel(
+  async updateChannel(
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser('accountId') accountId: number,
     @Body() dto: UpdateChannelDto,
   ) {
-    return this.chatService.updateChannel(id, accountId, dto);
+    const channel = await this.chatService.updateChannel(id, accountId, dto);
+    // Реалтайм-рассылка изменений шапки/настроек всем участникам канала
+    const settings = (channel.settings as Record<string, unknown>) || {};
+    this.chatGateway.server.to(`channel:${id}`).emit('channel:updated', {
+      channelId: id,
+      name: channel.name,
+      description: channel.description,
+      isPrivate: channel.isPrivate,
+      avatarUrl: settings.avatarUrl ?? null,
+      settings,
+    });
+    return channel;
   }
 
   @Delete(':id')

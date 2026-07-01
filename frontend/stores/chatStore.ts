@@ -846,6 +846,40 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }));
     });
 
+    // Реалтайм-обновление шапки/настроек группы у всех участников
+    socket.on('channel:updated', (data: {
+      channelId: number;
+      name?: string | null;
+      description?: string | null;
+      isPrivate?: boolean;
+      avatarUrl?: string | null;
+      settings?: Record<string, unknown>;
+    }) => {
+      const s = data.settings || {};
+      set((state) => ({
+        channels: state.channels.map((c) => {
+          if (c.id !== data.channelId) return c;
+          return {
+            ...c,
+            channelName: data.name ?? c.channelName,
+            description: data.description ?? c.description,
+            isPrivate: data.isPrivate ?? c.isPrivate,
+            avatarUrl: (data.avatarUrl ?? (s.avatarUrl as string)) ?? c.avatarUrl,
+            reactionsMode: (s.reactionsMode as 'all' | 'selected' | 'none') ?? c.reactionsMode,
+            allowedReactions: (s.allowedReactions as string[]) ?? c.allowedReactions,
+            historyVisibleToNewMembers:
+              s.historyVisibleToNewMembers !== undefined ? !!s.historyVisibleToNewMembers : c.historyVisibleToNewMembers,
+            hideMembers: s.hideMembers !== undefined ? !!s.hideMembers : c.hideMembers,
+            topicsLayout: (s.topicsLayout as 'tabs' | 'list') ?? c.topicsLayout,
+            profileColor: (s.profileColor as string) ?? c.profileColor,
+            backgroundEmoji: (s.backgroundEmoji as string) ?? c.backgroundEmoji,
+            wallpaperUrl: (s.wallpaperUrl as string) ?? c.wallpaperUrl,
+            permissions: (s.permissions as Record<string, boolean>) ?? c.permissions,
+          };
+        }),
+      }));
+    });
+
     socket.connect();
   },
 
