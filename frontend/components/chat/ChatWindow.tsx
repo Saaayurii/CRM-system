@@ -15,7 +15,7 @@ import UserProfileModal from './UserProfileModal';
 import VoicePlayerBar from './VoicePlayerBar';
 import ForwardMessageModal from './ForwardMessageModal';
 import TopicListView from './TopicListView';
-import TopicTabsRail from './TopicTabsRail';
+import ScheduledMessagesView from './ScheduledMessagesView';
 import { useT } from '@/lib/i18n';
 
 /* Плавающие «стеклянные» поверхности шапки и input-бара чата (Liquid Glass,
@@ -185,6 +185,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
   const topicsByChannel = useChatStore((s) => s.topicsByChannel);
   const activeTopicId = useChatStore((s) => s.activeTopicId);
   const setActiveTopic = useChatStore((s) => s.setActiveTopic);
+  const fetchScheduled = useChatStore((s) => s.fetchScheduled);
   const highlightMessageId = useChatStore((s) => s.highlightMessageId);
   const setHighlightMessageId = useChatStore((s) => s.setHighlightMessageId);
   const user = useAuthStore((s) => s.user);
@@ -213,6 +214,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
 
   const [forwardingMessage, setForwardingMessage] = useState<ChatMessageType | null>(null);
   const [showInfo, setShowInfo] = useState(false);
+  const [showScheduled, setShowScheduled] = useState(false);
   // Центральная карточка профиля (в личных диалогах клик по шапке открывает её
   // вместо правой панели «О пользователе»)
   const [profileUserId, setProfileUserId] = useState<number | null>(null);
@@ -399,10 +401,11 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
   const activeTopic = isForum && activeTopicId
     ? channelTopics?.find((t) => t.id === activeTopicId) ?? null
     : null;
-  // Режим «Вкладки»: тема всегда открыта, слева — рельс вкладок.
-  // Режим «Список»: сначала полноэкранный список тем, затем лента выбранной темы.
+  // Форум: список тем открывается на месте ленты (в главной области), а список
+  // чатов слева остаётся полным. При открытии темы показываем её ленту; в режиме
+  // «Вкладки» сверху добавляется горизонтальная полоса вкладок для переключения.
   const forumTabs = isForum && topicsLayout === 'tabs';
-  const showTopicList = isForum && activeTopicId == null && topicsLayout === 'list';
+  const showTopicList = isForum && activeTopicId == null;
 
   // Набор реакций из настроек группы: 'none' → отключены, 'selected' → только выбранные
   const reactionEmojis = useMemo<string[] | undefined>(() => {
@@ -412,14 +415,11 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
     return undefined;
   }, [activeChannel?.reactionsMode, activeChannel?.allowedReactions, activeChannel]);
 
-  // В режиме «Вкладки» автоматически открываем тему (General/первую), если не выбрана
+  // Отложенные сообщения канала: загружаем при открытии, сбрасываем экран
   useEffect(() => {
-    if (!forumTabs || activeChannelId == null || activeTopicId != null) return;
-    const tps = channelTopics;
-    if (!tps || tps.length === 0) return;
-    const first = tps.find((tp) => tp.isGeneral) ?? tps[0];
-    if (first) setActiveTopic(activeChannelId, first.id);
-  }, [forumTabs, activeChannelId, activeTopicId, channelTopics, setActiveTopic]);
+    setShowScheduled(false);
+    if (activeChannelId != null) fetchScheduled(activeChannelId);
+  }, [activeChannelId, fetchScheduled]);
   const channelTyping = activeChannelId ? typingUsers[activeChannelId] || [] : [];
   const channelActivity = activeChannelId ? activityUsers[activeChannelId] || [] : [];
 
@@ -893,8 +893,6 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
         />
       ) : (
       <>
-      {/* Рельс вкладок тем (режим «Вкладки») — слева от ленты */}
-      {forumTabs && <TopicTabsRail channel={activeChannel} />}
       {/* Main chat column — обои/фон на самой колонке (статичны), лента и
           input-бар прозрачны, поэтому стеклянные шапка и контролы парят над
           единым фоном (как в Telegram), а не над сплошными панелями */}
@@ -913,12 +911,11 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
               и возвращает к списку тем (как в Telegram) */}
           <button
             onClick={() => {
-              // В режиме «Вкладки» тема всегда открыта — назад ведёт к списку чатов.
-              // В режиме «Список» назад возвращает к списку тем.
-              if (activeTopic && activeChannelId && !forumTabs) setActiveTopic(activeChannelId, null);
+              // В форуме назад из открытой темы возвращает к списку тем.
+              if (activeTopic && activeChannelId) setActiveTopic(activeChannelId, null);
               else onBack();
             }}
-            className={`${activeTopic && !forumTabs ? '' : 'lg:hidden'} shrink-0 w-9 h-9 flex items-center justify-center rounded-full text-gray-600 dark:text-gray-200 ${GLASS_SURFACE}`}
+            className={`${activeTopic ? '' : 'lg:hidden'} shrink-0 w-9 h-9 flex items-center justify-center rounded-full text-gray-600 dark:text-gray-200 ${GLASS_SURFACE}`}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -1059,6 +1056,35 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
             )}
           </div>
         </div>
+
+        {/* Горизонтальная полоса вкладок тем (режим «Вкладки») — под шапкой,
+            над лентой; список чатов слева не трогаем */}
+        {forumTabs && activeTopic && channelTopics && channelTopics.length > 0 && (
+          <div className={`flex items-center gap-1 mx-3 mt-1.5 px-1.5 py-1 rounded-2xl shrink-0 overflow-x-auto scrollbar-none ${GLASS_SURFACE}`}>
+            {channelTopics
+              .filter((tp) => !tp.isHiddenForMe)
+              .map((tp) => {
+                const active = tp.id === activeTopicId;
+                return (
+                  <button
+                    key={tp.id}
+                    onClick={() => activeChannelId && setActiveTopic(activeChannelId, tp.id)}
+                    className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-colors ${
+                      active ? 'bg-violet-500 text-white' : 'text-gray-600 dark:text-gray-300 hover:bg-black/[0.05] dark:hover:bg-white/[0.06]'
+                    }`}
+                  >
+                    <span className="text-base leading-none">{tp.isGeneral ? '#' : (tp.iconEmoji || '💬')}</span>
+                    <span className="truncate max-w-[120px]">{tp.name}</span>
+                    {tp.unreadCount > 0 && (
+                      <span className={`min-w-[16px] h-4 px-1 flex items-center justify-center text-[10px] font-bold rounded-full ${active ? 'bg-white/25 text-white' : 'bg-violet-500 text-white'}`}>
+                        {tp.unreadCount > 99 ? '99+' : tp.unreadCount}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+          </div>
+        )}
 
         {/* Search bar */}
         {showSearch && (
@@ -1365,9 +1391,14 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
             </div>
           </div>
         ) : (
-          <ChatInput channelId={activeChannelId} projectId={activeChannel.projectId ?? undefined} channelType={activeChannel.channelType} />
+          <ChatInput channelId={activeChannelId} projectId={activeChannel.projectId ?? undefined} channelType={activeChannel.channelType} onOpenScheduled={() => setShowScheduled(true)} />
         )}
         </div>
+
+        {/* Экран «Отложенная отправка» — оверлей поверх ленты внутри колонки чата */}
+        {showScheduled && (
+          <ScheduledMessagesView channel={activeChannel} onBack={() => setShowScheduled(false)} />
+        )}
       </div>
       </>
       )}
@@ -1678,15 +1709,6 @@ function Toggle({ checked, onChange, disabled }: { checked: boolean; onChange: (
   );
 }
 
-function LevelBadge({ level }: { level: number }) {
-  return (
-    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[11px] font-medium text-white bg-gradient-to-r from-violet-500 to-fuchsia-500">
-      <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 1a5 5 0 00-5 5v3H6a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2v-8a2 2 0 00-2-2h-1V6a5 5 0 00-5-5zm3 8H9V6a3 3 0 016 0v3z"/></svg>
-      Уровень {level}
-    </span>
-  );
-}
-
 interface GroupInfoPanelProps {
   channel: ChatChannel;
   isAdmin: boolean;
@@ -1867,7 +1889,6 @@ function GroupInfoPanel({ channel, isAdmin, isCompanyAdmin, currentUserId, onClo
               <SettingRow
                 icon={<RowIcon bg="bg-orange-500"><svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M7 14c-1.66 0-3 1.34-3 3 0 1.31-1.16 2-2 2 .92 1.22 2.49 2 4 2 2.21 0 4-1.79 4-4 0-1.66-1.34-3-3-3zm13.71-9.37l-1.34-1.34a.996.996 0 00-1.41 0L9 12.25 11.75 15l8.96-8.96a.996.996 0 000-1.41z"/></svg></RowIcon>}
                 label={t('Оформление')}
-                badge={<LevelBadge level={1} />}
                 onClick={() => setView('appearance')}
               />
               <SettingRow
@@ -2050,12 +2071,11 @@ function AppearanceScreen({ channel, canManage, onBack }: { channel: ChatChannel
         <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 px-1">{t('Цвет применяется к аватару и профилю группы у всех участников.')}</p>
       </div>
       <div className="px-4 space-y-2">
-        <div className="rounded-xl bg-gray-50 dark:bg-gray-700/40 divide-y divide-gray-200 dark:divide-gray-700 overflow-hidden opacity-60">
-          <SettingRow label={t('Фоновый эмодзи')} badge={<LevelBadge level={7} />} value="" />
-          <SettingRow label={t('Набор эмодзи группы')} badge={<LevelBadge level={4} />} />
-          <SettingRow label={t('Обои в группе')} badge={<LevelBadge level={9} />} />
+        <div className="rounded-xl bg-gray-50 dark:bg-gray-700/40 divide-y divide-gray-200 dark:divide-gray-700 overflow-hidden">
+          <SettingRow label={t('Фоновый эмодзи')} value="" />
+          <SettingRow label={t('Набор эмодзи группы')} />
+          <SettingRow label={t('Обои в группе')} />
         </div>
-        <p className="text-xs text-gray-400 dark:text-gray-500 px-1">{t('Эти настройки доступны на более высоком уровне группы.')}</p>
       </div>
     </ScreenShell>
   );

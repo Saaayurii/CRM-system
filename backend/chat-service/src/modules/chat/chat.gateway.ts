@@ -121,6 +121,10 @@ export class ChatGateway
       // Mark user as online
       await this.presenceService.setUserOnline(client.user.id, client.id);
 
+      // Персональная комната — для событий, адресованных всем устройствам
+      // одного пользователя (напр. изменения списка отложенных сообщений).
+      client.join(`user:${client.user.id}`);
+
       // Join user to all their channel rooms
       const channelIds = await this.chatService.getUserChannelIds(
         client.user.id,
@@ -202,56 +206,95 @@ export class ChatGateway
       attachments?: any[];
       replyToMessageId?: number;
       topicId?: number;
+      silent?: boolean;
     },
   ) {
+    const message = await this.deliverMessage({
+      channelId: data.channelId,
+      accountId: client.user.accountId,
+      userId: client.user.id,
+      senderName: client.user.name || 'Пользователь',
+      messageText: data.messageText,
+      messageType: data.messageType,
+      attachments: data.attachments,
+      replyToMessageId: data.replyToMessageId,
+      topicId: data.topicId,
+      silent: data.silent,
+    });
+
+    return { event: 'message:send:ack', data: message };
+  }
+
+  /**
+   * Создаёт сообщение, рассылает `message:new` в комнату канала и (если не
+   * silent) делает fan-out пуш-уведомлений. Переиспользуется обычной отправкой
+   * (WS) и отложенной отправкой (BullMQ-воркер).
+   */
+  async deliverMessage(params: {
+    channelId: number;
+    accountId: number;
+    userId: number;
+    senderName: string;
+    messageText?: string;
+    messageType?: string;
+    attachments?: any[];
+    replyToMessageId?: number;
+    topicId?: number;
+    silent?: boolean;
+  }) {
     const message = await this.chatService.createMessage(
-      data.channelId,
-      client.user.accountId,
-      client.user.id,
+      params.channelId,
+      params.accountId,
+      params.userId,
       {
-        messageText: data.messageText,
-        messageType: data.messageType,
-        attachments: data.attachments,
-        replyToMessageId: data.replyToMessageId,
-        topicId: data.topicId,
+        messageText: params.messageText,
+        messageType: params.messageType,
+        attachments: params.attachments,
+        replyToMessageId: params.replyToMessageId,
+        topicId: params.topicId,
       },
     );
 
-    this.server.to(`channel:${data.channelId}`).emit('message:new', message);
+    this.server.to(`channel:${params.channelId}`).emit('message:new', message);
+
+    // «Без звука»: доставляем сообщение, но не шлём пуш-уведомления
+    if (params.silent) {
+      return message;
+    }
 
     // Users currently viewing this channel (socket joined the room) — they
     // see the message live, so no push needed even if it's already read.
     const activeViewerIds = new Set<number>(
-      (await this.server.in(`channel:${data.channelId}`).fetchSockets())
+      (await this.server.in(`channel:${params.channelId}`).fetchSockets())
         .map((s) => s.data?.userId as number | undefined)
         .filter((id): id is number => typeof id === 'number'),
     );
 
     // Push notifications to all channel members except the sender (fire-and-forget)
     void this.chatService
-      .getChannelForNotification(data.channelId)
+      .getChannelForNotification(params.channelId)
       .then(async (channel) => {
         if (!channel) return;
         // Форум: исключаем тех, кто замьютил конкретную тему
         const topicMuted = message.topicId
           ? new Set(await this.chatService.getTopicMutedUserIds(message.topicId))
           : new Set<number>();
-        const senderName = client.user.name || 'Пользователь';
+        const senderName = params.senderName || 'Пользователь';
         const isDirect = channel.channelType === 'direct';
         const title = isDirect
           ? senderName
           : `${senderName} → ${channel.name || 'Чат'}`;
-        const preview = data.messageText
-          ? data.messageText.slice(0, 120)
+        const preview = params.messageText
+          ? params.messageText.slice(0, 120)
           : '📎 Вложение';
         const actionUrl = message.topicId
-          ? `/dashboard/chat?channelId=${data.channelId}&topicId=${message.topicId}`
-          : `/dashboard/chat?channelId=${data.channelId}`;
+          ? `/dashboard/chat?channelId=${params.channelId}&topicId=${message.topicId}`
+          : `/dashboard/chat?channelId=${params.channelId}`;
 
         const now = Date.now();
         const payloads = channel.members
           .filter((m: { userId: number; isMuted?: boolean; mutedUntil?: Date | null }) => {
-            if (m.userId === client.user.id) return false;
+            if (m.userId === params.userId) return false;
             if (activeViewerIds.has(m.userId)) return false; // already viewing the channel
             if (topicMuted.has(m.userId)) return false; // muted this topic
             if (m.isMuted) {
@@ -262,7 +305,7 @@ export class ChatGateway
           })
           .map((m: { userId: number }) => ({
             userId: m.userId,
-            accountId: client.user.accountId,
+            accountId: params.accountId,
             title,
             message: preview,
             notificationType: 'chat_message',
@@ -281,7 +324,7 @@ export class ChatGateway
         this.logger.error('Chat notification fan-out failed', err),
       );
 
-    return { event: 'message:send:ack', data: message };
+    return message;
   }
 
   @UseGuards(WsJwtGuard)

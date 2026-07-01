@@ -30,6 +30,7 @@ import {
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { PresenceService } from '../presence/presence.service';
 import { ChatGateway } from './chat.gateway';
+import { ScheduledMessagesService } from './scheduled-messages.service';
 
 // Topics (forum): /topics, /topics-config, /topics/:id/{read,mute,hide}
 // (rebuild marker: ensure topics routes are live on prod)
@@ -41,6 +42,7 @@ export class ChatController {
     private readonly chatService: ChatService,
     private readonly presenceService: PresenceService,
     private readonly chatGateway: ChatGateway,
+    private readonly scheduledMessages: ScheduledMessagesService,
   ) {}
 
   // --- Channels ---
@@ -310,6 +312,56 @@ export class ChatController {
     @CurrentUser('id') userId: number,
   ) {
     return this.chatService.clearChannelHistory(id, accountId, userId);
+  }
+
+  // --- Scheduled messages («Отправить позже») ---
+
+  @Get(':id/scheduled')
+  @ApiOperation({ summary: 'List my scheduled messages in a channel' })
+  listScheduled(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser('id') userId: number,
+  ) {
+    return this.scheduledMessages.list(id, userId);
+  }
+
+  @Post(':id/scheduled')
+  @ApiOperation({ summary: 'Schedule a message for later delivery' })
+  scheduleMessage(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser('id') userId: number,
+    @Body()
+    dto: {
+      messageText?: string;
+      messageType?: string;
+      attachments?: any[];
+      replyToMessageId?: number;
+      topicId?: number;
+      silent?: boolean;
+      scheduledAt: string;
+    },
+  ) {
+    return this.scheduledMessages.schedule(id, userId, dto);
+  }
+
+  @Delete(':id/scheduled/:scheduledId')
+  @ApiOperation({ summary: 'Cancel a scheduled message' })
+  cancelScheduled(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('scheduledId', ParseIntPipe) scheduledId: number,
+    @CurrentUser('id') userId: number,
+  ) {
+    return this.scheduledMessages.cancel(id, scheduledId, userId);
+  }
+
+  @Post(':id/scheduled/:scheduledId/send-now')
+  @ApiOperation({ summary: 'Send a scheduled message immediately' })
+  sendScheduledNow(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('scheduledId', ParseIntPipe) scheduledId: number,
+    @CurrentUser('id') userId: number,
+  ) {
+    return this.scheduledMessages.sendNow(id, scheduledId, userId);
   }
 
   // --- Topics (Telegram-style forum topics) ---

@@ -76,6 +76,8 @@ interface ChatInputProps {
   projectId?: number;
   channelType?: string;
   onFilesSent?: (attachments: UploadedAttachment[]) => void;
+  /** Открыть экран «Отложенная отправка» (по клику на часы в инпуте). */
+  onOpenScheduled?: () => void;
 }
 
 interface PendingFile {
@@ -185,7 +187,7 @@ function renderMarkdownInEditor(el: HTMLDivElement, md: string) {
 
 // ── Component ─────────────────────────────────────────────────────────────
 
-export default function ChatInput({ channelId, projectId, channelType, onFilesSent }: ChatInputProps) {
+export default function ChatInput({ channelId, projectId, channelType, onFilesSent, onOpenScheduled }: ChatInputProps) {
   const t = useT();
   const isDirect = channelType === 'direct';
 
@@ -361,6 +363,12 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
   const setReplyToMessage = useChatStore((s) => s.setReplyToMessage);
   const editingMessage = useChatStore((s) => s.editingMessage);
   const setEditingMessage = useChatStore((s) => s.setEditingMessage);
+  const scheduleMessageStore = useChatStore((s) => s.scheduleMessage);
+  const scheduledCount = useChatStore((s) => s.scheduledByChannel[channelId]?.length ?? 0);
+
+  // Меню кнопки отправки («Без звука» / «Позже») + пикер даты
+  const [showSendMenu, setShowSendMenu] = useState(false);
+  const [showSchedulePicker, setShowSchedulePicker] = useState(false);
 
   // Restore draft when switching channels
   useEffect(() => {
@@ -1075,7 +1083,7 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
     setShowTaskCreateModal(true);
   }, [clearEditor]);
 
-  const handleSend = useCallback(async () => {
+  const handleSend = useCallback(async (opts?: { silent?: boolean }) => {
     const el = editorRef.current;
     const raw = el ? serializeEditor(el) : text;
     const trimmed = raw.trim();
@@ -1150,7 +1158,7 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
     }
 
     const decorated = decorateAttachments(uploadedAttachments);
-    sendMessage(channelId, trimmed, decorated.length > 0 ? decorated : undefined, replyToMessage?.id);
+    sendMessage(channelId, trimmed, decorated.length > 0 ? decorated : undefined, replyToMessage?.id, undefined, opts?.silent);
 
     if (decorated.length > 0) onFilesSent?.(decorated);
 
@@ -1160,6 +1168,41 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
     stopTyping(channelId);
     setIsSending(false);
   }, [text, channelId, pendingFiles, sendMessage, editMessage, editingMessage, setEditingMessage, clearEditor, stopTyping, startActivity, stopActivity, replyToMessage, uploadFileWithProgress, onFilesSent, projectId, openTaskCreateModal, decorateAttachments, pickNewMenuCreateTask, pickWizardAction, submitWizardComment, submitWizardSubtask]);
+
+  // Отложенная отправка: собираем текст + вложения и планируем на дату
+  const handleScheduleSend = useCallback(async (scheduledAt: string) => {
+    const el = editorRef.current;
+    const raw = el ? serializeEditor(el) : text;
+    const trimmed = raw.trim();
+    if (!trimmed && pendingFiles.length === 0) return;
+
+    setIsSending(true);
+    setUploadError(null);
+    let uploaded: UploadedAttachment[] = [];
+    try {
+      if (pendingFiles.length > 0) {
+        uploaded = await Promise.all(pendingFiles.map((pf) => uploadFileWithProgress(pf)));
+      }
+    } catch {
+      setUploadError('Не удалось загрузить файл. Попробуйте ещё раз.');
+      setIsSending(false);
+      return;
+    }
+    const decorated = decorateAttachments(uploaded);
+    const ok = await scheduleMessageStore(channelId, {
+      messageText: trimmed,
+      attachments: decorated.length > 0 ? decorated : undefined,
+      replyToMessageId: replyToMessage?.id,
+      scheduledAt,
+    });
+    if (ok) {
+      clearEditor();
+      setPendingFiles([]);
+      xhrMapRef.current.clear();
+      stopTyping(channelId);
+    }
+    setIsSending(false);
+  }, [text, channelId, pendingFiles, scheduleMessageStore, replyToMessage, uploadFileWithProgress, decorateAttachments, clearEditor, stopTyping]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent<HTMLDivElement>) => {
     // Шорткаты форматирования (Ctrl/Cmd + B/I/U)
@@ -2267,6 +2310,23 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
             </div>
           </div>
 
+          {/* Часы «Отложенная отправка» — видны, когда есть запланированные сообщения */}
+          {scheduledCount > 0 && onOpenScheduled && (
+            <button
+              type="button"
+              onClick={onOpenScheduled}
+              title={t('Отложенная отправка')}
+              className={`relative w-9 h-9 flex items-center justify-center rounded-full shrink-0 text-gray-500 dark:text-gray-300 hover:text-violet-500 transition-colors ${GLASS_SURFACE}`}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 flex items-center justify-center text-[10px] font-bold text-white bg-violet-500 rounded-full">
+                {scheduledCount > 99 ? '99+' : scheduledCount}
+              </span>
+            </button>
+          )}
+
           {/* Send / Record button (single, Telegram-style) */}
           <div className="relative shrink-0">
             {/* Tooltip on hover */}
@@ -2279,8 +2339,36 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
                 <div className="absolute -bottom-1 right-4 w-2 h-2 bg-gray-900 dark:bg-gray-700 rotate-45" />
               </div>
             )}
+
+            {/* Меню отправки (ПКМ / долгое нажатие по кнопке отправки) */}
+            {showSendMenu && canSend && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowSendMenu(false)} />
+                <div className="absolute bottom-full right-0 mb-2 z-50 w-56 py-1 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700">
+                  <button
+                    onClick={() => { setShowSendMenu(false); handleSend({ silent: true }); }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9M3 3l18 18" />
+                    </svg>
+                    {t('Отправить без звука')}
+                  </button>
+                  <button
+                    onClick={() => { setShowSendMenu(false); setShowSchedulePicker(true); }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    {t('Отправить позже')}
+                  </button>
+                </div>
+              </>
+            )}
             <button
-              onClick={canSend ? handleSend : undefined}
+              onClick={canSend ? () => handleSend() : undefined}
+              onContextMenu={canSend ? (e) => { e.preventDefault(); setShowSendMenu((v) => !v); } : undefined}
               onMouseDown={!canSend ? handleRecordBtnMouseDown : undefined}
               onMouseEnter={() => { if (!recordHintSeen) setShowRecordTooltip(true); }}
               onMouseLeave={() => { if (showRecordTooltip) markRecordHintSeen(); }}
@@ -2336,6 +2424,102 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
           onDone={applyEditedPhoto}
         />
       )}
+
+      {/* Пикер даты для отложенной отправки */}
+      {showSchedulePicker && (
+        <SchedulePickerModal
+          onClose={() => setShowSchedulePicker(false)}
+          onSchedule={(iso) => { setShowSchedulePicker(false); handleScheduleSend(iso); }}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── Пикер даты/времени для отложенной отправки ─────────────
+function SchedulePickerModal({ onClose, onSchedule }: { onClose: () => void; onSchedule: (iso: string) => void }) {
+  const t = useT();
+  const pad = (n: number) => String(n).padStart(2, '0');
+
+  // Дата (YYYY-MM-DD) и время (HH:MM) — по умолчанию через час, округлённое до 5 минут
+  const [dateVal, setDateVal] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  });
+  const [timeVal, setTimeVal] = useState(() => {
+    const d = new Date(Date.now() + 60 * 60 * 1000);
+    d.setMinutes(Math.ceil(d.getMinutes() / 5) * 5, 0, 0);
+    return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  });
+  const [error, setError] = useState<string | null>(null);
+
+  const todayStr = (() => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; })();
+
+  const dayLabel = useMemo(() => {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const sel = new Date(dateVal + 'T00:00:00');
+    const diff = Math.round((sel.getTime() - today.getTime()) / 86_400_000);
+    if (diff === 0) return t('сегодня');
+    if (diff === 1) return t('завтра');
+    return sel.toLocaleDateString('ru-RU', { day: '2-digit', month: 'long' });
+  }, [dateVal, t]);
+
+  const confirm = () => {
+    const d = new Date(`${dateVal}T${timeVal}:00`);
+    if (isNaN(d.getTime())) { setError(t('Некорректная дата')); return; }
+    if (d.getTime() - Date.now() < 10_000) { setError(t('Выберите время в будущем')); return; }
+    onSchedule(d.toISOString());
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+      <div className="w-full max-w-sm bg-[#17212b] rounded-2xl shadow-2xl p-4" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-5">
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full text-gray-300 hover:bg-white/10">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          <h3 className="text-base font-semibold text-gray-100">{t('Время отправки')}</h3>
+        </div>
+
+        {/* День + время */}
+        <div className="flex items-center gap-3 mb-4">
+          <label className="relative">
+            <span className="px-4 py-2 rounded-lg bg-white/5 text-sm text-gray-100 capitalize cursor-pointer inline-block min-w-[96px] text-center">{dayLabel}</span>
+            <input
+              type="date"
+              value={dateVal}
+              min={todayStr}
+              onChange={(e) => { setDateVal(e.target.value); setError(null); }}
+              className="absolute inset-0 opacity-0 cursor-pointer"
+            />
+          </label>
+          <span className="text-sm text-gray-400">{t('в')}</span>
+          <input
+            type="time"
+            value={timeVal}
+            onChange={(e) => { setTimeVal(e.target.value); setError(null); }}
+            className="px-3 py-2 rounded-lg bg-white/5 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-sky-500 [color-scheme:dark]"
+          />
+        </div>
+
+        {/* Повторять */}
+        <div className="flex items-center justify-between py-2 mb-4">
+          <span className="text-sm text-gray-300">{t('Повторять')}</span>
+          <span className="text-sm text-gray-400">{t('Никогда')}</span>
+        </div>
+
+        {error && <p className="text-xs text-red-400 mb-2">{error}</p>}
+
+        <button
+          onClick={confirm}
+          className="w-full py-2.5 rounded-lg text-sm font-medium text-white bg-sky-500 hover:bg-sky-600 transition-colors"
+        >
+          {t('Отправить')} {dayLabel} {t('в')} {timeVal}
+        </button>
+      </div>
     </div>
   );
 }

@@ -150,3 +150,24 @@ model ChatMessage {
   @@index([createdAt])
   @@map("chat_messages")
 }
+
+// Отложенные сообщения («Отправить позже»). Доставляются BullMQ-воркером
+// в назначенное время; отдельная таблица, чтобы не смешивать с лентой.
+model ChatScheduledMessage {
+  id               Int      @id @default(autoincrement())
+  channelId        Int      @map("channel_id")
+  userId           Int      @map("user_id")
+  topicId          Int?     @map("topic_id")
+  messageText      String?  @map("message_text") @db.Text
+  messageType      String   @default("text") @map("message_type") @db.VarChar(50)
+  attachments      Json     @default("[]")
+  replyToMessageId Int?     @map("reply_to_message_id")
+  silent           Boolean  @default(false)
+  scheduledAt      DateTime @map("scheduled_at")
+  jobId            String?  @map("job_id") @db.VarChar(120)
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@index([channelId, userId])
+  @@index([scheduledAt])
+  @@map("chat_scheduled_messages")
+}

@@ -135,6 +135,20 @@ export interface ChatTopic {
   } | null;
 }
 
+export interface ScheduledMessage {
+  id: number;
+  channelId: number;
+  userId: number;
+  topicId?: number | null;
+  messageText?: string;
+  messageType: string;
+  attachments: UploadedAttachment[];
+  replyToMessageId?: number | null;
+  silent: boolean;
+  scheduledAt: string;
+  createdAt: string;
+}
+
 export interface CreateChannelDto {
   channelType: 'direct' | 'group';
   name?: string;
@@ -344,6 +358,8 @@ interface ChatState {
   // Темы: id канала → список тем; активная открытая тема внутри форум-канала
   topicsByChannel: Record<number, ChatTopic[]>;
   activeTopicId: number | null;
+  // Отложенные сообщения: id канала → мои запланированные сообщения
+  scheduledByChannel: Record<number, ScheduledMessage[]>;
   messages: ChatMessage[];
   typingUsers: Record<number, { userId: number; name: string }[]>;
   // channelId → пользователи, отправляющие медиа/файл («отправляет фото…»)
@@ -376,7 +392,7 @@ interface ChatState {
   // могут одновременно держать соединение; сокет рвётся только когда все отпустили.
   acquireConnection: () => void;
   releaseConnection: () => void;
-  sendMessage: (channelId: number, text: string, attachments?: UploadedAttachment[], replyToMessageId?: number, messageType?: string) => void;
+  sendMessage: (channelId: number, text: string, attachments?: UploadedAttachment[], replyToMessageId?: number, messageType?: string, silent?: boolean) => void;
   editMessage: (messageId: number, text: string) => void;
   deleteMessage: (messageId: number) => void;
   reactToMessage: (messageId: number, reaction: string) => void;
@@ -394,6 +410,11 @@ interface ChatState {
   deleteTopic: (channelId: number, topicId: number) => Promise<void>;
   setTopicsConfig: (channelId: number, dto: { topicsEnabled?: boolean; createTopicsPermission?: 'all' | 'admins' }) => Promise<void>;
   updateChannel: (channelId: number, dto: { name?: string; description?: string; avatarUrl?: string; isPrivate?: boolean; settings?: Record<string, unknown> }) => Promise<boolean>;
+  // Отложенные сообщения
+  fetchScheduled: (channelId: number) => Promise<void>;
+  scheduleMessage: (channelId: number, dto: { messageText?: string; attachments?: UploadedAttachment[]; replyToMessageId?: number; topicId?: number; silent?: boolean; scheduledAt: string }) => Promise<boolean>;
+  cancelScheduled: (channelId: number, id: number) => Promise<void>;
+  sendScheduledNow: (channelId: number, id: number) => Promise<void>;
   markTopicRead: (channelId: number, topicId: number) => void;
   muteTopic: (channelId: number, topicId: number, mutedUntil: Date | null) => Promise<void>;
   hideTopic: (channelId: number, topicId: number, hidden: boolean) => Promise<void>;
@@ -439,6 +460,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   activeChannelId: null,
   topicsByChannel: {},
   activeTopicId: null,
+  scheduledByChannel: {},
   messages: [],
   typingUsers: {},
   activityUsers: {},
@@ -880,6 +902,27 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }));
     });
 
+    // Отложенные сообщения: синхронизация между устройствами владельца
+    socket.on('scheduled:created', (data: { channelId: number; message: ScheduledMessage }) => {
+      if (!data?.message) return;
+      set((state) => {
+        const list = state.scheduledByChannel[data.channelId] ?? [];
+        const next = [...list.filter((m) => m.id !== data.message.id), data.message].sort(
+          (a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime(),
+        );
+        return { scheduledByChannel: { ...state.scheduledByChannel, [data.channelId]: next } };
+      });
+    });
+
+    socket.on('scheduled:removed', (data: { channelId: number; id: number }) => {
+      set((state) => ({
+        scheduledByChannel: {
+          ...state.scheduledByChannel,
+          [data.channelId]: (state.scheduledByChannel[data.channelId] ?? []).filter((m) => m.id !== data.id),
+        },
+      }));
+    });
+
     socket.connect();
   },
 
@@ -902,7 +945,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     if (connectionRefs === 0) get().disconnect();
   },
 
-  sendMessage: (channelId, text, attachments, replyToMessageId, messageType) => {
+  sendMessage: (channelId, text, attachments, replyToMessageId, messageType, silent) => {
     if (!socketRef?.connected) return;
 
     // Форум-канал: сообщение уходит в открытую тему
@@ -916,6 +959,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       replyToMessageId,
       messageType: messageType ?? 'text',
       topicId,
+      silent: !!silent,
     });
 
     set({ replyToMessage: null });
@@ -1177,6 +1221,66 @@ export const useChatStore = create<ChatState>((set, get) => ({
         : 'Не удалось сохранить настройки группы';
       useToastStore.getState().addToast('error', msg);
       return false;
+    }
+  },
+
+  fetchScheduled: async (channelId) => {
+    try {
+      const { data } = await api.get(`/chat-channels/${channelId}/scheduled`);
+      set((state) => ({
+        scheduledByChannel: { ...state.scheduledByChannel, [channelId]: Array.isArray(data) ? data : [] },
+      }));
+    } catch {
+      // ignore
+    }
+  },
+
+  scheduleMessage: async (channelId, dto) => {
+    try {
+      const { activeChannelId, activeTopicId } = get();
+      const topicId = dto.topicId ?? (channelId === activeChannelId ? activeTopicId ?? undefined : undefined);
+      const { data } = await api.post(`/chat-channels/${channelId}/scheduled`, { ...dto, topicId });
+      set((state) => {
+        const list = state.scheduledByChannel[channelId] ?? [];
+        const next = [...list.filter((m) => m.id !== data.id), data].sort(
+          (a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime(),
+        );
+        return { scheduledByChannel: { ...state.scheduledByChannel, [channelId]: next } };
+      });
+      return true;
+    } catch (e: any) {
+      const msg = e?.response?.data?.message || 'Не удалось запланировать сообщение';
+      useToastStore.getState().addToast('error', Array.isArray(msg) ? msg[0] : msg);
+      return false;
+    }
+  },
+
+  cancelScheduled: async (channelId, id) => {
+    set((state) => ({
+      scheduledByChannel: {
+        ...state.scheduledByChannel,
+        [channelId]: (state.scheduledByChannel[channelId] ?? []).filter((m) => m.id !== id),
+      },
+    }));
+    try {
+      await api.delete(`/chat-channels/${channelId}/scheduled/${id}`);
+    } catch {
+      get().fetchScheduled(channelId);
+    }
+  },
+
+  sendScheduledNow: async (channelId, id) => {
+    set((state) => ({
+      scheduledByChannel: {
+        ...state.scheduledByChannel,
+        [channelId]: (state.scheduledByChannel[channelId] ?? []).filter((m) => m.id !== id),
+      },
+    }));
+    try {
+      await api.post(`/chat-channels/${channelId}/scheduled/${id}/send-now`);
+    } catch {
+      get().fetchScheduled(channelId);
+      useToastStore.getState().addToast('error', 'Не удалось отправить сообщение');
     }
   },
 
