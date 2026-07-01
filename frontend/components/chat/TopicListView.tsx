@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useChatStore, ChatChannel, ChatTopic } from '@/stores/chatStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useThemeStore } from '@/stores/themeStore';
@@ -54,8 +55,16 @@ export default function TopicListView({ channel, onBack, onOpenInfo }: TopicList
   const [showCreate, setShowCreate] = useState(false);
   const [editing, setEditing] = useState<ChatTopic | null>(null);
   const [menuId, setMenuId] = useState<number | null>(null);
+  const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
   const [showHidden, setShowHidden] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const openMenu = (topicId: number, el: HTMLElement) => {
+    const rect = el.getBoundingClientRect();
+    setMenuPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
+    setMenuId(topicId);
+  };
+  const closeMenu = () => { setMenuId(null); setMenuPos(null); };
 
   const copyTopicLink = (topicId: number) => {
     const url = `${window.location.origin}/dashboard/chat?channelId=${channel.id}&topicId=${topicId}`;
@@ -72,10 +81,17 @@ export default function TopicListView({ channel, onBack, onOpenInfo }: TopicList
   useEffect(() => {
     if (menuId === null) return;
     const onDoc = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuId(null);
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) closeMenu();
     };
+    const onScroll = () => closeMenu();
     document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
+    window.addEventListener('scroll', onScroll, true);
+    window.addEventListener('resize', onScroll);
+    return () => {
+      document.removeEventListener('mousedown', onDoc);
+      window.removeEventListener('scroll', onScroll, true);
+      window.removeEventListener('resize', onScroll);
+    };
   }, [menuId]);
 
   const list = topics ?? [];
@@ -140,7 +156,7 @@ export default function TopicListView({ channel, onBack, onOpenInfo }: TopicList
 
         {/* Actions menu (доступно всем; редактирование/закрытие/удаление — по правам) */}
         <button
-          onClick={(e) => { e.stopPropagation(); setMenuId(menuId === topic.id ? null : topic.id); }}
+          onClick={(e) => { e.stopPropagation(); if (menuId === topic.id) { closeMenu(); } else { openMenu(topic.id, e.currentTarget); } }}
           className="shrink-0 p-1 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 opacity-0 group-hover:opacity-100 transition-opacity"
           title={t('Действия')}
         >
@@ -149,33 +165,34 @@ export default function TopicListView({ channel, onBack, onOpenInfo }: TopicList
           </svg>
         </button>
 
-        {menuId === topic.id && (
+        {menuId === topic.id && menuPos && createPortal(
           <div
             ref={menuRef}
             onClick={(e) => e.stopPropagation()}
-            className="absolute right-3 top-12 z-30 w-52 py-1 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700"
+            style={{ position: 'fixed', top: menuPos.top, right: menuPos.right }}
+            className="z-[200] w-52 py-1 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700"
           >
             <button
-              onClick={() => { copyTopicLink(topic.id); setMenuId(null); }}
+              onClick={() => { copyTopicLink(topic.id); closeMenu(); }}
               className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
             >
               {t('Скопировать ссылку')}
             </button>
             <button
-              onClick={() => { muteTopic(channel.id, topic.id, topic.isMutedForMe ? null : new Date(Date.now() + 100 * 365 * 24 * 3600 * 1000)); setMenuId(null); }}
+              onClick={() => { muteTopic(channel.id, topic.id, topic.isMutedForMe ? null : new Date(Date.now() + 100 * 365 * 24 * 3600 * 1000)); closeMenu(); }}
               className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
             >
               {topic.isMutedForMe ? t('Включить уведомления') : t('Выключить уведомления')}
             </button>
             <button
-              onClick={() => { hideTopic(channel.id, topic.id, !topic.isHiddenForMe); setMenuId(null); }}
+              onClick={() => { hideTopic(channel.id, topic.id, !topic.isHiddenForMe); closeMenu(); }}
               className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
             >
               {topic.isHiddenForMe ? t('Показать тему') : t('Скрыть тему')}
             </button>
             {canEdit && (
               <button
-                onClick={() => { setEditing(topic); setMenuId(null); }}
+                onClick={() => { setEditing(topic); closeMenu(); }}
                 className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
               >
                 {t('Изменить')}
@@ -183,7 +200,7 @@ export default function TopicListView({ channel, onBack, onOpenInfo }: TopicList
             )}
             {isAdmin && (
               <button
-                onClick={() => { updateTopic(channel.id, topic.id, { isPinned: !topic.isPinned }); setMenuId(null); }}
+                onClick={() => { updateTopic(channel.id, topic.id, { isPinned: !topic.isPinned }); closeMenu(); }}
                 className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
               >
                 {topic.isPinned ? t('Открепить') : t('Закрепить')}
@@ -191,7 +208,7 @@ export default function TopicListView({ channel, onBack, onOpenInfo }: TopicList
             )}
             {isAdmin && (
               <button
-                onClick={() => { updateTopic(channel.id, topic.id, { isClosed: !topic.isClosed }); setMenuId(null); }}
+                onClick={() => { updateTopic(channel.id, topic.id, { isClosed: !topic.isClosed }); closeMenu(); }}
                 className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
               >
                 {topic.isClosed ? t('Переоткрыть') : t('Закрыть')}
@@ -201,14 +218,15 @@ export default function TopicListView({ channel, onBack, onOpenInfo }: TopicList
               <button
                 onClick={() => {
                   if (confirm(t('Удалить тему вместе с сообщениями?'))) deleteTopic(channel.id, topic.id);
-                  setMenuId(null);
+                  closeMenu();
                 }}
                 className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10"
               >
                 {t('Удалить')}
               </button>
             )}
-          </div>
+          </div>,
+          document.body,
         )}
       </div>
     );

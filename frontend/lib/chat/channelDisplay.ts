@@ -9,6 +9,18 @@ export function isDeletedEmail(email?: string | null): boolean {
   return !!email && /^deleted_\d+_\d+@crm\.deleted$/.test(email);
 }
 
+/** Класс фона аватара по «цвету профиля группы» (см. AppearanceScreen). */
+const PROFILE_COLOR_BG: Record<string, string> = {
+  blue: 'bg-sky-500', green: 'bg-emerald-500', orange: 'bg-amber-500', red: 'bg-red-500',
+  purple: 'bg-violet-500', teal: 'bg-teal-500', pink: 'bg-pink-500', gray: 'bg-slate-500',
+  indigo: 'bg-indigo-500', lime: 'bg-lime-600', amber: 'bg-yellow-600', rose: 'bg-rose-500',
+  fuchsia: 'bg-fuchsia-500',
+};
+
+export function profileColorBg(key?: string | null): string {
+  return (key && PROFILE_COLOR_BG[key]) || 'bg-violet-500';
+}
+
 export function isSelfChat(channel: ChatChannel, currentUserId?: number): boolean {
   if (channel.channelType !== 'direct' || !currentUserId) return false;
   if (!channel.members || channel.members.length === 0) return false;

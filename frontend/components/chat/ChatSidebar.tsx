@@ -10,6 +10,7 @@ import ChatPreviewModal from './ChatPreviewModal';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import { previewMessageText } from '@/lib/chat/messagePreview';
+import { profileColorBg } from '@/lib/chat/channelDisplay';
 import { useT } from '@/lib/i18n';
 import { useChatOnly } from './ChatOnlyContext';
 
@@ -407,7 +408,7 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
                 onTouchCancel={handleTouchEnd}
               >
                 <div className="relative shrink-0">
-                  <div className={`w-11 h-11 rounded-full flex items-center justify-center text-white font-semibold text-sm overflow-hidden relative ${isSelf ? 'bg-amber-400' : channel.channelType === 'group' ? 'bg-violet-500' : 'bg-sky-500'}`}>
+                  <div className={`w-11 h-11 rounded-full flex items-center justify-center text-white font-semibold text-sm overflow-hidden relative ${isSelf ? 'bg-amber-400' : channel.channelType === 'group' ? profileColorBg(channel.profileColor) : 'bg-sky-500'}`}>
                     {avatarUrl
                       ? null
                       : isSelf
@@ -606,7 +607,7 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
               <div className="relative shrink-0">
                 <div
                   className={`w-11 h-11 rounded-full flex items-center justify-center text-white font-semibold text-sm overflow-hidden relative ${
-                    isSelf ? 'bg-amber-400' : isDeletedUser ? 'bg-gray-400 dark:bg-gray-600' : channel.channelType === 'group' ? 'bg-violet-500' : 'bg-sky-500'
+                    isSelf ? 'bg-amber-400' : isDeletedUser ? 'bg-gray-400 dark:bg-gray-600' : channel.channelType === 'group' ? profileColorBg(channel.profileColor) : 'bg-sky-500'
                   }`}
                 >
                   {isSelf ? (

@@ -374,18 +374,33 @@ export class ChatService {
     limit: number = 50,
     topicId?: number,
   ) {
-    await this.findChannelById(channelId, user.accountId);
-    if (user.roleId === 15) {
-      const member = await this.chatRepository.findChannelMember(channelId, user.id);
-      if (!member) {
-        throw new ForbiddenException('Access denied');
-      }
+    const channel = await this.findChannelById(channelId, user.accountId);
+    const member = (channel.members || []).find((m: any) => m.userId === user.id);
+    if (user.roleId === 15 && !member) {
+      throw new ForbiddenException('Access denied');
     }
+
+    // «История чата для новых участников = Скрыта»: не-админ/не-создатель видит
+    // сообщения только с момента вступления (как в Telegram). Создатель и админы
+    // канала видят полную историю.
+    let sinceDate: Date | undefined;
+    const settings = (channel.settings as Record<string, unknown>) || {};
+    if (
+      settings.historyVisibleToNewMembers === false &&
+      member &&
+      member.role !== 'admin' &&
+      channel.createdByUserId !== user.id &&
+      member.joinedAt
+    ) {
+      sinceDate = new Date(member.joinedAt);
+    }
+
     return this.chatRepository.findChannelMessagesCursor(
       channelId,
       cursor,
       limit,
       topicId,
+      sinceDate,
     );
   }
 

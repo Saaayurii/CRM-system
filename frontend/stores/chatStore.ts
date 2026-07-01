@@ -96,6 +96,18 @@ export interface ChatChannel {
   // Темы (Telegram-style forum topics)
   topicsEnabled?: boolean;
   createTopicsPermission?: 'all' | 'admins';
+  topicsLayout?: 'tabs' | 'list';
+  // Group settings (stored in channel.settings JSON)
+  description?: string;
+  isPrivate?: boolean;
+  reactionsMode?: 'all' | 'selected' | 'none';
+  allowedReactions?: string[];
+  historyVisibleToNewMembers?: boolean;
+  hideMembers?: boolean;
+  profileColor?: string | null;
+  backgroundEmoji?: string | null;
+  wallpaperUrl?: string | null;
+  permissions?: Record<string, boolean>;
 }
 
 export interface ChatTopic {
@@ -275,6 +287,17 @@ function mapRawChannel(raw: any, currentUserId?: number): ChatChannel {
     myRole,
     topicsEnabled: !!settings.topicsEnabled,
     createTopicsPermission: (settings.createTopicsPermission as 'all' | 'admins') ?? 'all',
+    topicsLayout: (settings.topicsLayout as 'tabs' | 'list') ?? 'list',
+    description: raw.description ?? settings.description ?? undefined,
+    isPrivate: raw.isPrivate ?? settings.isPrivate ?? false,
+    reactionsMode: (settings.reactionsMode as 'all' | 'selected' | 'none') ?? 'all',
+    allowedReactions: Array.isArray(settings.allowedReactions) ? settings.allowedReactions : undefined,
+    historyVisibleToNewMembers: settings.historyVisibleToNewMembers !== false,
+    hideMembers: !!settings.hideMembers,
+    profileColor: (settings.profileColor as string) ?? null,
+    backgroundEmoji: (settings.backgroundEmoji as string) ?? null,
+    wallpaperUrl: (settings.wallpaperUrl as string) ?? null,
+    permissions: (settings.permissions as Record<string, boolean>) ?? undefined,
   };
 }
 
@@ -370,6 +393,7 @@ interface ChatState {
   updateTopic: (channelId: number, topicId: number, dto: { name?: string; iconEmoji?: string; color?: string; isClosed?: boolean; isPinned?: boolean }) => Promise<void>;
   deleteTopic: (channelId: number, topicId: number) => Promise<void>;
   setTopicsConfig: (channelId: number, dto: { topicsEnabled?: boolean; createTopicsPermission?: 'all' | 'admins' }) => Promise<void>;
+  updateChannel: (channelId: number, dto: { name?: string; description?: string; avatarUrl?: string; isPrivate?: boolean; settings?: Record<string, unknown> }) => Promise<boolean>;
   markTopicRead: (channelId: number, topicId: number) => void;
   muteTopic: (channelId: number, topicId: number, mutedUntil: Date | null) => Promise<void>;
   hideTopic: (channelId: number, topicId: number, hidden: boolean) => Promise<void>;
@@ -1072,6 +1096,53 @@ export const useChatStore = create<ChatState>((set, get) => ({
         ? 'Только админ канала может включать темы'
         : 'Не удалось изменить настройки тем';
       useToastStore.getState().addToast('error', msg);
+    }
+  },
+
+  updateChannel: async (channelId, dto) => {
+    const prev = get().channels.find((c) => c.id === channelId);
+    // Оптимистичное локальное применение (шапка/настройки реагируют мгновенно)
+    const optimistic = (c: ChatChannel): ChatChannel => {
+      const s = (dto.settings ?? {}) as Record<string, unknown>;
+      return {
+        ...c,
+        channelName: dto.name ?? c.channelName,
+        description: dto.description ?? c.description,
+        avatarUrl: dto.avatarUrl ?? c.avatarUrl,
+        isPrivate: dto.isPrivate ?? c.isPrivate,
+        topicsLayout: (s.topicsLayout as 'tabs' | 'list') ?? c.topicsLayout,
+        reactionsMode: (s.reactionsMode as 'all' | 'selected' | 'none') ?? c.reactionsMode,
+        allowedReactions: (s.allowedReactions as string[]) ?? c.allowedReactions,
+        historyVisibleToNewMembers:
+          s.historyVisibleToNewMembers !== undefined ? !!s.historyVisibleToNewMembers : c.historyVisibleToNewMembers,
+        hideMembers: s.hideMembers !== undefined ? !!s.hideMembers : c.hideMembers,
+        profileColor: (s.profileColor as string) ?? c.profileColor,
+        backgroundEmoji: (s.backgroundEmoji as string) ?? c.backgroundEmoji,
+        wallpaperUrl: (s.wallpaperUrl as string) ?? c.wallpaperUrl,
+        permissions: (s.permissions as Record<string, boolean>) ?? c.permissions,
+      };
+    };
+    set((state) => ({
+      channels: state.channels.map((c) => (c.id === channelId ? optimistic(c) : c)),
+    }));
+    try {
+      const { data } = await api.put(`/chat-channels/${channelId}`, dto);
+      const mapped = mapRawChannel(data, useAuthStore.getState().user?.id);
+      set((state) => ({
+        channels: state.channels.map((c) => (c.id === channelId ? { ...c, ...mapped } : c)),
+      }));
+      return true;
+    } catch (e: any) {
+      if (prev) {
+        set((state) => ({
+          channels: state.channels.map((c) => (c.id === channelId ? prev : c)),
+        }));
+      }
+      const msg = e?.response?.status === 403
+        ? 'Недостаточно прав для изменения группы'
+        : 'Не удалось сохранить настройки группы';
+      useToastStore.getState().addToast('error', msg);
+      return false;
     }
   },
 

@@ -284,6 +284,7 @@ export class ChatRepository {
     cursor?: number,
     limit: number = 50,
     topicId?: number,
+    sinceDate?: Date,
   ) {
     const where: any = { channelId, isDeleted: false };
     if (topicId) {
@@ -291,6 +292,10 @@ export class ChatRepository {
     }
     if (cursor) {
       where.id = { lt: cursor };
+    }
+    // История скрыта для новых участников: отдаём только сообщения с момента вступления
+    if (sinceDate) {
+      where.createdAt = { gte: sinceDate };
     }
 
     const data = await (this.prisma as any).chatMessage.findMany({

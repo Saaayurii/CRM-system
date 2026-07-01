@@ -4,6 +4,7 @@ import { useRef, useEffect, useCallback, useState, useMemo } from 'react';
 import { useChatStore, ChatChannel, ChatMessage as ChatMessageType } from '@/stores/chatStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useThemeStore } from '@/stores/themeStore';
+import { useToastStore } from '@/stores/toastStore';
 import { getChatBackground } from '@/lib/appearance';
 import { useBubbleGradientFlow } from '@/hooks/useBubbleGradientFlow';
 import { formatLastSeen } from '@/lib/chat/channelDisplay';
@@ -14,6 +15,7 @@ import UserProfileModal from './UserProfileModal';
 import VoicePlayerBar from './VoicePlayerBar';
 import ForwardMessageModal from './ForwardMessageModal';
 import TopicListView from './TopicListView';
+import TopicTabsRail from './TopicTabsRail';
 import { useT } from '@/lib/i18n';
 
 /* Плавающие «стеклянные» поверхности шапки и input-бара чата (Liquid Glass,
@@ -392,12 +394,32 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
     ?? archivedChannels.find((ch) => ch.id === activeChannelId);
   // Темы (Telegram-style forum): форум-канал с включёнными темами.
   const isForum = activeChannel?.channelType === 'group' && !!activeChannel?.topicsEnabled;
+  const topicsLayout = activeChannel?.topicsLayout ?? 'list';
   const channelTopics = activeChannelId ? topicsByChannel[activeChannelId] : undefined;
   const activeTopic = isForum && activeTopicId
     ? channelTopics?.find((t) => t.id === activeTopicId) ?? null
     : null;
-  // Список тем показываем, когда форум открыт, но конкретная тема не выбрана
-  const showTopicList = isForum && activeTopicId == null;
+  // Режим «Вкладки»: тема всегда открыта, слева — рельс вкладок.
+  // Режим «Список»: сначала полноэкранный список тем, затем лента выбранной темы.
+  const forumTabs = isForum && topicsLayout === 'tabs';
+  const showTopicList = isForum && activeTopicId == null && topicsLayout === 'list';
+
+  // Набор реакций из настроек группы: 'none' → отключены, 'selected' → только выбранные
+  const reactionEmojis = useMemo<string[] | undefined>(() => {
+    if (!activeChannel) return undefined;
+    if (activeChannel.reactionsMode === 'none') return [];
+    if (activeChannel.reactionsMode === 'selected') return activeChannel.allowedReactions ?? [];
+    return undefined;
+  }, [activeChannel?.reactionsMode, activeChannel?.allowedReactions, activeChannel]);
+
+  // В режиме «Вкладки» автоматически открываем тему (General/первую), если не выбрана
+  useEffect(() => {
+    if (!forumTabs || activeChannelId == null || activeTopicId != null) return;
+    const tps = channelTopics;
+    if (!tps || tps.length === 0) return;
+    const first = tps.find((tp) => tp.isGeneral) ?? tps[0];
+    if (first) setActiveTopic(activeChannelId, first.id);
+  }, [forumTabs, activeChannelId, activeTopicId, channelTopics, setActiveTopic]);
   const channelTyping = activeChannelId ? typingUsers[activeChannelId] || [] : [];
   const channelActivity = activeChannelId ? activityUsers[activeChannelId] || [] : [];
 
@@ -871,6 +893,8 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
         />
       ) : (
       <>
+      {/* Рельс вкладок тем (режим «Вкладки») — слева от ленты */}
+      {forumTabs && <TopicTabsRail channel={activeChannel} />}
       {/* Main chat column — обои/фон на самой колонке (статичны), лента и
           input-бар прозрачны, поэтому стеклянные шапка и контролы парят над
           единым фоном (как в Telegram), а не над сплошными панелями */}
@@ -889,10 +913,12 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
               и возвращает к списку тем (как в Telegram) */}
           <button
             onClick={() => {
-              if (activeTopic && activeChannelId) setActiveTopic(activeChannelId, null);
+              // В режиме «Вкладки» тема всегда открыта — назад ведёт к списку чатов.
+              // В режиме «Список» назад возвращает к списку тем.
+              if (activeTopic && activeChannelId && !forumTabs) setActiveTopic(activeChannelId, null);
               else onBack();
             }}
-            className={`${activeTopic ? '' : 'lg:hidden'} shrink-0 w-9 h-9 flex items-center justify-center rounded-full text-gray-600 dark:text-gray-200 ${GLASS_SURFACE}`}
+            className={`${activeTopic && !forumTabs ? '' : 'lg:hidden'} shrink-0 w-9 h-9 flex items-center justify-center rounded-full text-gray-600 dark:text-gray-200 ${GLASS_SURFACE}`}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -932,7 +958,7 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
                 isSelf
                   ? 'bg-amber-400'
                   : activeChannel.channelType === 'group'
-                  ? 'bg-violet-500'
+                  ? profileColorBg(activeChannel.profileColor)
                   : 'bg-sky-500'
               }`}
             >
@@ -1266,6 +1292,7 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
                     isPinned={isMsgPinned}
                     canPin={canPin}
                     highlightQuery={isMatchedMsg ? searchQuery.trim() : undefined}
+                    reactionEmojis={reactionEmojis}
                   />
                 </div>
               </div>
@@ -1418,18 +1445,8 @@ interface InfoPanelProps {
 function InfoPanel({ channel, partner, isSelf, isPartnerOnline, isAdmin, isCompanyAdmin, currentUserId, onClose }: InfoPanelProps) {
   const t = useT();
   const [userDetails, setUserDetails] = useState<any>(null);
-  const [members, setMembers] = useState(channel.members ?? []);
-  const [mutingId, setMutingId] = useState<number | null>(null);
-  const [showAddMember, setShowAddMember] = useState(false);
-  const updateChannels = useChatStore((s) => s.fetchChannels);
-  const setTopicsConfig = useChatStore((s) => s.setTopicsConfig);
-  const canManageMembers = isAdmin || isCompanyAdmin;
   const lastSeenAt = useChatStore((s) => s.lastSeenAt);
   const partnerLastSeenText = partner ? formatLastSeen(lastSeenAt[partner.id]) : null;
-
-  useEffect(() => {
-    setMembers(channel.members ?? []);
-  }, [channel.members]);
 
   useEffect(() => {
     if (!isSelf && channel.channelType === 'direct' && partner?.id) {
@@ -1437,30 +1454,27 @@ function InfoPanel({ channel, partner, isSelf, isPartnerOnline, isAdmin, isCompa
     }
   }, [isSelf, channel.channelType, partner?.id]);
 
-  const handleToggleMute = async (memberId: number, currentlyMuted: boolean) => {
-    setMutingId(memberId);
-    try {
-      await api.patch(`/chat-channels/${channel.id}/members/${memberId}`, { isMuted: !currentlyMuted });
-      setMembers((prev) =>
-        prev.map((m) => (m.id === memberId ? { ...m, isMuted: !currentlyMuted } : m)),
-      );
-      // Refresh channels so the muted user's view updates on next fetch
-      updateChannels(1);
-    } catch {
-      // ignore
-    } finally {
-      setMutingId(null);
-    }
-  };
-
   const details = userDetails;
+
+  // Группа — полноценный Telegram-style экран настроек (аватар/имя/описание + под-экраны)
+  if (channel.channelType === 'group') {
+    return (
+      <GroupInfoPanel
+        channel={channel}
+        isAdmin={isAdmin}
+        isCompanyAdmin={isCompanyAdmin}
+        currentUserId={currentUserId}
+        onClose={onClose}
+      />
+    );
+  }
 
   return (
     <div className="flex flex-col h-full">
       {/* Info header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 shrink-0">
         <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">
-          {channel.channelType === 'group' ? 'О группе' : 'О пользователе'}
+          {'О пользователе'}
         </span>
         <button
           onClick={onClose}
@@ -1477,11 +1491,7 @@ function InfoPanel({ channel, partner, isSelf, isPartnerOnline, isAdmin, isCompa
         <div className="flex flex-col items-center gap-2 py-4">
           <div
             className={`w-16 h-16 rounded-full flex items-center justify-center text-white text-xl font-bold relative overflow-hidden ${
-              isSelf
-                ? 'bg-amber-400'
-                : channel.channelType === 'group'
-                ? 'bg-violet-500'
-                : 'bg-sky-500'
+              isSelf ? 'bg-amber-400' : 'bg-sky-500'
             }`}
           >
             {isSelf ? (
@@ -1491,7 +1501,7 @@ function InfoPanel({ channel, partner, isSelf, isPartnerOnline, isAdmin, isCompa
             ) : (
               getInitials(partner?.name || channel.channelName)
             )}
-            {(channel.avatarUrl || (!isSelf && channel.channelType === 'direct' && partner?.avatarUrl)) && (
+            {(channel.avatarUrl || (!isSelf && partner?.avatarUrl)) && (
               <img
                 src={channel.avatarUrl || partner?.avatarUrl}
                 alt=""
@@ -1547,146 +1557,802 @@ function InfoPanel({ channel, partner, isSelf, isPartnerOnline, isAdmin, isCompa
           </div>
         )}
 
-        {/* Темы (Telegram-style forum topics) — управление доступно админам канала */}
-        {channel.channelType === 'group' && isAdmin && (
-          <div className="space-y-2">
-            <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">
-              {t('Темы')}
-            </p>
-            <div className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-700/40">
-              <span className="text-sm text-gray-700 dark:text-gray-200">{t('Разделить чат на темы')}</span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={!!channel.topicsEnabled}
-                onClick={() => setTopicsConfig(channel.id, { topicsEnabled: !channel.topicsEnabled })}
-                className={`relative w-10 h-6 rounded-full transition-colors shrink-0 ${channel.topicsEnabled ? 'bg-violet-500' : 'bg-gray-300 dark:bg-gray-600'}`}
-              >
-                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${channel.topicsEnabled ? 'translate-x-4' : ''}`} />
-              </button>
-            </div>
-            {channel.topicsEnabled && (
-              <div className="px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-700/40">
-                <p className="text-sm text-gray-700 dark:text-gray-200 mb-2">{t('Кто может создавать темы')}</p>
-                <div className="flex gap-2">
-                  {(['all', 'admins'] as const).map((perm) => (
-                    <button
-                      key={perm}
-                      onClick={() => setTopicsConfig(channel.id, { createTopicsPermission: perm })}
-                      className={`flex-1 px-3 py-1.5 text-xs rounded-lg transition-colors ${
-                        (channel.createTopicsPermission ?? 'all') === perm
-                          ? 'bg-violet-500 text-white'
-                          : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600'
-                      }`}
-                    >
-                      {perm === 'all' ? t('Все участники') : t('Только админы')}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+      </div>
+    </div>
+  );
+}
 
-        {/* Members (group) */}
-        {channel.channelType === 'group' && members.length > 0 && (() => {
-          const visibleMembers = members.filter(
-            (m) => m.name && !/^deleted_\d+_\d+@crm\.deleted$/.test(m.email ?? ''),
-          );
-          return (
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">
-                Участники ({visibleMembers.length})
-              </p>
-              {canManageMembers && (
+/* ───────── Group Info Panel (Telegram-style settings) ───────── */
+
+type GroupView =
+  | 'main'
+  | 'type'
+  | 'reactions'
+  | 'appearance'
+  | 'history'
+  | 'topics'
+  | 'members'
+  | 'permissions'
+  | 'admins'
+  | 'recent';
+
+// Палитра «цвет профиля» (как в Telegram) — swatch + класс фона аватара
+const PROFILE_COLORS: { key: string; swatch: string; bg: string }[] = [
+  { key: 'blue', swatch: '#5b9bd5', bg: 'bg-sky-500' },
+  { key: 'green', swatch: '#4ba577', bg: 'bg-emerald-500' },
+  { key: 'orange', swatch: '#d99a4e', bg: 'bg-amber-500' },
+  { key: 'red', swatch: '#c15b52', bg: 'bg-red-500' },
+  { key: 'purple', swatch: '#9b7bd4', bg: 'bg-violet-500' },
+  { key: 'teal', swatch: '#4aa3a8', bg: 'bg-teal-500' },
+  { key: 'pink', swatch: '#c56b8f', bg: 'bg-pink-500' },
+  { key: 'gray', swatch: '#8a95a3', bg: 'bg-slate-500' },
+  { key: 'indigo', swatch: '#6d78d6', bg: 'bg-indigo-500' },
+  { key: 'lime', swatch: '#7fae4a', bg: 'bg-lime-600' },
+  { key: 'amber', swatch: '#d9a441', bg: 'bg-yellow-600' },
+  { key: 'rose', swatch: '#d16a6a', bg: 'bg-rose-500' },
+  { key: 'fuchsia', swatch: '#b56ad1', bg: 'bg-fuchsia-500' },
+];
+
+const REACTION_EMOJIS = ['👍', '👎', '❤️', '🔥', '🎉', '😁', '😢', '🤔', '🙏', '👏', '😍', '💯', '⚡', '🥰', '😱', '🤯'];
+
+function profileColorBg(key?: string | null): string {
+  return PROFILE_COLORS.find((c) => c.key === key)?.bg ?? 'bg-violet-500';
+}
+
+/* Переиспользуемая цветная иконка-плитка строки настроек */
+function RowIcon({ bg, children }: { bg: string; children: React.ReactNode }) {
+  return (
+    <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-white shrink-0 ${bg}`}>
+      {children}
+    </div>
+  );
+}
+
+/* Строка настройки: иконка + заголовок + значение/бейдж + шеврон */
+function SettingRow({
+  icon,
+  label,
+  value,
+  badge,
+  onClick,
+  danger,
+}: {
+  icon?: React.ReactNode;
+  label: string;
+  value?: React.ReactNode;
+  badge?: React.ReactNode;
+  onClick?: () => void;
+  danger?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={!onClick}
+      className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors ${
+        onClick ? 'hover:bg-gray-100 dark:hover:bg-gray-700/50' : ''
+      } ${danger ? 'text-red-500' : ''}`}
+    >
+      {icon}
+      <span className={`flex-1 text-sm ${danger ? 'text-red-500' : 'text-gray-800 dark:text-gray-100'}`}>{label}</span>
+      {badge}
+      {value != null && <span className="text-sm text-gray-400 dark:text-gray-500">{value}</span>}
+      {onClick && !danger && (
+        <svg className="w-4 h-4 text-gray-300 dark:text-gray-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+      )}
+    </button>
+  );
+}
+
+/* Заголовок под-экрана с кнопкой «назад» и опциональной кнопкой действия */
+function SubScreenHeader({ title, onBack, action }: { title: string; onBack: () => void; action?: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-2 px-2 py-3 border-b border-gray-200 dark:border-gray-700 shrink-0">
+      <button onClick={onBack} className="p-1 text-gray-500 hover:text-gray-800 dark:hover:text-gray-100 rounded">
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        </svg>
+      </button>
+      <span className="flex-1 text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{title}</span>
+      {action}
+    </div>
+  );
+}
+
+function Toggle({ checked, onChange, disabled }: { checked: boolean; onChange: () => void; disabled?: boolean }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={onChange}
+      className={`relative w-11 h-6 rounded-full transition-colors shrink-0 disabled:opacity-50 ${
+        checked ? 'bg-sky-500' : 'bg-gray-300 dark:bg-gray-600'
+      }`}
+    >
+      <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${checked ? 'translate-x-5' : ''}`} />
+    </button>
+  );
+}
+
+function LevelBadge({ level }: { level: number }) {
+  return (
+    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[11px] font-medium text-white bg-gradient-to-r from-violet-500 to-fuchsia-500">
+      <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 1a5 5 0 00-5 5v3H6a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2v-8a2 2 0 00-2-2h-1V6a5 5 0 00-5-5zm3 8H9V6a3 3 0 016 0v3z"/></svg>
+      Уровень {level}
+    </span>
+  );
+}
+
+interface GroupInfoPanelProps {
+  channel: ChatChannel;
+  isAdmin: boolean;
+  isCompanyAdmin: boolean;
+  currentUserId?: number;
+  onClose: () => void;
+}
+
+function GroupInfoPanel({ channel, isAdmin, isCompanyAdmin, currentUserId, onClose }: GroupInfoPanelProps) {
+  const t = useT();
+  const [view, setView] = useState<GroupView>('main');
+  const canManage = isAdmin || isCompanyAdmin;
+
+  const updateChannel = useChatStore((s) => s.updateChannel);
+  const fetchChannels = useChatStore((s) => s.fetchChannels);
+  const setActiveChannel = useChatStore((s) => s.setActiveChannel);
+  const addToast = useToastStore((s) => s.addToast);
+
+  // Локальная редактируемая шапка
+  const [name, setName] = useState(channel.channelName);
+  const [description, setDescription] = useState(channel.description ?? '');
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setName(channel.channelName);
+    setDescription(channel.description ?? '');
+  }, [channel.channelName, channel.description]);
+
+  const dirty = name.trim() !== channel.channelName || (description ?? '') !== (channel.description ?? '');
+
+  const saveHeader = async () => {
+    if (!dirty || !name.trim()) return;
+    await updateChannel(channel.id, { name: name.trim(), description: description.trim() });
+    fetchChannels(1);
+  };
+
+  const handleAvatarPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('files', file);
+      const { data } = await api.post('/chat-channels/upload', fd);
+      const url = Array.isArray(data) ? data[0]?.fileUrl : (data.fileUrl || data.url);
+      if (url) {
+        const ok = await updateChannel(channel.id, { avatarUrl: url });
+        if (ok) fetchChannels(1);
+      }
+    } catch {
+      addToast('error', 'Не удалось загрузить аватар');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirm(`Удалить группу «${channel.channelName || 'без названия'}»? Это действие нельзя отменить.`)) return;
+    try {
+      await api.delete(`/chat-channels/${channel.id}`);
+      await setActiveChannel(null);
+      fetchChannels(1);
+      addToast('success', 'Группа удалена');
+      onClose();
+    } catch {
+      addToast('error', 'Не удалось удалить группу');
+    }
+  };
+
+  // ─── Под-экраны ───
+  if (view === 'type') return <GroupTypeScreen channel={channel} canManage={canManage} onBack={() => setView('main')} />;
+  if (view === 'reactions') return <ReactionsScreen channel={channel} canManage={canManage} onBack={() => setView('main')} />;
+  if (view === 'appearance') return <AppearanceScreen channel={channel} canManage={canManage} onBack={() => setView('main')} />;
+  if (view === 'history') return <HistoryScreen channel={channel} canManage={canManage} onBack={() => setView('main')} />;
+  if (view === 'topics') return <TopicsScreen channel={channel} canManage={canManage} onBack={() => setView('main')} />;
+  if (view === 'members') return <MembersScreen channel={channel} isAdmin={isAdmin} canManage={canManage} currentUserId={currentUserId} onBack={() => setView('main')} />;
+  if (view === 'permissions') return <PermissionsScreen channel={channel} canManage={canManage} onBack={() => setView('main')} />;
+  if (view === 'admins') return <AdminsScreen channel={channel} onBack={() => setView('main')} />;
+  if (view === 'recent') return <RecentActionsScreen channel={channel} onBack={() => setView('main')} />;
+
+  const reactionsValue = channel.reactionsMode === 'none' ? 'Выкл' : channel.reactionsMode === 'selected' ? `${channel.allowedReactions?.length ?? 0}` : 'Все';
+  const membersCount = (channel.members?.filter((m) => m.name && !/^deleted_\d+_\d+@crm\.deleted$/.test(m.email ?? '')).length) ?? channel.membersCount;
+  const adminCount = channel.members?.filter((m) => m.role === 'admin').length ?? 1;
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 shrink-0">
+        <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">{t('О группе')}</span>
+        <div className="flex items-center gap-1">
+          {canManage && dirty && (
+            <button onClick={saveHeader} className="text-sm font-medium text-sky-500 hover:text-sky-600 px-2 py-1">
+              {t('Готово')}
+            </button>
+          )}
+          <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto py-4 space-y-5">
+        {/* Аватар + камера */}
+        <div className="flex flex-col items-center gap-3 px-4">
+          <div className="relative">
+            <div className={`w-24 h-24 rounded-full flex items-center justify-center text-white text-3xl font-bold relative overflow-hidden ${profileColorBg(channel.profileColor)}`}>
+              {getInitials(channel.channelName)}
+              {channel.avatarUrl && (
+                <img src={channel.avatarUrl} alt="" className="absolute inset-0 w-full h-full rounded-full object-cover z-10" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+              )}
+              {canManage && (
                 <button
-                  onClick={() => setShowAddMember(true)}
-                  className="p-1 rounded-lg text-gray-400 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-500/10 transition-colors"
-                  title="Добавить участника"
+                  onClick={() => fileRef.current?.click()}
+                  className="absolute inset-0 z-20 flex items-center justify-center bg-black/35 opacity-0 hover:opacity-100 transition-opacity rounded-full"
+                  title={t('Сменить фото')}
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
+                  {uploading ? (
+                    <svg className="w-7 h-7 animate-spin text-white" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>
+                  ) : (
+                    <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                  )}
                 </button>
               )}
             </div>
-            <div className="space-y-2">
-              {visibleMembers.map((m) => {
-                const isSelf = m.id === currentUserId;
-                return (
-                  <div key={m.id} className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-sky-500 flex items-center justify-center text-white text-xs font-semibold shrink-0 overflow-hidden relative">
-                      {getInitials(m.name)}
-                      {m.avatarUrl && (
-                        <img
-                          src={m.avatarUrl}
-                          alt=""
-                          className="absolute inset-0 w-full h-full rounded-full object-cover z-10"
-                          onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                        />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate text-gray-800 dark:text-gray-100">
-                        {m.name}
-                        {m.role === 'admin' && (
-                          <span className="ml-1 text-xs text-violet-500 font-medium">admin</span>
-                        )}
-                      </p>
-                      {m.isMuted && (
-                        <p className="text-xs text-red-400">{t('Ограничен')}</p>
-                      )}
-                    </div>
-                    {isAdmin && !isSelf && (
-                      <button
-                        onClick={() => handleToggleMute(m.id, m.isMuted ?? false)}
-                        disabled={mutingId === m.id}
-                        title={m.isMuted ? 'Снять ограничение' : 'Ограничить отправку'}
-                        className={`shrink-0 p-1.5 rounded-lg transition-colors ${
-                          m.isMuted
-                            ? 'text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20'
-                            : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-red-400'
-                        }`}
-                      >
-                        {mutingId === m.id ? (
-                          <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
-                          </svg>
-                        ) : m.isMuted ? (
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072M12 18.364V5.636m0 0L8.464 9.172M12 5.636l3.536 3.536" />
-                          </svg>
-                        ) : (
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
-                          </svg>
-                        )}
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
+            <input ref={fileRef} type="file" accept="image/*" hidden onChange={handleAvatarPick} />
+          </div>
+        </div>
+
+        {/* Имя + описание (редактируемые для админа) */}
+        {canManage ? (
+          <div className="px-4">
+            <div className="rounded-xl bg-gray-50 dark:bg-gray-700/40 divide-y divide-gray-200 dark:divide-gray-700">
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                onBlur={saveHeader}
+                placeholder={t('Название группы')}
+                className="w-full bg-transparent px-3 py-2.5 text-sm text-gray-800 dark:text-gray-100 outline-none"
+              />
+              <input
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                onBlur={saveHeader}
+                placeholder={t('Описание')}
+                className="w-full bg-transparent px-3 py-2.5 text-sm text-gray-800 dark:text-gray-100 outline-none placeholder:text-gray-400"
+              />
+            </div>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1.5 px-1">{t('Можете указать дополнительное описание для группы.')}</p>
+          </div>
+        ) : (
+          <div className="px-4 text-center">
+            <p className="font-semibold text-lg text-gray-800 dark:text-gray-100">{channel.channelName}</p>
+            {channel.description && <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{channel.description}</p>}
+            <p className="text-xs text-gray-400 mt-1">{membersCount} {t('участн.')}</p>
+          </div>
+        )}
+
+        {/* Блок настроек */}
+        {canManage && (
+          <div className="px-4">
+            <div className="rounded-xl bg-gray-50 dark:bg-gray-700/40 divide-y divide-gray-200 dark:divide-gray-700 overflow-hidden">
+              <SettingRow
+                icon={<RowIcon bg="bg-sky-500"><svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></RowIcon>}
+                label={t('Тип группы')}
+                value={channel.isPrivate ? t('Частная') : t('Публичная')}
+                onClick={() => setView('type')}
+              />
+              <SettingRow
+                icon={<RowIcon bg="bg-red-500"><span className="text-sm">👏</span></RowIcon>}
+                label={t('Реакции')}
+                value={reactionsValue}
+                onClick={() => setView('reactions')}
+              />
+              <SettingRow
+                icon={<RowIcon bg="bg-orange-500"><svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M7 14c-1.66 0-3 1.34-3 3 0 1.31-1.16 2-2 2 .92 1.22 2.49 2 4 2 2.21 0 4-1.79 4-4 0-1.66-1.34-3-3-3zm13.71-9.37l-1.34-1.34a.996.996 0 00-1.41 0L9 12.25 11.75 15l8.96-8.96a.996.996 0 000-1.41z"/></svg></RowIcon>}
+                label={t('Оформление')}
+                badge={<LevelBadge level={1} />}
+                onClick={() => setView('appearance')}
+              />
+              <SettingRow
+                icon={<RowIcon bg="bg-emerald-500"><svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg></RowIcon>}
+                label={t('История чата для новых участников')}
+                value={channel.historyVisibleToNewMembers ? t('Видна') : t('Скрыта')}
+                onClick={() => setView('history')}
+              />
+              <SettingRow
+                icon={<RowIcon bg="bg-sky-400"><svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M3 5h2v2H3V5zm0 6h2v2H3v-2zm0 6h2v2H3v-2zM7 5h14v2H7V5zm0 6h14v2H7v-2zm0 6h14v2H7v-2z"/></svg></RowIcon>}
+                label={t('Темы')}
+                value={channel.topicsEnabled ? (channel.topicsLayout === 'tabs' ? t('Вкладки') : t('Список')) : t('Выкл')}
+                onClick={() => setView('topics')}
+              />
+            </div>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1.5 px-1">{t('Чат группы будет разделён на темы, созданные администраторами и пользователями.')}</p>
+          </div>
+        )}
+
+        {/* Управление */}
+        <div className="px-4">
+          <div className="rounded-xl bg-gray-50 dark:bg-gray-700/40 divide-y divide-gray-200 dark:divide-gray-700 overflow-hidden">
+            <SettingRow
+              icon={<RowIcon bg="bg-sky-500"><svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></RowIcon>}
+              label={t('Участники')}
+              value={membersCount}
+              onClick={() => setView('members')}
+            />
+            {canManage && (
+              <SettingRow
+                icon={<RowIcon bg="bg-amber-500"><svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12.65 10A5.99 5.99 0 006.5 6 6 6 0 006 18a5.99 5.99 0 006.32-4H17v4h4v-4h2v-4H12.65zM6.5 14a2 2 0 110-4 2 2 0 010 4z"/></svg></RowIcon>}
+                label={t('Разрешения')}
+                onClick={() => setView('permissions')}
+              />
+            )}
+            <SettingRow
+              icon={<RowIcon bg="bg-emerald-500"><svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg></RowIcon>}
+              label={t('Администраторы')}
+              value={adminCount}
+              onClick={() => setView('admins')}
+            />
+            {canManage && (
+              <SettingRow
+                icon={<RowIcon bg="bg-orange-400"><svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17a5 5 0 110-10 5 5 0 010 10zm0-8a3 3 0 100 6 3 3 0 000-6z"/></svg></RowIcon>}
+                label={t('Недавние действия')}
+                onClick={() => setView('recent')}
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Удалить группу */}
+        {canManage && (
+          <div className="px-4">
+            <div className="rounded-xl bg-gray-50 dark:bg-gray-700/40 overflow-hidden">
+              <SettingRow label={t('Удалить группу')} danger onClick={handleDelete} />
             </div>
           </div>
-          );
-        })()}
-
-        {showAddMember && (
-          <AddMemberModal
-            channel={channel}
-            existingMemberIds={members.map((m) => m.id)}
-            onClose={() => setShowAddMember(false)}
-            onAdded={(newMember) => {
-              setMembers((prev) => [...prev, newMember]);
-              updateChannels(1);
-            }}
-          />
         )}
       </div>
     </div>
+  );
+}
+
+/* ───────── Group sub-screens ───────── */
+
+function ScreenShell({ title, onBack, action, children }: { title: string; onBack: () => void; action?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col h-full">
+      <SubScreenHeader title={title} onBack={onBack} action={action} />
+      <div className="flex-1 overflow-y-auto py-4 space-y-4">{children}</div>
+    </div>
+  );
+}
+
+function RadioRow({ label, description, checked, onClick }: { label: string; description?: string; checked: boolean; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} className="w-full flex items-center gap-3 px-3 py-3 text-left hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors">
+      <div className="flex-1 min-w-0">
+        <p className="text-sm text-gray-800 dark:text-gray-100">{label}</p>
+        {description && <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{description}</p>}
+      </div>
+      {checked && (
+        <svg className="w-5 h-5 text-sky-500 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+      )}
+    </button>
+  );
+}
+
+function GroupTypeScreen({ channel, canManage, onBack }: { channel: ChatChannel; canManage: boolean; onBack: () => void }) {
+  const t = useT();
+  const updateChannel = useChatStore((s) => s.updateChannel);
+  const set = (isPrivate: boolean) => canManage && updateChannel(channel.id, { isPrivate });
+  return (
+    <ScreenShell title={t('Тип группы')} onBack={onBack}>
+      <div className="px-4">
+        <div className="rounded-xl bg-gray-50 dark:bg-gray-700/40 divide-y divide-gray-200 dark:divide-gray-700 overflow-hidden">
+          <RadioRow label={t('Частная')} description={t('Вступить можно только по пригласительной ссылке.')} checked={!!channel.isPrivate} onClick={() => set(true)} />
+          <RadioRow label={t('Публичная')} description={t('Группу можно найти в поиске, вступить может любой.')} checked={!channel.isPrivate} onClick={() => set(false)} />
+        </div>
+        <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 px-1">{t('Тип группы определяет, кто может её видеть и в неё вступать.')}</p>
+      </div>
+    </ScreenShell>
+  );
+}
+
+function ReactionsScreen({ channel, canManage, onBack }: { channel: ChatChannel; canManage: boolean; onBack: () => void }) {
+  const t = useT();
+  const updateChannel = useChatStore((s) => s.updateChannel);
+  const mode = channel.reactionsMode ?? 'all';
+  const allowed = channel.allowedReactions ?? [];
+  const setMode = (reactionsMode: 'all' | 'selected' | 'none') => canManage && updateChannel(channel.id, { settings: { reactionsMode } });
+  const toggleEmoji = (emoji: string) => {
+    if (!canManage) return;
+    const next = allowed.includes(emoji) ? allowed.filter((e) => e !== emoji) : [...allowed, emoji];
+    updateChannel(channel.id, { settings: { reactionsMode: 'selected', allowedReactions: next } });
+  };
+  return (
+    <ScreenShell title={t('Реакции')} onBack={onBack}>
+      <div className="px-4">
+        <div className="rounded-xl bg-gray-50 dark:bg-gray-700/40 divide-y divide-gray-200 dark:divide-gray-700 overflow-hidden">
+          <RadioRow label={t('Все реакции')} checked={mode === 'all'} onClick={() => setMode('all')} />
+          <RadioRow label={t('Только выбранные')} checked={mode === 'selected'} onClick={() => setMode('selected')} />
+          <RadioRow label={t('Без реакций')} checked={mode === 'none'} onClick={() => setMode('none')} />
+        </div>
+        <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 px-1">{t('Участники группы смогут отправлять реакции на публикации.')}</p>
+      </div>
+      {mode === 'selected' && (
+        <div className="px-4">
+          <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2 px-1">{t('Доступные реакции')}</p>
+          <div className="grid grid-cols-8 gap-1.5 rounded-xl bg-gray-50 dark:bg-gray-700/40 p-3">
+            {REACTION_EMOJIS.map((emoji) => {
+              const on = allowed.includes(emoji);
+              return (
+                <button
+                  key={emoji}
+                  onClick={() => toggleEmoji(emoji)}
+                  className={`aspect-square rounded-lg text-lg flex items-center justify-center transition-all ${on ? 'bg-sky-500/20 ring-2 ring-sky-500' : 'hover:bg-gray-200 dark:hover:bg-gray-600 opacity-60'}`}
+                >
+                  {emoji}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </ScreenShell>
+  );
+}
+
+function AppearanceScreen({ channel, canManage, onBack }: { channel: ChatChannel; canManage: boolean; onBack: () => void }) {
+  const t = useT();
+  const updateChannel = useChatStore((s) => s.updateChannel);
+  const fetchChannels = useChatStore((s) => s.fetchChannels);
+  const setColor = (profileColor: string) => {
+    if (!canManage) return;
+    updateChannel(channel.id, { settings: { profileColor } }).then((ok) => { if (ok) fetchChannels(1); });
+  };
+  return (
+    <ScreenShell title={t('Оформление')} onBack={onBack}>
+      <div className="flex flex-col items-center gap-2 px-4">
+        <div className={`w-24 h-24 rounded-full flex items-center justify-center text-white text-3xl font-bold overflow-hidden relative ${profileColorBg(channel.profileColor)}`}>
+          {getInitials(channel.channelName)}
+          {channel.avatarUrl && <img src={channel.avatarUrl} alt="" className="absolute inset-0 w-full h-full object-cover z-10" onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
+        </div>
+        <p className="font-semibold text-gray-800 dark:text-gray-100">{channel.channelName}</p>
+      </div>
+      <div className="px-4">
+        <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2 px-1">{t('Цвет профиля группы')}</p>
+        <div className="flex flex-wrap gap-2.5 rounded-xl bg-gray-50 dark:bg-gray-700/40 p-3">
+          {PROFILE_COLORS.map((c) => (
+            <button
+              key={c.key}
+              onClick={() => setColor(c.key)}
+              style={{ backgroundColor: c.swatch }}
+              className={`w-9 h-9 rounded-full transition-transform ${channel.profileColor === c.key ? 'ring-2 ring-offset-2 ring-offset-white dark:ring-offset-gray-800 ring-sky-500 scale-105' : 'hover:scale-105'}`}
+            />
+          ))}
+        </div>
+        <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 px-1">{t('Цвет применяется к аватару и профилю группы у всех участников.')}</p>
+      </div>
+      <div className="px-4 space-y-2">
+        <div className="rounded-xl bg-gray-50 dark:bg-gray-700/40 divide-y divide-gray-200 dark:divide-gray-700 overflow-hidden opacity-60">
+          <SettingRow label={t('Фоновый эмодзи')} badge={<LevelBadge level={7} />} value="" />
+          <SettingRow label={t('Набор эмодзи группы')} badge={<LevelBadge level={4} />} />
+          <SettingRow label={t('Обои в группе')} badge={<LevelBadge level={9} />} />
+        </div>
+        <p className="text-xs text-gray-400 dark:text-gray-500 px-1">{t('Эти настройки доступны на более высоком уровне группы.')}</p>
+      </div>
+    </ScreenShell>
+  );
+}
+
+function HistoryScreen({ channel, canManage, onBack }: { channel: ChatChannel; canManage: boolean; onBack: () => void }) {
+  const t = useT();
+  const updateChannel = useChatStore((s) => s.updateChannel);
+  const visible = channel.historyVisibleToNewMembers !== false;
+  const set = (v: boolean) => canManage && updateChannel(channel.id, { settings: { historyVisibleToNewMembers: v } });
+  return (
+    <ScreenShell title={t('История чата для новых участников')} onBack={onBack}>
+      <div className="px-4">
+        <div className="rounded-xl bg-gray-50 dark:bg-gray-700/40 divide-y divide-gray-200 dark:divide-gray-700 overflow-hidden">
+          <RadioRow label={t('Видна')} checked={visible} onClick={() => set(true)} />
+          <RadioRow label={t('Скрыта')} checked={!visible} onClick={() => set(false)} />
+        </div>
+        <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 px-1">
+          {visible ? t('Новые участники будут видеть полную историю сообщений.') : t('Новые участники увидят сообщения только с момента вступления.')}
+        </p>
+      </div>
+    </ScreenShell>
+  );
+}
+
+function TopicsScreen({ channel, canManage, onBack }: { channel: ChatChannel; canManage: boolean; onBack: () => void }) {
+  const t = useT();
+  const setTopicsConfig = useChatStore((s) => s.setTopicsConfig);
+  const updateChannel = useChatStore((s) => s.updateChannel);
+  const enabled = !!channel.topicsEnabled;
+  const layout = channel.topicsLayout ?? 'list';
+  const setLayout = (topicsLayout: 'tabs' | 'list') => canManage && updateChannel(channel.id, { settings: { topicsLayout } });
+  return (
+    <ScreenShell title={t('Темы')} onBack={onBack}>
+      <div className="flex justify-center px-4">
+        <div className="text-5xl">💬</div>
+      </div>
+      <p className="text-sm text-center text-gray-500 dark:text-gray-400 px-6">{t('Чат группы будет разделён на темы, созданные администраторами и пользователями.')}</p>
+      <div className="px-4">
+        <div className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-700/40">
+          <span className="text-sm text-gray-800 dark:text-gray-100">{t('Включить')}</span>
+          <Toggle checked={enabled} disabled={!canManage} onChange={() => setTopicsConfig(channel.id, { topicsEnabled: !enabled })} />
+        </div>
+      </div>
+      {enabled && (
+        <>
+          <div className="px-4">
+            <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2 px-1">{t('Расположение тем')}</p>
+            <div className="flex gap-3 rounded-xl bg-gray-50 dark:bg-gray-700/40 p-4">
+              <LayoutCard kind="tabs" active={layout === 'tabs'} label={t('Вкладки')} onClick={() => setLayout('tabs')} />
+              <LayoutCard kind="list" active={layout === 'list'} label={t('Список')} onClick={() => setLayout('list')} />
+            </div>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 px-1">{t('Выберите расположение тем на экране у всех участников.')}</p>
+          </div>
+          <div className="px-4">
+            <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2 px-1">{t('Кто может создавать темы')}</p>
+            <div className="flex gap-2">
+              {(['all', 'admins'] as const).map((perm) => (
+                <button
+                  key={perm}
+                  disabled={!canManage}
+                  onClick={() => setTopicsConfig(channel.id, { createTopicsPermission: perm })}
+                  className={`flex-1 px-3 py-2 text-sm rounded-lg transition-colors ${
+                    (channel.createTopicsPermission ?? 'all') === perm
+                      ? 'bg-sky-500 text-white'
+                      : 'bg-gray-50 dark:bg-gray-700/40 text-gray-600 dark:text-gray-300'
+                  }`}
+                >
+                  {perm === 'all' ? t('Все участники') : t('Только админы')}
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+    </ScreenShell>
+  );
+}
+
+/* Карточка-мокап выбора расположения тем (вкладки / список) */
+function LayoutCard({ kind, active, label, onClick }: { kind: 'tabs' | 'list'; active: boolean; label: string; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} className="flex-1 flex flex-col items-center gap-2">
+      <div className={`w-full aspect-[4/3] rounded-lg border-2 p-2 flex ${active ? 'border-sky-500' : 'border-gray-300 dark:border-gray-600'}`}>
+        {kind === 'tabs' ? (
+          <div className="w-full flex flex-col gap-1.5">
+            <div className="flex gap-1 items-center">
+              <div className="w-3 h-3 rounded bg-gray-400 dark:bg-gray-500" />
+              <div className="w-2 h-2 rounded-full bg-gray-400 dark:bg-gray-500" /><div className="h-1.5 w-4 rounded bg-gray-300 dark:bg-gray-600" />
+              <div className="w-2 h-2 rounded bg-gray-400 dark:bg-gray-500" /><div className="h-1.5 w-3 rounded bg-gray-300 dark:bg-gray-600" />
+            </div>
+            <div className="flex-1 rounded bg-gray-200 dark:bg-gray-600 mt-1" />
+            <div className="self-end h-3 w-8 rounded-full bg-gray-300 dark:bg-gray-600" />
+          </div>
+        ) : (
+          <div className="w-full flex flex-col gap-2 justify-center">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded-full bg-gray-400 dark:bg-gray-500" />
+                <div className="h-1.5 flex-1 rounded bg-gray-300 dark:bg-gray-600" />
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      <span className={`text-sm ${active ? 'text-sky-500 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>{label}</span>
+    </button>
+  );
+}
+
+function MembersScreen({ channel, isAdmin, canManage, currentUserId, onBack }: { channel: ChatChannel; isAdmin: boolean; canManage: boolean; currentUserId?: number; onBack: () => void }) {
+  const t = useT();
+  const updateChannel = useChatStore((s) => s.updateChannel);
+  const fetchChannels = useChatStore((s) => s.fetchChannels);
+  const [members, setMembers] = useState(channel.members ?? []);
+  const [mutingId, setMutingId] = useState<number | null>(null);
+  const [showAdd, setShowAdd] = useState(false);
+  useEffect(() => { setMembers(channel.members ?? []); }, [channel.members]);
+
+  // Скрытие участников: не-админ видит только администраторов (как в Telegram)
+  const hiddenForMe = !!channel.hideMembers && !canManage;
+  const visible = members
+    .filter((m) => m.name && !/^deleted_\d+_\d+@crm\.deleted$/.test(m.email ?? ''))
+    .filter((m) => !hiddenForMe || m.role === 'admin');
+  const toggleMute = async (id: number, muted: boolean) => {
+    setMutingId(id);
+    try {
+      await api.patch(`/chat-channels/${channel.id}/members/${id}`, { isMuted: !muted });
+      setMembers((prev) => prev.map((m) => (m.id === id ? { ...m, isMuted: !muted } : m)));
+      fetchChannels(1);
+    } catch { /* ignore */ } finally { setMutingId(null); }
+  };
+  const remove = async (id: number) => {
+    if (!confirm(t('Удалить участника из группы?'))) return;
+    try {
+      await api.delete(`/chat-channels/${channel.id}/members/${id}`);
+      setMembers((prev) => prev.filter((m) => m.id !== id));
+      fetchChannels(1);
+    } catch { useToastStore.getState().addToast('error', 'Не удалось удалить участника'); }
+  };
+
+  return (
+    <ScreenShell title={t('Участники')} onBack={onBack}>
+      {canManage && (
+        <div className="px-4 space-y-3">
+          <div className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-700/40">
+            <span className="text-sm text-gray-800 dark:text-gray-100">{t('Скрыть участников')}</span>
+            <Toggle checked={!!channel.hideMembers} onChange={() => updateChannel(channel.id, { settings: { hideMembers: !channel.hideMembers } })} />
+          </div>
+          <p className="text-xs text-gray-400 dark:text-gray-500 px-1 -mt-1">{t('Включите, чтобы скрыть список участников этой группы. Администраторы не будут скрыты.')}</p>
+          <button onClick={() => setShowAdd(true)} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-700/40 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+            <RowIcon bg="bg-sky-500"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg></RowIcon>
+            <span className="text-sm text-sky-500">{t('Добавить участников')}</span>
+          </button>
+        </div>
+      )}
+      <div className="px-4">
+        <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2 px-1">{t('Участники')} ({visible.length})</p>
+        <div className="rounded-xl bg-gray-50 dark:bg-gray-700/40 overflow-hidden divide-y divide-gray-200 dark:divide-gray-700">
+          {visible.map((m) => {
+            const self = m.id === currentUserId;
+            return (
+              <div key={m.id} className="flex items-center gap-2.5 px-3 py-2">
+                <div className="w-9 h-9 rounded-full bg-sky-500 flex items-center justify-center text-white text-xs font-semibold shrink-0 overflow-hidden relative">
+                  {getInitials(m.name)}
+                  {m.avatarUrl && <img src={m.avatarUrl} alt="" className="absolute inset-0 w-full h-full object-cover z-10" onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate text-gray-800 dark:text-gray-100">{m.name}</p>
+                  {m.role === 'admin' && <p className="text-xs text-violet-500">{t('администратор')}</p>}
+                  {m.isMuted && <p className="text-xs text-red-400">{t('Ограничен')}</p>}
+                </div>
+                {isAdmin && !self && (
+                  <>
+                    <button onClick={() => toggleMute(m.id, m.isMuted ?? false)} disabled={mutingId === m.id} title={m.isMuted ? t('Снять ограничение') : t('Ограничить отправку')} className={`shrink-0 p-1.5 rounded-lg transition-colors ${m.isMuted ? 'text-red-400' : 'text-gray-400 hover:text-red-400'}`}>
+                      {mutingId === m.id ? (
+                        <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
+                      )}
+                    </button>
+                    <button onClick={() => remove(m.id)} title={t('Удалить')} className="shrink-0 p-1.5 rounded-lg text-gray-400 hover:text-red-500 transition-colors">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                  </>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      {showAdd && (
+        <AddMemberModal
+          channel={channel}
+          existingMemberIds={members.map((m) => m.id)}
+          onClose={() => setShowAdd(false)}
+          onAdded={(nm) => { setMembers((prev) => [...prev, nm]); fetchChannels(1); }}
+        />
+      )}
+    </ScreenShell>
+  );
+}
+
+const PERMISSION_ITEMS: { key: string; label: string }[] = [
+  { key: 'sendMessages', label: 'Отправка сообщений' },
+  { key: 'sendMedia', label: 'Отправка фото и видео' },
+  { key: 'sendFiles', label: 'Отправка файлов' },
+  { key: 'sendVoice', label: 'Голосовые сообщения' },
+  { key: 'addReactions', label: 'Добавление реакций' },
+  { key: 'pinMessages', label: 'Закрепление сообщений' },
+  { key: 'changeInfo', label: 'Изменение профиля группы' },
+  { key: 'inviteUsers', label: 'Добавление участников' },
+  { key: 'createTopics', label: 'Создание тем' },
+];
+
+function PermissionsScreen({ channel, canManage, onBack }: { channel: ChatChannel; canManage: boolean; onBack: () => void }) {
+  const t = useT();
+  const updateChannel = useChatStore((s) => s.updateChannel);
+  const perms = channel.permissions ?? {};
+  const [local, setLocal] = useState<Record<string, boolean>>(() => {
+    const init: Record<string, boolean> = {};
+    PERMISSION_ITEMS.forEach((p) => { init[p.key] = perms[p.key] !== false; });
+    return init;
+  });
+  const toggle = (key: string) => {
+    if (!canManage) return;
+    const next = { ...local, [key]: !local[key] };
+    setLocal(next);
+    updateChannel(channel.id, { settings: { permissions: next } });
+  };
+  const enabledCount = Object.values(local).filter(Boolean).length;
+  return (
+    <ScreenShell title={`${t('Разрешения')} ${enabledCount}/${PERMISSION_ITEMS.length}`} onBack={onBack}>
+      <p className="text-xs text-gray-400 dark:text-gray-500 px-5">{t('Что разрешено делать участникам группы.')}</p>
+      <div className="px-4">
+        <div className="rounded-xl bg-gray-50 dark:bg-gray-700/40 divide-y divide-gray-200 dark:divide-gray-700 overflow-hidden">
+          {PERMISSION_ITEMS.map((p) => (
+            <div key={p.key} className="flex items-center justify-between gap-3 px-3 py-2.5">
+              <span className="text-sm text-gray-800 dark:text-gray-100">{t(p.label)}</span>
+              <Toggle checked={local[p.key]} disabled={!canManage} onChange={() => toggle(p.key)} />
+            </div>
+          ))}
+        </div>
+      </div>
+    </ScreenShell>
+  );
+}
+
+function AdminsScreen({ channel, onBack }: { channel: ChatChannel; onBack: () => void }) {
+  const t = useT();
+  const admins = (channel.members ?? []).filter((m) => m.role === 'admin' && m.name);
+  return (
+    <ScreenShell title={t('Администраторы')} onBack={onBack}>
+      <div className="px-4">
+        <div className="rounded-xl bg-gray-50 dark:bg-gray-700/40 overflow-hidden divide-y divide-gray-200 dark:divide-gray-700">
+          {admins.length === 0 && <p className="px-3 py-4 text-sm text-gray-400">{t('Администраторов нет')}</p>}
+          {admins.map((m) => (
+            <div key={m.id} className="flex items-center gap-2.5 px-3 py-2.5">
+              <div className="w-9 h-9 rounded-full bg-emerald-500 flex items-center justify-center text-white text-xs font-semibold shrink-0 overflow-hidden relative">
+                {getInitials(m.name)}
+                {m.avatarUrl && <img src={m.avatarUrl} alt="" className="absolute inset-0 w-full h-full object-cover z-10" onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
+              </div>
+              <span className="flex-1 text-sm text-gray-800 dark:text-gray-100 truncate">{m.name}</span>
+              <span className="text-xs text-violet-500">{t('владелец')}</span>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 px-1">{t('Администраторы могут менять настройки группы и управлять участниками.')}</p>
+      </div>
+    </ScreenShell>
+  );
+}
+
+function RecentActionsScreen({ channel, onBack }: { channel: ChatChannel; onBack: () => void }) {
+  const t = useT();
+  const messages = useChatStore((s) => s.messages);
+  const service = messages.filter((m) => m.channelId === channel.id && (m.messageType === 'system' || m.messageType === 'service'));
+  return (
+    <ScreenShell title={t('Недавние действия')} onBack={onBack}>
+      <div className="px-4">
+        {service.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
+            <svg className="w-12 h-12 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <p className="text-sm text-gray-400 dark:text-gray-500">{t('Пока нет действий администраторов.')}</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {service.slice().reverse().map((m) => (
+              <div key={m.id} className="text-xs text-gray-500 dark:text-gray-400 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700/40">
+                <span>{m.text}</span>
+                <span className="block text-[11px] text-gray-400 mt-0.5">{new Date(m.createdAt).toLocaleString('ru-RU')}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </ScreenShell>
   );
 }
 

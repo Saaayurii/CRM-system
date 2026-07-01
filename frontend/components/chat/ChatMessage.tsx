@@ -132,6 +132,8 @@ interface ChatMessageProps {
   canPin?: boolean;
   highlightQuery?: string;
   readOnly?: boolean;
+  /** Список эмодзи для быстрых реакций. undefined = дефолтный набор; [] = реакции отключены. */
+  reactionEmojis?: string[];
 }
 
 const DELETED_EMAIL_RE = /^deleted_\d+_\d+@crm\.deleted$/;
@@ -229,8 +231,11 @@ const isVideoAtt = (a: any): boolean =>
   !!a.mimeType?.startsWith('video/') ||
   (!a.mimeType && /\.(mp4|mov|avi|webm|mkv|m4v|3gp)$/i.test(a.fileName || ''));
 
-function ChatMessage({ message, isOwn, showAvatar, isRead, isDirect = false, readers = [], onReply, onScrollToReply, onReact, onDelete, onEdit, onPin, onForward, onGoToOriginalChannel, isPinned, canPin, highlightQuery, readOnly = false }: ChatMessageProps) {
+function ChatMessage({ message, isOwn, showAvatar, isRead, isDirect = false, readers = [], onReply, onScrollToReply, onReact, onDelete, onEdit, onPin, onForward, onGoToOriginalChannel, isPinned, canPin, highlightQuery, readOnly = false, reactionEmojis }: ChatMessageProps) {
   const t = useT();
+  // Эффективный набор реакций: null = дефолт; [] = реакции отключены админом
+  const quickEmojis = reactionEmojis ?? QUICK_EMOJIS;
+  const reactionsAllowed = quickEmojis.length > 0;
   const addToast = useToastStore((s) => s.addToast);
   const setEditingMessage = useChatStore((s) => s.setEditingMessage);
   const isVoice = message.messageType === 'voice';
@@ -1063,11 +1068,12 @@ function ChatMessage({ message, isOwn, showAvatar, isRead, isDirect = false, rea
             onClick={(e) => e.stopPropagation()}
           >
           {/* Emoji reaction row */}
+          {reactionsAllowed && (
           <div
             className="relative z-10 bg-[#1c1c1e]/40 backdrop-blur-2xl rounded-full px-2 py-1 flex items-center gap-0 shadow-xl animate-ctx-pop-in"
             onClick={(e) => e.stopPropagation()}
           >
-            {QUICK_EMOJIS.map((emoji) => (
+            {quickEmojis.map((emoji) => (
               <button
                 key={emoji}
                 onClick={() => { onReact(message.id, emoji); setShowMobileActions(false); setIsSelected(false); }}
@@ -1077,6 +1083,7 @@ function ChatMessage({ message, isOwn, showAvatar, isRead, isDirect = false, rea
               </button>
             ))}
           </div>
+          )}
 
           {/* Message preview bubble — остаётся на месте сообщения */}
           <div
@@ -1265,8 +1272,9 @@ function ChatMessage({ message, isOwn, showAvatar, isRead, isDirect = false, rea
             className="flex flex-col gap-1.5"
           >
             {/* Emoji reaction row */}
+            {reactionsAllowed && (
             <div className="self-start flex items-center gap-0.5 px-1.5 py-1 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-xl animate-ctx-pop-in">
-              {QUICK_EMOJIS.map((emoji) => (
+              {quickEmojis.map((emoji) => (
                 <button
                   key={emoji}
                   onClick={() => { onReact(message.id, emoji); setCtxMenu(null); }}
@@ -1276,6 +1284,7 @@ function ChatMessage({ message, isOwn, showAvatar, isRead, isDirect = false, rea
                 </button>
               ))}
             </div>
+            )}
 
             {/* Menu card */}
             <div className="min-w-[210px] py-1 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-xl overflow-hidden animate-ctx-pop-in">
