@@ -32,6 +32,7 @@ import { PresenceService } from '../presence/presence.service';
 import { ChatGateway } from './chat.gateway';
 
 // Topics (forum): /topics, /topics-config, /topics/:id/{read,mute,hide}
+// (rebuild marker: ensure topics routes are live on prod)
 @ApiTags('Chat')
 @ApiBearerAuth()
 @Controller('chat-channels')
