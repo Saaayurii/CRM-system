@@ -5,8 +5,8 @@ import {
   Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as jwt from 'jsonwebtoken';
 import { AuthenticatedSocket } from '../interfaces/authenticated-socket.interface';
+import { verifyJwtToken } from './jwt-key.options';
 
 @Injectable()
 export class WsJwtGuard implements CanActivate {
@@ -30,9 +30,8 @@ export class WsJwtGuard implements CanActivate {
     }
 
     try {
-      const secret =
-        this.configService.get<string>('jwt.accessSecret') || 'default-secret';
-      const payload = jwt.verify(token, secret) as any;
+      // RS256/HS256-совместимая проверка (access-токены могут быть RS256)
+      const payload = verifyJwtToken(token, this.configService) as any;
 
       client.user = {
         id: payload.sub,

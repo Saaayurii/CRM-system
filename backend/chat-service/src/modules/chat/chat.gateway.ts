@@ -17,7 +17,7 @@ import { WsExceptionFilter } from '../../common/filters/ws-exception.filter';
 import { ChatService } from './chat.service';
 import { PresenceService } from '../presence/presence.service';
 import { NotificationsClientService } from './notifications-client.service';
-import * as jwt from 'jsonwebtoken';
+import { verifyJwtToken } from '../../common/guards/jwt-key.options';
 
 // Heartbeat-presence: живые сокеты продлеваются каждые 30с,
 // записи без продления дольше 75с считаются протухшими (2 пропущенных бита + запас)
@@ -104,9 +104,8 @@ export class ChatGateway
         return;
       }
 
-      const secret =
-        this.configService.get<string>('jwt.accessSecret') || 'default-secret';
-      const payload = jwt.verify(token, secret) as any;
+      // RS256/HS256-совместимая проверка (access-токены могут быть RS256)
+      const payload = verifyJwtToken(token, this.configService) as any;
 
       client.user = {
         id: payload.sub,

@@ -1,4 +1,5 @@
 import { ConfigService } from '@nestjs/config';
+import * as jwt from 'jsonwebtoken';
 
 /**
  * Опции ключа для JwtStrategy с поддержкой перехода HS256 → RS256.
@@ -42,4 +43,28 @@ export function buildJwtKeyOptions(config: ConfigService): any {
     };
   }
   return { algorithms: ['HS256'], secretOrKey: secret };
+}
+
+/**
+ * RS256/HS256-совместимая проверка токена для WS-путей (chat.gateway,
+ * ws-jwt.guard), где используется сырой jsonwebtoken.verify, а не JwtStrategy.
+ * Логика зеркалит buildJwtKeyOptions: при заданном JWT_PUBLIC_KEY выбираем ключ
+ * по alg из заголовка, иначе — прежний HS256 по секрету.
+ */
+export function verifyJwtToken(token: string, config: ConfigService): any {
+  const secret = config.get<string>('jwt.accessSecret') || 'default-secret';
+  const publicKey = normalizePem(process.env.JWT_PUBLIC_KEY);
+  if (publicKey) {
+    let key = secret;
+    try {
+      const header = JSON.parse(
+        Buffer.from(String(token).split('.')[0], 'base64url').toString('utf8'),
+      );
+      if (header?.alg === 'RS256') key = publicKey;
+    } catch {
+      /* оставляем HS256-секрет */
+    }
+    return jwt.verify(token, key, { algorithms: ['RS256', 'HS256'] });
+  }
+  return jwt.verify(token, secret, { algorithms: ['HS256'] });
 }
