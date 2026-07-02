@@ -75,6 +75,12 @@ export default function TopicTabsRail({ channel }: TopicTabsRailProps) {
         })}
         {list
           .filter((tp) => tp.id !== generalId)
+          .sort((a, b) => {
+            if (!!a.isPinned !== !!b.isPinned) return a.isPinned ? -1 : 1;
+            const ta = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
+            const tb = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
+            return tb - ta;
+          })
           .map((tp) => renderTab({ id: tp.id, topic: tp, label: tp.name, icon: <span>{tp.iconEmoji || '#'}</span> }))}
       </div>
 

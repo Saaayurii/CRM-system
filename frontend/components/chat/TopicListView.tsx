@@ -96,8 +96,15 @@ export default function TopicListView({ channel, onBack, onOpenInfo, variant = '
     };
   }, [menuId]);
 
+  // Закреплённые темы — вверху списка, далее по времени последнего сообщения
+  const sortTopics = (a: ChatTopic, b: ChatTopic) => {
+    if (!!a.isPinned !== !!b.isPinned) return a.isPinned ? -1 : 1;
+    const ta = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
+    const tb = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
+    return tb - ta;
+  };
   const list = topics ?? [];
-  const visible = list.filter((tp) => !tp.isHiddenForMe);
+  const visible = list.filter((tp) => !tp.isHiddenForMe).sort(sortTopics);
   const hidden = list.filter((tp) => tp.isHiddenForMe);
 
   const renderRow = (topic: ChatTopic) => {
