@@ -557,7 +557,7 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
   }, [messages]);
 
 
-  // Mark initial load when channel changes
+  // Mark initial load when channel или тема меняется (для плавного появления ленты)
   useEffect(() => {
     if (activeChannelId) {
       initialLoadRef.current = true;
@@ -565,7 +565,7 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
       prevMessagesLenRef.current = 0;
       setInitialScrollReady(false); // hide list until first snap-to-bottom
     }
-  }, [activeChannelId]);
+  }, [activeChannelId, activeTopicId]);
 
   // Auto-scroll: instant on initial load, smooth on new messages.
   // Initial load schedules several re-scrolls because images/videos in messages
@@ -1244,7 +1244,8 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
             ref={messagesInnerRef}
             style={{
               opacity: initialScrollReady || messages.length === 0 ? 1 : 0,
-              transition: 'opacity 0.12s ease-out',
+              transform: initialScrollReady || messages.length === 0 ? 'translateY(0)' : 'translateY(12px)',
+              transition: 'opacity 0.22s ease-out, transform 0.24s cubic-bezier(0.22,1,0.36,1)',
             }}
           >
           {messages.map((msg, idx) => {
