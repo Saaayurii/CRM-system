@@ -15,6 +15,7 @@ import UserProfileModal from './UserProfileModal';
 import VoicePlayerBar from './VoicePlayerBar';
 import ForwardMessageModal from './ForwardMessageModal';
 import TopicListView from './TopicListView';
+import TopicTabsRail from './TopicTabsRail';
 import ScheduledMessagesView from './ScheduledMessagesView';
 import { useT } from '@/lib/i18n';
 
@@ -903,6 +904,8 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
         />
       ) : (
       <>
+      {/* Режим «Вкладки»: слева от ленты — вертикальный рельс тем (как в Telegram) */}
+      {forumTabs && <TopicTabsRail channel={activeChannel} />}
       {/* Main chat column — обои/фон на самой колонке (статичны), лента и
           input-бар прозрачны, поэтому стеклянные шапка и контролы парят над
           единым фоном (как в Telegram), а не над сплошными панелями */}
@@ -1067,35 +1070,6 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
             )}
           </div>
         </div>
-
-        {/* Горизонтальная полоса вкладок тем (режим «Вкладки») — под шапкой,
-            над лентой; список чатов слева не трогаем */}
-        {forumTabs && activeTopic && channelTopics && channelTopics.length > 0 && (
-          <div className={`flex items-center gap-1 mx-3 mt-1.5 px-1.5 py-1 rounded-2xl shrink-0 overflow-x-auto scrollbar-none ${GLASS_SURFACE}`}>
-            {channelTopics
-              .filter((tp) => !tp.isHiddenForMe)
-              .map((tp) => {
-                const active = tp.id === activeTopicId;
-                return (
-                  <button
-                    key={tp.id}
-                    onClick={() => activeChannelId && setActiveTopic(activeChannelId, tp.id)}
-                    className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-colors ${
-                      active ? 'bg-violet-500 text-white' : 'text-gray-600 dark:text-gray-300 hover:bg-black/[0.05] dark:hover:bg-white/[0.06]'
-                    }`}
-                  >
-                    <span className="text-base leading-none">{tp.isGeneral ? '#' : (tp.iconEmoji || '💬')}</span>
-                    <span className="truncate max-w-[120px]">{tp.name}</span>
-                    {tp.unreadCount > 0 && (
-                      <span className={`min-w-[16px] h-4 px-1 flex items-center justify-center text-[10px] font-bold rounded-full ${active ? 'bg-white/25 text-white' : 'bg-violet-500 text-white'}`}>
-                        {tp.unreadCount > 99 ? '99+' : tp.unreadCount}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-          </div>
-        )}
 
         {/* Search bar */}
         {showSearch && (
@@ -1712,7 +1686,7 @@ function Toggle({ checked, onChange, disabled }: { checked: boolean; onChange: (
       disabled={disabled}
       onClick={onChange}
       className={`relative w-11 h-6 rounded-full transition-colors shrink-0 disabled:opacity-50 ${
-        checked ? 'bg-sky-500' : 'bg-gray-300 dark:bg-gray-600'
+        checked ? 'bg-violet-500' : 'bg-gray-300 dark:bg-gray-600'
       }`}
     >
       <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${checked ? 'translate-x-5' : ''}`} />
@@ -1813,7 +1787,7 @@ function GroupInfoPanel({ channel, isAdmin, isCompanyAdmin, currentUserId, onClo
         <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">{t('О группе')}</span>
         <div className="flex items-center gap-1">
           {canManage && dirty && (
-            <button onClick={saveHeader} className="text-sm font-medium text-sky-500 hover:text-sky-600 px-2 py-1">
+            <button onClick={saveHeader} className="text-sm font-medium text-violet-500 hover:text-violet-600 px-2 py-1">
               {t('Готово')}
             </button>
           )}
@@ -1983,7 +1957,7 @@ function RadioRow({ label, description, checked, onClick }: { label: string; des
         {description && <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{description}</p>}
       </div>
       {checked && (
-        <svg className="w-5 h-5 text-sky-500 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+        <svg className="w-5 h-5 text-violet-500 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
       )}
     </button>
   );
@@ -2037,7 +2011,7 @@ function ReactionsScreen({ channel, canManage, onBack }: { channel: ChatChannel;
                 <button
                   key={emoji}
                   onClick={() => toggleEmoji(emoji)}
-                  className={`aspect-square rounded-lg text-lg flex items-center justify-center transition-all ${on ? 'bg-sky-500/20 ring-2 ring-sky-500' : 'hover:bg-gray-200 dark:hover:bg-gray-600 opacity-60'}`}
+                  className={`aspect-square rounded-lg text-lg flex items-center justify-center transition-all ${on ? 'bg-violet-500/20 ring-2 ring-violet-500' : 'hover:bg-gray-200 dark:hover:bg-gray-600 opacity-60'}`}
                 >
                   {emoji}
                 </button>
@@ -2075,7 +2049,7 @@ function AppearanceScreen({ channel, canManage, onBack }: { channel: ChatChannel
               key={c.key}
               onClick={() => setColor(c.key)}
               style={{ backgroundColor: c.swatch }}
-              className={`w-9 h-9 rounded-full transition-transform ${channel.profileColor === c.key ? 'ring-2 ring-offset-2 ring-offset-white dark:ring-offset-gray-800 ring-sky-500 scale-105' : 'hover:scale-105'}`}
+              className={`w-9 h-9 rounded-full transition-transform ${channel.profileColor === c.key ? 'ring-2 ring-offset-2 ring-offset-white dark:ring-offset-gray-800 ring-violet-500 scale-105' : 'hover:scale-105'}`}
             />
           ))}
         </div>
@@ -2151,7 +2125,7 @@ function TopicsScreen({ channel, canManage, onBack }: { channel: ChatChannel; ca
                   onClick={() => setTopicsConfig(channel.id, { createTopicsPermission: perm })}
                   className={`flex-1 px-3 py-2 text-sm rounded-lg transition-colors ${
                     (channel.createTopicsPermission ?? 'all') === perm
-                      ? 'bg-sky-500 text-white'
+                      ? 'bg-violet-500 text-white'
                       : 'bg-gray-50 dark:bg-gray-700/40 text-gray-600 dark:text-gray-300'
                   }`}
                 >
@@ -2170,7 +2144,7 @@ function TopicsScreen({ channel, canManage, onBack }: { channel: ChatChannel; ca
 function LayoutCard({ kind, active, label, onClick }: { kind: 'tabs' | 'list'; active: boolean; label: string; onClick: () => void }) {
   return (
     <button type="button" onClick={onClick} className="flex-1 flex flex-col items-center gap-2">
-      <div className={`w-full aspect-[4/3] rounded-lg border-2 p-2 flex ${active ? 'border-sky-500' : 'border-gray-300 dark:border-gray-600'}`}>
+      <div className={`w-full aspect-[4/3] rounded-lg border-2 p-2 flex ${active ? 'border-violet-500' : 'border-gray-300 dark:border-gray-600'}`}>
         {kind === 'tabs' ? (
           <div className="w-full flex flex-col gap-1.5">
             <div className="flex gap-1 items-center">
@@ -2192,7 +2166,7 @@ function LayoutCard({ kind, active, label, onClick }: { kind: 'tabs' | 'list'; a
           </div>
         )}
       </div>
-      <span className={`text-sm ${active ? 'text-sky-500 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>{label}</span>
+      <span className={`text-sm ${active ? 'text-violet-500 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>{label}</span>
     </button>
   );
 }
@@ -2239,7 +2213,7 @@ function MembersScreen({ channel, isAdmin, canManage, currentUserId, onBack }: {
           <p className="text-xs text-gray-400 dark:text-gray-500 px-1 -mt-1">{t('Включите, чтобы скрыть список участников этой группы. Администраторы не будут скрыты.')}</p>
           <button onClick={() => setShowAdd(true)} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-700/40 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
             <RowIcon bg="bg-sky-500"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg></RowIcon>
-            <span className="text-sm text-sky-500">{t('Добавить участников')}</span>
+            <span className="text-sm text-violet-500">{t('Добавить участников')}</span>
           </button>
         </div>
       )}

@@ -53,17 +53,17 @@ export default function ScheduledMessagesView({ channel, onBack }: ScheduledMess
   }, [list]);
 
   return (
-    <div className="absolute inset-0 z-30 flex flex-col bg-[#0e1621] dark:bg-[#0e1621]">
+    <div className="absolute inset-0 z-30 flex flex-col bg-white dark:bg-gray-900">
       {/* Header */}
-      <div className="flex items-center gap-3 px-3 py-3 border-b border-gray-800 shrink-0">
-        <button onClick={onBack} className="w-9 h-9 flex items-center justify-center rounded-full text-gray-300 hover:bg-white/5">
+      <div className="flex items-center gap-3 px-3 py-3 border-b border-gray-200 dark:border-gray-700 shrink-0">
+        <button onClick={onBack} className="w-9 h-9 flex items-center justify-center rounded-full text-gray-500 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
         </button>
         <div className="flex-1">
-          <p className="text-sm font-semibold text-gray-100">{t('Отложенная отправка')}</p>
-          <p className="text-xs text-gray-400">{(list?.length ?? 0)} {t('сообщ.')}</p>
+          <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{t('Отложенная отправка')}</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500">{(list?.length ?? 0)} {t('сообщ.')}</p>
         </div>
       </div>
 
@@ -81,12 +81,12 @@ export default function ScheduledMessagesView({ channel, onBack }: ScheduledMess
         {groups.map(([day, items]) => (
           <div key={day} className="space-y-3">
             <div className="flex justify-center">
-              <span className="text-xs text-gray-300 bg-black/30 rounded-full px-3 py-1">{t('Отправка')} {day}</span>
+              <span className="text-xs text-gray-500 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-full px-3 py-1">{t('Отправка')} {day}</span>
             </div>
             {items.map((m) => (
               <div key={m.id} className="flex justify-end">
                 <div className="relative max-w-[75%]">
-                  <div className="rounded-2xl rounded-br-md bg-[#2b5278] text-white px-3 py-2 shadow">
+                  <div className="rounded-2xl rounded-br-md bg-violet-500 text-white px-3 py-2 shadow">
                     {m.messageText && <p className="text-sm whitespace-pre-wrap break-words">{m.messageText}</p>}
                     {m.attachments?.length > 0 && (
                       <p className="text-xs text-white/70 mt-0.5">📎 {m.attachments.length} {t('влож.')}</p>
@@ -102,7 +102,7 @@ export default function ScheduledMessagesView({ channel, onBack }: ScheduledMess
                   </div>
                   <button
                     onClick={(e) => { e.stopPropagation(); setMenuId(menuId === m.id ? null : m.id); }}
-                    className="absolute -left-9 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-full text-gray-400 hover:bg-white/10"
+                    className="absolute -left-9 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
                     title={t('Действия')}
                   >
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 8a2 2 0 100-4 2 2 0 000 4zm0 6a2 2 0 100-4 2 2 0 000 4zm0 6a2 2 0 100-4 2 2 0 000 4z" /></svg>

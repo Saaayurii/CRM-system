@@ -2473,21 +2473,21 @@ function SchedulePickerModal({ onClose, onSchedule }: { onClose: () => void; onS
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-      <div className="w-full max-w-sm bg-[#17212b] rounded-2xl shadow-2xl p-4" onClick={(e) => e.stopPropagation()}>
+      <div className="w-full max-w-sm bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-5" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center gap-3 mb-5">
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full text-gray-300 hover:bg-white/10">
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full text-gray-500 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          <h3 className="text-base font-semibold text-gray-100">{t('Время отправки')}</h3>
+          <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100">{t('Время отправки')}</h3>
         </div>
 
         {/* День + время */}
         <div className="flex items-center gap-3 mb-4">
           <label className="relative">
-            <span className="px-4 py-2 rounded-lg bg-white/5 text-sm text-gray-100 capitalize cursor-pointer inline-block min-w-[96px] text-center">{dayLabel}</span>
+            <span className="px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-sm text-gray-800 dark:text-gray-100 capitalize cursor-pointer inline-block min-w-[96px] text-center hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">{dayLabel}</span>
             <input
               type="date"
               value={dateVal}
@@ -2496,26 +2496,26 @@ function SchedulePickerModal({ onClose, onSchedule }: { onClose: () => void; onS
               className="absolute inset-0 opacity-0 cursor-pointer"
             />
           </label>
-          <span className="text-sm text-gray-400">{t('в')}</span>
+          <span className="text-sm text-gray-400 dark:text-gray-500">{t('в')}</span>
           <input
             type="time"
             value={timeVal}
             onChange={(e) => { setTimeVal(e.target.value); setError(null); }}
-            className="px-3 py-2 rounded-lg bg-white/5 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-sky-500 [color-scheme:dark]"
+            className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-sm text-gray-800 dark:text-gray-100 outline-none focus:ring-2 focus:ring-violet-500"
           />
         </div>
 
         {/* Повторять */}
-        <div className="flex items-center justify-between py-2 mb-4">
-          <span className="text-sm text-gray-300">{t('Повторять')}</span>
-          <span className="text-sm text-gray-400">{t('Никогда')}</span>
+        <div className="flex items-center justify-between py-2 mb-4 border-t border-gray-100 dark:border-gray-700/60 pt-3">
+          <span className="text-sm text-gray-700 dark:text-gray-300">{t('Повторять')}</span>
+          <span className="text-sm text-gray-400 dark:text-gray-500">{t('Никогда')}</span>
         </div>
 
-        {error && <p className="text-xs text-red-400 mb-2">{error}</p>}
+        {error && <p className="text-xs text-red-500 mb-2">{error}</p>}
 
         <button
           onClick={confirm}
-          className="w-full py-2.5 rounded-lg text-sm font-medium text-white bg-sky-500 hover:bg-sky-600 transition-colors"
+          className="w-full py-2.5 rounded-lg text-sm font-medium text-white bg-violet-500 hover:bg-violet-600 transition-colors"
         >
           {t('Отправить')} {dayLabel} {t('в')} {timeVal}
         </button>
