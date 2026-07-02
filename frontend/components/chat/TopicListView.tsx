@@ -244,7 +244,7 @@ export default function TopicListView({ channel, onBack, onOpenInfo, variant = '
       <div className="flex items-center gap-2 px-3 py-2.5 shrink-0 z-10">
         <button
           onClick={onBack}
-          className={`${isSidebar ? '' : 'lg:hidden'} shrink-0 w-9 h-9 flex items-center justify-center rounded-full text-gray-600 dark:text-gray-200 ${GLASS_SURFACE}`}
+          className={`${isSidebar ? 'hidden' : 'lg:hidden'} shrink-0 w-9 h-9 flex items-center justify-center rounded-full text-gray-600 dark:text-gray-200 ${GLASS_SURFACE}`}
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />

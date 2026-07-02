@@ -7,6 +7,7 @@ import { useSidebarStore } from '@/stores/sidebarStore';
 import ChatSidebar from '@/components/chat/ChatSidebar';
 import ChatWindow from '@/components/chat/ChatWindow';
 import TopicListView from '@/components/chat/TopicListView';
+import ChatAvatarRail from '@/components/chat/ChatAvatarRail';
 import { useChatOnly } from '@/components/chat/ChatOnlyContext';
 
 // Shared chat UI used both inside the dashboard (/dashboard/chat) and on the
@@ -215,7 +216,11 @@ export default function ChatScreen() {
         style={isDesktop ? { width: sidebarWidth } : undefined}
       >
         {forumListSidebar && activeChannel ? (
-          <TopicListView variant="sidebar" channel={activeChannel} onBack={handleBackToSidebar} onOpenInfo={() => {}} />
+          // Свёрнутый список чатов (иконки) + список тем справа от них
+          <div className="flex flex-1 min-w-0">
+            <ChatAvatarRail onBack={handleBackToSidebar} />
+            <TopicListView variant="sidebar" channel={activeChannel} onBack={handleBackToSidebar} onOpenInfo={() => {}} />
+          </div>
         ) : (
           <ChatSidebar onSelectChannel={handleSelectChannel} />
         )}
