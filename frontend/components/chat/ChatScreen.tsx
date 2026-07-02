@@ -6,6 +6,7 @@ import { useChatStore } from '@/stores/chatStore';
 import { useSidebarStore } from '@/stores/sidebarStore';
 import ChatSidebar from '@/components/chat/ChatSidebar';
 import ChatWindow from '@/components/chat/ChatWindow';
+import TopicListView from '@/components/chat/TopicListView';
 import { useChatOnly } from '@/components/chat/ChatOnlyContext';
 
 // Shared chat UI used both inside the dashboard (/dashboard/chat) and on the
@@ -22,6 +23,7 @@ export default function ChatScreen() {
   const setActiveTopic = useChatStore((s) => s.setActiveTopic);
   const setHighlightMessageId = useChatStore((s) => s.setHighlightMessageId);
   const channels = useChatStore((s) => s.channels);
+  const activeTopicId = useChatStore((s) => s.activeTopicId);
   // Раскрытие dashboard-рейла (по ховеру трекпада/пера на iPad) — двигаем левый
   // край чата следом, чтобы рейл не налезал, а чат сдвигался как на ПК.
   const sidebarExpanded = useSidebarStore((s) => s.sidebarExpanded);
@@ -177,6 +179,17 @@ export default function ChatScreen() {
     setActiveChannel(null);
   };
 
+  // Форум в режиме «Список»: список тем занимает левую колонку (на месте списка
+  // чатов), а не ленту. В режиме «Вкладки» — рельс внутри окна чата (см. ChatWindow).
+  const activeChannel = channels.find((c) => c.id === activeChannelId) ?? null;
+  const forumListSidebar =
+    !!activeChannel &&
+    activeChannel.channelType === 'group' &&
+    !!activeChannel.topicsEnabled &&
+    (activeChannel.topicsLayout ?? 'list') === 'list';
+  // Пока тема не выбрана — на мобиле держим слева список тем (а не ленту)
+  const topicListInSidebar = forumListSidebar && activeTopicId == null;
+
   // On mobile: fixed fullscreen always (avoids py-8 layout padding issues)
   const mobileClass = activeChannelId
     ? 'max-lg:fixed max-lg:inset-0 max-lg:z-50'
@@ -193,14 +206,19 @@ export default function ChatScreen() {
 
   return (
     <div ref={chatContainerRef} className={`flex bg-[#e9e9e9] dark:bg-gray-900 shadow-xs overflow-hidden overscroll-none ${containerClass}`}>
-      {/* Sidebar: always visible on lg+, toggle on mobile */}
+      {/* Sidebar: always visible on lg+, toggle on mobile. В режиме «Список»
+          форума показывает список тем вместо списка чатов. */}
       <div
         className={`${
-          showSidebar ? 'flex' : 'hidden'
+          showSidebar || topicListInSidebar ? 'flex' : 'hidden'
         } lg:flex w-full lg:shrink-0 flex-col border-r border-white dark:border-gray-700 bg-[#e9e9e9] dark:bg-gray-900`}
         style={isDesktop ? { width: sidebarWidth } : undefined}
       >
-        <ChatSidebar onSelectChannel={handleSelectChannel} />
+        {forumListSidebar && activeChannel ? (
+          <TopicListView variant="sidebar" channel={activeChannel} onBack={handleBackToSidebar} onOpenInfo={() => {}} />
+        ) : (
+          <ChatSidebar onSelectChannel={handleSelectChannel} />
+        )}
       </div>
 
       {/* Resize handle (desktop only) — drag to set sidebar width */}
@@ -213,10 +231,11 @@ export default function ChatScreen() {
         <span className="absolute inset-y-0 left-0 w-px bg-transparent group-hover:bg-violet-400/70 group-active:bg-violet-500 transition-colors" />
       </div>
 
-      {/* Chat window: always visible on lg+, toggle on mobile */}
+      {/* Chat window: always visible on lg+, toggle on mobile. При открытом
+          списке тем в сайдбаре (моб.) окно скрыто, пока тема не выбрана. */}
       <div
         className={`${
-          !showSidebar || activeChannelId ? 'flex' : 'hidden'
+          (!showSidebar || activeChannelId) && !topicListInSidebar ? 'flex' : 'hidden'
         } lg:flex flex-1 flex-col min-w-0`}
       >
         <ChatWindow onBack={handleBackToSidebar} />

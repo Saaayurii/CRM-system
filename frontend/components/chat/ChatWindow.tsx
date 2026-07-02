@@ -406,7 +406,9 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
   // «Список» — сначала полный список тем, затем лента выбранной темы.
   // «Вкладки» — сразу открывается тема + горизонтальная полоса вкладок сверху.
   const forumTabs = isForum && topicsLayout === 'tabs';
-  const showTopicList = isForum && activeTopicId == null && topicsLayout === 'list';
+  // «Список»: список тем живёт в левой колонке (см. ChatScreen), поэтому в
+  // главной области, пока тема не выбрана, показываем плейсхолдер.
+  const forumListNoTopic = isForum && topicsLayout === 'list' && activeTopicId == null;
 
   // Набор реакций из настроек группы: 'none' → отключены, 'selected' → только выбранные
   const reactionEmojis = useMemo<string[] | undefined>(() => {
@@ -894,14 +896,17 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
 
   return (
     <div className="flex flex-1 min-h-0 relative">
-      {/* Форум с включёнными темами и без открытой темы — показываем список тем
-          вместо ленты сообщений (как в Telegram) */}
-      {showTopicList ? (
-        <TopicListView
-          channel={activeChannel}
-          onBack={onBack}
-          onOpenInfo={() => { setShowInfo(true); setShowSearch(false); setShowCalendar(false); }}
-        />
+      {/* Форум в режиме «Список»: список тем — в левой колонке (ChatScreen).
+          Пока тема не выбрана — в главной области плейсхолдер. */}
+      {forumListNoTopic ? (
+        <div className={`flex flex-col flex-1 min-w-0 items-center justify-center gap-3 ${wallpaperStyle ? '' : 'bg-[#e9e9e9] dark:bg-gray-900'}`} style={wallpaperStyle ?? undefined}>
+          <div className={`flex flex-col items-center gap-2 px-6 py-4 rounded-2xl ${GLASS_SURFACE}`}>
+            <svg className="w-10 h-10 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 3v-3z" />
+            </svg>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{t('Выберите тему слева')}</p>
+          </div>
+        </div>
       ) : (
       <>
       {/* Режим «Вкладки»: слева от ленты — вертикальный рельс тем (как в Telegram) */}

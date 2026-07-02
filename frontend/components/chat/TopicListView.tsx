@@ -26,9 +26,11 @@ interface TopicListViewProps {
   channel: ChatChannel;
   onBack: () => void;
   onOpenInfo: () => void;
+  /** 'main' — на месте ленты (по центру); 'sidebar' — в левой колонке (режим «Список»). */
+  variant?: 'main' | 'sidebar';
 }
 
-export default function TopicListView({ channel, onBack, onOpenInfo }: TopicListViewProps) {
+export default function TopicListView({ channel, onBack, onOpenInfo, variant = 'main' }: TopicListViewProps) {
   const t = useT();
   const user = useAuthStore((s) => s.user);
   const topicsByChannel = useChatStore((s) => s.topicsByChannel);
@@ -232,16 +234,17 @@ export default function TopicListView({ channel, onBack, onOpenInfo }: TopicList
     );
   };
 
+  const isSidebar = variant === 'sidebar';
   return (
     <div
-      className={`flex flex-col flex-1 min-w-0 relative ${wallpaperStyle ? '' : 'bg-[#e9e9e9] dark:bg-gray-900'}`}
-      style={wallpaperStyle ?? undefined}
+      className={`flex flex-col flex-1 min-w-0 relative ${isSidebar ? 'bg-white dark:bg-gray-900' : wallpaperStyle ? '' : 'bg-[#e9e9e9] dark:bg-gray-900'}`}
+      style={isSidebar ? undefined : wallpaperStyle ?? undefined}
     >
       {/* Header */}
       <div className="flex items-center gap-2 px-3 py-2.5 shrink-0 z-10">
         <button
           onClick={onBack}
-          className={`lg:hidden shrink-0 w-9 h-9 flex items-center justify-center rounded-full text-gray-600 dark:text-gray-200 ${GLASS_SURFACE}`}
+          className={`${isSidebar ? '' : 'lg:hidden'} shrink-0 w-9 h-9 flex items-center justify-center rounded-full text-gray-600 dark:text-gray-200 ${GLASS_SURFACE}`}
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
