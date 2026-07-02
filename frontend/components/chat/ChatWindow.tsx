@@ -401,11 +401,11 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
   const activeTopic = isForum && activeTopicId
     ? channelTopics?.find((t) => t.id === activeTopicId) ?? null
     : null;
-  // Форум: список тем открывается на месте ленты (в главной области), а список
-  // чатов слева остаётся полным. При открытии темы показываем её ленту; в режиме
-  // «Вкладки» сверху добавляется горизонтальная полоса вкладок для переключения.
+  // Форум (главная область, список чатов слева остаётся полным):
+  // «Список» — сначала полный список тем, затем лента выбранной темы.
+  // «Вкладки» — сразу открывается тема + горизонтальная полоса вкладок сверху.
   const forumTabs = isForum && topicsLayout === 'tabs';
-  const showTopicList = isForum && activeTopicId == null;
+  const showTopicList = isForum && activeTopicId == null && topicsLayout === 'list';
 
   // Набор реакций из настроек группы: 'none' → отключены, 'selected' → только выбранные
   const reactionEmojis = useMemo<string[] | undefined>(() => {
@@ -420,6 +420,16 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
     setShowScheduled(false);
     if (activeChannelId != null) fetchScheduled(activeChannelId);
   }, [activeChannelId, fetchScheduled]);
+
+  // Режим «Вкладки»: при открытии форума сразу открываем тему (General/первую),
+  // чтобы показать ленту + горизонтальные вкладки (а не список тем)
+  useEffect(() => {
+    if (!forumTabs || activeChannelId == null || activeTopicId != null) return;
+    const tps = channelTopics;
+    if (!tps || tps.length === 0) return;
+    const first = tps.find((tp) => tp.isGeneral) ?? tps[0];
+    if (first) setActiveTopic(activeChannelId, first.id);
+  }, [forumTabs, activeChannelId, activeTopicId, channelTopics, setActiveTopic]);
   const channelTyping = activeChannelId ? typingUsers[activeChannelId] || [] : [];
   const channelActivity = activeChannelId ? activityUsers[activeChannelId] || [] : [];
 
@@ -911,11 +921,12 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
               и возвращает к списку тем (как в Telegram) */}
           <button
             onClick={() => {
-              // В форуме назад из открытой темы возвращает к списку тем.
-              if (activeTopic && activeChannelId) setActiveTopic(activeChannelId, null);
+              // «Список»: назад из темы → к списку тем. «Вкладки»: тема всегда
+              // открыта, поэтому назад ведёт к списку чатов.
+              if (activeTopic && activeChannelId && !forumTabs) setActiveTopic(activeChannelId, null);
               else onBack();
             }}
-            className={`${activeTopic ? '' : 'lg:hidden'} shrink-0 w-9 h-9 flex items-center justify-center rounded-full text-gray-600 dark:text-gray-200 ${GLASS_SURFACE}`}
+            className={`${activeTopic && !forumTabs ? '' : 'lg:hidden'} shrink-0 w-9 h-9 flex items-center justify-center rounded-full text-gray-600 dark:text-gray-200 ${GLASS_SURFACE}`}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
