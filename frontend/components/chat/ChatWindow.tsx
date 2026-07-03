@@ -477,10 +477,30 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
     [activeChannel, user?.id],
   );
   const isCurrentUserMuted = currentMember?.isMuted ?? false;
-  const isCurrentUserAdmin = currentMember?.role === 'admin';
-  // Закрытая тема: писать могут только админы канала
+  // Управляющий канала: владелец или админ (оба обходят гранулярные права)
+  const isCurrentUserAdmin = currentMember?.role === 'admin' || currentMember?.role === 'owner';
+  // Закрытая тема: писать могут только владелец/админы канала
   const topicClosed = !!(activeTopic?.isClosed && !isCurrentUserAdmin);
   const isCompanyAdmin = user?.roleId === 1 || user?.roleId === 2;
+
+  // Эффективное право участника (владелец/админ обходят): право канала И личный
+  // оверрайд. Зеркалит бэкенд (resolveCapabilities) — чтобы UI не предлагал то,
+  // что сервер отклонит.
+  const cap = useCallback((key: string): boolean => {
+    if (isCurrentUserAdmin) return true;
+    if ((activeChannel?.permissions?.[key]) === false) return false;
+    if ((currentMember?.permissions?.[key]) === false) return false;
+    return true;
+  }, [isCurrentUserAdmin, activeChannel?.permissions, currentMember?.permissions]);
+
+  // Тема «писать могут только админы» — для обычного участника блокирует отправку
+  const topicAdminsOnly = !!(activeTopic?.postPermission === 'admins' && !isCurrentUserAdmin);
+  const cannotSendText = !cap('sendMessages') || topicAdminsOnly;
+  const composerCaps = {
+    media: cap('sendMedia'),
+    files: cap('sendFiles'),
+    voice: cap('sendVoice'),
+  };
 
   // Self-chat detection
   const isSelf =
@@ -1401,19 +1421,21 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
           className="absolute inset-x-0 bottom-0 z-20"
           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         >
-        {isCurrentUserMuted || topicClosed ? (
+        {isCurrentUserMuted || topicClosed || cannotSendText ? (
           <div className="px-3 pb-3 pt-2">
             <div className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl ${GLASS_SURFACE}`}>
               <svg className="w-4 h-4 text-red-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
               </svg>
               <span className="text-sm text-red-500 dark:text-red-400">
-                {topicClosed ? t('Тема закрыта — писать могут только администраторы') : t('Администратор ограничил возможность отправки сообщений')}
+                {topicClosed || topicAdminsOnly
+                  ? t('В этой теме писать могут только администраторы')
+                  : t('Администратор ограничил возможность отправки сообщений')}
               </span>
             </div>
           </div>
         ) : (
-          <ChatInput channelId={activeChannelId} projectId={activeChannel.projectId ?? undefined} channelType={activeChannel.channelType} onOpenScheduled={() => setShowScheduled(true)} />
+          <ChatInput channelId={activeChannelId} projectId={activeChannel.projectId ?? undefined} channelType={activeChannel.channelType} caps={composerCaps} onOpenScheduled={() => setShowScheduled(true)} />
         )}
         </div>
 
@@ -1808,14 +1830,14 @@ function GroupInfoPanel({ channel, isAdmin, isCompanyAdmin, currentUserId, onClo
   if (view === 'appearance') return <AppearanceScreen channel={channel} canManage={canManage} onBack={() => setView('main')} />;
   if (view === 'history') return <HistoryScreen channel={channel} canManage={canManage} onBack={() => setView('main')} />;
   if (view === 'topics') return <TopicsScreen channel={channel} canManage={canManage} onBack={() => setView('main')} />;
-  if (view === 'members') return <MembersScreen channel={channel} isAdmin={isAdmin} canManage={canManage} currentUserId={currentUserId} onBack={() => setView('main')} />;
+  if (view === 'members') return <MembersScreen channel={channel} canManage={canManage} currentUserId={currentUserId} onBack={() => setView('main')} />;
   if (view === 'permissions') return <PermissionsScreen channel={channel} canManage={canManage} onBack={() => setView('main')} />;
-  if (view === 'admins') return <AdminsScreen channel={channel} onBack={() => setView('main')} />;
+  if (view === 'admins') return <AdminsScreen channel={channel} currentUserId={currentUserId} onBack={() => setView('main')} />;
   if (view === 'recent') return <RecentActionsScreen channel={channel} onBack={() => setView('main')} />;
 
   const reactionsValue = channel.reactionsMode === 'none' ? 'Выкл' : channel.reactionsMode === 'selected' ? `${channel.allowedReactions?.length ?? 0}` : 'Все';
   const membersCount = (channel.members?.filter((m) => m.name && !/^deleted_\d+_\d+@crm\.deleted$/.test(m.email ?? '')).length) ?? channel.membersCount;
-  const adminCount = channel.members?.filter((m) => m.role === 'admin').length ?? 1;
+  const adminCount = channel.members?.filter((m) => m.role === 'admin' || m.role === 'owner').length ?? 1;
 
   return (
     <div className="flex flex-col h-full">
@@ -2316,29 +2338,40 @@ function LayoutCard({ kind, active, label, onClick }: { kind: 'tabs' | 'list'; a
   );
 }
 
-function MembersScreen({ channel, isAdmin, canManage, currentUserId, onBack }: { channel: ChatChannel; isAdmin: boolean; canManage: boolean; currentUserId?: number; onBack: () => void }) {
+function MembersScreen({ channel, canManage, currentUserId, onBack }: { channel: ChatChannel; canManage: boolean; currentUserId?: number; onBack: () => void }) {
   const t = useT();
   const updateChannel = useChatStore((s) => s.updateChannel);
   const fetchChannels = useChatStore((s) => s.fetchChannels);
+  const updateMemberRole = useChatStore((s) => s.updateMemberRole);
+  const transferOwnership = useChatStore((s) => s.transferOwnership);
   const [members, setMembers] = useState(channel.members ?? []);
   const [mutingId, setMutingId] = useState<number | null>(null);
   const [showAdd, setShowAdd] = useState(false);
+  const [menuFor, setMenuFor] = useState<number | null>(null);
+  const [restrictFor, setRestrictFor] = useState<number | null>(null);
   useEffect(() => { setMembers(channel.members ?? []); }, [channel.members]);
 
-  // Скрытие участников: не-админ видит только администраторов (как в Telegram)
+  // Роль текущего пользователя в канале определяет доступные действия
+  const iAmOwner = (members.find((m) => m.id === currentUserId)?.role ?? channel.myRole) === 'owner';
+
+  // Скрытие участников: не-админ видит только владельца/администраторов (как в Telegram)
   const hiddenForMe = !!channel.hideMembers && !canManage;
+  const isManagerRole = (r?: string) => r === 'admin' || r === 'owner';
   const visible = members
     .filter((m) => m.name && !/^deleted_\d+_\d+@crm\.deleted$/.test(m.email ?? ''))
-    .filter((m) => !hiddenForMe || m.role === 'admin');
+    .filter((m) => !hiddenForMe || isManagerRole(m.role));
+
   const toggleMute = async (id: number, muted: boolean) => {
+    setMenuFor(null);
     setMutingId(id);
     try {
       await api.patch(`/chat-channels/${channel.id}/members/${id}`, { isMuted: !muted });
       setMembers((prev) => prev.map((m) => (m.id === id ? { ...m, isMuted: !muted } : m)));
       fetchChannels(1);
-    } catch { /* ignore */ } finally { setMutingId(null); }
+    } catch { useToastStore.getState().addToast('error', 'Не удалось изменить ограничение'); } finally { setMutingId(null); }
   };
   const remove = async (id: number) => {
+    setMenuFor(null);
     if (!confirm(t('Удалить участника из группы?'))) return;
     try {
       await api.delete(`/chat-channels/${channel.id}/members/${id}`);
@@ -2346,6 +2379,30 @@ function MembersScreen({ channel, isAdmin, canManage, currentUserId, onBack }: {
       fetchChannels(1);
     } catch { useToastStore.getState().addToast('error', 'Не удалось удалить участника'); }
   };
+  const toggleAdmin = async (id: number, makeAdmin: boolean) => {
+    setMenuFor(null);
+    await updateMemberRole(channel.id, id, makeAdmin ? 'admin' : 'member');
+  };
+  const doTransfer = async (id: number, name: string) => {
+    setMenuFor(null);
+    if (!confirm(t('Передать владение группой участнику') + ` «${name}»? ` + t('Вы станете обычным администратором.'))) return;
+    await transferOwnership(channel.id, id);
+  };
+
+  // Вложенный экран персональных ограничений участника
+  if (restrictFor != null) {
+    const target = members.find((m) => m.id === restrictFor);
+    if (target) {
+      return (
+        <MemberRestrictionsScreen
+          channel={channel}
+          member={target}
+          onBack={() => setRestrictFor(null)}
+          onSaved={() => { fetchChannels(1); setRestrictFor(null); }}
+        />
+      );
+    }
+  }
 
   return (
     <ScreenShell title={t('Участники')} onBack={onBack}>
@@ -2367,6 +2424,11 @@ function MembersScreen({ channel, isAdmin, canManage, currentUserId, onBack }: {
         <div className="rounded-xl bg-gray-50 dark:bg-gray-700/40 overflow-hidden divide-y divide-gray-200 dark:divide-gray-700">
           {visible.map((m) => {
             const self = m.id === currentUserId;
+            const isOwnerRow = m.role === 'owner';
+            const hasRestrictions = !!m.permissions && Object.values(m.permissions).some((v) => v === false);
+            // Кого можно модерировать: не себя, не владельца; админ не может
+            // трогать другого админа (только владелец).
+            const canActOnTarget = !self && !isOwnerRow && (iAmOwner || !isManagerRole(m.role)) && canManage;
             return (
               <div key={m.id} className="flex items-center gap-2.5 px-3 py-2">
                 <div className="w-9 h-9 rounded-full bg-sky-500 flex items-center justify-center text-white text-xs font-semibold shrink-0 overflow-hidden relative">
@@ -2375,22 +2437,53 @@ function MembersScreen({ channel, isAdmin, canManage, currentUserId, onBack }: {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate text-gray-800 dark:text-gray-100">{m.name}</p>
+                  {isOwnerRow && <p className="text-xs text-amber-500">{t('владелец')}</p>}
                   {m.role === 'admin' && <p className="text-xs text-violet-500">{t('администратор')}</p>}
                   {m.isMuted && <p className="text-xs text-red-400">{t('Ограничен')}</p>}
+                  {!m.isMuted && hasRestrictions && <p className="text-xs text-orange-400">{t('Есть ограничения')}</p>}
                 </div>
-                {isAdmin && !self && (
-                  <>
-                    <button onClick={() => toggleMute(m.id, m.isMuted ?? false)} disabled={mutingId === m.id} title={m.isMuted ? t('Снять ограничение') : t('Ограничить отправку')} className={`shrink-0 p-1.5 rounded-lg transition-colors ${m.isMuted ? 'text-red-400' : 'text-gray-400 hover:text-red-400'}`}>
+                {canActOnTarget && (
+                  <div className="relative shrink-0">
+                    <button
+                      onClick={() => setMenuFor(menuFor === m.id ? null : m.id)}
+                      disabled={mutingId === m.id}
+                      title={t('Действия')}
+                      className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                    >
                       {mutingId === m.id ? (
                         <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>
                       ) : (
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg>
                       )}
                     </button>
-                    <button onClick={() => remove(m.id)} title={t('Удалить')} className="shrink-0 p-1.5 rounded-lg text-gray-400 hover:text-red-500 transition-colors">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                    </button>
-                  </>
+                    {menuFor === m.id && (
+                      <>
+                        <div className="fixed inset-0 z-20" onClick={() => setMenuFor(null)} />
+                        <div className="absolute right-0 top-full mt-1 z-30 w-52 py-1 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-xl overflow-hidden">
+                          {iAmOwner && (
+                            <button onClick={() => toggleAdmin(m.id, m.role !== 'admin')} className="w-full text-left px-3.5 py-2 text-sm text-gray-800 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700">
+                              {m.role === 'admin' ? t('Снять администратора') : t('Назначить администратором')}
+                            </button>
+                          )}
+                          <button onClick={() => { setMenuFor(null); setRestrictFor(m.id); }} className="w-full text-left px-3.5 py-2 text-sm text-gray-800 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            {t('Ограничения…')}
+                          </button>
+                          <button onClick={() => toggleMute(m.id, m.isMuted ?? false)} className="w-full text-left px-3.5 py-2 text-sm text-gray-800 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            {m.isMuted ? t('Снять запрет на отправку') : t('Запретить отправку')}
+                          </button>
+                          {iAmOwner && (
+                            <button onClick={() => doTransfer(m.id, m.name)} className="w-full text-left px-3.5 py-2 text-sm text-amber-600 dark:text-amber-400 hover:bg-gray-100 dark:hover:bg-gray-700">
+                              {t('Передать владение')}
+                            </button>
+                          )}
+                          <div className="my-1 mx-3 h-px bg-gray-200 dark:bg-gray-700" />
+                          <button onClick={() => remove(m.id)} className="w-full text-left px-3.5 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20">
+                            {t('Удалить из группы')}
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 )}
               </div>
             );
@@ -2405,6 +2498,72 @@ function MembersScreen({ channel, isAdmin, canManage, currentUserId, onBack }: {
           onAdded={(nm) => { setMembers((prev) => [...prev, nm]); fetchChannels(1); }}
         />
       )}
+    </ScreenShell>
+  );
+}
+
+// Персональные ограничения участника: подмножество прав, которые можно
+// запретить конкретному человеку сверх прав канала. Тумблер ВКЛ = разрешено.
+function MemberRestrictionsScreen({
+  channel,
+  member,
+  onBack,
+  onSaved,
+}: {
+  channel: ChatChannel;
+  member: NonNullable<ChatChannel['members']>[number];
+  onBack: () => void;
+  onSaved: () => void;
+}) {
+  const t = useT();
+  const updateMemberRestrictions = useChatStore((s) => s.updateMemberRestrictions);
+  const [saving, setSaving] = useState(false);
+  // local[key] = разрешено (true). Ограничение = false.
+  const [local, setLocal] = useState<Record<string, boolean>>(() => {
+    const perms = (member.permissions as Record<string, boolean> | null) || {};
+    const init: Record<string, boolean> = {};
+    PERMISSION_ITEMS.forEach((p) => { init[p.key] = perms[p.key] !== false; });
+    return init;
+  });
+  const restrictedCount = Object.values(local).filter((v) => !v).length;
+
+  const save = async () => {
+    setSaving(true);
+    // В permissions пишем только запрещённые ключи (false); нет запретов → null
+    const restricted: Record<string, boolean> = {};
+    Object.entries(local).forEach(([k, allowed]) => { if (!allowed) restricted[k] = false; });
+    const payload = Object.keys(restricted).length > 0 ? restricted : null;
+    const ok = await updateMemberRestrictions(channel.id, member.id, payload);
+    setSaving(false);
+    if (ok) onSaved();
+  };
+
+  return (
+    <ScreenShell title={t('Ограничения участника')} onBack={onBack}>
+      <div className="px-5 pb-1">
+        <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{member.name}</p>
+        <p className="text-xs text-gray-400 dark:text-gray-500">
+          {restrictedCount > 0 ? `${t('Запрещено')}: ${restrictedCount}` : t('Ограничений нет')}
+        </p>
+      </div>
+      <div className="px-4">
+        <div className="rounded-xl bg-gray-50 dark:bg-gray-700/40 divide-y divide-gray-200 dark:divide-gray-700 overflow-hidden">
+          {PERMISSION_ITEMS.map((p) => (
+            <div key={p.key} className="flex items-center justify-between gap-3 px-3 py-2.5">
+              <span className="text-sm text-gray-800 dark:text-gray-100">{t(p.label)}</span>
+              <Toggle checked={local[p.key]} onChange={() => setLocal((prev) => ({ ...prev, [p.key]: !prev[p.key] }))} />
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 px-1">{t('Выключите право, чтобы запретить его этому участнику. Действует поверх общих прав группы.')}</p>
+        <button
+          onClick={save}
+          disabled={saving}
+          className="w-full mt-4 px-3 py-2.5 rounded-xl bg-violet-500 hover:bg-violet-600 disabled:opacity-60 text-white text-sm font-medium transition-colors"
+        >
+          {saving ? t('Сохранение…') : t('Сохранить')}
+        </button>
+      </div>
     </ScreenShell>
   );
 }
@@ -2454,26 +2613,33 @@ function PermissionsScreen({ channel, canManage, onBack }: { channel: ChatChanne
   );
 }
 
-function AdminsScreen({ channel, onBack }: { channel: ChatChannel; onBack: () => void }) {
+function AdminsScreen({ channel, currentUserId, onBack }: { channel: ChatChannel; currentUserId?: number; onBack: () => void }) {
   const t = useT();
-  const admins = (channel.members ?? []).filter((m) => m.role === 'admin' && m.name);
+  // Владелец сверху, затем администраторы
+  const managers = (channel.members ?? [])
+    .filter((m) => (m.role === 'owner' || m.role === 'admin') && m.name)
+    .toSorted((a, b) => (a.role === 'owner' ? -1 : b.role === 'owner' ? 1 : 0));
   return (
     <ScreenShell title={t('Администраторы')} onBack={onBack}>
       <div className="px-4">
         <div className="rounded-xl bg-gray-50 dark:bg-gray-700/40 overflow-hidden divide-y divide-gray-200 dark:divide-gray-700">
-          {admins.length === 0 && <p className="px-3 py-4 text-sm text-gray-400">{t('Администраторов нет')}</p>}
-          {admins.map((m) => (
-            <div key={m.id} className="flex items-center gap-2.5 px-3 py-2.5">
-              <div className="w-9 h-9 rounded-full bg-emerald-500 flex items-center justify-center text-white text-xs font-semibold shrink-0 overflow-hidden relative">
-                {getInitials(m.name)}
-                {m.avatarUrl && <img src={m.avatarUrl} alt="" className="absolute inset-0 w-full h-full object-cover z-10" onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
+          {managers.length === 0 && <p className="px-3 py-4 text-sm text-gray-400">{t('Администраторов нет')}</p>}
+          {managers.map((m) => {
+            const isOwnerRow = m.role === 'owner';
+            const self = m.id === currentUserId;
+            return (
+              <div key={m.id} className="flex items-center gap-2.5 px-3 py-2.5">
+                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0 overflow-hidden relative ${isOwnerRow ? 'bg-amber-500' : 'bg-emerald-500'}`}>
+                  {getInitials(m.name)}
+                  {m.avatarUrl && <img src={m.avatarUrl} alt="" className="absolute inset-0 w-full h-full object-cover z-10" onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
+                </div>
+                <span className="flex-1 text-sm text-gray-800 dark:text-gray-100 truncate">{m.name}{self ? ` (${t('вы')})` : ''}</span>
+                <span className={`text-xs ${isOwnerRow ? 'text-amber-500' : 'text-violet-500'}`}>{isOwnerRow ? t('владелец') : t('администратор')}</span>
               </div>
-              <span className="flex-1 text-sm text-gray-800 dark:text-gray-100 truncate">{m.name}</span>
-              <span className="text-xs text-violet-500">{t('владелец')}</span>
-            </div>
-          ))}
+            );
+          })}
         </div>
-        <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 px-1">{t('Администраторы могут менять настройки группы и управлять участниками.')}</p>
+        <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 px-1">{t('Владелец и администраторы могут менять настройки группы и управлять участниками. Назначить администратора может только владелец — в разделе «Участники».')}</p>
       </div>
     </ScreenShell>
   );

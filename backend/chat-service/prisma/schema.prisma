@@ -63,6 +63,9 @@ model ChatChannelMember {
   channelId  Int       @map("channel_id")
   userId     Int       @map("user_id")
   role       String?   @db.VarChar(50)
+  // Персональные ограничения сверх прав канала: null = наследует,
+  // { "<key>": false } = запрещено этому участнику (ключи как в settings.permissions).
+  permissions Json?
   joinedAt   DateTime  @default(now()) @map("joined_at")
   lastReadAt DateTime? @map("last_read_at")
   isMuted    Boolean   @default(false) @map("is_muted")
@@ -88,6 +91,8 @@ model ChatTopic {
   createdByUserId Int?      @map("created_by_user_id")
   isGeneral       Boolean   @default(false) @map("is_general")
   isClosed        Boolean   @default(false) @map("is_closed")
+  // Кто может писать в теме: 'all' (по правам канала) | 'admins' (только владелец/админы).
+  postPermission  String    @default("all") @map("post_permission") @db.VarChar(20)
   isPinned        Boolean   @default(false) @map("is_pinned")
   pinnedAt        DateTime? @map("pinned_at")
   sortOrder       Int       @default(0) @map("sort_order")

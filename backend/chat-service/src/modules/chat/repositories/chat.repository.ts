@@ -155,11 +155,28 @@ export class ChatRepository {
     });
   }
 
-  async updateChannelMember(channelId: number, userId: number, data: { isMuted?: boolean; isArchived?: boolean; isPinned?: boolean; pinnedAt?: Date | null; mutedUntil?: Date | null; role?: string }) {
+  async updateChannelMember(channelId: number, userId: number, data: { isMuted?: boolean; isArchived?: boolean; isPinned?: boolean; pinnedAt?: Date | null; mutedUntil?: Date | null; role?: string; permissions?: any }) {
     return (this.prisma as any).chatChannelMember.updateMany({
       where: { channelId, userId },
       data,
     });
+  }
+
+  /**
+   * Передача владения: текущий владелец → 'admin', цель → 'owner'.
+   * Атомарно в транзакции, чтобы не оставить канал без владельца/с двумя.
+   */
+  async transferOwnership(channelId: number, fromUserId: number, toUserId: number) {
+    return (this.prisma as any).$transaction([
+      (this.prisma as any).chatChannelMember.updateMany({
+        where: { channelId, userId: fromUserId },
+        data: { role: 'admin' },
+      }),
+      (this.prisma as any).chatChannelMember.updateMany({
+        where: { channelId, userId: toUserId },
+        data: { role: 'owner' },
+      }),
+    ]);
   }
 
   async archiveChannel(channelId: number, userId: number, isArchived: boolean) {

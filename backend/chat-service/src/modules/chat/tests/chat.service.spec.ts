@@ -246,12 +246,14 @@ describe('ChatService', () => {
         ...mockMessage,
         reactions: {},
       });
+      repository.findChannelById.mockResolvedValue(mockChannel);
+      repository.findChannelMember.mockResolvedValue({ userId: 10, role: 'member' });
       repository.updateMessage.mockResolvedValue({
         ...mockMessage,
         reactions: { thumbsup: [10] },
       });
 
-      const result = await service.reactToMessage(1, 10, {
+      const result = await service.reactToMessage(1, 10, 1, {
         reaction: 'thumbsup',
       } as any);
 
@@ -265,12 +267,14 @@ describe('ChatService', () => {
         ...mockMessage,
         reactions: { thumbsup: [10] },
       });
+      repository.findChannelById.mockResolvedValue(mockChannel);
+      repository.findChannelMember.mockResolvedValue({ userId: 10, role: 'member' });
       repository.updateMessage.mockResolvedValue({
         ...mockMessage,
         reactions: {},
       });
 
-      await service.reactToMessage(1, 10, { reaction: 'thumbsup' } as any);
+      await service.reactToMessage(1, 10, 1, { reaction: 'thumbsup' } as any);
 
       expect(repository.updateMessage).toHaveBeenCalledWith(1, {
         reactions: {},

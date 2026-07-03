@@ -377,6 +377,7 @@ export class ChatGateway
     const message = await this.chatService.reactToMessage(
       data.messageId,
       client.user.id,
+      client.user.accountId,
       { reaction: data.reaction },
     );
 
@@ -565,6 +566,7 @@ export class ChatGateway
       (data.messageText || '').slice(0, 200),
       data.senderName || '',
       client.user.accountId,
+      client.user.id,
       client.user.name,
       data.topicId,
     );
@@ -590,6 +592,7 @@ export class ChatGateway
       data.channelId,
       data.messageId,
       client.user.accountId,
+      client.user.id,
       client.user.name,
       data.topicId,
     );

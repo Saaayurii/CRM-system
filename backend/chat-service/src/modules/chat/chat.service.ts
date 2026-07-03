@@ -41,6 +41,57 @@ export class ChatService {
     @InjectQueue(CHANNEL_EVENTS_QUEUE) private readonly channelEventsQueue: Queue,
   ) {}
 
+  // --- Роли и права ---
+
+  /** Владелец канала (единственный, role='owner'). */
+  private isOwner(member: { role?: string | null } | null | undefined): boolean {
+    return member?.role === 'owner';
+  }
+
+  /** Управляющий: владелец или админ — обходит гранулярные права. */
+  private isManager(member: { role?: string | null } | null | undefined): boolean {
+    return member?.role === 'owner' || member?.role === 'admin';
+  }
+
+  /**
+   * Может ли участник выполнить действие `key` в канале (и, опционально, в теме).
+   * Владелец/админ — всегда да. Иначе: право канала (settings.permissions,
+   * дефолт true) И персональный оверрайд участника (permissions[key] !== false).
+   * Для ключей отправки дополнительно учитывается право темы (postPermission).
+   */
+  private can(
+    channel: { settings?: unknown } | null | undefined,
+    member: { role?: string | null; permissions?: unknown } | null | undefined,
+    key:
+      | 'sendMessages'
+      | 'sendMedia'
+      | 'sendFiles'
+      | 'sendVoice'
+      | 'addReactions'
+      | 'pinMessages'
+      | 'changeInfo'
+      | 'inviteUsers'
+      | 'createTopics',
+    topic?: { postPermission?: string | null } | null,
+  ): boolean {
+    if (!member) return false;
+    if (this.isManager(member)) return true;
+    const channelPerms =
+      ((channel?.settings as Record<string, unknown>)?.permissions as
+        | Record<string, unknown>
+        | undefined) || {};
+    if (channelPerms[key] === false) return false;
+    const memberPerms = (member.permissions as Record<string, unknown> | null) || null;
+    if (memberPerms && memberPerms[key] === false) return false;
+    const isPosting =
+      key === 'sendMessages' ||
+      key === 'sendMedia' ||
+      key === 'sendFiles' ||
+      key === 'sendVoice';
+    if (isPosting && topic && topic.postPermission === 'admins') return false;
+    return true;
+  }
+
   // --- Channels ---
 
   async findAllChannels(
@@ -92,7 +143,7 @@ export class ChatService {
     if (!member) {
       throw new ForbiddenException('You are not a member of this channel');
     }
-    if (member.role !== 'admin') {
+    if (!this.isManager(member)) {
       throw new ForbiddenException('Only channel admins can clear history');
     }
     await this.chatRepository.clearChannelHistory(channelId);
@@ -154,9 +205,9 @@ export class ChatService {
       }
     }
 
-    // Build members list: creator as admin + additional memberIds as members
+    // Build members list: creator as owner + additional memberIds as members
     const memberCreates: Array<{ userId: number; role: string }> = [
-      { userId, role: 'admin' },
+      { userId, role: 'owner' },
     ];
     if (dto.memberIds && dto.memberIds.length > 0) {
       for (const memberId of dto.memberIds) {
@@ -240,7 +291,7 @@ export class ChatService {
       createdByUserId: userId,
       isPrivate: false,
       settings: { telegramImport: true, telegramId, telegramType: type },
-      members: { create: [{ userId, role: 'admin' }] },
+      members: { create: [{ userId, role: 'owner' }] },
     });
 
     // Enqueue one job per chunk so message inserts run off the request thread,
@@ -334,6 +385,35 @@ export class ChatService {
     const existing = await this.findChannelById(id, accountId);
     const prevSettings = (existing.settings as Record<string, unknown>) || {};
 
+    // Авторизация (для внутренних вызовов без actorUserId — пропускаем).
+    // Управляющие ключи (права/скрытие участников/история/режим тем) — только
+    // владелец/админ. Профиль группы (имя/описание/аватар/тип/оформление) —
+    // управляющий ИЛИ участник с правом changeInfo.
+    if (actorUserId != null) {
+      const actor = await this.chatRepository.findChannelMember(id, actorUserId);
+      const incomingSettings = (dto.settings as Record<string, unknown>) || {};
+      const MANAGEMENT_KEYS = [
+        'permissions',
+        'hideMembers',
+        'historyVisibleToNewMembers',
+        'topicsEnabled',
+        'createTopicsPermission',
+      ];
+      const touchesManagement = MANAGEMENT_KEYS.some((k) => k in incomingSettings);
+      if (touchesManagement && !this.isManager(actor)) {
+        throw new ForbiddenException('Only channel admins can change these settings');
+      }
+      const touchesInfo =
+        dto.name !== undefined ||
+        dto.description !== undefined ||
+        dto.isPrivate !== undefined ||
+        dto.avatarUrl !== undefined ||
+        Object.keys(incomingSettings).some((k) => !MANAGEMENT_KEYS.includes(k));
+      if (touchesInfo && !this.can(existing, actor, 'changeInfo')) {
+        throw new ForbiddenException('You are not allowed to change group info');
+      }
+    }
+
     // `avatarUrl` has no dedicated column — it lives in the settings JSONB.
     const { avatarUrl, settings, ...rest } = dto;
     const data: any = { ...rest };
@@ -408,7 +488,17 @@ export class ChatService {
     dto: AddMemberDto,
     actorUserId?: number,
   ) {
-    await this.findChannelById(channelId, accountId);
+    const channel = await this.findChannelById(channelId, accountId);
+
+    // Приглашение участников — по праву inviteUsers (владелец/админ обходят).
+    // actorUserId отсутствует у внутренних вызовов (создание канала и т.п.) —
+    // тогда проверку пропускаем.
+    if (actorUserId != null) {
+      const actor = await this.chatRepository.findChannelMember(channelId, actorUserId);
+      if (!this.can(channel, actor, 'inviteUsers')) {
+        throw new ForbiddenException('You are not allowed to add members here');
+      }
+    }
 
     const existingMember = await this.chatRepository.findChannelMember(
       channelId,
@@ -439,6 +529,24 @@ export class ChatService {
     actorUserId?: number,
   ) {
     await this.findChannelById(channelId, accountId);
+
+    const target = await this.chatRepository.findChannelMember(channelId, userId);
+    // Владельца удалить нельзя (сначала передать владение)
+    if (this.isOwner(target)) {
+      throw new ForbiddenException('The owner cannot be removed; transfer ownership first');
+    }
+    // Удаление другого участника — только управляющий; админ не может удалить
+    // другого админа (только владелец). Самовыход разрешён всем.
+    if (actorUserId != null && actorUserId !== userId) {
+      const actor = await this.chatRepository.findChannelMember(channelId, actorUserId);
+      if (!this.isManager(actor)) {
+        throw new ForbiddenException('You are not allowed to remove members');
+      }
+      if (this.isManager(target) && !this.isOwner(actor)) {
+        throw new ForbiddenException('Only the owner can remove admins');
+      }
+    }
+
     await this.chatRepository.removeChannelMember(channelId, userId);
     this.logChannelEvent(channelId, accountId, actorUserId ?? null, 'member.remove', {
       targetUserId: userId,
@@ -479,7 +587,7 @@ export class ChatService {
     if (
       settings.historyVisibleToNewMembers === false &&
       member &&
-      member.role !== 'admin' &&
+      !this.isManager(member) &&
       channel.createdByUserId !== user.id &&
       member.joinedAt
     ) {
@@ -495,24 +603,104 @@ export class ChatService {
     );
   }
 
-  async muteChannelMember(
+  /**
+   * Изменение параметров участника: заглушение, роль (admin/member) и
+   * персональные ограничения. Права:
+   *  - действовать может только управляющий (владелец/админ);
+   *  - нельзя трогать владельца, и админ не может трогать других админов;
+   *  - менять роль (назначать/снимать админа) может ТОЛЬКО владелец;
+   *  - роль 'owner' через этот метод не выдаётся (только передача владения).
+   */
+  async updateMemberSettings(
     channelId: number,
     accountId: number,
     requestingUserId: number,
     targetUserId: number,
-    isMuted: boolean,
+    changes: { isMuted?: boolean; role?: string; permissions?: unknown },
   ) {
     await this.findChannelById(channelId, accountId);
     const requester = await this.chatRepository.findChannelMember(channelId, requestingUserId);
-    if (!requester || requester.role !== 'admin') {
-      throw new ForbiddenException('Only channel admins can mute members');
+    if (!this.isManager(requester)) {
+      throw new ForbiddenException('Only channel admins can manage members');
     }
-    const result = await this.chatRepository.updateChannelMember(channelId, targetUserId, { isMuted });
-    this.logChannelEvent(channelId, accountId, requestingUserId, 'member.mute', {
-      targetUserId,
-      isMuted,
-    });
+    const target = await this.chatRepository.findChannelMember(channelId, targetUserId);
+    if (!target) {
+      throw new NotFoundException('Member not found');
+    }
+    // Владельца трогать нельзя; админ не может модерировать другого админа
+    if (this.isOwner(target)) {
+      throw new ForbiddenException('The owner cannot be modified');
+    }
+    if (this.isManager(target) && !this.isOwner(requester)) {
+      throw new ForbiddenException('Only the owner can manage admins');
+    }
+
+    const data: { isMuted?: boolean; role?: string; permissions?: unknown } = {};
+
+    if (changes.role !== undefined) {
+      if (!this.isOwner(requester)) {
+        throw new ForbiddenException('Only the owner can change roles');
+      }
+      if (changes.role !== 'admin' && changes.role !== 'member') {
+        throw new BadRequestException('Role must be "admin" or "member"');
+      }
+      data.role = changes.role;
+    }
+    if (changes.isMuted !== undefined) data.isMuted = changes.isMuted;
+    if (changes.permissions !== undefined) {
+      // null очищает персональные ограничения (наследование прав канала)
+      data.permissions = changes.permissions;
+    }
+
+    if (Object.keys(data).length === 0) {
+      return { success: true };
+    }
+
+    const result = await this.chatRepository.updateChannelMember(channelId, targetUserId, data);
+    if (data.role !== undefined) {
+      this.logChannelEvent(channelId, accountId, requestingUserId, 'member.role', {
+        targetUserId,
+        role: data.role,
+      });
+    }
+    if (data.isMuted !== undefined) {
+      this.logChannelEvent(channelId, accountId, requestingUserId, 'member.mute', {
+        targetUserId,
+        isMuted: data.isMuted,
+      });
+    }
+    if (data.permissions !== undefined) {
+      this.logChannelEvent(channelId, accountId, requestingUserId, 'member.restrict', {
+        targetUserId,
+      });
+    }
     return result;
+  }
+
+  /** Передача владения каналом: только текущий владелец может передать. */
+  async transferOwnership(
+    channelId: number,
+    accountId: number,
+    requestingUserId: number,
+    targetUserId: number,
+  ) {
+    await this.findChannelById(channelId, accountId);
+    const requester = await this.chatRepository.findChannelMember(channelId, requestingUserId);
+    if (!this.isOwner(requester)) {
+      throw new ForbiddenException('Only the owner can transfer ownership');
+    }
+    if (targetUserId === requestingUserId) {
+      throw new BadRequestException('You are already the owner');
+    }
+    const target = await this.chatRepository.findChannelMember(channelId, targetUserId);
+    if (!target) {
+      throw new NotFoundException('Member not found');
+    }
+    await this.chatRepository.transferOwnership(channelId, requestingUserId, targetUserId);
+    this.logChannelEvent(channelId, accountId, requestingUserId, 'owner.transfer', {
+      targetUserId,
+    });
+    return { success: true, ownerId: targetUserId };
   }
 
   async createMessage(
@@ -530,8 +718,9 @@ export class ChatService {
 
     // Форум-каналы: каждое сообщение принадлежит теме. Без topicId — пишем в
     // General. Валидируем принадлежность теме и закрытость (в закрытую тему
-    // пишут только админы канала).
+    // пишут только владелец/админы канала).
     let topicId: number | null = null;
+    let resolvedTopic: { postPermission?: string | null } | null = null;
     const settings = (channel.settings as Record<string, unknown>) || {};
     if (settings.topicsEnabled) {
       let resolved = dto.topicId
@@ -544,10 +733,41 @@ export class ChatService {
       if (resolved.channelId !== channelId) {
         throw new BadRequestException('Topic does not belong to this channel');
       }
-      if (resolved.isClosed && member?.role !== 'admin') {
+      if (resolved.isClosed && !this.isManager(member)) {
         throw new ForbiddenException('This topic is closed');
       }
       topicId = resolved.id;
+      resolvedTopic = resolved;
+    }
+
+    // Гранулярные права участника (владелец/админ обходят). Базовое право на
+    // отправку + отдельные права по типу вложения + право темы (postPermission).
+    if (!this.isManager(member)) {
+      if (!this.can(channel, member, 'sendMessages', resolvedTopic)) {
+        throw new ForbiddenException('You are not allowed to send messages here');
+      }
+      const atts: any[] = Array.isArray(dto.attachments) ? dto.attachments : [];
+      const isVoiceMsg = dto.messageType === 'voice' || dto.messageType === 'video_note';
+      const hasMedia = atts.some((a) => {
+        const m: string = a?.mimeType || '';
+        const n: string = a?.fileName || '';
+        return m.startsWith('image/') || m.startsWith('video/') ||
+          (!m && /\.(jpe?g|png|gif|webp|bmp|heic|avif|mp4|mov|webm|mkv|m4v)$/i.test(n));
+      });
+      const hasOtherFile = atts.some((a) => {
+        const m: string = a?.mimeType || '';
+        return !(m.startsWith('image/') || m.startsWith('video/') || m.startsWith('audio/'));
+      });
+      if (isVoiceMsg && !this.can(channel, member, 'sendVoice', resolvedTopic)) {
+        throw new ForbiddenException('You are not allowed to send voice messages here');
+      }
+      if (!isVoiceMsg && hasMedia && !this.can(channel, member, 'sendMedia', resolvedTopic)) {
+        throw new ForbiddenException('You are not allowed to send media here');
+      }
+      if (!isVoiceMsg && !hasMedia && hasOtherFile &&
+        !this.can(channel, member, 'sendFiles', resolvedTopic)) {
+        throw new ForbiddenException('You are not allowed to send files here');
+      }
     }
 
     const message = await this.chatRepository.createMessage({
@@ -670,11 +890,29 @@ export class ChatService {
   async reactToMessage(
     messageId: number,
     userId: number,
+    accountId: number,
     dto: ReactMessageDto,
   ) {
     const message = await this.chatRepository.findMessageById(messageId);
     if (!message) {
       throw new NotFoundException(`Message with ID ${messageId} not found`);
+    }
+
+    // Реакции — по праву addReactions (владелец/админ обходят). Заодно требуем
+    // членство: реагировать может только участник канала.
+    const channel = await this.chatRepository.findChannelById(
+      Number(message.channelId),
+      accountId,
+    );
+    const member = await this.chatRepository.findChannelMember(
+      Number(message.channelId),
+      userId,
+    );
+    if (!member) {
+      throw new ForbiddenException('You are not a member of this channel');
+    }
+    if (!this.can(channel, member, 'addReactions')) {
+      throw new ForbiddenException('You are not allowed to add reactions here');
     }
 
     const reactions: Record<string, number[]> = message.reactions || {};
@@ -735,11 +973,16 @@ export class ChatService {
     messageText: string,
     senderName: string,
     accountId: number,
+    userId: number,
     pinnerName: string,
     topicId?: number,
   ) {
     const channel = await this.chatRepository.findChannelById(channelId, accountId);
     if (!channel) throw new NotFoundException('Channel not found');
+    const pinner = await this.chatRepository.findChannelMember(channelId, userId);
+    if (!this.can(channel, pinner, 'pinMessages')) {
+      throw new ForbiddenException('You are not allowed to pin messages here');
+    }
     // В форум-канале закреп у каждой темы свой; иначе — на канал
     const pinnedMessages = topicId
       ? await this.chatRepository.pinMessageTopic(topicId, messageId, messageText, senderName)
@@ -759,11 +1002,16 @@ export class ChatService {
     channelId: number,
     messageId: number,
     accountId: number,
+    userId: number,
     pinnerName: string,
     topicId?: number,
   ) {
     const channel = await this.chatRepository.findChannelById(channelId, accountId);
     if (!channel) throw new NotFoundException('Channel not found');
+    const pinner = await this.chatRepository.findChannelMember(channelId, userId);
+    if (!this.can(channel, pinner, 'pinMessages')) {
+      throw new ForbiddenException('You are not allowed to unpin messages here');
+    }
     const pinnedMessages = topicId
       ? await this.chatRepository.unpinMessageTopic(topicId, messageId)
       : await this.chatRepository.unpinMessage(channelId, messageId);
@@ -871,9 +1119,11 @@ export class ChatService {
       throw new BadRequestException('Topics are not enabled for this channel');
     }
     const member = await this.assertMember(channelId, userId);
-    const permission = (settings.createTopicsPermission as string) || 'all';
-    if (permission === 'admins' && member.role !== 'admin') {
-      throw new ForbiddenException('Only admins can create topics here');
+    if (!this.isManager(member)) {
+      const permission = (settings.createTopicsPermission as string) || 'all';
+      if (permission === 'admins' || !this.can(channel, member, 'createTopics')) {
+        throw new ForbiddenException('Only admins can create topics here');
+      }
     }
     const topic = await this.chatRepository.createTopic({
       channelId,
@@ -901,6 +1151,7 @@ export class ChatService {
       color?: string;
       isClosed?: boolean;
       isPinned?: boolean;
+      postPermission?: 'all' | 'admins';
     },
   ) {
     await this.findChannelById(channelId, accountId);
@@ -909,9 +1160,9 @@ export class ChatService {
       throw new NotFoundException('Topic not found');
     }
     const member = await this.assertMember(channelId, userId);
-    const isAdmin = member.role === 'admin';
+    const isManager = this.isManager(member);
     const isCreator = topic.createdByUserId === userId;
-    if (!isAdmin && !isCreator) {
+    if (!isManager && !isCreator) {
       throw new ForbiddenException('You cannot edit this topic');
     }
 
@@ -919,15 +1170,22 @@ export class ChatService {
     if (dto.name !== undefined) data.name = dto.name;
     if (dto.iconEmoji !== undefined) data.iconEmoji = dto.iconEmoji;
     if (dto.color !== undefined) data.color = dto.color;
-    // Закрытие/закрепление темы — действие администратора.
+    // Закрытие/закрепление/право записи в теме — действие владельца/админа.
     if (dto.isClosed !== undefined) {
-      if (!isAdmin) throw new ForbiddenException('Only admins can close/reopen topics');
+      if (!isManager) throw new ForbiddenException('Only admins can close/reopen topics');
       data.isClosed = dto.isClosed;
     }
     if (dto.isPinned !== undefined) {
-      if (!isAdmin) throw new ForbiddenException('Only admins can pin topics');
+      if (!isManager) throw new ForbiddenException('Only admins can pin topics');
       data.isPinned = dto.isPinned;
       data.pinnedAt = dto.isPinned ? new Date() : null;
+    }
+    if (dto.postPermission !== undefined) {
+      if (!isManager) throw new ForbiddenException('Only admins can change who can post');
+      if (dto.postPermission !== 'all' && dto.postPermission !== 'admins') {
+        throw new BadRequestException('postPermission must be "all" or "admins"');
+      }
+      data.postPermission = dto.postPermission;
     }
 
     const updated = await this.chatRepository.updateTopic(topicId, data);
@@ -962,9 +1220,9 @@ export class ChatService {
       throw new ForbiddenException('The General topic cannot be deleted');
     }
     const member = await this.assertMember(channelId, userId);
-    const isAdmin = member.role === 'admin';
+    const isManager = this.isManager(member);
     const isCreator = topic.createdByUserId === userId;
-    if (!isAdmin && !isCreator) {
+    if (!isManager && !isCreator) {
       throw new ForbiddenException('You cannot delete this topic');
     }
     await this.chatRepository.softDeleteTopic(topicId);
@@ -998,7 +1256,7 @@ export class ChatService {
   ) {
     const channel = await this.findChannelById(channelId, accountId);
     const member = await this.assertMember(channelId, userId);
-    if (member.role !== 'admin') {
+    if (!this.isManager(member)) {
       throw new ForbiddenException('Only admins can change topic settings');
     }
 

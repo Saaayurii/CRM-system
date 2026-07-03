@@ -514,22 +514,48 @@ export class ChatController {
   }
 
   @Patch(':id/members/:userId')
-  @ApiOperation({ summary: 'Mute or unmute a channel member' })
+  @ApiOperation({ summary: 'Update a channel member: mute, role (admin/member), restrictions' })
   @ApiResponse({ status: 200, description: 'Member updated' })
-  muteChannelMember(
+  async updateChannelMember(
     @Param('id', ParseIntPipe) id: number,
     @Param('userId', ParseIntPipe) userId: number,
     @CurrentUser('accountId') accountId: number,
     @CurrentUser('id') requestingUserId: number,
-    @Body('isMuted') isMuted: boolean,
+    @Body() body: { isMuted?: boolean; role?: string; permissions?: unknown },
   ) {
-    return this.chatService.muteChannelMember(
+    const result = await this.chatService.updateMemberSettings(
       id,
       accountId,
       requestingUserId,
       userId,
-      isMuted,
+      body,
     );
+    // Реалтайм: участники обновят список/права
+    this.chatGateway.server
+      .to(`channel:${id}`)
+      .emit('member:updated', { channelId: id, userId });
+    return result;
+  }
+
+  @Post(':id/transfer-ownership')
+  @ApiOperation({ summary: 'Transfer channel ownership to another member (owner only)' })
+  @ApiResponse({ status: 200, description: 'Ownership transferred' })
+  async transferOwnership(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser('accountId') accountId: number,
+    @CurrentUser('id') requestingUserId: number,
+    @Body('userId', ParseIntPipe) targetUserId: number,
+  ) {
+    const result = await this.chatService.transferOwnership(
+      id,
+      accountId,
+      requestingUserId,
+      targetUserId,
+    );
+    this.chatGateway.server
+      .to(`channel:${id}`)
+      .emit('member:updated', { channelId: id, userId: targetUserId });
+    return result;
   }
 
   @Delete(':id/members/:userId')

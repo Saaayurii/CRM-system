@@ -85,7 +85,7 @@ export interface ChatChannel {
     senderName: string;
     createdAt: string;
   } | null;
-  members?: { id: number; name: string; avatarUrl?: string; email?: string; isMuted?: boolean; role?: string }[];
+  members?: { id: number; name: string; avatarUrl?: string; email?: string; isMuted?: boolean; role?: string; permissions?: Record<string, boolean> | null }[];
   pinnedMessages?: { id: number; text: string; senderName: string; pinnedAt: string }[];
   // Per-current-user state
   isPinned?: boolean;
@@ -124,6 +124,8 @@ export interface ChatTopic {
   isGeneral: boolean;
   isClosed: boolean;
   isPinned: boolean;
+  /** Кто может писать в теме: 'all' | 'admins' */
+  postPermission?: 'all' | 'admins';
   lastMessageAt?: string | null;
   unreadCount: number;
   // Per-current-user
@@ -239,6 +241,7 @@ function mapRawChannel(raw: any, currentUserId?: number): ChatChannel {
       email: u.email ?? undefined,
       isMuted: m.isMuted ?? false,
       role: m.role ?? 'member',
+      permissions: (m.permissions as Record<string, boolean> | null) ?? null,
     };
   });
 
@@ -333,6 +336,7 @@ function mapRawTopic(raw: any): ChatTopic {
     isGeneral: !!raw.isGeneral,
     isClosed: !!raw.isClosed,
     isPinned: !!raw.isPinned,
+    postPermission: (raw.postPermission as 'all' | 'admins') ?? 'all',
     lastMessageAt: raw.lastMessageAt ?? null,
     unreadCount: raw.unreadCount ?? 0,
     isMutedForMe: !!raw.isMutedForMe,
@@ -423,10 +427,14 @@ interface ChatState {
   fetchTopics: (channelId: number) => Promise<void>;
   setActiveTopic: (channelId: number, topicId: number | null) => Promise<void>;
   createTopic: (channelId: number, dto: { name: string; iconEmoji?: string; color?: string }) => Promise<ChatTopic | null>;
-  updateTopic: (channelId: number, topicId: number, dto: { name?: string; iconEmoji?: string; color?: string; isClosed?: boolean; isPinned?: boolean }) => Promise<void>;
+  updateTopic: (channelId: number, topicId: number, dto: { name?: string; iconEmoji?: string; color?: string; isClosed?: boolean; isPinned?: boolean; postPermission?: 'all' | 'admins' }) => Promise<void>;
   deleteTopic: (channelId: number, topicId: number) => Promise<void>;
   setTopicsConfig: (channelId: number, dto: { topicsEnabled?: boolean; createTopicsPermission?: 'all' | 'admins' }) => Promise<void>;
   updateChannel: (channelId: number, dto: { name?: string; description?: string; avatarUrl?: string; isPrivate?: boolean; settings?: Record<string, unknown> }) => Promise<boolean>;
+  // Управление участниками (роли/ограничения/владелец)
+  updateMemberRole: (channelId: number, userId: number, role: 'admin' | 'member') => Promise<boolean>;
+  updateMemberRestrictions: (channelId: number, userId: number, permissions: Record<string, boolean> | null) => Promise<boolean>;
+  transferOwnership: (channelId: number, userId: number) => Promise<boolean>;
   // Отложенные сообщения
   fetchScheduled: (channelId: number) => Promise<void>;
   scheduleMessage: (channelId: number, dto: { messageText?: string; attachments?: UploadedAttachment[]; replyToMessageId?: number; topicId?: number; silent?: boolean; scheduledAt: string }) => Promise<boolean>;
@@ -919,6 +927,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }));
     });
 
+    // Роль/ограничения/владелец участника изменились — перечитываем канал,
+    // чтобы у всех обновились роли и эффективные права (composer, экраны прав).
+    socket.on('member:updated', (data: { channelId: number; userId: number }) => {
+      if (!data?.channelId) return;
+      void get().fetchChannels(1);
+    });
+
     // Отложенные сообщения: синхронизация между устройствами владельца
     socket.on('scheduled:created', (data: { channelId: number; message: ScheduledMessage }) => {
       if (!data?.message) return;
@@ -1242,6 +1257,67 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const msg = e?.response?.status === 403
         ? 'Недостаточно прав для изменения группы'
         : 'Не удалось сохранить настройки группы';
+      useToastStore.getState().addToast('error', msg);
+      return false;
+    }
+  },
+
+  updateMemberRole: async (channelId, userId, role) => {
+    // Локально обновляем роль участника; на 403 откатываем.
+    const patchMembers = (fn: (m: NonNullable<ChatChannel['members']>[number]) => NonNullable<ChatChannel['members']>[number]) =>
+      set((state) => ({
+        channels: state.channels.map((c) =>
+          c.id === channelId ? { ...c, members: c.members?.map((m) => (m.id === userId ? fn(m) : m)) } : c,
+        ),
+      }));
+    const prevRole = get().channels.find((c) => c.id === channelId)?.members?.find((m) => m.id === userId)?.role;
+    patchMembers((m) => ({ ...m, role }));
+    try {
+      await api.patch(`/chat-channels/${channelId}/members/${userId}`, { role });
+      return true;
+    } catch (e: any) {
+      patchMembers((m) => ({ ...m, role: prevRole }));
+      const msg = e?.response?.status === 403
+        ? 'Только владелец может назначать администраторов'
+        : 'Не удалось изменить роль участника';
+      useToastStore.getState().addToast('error', msg);
+      return false;
+    }
+  },
+
+  updateMemberRestrictions: async (channelId, userId, permissions) => {
+    const prev = get().channels.find((c) => c.id === channelId)?.members?.find((m) => m.id === userId)?.permissions ?? null;
+    const patch = (perms: Record<string, boolean> | null) =>
+      set((state) => ({
+        channels: state.channels.map((c) =>
+          c.id === channelId ? { ...c, members: c.members?.map((m) => (m.id === userId ? { ...m, permissions: perms } : m)) } : c,
+        ),
+      }));
+    patch(permissions);
+    try {
+      await api.patch(`/chat-channels/${channelId}/members/${userId}`, { permissions });
+      return true;
+    } catch (e: any) {
+      patch(prev);
+      const msg = e?.response?.status === 403
+        ? 'Недостаточно прав для изменения ограничений'
+        : 'Не удалось сохранить ограничения';
+      useToastStore.getState().addToast('error', msg);
+      return false;
+    }
+  },
+
+  transferOwnership: async (channelId, userId) => {
+    try {
+      await api.post(`/chat-channels/${channelId}/transfer-ownership`, { userId });
+      // Роли меняются у двух участников — перечитываем список каналов
+      await get().fetchChannels(1);
+      useToastStore.getState().addToast('success', 'Владелец группы изменён');
+      return true;
+    } catch (e: any) {
+      const msg = e?.response?.status === 403
+        ? 'Только владелец может передать группу'
+        : 'Не удалось передать владение';
       useToastStore.getState().addToast('error', msg);
       return false;
     }

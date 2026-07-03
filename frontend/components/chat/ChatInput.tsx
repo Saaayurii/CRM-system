@@ -78,6 +78,8 @@ interface ChatInputProps {
   onFilesSent?: (attachments: UploadedAttachment[]) => void;
   /** Открыть экран «Отложенная отправка» (по клику на часы в инпуте). */
   onOpenScheduled?: () => void;
+  /** Эффективные права участника: скрывают кнопки, которые сервер отклонит. */
+  caps?: { media?: boolean; files?: boolean; voice?: boolean };
 }
 
 interface PendingFile {
@@ -187,7 +189,12 @@ function renderMarkdownInEditor(el: HTMLDivElement, md: string) {
 
 // ── Component ─────────────────────────────────────────────────────────────
 
-export default function ChatInput({ channelId, projectId, channelType, onFilesSent, onOpenScheduled }: ChatInputProps) {
+export default function ChatInput({ channelId, projectId, channelType, onFilesSent, onOpenScheduled, caps }: ChatInputProps) {
+  // Права по умолчанию — всё разрешено (владелец/админ, обычные каналы)
+  const canMedia = caps?.media !== false;
+  const canFiles = caps?.files !== false;
+  const canVoice = caps?.voice !== false;
+  const canAttach = canMedia || canFiles;
   const t = useT();
   const isDirect = channelType === 'direct';
 
@@ -2149,6 +2156,7 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
       ) : (
         <div className="flex items-end gap-2">
           {/* Left capsule: скрепка + переключатель медиа — сгруппированы (как в шапке) */}
+          {canAttach && (
           <div className="relative shrink-0" ref={attachMenuRef}>
             <div className={`flex items-center h-11 rounded-full overflow-hidden divide-x divide-black/[0.06] dark:divide-white/[0.08] ${GLASS_SURFACE}`}>
               <button
@@ -2193,6 +2201,7 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
             </div>
             {showAttachMenu && (
               <div className="absolute bottom-full mb-2 left-0 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl shadow-xl overflow-hidden min-w-[170px]">
+                {canFiles && (
                 <button
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => { handleFileSelect(); setShowAttachMenu(false); }}
@@ -2203,10 +2212,12 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
                   </svg>
                   Файл
                 </button>
+                )}
+                {canMedia && (
                 <button
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => { handleCameraSelect(); setShowAttachMenu(false); }}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/60 transition-colors border-t border-gray-100 dark:border-gray-700"
+                  className={`w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/60 transition-colors ${canFiles ? 'border-t border-gray-100 dark:border-gray-700' : ''}`}
                 >
                   <svg className="w-4 h-4 text-violet-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
@@ -2214,9 +2225,11 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
                   </svg>
                   Снять фото / видео
                 </button>
+                )}
               </div>
             )}
           </div>
+          )}
           <input ref={fileInputRef} type="file" className="hidden" accept="*/*" multiple onChange={handleFileChange} />
           <input ref={cameraInputRef} type="file" className="hidden" accept="image/*,video/*" capture="environment" onChange={handleFileChange} />
 
@@ -2371,10 +2384,10 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
             <button
               onClick={canSend ? () => handleSend() : undefined}
               onContextMenu={canSend ? (e) => { e.preventDefault(); setShowSendMenu((v) => !v); } : undefined}
-              onMouseDown={!canSend ? handleRecordBtnMouseDown : undefined}
-              onMouseEnter={() => { if (!recordHintSeen) setShowRecordTooltip(true); }}
+              onMouseDown={!canSend && canVoice ? handleRecordBtnMouseDown : undefined}
+              onMouseEnter={() => { if (!recordHintSeen && canVoice) setShowRecordTooltip(true); }}
               onMouseLeave={() => { if (showRecordTooltip) markRecordHintSeen(); }}
-              disabled={isSending}
+              disabled={isSending || (!canSend && !canVoice)}
               className={`w-11 h-11 flex items-center justify-center rounded-full transition-all duration-150 disabled:opacity-50 ${GLASS_SURFACE} ${
                 canSend
                   ? 'text-violet-500 hover:text-violet-600'

@@ -435,6 +435,24 @@ export class ChatGatewayController {
     });
   }
 
+  @Post('chat-channels/:id/transfer-ownership')
+  @ApiOperation({ summary: 'Transfer channel ownership to another member' })
+  async transferOwnership(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
+    return this.proxyService.forward('chat', {
+      method: 'POST',
+      path: `/chat-channels/${id}/transfer-ownership`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
   // --- Messages ---
 
   @Get('chat-channels/:id/messages')
