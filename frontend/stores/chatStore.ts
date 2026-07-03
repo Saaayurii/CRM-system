@@ -5,6 +5,7 @@ import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import { useAuthStore } from '@/stores/authStore';
 import { previewFromMessage } from '@/lib/chat/messagePreview';
+import { clearDeliveredChatNotifications } from '@/lib/pushNotifications';
 
 /* ───────── Types ───────── */
 
@@ -1025,6 +1026,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
     set((state) => ({
       unreadCounts: { ...state.unreadCounts, [channelId]: 0 },
     }));
+    // Прочитано в приложении → снимаем доставленные баннеры этого канала с
+    // локскрина (бейдж иконки синхронит notificationStore по колокольчику).
+    void clearDeliveredChatNotifications(channelId);
     if (socketRef?.connected) {
       socketRef.emit('message:read', { channelId });
     } else {
@@ -1402,6 +1406,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
         unreadCounts: { ...state.unreadCounts, [channelId]: sumTopicUnread(nextList) },
       };
     });
+    // Форум: тема прочитана — снимаем доставленные баннеры канала с локскрина
+    void clearDeliveredChatNotifications(channelId);
     if (socketRef?.connected) socketRef.emit('topic:read', { channelId, topicId });
   },
 

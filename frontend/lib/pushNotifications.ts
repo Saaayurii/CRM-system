@@ -157,3 +157,29 @@ export async function disablePushNotifications(): Promise<void> {
 export async function isPushSubscribed(): Promise<boolean> {
   return !!(await getActiveSubscription());
 }
+
+/**
+ * Закрывает уже доставленные системные уведомления, которые пользователь
+ * прочитал в приложении. На iOS Web Push нельзя надёжно погасить пуш «тихим»
+ * пушем с сервера (каждый пуш обязан показать уведомление), поэтому чистим
+ * локально: когда канал прочитан или приложение в фокусе — снимаем баннеры.
+ *
+ * @param channelId — закрыть только уведомления этого канала; без него — все
+ *   чат-уведомления (tag начинается с 'chat_message_').
+ */
+export async function clearDeliveredChatNotifications(channelId?: number): Promise<void> {
+  try {
+    if (!('serviceWorker' in navigator)) return;
+    const reg = await navigator.serviceWorker.ready;
+    // Чат-уведомления тегируются по messageId, поэтому фильтруем не по тегу, а по
+    // ссылке (data.url = /dashboard/chat?channelId=<id>[&topicId=..]).
+    const notes = await reg.getNotifications();
+    for (const n of notes) {
+      const url: string = (n.data && (n.data as { url?: string }).url) || '';
+      if (!url.includes('/dashboard/chat')) continue;
+      if (channelId == null || url.includes(`channelId=${channelId}`)) n.close();
+    }
+  } catch {
+    // ignore — best-effort
+  }
+}
