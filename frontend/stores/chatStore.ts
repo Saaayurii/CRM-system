@@ -85,6 +85,9 @@ export interface ChatChannel {
     text: string;
     senderName: string;
     createdAt: string;
+    /** Тема последнего сообщения (для форум-групп) — показывается над превью */
+    topicName?: string | null;
+    topicIcon?: string | null;
   } | null;
   members?: { id: number; name: string; avatarUrl?: string; email?: string; isMuted?: boolean; role?: string; permissions?: Record<string, boolean> | null }[];
   pinnedMessages?: { id: number; text: string; senderName: string; pinnedAt: string }[];
@@ -300,6 +303,9 @@ function mapRawChannel(raw: any, currentUserId?: number): ChatChannel {
           ),
           senderName: rawLastMsg.senderName ?? getFullName(lastMsgUser ?? {}),
           createdAt: rawLastMsg.createdAt,
+          // Тема последнего сообщения (для форум-групп): General не показываем
+          topicName: rawLastMsg.topic && !rawLastMsg.topic.isGeneral ? rawLastMsg.topic.name : null,
+          topicIcon: rawLastMsg.topic && !rawLastMsg.topic.isGeneral ? rawLastMsg.topic.iconEmoji : null,
         }
       : raw.lastMessage ?? null,
     members,
@@ -563,12 +569,18 @@ export const useChatStore = create<ChatState>((set, get) => ({
         : [...channels];
 
       if (updatedChannel) {
+        // Тема последнего сообщения (для форум-групп) — ищем в загруженных темах
+        const msgTopic = message.topicId
+          ? (topicsByChannel[message.channelId] || []).find((tp) => tp.id === message.topicId)
+          : null;
         const withNewMsg = {
           ...updatedChannel,
           lastMessage: {
             text: previewText,
             senderName: message.senderName,
             createdAt: message.createdAt,
+            topicName: msgTopic && !msgTopic.isGeneral ? msgTopic.name : null,
+            topicIcon: msgTopic && !msgTopic.isGeneral ? (msgTopic.iconEmoji ?? null) : null,
           },
         };
         // Bubble to front; ChatSidebar will keep selfChat pinned first

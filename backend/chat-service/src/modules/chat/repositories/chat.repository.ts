@@ -37,7 +37,7 @@ export class ChatRepository {
             take: 1,
             orderBy: { createdAt: 'desc' },
             where: { isDeleted: false },
-            include: { user: true },
+            include: { user: true, topic: true },
           },
         },
       }),

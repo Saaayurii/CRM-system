@@ -437,6 +437,13 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
                   </div>
                   <div className="flex items-center justify-between mt-0.5">
                     <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                      {channel.lastMessage?.topicName && (
+                        <span className="text-violet-500 dark:text-violet-400 font-medium">
+                          {channel.lastMessage.topicIcon ? `${channel.lastMessage.topicIcon} ` : '# '}
+                          {channel.lastMessage.topicName}
+                          {'  '}
+                        </span>
+                      )}
                       {channel.lastMessage ? previewMessageText(channel.lastMessage.text) : 'Нет сообщений'}
                     </p>
                     {unread > 0 && (
@@ -651,6 +658,13 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
                 </div>
                 <div className="flex items-center justify-between mt-0.5">
                   <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                    {channel.lastMessage?.topicName && (
+                      <span className="text-violet-500 dark:text-violet-400 font-medium">
+                        {channel.lastMessage.topicIcon ? `${channel.lastMessage.topicIcon} ` : '# '}
+                        {channel.lastMessage.topicName}
+                        {'  '}
+                      </span>
+                    )}
                     {channel.lastMessage
                       ? channel.channelType === 'group'
                         ? `${isDeletedEmail(channel.lastMessage.senderName) ? 'Удалённый пользователь' : (channel.lastMessage.senderName || 'Удалённый пользователь')}: ${previewMessageText(channel.lastMessage.text)}`
