@@ -8,6 +8,10 @@ export default () => ({
     host: process.env.REDIS_HOST || 'localhost',
     port: parseInt(process.env.REDIS_PORT || '6379', 10),
   },
+  kafka: {
+    // Пусто → Kafka-продьюсер отключён (журнал пишется только в БД).
+    brokers: process.env.KAFKA_BROKERS || '',
+  },
   cors: {
     origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
   },

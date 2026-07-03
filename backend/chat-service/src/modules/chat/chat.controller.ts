@@ -227,9 +227,10 @@ export class ChatController {
   async updateChannel(
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser('accountId') accountId: number,
+    @CurrentUser('id') userId: number,
     @Body() dto: UpdateChannelDto,
   ) {
-    const channel = await this.chatService.updateChannel(id, accountId, dto);
+    const channel = await this.chatService.updateChannel(id, accountId, dto, userId);
     // Реалтайм-рассылка изменений шапки/настроек всем участникам канала
     const settings = (channel.settings as Record<string, unknown>) || {};
     this.chatGateway.server.to(`channel:${id}`).emit('channel:updated', {
@@ -373,6 +374,13 @@ export class ChatController {
     return this.chatService.listTopics(id, user);
   }
 
+  @Get(':id/recent-actions')
+  @ApiOperation({ summary: 'Recent admin actions log of a channel' })
+  @ApiResponse({ status: 200, description: 'Recent actions retrieved' })
+  getRecentActions(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
+    return this.chatService.getRecentActions(id, user);
+  }
+
   @Patch(':id/topics-config')
   @ApiOperation({ summary: 'Enable/disable topics mode + create-topics permission' })
   @ApiResponse({ status: 200, description: 'Topics config updated' })
@@ -494,9 +502,10 @@ export class ChatController {
   addChannelMember(
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser('accountId') accountId: number,
+    @CurrentUser('id') actorUserId: number,
     @Body() dto: AddMemberDto,
   ) {
-    return this.chatService.addChannelMember(id, accountId, dto);
+    return this.chatService.addChannelMember(id, accountId, dto, actorUserId);
   }
 
   @Patch(':id/members/:userId')
@@ -525,8 +534,9 @@ export class ChatController {
     @Param('id', ParseIntPipe) id: number,
     @Param('userId', ParseIntPipe) userId: number,
     @CurrentUser('accountId') accountId: number,
+    @CurrentUser('id') actorUserId: number,
   ) {
-    return this.chatService.removeChannelMember(id, accountId, userId);
+    return this.chatService.removeChannelMember(id, accountId, userId, actorUserId);
   }
 
   // --- Messages ---

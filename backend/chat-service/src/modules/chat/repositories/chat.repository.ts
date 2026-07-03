@@ -673,6 +673,102 @@ export class ChatRepository {
     return Number((rows as { total: bigint }[])[0]?.total || 0);
   }
 
+  // --- Channel events (журнал «Недавние действия») ---
+
+  /**
+   * Запись действия админа. Бросает исключение при ошибке — воркер BullMQ на нём
+   * ретраит. Инлайн-фолбэк (когда очередь недоступна) оборачивает вызов в catch.
+   */
+  async insertChannelEvent(
+    channelId: number,
+    accountId: number,
+    actorUserId: number | null,
+    action: string,
+    meta: Record<string, unknown> = {},
+  ): Promise<void> {
+    await (this.prisma as any).$executeRawUnsafe(
+      `INSERT INTO chat_channel_events (channel_id, account_id, actor_user_id, action, meta)
+       VALUES ($1, $2, $3, $4, $5::jsonb)`,
+      channelId,
+      accountId,
+      actorUserId,
+      action,
+      JSON.stringify(meta ?? {}),
+    );
+  }
+
+  /** Последние действия по каналу + имена участников (актор и цель из meta). */
+  async getChannelEvents(
+    channelId: number,
+    limit = 100,
+  ): Promise<
+    {
+      id: number;
+      action: string;
+      actorUserId: number | null;
+      actorName: string | null;
+      meta: Record<string, any>;
+      createdAt: Date;
+    }[]
+  > {
+    let rows: any[];
+    try {
+      rows = await (this.prisma as any).$queryRawUnsafe(
+        `SELECT e.id, e.action, e.actor_user_id, e.meta, e.created_at,
+                u.name AS actor_name
+         FROM chat_channel_events e
+         LEFT JOIN users u ON u.id = e.actor_user_id
+         WHERE e.channel_id = $1
+         ORDER BY e.created_at DESC
+         LIMIT $2`,
+        channelId,
+        limit,
+      );
+    } catch (e) {
+      this.logger.warn(`getChannelEvents failed: ${(e as Error).message}`);
+      return [];
+    }
+
+    const events = (rows as any[]).map((r) => ({
+      id: Number(r.id),
+      action: r.action as string,
+      actorUserId: r.actor_user_id != null ? Number(r.actor_user_id) : null,
+      actorName: r.actor_name ?? null,
+      meta: (r.meta as Record<string, any>) ?? {},
+      createdAt: r.created_at as Date,
+    }));
+
+    // Разрешаем имена «целевых» пользователей из meta.targetUserId одним запросом.
+    const targetIds = Array.from(
+      new Set(
+        events
+          .map((e) => e.meta?.targetUserId)
+          .filter((v): v is number => typeof v === 'number'),
+      ),
+    );
+    if (targetIds.length > 0) {
+      try {
+        const users = await (this.prisma as any).$queryRawUnsafe(
+          `SELECT id, name FROM users WHERE id = ANY($1::int[])`,
+          targetIds,
+        );
+        const nameById = new Map<number, string>(
+          (users as any[]).map((u) => [Number(u.id), u.name as string]),
+        );
+        for (const e of events) {
+          const tid = e.meta?.targetUserId;
+          if (typeof tid === 'number' && nameById.has(tid)) {
+            e.meta = { ...e.meta, targetName: nameById.get(tid) };
+          }
+        }
+      } catch {
+        // имена целей не критичны
+      }
+    }
+
+    return events;
+  }
+
   /** Последнее сообщение каждой темы канала (для превью в списке тем). */
   async getTopicLastMessages(channelId: number): Promise<
     {

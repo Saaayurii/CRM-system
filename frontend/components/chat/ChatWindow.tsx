@@ -2479,24 +2479,95 @@ function AdminsScreen({ channel, onBack }: { channel: ChatChannel; onBack: () =>
   );
 }
 
+interface RecentAction {
+  id: number;
+  action: string;
+  actorUserId: number | null;
+  actorName: string | null;
+  meta: Record<string, any>;
+  createdAt: string;
+}
+
+// Человекочитаемое описание действия (без имени актора — оно выводится отдельно)
+function describeAction(a: RecentAction): string {
+  const m = a.meta || {};
+  const target = m.targetName || (m.targetUserId ? `#${m.targetUserId}` : 'участника');
+  const topic = m.name ? `«${m.name}»` : 'тему';
+  const FIELD_LABELS: Record<string, string> = {
+    name: 'название',
+    description: 'описание',
+    type: 'тип группы',
+    avatar: 'фото',
+    profileColor: 'цвет профиля',
+    wallpaper: 'обои',
+    backgroundEmoji: 'фоновый эмодзи',
+    emojiStatus: 'эмодзи-статус',
+    reactionsMode: 'реакции',
+    historyVisibleToNewMembers: 'видимость истории',
+    hideMembers: 'список участников',
+    permissions: 'права участников',
+  };
+  switch (a.action) {
+    case 'channel.update': {
+      const fields: string[] = Array.isArray(m.fields) ? m.fields : [];
+      if (fields.includes('name') && m.name) return `изменил(а) название на «${m.name}»`;
+      const labels = fields.map((f) => FIELD_LABELS[f] || f);
+      return labels.length ? `изменил(а): ${labels.join(', ')}` : 'изменил(а) настройки группы';
+    }
+    case 'member.add': return `добавил(а) ${target}`;
+    case 'member.remove': return `удалил(а) ${target}`;
+    case 'member.mute': return m.isMuted ? `ограничил(а) ${target}` : `снял(а) ограничение с ${target}`;
+    case 'topic.create': return `создал(а) ${topic}`;
+    case 'topic.delete': return `удалил(а) ${topic}`;
+    case 'topic.rename': return `переименовал(а) тему${m.oldName ? ` «${m.oldName}»` : ''} в ${topic}`;
+    case 'topic.close': return `закрыл(а) ${topic}`;
+    case 'topic.reopen': return `переоткрыл(а) ${topic}`;
+    case 'topic.pin': return `закрепил(а) ${topic}`;
+    case 'topic.unpin': return `открепил(а) ${topic}`;
+    case 'topics.enable': return 'включил(а) темы';
+    case 'topics.disable': return 'выключил(а) темы';
+    default: return a.action;
+  }
+}
+
 function RecentActionsScreen({ channel, onBack }: { channel: ChatChannel; onBack: () => void }) {
   const t = useT();
-  const messages = useChatStore((s) => s.messages);
-  const service = messages.filter((m) => m.channelId === channel.id && (m.messageType === 'system' || m.messageType === 'service'));
+  const [actions, setActions] = useState<RecentAction[] | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    api.get(`/chat-channels/${channel.id}/recent-actions`)
+      .then(({ data }) => { if (alive) setActions(Array.isArray(data) ? data : []); })
+      .catch(() => { if (alive) setActions([]); });
+    return () => { alive = false; };
+  }, [channel.id]);
+
   return (
     <ScreenShell title={t('Недавние действия')} onBack={onBack}>
       <div className="px-4">
-        {service.length === 0 ? (
+        {actions === null ? (
+          <div className="flex justify-center py-16">
+            <div className="w-7 h-7 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : actions.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
             <svg className="w-12 h-12 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             <p className="text-sm text-gray-400 dark:text-gray-500">{t('Пока нет действий администраторов.')}</p>
           </div>
         ) : (
-          <div className="space-y-2">
-            {service.slice().reverse().map((m) => (
-              <div key={m.id} className="text-xs text-gray-500 dark:text-gray-400 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700/40">
-                <span>{m.text}</span>
-                <span className="block text-[11px] text-gray-400 mt-0.5">{new Date(m.createdAt).toLocaleString('ru-RU')}</span>
+          <div className="space-y-1.5">
+            {actions.map((a) => (
+              <div key={a.id} className="flex items-start gap-2.5 px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-700/40">
+                <div className="w-7 h-7 rounded-full bg-violet-500/15 text-violet-600 dark:text-violet-300 flex items-center justify-center text-xs font-semibold shrink-0">
+                  {getInitials(a.actorName || '?')}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm text-gray-800 dark:text-gray-100">
+                    <span className="font-medium">{a.actorName || t('Пользователь')}</span>{' '}
+                    <span className="text-gray-500 dark:text-gray-400">{describeAction(a)}</span>
+                  </p>
+                  <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">{new Date(a.createdAt).toLocaleString('ru-RU')}</p>
+                </div>
               </div>
             ))}
           </div>

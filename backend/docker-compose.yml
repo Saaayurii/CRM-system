@@ -647,6 +647,9 @@ services:
       JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
       NOTIFICATIONS_SERVICE_URL: http://notifications-service:3010
+      # Kafka: события действий админов канала → audit.events (для automation).
+      # Пусто → продьюсер отключён (журнал пишется только в БД).
+      KAFKA_BROKERS: ${KAFKA_BROKERS:-kafka:9092}
     depends_on:
       postgres:
         condition: service_healthy

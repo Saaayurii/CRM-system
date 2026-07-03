@@ -709,6 +709,9 @@ importers:
       jsonwebtoken:
         specifier: ^9.0.2
         version: 9.0.3
+      kafkajs:
+        specifier: ^2.2.4
+        version: 2.2.4
       passport:
         specifier: ^0.7.0
         version: 0.7.0

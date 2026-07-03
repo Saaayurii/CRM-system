@@ -8,6 +8,7 @@ import ChatSidebar from '@/components/chat/ChatSidebar';
 import ChatWindow from '@/components/chat/ChatWindow';
 import TopicListView from '@/components/chat/TopicListView';
 import ChatAvatarRail from '@/components/chat/ChatAvatarRail';
+import ChatListHeader from '@/components/chat/ChatListHeader';
 import { useChatOnly } from '@/components/chat/ChatOnlyContext';
 
 // Shared chat UI used both inside the dashboard (/dashboard/chat) and on the
@@ -32,6 +33,9 @@ export default function ChatScreen() {
   const sidebarExpanded = useSidebarStore((s) => s.sidebarExpanded);
 
   const [showSidebar, setShowSidebar] = useState(true);
+  // Поиск/папка для рельса чатов в форум-режиме (общая шапка «Чаты» над рельсом).
+  const [railSearch, setRailSearch] = useState('');
+  const [railFolder, setRailFolder] = useState<'all' | number>('all');
   const searchParams = useSearchParams();
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
@@ -182,13 +186,10 @@ export default function ChatScreen() {
     setActiveChannel(null);
   };
 
-  // Форум в режиме «Список»: список тем занимает левую колонку (на месте списка
-  // чатов), а не ленту. В режиме «Вкладки» — рельс внутри окна чата (см. ChatWindow).
+  // Форум в режиме «Список»: рельс (свёрнутый список чатов иконками) + список тем
+  // занимают левую колонку на двухпанельных раскладках (десктоп/планшет). На
+  // телефоне сайдбар остаётся полным списком чатов, а темы — в основной области.
   const activeChannel = channels.find((c) => c.id === activeChannelId) ?? null;
-  // Свёрнутый список чатов (рельс) + список тем слева — только на двухпанельных
-  // раскладках (десктоп/планшет). На телефоне сайдбар остаётся полным списком
-  // чатов (с шапкой «Чаты»/поиском/вкладками), а список тем показывается в
-  // основной области (см. ChatWindow), чтобы не прятать шапку списка чатов.
   const forumListSidebar =
     isDesktop &&
     !!activeChannel &&
@@ -197,6 +198,18 @@ export default function ChatScreen() {
     (activeChannel.topicsLayout ?? 'list') === 'list';
   // Пока тема не выбрана — на десктопе держим слева список тем (а не ленту)
   const topicListInSidebar = forumListSidebar && activeTopicId == null;
+
+  // Папки-проекты для вкладок общей шапки над рельсом (как в ChatSidebar).
+  const projectFolders: [number, string | null][] = Array.from(
+    channels
+      .filter((ch) => ch.projectId != null)
+      .reduce((map, ch) => {
+        const pid = ch.projectId!;
+        if (!map.has(pid)) map.set(pid, ch.projectName || null);
+        return map;
+      }, new Map<number, string | null>())
+      .entries(),
+  );
 
   // On mobile: fixed fullscreen always (avoids py-8 layout padding issues)
   const mobileClass = activeChannelId
@@ -223,13 +236,22 @@ export default function ChatScreen() {
         style={isDesktop ? { width: sidebarWidth } : undefined}
       >
         {forumListSidebar && activeChannel ? (
-          // Свёрнутый список чатов (иконки) + список тем справа от них.
-          // min-h-0 обязателен, иначе flex-колонки не дают внутренним спискам
-          // прокручиваться (рельс/список тем «распирают» контейнер).
-          <div className="flex flex-1 min-w-0 min-h-0">
-            <ChatAvatarRail onBack={handleBackToSidebar} />
-            <TopicListView variant="sidebar" channel={activeChannel} onBack={handleBackToSidebar} onOpenInfo={() => setInfoPanelOpen(true)} />
-          </div>
+          // Общая шапка «Чаты» (заголовок + поиск + вкладки) сверху, под ней —
+          // свёрнутый список чатов (рельс) + список тем. Поиск/вкладки фильтруют
+          // чаты в рельсе. min-h-0 обязателен для прокрутки внутренних списков.
+          <>
+            <ChatListHeader
+              search={railSearch}
+              onSearch={setRailSearch}
+              activeFolder={railFolder}
+              onFolder={setRailFolder}
+              projectFolders={projectFolders}
+            />
+            <div className="flex flex-1 min-w-0 min-h-0">
+              <ChatAvatarRail onBack={handleBackToSidebar} search={railSearch} activeFolder={railFolder} />
+              <TopicListView variant="sidebar" channel={activeChannel} onBack={handleBackToSidebar} onOpenInfo={() => setInfoPanelOpen(true)} />
+            </div>
+          </>
         ) : (
           <ChatSidebar onSelectChannel={handleSelectChannel} />
         )}

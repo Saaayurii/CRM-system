@@ -12,6 +12,9 @@ import { TG_IMPORT_QUEUE } from './queues/telegram-import.constants';
 import { ScheduledMessagesService } from './scheduled-messages.service';
 import { ScheduledMessagesProcessor } from './queues/scheduled-messages.queue';
 import { SCHEDULED_MESSAGES_QUEUE } from './queues/scheduled-messages.constants';
+import { ChannelEventsProcessor } from './queues/channel-events.queue';
+import { CHANNEL_EVENTS_QUEUE } from './queues/channel-events.constants';
+import { KafkaProducerService } from '../../common/services/kafka-producer.service';
 
 @Module({
   imports: [
@@ -34,9 +37,10 @@ import { SCHEDULED_MESSAGES_QUEUE } from './queues/scheduled-messages.constants'
     }),
     BullModule.registerQueue({ name: TG_IMPORT_QUEUE }),
     BullModule.registerQueue({ name: SCHEDULED_MESSAGES_QUEUE }),
+    BullModule.registerQueue({ name: CHANNEL_EVENTS_QUEUE }),
   ],
   controllers: [ChatController],
-  providers: [ChatGateway, ChatService, ChatRepository, WsJwtGuard, NotificationsClientService, TelegramImportProcessor, ScheduledMessagesService, ScheduledMessagesProcessor],
+  providers: [ChatGateway, ChatService, ChatRepository, WsJwtGuard, NotificationsClientService, TelegramImportProcessor, ScheduledMessagesService, ScheduledMessagesProcessor, ChannelEventsProcessor, KafkaProducerService],
   exports: [ChatService],
 })
 export class ChatModule {}

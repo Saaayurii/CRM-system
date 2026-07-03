@@ -17,6 +17,11 @@ import {
   TelegramImportChunkJob,
 } from './queues/telegram-import.constants';
 import {
+  CHANNEL_EVENTS_QUEUE,
+  CHANNEL_EVENT_JOB,
+  ChannelEventJob,
+} from './queues/channel-events.constants';
+import {
   CreateChannelDto,
   UpdateChannelDto,
   AddMemberDto,
@@ -33,6 +38,7 @@ export class ChatService {
     private readonly chatRepository: ChatRepository,
     private readonly notificationsClient: NotificationsClientService,
     @InjectQueue(TG_IMPORT_QUEUE) private readonly tgImportQueue: Queue,
+    @InjectQueue(CHANNEL_EVENTS_QUEUE) private readonly channelEventsQueue: Queue,
   ) {}
 
   // --- Channels ---
@@ -290,22 +296,97 @@ export class ChatService {
     );
   }
 
-  async updateChannel(id: number, accountId: number, dto: UpdateChannelDto) {
+  /**
+   * Журналирование действия админа канала (для «Недавних действий»).
+   * Кладём задачу в очередь `channel-events` (воркер пишет в БД с ретраями и
+   * публикует событие в Kafka `audit.events`). Если очередь/Redis недоступны —
+   * пишем инлайн (fire-and-forget), чтобы не потерять запись. Никогда не бросает.
+   */
+  private logChannelEvent(
+    channelId: number,
+    accountId: number,
+    actorUserId: number | null,
+    action: string,
+    meta: Record<string, unknown> = {},
+  ): void {
+    const job: ChannelEventJob = { channelId, accountId, actorUserId, action, meta };
+    void this.channelEventsQueue
+      .add(CHANNEL_EVENT_JOB, job, {
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 2000 },
+        removeOnComplete: true,
+        removeOnFail: 200,
+      })
+      .catch(() => {
+        // Очередь/Redis недоступны — инлайн-фолбэк, ошибку глушим.
+        void this.chatRepository
+          .insertChannelEvent(channelId, accountId, actorUserId, action, meta)
+          .catch(() => undefined);
+      });
+  }
+
+  async updateChannel(
+    id: number,
+    accountId: number,
+    dto: UpdateChannelDto,
+    actorUserId?: number,
+  ) {
     const existing = await this.findChannelById(id, accountId);
+    const prevSettings = (existing.settings as Record<string, unknown>) || {};
 
     // `avatarUrl` has no dedicated column — it lives in the settings JSONB.
     const { avatarUrl, settings, ...rest } = dto;
     const data: any = { ...rest };
     if (avatarUrl !== undefined || settings !== undefined) {
       data.settings = {
-        ...((existing.settings as Record<string, unknown>) || {}),
+        ...prevSettings,
         ...((settings as Record<string, unknown>) || {}),
         ...(avatarUrl !== undefined ? { avatarUrl } : {}),
       };
     }
 
     await this.chatRepository.updateChannel(id, accountId, data);
+
+    // Какие поля реально изменились — для «Недавних действий».
+    const fields: string[] = [];
+    if (dto.name !== undefined && dto.name !== existing.name) fields.push('name');
+    if (dto.description !== undefined && dto.description !== (existing as any).description)
+      fields.push('description');
+    if (dto.isPrivate !== undefined && dto.isPrivate !== (existing as any).isPrivate)
+      fields.push('type');
+    if (avatarUrl !== undefined) fields.push('avatar');
+    const s = (settings as Record<string, unknown>) || {};
+    for (const key of [
+      'profileColor',
+      'wallpaper',
+      'backgroundEmoji',
+      'emojiStatus',
+      'reactionsMode',
+      'historyVisibleToNewMembers',
+      'hideMembers',
+      'permissions',
+    ]) {
+      if (key in s && JSON.stringify(s[key]) !== JSON.stringify(prevSettings[key])) {
+        fields.push(key);
+      }
+    }
+    if (fields.length > 0 && actorUserId != null) {
+      this.logChannelEvent(id, accountId, actorUserId, 'channel.update', {
+        fields,
+        ...(fields.includes('name') ? { name: dto.name } : {}),
+      });
+    }
+
     return this.findChannelById(id, accountId);
+  }
+
+  /** «Недавние действия»: журнал действий админов канала (только для участников). */
+  async getRecentActions(
+    channelId: number,
+    user: { id: number; roleId: number; accountId: number },
+  ) {
+    await this.findChannelByIdForUser(channelId, user);
+    return this.chatRepository.getChannelEvents(channelId, 100);
   }
 
   async deleteChannel(id: number, accountId: number) {
@@ -325,6 +406,7 @@ export class ChatService {
     channelId: number,
     accountId: number,
     dto: AddMemberDto,
+    actorUserId?: number,
   ) {
     await this.findChannelById(channelId, accountId);
 
@@ -338,20 +420,29 @@ export class ChatService {
       );
     }
 
-    return this.chatRepository.addChannelMember({
+    const result = await this.chatRepository.addChannelMember({
       channelId,
       userId: dto.userId,
       role: dto.role,
     });
+    this.logChannelEvent(channelId, accountId, actorUserId ?? null, 'member.add', {
+      targetUserId: dto.userId,
+      ...(dto.role ? { role: dto.role } : {}),
+    });
+    return result;
   }
 
   async removeChannelMember(
     channelId: number,
     accountId: number,
     userId: number,
+    actorUserId?: number,
   ) {
     await this.findChannelById(channelId, accountId);
     await this.chatRepository.removeChannelMember(channelId, userId);
+    this.logChannelEvent(channelId, accountId, actorUserId ?? null, 'member.remove', {
+      targetUserId: userId,
+    });
     return { message: `User ${userId} removed from channel ${channelId}` };
   }
 
@@ -416,7 +507,12 @@ export class ChatService {
     if (!requester || requester.role !== 'admin') {
       throw new ForbiddenException('Only channel admins can mute members');
     }
-    return this.chatRepository.updateChannelMember(channelId, targetUserId, { isMuted });
+    const result = await this.chatRepository.updateChannelMember(channelId, targetUserId, { isMuted });
+    this.logChannelEvent(channelId, accountId, requestingUserId, 'member.mute', {
+      targetUserId,
+      isMuted,
+    });
+    return result;
   }
 
   async createMessage(
@@ -779,7 +875,7 @@ export class ChatService {
     if (permission === 'admins' && member.role !== 'admin') {
       throw new ForbiddenException('Only admins can create topics here');
     }
-    return this.chatRepository.createTopic({
+    const topic = await this.chatRepository.createTopic({
       channelId,
       accountId,
       name: dto.name,
@@ -787,6 +883,11 @@ export class ChatService {
       color: dto.color,
       createdByUserId: userId,
     });
+    this.logChannelEvent(channelId, accountId, userId, 'topic.create', {
+      topicId: topic.id,
+      name: dto.name,
+    });
+    return topic;
   }
 
   async updateTopic(
@@ -829,7 +930,21 @@ export class ChatService {
       data.pinnedAt = dto.isPinned ? new Date() : null;
     }
 
-    return this.chatRepository.updateTopic(topicId, data);
+    const updated = await this.chatRepository.updateTopic(topicId, data);
+
+    // Отдельные записи для смысловых действий (закрытие/закрепление/переименование).
+    const name = (dto.name ?? topic.name) as string;
+    if (dto.isClosed !== undefined) {
+      this.logChannelEvent(channelId, accountId, userId, dto.isClosed ? 'topic.close' : 'topic.reopen', { topicId, name });
+    }
+    if (dto.isPinned !== undefined) {
+      this.logChannelEvent(channelId, accountId, userId, dto.isPinned ? 'topic.pin' : 'topic.unpin', { topicId, name });
+    }
+    if (dto.name !== undefined && dto.name !== topic.name) {
+      this.logChannelEvent(channelId, accountId, userId, 'topic.rename', { topicId, name: dto.name, oldName: topic.name });
+    }
+
+    return updated;
   }
 
   async deleteTopic(
@@ -853,6 +968,10 @@ export class ChatService {
       throw new ForbiddenException('You cannot delete this topic');
     }
     await this.chatRepository.softDeleteTopic(topicId);
+    this.logChannelEvent(channelId, accountId, userId, 'topic.delete', {
+      topicId,
+      name: topic.name,
+    });
     return { success: true, topicId };
   }
 
@@ -898,6 +1017,16 @@ export class ChatService {
     }
 
     await this.chatRepository.updateChannel(channelId, accountId, { settings });
+
+    if (dto.topicsEnabled !== undefined && dto.topicsEnabled !== wasEnabled) {
+      this.logChannelEvent(
+        channelId,
+        accountId,
+        userId,
+        dto.topicsEnabled ? 'topics.enable' : 'topics.disable',
+      );
+    }
+
     return {
       success: true,
       topicsEnabled: !!settings.topicsEnabled,

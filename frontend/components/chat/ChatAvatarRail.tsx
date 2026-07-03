@@ -13,6 +13,10 @@ import {
 interface ChatAvatarRailProps {
   /** Вернуться к полному списку чатов. */
   onBack: () => void;
+  /** Поиск по имени чата (из общей шапки). */
+  search?: string;
+  /** Активная папка-проект ('all' или projectId). */
+  activeFolder?: 'all' | number;
 }
 
 /**
@@ -20,15 +24,26 @@ interface ChatAvatarRailProps {
  * Показывается слева, когда открыт форум в режиме «Список» — чаты остаются
  * доступны иконками, а список тем занимает колонку правее.
  */
-export default function ChatAvatarRail({ onBack }: ChatAvatarRailProps) {
+export default function ChatAvatarRail({ onBack, search = '', activeFolder = 'all' }: ChatAvatarRailProps) {
   const user = useAuthStore((s) => s.user);
   const channels = useChatStore((s) => s.channels);
   const unreadCounts = useChatStore((s) => s.unreadCounts);
   const activeChannelId = useChatStore((s) => s.activeChannelId);
   const setActiveChannel = useChatStore((s) => s.setActiveChannel);
 
-  const selfChat = channels.find((ch) => isSelfChat(ch, user?.id));
-  const others = channels.filter((ch) => !isSelfChat(ch, user?.id));
+  // Фильтрация как в полном списке чатов: сначала папка-проект, затем поиск.
+  const folderFiltered =
+    activeFolder === 'all' ? channels : channels.filter((ch) => ch.projectId === activeFolder);
+  const q = search.trim().toLowerCase();
+  const filtered = q
+    ? folderFiltered.filter((ch) => {
+        const name = isSelfChat(ch, user?.id) ? 'Избранное' : getChannelDisplayName(ch, user?.id);
+        return name.toLowerCase().includes(q);
+      })
+    : folderFiltered;
+
+  const selfChat = activeFolder === 'all' ? filtered.find((ch) => isSelfChat(ch, user?.id)) : undefined;
+  const others = filtered.filter((ch) => !isSelfChat(ch, user?.id));
   const pinned = others.filter((ch) => ch.isPinned);
   const rest = others.filter((ch) => !ch.isPinned);
   const ordered = [...(selfChat ? [selfChat] : []), ...pinned, ...rest];
