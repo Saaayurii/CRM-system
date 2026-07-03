@@ -32,6 +32,8 @@ export default function TopicListView({ channel, onBack, onOpenInfo, variant = '
   const t = useT();
   const user = useAuthStore((s) => s.user);
   const topicsByChannel = useChatStore((s) => s.topicsByChannel);
+  const activeTopicId = useChatStore((s) => s.activeTopicId);
+  const activeChannelId = useChatStore((s) => s.activeChannelId);
   const fetchTopics = useChatStore((s) => s.fetchTopics);
   const setActiveTopic = useChatStore((s) => s.setActiveTopic);
   const createTopic = useChatStore((s) => s.createTopic);
@@ -64,9 +66,13 @@ export default function TopicListView({ channel, onBack, onOpenInfo, variant = '
   const isAdmin = channel.myRole === 'admin' || channel.myRole === 'owner';
   const canCreate = (channel.createTopicsPermission ?? 'all') === 'all' || isAdmin;
 
+  // Освежаем список тем при открытии канала: не только когда кэша нет, но и при
+  // каждой смене канала — иначе счётчики непрочитанного остаются устаревшими
+  // (WS обновляет их, но при возврате в канал нужен актуальный снимок с сервера).
   useEffect(() => {
-    if (topics === undefined) fetchTopics(channel.id);
-  }, [channel.id, topics, fetchTopics]);
+    fetchTopics(channel.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [channel.id]);
 
   useEffect(() => {
     if (menuId === null) return;
@@ -98,10 +104,17 @@ export default function TopicListView({ channel, onBack, onOpenInfo, variant = '
   const renderRow = (topic: ChatTopic) => {
     const canEdit = isAdmin || topic.createdByUserId === user?.id;
     const canDelete = canEdit && !topic.isGeneral;
+    // Тема считается открытой только когда активен именно этот канал (иначе
+    // прошлый activeTopicId подсветил бы тему в другом канале).
+    const isActive = activeChannelId === channel.id && activeTopicId === topic.id;
     return (
       <div
         key={topic.id}
-        className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-2xl cursor-pointer transition-colors ${GLASS_SURFACE} hover:bg-white/90 dark:hover:bg-gray-900/70`}
+        className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-2xl cursor-pointer transition-colors ${GLASS_SURFACE} ${
+          isActive
+            ? 'ring-2 ring-violet-500 bg-violet-50/80 dark:bg-violet-900/30'
+            : 'hover:bg-white/90 dark:hover:bg-gray-900/70'
+        }`}
         onClick={() => setActiveTopic(channel.id, topic.id)}
       >
         {/* Icon */}

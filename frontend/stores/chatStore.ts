@@ -1150,6 +1150,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
                   color: updated.color,
                   isClosed: updated.isClosed,
                   isPinned: updated.isPinned,
+                  postPermission: updated.postPermission,
                 }
               : t,
           ),
