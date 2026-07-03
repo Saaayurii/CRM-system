@@ -1003,8 +1003,12 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
             onClick={() => {
               if (activeChannel.channelType === 'direct' && !isSelf && partner?.id) {
                 setProfileUserId(partner.id);
-              } else {
+              } else if (activeChannel.channelType === 'direct') {
+                // Избранное / self-chat — общие настройки
                 setShowInfo(true);
+              } else {
+                // Группа/форум: клик по названию сразу открывает список участников
+                setShowInfo(true, 'members');
               }
               setShowSearch(false); setShowCalendar(false);
             }}
@@ -1773,8 +1777,13 @@ interface GroupInfoPanelProps {
 function GroupInfoPanel({ channel, isAdmin, isCompanyAdmin, currentUserId, onClose }: GroupInfoPanelProps) {
   const t = useT();
   // Начальный экран: 'members' если панель открыли кликом по названию группы
-  const initialView = useChatStore((s) => s.infoPanelView);
-  const [view, setView] = useState<GroupView>(initialView === 'members' ? 'members' : 'main');
+  const infoPanelView = useChatStore((s) => s.infoPanelView);
+  const [view, setView] = useState<GroupView>(infoPanelView === 'members' ? 'members' : 'main');
+  // Клик по названию группы (infoPanelView='members') открывает участников даже
+  // если панель уже была открыта на другом экране.
+  useEffect(() => {
+    if (infoPanelView === 'members') setView('members');
+  }, [infoPanelView]);
   const canManage = isAdmin || isCompanyAdmin;
 
   const updateChannel = useChatStore((s) => s.updateChannel);
