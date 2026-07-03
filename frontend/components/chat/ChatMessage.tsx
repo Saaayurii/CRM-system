@@ -1041,6 +1041,7 @@ function ChatMessage({ message, isOwn, showAvatar, isRead, isDirect = false, rea
       {showMobileActions && typeof document !== 'undefined' && createPortal(
         <div
           ref={mobileMenuRef}
+          data-chat-menu
           className="fixed inset-0 z-[9999]"
           onTouchStart={(e) => e.stopPropagation()}
           onTouchEnd={(e) => e.stopPropagation()}
@@ -1256,6 +1257,7 @@ function ChatMessage({ message, isOwn, showAvatar, isRead, isDirect = false, rea
       {/* Desktop right-click context menu — compact popover at cursor */}
       {ctxMenu && typeof document !== 'undefined' && createPortal(
         <div
+          data-chat-menu
           className="fixed inset-0 z-[9999]"
           onClick={(e) => { e.stopPropagation(); setCtxMenu(null); }}
           onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setCtxMenu(null); }}

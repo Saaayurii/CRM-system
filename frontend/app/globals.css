@@ -37,17 +37,24 @@ html.app-shell body {
 /* Долгий тап по сообщению открывает наше контекстное меню — нативное iOS-меню
    выделения текста («Скопировать/Найти/Перевести») не должно всплывать поверх.
    У нас уже есть пункт «Копировать текст», поэтому на сенсорных гасим callout
-   и системное выделение внутри пузырей. */
+   и системное выделение внутри пузырей И внутри самих контекстных меню
+   ([data-chat-menu] — мобильное/десктопное меню сообщения и меню каналов в
+   сайдбаре; рендерятся порталом в <body>, вне [data-message-id], иначе iOS
+   успевает выделить текст их пунктов, например «Копировать ссылку»). */
 @media (pointer: coarse) {
   [data-message-id],
-  [data-message-id] * {
+  [data-message-id] *,
+  [data-chat-menu],
+  [data-chat-menu] * {
     -webkit-touch-callout: none !important;
     -webkit-user-select: none !important;
     user-select: none !important;
   }
-  /* Гасим синюю подсветку нативного выделения внутри пузырей */
+  /* Гасим синюю подсветку нативного выделения внутри пузырей и меню */
   [data-message-id] ::selection,
-  [data-message-id]::selection {
+  [data-message-id]::selection,
+  [data-chat-menu] ::selection,
+  [data-chat-menu]::selection {
     background: transparent;
   }
   /* Поля редактирования сообщения остаются выделяемыми */

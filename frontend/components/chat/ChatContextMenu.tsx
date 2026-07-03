@@ -210,6 +210,7 @@ export default function ChatContextMenu({
 
   const overlay = (
     <div
+      data-chat-menu
       className="fixed inset-0 z-[9999]"
       onClick={onClose}
       onContextMenu={(e) => { e.preventDefault(); onClose(); }}
