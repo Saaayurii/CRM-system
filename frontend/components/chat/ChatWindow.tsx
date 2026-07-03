@@ -5,7 +5,7 @@ import { useChatStore, ChatChannel, ChatMessage as ChatMessageType } from '@/sto
 import { useAuthStore } from '@/stores/authStore';
 import { useThemeStore } from '@/stores/themeStore';
 import { useToastStore } from '@/stores/toastStore';
-import { getChatBackground } from '@/lib/appearance';
+import { getChatBackground, getWallpaperBackground, WALLPAPERS, type WallpaperId } from '@/lib/appearance';
 import { useBubbleGradientFlow } from '@/hooks/useBubbleGradientFlow';
 import { formatLastSeen } from '@/lib/chat/channelDisplay';
 import api from '@/lib/api';
@@ -214,7 +214,10 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
   }, []);
 
   const [forwardingMessage, setForwardingMessage] = useState<ChatMessageType | null>(null);
-  const [showInfo, setShowInfo] = useState(false);
+  // Панель «Информация» — общий флаг в сторе, чтобы кнопка (i) в списке тем
+  // (в сайдбаре) и шапка чата управляли одной и той же панелью.
+  const showInfo = useChatStore((s) => s.infoPanelOpen);
+  const setShowInfo = useChatStore((s) => s.setInfoPanelOpen);
   const [showScheduled, setShowScheduled] = useState(false);
   // Центральная карточка профиля (в личных диалогах клик по шапке открывает её
   // вместо правой панели «О пользователе»)
@@ -395,6 +398,23 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
 
   const activeChannel = channels.find((ch) => ch.id === activeChannelId)
     ?? archivedChannels.find((ch) => ch.id === activeChannelId);
+  // Обои группы (заданные админом в «Оформление») перекрывают личные обои
+  // в пределах этого канала — единый фон у всех участников.
+  const effectiveWallpaperStyle = useMemo(() => {
+    const gw = activeChannel?.channelType === 'group' ? activeChannel.wallpaper : null;
+    if (gw) {
+      const gradient = getWallpaperBackground(gw as WallpaperId, resolvedTheme);
+      if (gradient) {
+        return {
+          backgroundImage: gradient,
+          backgroundSize: 'auto',
+          backgroundRepeat: 'no-repeat',
+          backgroundPosition: 'center',
+        } as React.CSSProperties;
+      }
+    }
+    return wallpaperStyle;
+  }, [activeChannel?.channelType, activeChannel?.wallpaper, resolvedTheme, wallpaperStyle]);
   // Темы (Telegram-style forum): форум-канал с включёнными темами.
   const isForum = activeChannel?.channelType === 'group' && !!activeChannel?.topicsEnabled;
   const topicsLayout = activeChannel?.topicsLayout ?? 'list';
@@ -899,14 +919,22 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
       {/* Форум в режиме «Список»: список тем — в левой колонке (ChatScreen).
           Пока тема не выбрана — в главной области плейсхолдер. */}
       {forumListNoTopic ? (
-        <div className={`flex flex-col flex-1 min-w-0 items-center justify-center gap-3 ${wallpaperStyle ? '' : 'bg-[#e9e9e9] dark:bg-gray-900'}`} style={wallpaperStyle ?? undefined}>
-          <div className={`flex flex-col items-center gap-2 px-6 py-4 rounded-2xl ${GLASS_SURFACE}`}>
-            <svg className="w-10 h-10 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 3v-3z" />
-            </svg>
-            <p className="text-sm text-gray-500 dark:text-gray-400">{t('Выберите тему слева')}</p>
+        <>
+          {/* Десктоп/планшет: список тем живёт в левом сайдбаре, здесь — плейсхолдер. */}
+          <div className={`hidden lg:flex flex-col flex-1 min-w-0 items-center justify-center gap-3 ${effectiveWallpaperStyle ? '' : 'bg-[#e9e9e9] dark:bg-gray-900'}`} style={effectiveWallpaperStyle ?? undefined}>
+            <div className={`flex flex-col items-center gap-2 px-6 py-4 rounded-2xl ${GLASS_SURFACE}`}>
+              <svg className="w-10 h-10 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 3v-3z" />
+              </svg>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{t('Выберите тему слева')}</p>
+            </div>
           </div>
-        </div>
+          {/* Мобильный: список тем — в основной области (сайдбар остаётся полным
+              списком чатов с шапкой/поиском/вкладками). */}
+          <div className="flex lg:hidden flex-1 min-w-0">
+            <TopicListView channel={activeChannel} variant="main" onBack={onBack} onOpenInfo={() => setShowInfo(true)} />
+          </div>
+        </>
       ) : (
       <>
       {/* Режим «Вкладки»: слева от ленты — вертикальный рельс тем (как в Telegram) */}
@@ -915,8 +943,8 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
           input-бар прозрачны, поэтому стеклянные шапка и контролы парят над
           единым фоном (как в Telegram), а не над сплошными панелями */}
       <div
-        className={`flex flex-col flex-1 min-w-0 relative ${wallpaperStyle ? '' : 'bg-[#e9e9e9] dark:bg-gray-900'}`}
-        style={wallpaperStyle ?? undefined}
+        className={`flex flex-col flex-1 min-w-0 relative ${effectiveWallpaperStyle ? '' : 'bg-[#e9e9e9] dark:bg-gray-900'}`}
+        style={effectiveWallpaperStyle ?? undefined}
       >
         {/* Floating frosted "Liquid Glass" top stack — лежит поверх ленты */}
         <div
@@ -1005,6 +1033,9 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
           <div className="min-w-0">
             <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">
               {activeTopic ? activeTopic.name : channelDisplayName}
+              {!activeTopic && activeChannel?.channelType === 'group' && activeChannel.emojiStatus && (
+                <span className="ml-1 align-middle">{activeChannel.emojiStatus}</span>
+              )}
             </h3>
             <p className={`text-xs truncate ${presenceLabel ? 'text-violet-500 dark:text-violet-400' : 'text-gray-400 dark:text-gray-500'}`}>
               {presenceLabel
@@ -1060,7 +1091,7 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
                 дублировал бы клик по шапке (карточка профиля), поэтому скрыт. */}
             {!(activeChannel.channelType === 'direct' && !isSelf) && (
             <button
-              onClick={() => { setShowInfo((v) => !v); setShowSearch(false); }}
+              onClick={() => { setShowInfo(!showInfo); setShowSearch(false); }}
               className={`p-2.5 cursor-pointer transition-colors ${
                 showInfo
                   ? 'bg-violet-500/15 text-violet-600 dark:text-violet-400'
@@ -1810,7 +1841,10 @@ function GroupInfoPanel({ channel, isAdmin, isCompanyAdmin, currentUserId, onClo
         <div className="flex flex-col items-center gap-3 px-4">
           <div className="relative">
             <div className={`w-24 h-24 rounded-full flex items-center justify-center text-white text-3xl font-bold relative overflow-hidden ${profileColorBg(channel.profileColor)}`}>
-              {getInitials(channel.channelName)}
+              {channel.backgroundEmoji && (
+                <span className="absolute inset-0 flex items-center justify-center text-6xl opacity-25 select-none pointer-events-none">{channel.backgroundEmoji}</span>
+              )}
+              <span className="relative z-[5]">{getInitials(channel.channelName)}</span>
               {channel.avatarUrl && (
                 <img src={channel.avatarUrl} alt="" className="absolute inset-0 w-full h-full rounded-full object-cover z-10" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
               )}
@@ -1855,7 +1889,10 @@ function GroupInfoPanel({ channel, isAdmin, isCompanyAdmin, currentUserId, onClo
           </div>
         ) : (
           <div className="px-4 text-center">
-            <p className="font-semibold text-lg text-gray-800 dark:text-gray-100">{channel.channelName}</p>
+            <p className="font-semibold text-lg text-gray-800 dark:text-gray-100">
+              {channel.channelName}
+              {channel.emojiStatus && <span className="ml-1">{channel.emojiStatus}</span>}
+            </p>
             {channel.description && <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{channel.description}</p>}
             <p className="text-xs text-gray-400 mt-1">{membersCount} {t('участн.')}</p>
           </div>
@@ -2030,22 +2067,47 @@ function ReactionsScreen({ channel, canManage, onBack }: { channel: ChatChannel;
   );
 }
 
+// Эмодзи для оформления группы (фоновый эмодзи + эмодзи-статус)
+const GROUP_EMOJIS = ['⭐', '🔥', '💜', '🎉', '🌸', '🌟', '⚡', '🚀', '🏗️', '🛠️', '🧱', '📐', '💎', '🌊', '🍀', '🎯', '❤️', '🌈', '☀️', '🌙', '👑', '🏆', '📌', '🔔'];
+
 function AppearanceScreen({ channel, canManage, onBack }: { channel: ChatChannel; canManage: boolean; onBack: () => void }) {
   const t = useT();
   const updateChannel = useChatStore((s) => s.updateChannel);
   const fetchChannels = useChatStore((s) => s.fetchChannels);
-  const setColor = (profileColor: string) => {
+  const [sub, setSub] = useState<null | 'wallpaper' | 'emoji' | 'status'>(null);
+
+  const save = (patch: Record<string, unknown>) => {
     if (!canManage) return;
-    updateChannel(channel.id, { settings: { profileColor } }).then((ok) => { if (ok) fetchChannels(1); });
+    updateChannel(channel.id, { settings: patch }).then((ok) => { if (ok) fetchChannels(1); });
   };
+  const setColor = (profileColor: string) => save({ profileColor });
+
+  if (sub === 'wallpaper') {
+    return <GroupWallpaperScreen channel={channel} canManage={canManage} onSave={(wallpaper) => save({ wallpaper })} onBack={() => setSub(null)} />;
+  }
+  if (sub === 'emoji') {
+    return <GroupEmojiPickScreen title={t('Фоновый эмодзи')} value={channel.backgroundEmoji} canManage={canManage} onSave={(v) => save({ backgroundEmoji: v })} onBack={() => setSub(null)} />;
+  }
+  if (sub === 'status') {
+    return <GroupEmojiPickScreen title={t('Набор эмодзи группы')} value={channel.emojiStatus} canManage={canManage} onSave={(v) => save({ emojiStatus: v })} onBack={() => setSub(null)} />;
+  }
+
+  const wallpaperName = WALLPAPERS.find((w) => w.id === channel.wallpaper)?.name;
+
   return (
     <ScreenShell title={t('Оформление')} onBack={onBack}>
       <div className="flex flex-col items-center gap-2 px-4">
         <div className={`w-24 h-24 rounded-full flex items-center justify-center text-white text-3xl font-bold overflow-hidden relative ${profileColorBg(channel.profileColor)}`}>
-          {getInitials(channel.channelName)}
+          {channel.backgroundEmoji && (
+            <span className="absolute inset-0 flex items-center justify-center text-6xl opacity-25 select-none pointer-events-none">{channel.backgroundEmoji}</span>
+          )}
+          <span className="relative z-[5]">{getInitials(channel.channelName)}</span>
           {channel.avatarUrl && <img src={channel.avatarUrl} alt="" className="absolute inset-0 w-full h-full object-cover z-10" onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
         </div>
-        <p className="font-semibold text-gray-800 dark:text-gray-100">{channel.channelName}</p>
+        <p className="font-semibold text-gray-800 dark:text-gray-100">
+          {channel.channelName}
+          {channel.emojiStatus && <span className="ml-1">{channel.emojiStatus}</span>}
+        </p>
       </div>
       <div className="px-4">
         <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2 px-1">{t('Цвет профиля группы')}</p>
@@ -2054,6 +2116,7 @@ function AppearanceScreen({ channel, canManage, onBack }: { channel: ChatChannel
             <button
               key={c.key}
               onClick={() => setColor(c.key)}
+              disabled={!canManage}
               style={{ backgroundColor: c.swatch }}
               className={`w-9 h-9 rounded-full transition-transform ${channel.profileColor === c.key ? 'ring-2 ring-offset-2 ring-offset-white dark:ring-offset-gray-800 ring-violet-500 scale-105' : 'hover:scale-105'}`}
             />
@@ -2063,10 +2126,86 @@ function AppearanceScreen({ channel, canManage, onBack }: { channel: ChatChannel
       </div>
       <div className="px-4 space-y-2">
         <div className="rounded-xl bg-gray-50 dark:bg-gray-700/40 divide-y divide-gray-200 dark:divide-gray-700 overflow-hidden">
-          <SettingRow label={t('Фоновый эмодзи')} value="" />
-          <SettingRow label={t('Набор эмодзи группы')} />
-          <SettingRow label={t('Обои в группе')} />
+          <SettingRow label={t('Фоновый эмодзи')} value={channel.backgroundEmoji || t('Нет')} onClick={canManage ? () => setSub('emoji') : undefined} />
+          <SettingRow label={t('Набор эмодзи группы')} value={channel.emojiStatus || t('Нет')} onClick={canManage ? () => setSub('status') : undefined} />
+          <SettingRow label={t('Обои в группе')} value={wallpaperName ?? t('Стандартные')} onClick={canManage ? () => setSub('wallpaper') : undefined} />
         </div>
+      </div>
+    </ScreenShell>
+  );
+}
+
+// Пикер одиночного эмодзи (фоновый эмодзи / эмодзи-статус группы) с опцией «Нет»
+function GroupEmojiPickScreen({ title, value, canManage, onSave, onBack }: {
+  title: string; value?: string | null; canManage: boolean; onSave: (v: string | null) => void; onBack: () => void;
+}) {
+  const t = useT();
+  const pick = (v: string | null) => { if (canManage) onSave(v); };
+  return (
+    <ScreenShell title={title} onBack={onBack}>
+      <div className="px-4">
+        <div className="grid grid-cols-6 gap-1.5 rounded-xl bg-gray-50 dark:bg-gray-700/40 p-3">
+          <button
+            onClick={() => pick(null)}
+            className={`aspect-square rounded-lg text-xs flex items-center justify-center transition-all ${!value ? 'bg-violet-500/20 ring-2 ring-violet-500 text-violet-600 dark:text-violet-300' : 'text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'}`}
+          >
+            {t('Нет')}
+          </button>
+          {GROUP_EMOJIS.map((emoji) => (
+            <button
+              key={emoji}
+              onClick={() => pick(emoji)}
+              className={`aspect-square rounded-lg text-xl flex items-center justify-center transition-all ${value === emoji ? 'bg-violet-500/20 ring-2 ring-violet-500' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`}
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 px-1">
+          {title === t('Фоновый эмодзи')
+            ? t('Эмодзи отображается фоном за аватаром группы.')
+            : t('Эмодзи показывается рядом с названием группы у всех участников.')}
+        </p>
+      </div>
+    </ScreenShell>
+  );
+}
+
+// Выбор обоев группы (пресеты WALLPAPERS) — применяются к чату у всех участников
+function GroupWallpaperScreen({ channel, canManage, onSave, onBack }: {
+  channel: ChatChannel; canManage: boolean; onSave: (id: string | null) => void; onBack: () => void;
+}) {
+  const t = useT();
+  const theme = useThemeStore((s) => s.theme);
+  const pick = (id: string | null) => { if (canManage) onSave(id); };
+  const current = channel.wallpaper ?? 'default';
+  return (
+    <ScreenShell title={t('Обои в группе')} onBack={onBack}>
+      <div className="px-4">
+        <div className="grid grid-cols-3 gap-2.5 rounded-xl bg-gray-50 dark:bg-gray-700/40 p-3">
+          {WALLPAPERS.map((w) => {
+            const gradient = getWallpaperBackground(w.id, theme);
+            const active = current === w.id;
+            return (
+              <button
+                key={w.id}
+                onClick={() => pick(w.id === 'default' ? null : w.id)}
+                className={`flex flex-col items-center gap-1.5 rounded-lg p-1.5 transition-all ${active ? 'ring-2 ring-violet-500' : 'hover:bg-gray-200/60 dark:hover:bg-gray-600/40'}`}
+              >
+                <div
+                  className="w-full h-16 rounded-md border border-black/5 dark:border-white/10"
+                  style={gradient ? { backgroundImage: gradient } : undefined}
+                >
+                  {!gradient && (
+                    <div className="w-full h-full rounded-md bg-[#e9e9e9] dark:bg-gray-900 flex items-center justify-center text-[10px] text-gray-400">{t('Стандартные')}</div>
+                  )}
+                </div>
+                <span className="text-[11px] text-gray-600 dark:text-gray-300 truncate max-w-full">{w.name}</span>
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 px-1">{t('Обои применяются к чату группы у всех участников.')}</p>
       </div>
     </ScreenShell>
   );

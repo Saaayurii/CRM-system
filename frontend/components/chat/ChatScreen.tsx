@@ -25,6 +25,8 @@ export default function ChatScreen() {
   const setHighlightMessageId = useChatStore((s) => s.setHighlightMessageId);
   const channels = useChatStore((s) => s.channels);
   const activeTopicId = useChatStore((s) => s.activeTopicId);
+  const infoPanelOpen = useChatStore((s) => s.infoPanelOpen);
+  const setInfoPanelOpen = useChatStore((s) => s.setInfoPanelOpen);
   // Раскрытие dashboard-рейла (по ховеру трекпада/пера на iPad) — двигаем левый
   // край чата следом, чтобы рейл не налезал, а чат сдвигался как на ПК.
   const sidebarExpanded = useSidebarStore((s) => s.sidebarExpanded);
@@ -183,12 +185,17 @@ export default function ChatScreen() {
   // Форум в режиме «Список»: список тем занимает левую колонку (на месте списка
   // чатов), а не ленту. В режиме «Вкладки» — рельс внутри окна чата (см. ChatWindow).
   const activeChannel = channels.find((c) => c.id === activeChannelId) ?? null;
+  // Свёрнутый список чатов (рельс) + список тем слева — только на двухпанельных
+  // раскладках (десктоп/планшет). На телефоне сайдбар остаётся полным списком
+  // чатов (с шапкой «Чаты»/поиском/вкладками), а список тем показывается в
+  // основной области (см. ChatWindow), чтобы не прятать шапку списка чатов.
   const forumListSidebar =
+    isDesktop &&
     !!activeChannel &&
     activeChannel.channelType === 'group' &&
     !!activeChannel.topicsEnabled &&
     (activeChannel.topicsLayout ?? 'list') === 'list';
-  // Пока тема не выбрана — на мобиле держим слева список тем (а не ленту)
+  // Пока тема не выбрана — на десктопе держим слева список тем (а не ленту)
   const topicListInSidebar = forumListSidebar && activeTopicId == null;
 
   // On mobile: fixed fullscreen always (avoids py-8 layout padding issues)
@@ -212,14 +219,16 @@ export default function ChatScreen() {
       <div
         className={`${
           showSidebar || topicListInSidebar ? 'flex' : 'hidden'
-        } lg:flex w-full lg:shrink-0 flex-col border-r border-white dark:border-gray-700 bg-[#e9e9e9] dark:bg-gray-900`}
+        } lg:flex w-full lg:shrink-0 min-h-0 flex-col border-r border-white dark:border-gray-700 bg-[#e9e9e9] dark:bg-gray-900`}
         style={isDesktop ? { width: sidebarWidth } : undefined}
       >
         {forumListSidebar && activeChannel ? (
-          // Свёрнутый список чатов (иконки) + список тем справа от них
-          <div className="flex flex-1 min-w-0">
+          // Свёрнутый список чатов (иконки) + список тем справа от них.
+          // min-h-0 обязателен, иначе flex-колонки не дают внутренним спискам
+          // прокручиваться (рельс/список тем «распирают» контейнер).
+          <div className="flex flex-1 min-w-0 min-h-0">
             <ChatAvatarRail onBack={handleBackToSidebar} />
-            <TopicListView variant="sidebar" channel={activeChannel} onBack={handleBackToSidebar} onOpenInfo={() => {}} />
+            <TopicListView variant="sidebar" channel={activeChannel} onBack={handleBackToSidebar} onOpenInfo={() => setInfoPanelOpen(true)} />
           </div>
         ) : (
           <ChatSidebar onSelectChannel={handleSelectChannel} />

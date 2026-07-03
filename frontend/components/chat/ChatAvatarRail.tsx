@@ -34,7 +34,7 @@ export default function ChatAvatarRail({ onBack }: ChatAvatarRailProps) {
   const ordered = [...(selfChat ? [selfChat] : []), ...pinned, ...rest];
 
   return (
-    <div className="shrink-0 w-[68px] flex flex-col border-r border-gray-200 dark:border-gray-700/70 bg-gray-50 dark:bg-gray-900">
+    <div className="shrink-0 w-[68px] min-h-0 flex flex-col border-r border-gray-200 dark:border-gray-700/70 bg-gray-50 dark:bg-gray-900">
       {/* Назад к полному списку чатов */}
       <button
         onClick={onBack}

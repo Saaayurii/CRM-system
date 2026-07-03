@@ -244,7 +244,7 @@ export default function TopicListView({ channel, onBack, onOpenInfo, variant = '
   const isSidebar = variant === 'sidebar';
   return (
     <div
-      className={`flex flex-col flex-1 min-w-0 relative ${isSidebar ? 'bg-white dark:bg-gray-900' : wallpaperStyle ? '' : 'bg-[#e9e9e9] dark:bg-gray-900'}`}
+      className={`flex flex-col flex-1 min-w-0 min-h-0 relative ${isSidebar ? 'bg-white dark:bg-gray-900' : wallpaperStyle ? '' : 'bg-[#e9e9e9] dark:bg-gray-900'}`}
       style={isSidebar ? undefined : wallpaperStyle ?? undefined}
     >
       {/* Header */}

@@ -107,6 +107,10 @@ export interface ChatChannel {
   profileColor?: string | null;
   backgroundEmoji?: string | null;
   wallpaperUrl?: string | null;
+  /** Обои группы: id пресета из WALLPAPERS (применяются в чате у всех участников) */
+  wallpaper?: string | null;
+  /** Эмодзи-статус группы: показывается рядом с названием */
+  emojiStatus?: string | null;
   permissions?: Record<string, boolean>;
 }
 
@@ -311,6 +315,8 @@ function mapRawChannel(raw: any, currentUserId?: number): ChatChannel {
     profileColor: (settings.profileColor as string) ?? null,
     backgroundEmoji: (settings.backgroundEmoji as string) ?? null,
     wallpaperUrl: (settings.wallpaperUrl as string) ?? null,
+    wallpaper: (settings.wallpaper as string) ?? null,
+    emojiStatus: (settings.emojiStatus as string) ?? null,
     permissions: (settings.permissions as Record<string, boolean>) ?? undefined,
   };
 }
@@ -347,6 +353,13 @@ function mapRawTopic(raw: any): ChatTopic {
   };
 }
 
+// Агрегат непрочитанного форум-канала = сумма непрочитанного по его темам.
+// Держим `unreadCounts[channelId]` производным от тем, чтобы бейдж в левом меню
+// и счётчики тем не расходились (иначе бейдж «залипает»/обновляется не сразу).
+function sumTopicUnread(list: ChatTopic[]): number {
+  return list.reduce((s, tp) => s + (tp.unreadCount > 0 ? tp.unreadCount : 0), 0);
+}
+
 /* ───────── Store ───────── */
 
 interface ChatState {
@@ -358,6 +371,9 @@ interface ChatState {
   // Темы: id канала → список тем; активная открытая тема внутри форум-канала
   topicsByChannel: Record<number, ChatTopic[]>;
   activeTopicId: number | null;
+  // Панель «Информация о группе» открыта (общий флаг: кнопка (i) в списке тем
+  // и в шапке чата управляют одной панелью).
+  infoPanelOpen: boolean;
   // Отложенные сообщения: id канала → мои запланированные сообщения
   scheduledByChannel: Record<number, ScheduledMessage[]>;
   messages: ChatMessage[];
@@ -402,6 +418,7 @@ interface ChatState {
   startActivity: (channelId: number, kind: string) => void;
   stopActivity: (channelId: number) => void;
   setActiveChannel: (channelId: number | null) => Promise<void>;
+  setInfoPanelOpen: (open: boolean) => void;
   // Темы
   fetchTopics: (channelId: number) => Promise<void>;
   setActiveTopic: (channelId: number, topicId: number | null) => Promise<void>;
@@ -460,6 +477,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   activeChannelId: null,
   topicsByChannel: {},
   activeTopicId: null,
+  infoPanelOpen: false,
   scheduledByChannel: {},
   messages: [],
   typingUsers: {},
@@ -589,10 +607,15 @@ export const useChatStore = create<ChatState>((set, get) => ({
         // активен) показываем тост.
         const bumpChannelUnread =
           message.channelId !== activeChannelId || (isForum && message.topicId !== activeTopicId);
+        // Форум с загруженными темами: агрегат = сумма по темам (согласован с
+        // бейджами тем); иначе — простой инкремент на 1.
+        const forumTopicsLoaded = isForum && !!message.topicId && topicsByChannel[message.channelId] !== undefined;
         set({
           channels: updatedChannels,
           topicsByChannel: topicsUpdate,
-          unreadCounts: bumpChannelUnread
+          unreadCounts: forumTopicsLoaded
+            ? { ...unreadCounts, [message.channelId]: sumTopicUnread(topicsUpdate[message.channelId] || []) }
+            : bumpChannelUnread
             ? {
                 ...unreadCounts,
                 [message.channelId]: (unreadCounts[message.channelId] || 0) + 1,
@@ -842,18 +865,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
       if (data.userId !== useAuthStore.getState().user?.id) return;
       set((state) => {
         const list = state.topicsByChannel[data.channelId] || [];
-        const prev = list.find((t) => t.id === data.topicId)?.unreadCount || 0;
+        const nextList = list.map((t) =>
+          t.id === data.topicId ? { ...t, unreadCount: 0 } : t,
+        );
         return {
-          topicsByChannel: {
-            ...state.topicsByChannel,
-            [data.channelId]: list.map((t) =>
-              t.id === data.topicId ? { ...t, unreadCount: 0 } : t,
-            ),
-          },
-          unreadCounts: {
-            ...state.unreadCounts,
-            [data.channelId]: Math.max(0, (state.unreadCounts[data.channelId] || 0) - prev),
-          },
+          topicsByChannel: { ...state.topicsByChannel, [data.channelId]: nextList },
+          unreadCounts: { ...state.unreadCounts, [data.channelId]: sumTopicUnread(nextList) },
         };
       });
     });
@@ -894,8 +911,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
             hideMembers: s.hideMembers !== undefined ? !!s.hideMembers : c.hideMembers,
             topicsLayout: (s.topicsLayout as 'tabs' | 'list') ?? c.topicsLayout,
             profileColor: (s.profileColor as string) ?? c.profileColor,
-            backgroundEmoji: (s.backgroundEmoji as string) ?? c.backgroundEmoji,
+            backgroundEmoji: s.backgroundEmoji !== undefined ? (s.backgroundEmoji as string | null) : c.backgroundEmoji,
             wallpaperUrl: (s.wallpaperUrl as string) ?? c.wallpaperUrl,
+            wallpaper: s.wallpaper !== undefined ? (s.wallpaper as string | null) : c.wallpaper,
+            emojiStatus: s.emojiStatus !== undefined ? (s.emojiStatus as string | null) : c.emojiStatus,
             permissions: (s.permissions as Record<string, boolean>) ?? c.permissions,
           };
         }),
@@ -1033,9 +1052,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
     socketRef.emit('activity:stop', { channelId });
   },
 
+  setInfoPanelOpen: (open) => set({ infoPanelOpen: open }),
+
   setActiveChannel: async (channelId) => {
     const prevId = get().activeChannelId;
-    set({ activeChannelId: channelId, activeTopicId: null, messages: [], hasMoreMessages: true });
+    set({ activeChannelId: channelId, activeTopicId: null, messages: [], hasMoreMessages: true, infoPanelOpen: false });
 
     // Remember the open channel so it can be restored after a reload
     try {
@@ -1069,6 +1090,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const list: ChatTopic[] = Array.isArray(data) ? data.map(mapRawTopic) : [];
       set((state) => ({
         topicsByChannel: { ...state.topicsByChannel, [channelId]: list },
+        // Синхронизируем агрегат канала с суммой по темам сразу при загрузке
+        unreadCounts: { ...state.unreadCounts, [channelId]: sumTopicUnread(list) },
       }));
     } catch {
       // ignore
@@ -1076,7 +1099,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   setActiveTopic: async (channelId, topicId) => {
-    set({ activeTopicId: topicId, messages: [], hasMoreMessages: true });
+    set({ activeTopicId: topicId, messages: [], hasMoreMessages: true, infoPanelOpen: false });
     if (topicId === null) return;
     get().markTopicRead(channelId, topicId);
     await get().fetchMessages(channelId);
@@ -1195,8 +1218,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
           s.historyVisibleToNewMembers !== undefined ? !!s.historyVisibleToNewMembers : c.historyVisibleToNewMembers,
         hideMembers: s.hideMembers !== undefined ? !!s.hideMembers : c.hideMembers,
         profileColor: (s.profileColor as string) ?? c.profileColor,
-        backgroundEmoji: (s.backgroundEmoji as string) ?? c.backgroundEmoji,
+        backgroundEmoji: s.backgroundEmoji !== undefined ? (s.backgroundEmoji as string | null) : c.backgroundEmoji,
         wallpaperUrl: (s.wallpaperUrl as string) ?? c.wallpaperUrl,
+        wallpaper: s.wallpaper !== undefined ? (s.wallpaper as string | null) : c.wallpaper,
+        emojiStatus: s.emojiStatus !== undefined ? (s.emojiStatus as string | null) : c.emojiStatus,
         permissions: (s.permissions as Record<string, boolean>) ?? c.permissions,
       };
     };
@@ -1288,16 +1313,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
     // Локально гасим бейдж темы и уменьшаем агрегат канала
     set((state) => {
       const list = state.topicsByChannel[channelId] || [];
-      const prev = list.find((t) => t.id === topicId)?.unreadCount || 0;
+      const nextList = list.map((t) => (t.id === topicId ? { ...t, unreadCount: 0 } : t));
       return {
-        topicsByChannel: {
-          ...state.topicsByChannel,
-          [channelId]: list.map((t) => (t.id === topicId ? { ...t, unreadCount: 0 } : t)),
-        },
-        unreadCounts: {
-          ...state.unreadCounts,
-          [channelId]: Math.max(0, (state.unreadCounts[channelId] || 0) - prev),
-        },
+        topicsByChannel: { ...state.topicsByChannel, [channelId]: nextList },
+        unreadCounts: { ...state.unreadCounts, [channelId]: sumTopicUnread(nextList) },
       };
     });
     if (socketRef?.connected) socketRef.emit('topic:read', { channelId, topicId });
