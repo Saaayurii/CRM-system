@@ -720,7 +720,7 @@ export class ChatService {
     // General. Валидируем принадлежность теме и закрытость (в закрытую тему
     // пишут только владелец/админы канала).
     let topicId: number | null = null;
-    let resolvedTopic: { postPermission?: string | null } | null = null;
+    let resolvedTopic: { postPermission?: string | null; allowedUserIds?: unknown } | null = null;
     const settings = (channel.settings as Record<string, unknown>) || {};
     if (settings.topicsEnabled) {
       let resolved = dto.topicId
@@ -743,6 +743,15 @@ export class ChatService {
     // Гранулярные права участника (владелец/админ обходят). Базовое право на
     // отправку + отдельные права по типу вложения + право темы (postPermission).
     if (!this.isManager(member)) {
+      // Поимённый доступ к теме: писать могут только перечисленные пользователи
+      if (resolvedTopic?.postPermission === 'custom') {
+        const allowed = Array.isArray(resolvedTopic.allowedUserIds)
+          ? (resolvedTopic.allowedUserIds as unknown[]).map(Number)
+          : [];
+        if (!allowed.includes(userId)) {
+          throw new ForbiddenException('You are not allowed to post in this topic');
+        }
+      }
       if (!this.can(channel, member, 'sendMessages', resolvedTopic)) {
         throw new ForbiddenException('You are not allowed to send messages here');
       }
@@ -1151,7 +1160,8 @@ export class ChatService {
       color?: string;
       isClosed?: boolean;
       isPinned?: boolean;
-      postPermission?: 'all' | 'admins';
+      postPermission?: 'all' | 'admins' | 'custom';
+      allowedUserIds?: number[] | null;
     },
   ) {
     await this.findChannelById(channelId, accountId);
@@ -1182,10 +1192,23 @@ export class ChatService {
     }
     if (dto.postPermission !== undefined) {
       if (!isManager) throw new ForbiddenException('Only admins can change who can post');
-      if (dto.postPermission !== 'all' && dto.postPermission !== 'admins') {
-        throw new BadRequestException('postPermission must be "all" or "admins"');
+      if (!['all', 'admins', 'custom'].includes(dto.postPermission)) {
+        throw new BadRequestException('postPermission must be "all", "admins" or "custom"');
       }
       data.postPermission = dto.postPermission;
+      // При переключении в custom принимаем список; уходя из custom — очищаем
+      if (dto.postPermission === 'custom') {
+        const ids = Array.isArray(dto.allowedUserIds) ? dto.allowedUserIds.map(Number).filter(Number.isFinite) : [];
+        data.allowedUserIds = ids;
+      } else {
+        data.allowedUserIds = null;
+      }
+    } else if (dto.allowedUserIds !== undefined) {
+      // Обновление только списка (тема уже в custom)
+      if (!isManager) throw new ForbiddenException('Only admins can change who can post');
+      data.allowedUserIds = Array.isArray(dto.allowedUserIds)
+        ? dto.allowedUserIds.map(Number).filter(Number.isFinite)
+        : null;
     }
 
     const updated = await this.chatRepository.updateTopic(topicId, data);

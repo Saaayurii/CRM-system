@@ -124,8 +124,10 @@ export interface ChatTopic {
   isGeneral: boolean;
   isClosed: boolean;
   isPinned: boolean;
-  /** Кто может писать в теме: 'all' | 'admins' */
-  postPermission?: 'all' | 'admins';
+  /** Кто может писать в теме: 'all' | 'admins' | 'custom' */
+  postPermission?: 'all' | 'admins' | 'custom';
+  /** При postPermission='custom' — id пользователей, кому разрешена запись */
+  allowedUserIds?: number[];
   lastMessageAt?: string | null;
   unreadCount: number;
   // Per-current-user
@@ -336,7 +338,8 @@ function mapRawTopic(raw: any): ChatTopic {
     isGeneral: !!raw.isGeneral,
     isClosed: !!raw.isClosed,
     isPinned: !!raw.isPinned,
-    postPermission: (raw.postPermission as 'all' | 'admins') ?? 'all',
+    postPermission: (raw.postPermission as 'all' | 'admins' | 'custom') ?? 'all',
+    allowedUserIds: Array.isArray(raw.allowedUserIds) ? raw.allowedUserIds.map(Number) : [],
     lastMessageAt: raw.lastMessageAt ?? null,
     unreadCount: raw.unreadCount ?? 0,
     isMutedForMe: !!raw.isMutedForMe,
@@ -378,6 +381,9 @@ interface ChatState {
   // Панель «Информация о группе» открыта (общий флаг: кнопка (i) в списке тем
   // и в шапке чата управляют одной панелью).
   infoPanelOpen: boolean;
+  // С какого экрана открыть панель ('main' по умолчанию; 'members' — сразу
+  // список участников по клику на название группы).
+  infoPanelView: 'main' | 'members';
   // Отложенные сообщения: id канала → мои запланированные сообщения
   scheduledByChannel: Record<number, ScheduledMessage[]>;
   messages: ChatMessage[];
@@ -422,12 +428,12 @@ interface ChatState {
   startActivity: (channelId: number, kind: string) => void;
   stopActivity: (channelId: number) => void;
   setActiveChannel: (channelId: number | null) => Promise<void>;
-  setInfoPanelOpen: (open: boolean) => void;
+  setInfoPanelOpen: (open: boolean, view?: 'main' | 'members') => void;
   // Темы
   fetchTopics: (channelId: number) => Promise<void>;
   setActiveTopic: (channelId: number, topicId: number | null) => Promise<void>;
   createTopic: (channelId: number, dto: { name: string; iconEmoji?: string; color?: string }) => Promise<ChatTopic | null>;
-  updateTopic: (channelId: number, topicId: number, dto: { name?: string; iconEmoji?: string; color?: string; isClosed?: boolean; isPinned?: boolean; postPermission?: 'all' | 'admins' }) => Promise<void>;
+  updateTopic: (channelId: number, topicId: number, dto: { name?: string; iconEmoji?: string; color?: string; isClosed?: boolean; isPinned?: boolean; postPermission?: 'all' | 'admins' | 'custom'; allowedUserIds?: number[] | null }) => Promise<void>;
   deleteTopic: (channelId: number, topicId: number) => Promise<void>;
   setTopicsConfig: (channelId: number, dto: { topicsEnabled?: boolean; createTopicsPermission?: 'all' | 'admins' }) => Promise<void>;
   updateChannel: (channelId: number, dto: { name?: string; description?: string; avatarUrl?: string; isPrivate?: boolean; settings?: Record<string, unknown> }) => Promise<boolean>;
@@ -486,6 +492,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   topicsByChannel: {},
   activeTopicId: null,
   infoPanelOpen: false,
+  infoPanelView: 'main',
   scheduledByChannel: {},
   messages: [],
   typingUsers: {},
@@ -1065,7 +1072,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     socketRef.emit('activity:stop', { channelId });
   },
 
-  setInfoPanelOpen: (open) => set({ infoPanelOpen: open }),
+  setInfoPanelOpen: (open, view = 'main') => set({ infoPanelOpen: open, infoPanelView: view }),
 
   setActiveChannel: async (channelId) => {
     const prevId = get().activeChannelId;
@@ -1151,6 +1158,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
                   isClosed: updated.isClosed,
                   isPinned: updated.isPinned,
                   postPermission: updated.postPermission,
+                  allowedUserIds: updated.allowedUserIds,
                 }
               : t,
           ),

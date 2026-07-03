@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsBoolean, IsIn, MaxLength } from 'class-validator';
+import { IsOptional, IsString, IsBoolean, IsIn, IsArray, IsInt, MaxLength } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UpdateTopicDto {
@@ -30,8 +30,14 @@ export class UpdateTopicDto {
   @IsBoolean()
   isPinned?: boolean;
 
-  @ApiPropertyOptional({ description: 'Who can post in the topic', enum: ['all', 'admins'] })
+  @ApiPropertyOptional({ description: 'Who can post in the topic', enum: ['all', 'admins', 'custom'] })
   @IsOptional()
-  @IsIn(['all', 'admins'])
-  postPermission?: 'all' | 'admins';
+  @IsIn(['all', 'admins', 'custom'])
+  postPermission?: 'all' | 'admins' | 'custom';
+
+  @ApiPropertyOptional({ description: 'Allowed user ids when postPermission=custom', type: [Number] })
+  @IsOptional()
+  @IsArray()
+  @IsInt({ each: true })
+  allowedUserIds?: number[];
 }

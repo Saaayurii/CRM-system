@@ -192,9 +192,15 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
   }, [activeFolder]);
 
   // Build project folders — prefer fetched name, then channel.projectName.
-  // Показываем фолдер ТОЛЬКО когда имя проекта реально известно: иначе
-  // возникала фантомная вкладка «Проект #N», которая мерцала (появлялась до
-  // загрузки /projects или когда запрос к нему падал, и пропадала после).
+  // Показываем фолдер ТОЛЬКО когда:
+  //  - имя проекта реально известно (иначе была фантомная вкладка «Проект #N»,
+  //    мерцавшая до/после загрузки /projects), и
+  //  - в проекте ≥2 каналов: одинокий канал не плодит отдельную вкладку (она
+  //    дублирует «Все чаты»), например форум «Писькагрызы» → «Проект #9».
+  const channelsPerProject = channels.reduce((m, ch) => {
+    if (ch.projectId != null) m.set(ch.projectId, (m.get(ch.projectId) ?? 0) + 1);
+    return m;
+  }, new Map<number, number>());
   const projectFolders = Array.from(
     channels
       .filter((ch) => ch.projectId != null)
@@ -202,6 +208,7 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
         const pid = ch.projectId!;
         // Once the project list is loaded, hide folders for deleted/non-existent projects
         if (projectsLoaded && !projectNames.has(pid)) return map;
+        if ((channelsPerProject.get(pid) ?? 0) < 2) return map;
         const name = projectNames.get(pid) || ch.projectName || null;
         // Нет разрешённого имени — не показываем заглушку «Проект #N»
         if (!name) return map;

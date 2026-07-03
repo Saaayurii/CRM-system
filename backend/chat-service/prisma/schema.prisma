@@ -91,8 +91,11 @@ model ChatTopic {
   createdByUserId Int?      @map("created_by_user_id")
   isGeneral       Boolean   @default(false) @map("is_general")
   isClosed        Boolean   @default(false) @map("is_closed")
-  // Кто может писать в теме: 'all' (по правам канала) | 'admins' (только владелец/админы).
+  // Кто может писать в теме: 'all' | 'admins' | 'custom' (владелец/админы +
+  // перечисленные в allowedUserIds).
   postPermission  String    @default("all") @map("post_permission") @db.VarChar(20)
+  // При postPermission='custom' — JSON-массив id пользователей, кому разрешена запись.
+  allowedUserIds  Json?     @map("allowed_user_ids")
   isPinned        Boolean   @default(false) @map("is_pinned")
   pinnedAt        DateTime? @map("pinned_at")
   sortOrder       Int       @default(0) @map("sort_order")

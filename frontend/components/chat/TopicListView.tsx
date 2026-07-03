@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { useChatStore, ChatChannel, ChatTopic } from '@/stores/chatStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useT } from '@/lib/i18n';
+import { getInitials } from '@/lib/chat/channelDisplay';
 import TopicFormModal from './TopicFormModal';
 
 const GLASS_SURFACE =
@@ -41,10 +42,12 @@ export default function TopicListView({ channel, onBack, onOpenInfo, variant = '
   const deleteTopic = useChatStore((s) => s.deleteTopic);
   const muteTopic = useChatStore((s) => s.muteTopic);
   const hideTopic = useChatStore((s) => s.hideTopic);
+  const setInfoPanelOpen = useChatStore((s) => s.setInfoPanelOpen);
 
   const topics = topicsByChannel[channel.id];
   const [showCreate, setShowCreate] = useState(false);
   const [editing, setEditing] = useState<ChatTopic | null>(null);
+  const [accessTopic, setAccessTopic] = useState<ChatTopic | null>(null);
   const [menuId, setMenuId] = useState<number | null>(null);
   const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
   const [showHidden, setShowHidden] = useState(false);
@@ -143,6 +146,11 @@ export default function TopicListView({ channel, onBack, onOpenInfo, variant = '
                 {t('админы')}
               </span>
             )}
+            {!topic.isClosed && topic.postPermission === 'custom' && (
+              <span className="shrink-0 text-[10px] leading-none px-1 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-300" title={t('Писать могут только выбранные участники')}>
+                {t('доступ')}
+              </span>
+            )}
             {topic.isMutedForMe && (
               <svg className="w-3 h-3 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z M17 14l4-4m0 4l-4-4" />
@@ -223,10 +231,10 @@ export default function TopicListView({ channel, onBack, onOpenInfo, variant = '
             )}
             {isAdmin && (
               <button
-                onClick={() => { updateTopic(channel.id, topic.id, { postPermission: topic.postPermission === 'admins' ? 'all' : 'admins' }); closeMenu(); }}
+                onClick={() => { setAccessTopic(topic); closeMenu(); }}
                 className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
               >
-                {topic.postPermission === 'admins' ? t('Разрешить писать всем') : t('Писать могут только админы')}
+                {t('Права на запись…')}
               </button>
             )}
             {isAdmin && (
@@ -271,7 +279,8 @@ export default function TopicListView({ channel, onBack, onOpenInfo, variant = '
 
         <button
           type="button"
-          onClick={onOpenInfo}
+          onClick={() => setInfoPanelOpen(true, 'members')}
+          title={t('Участники')}
           className={`flex items-center gap-2.5 min-w-0 mr-auto pl-1.5 pr-3.5 py-1.5 rounded-full text-left cursor-pointer ${GLASS_SURFACE}`}
         >
           <div className="w-9 h-9 rounded-full bg-violet-500 flex items-center justify-center text-white text-xs font-semibold overflow-hidden relative shrink-0">
@@ -363,6 +372,116 @@ export default function TopicListView({ channel, onBack, onOpenInfo, variant = '
           onClose={() => setEditing(null)}
         />
       )}
+      {accessTopic && (
+        <TopicAccessModal
+          channel={channel}
+          topic={accessTopic}
+          onClose={() => setAccessTopic(null)}
+          onSave={async (postPermission, allowedUserIds) => {
+            await updateTopic(channel.id, accessTopic.id, { postPermission, allowedUserIds });
+            setAccessTopic(null);
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+// Модалка «Права на запись» для темы: Все / Только админы / Выбранные (чеклист).
+function TopicAccessModal({
+  channel,
+  topic,
+  onClose,
+  onSave,
+}: {
+  channel: ChatChannel;
+  topic: ChatTopic;
+  onClose: () => void;
+  onSave: (postPermission: 'all' | 'admins' | 'custom', allowedUserIds: number[] | null) => Promise<void>;
+}) {
+  const t = useT();
+  const [mode, setMode] = useState<'all' | 'admins' | 'custom'>(topic.postPermission ?? 'all');
+  const [selected, setSelected] = useState<Set<number>>(new Set(topic.allowedUserIds ?? []));
+  const [saving, setSaving] = useState(false);
+  const members = (channel.members ?? []).filter(
+    (m) => m.name && !/^deleted_\d+_\d+@crm\.deleted$/.test(m.email ?? ''),
+  );
+  const toggle = (id: number) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  const save = async () => {
+    setSaving(true);
+    await onSave(mode, mode === 'custom' ? Array.from(selected) : null);
+    setSaving(false);
+  };
+
+  const OPTIONS: { key: 'all' | 'admins' | 'custom'; label: string; desc: string }[] = [
+    { key: 'all', label: t('Все участники'), desc: t('Писать может любой участник группы') },
+    { key: 'admins', label: t('Только администраторы'), desc: t('Писать могут владелец и администраторы') },
+    { key: 'custom', label: t('Выбранные участники'), desc: t('Писать могут админы и отмеченные ниже') },
+  ];
+
+  return createPortal(
+    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/40" onClick={onClose}>
+      <div
+        className="w-full max-w-sm max-h-[80vh] flex flex-col rounded-2xl bg-white dark:bg-gray-800 shadow-2xl overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700 shrink-0">
+          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">{t('Кто может писать в теме')}</h3>
+          <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{topic.name}</p>
+        </div>
+        <div className="p-3 space-y-1 overflow-y-auto">
+          {OPTIONS.map((o) => (
+            <button
+              key={o.key}
+              onClick={() => setMode(o.key)}
+              className={`w-full flex items-start gap-3 px-3 py-2.5 rounded-xl text-left transition-colors ${
+                mode === o.key ? 'bg-violet-50 dark:bg-violet-900/30 ring-1 ring-violet-400' : 'hover:bg-gray-50 dark:hover:bg-gray-700/60'
+              }`}
+            >
+              <span className={`mt-0.5 w-4 h-4 rounded-full border-2 shrink-0 ${mode === o.key ? 'border-violet-500 bg-violet-500' : 'border-gray-300 dark:border-gray-600'}`} />
+              <span className="min-w-0">
+                <span className="block text-sm font-medium text-gray-800 dark:text-gray-100">{o.label}</span>
+                <span className="block text-xs text-gray-400 dark:text-gray-500">{o.desc}</span>
+              </span>
+            </button>
+          ))}
+
+          {mode === 'custom' && (
+            <div className="mt-2 rounded-xl bg-gray-50 dark:bg-gray-700/40 divide-y divide-gray-200 dark:divide-gray-700 overflow-hidden">
+              {members.map((m) => {
+                const isManager = m.role === 'admin' || m.role === 'owner';
+                return (
+                  <label key={m.id} className="flex items-center gap-2.5 px-3 py-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4 accent-violet-500"
+                      checked={isManager || selected.has(m.id)}
+                      disabled={isManager}
+                      onChange={() => toggle(m.id)}
+                    />
+                    <div className="w-8 h-8 rounded-full bg-sky-500 flex items-center justify-center text-white text-[10px] font-semibold shrink-0 overflow-hidden relative">
+                      {getInitials(m.name)}
+                      {m.avatarUrl && <img src={m.avatarUrl} alt="" className="absolute inset-0 w-full h-full object-cover z-10" onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
+                    </div>
+                    <span className="flex-1 min-w-0 text-sm text-gray-800 dark:text-gray-100 truncate">{m.name}</span>
+                    {isManager && <span className="text-[10px] text-violet-500 shrink-0">{m.role === 'owner' ? t('владелец') : t('админ')}</span>}
+                  </label>
+                );
+              })}
+            </div>
+          )}
+        </div>
+        <div className="px-3 py-3 border-t border-gray-100 dark:border-gray-700 flex gap-2 shrink-0">
+          <button onClick={onClose} className="flex-1 px-3 py-2 rounded-xl text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">{t('Отмена')}</button>
+          <button onClick={save} disabled={saving} className="flex-1 px-3 py-2 rounded-xl text-sm font-medium bg-violet-500 hover:bg-violet-600 disabled:opacity-60 text-white">{saving ? t('Сохранение…') : t('Сохранить')}</button>
+        </div>
+      </div>
+    </div>,
+    document.body,
   );
 }

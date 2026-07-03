@@ -493,9 +493,16 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
     return true;
   }, [isCurrentUserAdmin, activeChannel?.permissions, currentMember?.permissions]);
 
-  // Тема «писать могут только админы» — для обычного участника блокирует отправку
-  const topicAdminsOnly = !!(activeTopic?.postPermission === 'admins' && !isCurrentUserAdmin);
-  const cannotSendText = !cap('sendMessages') || topicAdminsOnly;
+  // Ограничение записи в теме для обычного участника: только админы, либо
+  // поимённый список (custom) — если пользователя в нём нет.
+  const topicPostBlocked = !!(
+    activeTopic && !isCurrentUserAdmin && (
+      activeTopic.postPermission === 'admins' ||
+      (activeTopic.postPermission === 'custom' &&
+        !(activeTopic.allowedUserIds ?? []).includes(user?.id ?? -1))
+    )
+  );
+  const cannotSendText = !cap('sendMessages') || topicPostBlocked;
   const composerCaps = {
     media: cap('sendMedia'),
     files: cap('sendFiles'),
@@ -1428,9 +1435,11 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
               </svg>
               <span className="text-sm text-red-500 dark:text-red-400">
-                {topicClosed || topicAdminsOnly
+                {topicClosed || activeTopic?.postPermission === 'admins'
                   ? t('В этой теме писать могут только администраторы')
-                  : t('Администратор ограничил возможность отправки сообщений')}
+                  : activeTopic?.postPermission === 'custom'
+                    ? t('В этой теме писать могут только выбранные участники')
+                    : t('Администратор ограничил возможность отправки сообщений')}
               </span>
             </div>
           </div>
@@ -1763,7 +1772,9 @@ interface GroupInfoPanelProps {
 
 function GroupInfoPanel({ channel, isAdmin, isCompanyAdmin, currentUserId, onClose }: GroupInfoPanelProps) {
   const t = useT();
-  const [view, setView] = useState<GroupView>('main');
+  // Начальный экран: 'members' если панель открыли кликом по названию группы
+  const initialView = useChatStore((s) => s.infoPanelView);
+  const [view, setView] = useState<GroupView>(initialView === 'members' ? 'members' : 'main');
   const canManage = isAdmin || isCompanyAdmin;
 
   const updateChannel = useChatStore((s) => s.updateChannel);
