@@ -4,8 +4,6 @@ import { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useChatStore, ChatChannel, ChatTopic } from '@/stores/chatStore';
 import { useAuthStore } from '@/stores/authStore';
-import { useThemeStore } from '@/stores/themeStore';
-import { getChatBackground } from '@/lib/appearance';
 import { useT } from '@/lib/i18n';
 import TopicFormModal from './TopicFormModal';
 
@@ -41,17 +39,6 @@ export default function TopicListView({ channel, onBack, onOpenInfo, variant = '
   const deleteTopic = useChatStore((s) => s.deleteTopic);
   const muteTopic = useChatStore((s) => s.muteTopic);
   const hideTopic = useChatStore((s) => s.hideTopic);
-
-  const chatWallpaper = useThemeStore((s) => s.appearance.chatWallpaper);
-  const customWallpaperUrl = useThemeStore((s) => s.appearance.customWallpaperUrl);
-  const customWallpaperColor = useThemeStore((s) => s.appearance.customWallpaperColor);
-  const chatPattern = useThemeStore((s) => s.appearance.chatPattern);
-  const patternContrast = useThemeStore((s) => s.appearance.patternContrast);
-  const resolvedTheme = useThemeStore((s) => s.theme);
-  const wallpaperStyle = getChatBackground(
-    { chatWallpaper, customWallpaperUrl, customWallpaperColor, chatPattern, patternContrast },
-    resolvedTheme,
-  );
 
   const topics = topicsByChannel[channel.id];
   const [showCreate, setShowCreate] = useState(false);
@@ -243,10 +230,7 @@ export default function TopicListView({ channel, onBack, onOpenInfo, variant = '
 
   const isSidebar = variant === 'sidebar';
   return (
-    <div
-      className={`flex flex-col flex-1 min-w-0 min-h-0 relative ${isSidebar ? 'bg-white dark:bg-gray-900' : wallpaperStyle ? '' : 'bg-[#e9e9e9] dark:bg-gray-900'}`}
-      style={isSidebar ? undefined : wallpaperStyle ?? undefined}
-    >
+    <div className="flex flex-col flex-1 min-w-0 min-h-0 relative bg-white dark:bg-gray-900">
       {/* Header */}
       <div className="flex items-center gap-2 px-3 py-2.5 shrink-0 z-10">
         <button

@@ -433,7 +433,9 @@ export class ChatRepository {
 
   async getUnreadSummary(userId: number) {
     const memberships = await (this.prisma as any).chatChannelMember.findMany({
-      where: { userId },
+      // Архивные каналы не участвуют в общем бейдже «Чат» (их не видно в списке,
+      // иначе счётчик «залипает» на непрочитанном из архива).
+      where: { userId, NOT: { isArchived: true } },
       select: {
         channelId: true,
         lastReadAt: true,
@@ -632,6 +634,7 @@ export class ChatRepository {
       `SELECT t.id AS topic_id,
               (SELECT COUNT(*) FROM chat_messages m
                  WHERE m.topic_id = t.id AND m.is_deleted = false
+                   AND m.user_id <> $2
                    AND (r.last_read_at IS NULL OR m.created_at > r.last_read_at)
               ) AS unread,
               COALESCE(r.is_muted, false) AS is_muted,
@@ -657,6 +660,7 @@ export class ChatRepository {
       `SELECT COALESCE(SUM(s.cnt), 0) AS total FROM (
          SELECT (SELECT COUNT(*) FROM chat_messages m
                    WHERE m.topic_id = t.id AND m.is_deleted = false
+                     AND m.user_id <> $2
                      AND (r.last_read_at IS NULL OR m.created_at > r.last_read_at)
                 ) AS cnt
          FROM chat_topics t
