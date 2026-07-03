@@ -180,7 +180,7 @@ export default function TopicListView({ channel, onBack, onOpenInfo, variant = '
         {/* Actions menu (доступно всем; редактирование/закрытие/удаление — по правам) */}
         <button
           onClick={(e) => { e.stopPropagation(); if (menuId === topic.id) { closeMenu(); } else { openMenu(topic.id, e.currentTarget); } }}
-          className="shrink-0 p-1 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 opacity-0 group-hover:opacity-100 transition-opacity"
+          className="shrink-0 p-1 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 opacity-0 group-hover:opacity-100 [@media(pointer:coarse)]:opacity-100 transition-opacity"
           title={t('Действия')}
         >
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">

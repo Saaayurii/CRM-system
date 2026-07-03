@@ -454,7 +454,7 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
                 <button
                   onClick={(e) => handleArchiveChannel(channel, false, e)}
                   disabled={archivingId === channel.id}
-                  className="opacity-0 group-hover:opacity-100 shrink-0 p-1.5 text-gray-400 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-all disabled:opacity-30"
+                  className="opacity-0 group-hover:opacity-100 [@media(pointer:coarse)]:opacity-100 shrink-0 p-1.5 text-gray-400 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-all disabled:opacity-30"
                   title={t('Извлечь из архива')}
                 >
                   {archivingId === channel.id ? (
