@@ -191,12 +191,11 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
     container.scrollTo({ left, behavior: 'smooth' });
   }, [activeFolder]);
 
-  // Build project folders — prefer fetched name, then channel.projectName.
-  // Показываем фолдер ТОЛЬКО когда:
-  //  - имя проекта реально известно (иначе была фантомная вкладка «Проект #N»,
-  //    мерцавшая до/после загрузки /projects), и
-  //  - в проекте ≥2 каналов: одинокий канал не плодит отдельную вкладку (она
-  //    дублирует «Все чаты»), например форум «Писькагрызы» → «Проект #9».
+  // Build project folders. Показываем фолдер ТОЛЬКО когда проект РЕАЛЬНО
+  // существует в загруженном /projects (projectNames), а не по снимку имени в
+  // settings канала (ch.projectName): снимок остаётся даже после удаления
+  // проекта и оживлял вкладку «Проект #9». Плюс ≥2 каналов — одинокий канал не
+  // плодит отдельную вкладку (дублирует «Все чаты»). Имя берём только из /projects.
   const channelsPerProject = channels.reduce((m, ch) => {
     if (ch.projectId != null) m.set(ch.projectId, (m.get(ch.projectId) ?? 0) + 1);
     return m;
@@ -206,13 +205,11 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
       .filter((ch) => ch.projectId != null)
       .reduce((map, ch) => {
         const pid = ch.projectId!;
-        // Once the project list is loaded, hide folders for deleted/non-existent projects
-        if (projectsLoaded && !projectNames.has(pid)) return map;
+        // Ждём загрузки /projects и показываем только существующие проекты
+        // (удалённые туда не попадают — deletedAt отфильтрован на бэке).
+        if (!projectsLoaded || !projectNames.has(pid)) return map;
         if ((channelsPerProject.get(pid) ?? 0) < 2) return map;
-        const name = projectNames.get(pid) || ch.projectName || null;
-        // Нет разрешённого имени — не показываем заглушку «Проект #N»
-        if (!name) return map;
-        if (!map.has(pid)) map.set(pid, name);
+        if (!map.has(pid)) map.set(pid, projectNames.get(pid)!);
         return map;
       }, new Map<number, string>())
       .entries()
