@@ -210,7 +210,7 @@ export default function ProjectFormModal({ project, onClose, onSaved }: ProjectF
     if (address.trim()) payload.address = address.trim();
     if (clientId !== '') payload.clientId = clientId;
     if (clientName.trim()) payload.clientName = clientName.trim();
-    payload.settings = { ...(project?.settings || {}), notes: notes.trim() };
+    payload.settings = { ...project?.settings, notes: notes.trim() };
 
     try {
       let updated: any;

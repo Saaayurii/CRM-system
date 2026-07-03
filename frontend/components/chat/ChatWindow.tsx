@@ -2602,7 +2602,7 @@ function AddMemberModal({
     const load = async () => {
       setLoading(true);
       try {
-        const [{ data: usersData }] = await Promise.all([api.get('/users', { params: { limit: 200 } })]);
+        const { data: usersData } = await api.get('/users', { params: { limit: 200 } });
         const all: any[] = Array.isArray(usersData) ? usersData : (usersData.data ?? usersData.users ?? []);
         setUsers(all.filter((u: any) => !existingMemberIds.includes(u.id)));
 

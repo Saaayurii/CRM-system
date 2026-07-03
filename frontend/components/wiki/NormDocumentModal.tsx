@@ -28,7 +28,7 @@ function flattenCategoryOptions(cats: NormCategory[]): { id: number; label: stri
   }
   const out: { id: number; label: string }[] = [];
   const walk = (parent: number | null, depth: number) => {
-    const list = (byParent.get(parent) || []).sort(
+    const list = (byParent.get(parent) || []).toSorted(
       (a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || a.name.localeCompare(b.name),
     );
     for (const c of list) {

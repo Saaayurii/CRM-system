@@ -8,9 +8,35 @@ on:
 # Гейта-сборки на раннере НЕТ намеренно: deploy.sh собирает Docker-образы ДО
 # пересоздания контейнеров и ДО включения заглушки, поэтому упавший билд не
 # трогает прод (старые контейнеры продолжают работать) — серверная сборка и есть
-# гейт. Отдельный CI-build удваивал бы компиляцию и замедлял каждый деплой.
+# гейт по ТИПАМ (tsc в `next build` / `nest build`). Отдельный CI-build удваивал бы
+# компиляцию и замедлял каждый деплой.
+#
+# А вот быстрый ГЕЙТ ПО ЛИНТУ — дёшев: Oxlint это standalone-бинарь (Rust), ему НЕ
+# нужны node_modules проекта, прогон всего фронта+бэка занимает доли секунды. Ловит
+# явные баги (unused-vars, битые промисы и т.п.) ДО того, как деплой тронет прод.
+# tsgo-тайпчек в CI не тащим (нужна установка зависимостей → медленно); он для
+# локали/pre-push (`npm run typecheck` / `pnpm typecheck`), а типы всё равно
+# гейтит серверная Docker-сборка.
 jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Oxlint — frontend
+        run: cd frontend && npx --yes oxlint@1.72.0
+
+      - name: Oxlint — backend (24 сервиса)
+        run: cd backend && npx --yes oxlint@1.72.0
+
   deploy:
+    needs: check
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code

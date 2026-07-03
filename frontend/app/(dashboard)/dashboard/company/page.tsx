@@ -336,7 +336,7 @@ export default function CompanyPage() {
       await api.put('/system-settings', {
         name: companyName,
         // спред — чтобы не затереть другие ключи settings (безопасность и т.п.)
-        settings: { ...(account?.settings || {}), logoUrl, defaultAccent: defaultAccent || undefined },
+        settings: { ...account?.settings, logoUrl, defaultAccent: defaultAccent || undefined },
         legalForm: legalForm || '',
         inn: inn || '',
         kpp: kpp || '',

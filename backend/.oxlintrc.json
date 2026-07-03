@@ -1,0 +1,24 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "env": { "node": true, "es2022": true },
+  "plugins": ["typescript", "unicorn", "oxc"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn",
+    "perf": "warn"
+  },
+  "rules": {
+    "typescript/no-this-alias": "off",
+    "typescript/no-explicit-any": "off",
+    "no-unused-vars": "warn",
+    "unicorn/no-useless-fallback-in-spread": "warn"
+  },
+  "ignorePatterns": [
+    "**/dist/**",
+    "**/node_modules/**",
+    "**/generated/**",
+    "**/*.spec.ts",
+    "**/*.e2e-spec.ts",
+    "**/test/**"
+  ]
+}

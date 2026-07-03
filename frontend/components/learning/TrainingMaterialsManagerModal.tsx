@@ -178,7 +178,7 @@ export default function TrainingMaterialsManagerModal({ open, onClose, onChanged
         if (!hay.includes(s)) return false;
       }
       return true;
-    }).sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime());
+    }).toSorted((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime());
   }, [materials, search, typeFilter, statusFilter]);
 
   const startCreate = () => {

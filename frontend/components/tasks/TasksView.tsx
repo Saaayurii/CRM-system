@@ -629,13 +629,13 @@ export default function TasksView({
   };
 
   const sortedTasks = useMemo(() => {
-    const base = [...tasks].sort((a, b) => {
+    const base = [...tasks].toSorted((a, b) => {
       if (a.status !== b.status) return a.status - b.status;
       return new Date(b.createdAt || b.created_at || '').getTime() -
              new Date(a.createdAt || a.created_at || '').getTime();
     });
     if (!sortKey) return base;
-    return base.sort((a, b) => {
+    return base.toSorted((a, b) => {
       let cmp = 0;
       if (sortKey === 'title') cmp = a.title.localeCompare(b.title, 'ru');
       else if (sortKey === 'project') cmp = (a.project?.name || '').localeCompare(b.project?.name || '', 'ru');
@@ -735,7 +735,7 @@ export default function TasksView({
     if (historyCache.current[taskId]) return historyCache.current[taskId];
     const res = await api.get('/task-comments', { params: { taskId, limit: 200 } });
     const raw: any[] = Array.isArray(res.data) ? res.data : (res.data?.data || res.data?.comments || []);
-    const sorted = raw.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    const sorted = raw.toSorted((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
     historyCache.current[taskId] = sorted;
     return sorted;
   };
@@ -746,7 +746,7 @@ export default function TasksView({
     tooltipTimer.current = setTimeout(async () => {
       try {
         const events = await fetchTaskComments(taskId);
-        setHistoryTooltip({ taskId, x: rect.left, y: rect.bottom, events: [...events].reverse().slice(0, 3) });
+        setHistoryTooltip({ taskId, x: rect.left, y: rect.bottom, events: [...events].toReversed().slice(0, 3) });
       } catch {}
     }, 250);
   };

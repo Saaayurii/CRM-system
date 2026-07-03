@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# OpenAPI merged spec (промежуточный артефакт gen:api)
+lib/api/openapi.json

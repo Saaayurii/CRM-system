@@ -524,7 +524,7 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
       }));
       setPendingFiles((prev) => [...prev, ...newPending]);
     })();
-  }, [MAX_FILE_SIZE]);
+  }, []);
 
   // Document-level drag-and-drop support
   useEffect(() => {
@@ -734,7 +734,7 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
 
   const uploadFileWithProgress = useCallback(
     (pf: PendingFile): Promise<UploadedAttachment> => {
-      return new Promise(async (resolve, reject) => {
+      return new Promise((resolve, reject) => {
         const file       = pf.file;
         const uploadId   = crypto.randomUUID();
         const chunkTotal = Math.max(1, Math.ceil(file.size / CHUNK_SIZE));
@@ -790,15 +790,17 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
             xhr.send(chunk);
           });
 
-        try {
-          let result: UploadedAttachment | null = null;
-          for (let i = 0; i < chunkTotal; i++) result = await sendChunk(i);
-          if (result) resolve(result);
-          else reject(new Error('Upload incomplete'));
-        } catch (err) { reject(err); }
+        void (async () => {
+          try {
+            let result: UploadedAttachment | null = null;
+            for (let i = 0; i < chunkTotal; i++) result = await sendChunk(i);
+            if (result) resolve(result);
+            else reject(new Error('Upload incomplete'));
+          } catch (err) { reject(err); }
+        })();
       });
     },
-    [CHUNK_SIZE]
+    []
   );
 
   const detectMention = useCallback(() => {

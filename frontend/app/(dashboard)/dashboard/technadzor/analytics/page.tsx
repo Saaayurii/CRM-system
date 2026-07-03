@@ -67,7 +67,7 @@ export default function AnalyticsPage() {
       const meta = r.severity != null ? DEFECT_SEVERITY[r.severity] : undefined;
       return { name: meta ? t(meta.label) : t('Не указана'), value: r._count?._all ?? 0, color: meta ? COLOR_HEX[meta.color] : COLOR_HEX.gray };
     })
-    .sort((a, b) => b.value - a.value);
+    .toSorted((a, b) => b.value - a.value);
 
   const resolvedRate = def && def.total > 0
     ? Math.round((((def.byStatus.find((s) => (s.status ?? 0) >= 3)?._count?._all) ?? 0) / def.total) * 100)

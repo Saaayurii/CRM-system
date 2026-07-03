@@ -263,7 +263,7 @@ function RuleFormModal({
       prev.map((a, i) => {
         if (i !== idx) return a;
         const set = new Set(a.roleIds || []);
-        set.has(roleId) ? set.delete(roleId) : set.add(roleId);
+        if (set.has(roleId)) set.delete(roleId); else set.add(roleId);
         return { ...a, roleIds: [...set] };
       }),
     );

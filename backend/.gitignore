@@ -1,0 +1,4 @@
+
+# Генерируемые конфиги для tsgo-тайпчека (scripts/gen-typecheck-configs.mjs)
+tsconfig.typecheck.json
+**/tsconfig.typecheck.json

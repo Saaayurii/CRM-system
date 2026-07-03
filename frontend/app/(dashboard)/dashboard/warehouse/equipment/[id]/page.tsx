@@ -77,7 +77,7 @@ export default function EquipmentDetailPage({ params }: { params: Promise<{ id: 
       const arr: MaintenanceEntry[] = Array.isArray(data) ? data : (data?.data || data?.items || []);
       const sorted = arr
         .filter((m) => m.equipmentId === equipmentId)
-        .sort((a, b) => new Date(b.maintenanceDate).getTime() - new Date(a.maintenanceDate).getTime());
+        .toSorted((a, b) => new Date(b.maintenanceDate).getTime() - new Date(a.maintenanceDate).getTime());
       setHistory(sorted);
     } catch {
       setHistory([]);

@@ -52,7 +52,7 @@ function buildPageTree(pages: WikiPageItem[]): TreeNode[] {
   return roots;
 }
 
-const ADMIN_ROLES = [1, 2, 3];
+const ADMIN_ROLES = new Set([1, 2, 3]);
 
 // ─── Main page ──────────────────────────────────────────────────────────────
 
@@ -62,7 +62,7 @@ function WikiPageInner() {
   const searchParams = useSearchParams();
   const user = useAuthStore((s) => s.user);
   const isSuperAdmin = user?.role?.code === 'super_admin' || user?.roleId === 1;
-  const isAdmin = ADMIN_ROLES.includes(user?.roleId ?? 0);
+  const isAdmin = ADMIN_ROLES.has(user?.roleId ?? 0);
 
   const [mainTab, setMainTab] = useState<MainTab>(
     (searchParams?.get('section') as MainTab) || 'corporate',
@@ -301,7 +301,7 @@ function ConstructionNormsSection({ isSuperAdmin }: { isSuperAdmin: boolean }) {
   useEffect(() => { loadCategories(); loadStats(); }, [loadCategories, loadStats]);
   useEffect(() => { loadDocs(); }, [loadDocs]);
 
-  const toggleExpand = (id: number) => setExpanded((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggleExpand = (id: number) => setExpanded((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
 
   const toggleBookmark = async (doc: NormDocumentListItem, e: React.MouseEvent) => {
     e.stopPropagation();

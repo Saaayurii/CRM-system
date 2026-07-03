@@ -9,6 +9,10 @@ const CHAT_SERVICE_INTERNAL_URL =
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  // React Compiler (stable в Next 16, требует babel-plugin-react-compiler).
+  // Автоматически мемоизирует компоненты — снимает нужду в ручных
+  // useMemo/useCallback/memo. Не включён по умолчанию, включаем осознанно.
+  reactCompiler: true,
   experimental: {
     serverActions: {
       bodySizeLimit: '50mb',

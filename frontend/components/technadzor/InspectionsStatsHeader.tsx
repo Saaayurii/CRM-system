@@ -40,7 +40,7 @@ export default function InspectionsStatsHeader() {
       const now = new Date(); now.setHours(0, 0, 0, 0);
       const up = list
         .filter((i) => i.scheduledDate && (i.status ?? 0) < 2)
-        .sort((a, b) => new Date(a.scheduledDate!).getTime() - new Date(b.scheduledDate!).getTime())
+        .toSorted((a, b) => new Date(a.scheduledDate!).getTime() - new Date(b.scheduledDate!).getTime())
         .slice(0, 5);
       setUpcoming(up);
     }).catch(() => {});

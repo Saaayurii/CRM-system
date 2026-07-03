@@ -543,9 +543,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         get().fetchChannels(1);
       }
       const updatedChannels = updatedChannel
-        ? [
-            ...channels.filter((ch) => ch.id !== message.channelId),
-          ]
+        ? channels.filter((ch) => ch.id !== message.channelId)
         : [...channels];
 
       if (updatedChannel) {
@@ -775,7 +773,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
           channelReadAts: {
             ...state.channelReadAts,
             [data.channelId]: {
-              ...(state.channelReadAts[data.channelId] || {}),
+              ...state.channelReadAts[data.channelId],
               [data.userId]: readAt,
             },
           },
@@ -926,7 +924,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       if (!data?.message) return;
       set((state) => {
         const list = state.scheduledByChannel[data.channelId] ?? [];
-        const next = [...list.filter((m) => m.id !== data.message.id), data.message].sort(
+        const next = [...list.filter((m) => m.id !== data.message.id), data.message].toSorted(
           (a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime(),
         );
         return { scheduledByChannel: { ...state.scheduledByChannel, [data.channelId]: next } };
@@ -1267,7 +1265,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const { data } = await api.post(`/chat-channels/${channelId}/scheduled`, { ...dto, topicId });
       set((state) => {
         const list = state.scheduledByChannel[channelId] ?? [];
-        const next = [...list.filter((m) => m.id !== data.id), data].sort(
+        const next = [...list.filter((m) => m.id !== data.id), data].toSorted(
           (a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime(),
         );
         return { scheduledByChannel: { ...state.scheduledByChannel, [channelId]: next } };
@@ -1394,7 +1392,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         }
       }
 
-      const sortedChannels = channelsList.slice().sort((a, b) => {
+      const sortedChannels = channelsList.slice().toSorted((a, b) => {
         const aTime = a.lastMessage?.createdAt || '';
         const bTime = b.lastMessage?.createdAt || '';
         return bTime.localeCompare(aTime);
@@ -1518,8 +1516,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
       set((state) => ({
         messages: cursor
-          ? [...messagesList.reverse(), ...state.messages]
-          : messagesList.reverse(),
+          ? [...messagesList.toReversed(), ...state.messages]
+          : messagesList.toReversed(),
         hasMoreMessages: messagesList.length === 50,
         isLoadingMessages: false,
       }));

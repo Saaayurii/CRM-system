@@ -77,7 +77,7 @@ function assignLanes(events: FeedEvent[]): Map<string, number> {
   // laneEnds[i] = exclusive end Date of the last event placed in lane i
   const laneEnds: Date[] = [];
 
-  const sorted = [...events].sort(
+  const sorted = [...events].toSorted(
     (a, b) => new Date(a.start).getTime() - new Date(b.start).getTime(),
   );
 
@@ -155,8 +155,8 @@ export default function TimelineView({
       }
     }
     const list: Row[] = [
-      ...Object.values(userRows).sort((a, b) => a.label.localeCompare(b.label)),
-      ...Object.values(projectRows).sort((a, b) => a.label.localeCompare(b.label)),
+      ...Object.values(userRows).toSorted((a, b) => a.label.localeCompare(b.label)),
+      ...Object.values(projectRows).toSorted((a, b) => a.label.localeCompare(b.label)),
     ];
     if (company.events.length) list.push(company);
     return list;

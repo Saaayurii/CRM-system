@@ -54,11 +54,11 @@ function CSSTransitionComponent({
   const removeFromDom = unmountOnExit;
 
   function addClasses(node: HTMLElement, classes: string[]) {
-    classes.length && node.classList.add(...classes);
+    if (classes.length) node.classList.add(...classes);
   }
 
   function removeClasses(node: HTMLElement, classes: string[]) {
-    classes.length && node.classList.remove(...classes);
+    if (classes.length) node.classList.remove(...classes);
   }
 
   const nodeRef = useRef<HTMLElement>(null);

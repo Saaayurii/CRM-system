@@ -91,7 +91,7 @@ export default function TopicListView({ channel, onBack, onOpenInfo, variant = '
     return tb - ta;
   };
   const list = topics ?? [];
-  const visible = list.filter((tp) => !tp.isHiddenForMe).sort(sortTopics);
+  const visible = list.filter((tp) => !tp.isHiddenForMe).toSorted(sortTopics);
   const hidden = list.filter((tp) => tp.isHiddenForMe);
 
   const renderRow = (topic: ChatTopic) => {

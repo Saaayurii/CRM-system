@@ -88,7 +88,7 @@ export default function ChatPreviewModal({ channel, onClose, onOpenFull }: Props
       .then(({ data }) => {
         if (cancelled) return;
         const rawList: unknown = data?.data ?? data;
-        const list = Array.isArray(rawList) ? rawList.map(mapRawMessage).reverse() : [];
+        const list = Array.isArray(rawList) ? rawList.map(mapRawMessage).toReversed() : [];
         setMessages(list);
       })
       .catch(() => {

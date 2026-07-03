@@ -13,7 +13,7 @@ interface Props {
   pageId: number | null;
 }
 
-const ADMIN_ROLES = [1, 2, 3];
+const ADMIN_ROLES = new Set([1, 2, 3]);
 const AUTOSAVE_INTERVAL = 30_000;
 
 export default function WikiEditorPage({ pageId }: Props) {
@@ -23,7 +23,7 @@ export default function WikiEditorPage({ pageId }: Props) {
   const draftIdParam = searchParams?.get('draft') ? Number(searchParams.get('draft')) : null;
   const user = useAuthStore((s) => s.user);
   const addToast = useToastStore((s) => s.addToast);
-  const isAdmin = ADMIN_ROLES.includes(user?.roleId ?? 0);
+  const isAdmin = ADMIN_ROLES.has(user?.roleId ?? 0);
 
   const [page, setPage] = useState<WikiPageDetail | null>(null);
   const [draft, setDraft] = useState<WikiDraft | null>(null);

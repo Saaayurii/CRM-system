@@ -34,7 +34,7 @@ function fmt(d: string): string {
 
 export default function HistorySection({ ctx }: { ctx: PassportCtx }) {
   const t = useT();
-  const entries: PassportHistoryEntry[] = [...(ctx.history || [])].reverse();
+  const entries: PassportHistoryEntry[] = [...(ctx.history || [])].toReversed();
 
   return (
     <Card title={t('История изменений')}>

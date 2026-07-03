@@ -198,7 +198,7 @@ export default function MaterialDetailPage({ params }: { params: Promise<{ id: s
 
   const bestAttempt = useCallback((testId: number): TestAttempt | undefined => {
     const list = attempts.filter((a) => a.knowledgeTestId === testId);
-    return list.sort((a, b) => (b.score ?? 0) - (a.score ?? 0))[0];
+    return list.toSorted((a, b) => (b.score ?? 0) - (a.score ?? 0))[0];
   }, [attempts]);
 
   if (loading) {

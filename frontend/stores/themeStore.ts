@@ -77,7 +77,7 @@ function sanitize(raw: unknown): AppearanceSettings {
   merged.liquidGlass = merged.liquidGlass === true;
   merged.patternContrast = Math.min(60, Math.max(5, Number(merged.patternContrast) || 14));
   merged.textContrast = Math.min(100, Math.max(0, Number(merged.textContrast) || 0));
-  merged.quietHours = { ...DEFAULT_APPEARANCE.quietHours, ...(merged.quietHours || {}) };
+  merged.quietHours = { ...DEFAULT_APPEARANCE.quietHours, ...merged.quietHours };
   if (typeof merged.startPage !== 'string' || !merged.startPage.startsWith('/dashboard')) {
     merged.startPage = DEFAULT_APPEARANCE.startPage;
   }

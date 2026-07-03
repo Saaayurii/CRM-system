@@ -47,10 +47,10 @@ function parse(md: string): Block[] {
     let line = lines[i];
 
     // code fence
-    if (/^```/.test(line)) {
+    if (line.startsWith('```')) {
       const buf: string[] = [];
       i++;
-      while (i < lines.length && !/^```/.test(lines[i])) {
+      while (i < lines.length && !lines[i].startsWith('```')) {
         buf.push(lines[i]);
         i++;
       }
@@ -136,7 +136,7 @@ function parse(md: string): Block[] {
       !/^\s*[-*]\s+/.test(lines[i]) &&
       !/^\s*\d+\.\s+/.test(lines[i]) &&
       !/^\s*>\s?/.test(lines[i]) &&
-      !/^```/.test(lines[i])
+      !lines[i].startsWith('```')
     ) {
       buf.push(lines[i]);
       i++;

@@ -30,7 +30,7 @@ function getExt(url: string): string {
   return dot !== -1 ? clean.slice(dot + 1).toLowerCase() : '';
 }
 
-const IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico', 'avif', 'tiff', 'tif'];
+const IMAGE_EXTS = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico', 'avif', 'tiff', 'tif']);
 const VIDEO_EXTS = ['mp4', 'webm', 'mov', 'avi', 'mkv', 'ogv', 'm4v', 'flv'];
 const AUDIO_EXTS = ['mp3', 'wav', 'ogg', 'm4a', 'flac', 'aac', 'opus', 'wma'];
 const TEXT_EXTS  = ['txt', 'log', 'md', 'json', 'xml', 'yaml', 'yml', 'ini', 'env', 'sh', 'bat', 'py', 'js', 'ts', 'jsx', 'tsx', 'css', 'html', 'htm', 'sql'];
@@ -50,7 +50,7 @@ export default function FilePreviewModal({ fileUrl, fileName, mimeType, onClose 
     // Detect by mimeType first when ext is ambiguous/missing
     const mime = mimeType ?? '';
     if (ext === 'pdf' || mime === 'application/pdf') { setState({ kind: 'pdf', url }); return; }
-    if (IMAGE_EXTS.includes(ext) || mime.startsWith('image/')) { setState({ kind: 'image', url }); return; }
+    if (IMAGE_EXTS.has(ext) || mime.startsWith('image/')) { setState({ kind: 'image', url }); return; }
     if (VIDEO_EXTS.includes(ext) || mime.startsWith('video/')) { setState({ kind: 'video', url }); return; }
     if (AUDIO_EXTS.includes(ext) || mime.startsWith('audio/')) { setState({ kind: 'audio', url }); return; }
 

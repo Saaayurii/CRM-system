@@ -65,7 +65,7 @@ export default function ErrorDiagnosticsPanel({ errors, onCheckAll, isChecking }
   const [fixingService, setFixingService] = useState<string | null>(null);
 
   // Sort errors by severity (critical first)
-  const sortedErrors = [...errors].sort(
+  const sortedErrors = [...errors].toSorted(
     (a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity],
   );
 

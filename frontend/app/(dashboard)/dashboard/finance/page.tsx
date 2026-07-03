@@ -378,7 +378,7 @@ export default function FinancePage() {
       cur.total += amt;
       map.set(key, cur);
     }
-    return Array.from(map.values()).sort((a, b) => b.total - a.total);
+    return Array.from(map.values()).toSorted((a, b) => b.total - a.total);
   }, [operations]);
 
   // Расходы по категориям (subType)
@@ -391,7 +391,7 @@ export default function FinancePage() {
     }
     return Object.entries(sums)
       .map(([k, v]) => ({ name: SUBTYPE_LABEL[k] ?? 'Прочее', value: v }))
-      .sort((a, b) => b.value - a.value);
+      .toSorted((a, b) => b.value - a.value);
   }, [operations]);
 
   // Расходы по проектам
@@ -407,7 +407,7 @@ export default function FinancePage() {
         const name = k === 'none' ? 'Без проекта' : (projects.find((p) => p.id === Number(k))?.name ?? `#${k}`);
         return { name, value: v };
       })
-      .sort((a, b) => b.value - a.value);
+      .toSorted((a, b) => b.value - a.value);
   }, [operations, projects]);
 
   const projectName = (id?: number | null) => {

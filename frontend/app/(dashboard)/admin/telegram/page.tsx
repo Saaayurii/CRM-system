@@ -133,7 +133,7 @@ export default function TelegramImportPage() {
           .filter((c) => c.messages?.length > 0)
           .map((c) => {
             const msgs = c.messages.filter((m) => m.type === 'message');
-            const dates = msgs.map((m) => m.date).sort();
+            const dates = msgs.map((m) => m.date).toSorted();
             return {
               id: c.id,
               name: c.name || 'Без названия',
@@ -145,7 +145,7 @@ export default function TelegramImportPage() {
               selected: true,
             };
           })
-          .sort((a, b) => b.messageCount - a.messageCount);
+          .toSorted((a, b) => b.messageCount - a.messageCount);
 
         setChats(parsed);
         setStep('preview');

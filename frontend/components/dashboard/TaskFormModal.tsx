@@ -966,7 +966,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
           const data = res.data;
           const raw: TaskComment[] = Array.isArray(data) ? data : (data.data || data.comments || []);
           // Sort oldest first for chat-like display
-          const list = [...raw].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+          const list = [...raw].toSorted((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
           setComments(list);
           const uid = user?.id;
           const unread = list.filter(
@@ -1385,7 +1385,7 @@ export default function TaskFormModal({ task, onClose, onSaved, initialProjectId
         const m = clean.match(/^Подзадача «.+?» (.+?) — Система/);
         return { action: m ? m[1] : clean, time: c.createdAt };
       })
-      .reverse();
+      .toReversed();
   }, [comments]);
 
   const HISTORY_ACTION_COLORS: Record<string, string> = {

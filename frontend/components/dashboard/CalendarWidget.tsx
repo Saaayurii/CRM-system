@@ -210,7 +210,7 @@ export default function CalendarWidget() {
       {/* Selected day events */}
       <div className="mt-4 border-t border-gray-200 dark:border-gray-700/60 pt-3">
         <h4 className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">
-          События на {selectedDate.split('-').reverse().join('.')}
+          События на {selectedDate.split('-').toReversed().join('.')}
         </h4>
         {selectedEvents.length === 0 ? (
           <p className="text-xs text-gray-400 dark:text-gray-500">{t('Нет событий')}</p>

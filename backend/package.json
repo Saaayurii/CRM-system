@@ -5,10 +5,15 @@
   "scripts": {
     "build": "turbo run build",
     "lint": "turbo run lint",
+    "lint:fast": "oxlint",
+    "typecheck": "node scripts/typecheck-all.mjs",
+    "typecheck:gen": "node scripts/gen-typecheck-configs.mjs",
     "test": "turbo run test",
     "db:generate": "pnpm -r exec sh -c 'test -f prisma/schema.prisma && prisma generate || true'"
   },
   "devDependencies": {
+    "@typescript/native-preview": "7.0.0-dev.20260703.1",
+    "oxlint": "^1.72.0",
     "turbo": "^2.3.3"
   }
 }

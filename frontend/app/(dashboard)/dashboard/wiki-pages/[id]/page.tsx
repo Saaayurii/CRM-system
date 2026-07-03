@@ -10,7 +10,7 @@ import BlockEditor from '@/components/wiki/BlockEditor';
 import { WikiPageDetail, fmtDate, fmtDateTime } from '@/lib/wiki/pages-constants';
 import { useT } from '@/lib/i18n';
 
-const ADMIN_ROLES = [1, 2, 3];
+const ADMIN_ROLES = new Set([1, 2, 3]);
 
 export default function WikiPageViewPage() {
   const t = useT();
@@ -19,7 +19,7 @@ export default function WikiPageViewPage() {
   const id = Number(params?.id);
   const user = useAuthStore((s) => s.user);
   const addToast = useToastStore((s) => s.addToast);
-  const isAdmin = ADMIN_ROLES.includes(user?.roleId ?? 0);
+  const isAdmin = ADMIN_ROLES.has(user?.roleId ?? 0);
 
   const [page, setPage] = useState<WikiPageDetail | null>(null);
   const [loading, setLoading] = useState(true);

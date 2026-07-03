@@ -31,7 +31,7 @@ interface ImportResult {
   dryRun: boolean;
 }
 
-const FIXED_HEADERS = ['категория', 'название', 'описание', 'ед.', 'единица', 'единица измерения', 'себест.', 'себестоимость', 'cost'];
+const FIXED_HEADERS = new Set(['категория', 'название', 'описание', 'ед.', 'единица', 'единица измерения', 'себест.', 'себестоимость', 'cost']);
 
 function parseCsv(text: string): string[][] {
   // BOM strip
@@ -96,7 +96,7 @@ function detectDelimiter(firstLine: string): ',' | ';' | '\t' {
 
 function parseNumber(v: string | undefined): number | undefined {
   if (!v) return undefined;
-  const cleaned = v.replace(/\s/g, '').replace(',', '.').replace(/[^\d.\-]/g, '');
+  const cleaned = v.replace(/\s/g, '').replace(',', '.').replace(/[^\d.-]/g, '');
   if (!cleaned) return undefined;
   const num = Number(cleaned);
   return Number.isFinite(num) ? num : undefined;
@@ -168,7 +168,7 @@ export default function ImportCsvModal({
         if (usedIdx.has(i)) return;
         if (!h) return;
         // skip fixed-looking columns
-        if (FIXED_HEADERS.includes(h)) return;
+        if (FIXED_HEADERS.has(h)) return;
         priceCols.push({ idx: i, name: grid[0][i].trim() });
       });
 

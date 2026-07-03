@@ -6,7 +6,10 @@
     "dev": "next dev -p 3030 -H 0.0.0.0",
     "build": "next build",
     "start": "next start -p 3030",
-    "lint": "eslint"
+    "lint": "eslint",
+    "lint:fast": "oxlint",
+    "typecheck": "tsgo --noEmit",
+    "gen:api": "node scripts/gen-api.mjs"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.15",
@@ -42,8 +45,13 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/react-transition-group": "^4.4.12",
+    "@typescript/native-preview": "^7.0.0-dev.20260703.1",
+    "babel-plugin-react-compiler": "^1.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
+    "openapi-typescript": "^7.13.0",
+    "openapi-typescript-helpers": "^0.1.0",
+    "oxlint": "^1.72.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

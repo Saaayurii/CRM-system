@@ -120,7 +120,7 @@ export default function LearningLibraryPage() {
   const categories = useMemo(() => {
     const set = new Set<string>();
     materials.forEach((m) => { if (m.category) set.add(m.category); });
-    return Array.from(set).sort();
+    return Array.from(set).toSorted();
   }, [materials]);
 
   const isMandatoryForMe = useCallback((m: TrainingMaterial) => {
@@ -177,11 +177,11 @@ export default function LearningLibraryPage() {
     const byNewest = (a: TrainingMaterial, b: TrainingMaterial) =>
       new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime();
     const dur = (m: TrainingMaterial) => m.durationMinutes ?? 0;
-    if (sort === 'newest') list = list.slice().sort(byNewest);
-    else if (sort === 'oldest') list = list.slice().sort((a, b) => -byNewest(a, b));
-    else if (sort === 'popular') list = list.slice().sort((a, b) => (b.viewCount ?? 0) - (a.viewCount ?? 0));
-    else if (sort === 'duration_asc') list = list.slice().sort((a, b) => dur(a) - dur(b));
-    else if (sort === 'duration_desc') list = list.slice().sort((a, b) => dur(b) - dur(a));
+    if (sort === 'newest') list = list.slice().toSorted(byNewest);
+    else if (sort === 'oldest') list = list.slice().toSorted((a, b) => -byNewest(a, b));
+    else if (sort === 'popular') list = list.slice().toSorted((a, b) => (b.viewCount ?? 0) - (a.viewCount ?? 0));
+    else if (sort === 'duration_asc') list = list.slice().toSorted((a, b) => dur(a) - dur(b));
+    else if (sort === 'duration_desc') list = list.slice().toSorted((a, b) => dur(b) - dur(a));
     return list;
   }, [materials, debouncedSearch, typeFilter, categoryFilter, tab, sort, progressByMaterial, isMandatoryForMe]);
 

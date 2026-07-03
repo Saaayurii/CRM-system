@@ -141,7 +141,7 @@ export default function DocumentsSection({ ctx, onCountChange }: { ctx: Passport
       counts.set(ext, (counts.get(ext) || 0) + 1);
     }
     return Array.from(counts.entries())
-      .sort((a, b) => b[1] - a[1])
+      .toSorted((a, b) => b[1] - a[1])
       .map(([label, value], i) => ({ label, value, color: EXT_COLORS[i % EXT_COLORS.length] }));
   }, [docs]);
 
@@ -152,7 +152,7 @@ export default function DocumentsSection({ ctx, onCountChange }: { ctx: Passport
       .filter((d) => activeCategory === '__all__' || (d.documentType || '') === activeCategory)
       .filter((d) => !q || (d.title || '').toLowerCase().includes(q))
       .slice()
-      .sort((a, b) => {
+      .toSorted((a, b) => {
         const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
         const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
         return tb - ta;

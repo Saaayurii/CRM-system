@@ -28,14 +28,14 @@ function buildTree(pages: WikiPageItem[]): TreeNode[] {
   return roots;
 }
 
-const ADMIN_ROLES = [1, 2, 3];
+const ADMIN_ROLES = new Set([1, 2, 3]);
 
 export default function WikiPagesListPage() {
   const t = useT();
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const addToast = useToastStore((s) => s.addToast);
-  const isAdmin = ADMIN_ROLES.includes(user?.roleId ?? 0);
+  const isAdmin = ADMIN_ROLES.has(user?.roleId ?? 0);
 
   const [pages, setPages] = useState<WikiPageItem[]>([]);
   const [drafts, setDrafts] = useState<WikiDraft[]>([]);

@@ -2888,10 +2888,10 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                 })
                 .filter((s) => s.photos.length > 0);
               if (photoSiteFilter) filtered = filtered.filter((s) => String(s.id) === photoSiteFilter);
-              if (photoSort === 'most') filtered = [...filtered].sort((a, b) => (b.photos?.length ?? 0) - (a.photos?.length ?? 0));
-              else if (photoSort === 'least') filtered = [...filtered].sort((a, b) => (a.photos?.length ?? 0) - (b.photos?.length ?? 0));
-              else if (photoSort === 'az') filtered = [...filtered].sort((a, b) => a.name.localeCompare(b.name, 'ru'));
-              else if (photoSort === 'za') filtered = [...filtered].sort((a, b) => b.name.localeCompare(a.name, 'ru'));
+              if (photoSort === 'most') filtered = [...filtered].toSorted((a, b) => (b.photos?.length ?? 0) - (a.photos?.length ?? 0));
+              else if (photoSort === 'least') filtered = [...filtered].toSorted((a, b) => (a.photos?.length ?? 0) - (b.photos?.length ?? 0));
+              else if (photoSort === 'az') filtered = [...filtered].toSorted((a, b) => a.name.localeCompare(b.name, 'ru'));
+              else if (photoSort === 'za') filtered = [...filtered].toSorted((a, b) => b.name.localeCompare(a.name, 'ru'));
               return filtered;
             })().map((site) => {
               const photos = site.photos || [];
@@ -3026,13 +3026,13 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                     const savedNotes = notesText.trim();
                     try {
                       const r = await api.put(`/projects/${projectId}`, {
-                        settings: { ...(project?.settings || {}), notes: savedNotes },
+                        settings: { ...project?.settings, notes: savedNotes },
                       });
                       // Merge API response with explicit notes value so both
                       // the notes tab and the overview card update immediately
                       setProject((prev) => ({
-                        ...(r.data ?? prev ?? {}),
-                        settings: { ...((r.data ?? prev)?.settings ?? {}), notes: savedNotes },
+                        ...r.data ?? prev,
+                        settings: { ...(r.data ?? prev)?.settings, notes: savedNotes },
                       }));
                       setNotesText(savedNotes);
                       setNotesEditing(false);
@@ -4282,7 +4282,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
-                            {[...selectedProposal.lines].sort((a, b) => a.sortOrder - b.sortOrder).map(line => (
+                            {[...selectedProposal.lines].toSorted((a, b) => a.sortOrder - b.sortOrder).map(line => (
                               <ProposalLineRow
                                 key={line.id}
                                 line={line}
@@ -4492,7 +4492,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
       {/* ─── Equipment Detail View ─── */}
       {activeTab === 'resources' && detailEquipment && (() => {
         const eq = detailEquipment;
-        const eqHistory = maintenanceList.filter(m => m.equipmentId === eq.id).sort((a, b) => new Date(b.maintenanceDate).getTime() - new Date(a.maintenanceDate).getTime());
+        const eqHistory = maintenanceList.filter(m => m.equipmentId === eq.id).toSorted((a, b) => new Date(b.maintenanceDate).getTime() - new Date(a.maintenanceDate).getTime());
         return (
           <div className="space-y-4">
             <button onClick={() => setDetailEquipment(null)}
@@ -5089,7 +5089,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
                       <div className="relative">
                         <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-gray-200 dark:bg-gray-700" />
                         <div className="space-y-6">
-                          {[...maintenanceList].sort((a, b) => new Date(b.maintenanceDate).getTime() - new Date(a.maintenanceDate).getTime()).map((m) => {
+                          {[...maintenanceList].toSorted((a, b) => new Date(b.maintenanceDate).getTime() - new Date(a.maintenanceDate).getTime()).map((m) => {
                             const eq = equipmentList.find(e => e.id === m.equipmentId);
                             return (
                               <div key={m.id} className="relative flex gap-4 pl-10">
@@ -7410,7 +7410,7 @@ function ProjectChannelCreateModal({
   const addToast = useToastStore((s) => s.addToast);
 
   useEffect(() => {
-    if (projectMembers.length > 0 && projectMembers.some((m) => m.userName)) {
+    if (projectMembers.some((m) => m.userName)) {
       setMembers(projectMembers.filter((m) => !!m.userName));
       return;
     }
@@ -7627,7 +7627,7 @@ function ProposalActDocument({ proposal, projectName, projectAddress, managerNam
   onBack: () => void;
 }) {
   const t = useT();
-  const sortedLines = [...proposal.lines].sort((a, b) => a.sortOrder - b.sortOrder);
+  const sortedLines = [...proposal.lines].toSorted((a, b) => a.sortOrder - b.sortOrder);
   const dateStr = new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
   const actNumber = `АКТ-${proposal.proposalNumber}`;
 

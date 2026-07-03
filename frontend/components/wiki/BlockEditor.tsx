@@ -309,7 +309,7 @@ function BlockEditForm({ block, onChange, onAddAfter }: { block: Block; onChange
     case 'table': {
       const rows: string[][] = block.attrs?.rows ?? [['Колонка 1', 'Колонка 2'], ['', '']];
       const setRows = (r: string[][]) => update({ attrs: { ...block.attrs, rows: r } });
-      const addRow = () => setRows([...rows, new Array(rows[0]?.length || 2).fill('')]);
+      const addRow = () => setRows([...rows, Array.from({ length: rows[0]?.length || 2 }, () => '')]);
       const addCol = () => setRows(rows.map((r) => [...r, '']));
       const removeRow = (ri: number) => setRows(rows.filter((_, i) => i !== ri));
       const removeCol = (ci: number) => setRows(rows.map((r) => r.filter((_, i) => i !== ci)));

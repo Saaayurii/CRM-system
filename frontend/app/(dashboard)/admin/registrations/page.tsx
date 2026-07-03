@@ -86,7 +86,7 @@ export default function RegistrationsPage() {
         api.get('/auth/registration-requests', { params: { status: 2 } }),
       ]);
       const extract = (d: any) => Array.isArray(d) ? d : (d?.data || d?.items || []);
-      setHistory([...extract(res1.data), ...extract(res2.data)].sort(
+      setHistory([...extract(res1.data), ...extract(res2.data)].toSorted(
         (a, b) => new Date(b.reviewedAt || b.createdAt).getTime() - new Date(a.reviewedAt || a.createdAt).getTime()
       ));
     } catch {
