@@ -24,13 +24,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
+      # `actions/setup-node@v4` убран намеренно: он тянется с github.com, и при
+      # недоступности github раннер не может его склонировать → джоб падал ещё до
+      # линта (см. «some refs were not updated»). Образ раннера
+      # gitea/runner-images:ubuntu-latest уже содержит Node/npx, поэтому отдельная
+      # установка не нужна — линт зависит только от npm-реестра (oxlint), не от github.
       - name: Oxlint — frontend
-        run: cd frontend && npx --yes oxlint@1.72.0
+        run: cd frontend && node --version && npx --yes oxlint@1.72.0
 
       - name: Oxlint — backend (24 сервиса)
         run: cd backend && npx --yes oxlint@1.72.0
