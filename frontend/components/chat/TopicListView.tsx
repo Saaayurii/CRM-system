@@ -315,7 +315,7 @@ export default function TopicListView({ channel, onBack, onOpenInfo, variant = '
       </div>
 
       {/* List */}
-      <div className="flex-1 overflow-y-auto px-2 pb-3 space-y-0.5">
+      <div data-chat-list className="flex-1 overflow-y-auto px-2 pb-3 space-y-0.5">
         {topics === undefined && (
           <div className="flex justify-center items-center h-32">
             <div className="w-7 h-7 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />

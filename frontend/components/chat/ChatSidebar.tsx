@@ -550,7 +550,7 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
       )}
 
       {/* Channel list */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto overscroll-contain scrollbar-none">
+      <div ref={scrollRef} data-chat-list className="flex-1 overflow-y-auto overscroll-contain scrollbar-none">
         {/* Archive entry — shown when there are archived chats */}
         {archivedCount > 0 && !search && activeFolder === 'all' && (
           <div

@@ -40,21 +40,28 @@ html.app-shell body {
    и системное выделение внутри пузырей И внутри самих контекстных меню
    ([data-chat-menu] — мобильное/десктопное меню сообщения и меню каналов в
    сайдбаре; рендерятся порталом в <body>, вне [data-message-id], иначе iOS
-   успевает выделить текст их пунктов, например «Копировать ссылку»). */
+   успевает выделить текст их пунктов, например «Копировать ссылку»).
+   [data-chat-list] — навигационные списки (каналы, темы): по долгому тапу они
+   открывают наше меню/выбирают элемент, нативное выделение названий там тоже
+   не нужно. */
 @media (pointer: coarse) {
   [data-message-id],
   [data-message-id] *,
   [data-chat-menu],
-  [data-chat-menu] * {
+  [data-chat-menu] *,
+  [data-chat-list],
+  [data-chat-list] * {
     -webkit-touch-callout: none !important;
     -webkit-user-select: none !important;
     user-select: none !important;
   }
-  /* Гасим синюю подсветку нативного выделения внутри пузырей и меню */
+  /* Гасим синюю подсветку нативного выделения внутри пузырей, меню и списков */
   [data-message-id] ::selection,
   [data-message-id]::selection,
   [data-chat-menu] ::selection,
-  [data-chat-menu]::selection {
+  [data-chat-menu]::selection,
+  [data-chat-list] ::selection,
+  [data-chat-list]::selection {
     background: transparent;
   }
   /* Поля редактирования сообщения остаются выделяемыми */
