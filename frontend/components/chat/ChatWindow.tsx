@@ -1875,14 +1875,14 @@ function GroupInfoPanel({ channel, isAdmin, isCompanyAdmin, currentUserId, onClo
                 onChange={(e) => setName(e.target.value)}
                 onBlur={saveHeader}
                 placeholder={t('Название группы')}
-                className="w-full bg-transparent px-3 py-2.5 text-sm text-gray-800 dark:text-gray-100 outline-none"
+                className="w-full bg-transparent px-3 py-2.5 text-sm text-gray-800 dark:text-gray-100 outline-none focus:ring-0 focus:outline-none border-0 placeholder:text-gray-400"
               />
               <input
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 onBlur={saveHeader}
                 placeholder={t('Описание')}
-                className="w-full bg-transparent px-3 py-2.5 text-sm text-gray-800 dark:text-gray-100 outline-none placeholder:text-gray-400"
+                className="w-full bg-transparent px-3 py-2.5 text-sm text-gray-800 dark:text-gray-100 outline-none focus:ring-0 focus:outline-none border-0 placeholder:text-gray-400"
               />
             </div>
             <p className="text-xs text-gray-400 dark:text-gray-500 mt-1.5 px-1">{t('Можете указать дополнительное описание для группы.')}</p>

@@ -223,7 +223,7 @@ export default function ChatScreen() {
         // Карточка чата как на ПК: скруглённая, с отступами от рейла и краёв.
         // Левый край следует ширине рейла (80/256px) + зазор 12px.
         ? `fixed top-3 bottom-3 right-3 z-50 rounded-2xl transition-[left] duration-200 ${sidebarExpanded ? 'left-[16.75rem]' : 'left-[5.75rem]'}`
-        : `${mobileClass} lg:h-[calc(100dvh-4rem)] lg:rounded-2xl sm:max-lg:h-[calc(100dvh-64px)] sm:max-lg:-mx-6 sm:max-lg:-my-8 sm:max-lg:w-[calc(100%+3rem)] max-lg:rounded-none`;
+        : `${mobileClass} lg:h-[calc(100dvh-4rem)] lg:rounded-2xl max-lg:rounded-none`;
 
   return (
     <div ref={chatContainerRef} className={`flex bg-[#e9e9e9] dark:bg-gray-900 shadow-xs overflow-hidden overscroll-none ${containerClass}`}>
