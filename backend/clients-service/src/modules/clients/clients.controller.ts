@@ -14,7 +14,9 @@ import {
   ApiOperation,
   ApiBearerAuth,
   ApiQuery,
+  ApiResponse,
 } from '@nestjs/swagger';
+import { ClientResponseDto } from './dto/client-response.dto';
 import { ClientsService } from './clients.service';
 import { CreateClientDto } from './dto/create-client.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
@@ -28,6 +30,7 @@ export class ClientsController {
 
   @Get()
   @ApiOperation({ summary: 'Get all clients' })
+  @ApiResponse({ status: 200, type: ClientResponseDto, isArray: true })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
   @ApiQuery({ name: 'status', required: false })
@@ -50,6 +53,7 @@ export class ClientsController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get client by ID' })
+  @ApiResponse({ status: 200, type: ClientResponseDto })
   findOne(
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser('accountId') accountId: number,
@@ -59,6 +63,7 @@ export class ClientsController {
 
   @Post()
   @ApiOperation({ summary: 'Create client' })
+  @ApiResponse({ status: 201, type: ClientResponseDto })
   create(
     @Body() dto: CreateClientDto,
     @CurrentUser('accountId') accountId: number,
@@ -69,6 +74,7 @@ export class ClientsController {
 
   @Put(':id')
   @ApiOperation({ summary: 'Update client' })
+  @ApiResponse({ status: 200, type: ClientResponseDto })
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateClientDto,

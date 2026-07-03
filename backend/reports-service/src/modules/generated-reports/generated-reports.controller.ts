@@ -14,7 +14,9 @@ import {
   ApiOperation,
   ApiBearerAuth,
   ApiQuery,
+  ApiResponse,
 } from '@nestjs/swagger';
+import { GeneratedReportResponseDto } from './dto/generated-report-response.dto';
 import { GeneratedReportsService } from './generated-reports.service';
 import { CreateGeneratedReportDto } from './dto/create-generated-report.dto';
 import { UpdateGeneratedReportDto } from './dto/update-generated-report.dto';
@@ -30,6 +32,7 @@ export class GeneratedReportsController {
 
   @Get()
   @ApiOperation({ summary: 'Get all generated reports' })
+  @ApiResponse({ status: 200, type: GeneratedReportResponseDto, isArray: true })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'projectId', required: false, type: Number })
@@ -54,6 +57,7 @@ export class GeneratedReportsController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get generated report by ID' })
+  @ApiResponse({ status: 200, type: GeneratedReportResponseDto })
   findOne(
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser('accountId') accountId: number,
@@ -63,6 +67,7 @@ export class GeneratedReportsController {
 
   @Post()
   @ApiOperation({ summary: 'Create generated report' })
+  @ApiResponse({ status: 201, type: GeneratedReportResponseDto })
   create(
     @Body() dto: CreateGeneratedReportDto,
     @CurrentUser('accountId') accountId: number,
@@ -72,6 +77,7 @@ export class GeneratedReportsController {
 
   @Put(':id')
   @ApiOperation({ summary: 'Update generated report' })
+  @ApiResponse({ status: 200, type: GeneratedReportResponseDto })
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateGeneratedReportDto,

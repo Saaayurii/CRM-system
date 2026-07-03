@@ -16,6 +16,7 @@ import {
   ApiBearerAuth,
   ApiQuery,
 } from '@nestjs/swagger';
+import { CalendarEventResponseDto } from './dto/calendar-event-response.dto';
 import { CalendarEventsService } from './calendar-events.service';
 import { CreateCalendarEventDto, UpdateCalendarEventDto } from './dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -28,6 +29,7 @@ export class CalendarEventsController {
 
   @Get()
   @ApiOperation({ summary: 'Get all calendar events' })
+  @ApiResponse({ status: 200, type: CalendarEventResponseDto, isArray: true })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'projectId', required: false, type: Number })
@@ -56,6 +58,7 @@ export class CalendarEventsController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get calendar event by ID' })
+  @ApiResponse({ status: 200, type: CalendarEventResponseDto })
   @ApiResponse({ status: 200, description: 'Calendar event retrieved' })
   @ApiResponse({ status: 404, description: 'Calendar event not found' })
   findById(
@@ -67,6 +70,7 @@ export class CalendarEventsController {
 
   @Post()
   @ApiOperation({ summary: 'Create calendar event' })
+  @ApiResponse({ status: 201, type: CalendarEventResponseDto })
   @ApiResponse({ status: 201, description: 'Calendar event created' })
   create(
     @CurrentUser('accountId') accountId: number,
@@ -77,6 +81,7 @@ export class CalendarEventsController {
 
   @Put(':id')
   @ApiOperation({ summary: 'Update calendar event' })
+  @ApiResponse({ status: 200, type: CalendarEventResponseDto })
   @ApiResponse({ status: 200, description: 'Calendar event updated' })
   @ApiResponse({ status: 404, description: 'Calendar event not found' })
   update(

@@ -14,7 +14,9 @@ import {
   ApiOperation,
   ApiBearerAuth,
   ApiQuery,
+  ApiResponse,
 } from '@nestjs/swagger';
+import { DashboardWidgetResponseDto } from './dto/dashboard-widget-response.dto';
 import { DashboardWidgetsService } from './dashboard-widgets.service';
 import { CreateDashboardWidgetDto } from './dto/create-dashboard-widget.dto';
 import { UpdateDashboardWidgetDto } from './dto/update-dashboard-widget.dto';
@@ -28,6 +30,7 @@ export class DashboardWidgetsController {
 
   @Get()
   @ApiOperation({ summary: 'Get all dashboard widgets' })
+  @ApiResponse({ status: 200, type: DashboardWidgetResponseDto, isArray: true })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
   findAll(
@@ -40,6 +43,7 @@ export class DashboardWidgetsController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get dashboard widget by ID' })
+  @ApiResponse({ status: 200, type: DashboardWidgetResponseDto })
   findOne(
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser('id') userId: number,
@@ -49,6 +53,7 @@ export class DashboardWidgetsController {
 
   @Post()
   @ApiOperation({ summary: 'Create dashboard widget' })
+  @ApiResponse({ status: 201, type: DashboardWidgetResponseDto })
   create(
     @Body() dto: CreateDashboardWidgetDto,
     @CurrentUser('id') userId: number,
@@ -58,6 +63,7 @@ export class DashboardWidgetsController {
 
   @Put(':id')
   @ApiOperation({ summary: 'Update dashboard widget' })
+  @ApiResponse({ status: 200, type: DashboardWidgetResponseDto })
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateDashboardWidgetDto,

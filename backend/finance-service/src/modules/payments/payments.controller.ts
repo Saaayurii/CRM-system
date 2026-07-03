@@ -14,8 +14,10 @@ import {
   ApiOperation,
   ApiBearerAuth,
   ApiQuery,
+  ApiResponse,
 } from '@nestjs/swagger';
 import { PaymentsService } from './payments.service';
+import { PaymentResponseDto } from './dto/payment-response.dto';
 import { CreatePaymentAccountDto } from './dto/create-payment-account.dto';
 import { UpdatePaymentAccountDto } from './dto/update-payment-account.dto';
 import { CreatePaymentDto } from './dto/create-payment.dto';
@@ -86,6 +88,7 @@ export class PaymentsController {
 
   @Get()
   @ApiOperation({ summary: 'Get all payments' })
+  @ApiResponse({ status: 200, type: PaymentResponseDto, isArray: true })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'projectId', required: false, type: Number })
@@ -143,6 +146,7 @@ export class PaymentsController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get payment by ID' })
+  @ApiResponse({ status: 200, type: PaymentResponseDto })
   findOne(
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser('accountId') accountId: number,
@@ -152,6 +156,7 @@ export class PaymentsController {
 
   @Post()
   @ApiOperation({ summary: 'Create payment' })
+  @ApiResponse({ status: 201, type: PaymentResponseDto })
   create(
     @Body() dto: CreatePaymentDto,
     @CurrentUser('accountId') accountId: number,
@@ -162,6 +167,7 @@ export class PaymentsController {
 
   @Put(':id')
   @ApiOperation({ summary: 'Update payment' })
+  @ApiResponse({ status: 200, type: PaymentResponseDto })
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdatePaymentDto,

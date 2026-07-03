@@ -26,6 +26,7 @@ import {
   CreateInspectionTemplateDto,
   UpdateInspectionTemplateDto,
   SaveChecklistDto,
+  InspectionResponseDto,
 } from './dto';
 
 interface RequestUser {
@@ -45,6 +46,7 @@ export class InspectionsController {
 
   @Get()
   @ApiOperation({ summary: 'Get all inspections with pagination' })
+  @ApiResponse({ status: 200, type: InspectionResponseDto, isArray: true })
   @ApiResponse({ status: 200, description: 'List of inspections' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
@@ -86,6 +88,7 @@ export class InspectionsController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get inspection by ID' })
+  @ApiResponse({ status: 200, type: InspectionResponseDto })
   @ApiResponse({ status: 200, description: 'Inspection details' })
   @ApiResponse({ status: 404, description: 'Inspection not found' })
   async findById(
@@ -97,6 +100,7 @@ export class InspectionsController {
 
   @Post()
   @ApiOperation({ summary: 'Create a new inspection' })
+  @ApiResponse({ status: 201, type: InspectionResponseDto })
   @ApiResponse({ status: 201, description: 'Inspection created' })
   async create(
     @CurrentUser() user: RequestUser,
@@ -107,6 +111,7 @@ export class InspectionsController {
 
   @Put(':id')
   @ApiOperation({ summary: 'Update an inspection' })
+  @ApiResponse({ status: 200, type: InspectionResponseDto })
   @ApiResponse({ status: 200, description: 'Inspection updated' })
   @ApiResponse({ status: 404, description: 'Inspection not found' })
   async update(

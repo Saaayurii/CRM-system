@@ -1,7 +1,8 @@
 import {
   Controller, Get, Post, Put, Delete, Body, Param, Query, ParseIntPipe,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery, ApiResponse } from '@nestjs/swagger';
+import { WikiPageResponseDto } from './dto/wiki-page-response.dto';
 import { WikiPagesService } from './wiki-pages.service';
 import { CreateWikiPageDto } from './dto/create-wiki-page.dto';
 import { UpdateWikiPageDto } from './dto/update-wiki-page.dto';
@@ -34,6 +35,7 @@ export class WikiPagesController {
 
   @Get('tree')
   @ApiOperation({ summary: 'Flat list for building hierarchical tree on client' })
+  @ApiResponse({ status: 200, type: WikiPageResponseDto, isArray: true })
   getTree(@CurrentUser('accountId') accountId: number) {
     return this.wikiPagesService.findTree(accountId);
   }
@@ -68,6 +70,7 @@ export class WikiPagesController {
 
   @Post()
   @ApiOperation({ summary: 'Create wiki page (admin direct publish)' })
+  @ApiResponse({ status: 201, type: WikiPageResponseDto })
   create(
     @Body() dto: CreateWikiPageDto,
     @CurrentUser('accountId') accountId: number,
@@ -79,6 +82,7 @@ export class WikiPagesController {
 
   @Put(':id')
   @ApiOperation({ summary: 'Update wiki page (admin direct publish, creates version snapshot)' })
+  @ApiResponse({ status: 201, type: WikiPageResponseDto })
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateWikiPageDto,

@@ -14,7 +14,9 @@ import {
   ApiOperation,
   ApiBearerAuth,
   ApiQuery,
+  ApiResponse,
 } from '@nestjs/swagger';
+import { AttendanceResponseDto } from './dto/attendance-response.dto';
 import { AttendanceService } from './attendance.service';
 import { CreateAttendanceDto, UpdateAttendanceDto } from './dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -34,6 +36,7 @@ export class AttendanceController {
 
   @Get()
   @ApiOperation({ summary: 'Get attendance records (admins see all)' })
+  @ApiResponse({ status: 200, type: AttendanceResponseDto, isArray: true })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   findAll(
@@ -51,6 +54,7 @@ export class AttendanceController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get attendance record by ID' })
+  @ApiResponse({ status: 200, type: AttendanceResponseDto })
   findById(
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser() user: RequestUser,
@@ -60,12 +64,14 @@ export class AttendanceController {
 
   @Post()
   @ApiOperation({ summary: 'Create attendance record' })
+  @ApiResponse({ status: 201, type: AttendanceResponseDto })
   create(@Body() dto: CreateAttendanceDto, @CurrentUser() user: RequestUser) {
     return this.service.create(user.id, user.roleId, dto);
   }
 
   @Put(':id')
   @ApiOperation({ summary: 'Update attendance record' })
+  @ApiResponse({ status: 200, type: AttendanceResponseDto })
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateAttendanceDto,

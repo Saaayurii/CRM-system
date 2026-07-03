@@ -15,7 +15,9 @@ import {
   ApiOperation,
   ApiBearerAuth,
   ApiQuery,
+  ApiResponse,
 } from '@nestjs/swagger';
+import { EventLogResponseDto } from './dto/event-log-response.dto';
 import { EventLogsService } from './event-logs.service';
 import { CreateEventLogDto } from './dto/create-event-log.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -29,6 +31,7 @@ export class EventLogsController {
 
   @Get()
   @ApiOperation({ summary: 'Get all event logs' })
+  @ApiResponse({ status: 200, type: EventLogResponseDto, isArray: true })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
   @ApiQuery({ name: 'entityType', required: false })
@@ -51,6 +54,7 @@ export class EventLogsController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get event log by ID' })
+  @ApiResponse({ status: 200, type: EventLogResponseDto })
   findOne(
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser('accountId') accountId: number,
@@ -61,6 +65,7 @@ export class EventLogsController {
   @Post()
   @Public()
   @ApiOperation({ summary: 'Create event log (internal-only)' })
+  @ApiResponse({ status: 201, type: EventLogResponseDto })
   create(
     @Req() req: Request,
     @Body() dto: CreateEventLogDto,

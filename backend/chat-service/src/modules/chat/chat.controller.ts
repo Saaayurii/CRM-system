@@ -18,6 +18,7 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { ChatService } from './chat.service';
+import { ChatChannelResponseDto } from './dto/chat-channel-response.dto';
 import {
   CreateChannelDto,
   UpdateChannelDto,
@@ -49,6 +50,7 @@ export class ChatController {
 
   @Get()
   @ApiOperation({ summary: 'Get all chat channels' })
+  @ApiResponse({ status: 200, type: ChatChannelResponseDto, isArray: true })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'projectId', required: false, type: Number })
@@ -186,6 +188,7 @@ export class ChatController {
 
   @Post()
   @ApiOperation({ summary: 'Create a chat channel' })
+  @ApiResponse({ status: 201, type: ChatChannelResponseDto })
   @ApiResponse({ status: 201, description: 'Channel created' })
   createChannel(
     @CurrentUser('accountId') accountId: number,
@@ -211,6 +214,7 @@ export class ChatController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get chat channel by ID' })
+  @ApiResponse({ status: 200, type: ChatChannelResponseDto })
   @ApiResponse({ status: 200, description: 'Channel retrieved' })
   @ApiResponse({ status: 404, description: 'Channel not found' })
   findChannelById(
@@ -222,6 +226,7 @@ export class ChatController {
 
   @Put(':id')
   @ApiOperation({ summary: 'Update chat channel' })
+  @ApiResponse({ status: 200, type: ChatChannelResponseDto })
   @ApiResponse({ status: 200, description: 'Channel updated' })
   @ApiResponse({ status: 404, description: 'Channel not found' })
   async updateChannel(

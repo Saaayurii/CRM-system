@@ -17,6 +17,7 @@ import {
   ApiResponse,
   ApiQuery,
 } from '@nestjs/swagger';
+import { EquipmentResponseDto } from './dto/equipment-response.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { EquipmentService } from './equipment.service';
@@ -38,6 +39,7 @@ export class EquipmentController {
 
   @Get()
   @ApiOperation({ summary: 'Get all equipment with pagination' })
+  @ApiResponse({ status: 200, type: EquipmentResponseDto, isArray: true })
   @ApiResponse({ status: 200, description: 'List of equipment' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
@@ -61,6 +63,7 @@ export class EquipmentController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get equipment by ID' })
+  @ApiResponse({ status: 200, type: EquipmentResponseDto })
   @ApiResponse({ status: 200, description: 'Equipment details' })
   @ApiResponse({ status: 404, description: 'Equipment not found' })
   async findById(
@@ -72,6 +75,7 @@ export class EquipmentController {
 
   @Post()
   @ApiOperation({ summary: 'Create new equipment' })
+  @ApiResponse({ status: 201, type: EquipmentResponseDto })
   @ApiResponse({ status: 201, description: 'Equipment created' })
   async create(
     @CurrentUser() user: RequestUser,
@@ -82,6 +86,7 @@ export class EquipmentController {
 
   @Put(':id')
   @ApiOperation({ summary: 'Update equipment' })
+  @ApiResponse({ status: 200, type: EquipmentResponseDto })
   @ApiResponse({ status: 200, description: 'Equipment updated' })
   @ApiResponse({ status: 404, description: 'Equipment not found' })
   async update(

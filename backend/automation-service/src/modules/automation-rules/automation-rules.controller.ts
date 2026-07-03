@@ -14,7 +14,9 @@ import {
   ApiOperation,
   ApiBearerAuth,
   ApiQuery,
+  ApiResponse,
 } from '@nestjs/swagger';
+import { AutomationRuleResponseDto } from './dto/automation-rule-response.dto';
 import { AutomationRulesService } from './automation-rules.service';
 import { CreateAutomationRuleDto } from './dto/create-automation-rule.dto';
 import { UpdateAutomationRuleDto } from './dto/update-automation-rule.dto';
@@ -28,6 +30,7 @@ export class AutomationRulesController {
 
   @Get()
   @ApiOperation({ summary: 'Get all automation rules' })
+  @ApiResponse({ status: 200, type: AutomationRuleResponseDto, isArray: true })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
   findAll(
@@ -40,6 +43,7 @@ export class AutomationRulesController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get automation rule by ID' })
+  @ApiResponse({ status: 200, type: AutomationRuleResponseDto })
   findOne(
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser('accountId') accountId: number,
@@ -49,6 +53,7 @@ export class AutomationRulesController {
 
   @Post()
   @ApiOperation({ summary: 'Create automation rule' })
+  @ApiResponse({ status: 201, type: AutomationRuleResponseDto })
   create(
     @Body() dto: CreateAutomationRuleDto,
     @CurrentUser('accountId') accountId: number,
@@ -59,6 +64,7 @@ export class AutomationRulesController {
 
   @Put(':id')
   @ApiOperation({ summary: 'Update automation rule' })
+  @ApiResponse({ status: 200, type: AutomationRuleResponseDto })
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateAutomationRuleDto,

@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, ParseIntPipe, Query, Headers } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery, ApiResponse } from '@nestjs/swagger';
+import { DictionaryValueResponseDto } from './dto/dictionary-value-response.dto';
 import { DictionaryValuesService } from './dictionary-values.service';
 import { CreateDictionaryValueDto, UpdateDictionaryValueDto } from './dto';
 
@@ -11,6 +12,7 @@ export class DictionaryValuesController {
 
   @Get()
   @ApiOperation({ summary: 'Get all dictionary values' })
+  @ApiResponse({ status: 200, type: DictionaryValueResponseDto, isArray: true })
   @ApiQuery({ name: 'dictionaryTypeId', required: false, type: Number })
   @ApiQuery({ name: 'accountId', required: false, type: Number })
   findAll(
@@ -25,12 +27,14 @@ export class DictionaryValuesController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get dictionary value by ID' })
+  @ApiResponse({ status: 200, type: DictionaryValueResponseDto })
   findById(@Param('id', ParseIntPipe) id: number) {
     return this.service.findById(id);
   }
 
   @Post()
   @ApiOperation({ summary: 'Create a new dictionary value' })
+  @ApiResponse({ status: 201, type: DictionaryValueResponseDto })
   create(
     @Body() dto: CreateDictionaryValueDto,
     @Headers('x-account-id') accountId: string,
@@ -40,6 +44,7 @@ export class DictionaryValuesController {
 
   @Put(':id')
   @ApiOperation({ summary: 'Update a dictionary value' })
+  @ApiResponse({ status: 200, type: DictionaryValueResponseDto })
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateDictionaryValueDto,

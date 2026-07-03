@@ -14,7 +14,9 @@ import {
   ApiOperation,
   ApiBearerAuth,
   ApiQuery,
+  ApiResponse,
 } from '@nestjs/swagger';
+import { ReportTemplateResponseDto } from './dto/report-template-response.dto';
 import { ReportTemplatesService } from './report-templates.service';
 import { CreateReportTemplateDto } from './dto/create-report-template.dto';
 import { UpdateReportTemplateDto } from './dto/update-report-template.dto';
@@ -30,6 +32,7 @@ export class ReportTemplatesController {
 
   @Get()
   @ApiOperation({ summary: 'Get all report templates' })
+  @ApiResponse({ status: 200, type: ReportTemplateResponseDto, isArray: true })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   findAll(
@@ -42,6 +45,7 @@ export class ReportTemplatesController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get report template by ID' })
+  @ApiResponse({ status: 200, type: ReportTemplateResponseDto })
   findOne(
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser('accountId') accountId: number,
@@ -51,6 +55,7 @@ export class ReportTemplatesController {
 
   @Post()
   @ApiOperation({ summary: 'Create report template' })
+  @ApiResponse({ status: 201, type: ReportTemplateResponseDto })
   create(
     @Body() dto: CreateReportTemplateDto,
     @CurrentUser('accountId') accountId: number,
@@ -60,6 +65,7 @@ export class ReportTemplatesController {
 
   @Put(':id')
   @ApiOperation({ summary: 'Update report template' })
+  @ApiResponse({ status: 200, type: ReportTemplateResponseDto })
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateReportTemplateDto,

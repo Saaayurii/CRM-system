@@ -14,7 +14,9 @@ import {
   ApiOperation,
   ApiBearerAuth,
   ApiQuery,
+  ApiResponse,
 } from '@nestjs/swagger';
+import { DocumentResponseDto } from './dto/document-response.dto';
 import { DocumentsService } from './documents.service';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { UpdateDocumentDto } from './dto/update-document.dto';
@@ -28,6 +30,7 @@ export class DocumentsController {
 
   @Get()
   @ApiOperation({ summary: 'Get all documents' })
+  @ApiResponse({ status: 200, type: DocumentResponseDto, isArray: true })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'projectId', required: false, type: Number })
@@ -56,6 +59,7 @@ export class DocumentsController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get document by ID' })
+  @ApiResponse({ status: 200, type: DocumentResponseDto })
   findOne(
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser() user: any,
@@ -65,6 +69,7 @@ export class DocumentsController {
 
   @Post()
   @ApiOperation({ summary: 'Create document' })
+  @ApiResponse({ status: 201, type: DocumentResponseDto })
   create(
     @Body() dto: CreateDocumentDto,
     @CurrentUser('accountId') accountId: number,
@@ -74,6 +79,7 @@ export class DocumentsController {
 
   @Put(':id')
   @ApiOperation({ summary: 'Update document' })
+  @ApiResponse({ status: 200, type: DocumentResponseDto })
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateDocumentDto,

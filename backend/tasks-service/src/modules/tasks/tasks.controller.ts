@@ -16,9 +16,10 @@ import {
   ApiOperation,
   ApiBearerAuth,
   ApiQuery,
+  ApiResponse,
 } from '@nestjs/swagger';
 import { TasksService } from './tasks.service';
-import { CreateTaskDto, UpdateTaskDto } from './dto';
+import { CreateTaskDto, UpdateTaskDto, TaskResponseDto } from './dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
 interface RequestUser {
@@ -43,6 +44,7 @@ export class TasksController {
   @ApiQuery({ name: 'status', required: false })
   @ApiQuery({ name: 'assignedToUserId', required: false })
   @ApiQuery({ name: 'constructionSiteId', required: false })
+  @ApiResponse({ status: 200, type: TaskResponseDto, isArray: true })
   async findAll(
     @CurrentUser() user: RequestUser,
     @Query('page') page?: number,
@@ -72,6 +74,7 @@ export class TasksController {
 
   @Get('project/:projectId')
   @ApiOperation({ summary: 'Get tasks by project' })
+  @ApiResponse({ status: 200, type: TaskResponseDto, isArray: true })
   async findByProject(
     @CurrentUser() user: RequestUser,
     @Param('projectId', ParseIntPipe) projectId: number,
@@ -81,6 +84,7 @@ export class TasksController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get task by ID' })
+  @ApiResponse({ status: 200, type: TaskResponseDto })
   async findOne(
     @CurrentUser() user: RequestUser,
     @Param('id', ParseIntPipe) id: number,
@@ -90,6 +94,7 @@ export class TasksController {
 
   @Post()
   @ApiOperation({ summary: 'Create new task' })
+  @ApiResponse({ status: 201, type: TaskResponseDto })
   async create(
     @CurrentUser() user: RequestUser,
     @Body() createTaskDto: CreateTaskDto,
@@ -99,6 +104,7 @@ export class TasksController {
 
   @Put(':id')
   @ApiOperation({ summary: 'Update task' })
+  @ApiResponse({ status: 200, type: TaskResponseDto })
   async update(
     @CurrentUser() user: RequestUser,
     @Param('id', ParseIntPipe) id: number,

@@ -14,7 +14,9 @@ import {
   ApiOperation,
   ApiBearerAuth,
   ApiQuery,
+  ApiResponse,
 } from '@nestjs/swagger';
+import { TrainingMaterialResponseDto } from './dto/training-material-response.dto';
 import { TrainingMaterialsService } from './training-materials.service';
 import { CreateTrainingMaterialDto } from './dto/create-training-material.dto';
 import { UpdateTrainingMaterialDto } from './dto/update-training-material.dto';
@@ -27,6 +29,7 @@ export class TrainingMaterialsController {
   constructor(private readonly svc: TrainingMaterialsService) {}
   @Get()
   @ApiOperation({ summary: 'Get all training materials' })
+  @ApiResponse({ status: 200, type: TrainingMaterialResponseDto, isArray: true })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
   @ApiQuery({ name: 'category', required: false })
@@ -38,19 +41,25 @@ export class TrainingMaterialsController {
   ) {
     return this.svc.findAll(accountId, +page, +limit, category);
   }
-  @Get(':id') @ApiOperation({ summary: 'Get training material by ID' }) findOne(
+  @Get(':id') @ApiOperation({ summary: 'Get training material by ID' })
+  @ApiResponse({ status: 200, type: TrainingMaterialResponseDto })
+  findOne(
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser('accountId') accountId: number,
   ) {
     return this.svc.findById(id, accountId);
   }
-  @Post() @ApiOperation({ summary: 'Create training material' }) create(
+  @Post() @ApiOperation({ summary: 'Create training material' })
+  @ApiResponse({ status: 201, type: TrainingMaterialResponseDto })
+  create(
     @Body() dto: CreateTrainingMaterialDto,
     @CurrentUser('accountId') accountId: number,
   ) {
     return this.svc.create(accountId, dto);
   }
-  @Put(':id') @ApiOperation({ summary: 'Update training material' }) update(
+  @Put(':id') @ApiOperation({ summary: 'Update training material' })
+  @ApiResponse({ status: 200, type: TrainingMaterialResponseDto })
+  update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateTrainingMaterialDto,
     @CurrentUser('accountId') accountId: number,

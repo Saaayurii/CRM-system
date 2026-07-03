@@ -23,6 +23,7 @@ import { ConfigService } from '@nestjs/config';
 import { Observable } from 'rxjs';
 import * as jwt from 'jsonwebtoken';
 import { NotificationsService } from './notifications.service';
+import { NotificationResponseDto } from './dto/notification-response.dto';
 import {
   CreateNotificationDto,
   UpdateNotificationDto,
@@ -176,6 +177,7 @@ export class NotificationsController {
 
   @Get('notifications')
   @ApiOperation({ summary: 'Get all notifications for current user' })
+  @ApiResponse({ status: 200, type: NotificationResponseDto, isArray: true })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'isRead', required: false, type: Boolean })
@@ -198,6 +200,7 @@ export class NotificationsController {
 
   @Post('notifications')
   @ApiOperation({ summary: 'Create a notification' })
+  @ApiResponse({ status: 201, type: NotificationResponseDto })
   @ApiResponse({ status: 201, description: 'Notification created' })
   createNotification(
     @CurrentUser('accountId') accountId: number,
@@ -208,6 +211,7 @@ export class NotificationsController {
 
   @Get('notifications/:id')
   @ApiOperation({ summary: 'Get notification by ID' })
+  @ApiResponse({ status: 200, type: NotificationResponseDto })
   @ApiResponse({ status: 200, description: 'Notification retrieved' })
   @ApiResponse({ status: 404, description: 'Notification not found' })
   findNotificationById(
@@ -219,6 +223,7 @@ export class NotificationsController {
 
   @Put('notifications/:id')
   @ApiOperation({ summary: 'Update notification' })
+  @ApiResponse({ status: 200, type: NotificationResponseDto })
   @ApiResponse({ status: 200, description: 'Notification updated' })
   updateNotification(
     @Param('id', ParseIntPipe) id: number,
