@@ -191,7 +191,10 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
     container.scrollTo({ left, behavior: 'smooth' });
   }, [activeFolder]);
 
-  // Build project folders — prefer channel.projectName, then fetched name, then fallback
+  // Build project folders — prefer fetched name, then channel.projectName.
+  // Показываем фолдер ТОЛЬКО когда имя проекта реально известно: иначе
+  // возникала фантомная вкладка «Проект #N», которая мерцала (появлялась до
+  // загрузки /projects или когда запрос к нему падал, и пропадала после).
   const projectFolders = Array.from(
     channels
       .filter((ch) => ch.projectId != null)
@@ -199,12 +202,12 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
         const pid = ch.projectId!;
         // Once the project list is loaded, hide folders for deleted/non-existent projects
         if (projectsLoaded && !projectNames.has(pid)) return map;
-        if (!map.has(pid)) {
-          const name = projectNames.get(pid) || ch.projectName || null;
-          map.set(pid, name);
-        }
+        const name = projectNames.get(pid) || ch.projectName || null;
+        // Нет разрешённого имени — не показываем заглушку «Проект #N»
+        if (!name) return map;
+        if (!map.has(pid)) map.set(pid, name);
         return map;
-      }, new Map<number, string | null>())
+      }, new Map<number, string>())
       .entries()
   );
 
@@ -531,9 +534,9 @@ export default function ChatSidebar({ onSelectChannel }: ChatSidebarProps) {
                       ? 'text-violet-600 dark:text-violet-400'
                       : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
                   }`}
-                  title={pname ?? `Проект #${pid}`}
+                  title={pname}
                 >
-                  {pname ?? `Проект #${pid}`}
+                  {pname}
                   {activeFolder === pid && (
                     <span className="absolute bottom-0 left-2 right-2 h-[3px] rounded-t-full bg-violet-500" />
                   )}
