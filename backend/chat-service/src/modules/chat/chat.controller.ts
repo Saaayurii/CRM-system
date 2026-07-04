@@ -464,6 +464,17 @@ export class ChatController {
     return this.chatService.markTopicRead(id, userId, topicId);
   }
 
+  @Get(':id/topics/:topicId/reads')
+  @ApiOperation({ summary: 'Per-member read timestamps for a topic (read receipts)' })
+  @ApiResponse({ status: 200, description: 'Topic reads retrieved' })
+  getTopicReads(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('topicId', ParseIntPipe) topicId: number,
+    @CurrentUser('id') userId: number,
+  ) {
+    return this.chatService.getTopicReads(id, userId, topicId);
+  }
+
   @Patch(':id/topics/:topicId/mute')
   @ApiOperation({ summary: 'Mute/unmute a topic for the current user' })
   @ApiResponse({ status: 200, description: 'Topic mute updated' })

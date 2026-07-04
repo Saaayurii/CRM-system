@@ -179,6 +179,7 @@ export default function ChatWindow({ onBack }: ChatWindowProps) {
   const unpinMessageSocket = useChatStore((s) => s.unpinMessage);
   const onlineUsers = useChatStore((s) => s.onlineUsers);
   const channelReadAts = useChatStore((s) => s.channelReadAts);
+  const topicReadAts = useChatStore((s) => s.topicReadAts);
   const setChatWindowOpen = useChatStore((s) => s.setChatWindowOpen);
   const setEditingMessage = useChatStore((s) => s.setEditingMessage);
   const setActiveChannel = useChatStore((s) => s.setActiveChannel);
@@ -841,23 +842,37 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
     return () => container.removeEventListener('scroll', handleScroll);
   }, [handleScroll]);
 
+    // Прочтения для сообщения: в форуме — по теме сообщения (topicReadAts),
+  // иначе — по каналу. Без этого галочки в форум-темах брались из channel-level
+  // lastReadAt, который при чтении тем не двигается → неверные ✓✓.
+  const readsForMessage = useCallback(
+    (msg: ChatMessageType): Record<number, string> => {
+      if (activeChannelId == null) return {};
+      if (activeChannel?.topicsEnabled && msg.topicId) {
+        return topicReadAts[activeChannelId]?.[msg.topicId] || {};
+      }
+      return channelReadAts[activeChannelId] || {};
+    },
+    [activeChannelId, activeChannel?.topicsEnabled, topicReadAts, channelReadAts]
+  );
+
   // Determine if an own message has been read by the partner
   const isMessageRead = useCallback(
     (msg: ChatMessageType): boolean => {
       if (!activeChannelId || msg.senderId !== user?.id) return false;
-      const reads = channelReadAts[activeChannelId] || {};
+      const reads = readsForMessage(msg);
       return Object.entries(reads).some(
         ([uid, readAt]) =>
           Number(uid) !== user?.id && new Date(readAt) >= new Date(msg.createdAt)
       );
     },
-    [activeChannelId, channelReadAts, user?.id]
+    [activeChannelId, readsForMessage, user?.id]
   );
 
   const getMessageReaders = useCallback(
     (msg: ChatMessageType): { id: number; name: string; avatarUrl?: string }[] => {
       if (!activeChannelId || msg.senderId !== user?.id) return [];
-      const reads = channelReadAts[activeChannelId] || {};
+      const reads = readsForMessage(msg);
       const members = activeChannel?.members || [];
       return Object.entries(reads)
         .filter(([uid, readAt]) => Number(uid) !== user?.id && new Date(readAt) >= new Date(msg.createdAt))
@@ -867,7 +882,7 @@ useBubbleGradientFlow(messagesContainerRef, `${activeChannelId}:${messages.lengt
         })
         .filter(Boolean) as { id: number; name: string; avatarUrl?: string }[];
     },
-    [activeChannelId, channelReadAts, user?.id, activeChannel?.members]
+    [activeChannelId, readsForMessage, user?.id, activeChannel?.members]
   );
 
   // Delete message + its files

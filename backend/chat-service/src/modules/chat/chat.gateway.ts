@@ -622,12 +622,14 @@ export class ChatGateway
       data.topicId,
     );
 
-    // Уведомляем другие устройства пользователя того же канала, чтобы счётчики
-    // непрочитанного по теме синхронизировались.
+    // Уведомляем участников канала: и для синхронизации счётчиков непрочитанного,
+    // и для галочек «прочитано» (read receipts) по теме — lastReadAt нужен, чтобы
+    // отправитель увидел ✓✓ на своих сообщениях в этой теме.
     this.server.to(`channel:${data.channelId}`).emit('topic:read:updated', {
       channelId: data.channelId,
       topicId: data.topicId,
       userId: client.user.id,
+      lastReadAt: new Date().toISOString(),
     });
 
     return { event: 'topic:read:ack', data: { topicId: data.topicId } };

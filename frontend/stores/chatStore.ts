@@ -403,6 +403,8 @@ interface ChatState {
   unreadCounts: Record<number, number>;
   // channelId → userId → lastReadAt ISO string
   channelReadAts: Record<number, Record<number, string>>;
+  // Форумы: channelId → topicId → userId → lastReadAt (галочки «прочитано» по теме)
+  topicReadAts: Record<number, Record<number, Record<number, string>>>;
   isConnected: boolean;
   hasMoreMessages: boolean;
   isLoadingMessages: boolean;
@@ -508,6 +510,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   lastSeenAt: {},
   unreadCounts: {},
   channelReadAts: {},
+  topicReadAts: {},
   isConnected: false,
   hasMoreMessages: true,
   isLoadingMessages: false,
@@ -886,15 +889,29 @@ export const useChatStore = create<ChatState>((set, get) => ({
       });
     });
 
-    socket.on('topic:read:updated', (data: { channelId: number; topicId: number; userId: number }) => {
-      // Своё прочтение с другого устройства — гасим бейдж темы и агрегат канала
-      if (data.userId !== useAuthStore.getState().user?.id) return;
+    socket.on('topic:read:updated', (data: { channelId: number; topicId: number; userId: number; lastReadAt?: string }) => {
+      const readAt = data.lastReadAt || new Date().toISOString();
+      const isMe = data.userId === useAuthStore.getState().user?.id;
       set((state) => {
+        // Пишем прочтение темы участника — нужно для галочек «прочитано» (в т.ч.
+        // чужие прочтения, чтобы у отправителя появились ✓✓ по этой теме).
+        const chTopics = state.topicReadAts[data.channelId] || {};
+        const tReads = chTopics[data.topicId] || {};
+        const nextTopicReadAts = {
+          ...state.topicReadAts,
+          [data.channelId]: {
+            ...chTopics,
+            [data.topicId]: { ...tReads, [data.userId]: readAt },
+          },
+        };
+        // Своё прочтение с другого устройства — ещё и гасим бейдж темы/канала
+        if (!isMe) return { topicReadAts: nextTopicReadAts };
         const list = state.topicsByChannel[data.channelId] || [];
         const nextList = list.map((t) =>
           t.id === data.topicId ? { ...t, unreadCount: 0 } : t,
         );
         return {
+          topicReadAts: nextTopicReadAts,
           topicsByChannel: { ...state.topicsByChannel, [data.channelId]: nextList },
           unreadCounts: { ...state.unreadCounts, [data.channelId]: sumTopicUnread(nextList) },
         };
@@ -1138,6 +1155,23 @@ export const useChatStore = create<ChatState>((set, get) => ({
     set({ activeTopicId: topicId, messages: [], hasMoreMessages: true, infoPanelOpen: false });
     if (topicId === null) return;
     get().markTopicRead(channelId, topicId);
+    // Сидируем прочтения темы по участникам — чтобы галочки «прочитано»
+    // показывались корректно сразу при открытии (не только по WS в реалтайме).
+    void api.get(`/chat-channels/${channelId}/topics/${topicId}/reads`)
+      .then(({ data }) => {
+        if (!Array.isArray(data)) return;
+        const map: Record<number, string> = {};
+        for (const r of data as { userId: number; lastReadAt: string | null }[]) {
+          if (r.lastReadAt) map[r.userId] = r.lastReadAt;
+        }
+        set((state) => ({
+          topicReadAts: {
+            ...state.topicReadAts,
+            [channelId]: { ...state.topicReadAts[channelId], [topicId]: map },
+          },
+        }));
+      })
+      .catch(() => {});
     await get().fetchMessages(channelId);
   },
 

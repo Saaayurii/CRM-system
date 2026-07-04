@@ -340,6 +340,16 @@ export class ChatGatewayController {
     });
   }
 
+  @Get('chat-channels/:id/topics/:topicId/reads')
+  @ApiOperation({ summary: 'Per-member read timestamps for a topic' })
+  async getTopicReads(@Req() req: Request, @Param('id') id: string, @Param('topicId') topicId: string) {
+    return this.proxyService.forward('chat', {
+      method: 'GET',
+      path: `/chat-channels/${id}/topics/${topicId}/reads`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
   @Patch('chat-channels/:id/topics/:topicId/mute')
   @ApiOperation({ summary: 'Mute/unmute a topic' })
   async muteTopic(

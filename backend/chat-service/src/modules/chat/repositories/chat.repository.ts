@@ -592,6 +592,14 @@ export class ChatRepository {
       .map((r) => r.userId);
   }
 
+  /** Прочтения темы по каждому участнику (для галочек «прочитано» в форуме). */
+  async getTopicReads(topicId: number): Promise<{ userId: number; lastReadAt: Date | null }[]> {
+    return (this.prisma as any).chatTopicRead.findMany({
+      where: { topicId },
+      select: { userId: true, lastReadAt: true },
+    });
+  }
+
   // --- Per-topic pinned messages ---
 
   async pinMessageTopic(

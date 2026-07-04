@@ -1270,6 +1270,24 @@ export class ChatService {
     return { success: true, topicId };
   }
 
+  /** Прочтения темы по участникам — для галочек «прочитано» в форуме. */
+  async getTopicReads(
+    channelId: number,
+    userId: number,
+    topicId: number,
+  ) {
+    const topic = await this.chatRepository.findTopicById(topicId);
+    if (!topic || topic.channelId !== channelId) {
+      throw new NotFoundException('Topic not found');
+    }
+    await this.assertMember(channelId, userId);
+    const rows = await this.chatRepository.getTopicReads(topicId);
+    return rows.map((r) => ({
+      userId: r.userId,
+      lastReadAt: r.lastReadAt ? r.lastReadAt.toISOString() : null,
+    }));
+  }
+
   /** Включение/выключение режима тем + право на создание (только админ канала). */
   async setTopicsConfig(
     channelId: number,
