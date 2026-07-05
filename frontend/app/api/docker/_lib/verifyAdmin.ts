@@ -22,12 +22,16 @@ function decodeJwtPayload(token: string): Record<string, unknown> | null {
 
 export async function verifyAdmin(request: NextRequest): Promise<boolean> {
   const authHeader = request.headers.get('authorization');
-  // Support token from query param (for EventSource which can't set headers)
+  // Support token from query param (legacy EventSource) and httpOnly-cookie
+  // `crm_at` (браузер шлёт её same-origin автоматически — основной путь теперь).
   const queryToken = request.nextUrl.searchParams.get('token');
+  const cookieToken = request.cookies.get('crm_at')?.value;
 
   let token: string;
   if (authHeader?.startsWith('Bearer ')) {
     token = authHeader.slice(7);
+  } else if (cookieToken) {
+    token = cookieToken;
   } else if (queryToken) {
     token = queryToken;
   } else {

@@ -22,10 +22,8 @@ export default function ServiceGrid() {
 
   const fetchContainers = useCallback(async () => {
     try {
-      const token = localStorage.getItem('accessToken');
-      const res = await fetch('/api/docker/containers', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      // Токен в httpOnly-cookie — браузер шлёт её same-origin автоматически.
+      const res = await fetch('/api/docker/containers', { credentials: 'include' });
       if (!res.ok) throw new Error('Не удалось получить список контейнеров');
       const data = await res.json();
       // Ensure data is array and each item has required fields
@@ -61,10 +59,9 @@ export default function ServiceGrid() {
   ) => {
     setIds((prev) => new Set(prev).add(id));
     try {
-      const token = localStorage.getItem('accessToken');
       const res = await fetch(`/api/docker/containers/${id}/${action}`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));

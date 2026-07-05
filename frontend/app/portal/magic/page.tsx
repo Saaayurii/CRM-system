@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import api from '@/lib/api';
-import { writeSsoTokens } from '@/lib/ssoCookie';
 import { useT } from '@/lib/i18n';
 
 export default function PortalMagicPage() {
@@ -23,11 +22,9 @@ export default function PortalMagicPage() {
     (async () => {
       try {
         const { data } = await api.post('/auth/portal/magic', { token });
-        localStorage.setItem('accessToken', data.accessToken);
-        localStorage.setItem('refreshToken', data.refreshToken);
+        // Токены ставит gateway в httpOnly-cookie; храним только несекретный sessionId.
         if (data.sessionId) localStorage.setItem('sessionId', String(data.sessionId));
         document.cookie = `crm-session=true; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
-        writeSsoTokens(data.accessToken, data.refreshToken);
         window.location.href = '/dashboard';
       } catch {
         setStatus('error');

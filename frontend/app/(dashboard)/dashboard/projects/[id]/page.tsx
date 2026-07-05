@@ -11,6 +11,7 @@ import { useToastStore } from '@/stores/toastStore';
 import { useChatStore } from '@/stores/chatStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useIsClient } from '@/hooks/useIsClient';
+import { usePersistedState } from '@/hooks/usePersistedState';
 import ChatInput from '@/components/chat/ChatInput';
 import ChatMessageComponent from '@/components/chat/ChatMessage';
 import ForwardMessageModal from '@/components/chat/ForwardMessageModal';
@@ -725,16 +726,12 @@ const [pdfLoading, setPdfLoading] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loadingTasks, setLoadingTasks] = useState(false);
   const [tasksLoaded, setTasksLoaded] = useState(false);
-  const [teamViewMode, setTeamViewMode] = useState<'table'|'grid'>(() =>
-    typeof window !== 'undefined' ? (localStorage.getItem('projTeamView') as 'table'|'grid') || 'table' : 'table'
-  );
+  const [teamViewMode, setTeamViewMode] = usePersistedState<'table'|'grid'>('projTeamView', 'table');
 
   /* Documents search */
   const [docSearch, setDocSearch] = useState('');
   const [docTypeFilter, setDocTypeFilter] = useState('');
-  const [docViewMode, setDocViewMode] = useState<'table'|'grid'>(() =>
-    typeof window !== 'undefined' ? (localStorage.getItem('projDocView') as 'table'|'grid') || 'table' : 'table'
-  );
+  const [docViewMode, setDocViewMode] = usePersistedState<'table'|'grid'>('projDocView', 'table');
 
   /* Photos filter & sort */
   const [photoSiteFilter, setPhotoSiteFilter] = useState('');
@@ -791,30 +788,14 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   const [closingProject, setClosingProject] = useState(false);
   const [editingAct, setEditingAct] = useState<Act | null>(null);
   const [savingFinance, setSavingFinance] = useState(false);
-  const [financeViewMode, setFinanceViewMode] = useState<'table' | 'grid'>(() =>
-    typeof window !== 'undefined' ? ((localStorage.getItem('financeViewMode') as 'table' | 'grid') || 'table') : 'table'
-  );
-  const [budgetsViewMode, setBudgetsViewMode] = useState<'table' | 'grid'>(() =>
-    typeof window !== 'undefined' ? ((localStorage.getItem('budgetsViewMode') as 'table' | 'grid') || 'table') : 'table'
-  );
-  const [actsViewMode, setActsViewMode] = useState<'table' | 'grid'>(() =>
-    typeof window !== 'undefined' ? ((localStorage.getItem('actsViewMode') as 'table' | 'grid') || 'table') : 'table'
-  );
-  const [matReqViewMode, setMatReqViewMode] = useState<'table' | 'grid'>(() =>
-    typeof window !== 'undefined' ? ((localStorage.getItem('matReqViewMode') as 'table' | 'grid') || 'table') : 'table'
-  );
-  const [supplierOrderViewMode, setSupplierOrderViewMode] = useState<'table' | 'grid'>(() =>
-    typeof window !== 'undefined' ? ((localStorage.getItem('supplierOrderViewMode') as 'table' | 'grid') || 'table') : 'table'
-  );
-  const [equipViewMode, setEquipViewMode] = useState<'table' | 'grid'>(() =>
-    typeof window !== 'undefined' ? ((localStorage.getItem('equipViewMode') as 'table' | 'grid') || 'table') : 'table'
-  );
-  const [invSessionViewMode, setInvSessionViewMode] = useState<'table' | 'grid'>(() =>
-    typeof window !== 'undefined' ? ((localStorage.getItem('invSessionViewMode') as 'table' | 'grid') || 'table') : 'table'
-  );
-  const [maintViewMode, setMaintViewMode] = useState<'table' | 'grid'>(() =>
-    typeof window !== 'undefined' ? ((localStorage.getItem('maintViewMode') as 'table' | 'grid') || 'table') : 'table'
-  );
+  const [financeViewMode, setFinanceViewMode] = usePersistedState<'table' | 'grid'>('financeViewMode', 'table');
+  const [budgetsViewMode, setBudgetsViewMode] = usePersistedState<'table' | 'grid'>('budgetsViewMode', 'table');
+  const [actsViewMode, setActsViewMode] = usePersistedState<'table' | 'grid'>('actsViewMode', 'table');
+  const [matReqViewMode, setMatReqViewMode] = usePersistedState<'table' | 'grid'>('matReqViewMode', 'table');
+  const [supplierOrderViewMode, setSupplierOrderViewMode] = usePersistedState<'table' | 'grid'>('supplierOrderViewMode', 'table');
+  const [equipViewMode, setEquipViewMode] = usePersistedState<'table' | 'grid'>('equipViewMode', 'table');
+  const [invSessionViewMode, setInvSessionViewMode] = usePersistedState<'table' | 'grid'>('invSessionViewMode', 'table');
+  const [maintViewMode, setMaintViewMode] = usePersistedState<'table' | 'grid'>('maintViewMode', 'table');
   const [financeSubTab, setFinanceSubTab] = useState<'overview' | 'documents' | 'payments' | 'budgets' | 'acts' | 'price' | 'proposals' | 'payroll' | 'bonuses'>('overview');
   /* Price list (work templates) */
   const [priceItems, setPriceItems] = useState<WorkTemplate[]>([]);
@@ -904,9 +885,7 @@ const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   const [showObjectModal, setShowObjectModal] = useState(false);
   const [editingObject, setEditingObject] = useState<ConstructionSite | null>(null);
   const [objectSaving, setObjectSaving] = useState(false);
-  const [objectViewMode, setObjectViewMode] = useState<'table' | 'grid'>(() =>
-    typeof window !== 'undefined' ? (localStorage.getItem('projObjectView') as 'table' | 'grid') || 'table' : 'table'
-  );
+  const [objectViewMode, setObjectViewMode] = usePersistedState<'table' | 'grid'>('projObjectView', 'table');
 
   /* Overview summary */
   const [overviewSummary, setOverviewSummary] = useState<{

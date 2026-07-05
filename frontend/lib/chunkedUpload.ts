@@ -36,6 +36,8 @@ export async function uploadFileChunked(
 
       const xhr = new XMLHttpRequest();
       xhr.open('POST', '/api/chat/upload');
+      // Токен в httpOnly-cookie — шлём cookie same-origin, вручную не вешаем.
+      xhr.withCredentials = true;
       xhr.setRequestHeader('x-upload-id',    uploadId);
       xhr.setRequestHeader('x-chunk-index',  String(chunkIndex));
       xhr.setRequestHeader('x-chunk-total',  String(chunkTotal));
@@ -44,10 +46,6 @@ export async function uploadFileChunked(
       xhr.setRequestHeader('x-file-type',    file.type || '');
       xhr.setRequestHeader('x-compress',     String(compress));
       xhr.setRequestHeader('Content-Type',   'application/octet-stream');
-      try {
-        const token = localStorage.getItem('accessToken');
-        if (token) xhr.setRequestHeader('authorization', `Bearer ${token}`);
-      } catch { /* SSR / no localStorage */ }
 
       if (options?.onProgress) {
         xhr.upload.onprogress = (e) => {

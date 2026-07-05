@@ -25,6 +25,14 @@ import { ProxyService } from '../../common/services/proxy.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Public } from '../../common/decorators/public.decorator';
 
+/** Достаёт access-токен из httpOnly-cookie `crm_at` (для SSE через EventSource). */
+function tokenFromCookie(req: Request): string | null {
+  const raw = req.headers.cookie;
+  if (!raw) return null;
+  const m = raw.match(/(?:^|;\s*)crm_at=([^;]+)/);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
 @ApiTags('Notifications')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
@@ -43,13 +51,18 @@ export class NotificationsGatewayController {
   @ApiQuery({ name: 'token', required: true })
   async sseProxy(
     @Query('token') token: string,
+    @Req() req: Request,
     @Res() res: Response,
   ) {
     const notificationsUrl =
       this.configService.get<string>('services.notifications') ||
       'http://notifications-service:3010';
 
-    const url = `${notificationsUrl}/notifications/events?token=${encodeURIComponent(token)}`;
+    // httpOnly-режим: EventSource не может положить токен в URL (JS не читает
+    // httpOnly-cookie). Берём токен из cookie `crm_at` и передаём вниз тем же
+    // ?token= — notifications-service остаётся без изменений.
+    const authToken = token || tokenFromCookie(req);
+    const url = `${notificationsUrl}/notifications/events?token=${encodeURIComponent(authToken || '')}`;
 
     // SSE headers — no-transform stops intermediaries from buffering/compressing
     res.writeHead(200, {

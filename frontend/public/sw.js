@@ -100,9 +100,8 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('message', (event) => {
   if (!event.data) return;
 
-  if (event.data.type === 'SET_TOKEN') {
-    idbSet('accessToken', event.data.token).catch(() => {});
-  }
+  // Токен теперь в httpOnly-cookie — SW получает её при fetch (credentials),
+  // сообщение SET_TOKEN больше не нужно.
 
   // Manual sync trigger from page (e.g., on login)
   if (event.data.type === 'SYNC_NOW') {
@@ -208,13 +207,16 @@ self.addEventListener('periodicsync', (event) => {
  * Requires auth token stored in IndexedDB via SET_TOKEN message.
  */
 async function syncCrmData() {
-  const token = await idbGet('accessToken');
-  if (!token) return; // user not authenticated — skip
-
-  const headers = {
-    Authorization: `Bearer ${token}`,
-    'Content-Type': 'application/json',
-  };
+  // Токен в httpOnly-cookie — same-origin fetch приложит её сам. Пропускаем,
+  // если нет читаемого маркера сессии (crm-session; сам crm_at JS/SW не видят).
+  try {
+    if (self.cookieStore) {
+      const session = await self.cookieStore.get('crm-session');
+      if (!session) return; // не авторизован — пропускаем
+    }
+  } catch {
+    /* cookieStore недоступен — пробуем всё равно, 401 просто не закешируется */
+  }
 
   const endpoints = [
     '/api/v1/tasks?limit=50',
@@ -226,7 +228,7 @@ async function syncCrmData() {
   const results = await Promise.allSettled(
     endpoints.map(async (path) => {
       const url = self.location.origin + path;
-      const response = await fetch(url, { headers });
+      const response = await fetch(url, { credentials: 'include' });
       if (response.ok) {
         // Cache with original path key so stale-while-revalidate finds it
         await cache.put(new Request(url), response.clone());
@@ -402,9 +404,9 @@ async function processPendingQueue() {
     try {
       const response = await fetch(item.url, {
         method: item.method,
+        credentials: 'include', // токен в httpOnly-cookie (same-origin)
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${item.token}`,
         },
         body: JSON.stringify(item.body),
       });

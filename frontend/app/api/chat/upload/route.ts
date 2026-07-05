@@ -107,8 +107,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       finalSize = fileSize;
     }
 
-    // Forward assembled file to api-gateway so it lands in the chat_uploads volume
-    const authHeader = request.headers.get('authorization') ?? '';
+    // Forward assembled file to api-gateway so it lands in the chat_uploads volume.
+    // Токен теперь в httpOnly-cookie `crm_at` (браузер шлёт её same-origin);
+    // заголовок Authorization оставлен как fallback для старого клиента.
+    const cookieToken = request.cookies.get('crm_at')?.value;
+    const authHeader =
+      request.headers.get('authorization') ??
+      (cookieToken ? `Bearer ${cookieToken}` : '');
     const displayName = isImage ? fileName.replace(/\.[^.]+$/, '.webp') : fileName;
 
     try {

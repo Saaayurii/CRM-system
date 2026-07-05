@@ -9,6 +9,7 @@ import {
   Query,
   Headers,
   Req,
+  Res,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
@@ -19,16 +20,83 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
+import type { Request, Response } from 'express';
 import { ProxyService } from '../../common/services/proxy.service';
 import { Public } from '../../common/decorators/public.decorator';
 
 // Strict rate limit for auth endpoints: 10 requests per minute per IP
 const AUTH_THROTTLE = { default: { ttl: 60_000, limit: 10 } };
 
+const ACCESS_COOKIE = 'crm_at';
+const REFRESH_COOKIE = 'crm_rt';
+// Читаемый JS хинт со сроком жизни access-токена (сам токен в httpOnly —
+// недоступен JS). По нему клиент проактивно обновляет сессию для SSE.
+const ACCESS_EXP_COOKIE = 'crm_at_exp';
+const COOKIE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 дней (= срок refresh)
+
+interface TokenBody {
+  accessToken?: string;
+  refreshToken?: string;
+}
+
 @ApiTags('Authentication')
 @Controller('api/v1/auth')
 export class AuthGatewayController {
   constructor(private readonly proxyService: ProxyService) {}
+
+  /** Достать значение cookie из заголовка Cookie (cookie-parser не подключён). */
+  private readCookie(req: Request, name: string): string | null {
+    const raw = req.headers.cookie;
+    if (!raw) return null;
+    const m = raw.match(new RegExp('(?:^|;\\s*)' + name + '=([^;]+)'));
+    return m ? decodeURIComponent(m[1]) : null;
+  }
+
+  private decodeExp(token: string): number | null {
+    try {
+      const payload = JSON.parse(
+        Buffer.from(token.split('.')[1], 'base64').toString('utf8'),
+      );
+      return typeof payload.exp === 'number' ? payload.exp : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Ставит httpOnly-cookie с токенами на ответ шлюза (только шлюз терминирует
+   * соединение с браузером). Вызывается для всех ответов, где есть пара токенов;
+   * ответы без токенов (выбор компании, 2FA-челлендж) пропускаются.
+   */
+  private setAuthCookies(res: Response, body: TokenBody): void {
+    if (!body?.accessToken || !body?.refreshToken) return;
+    const isProd = process.env.NODE_ENV === 'production';
+    const domain = process.env.AUTH_COOKIE_DOMAIN?.trim() || undefined;
+    const base = {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: 'lax' as const,
+      domain,
+      path: '/',
+      maxAge: COOKIE_MAX_AGE_MS,
+    };
+    res.cookie(ACCESS_COOKIE, body.accessToken, base);
+    res.cookie(REFRESH_COOKIE, body.refreshToken, base);
+
+    const exp = this.decodeExp(body.accessToken);
+    if (exp) {
+      // Хинт читаемый (httpOnly:false) — это лишь timestamp, не секрет.
+      res.cookie(ACCESS_EXP_COOKIE, String(exp), { ...base, httpOnly: false });
+    }
+  }
+
+  private clearAuthCookies(res: Response): void {
+    const domain = process.env.AUTH_COOKIE_DOMAIN?.trim() || undefined;
+    const opts = { domain, path: '/' };
+    res.clearCookie(ACCESS_COOKIE, opts);
+    res.clearCookie(REFRESH_COOKIE, opts);
+    res.clearCookie(ACCESS_EXP_COOKIE, opts);
+  }
 
   @Post('register')
   @Public()
@@ -42,8 +110,9 @@ export class AuthGatewayController {
     @Body() body: unknown,
     @Headers('user-agent') userAgent: string,
     @Req() req: any,
+    @Res({ passthrough: true }) res: Response,
   ) {
-    return this.proxyService.forward('auth', {
+    const result = await this.proxyService.forward<TokenBody>('auth', {
       method: 'POST',
       path: '/auth/register',
       data: body,
@@ -52,6 +121,8 @@ export class AuthGatewayController {
         'X-Real-IP': req.ip || '',
       },
     });
+    this.setAuthCookies(res, result);
+    return result;
   }
 
   @Post('login')
@@ -65,8 +136,9 @@ export class AuthGatewayController {
     @Body() body: unknown,
     @Headers('user-agent') userAgent: string,
     @Req() req: any,
+    @Res({ passthrough: true }) res: Response,
   ) {
-    return this.proxyService.forward('auth', {
+    const result = await this.proxyService.forward<TokenBody>('auth', {
       method: 'POST',
       path: '/auth/login',
       data: body,
@@ -75,6 +147,8 @@ export class AuthGatewayController {
         'X-Real-IP': req.ip || '',
       },
     });
+    this.setAuthCookies(res, result);
+    return result;
   }
 
   @Post('2fa/login')
@@ -88,8 +162,9 @@ export class AuthGatewayController {
     @Body() body: unknown,
     @Headers('user-agent') userAgent: string,
     @Req() req: any,
+    @Res({ passthrough: true }) res: Response,
   ) {
-    return this.proxyService.forward('auth', {
+    const result = await this.proxyService.forward<TokenBody>('auth', {
       method: 'POST',
       path: '/auth/2fa/login',
       data: body,
@@ -98,6 +173,8 @@ export class AuthGatewayController {
         'X-Real-IP': req.ip || '',
       },
     });
+    this.setAuthCookies(res, result);
+    return result;
   }
 
   // ── Password reset / account recovery via email ──────────────────────────
@@ -227,8 +304,9 @@ export class AuthGatewayController {
     @Body() body: unknown,
     @Headers('user-agent') userAgent: string,
     @Req() req: any,
+    @Res({ passthrough: true }) res: Response,
   ) {
-    return this.proxyService.forward('auth', {
+    const result = await this.proxyService.forward<TokenBody>('auth', {
       method: 'POST',
       path: '/auth/portal/login',
       data: body,
@@ -237,6 +315,8 @@ export class AuthGatewayController {
         'X-Real-IP': req.ip || '',
       },
     });
+    this.setAuthCookies(res, result);
+    return result;
   }
 
   @Post('portal/magic')
@@ -250,8 +330,9 @@ export class AuthGatewayController {
     @Body() body: unknown,
     @Headers('user-agent') userAgent: string,
     @Req() req: any,
+    @Res({ passthrough: true }) res: Response,
   ) {
-    return this.proxyService.forward('auth', {
+    const result = await this.proxyService.forward<TokenBody>('auth', {
       method: 'POST',
       path: '/auth/portal/magic',
       data: body,
@@ -260,6 +341,8 @@ export class AuthGatewayController {
         'X-Real-IP': req.ip || '',
       },
     });
+    this.setAuthCookies(res, result);
+    return result;
   }
 
   @Post('refresh')
@@ -269,12 +352,21 @@ export class AuthGatewayController {
   @ApiOperation({ summary: 'Refresh access token' })
   @ApiResponse({ status: 200, description: 'Tokens refreshed successfully' })
   @ApiResponse({ status: 401, description: 'Invalid refresh token' })
-  async refresh(@Body() body: unknown) {
-    return this.proxyService.forward('auth', {
+  async refresh(
+    @Body() body: any,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    // Refresh-токен теперь в httpOnly-cookie; тело оставлено для обратной
+    // совместимости (старый клиент/мобильное приложение).
+    const refreshToken = body?.refreshToken || this.readCookie(req, REFRESH_COOKIE);
+    const result = await this.proxyService.forward<TokenBody>('auth', {
       method: 'POST',
       path: '/auth/refresh',
-      data: body,
+      data: { refreshToken },
     });
+    this.setAuthCookies(res, result);
+    return result;
   }
 
   @Post('logout')
@@ -283,12 +375,17 @@ export class AuthGatewayController {
   @ApiOperation({ summary: 'Logout current session' })
   @ApiResponse({ status: 200, description: 'Logged out successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async logout(@Headers('authorization') authorization: string) {
-    return this.proxyService.forward('auth', {
+  async logout(
+    @Headers('authorization') authorization: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.proxyService.forward('auth', {
       method: 'POST',
       path: '/auth/logout',
       headers: { Authorization: authorization },
     });
+    this.clearAuthCookies(res);
+    return result;
   }
 
   @Post('logout-all')
@@ -297,12 +394,17 @@ export class AuthGatewayController {
   @ApiOperation({ summary: 'Logout all sessions' })
   @ApiResponse({ status: 200, description: 'All sessions terminated successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async logoutAll(@Headers('authorization') authorization: string) {
-    return this.proxyService.forward('auth', {
+  async logoutAll(
+    @Headers('authorization') authorization: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.proxyService.forward('auth', {
       method: 'POST',
       path: '/auth/logout-all',
       headers: { Authorization: authorization },
     });
+    this.clearAuthCookies(res);
+    return result;
   }
 
   @Get('me')
@@ -414,13 +516,18 @@ export class AuthGatewayController {
   @Post('register-company')
   @Public()
   @ApiOperation({ summary: 'Register a new company with admin user' })
-  async registerCompany(@Body() body: unknown) {
-    return this.proxyService.forward('auth', {
+  async registerCompany(
+    @Body() body: unknown,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.proxyService.forward<TokenBody>('auth', {
       method: 'POST',
       path: '/auth/register-company',
       data: body,
       headers: { 'content-type': 'application/json' },
     });
+    this.setAuthCookies(res, result);
+    return result;
   }
 
   // ── Multi-company account switching ────────────────────────────────
@@ -448,8 +555,9 @@ export class AuthGatewayController {
     @Headers('authorization') authorization: string,
     @Headers('user-agent') userAgent: string,
     @Req() req: any,
+    @Res({ passthrough: true }) res: Response,
   ) {
-    return this.proxyService.forward('auth', {
+    const result = await this.proxyService.forward<TokenBody>('auth', {
       method: 'POST',
       path: '/auth/switch-account',
       data: body,
@@ -459,6 +567,8 @@ export class AuthGatewayController {
         'X-Real-IP': req.ip || '',
       },
     });
+    this.setAuthCookies(res, result);
+    return result;
   }
 
   // ── Company Invites ──────────────────────────────────────────────────────

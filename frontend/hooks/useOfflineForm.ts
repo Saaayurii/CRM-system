@@ -30,19 +30,17 @@ export function useOfflineForm({ method, path, entityType }: UseOfflineFormOptio
     async (body: unknown, label = entityType): Promise<SubmitResult> => {
       setIsPending(true);
 
-      const token =
-        typeof window !== 'undefined' ? (localStorage.getItem('accessToken') ?? '') : '';
-
       const url = `${typeof window !== 'undefined' ? window.location.origin : ''}${path}`;
 
       // ── Try online first ────────────────────────────────────────────────────
       if (navigator.onLine) {
         try {
+          // Токен в httpOnly-cookie — шлём cookie same-origin.
           const response = await fetch(url, {
             method,
+            credentials: 'include',
             headers: {
               'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify(body),
             signal: AbortSignal.timeout(10_000),
@@ -70,7 +68,7 @@ export function useOfflineForm({ method, path, entityType }: UseOfflineFormOptio
 
       // ── Queue for later ─────────────────────────────────────────────────────
       try {
-        await addToQueue({ method, url, body, token, entityType, label });
+        await addToQueue({ method, url, body, token: '', entityType, label });
         await registerSync();
         await refreshQueue();
         addToast(

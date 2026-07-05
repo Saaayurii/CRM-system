@@ -44,10 +44,10 @@ async function uploadAndSend(
 ) {
   set({ isSending: true });
   try {
-    let token = '';
-    try { token = localStorage.getItem('accessToken') ?? ''; } catch { /* ignore */ }
+    // Токен в httpOnly-cookie — шлём cookie same-origin, заголовок не вешаем.
     const res = await fetch('/api/chat/upload', {
       method: 'POST',
+      credentials: 'include',
       headers: {
         'x-upload-id': crypto.randomUUID(),
         'x-chunk-index': '0',
@@ -56,7 +56,6 @@ async function uploadAndSend(
         'x-file-size': String(audioFile.size),
         'x-file-type': audioFile.type || 'audio/webm',
         'Content-Type': 'application/octet-stream',
-        ...(token ? { authorization: `Bearer ${token}` } : {}),
       },
       body: audioFile,
     });

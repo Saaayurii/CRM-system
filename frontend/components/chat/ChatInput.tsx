@@ -758,6 +758,7 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
             xhrMapRef.current.set(pf.id, xhrList);
 
             xhr.open('POST', '/api/chat/upload');
+            xhr.withCredentials = true; // токен в httpOnly-cookie (same-origin)
             xhr.setRequestHeader('x-upload-id',    uploadId);
             xhr.setRequestHeader('x-chunk-index',  String(chunkIndex));
             xhr.setRequestHeader('x-chunk-total',  String(chunkTotal));
@@ -766,10 +767,6 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
             xhr.setRequestHeader('x-file-type',    file.type || '');
             xhr.setRequestHeader('x-compress',     String(pf.compressed));
             xhr.setRequestHeader('Content-Type',   'application/octet-stream');
-            try {
-              const token = localStorage.getItem('accessToken');
-              if (token) xhr.setRequestHeader('authorization', `Bearer ${token}`);
-            } catch { /* ignore */ }
 
             xhr.upload.onprogress = (e) => {
               if (e.lengthComputable) {
@@ -1511,17 +1508,16 @@ export default function ChatInput({ channelId, projectId, channelType, onFilesSe
     setIsSending(true);
     try {
       const uploadId = crypto.randomUUID();
-      let token = '';
-      try { token = localStorage.getItem('accessToken') ?? ''; } catch { /* ignore */ }
+      // Токен в httpOnly-cookie — шлём cookie same-origin, заголовок не вешаем.
       const res = await fetch('/api/chat/upload', {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'x-upload-id': uploadId, 'x-chunk-index': '0', 'x-chunk-total': '1',
           'x-file-name': encodeURIComponent(videoFile.name),
           'x-file-size': String(videoFile.size),
           'x-file-type': videoFile.type || 'video/webm',
           'Content-Type': 'application/octet-stream',
-          ...(token ? { authorization: `Bearer ${token}` } : {}),
         },
         body: videoFile,
       });

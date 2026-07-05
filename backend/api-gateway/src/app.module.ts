@@ -44,6 +44,7 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor';
 import { KafkaProducerService } from './common/services/kafka-producer.service';
 import { RequestContextMiddleware } from './common/middleware/request-context.middleware';
+import { CookieAuthMiddleware } from './common/middleware/cookie-auth.middleware';
 
 @Module({
   imports: [
@@ -145,6 +146,8 @@ import { RequestContextMiddleware } from './common/middleware/request-context.mi
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(RequestContextMiddleware).forRoutes('*');
+    // CookieAuth должен отработать ПЕРВЫМ — до гвардов и до того, как любой
+    // контроллер прочитает req.headers.authorization.
+    consumer.apply(CookieAuthMiddleware, RequestContextMiddleware).forRoutes('*');
   }
 }

@@ -40,10 +40,8 @@ export default function AdminPage() {
   const handleCheckAll = useCallback(async () => {
     setIsChecking(true);
     try {
-      const token = localStorage.getItem('accessToken');
-      const res = await fetch('/api/docker/diagnostics', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      // Токен в httpOnly-cookie — браузер шлёт её same-origin автоматически.
+      const res = await fetch('/api/docker/diagnostics', { credentials: 'include' });
 
       if (!res.ok) throw new Error('Не удалось проверить сервисы');
       const data: DiagnosticsResponse = await res.json();

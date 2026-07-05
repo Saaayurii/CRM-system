@@ -36,6 +36,12 @@ export class UserResponseDto {
 
   @ApiPropertyOptional({ example: false, description: 'User must change password on next login' })
   mustChangePassword?: boolean;
+
+  @ApiPropertyOptional({ example: 'ООО «СтройКомпания»' })
+  accountName?: string;
+
+  @ApiPropertyOptional({ example: 'https://example.com/logo.png' })
+  accountLogoUrl?: string;
 }
 
 export class TokenResponseDto {

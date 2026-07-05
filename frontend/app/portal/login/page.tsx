@@ -4,7 +4,6 @@ import { useState, FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
-import { writeSsoTokens } from '@/lib/ssoCookie';
 import { AxiosError } from 'axios';
 import { useT } from '@/lib/i18n';
 import ForeignEmailNotice from '@/components/auth/ForeignEmailNotice';
@@ -25,11 +24,9 @@ export default function PortalLoginPage() {
     setLoading(true);
     try {
       const { data } = await api.post('/auth/portal/login', { login, password });
-      localStorage.setItem('accessToken', data.accessToken);
-      localStorage.setItem('refreshToken', data.refreshToken);
+      // Токены ставит gateway в httpOnly-cookie; храним только несекретный sessionId.
       if (data.sessionId) localStorage.setItem('sessionId', String(data.sessionId));
       document.cookie = `crm-session=true; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
-      writeSsoTokens(data.accessToken, data.refreshToken);
       window.location.href = '/dashboard';
     } catch (err) {
       const status = err instanceof AxiosError ? err.response?.status : undefined;

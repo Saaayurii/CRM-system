@@ -1,26 +1,25 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
-import { writeSsoTokens, clearSsoTokens } from '@/lib/ssoCookie';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
+  // Токены живут в httpOnly-cookie (недоступны JS — защита от XSS). Браузер сам
+  // прикладывает их к запросам, поэтому включаем передачу cookie.
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Request interceptor — attach Bearer token and optional account override
+// Request interceptor — cookie с токеном браузер шлёт сам; вручную вешаем только
+// необязательный override аккаунта (не секрет).
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   // For FormData let the browser set Content-Type with the correct boundary
   if (config.data instanceof FormData) {
     config.headers.delete('Content-Type');
   }
   if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('accessToken');
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
     const selectedAccountId = localStorage.getItem('selectedAccountId');
     if (selectedAccountId && config.headers) {
       config.headers['X-Account-Id'] = selectedAccountId;
@@ -28,6 +27,31 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   }
   return config;
 });
+
+// Обновление сессии, скоординированное между вкладками.
+// Refresh-токен теперь в httpOnly-cookie — браузер сам его прикладывает, а
+// gateway ставит новую cookie в ответе. JS токен не видит. Web Locks сериализует
+// обновление между вкладками, а серверный грейс-период (auth-service) гасит
+// оставшиеся гонки, поэтому телу запроса больше не нужны токены.
+export async function performRefresh(): Promise<void> {
+  const doRefresh = async (): Promise<void> => {
+    await axios.post(
+      `${API_BASE_URL}/auth/refresh`,
+      {},
+      { withCredentials: true },
+    );
+  };
+
+  if (
+    typeof navigator !== 'undefined' &&
+    'locks' in navigator &&
+    navigator.locks?.request
+  ) {
+    await navigator.locks.request('crm-token-refresh', doRefresh);
+    return;
+  }
+  await doRefresh();
+}
 
 // Response interceptor — handle 401 with token refresh
 let isRefreshing = false;
@@ -63,8 +87,8 @@ api.interceptors.response.use(
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({
-            resolve: (token: string) => {
-              originalRequest.headers.Authorization = `Bearer ${token}`;
+            resolve: () => {
+              // Cookie обновлена соседним refresh — просто повторяем запрос.
               resolve(api(originalRequest));
             },
             reject,
@@ -76,28 +100,16 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const refreshToken = localStorage.getItem('refreshToken');
-        if (!refreshToken) throw new Error('No refresh token');
+        // Обновляем сессию (cookie ставит gateway) и повторяем исходный запрос —
+        // токен браузер приложит из cookie сам, заголовок вручную не нужен.
+        await performRefresh();
 
-        const { data } = await axios.post(`${API_BASE_URL}/auth/refresh`, {
-          refreshToken,
-        });
+        processQueue(null, null);
 
-        const { accessToken, refreshToken: newRefreshToken } = data;
-        localStorage.setItem('accessToken', accessToken);
-        localStorage.setItem('refreshToken', newRefreshToken);
-        writeSsoTokens(accessToken, newRefreshToken);
-
-        processQueue(null, accessToken);
-
-        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
         document.cookie = 'crm-session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-        clearSsoTokens();
         if (typeof window !== 'undefined') {
           const path = window.location.pathname;
           if (window.location.hostname.startsWith('chat.')) {

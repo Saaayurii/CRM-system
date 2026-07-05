@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { sseUrl } from '@/lib/sseUrl';
-import { getFreshAccessToken } from '@/lib/freshToken';
+import { ensureFreshSession } from '@/lib/freshToken';
+import { getSystemSettings, invalidateSystemSettings } from '@/lib/settingsRequest';
 import api from '@/lib/api';
 
 /**
@@ -32,8 +33,8 @@ export default function MaintenanceIndicator() {
     const checkNow = async () => {
       if (closed) return;
       try {
-        const res = await api.get('/system-settings');
-        setOn(Boolean(res.data?.settings?.maintenance_mode));
+        const data = await getSystemSettings();
+        setOn(Boolean((data?.settings as { maintenance_mode?: boolean })?.maintenance_mode));
       } catch {
         // ignore — next poll/SSE retries
       }
@@ -43,10 +44,10 @@ export default function MaintenanceIndicator() {
 
     const connect = async () => {
       if (closed) return;
-      const token = await getFreshAccessToken();
-      if (closed || !token) return;
+      const ok = await ensureFreshSession();
+      if (closed || !ok) return;
 
-      const es = new EventSource(sseUrl('/system-settings/events', token));
+      const es = new EventSource(sseUrl('/system-settings/events'), { withCredentials: true });
       esRef.current = es;
       es.onopen = () => { void checkNow(); };
       es.addEventListener('maintenance', (e: MessageEvent) => {
@@ -92,6 +93,7 @@ export default function MaintenanceIndicator() {
     setBusy(true);
     try {
       await api.put('/system-settings', { settings: { maintenance_mode: false } });
+      invalidateSystemSettings(); // сбросить кеш, чтобы опрос не вернул старое значение
       setOn(false);
     } catch {
       // optimistic; SSE/poll will resync if it failed

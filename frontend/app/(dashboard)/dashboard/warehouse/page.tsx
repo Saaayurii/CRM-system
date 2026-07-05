@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { usePersistedState } from '@/hooks/usePersistedState';
 import CrudPage from '@/components/admin/CrudPage';
 import { ADMIN_MODULES } from '@/lib/admin/modulesConfig';
 import WarehousesTab from '@/components/warehouse/WarehousesTab';
@@ -27,20 +28,15 @@ type TabKey = typeof TABS[number]['key'];
 export default function WarehousePage() {
   const t = useT();
   const router = useRouter();
-  const [tab, setTab] = useState<TabKey>(() => {
-    if (typeof window !== 'undefined') {
-      const v = localStorage.getItem('warehouseTab');
-      if (v && TABS.some((t) => t.key === v)) return v as TabKey;
-    }
-    return 'warehouses';
-  });
+  const [tab, setTab] = usePersistedState<TabKey>(
+    'warehouseTab',
+    'warehouses',
+    TABS.map((t) => t.key),
+  );
   const [qrFor, setQrFor]     = useState<Record<string, unknown> | null>(null);
   const [moveFor, setMoveFor] = useState<{ row: Record<string, unknown>; refetch: () => void } | null>(null);
 
-  const handleTab = (k: TabKey) => {
-    setTab(k);
-    if (typeof window !== 'undefined') localStorage.setItem('warehouseTab', k);
-  };
+  const handleTab = (k: TabKey) => setTab(k);
 
   const handleExtraAction = (key: string, row: Record<string, unknown>, refetch: () => void) => {
     if (key === 'qr')   setQrFor(row);

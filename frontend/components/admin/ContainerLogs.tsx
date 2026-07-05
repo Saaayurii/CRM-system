@@ -39,10 +39,10 @@ export default function ContainerLogs({ containerId, onClose }: ContainerLogsPro
     setConnectionStatus('connecting');
     setErrorMessage('');
 
-    // EventSource doesn't support custom headers, so pass token as query param
-    const token = localStorage.getItem('accessToken') || '';
-    const url = `/api/docker/containers/${containerId}/logs?token=${encodeURIComponent(token)}`;
-    const es = new EventSource(url);
+    // Токен в httpOnly-cookie — EventSource с withCredentials шлёт её same-origin,
+    // verifyAdmin читает `crm_at` из cookie. Токен в URL больше не нужен.
+    const url = `/api/docker/containers/${containerId}/logs`;
+    const es = new EventSource(url, { withCredentials: true });
     eventSourceRef.current = es;
 
     es.onopen = () => {

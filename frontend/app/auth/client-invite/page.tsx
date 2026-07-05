@@ -92,8 +92,7 @@ function ClientInviteForm() {
       if (data?.accessToken) {
         try {
           const { data: tokenResp } = await api.post('/auth/portal/magic', { token: data.accessToken });
-          localStorage.setItem('accessToken', tokenResp.accessToken);
-          localStorage.setItem('refreshToken', tokenResp.refreshToken);
+          // Токены ставит gateway в httpOnly-cookie; храним только sessionId.
           if (tokenResp.sessionId) localStorage.setItem('sessionId', String(tokenResp.sessionId));
           document.cookie = `crm-session=true; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
           window.location.href = '/dashboard';

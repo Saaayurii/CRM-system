@@ -56,9 +56,10 @@ export async function processQueueNow(): Promise<{ processed: number; failed: nu
     try {
       const response = await fetch(item.url, {
         method: item.method,
+        // Токен в httpOnly-cookie — при повторе шлём cookie same-origin.
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${item.token}`,
         },
         body: JSON.stringify(item.body),
         signal: AbortSignal.timeout(15_000),

@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AuthenticatedSocket } from '../interfaces/authenticated-socket.interface';
-import { verifyJwtToken } from './jwt-key.options';
+import { verifyJwtToken, tokenFromHandshake } from './jwt-key.options';
 
 @Injectable()
 export class WsJwtGuard implements CanActivate {
@@ -19,9 +19,7 @@ export class WsJwtGuard implements CanActivate {
 
     if (client.user) return true;
 
-    const token =
-      client.handshake.auth?.token ||
-      client.handshake.headers?.authorization?.replace('Bearer ', '');
+    const token = tokenFromHandshake(client.handshake);
 
     if (!token) {
       this.logger.warn('WS connection rejected: no token provided');

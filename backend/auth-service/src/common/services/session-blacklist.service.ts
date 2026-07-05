@@ -1,8 +1,10 @@
 import { Injectable, OnModuleDestroy, OnModuleInit, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
+import * as crypto from 'crypto';
 
 const BLACKLIST_PREFIX = 'sess:revoked:';
+const GRACE_PREFIX = 'refresh:grace:';
 
 @Injectable()
 export class SessionBlacklistService implements OnModuleInit, OnModuleDestroy {
@@ -42,6 +44,48 @@ export class SessionBlacklistService implements OnModuleInit, OnModuleDestroy {
       return val !== null;
     } catch {
       return false; // fail open — don't block users if Redis is down
+    }
+  }
+
+  // ── Refresh-token rotation grace window ──────────────────────────────
+  // При ротации refresh-токена старый мгновенно перестаёт быть валидным в БД.
+  // Из-за этого вторая вкладка/параллельный запрос, пришедший со «старым»
+  // токеном сразу после ротации, получал 401 → разлогин. Чтобы это пережить,
+  // на короткое окно (≈60с) запоминаем связку старый→новый: опоздавший запрос
+  // получит актуальную пару токенов вместо ошибки.
+  private graceKey(token: string): string {
+    const hash = crypto.createHash('sha256').update(token).digest('hex');
+    return `${GRACE_PREFIX}${hash}`;
+  }
+
+  /** Запомнить, что `oldToken` ротирован в `newToken` (сессия `sessionId`). */
+  async rememberRotation(
+    oldToken: string,
+    newToken: string,
+    sessionId: number,
+    ttlSeconds = 60,
+  ): Promise<void> {
+    try {
+      await this.redis.set(
+        this.graceKey(oldToken),
+        JSON.stringify({ newToken, sessionId }),
+        'EX',
+        ttlSeconds,
+      );
+    } catch (err) {
+      this.logger.warn(`Failed to store rotation grace: ${(err as Error).message}`);
+    }
+  }
+
+  /** Если `oldToken` был недавно ротирован — вернуть новую пару, иначе null. */
+  async getRotatedPair(
+    oldToken: string,
+  ): Promise<{ newToken: string; sessionId: number } | null> {
+    try {
+      const val = await this.redis.get(this.graceKey(oldToken));
+      return val ? JSON.parse(val) : null;
+    } catch {
+      return null; // fail open
     }
   }
 }

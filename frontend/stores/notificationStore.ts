@@ -10,7 +10,7 @@ import {
   isPushSubscribed,
 } from '@/lib/pushNotifications';
 import { setFaviconBadge, startTitleFlash, stopTitleFlash } from '@/lib/tabBadge';
-import { getFreshAccessToken } from '@/lib/freshToken';
+import { ensureFreshSession } from '@/lib/freshToken';
 import { useThemeStore } from '@/stores/themeStore';
 import { isQuietNow } from '@/lib/appearance';
 
@@ -223,17 +223,17 @@ export const useNotificationStore = create<NotificationState>()(
           });
         }
 
-        // Open the stream with a guaranteed-fresh token. EventSource bakes the
-        // token into the URL, so a stale token here would 401 on (re)connect —
-        // refresh it first if it's near expiry.
+        // Обновляем сессию (cookie) перед подключением — истёкший access в
+        // cookie иначе даст 401 на (пере)подключении. EventSource с
+        // withCredentials сам приложит httpOnly-cookie, токен в URL не нужен.
         void (async () => {
-          const token = await getFreshAccessToken();
-          if (!token) return;
+          const ok = await ensureFreshSession();
+          if (!ok) return;
           // Bail if another connection was established while we awaited
           if (get().eventSource) return;
 
-          const url = sseUrl('/notifications/events', token);
-          const es = new EventSource(url);
+          const url = sseUrl('/notifications/events');
+          const es = new EventSource(url, { withCredentials: true });
 
         es.addEventListener('notification', (event) => {
           try {
@@ -282,12 +282,17 @@ export const useNotificationStore = create<NotificationState>()(
             const { sessionId } = JSON.parse(event.data);
             const currentSessionId = localStorage.getItem('sessionId');
             if (currentSessionId && Number(currentSessionId) === Number(sessionId)) {
-              // This session was revoked — clear credentials and redirect to login
-              localStorage.removeItem('accessToken');
-              localStorage.removeItem('refreshToken');
+              // Сессия отозвана. Токены в httpOnly-cookie — их чистит сервер:
+              // дёргаем logout (clearCookie на gateway), затем на форму входа.
               localStorage.removeItem('sessionId');
               document.cookie = 'crm-session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-              window.location.href = '/auth/login';
+              const base = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
+              void fetch(`${base}/auth/logout`, {
+                method: 'POST',
+                credentials: 'include',
+              }).finally(() => {
+                window.location.href = '/auth/login';
+              });
             }
           } catch {
             // ignore parse errors

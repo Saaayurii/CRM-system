@@ -1,14 +1,11 @@
-import axios from 'axios';
 import { create } from 'zustand';
 import api from '@/lib/api';
 import { updateBadge } from '@/stores/notificationStore';
 import { normalizeFileUrl } from '@/lib/utils';
 import { clearAllCached } from '@/lib/offlineCache';
 import { disablePushNotifications } from '@/lib/pushNotifications';
-import { writeSsoTokens, clearSsoTokens, hydrateTokensFromCookie } from '@/lib/ssoCookie';
+import { performRefresh } from '@/lib/api';
 import type { User, LoginRequest, LoginResponse, JwtPayload } from '@/types/auth';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
 
 // Map of known roleId -> code (seeded in DB)
 export const ROLE_MAP: Record<number, { code: string; name: string }> = {
@@ -45,7 +42,7 @@ interface AuthState {
   login: (credentials: LoginRequest) => Promise<void>;
   complete2fa: (token: string, code: string) => Promise<void>;
   logout: () => Promise<void>;
-  initialize: () => void;
+  initialize: () => Promise<void>;
   refreshRole: () => Promise<void>;
   updateUser: (patch: Partial<User>) => void;
   switchAccount: (accountId: number, accountName: string, accountLogoUrl?: string) => void;
@@ -76,17 +73,6 @@ function roleFromId(roleId: number | null | undefined) {
   return r ? { id: roleId, code: r.code, name: r.name } : { id: roleId, code: 'unknown', name: 'Unknown' };
 }
 
-// Fetch fresh tokens via refresh endpoint (bypasses api interceptor to avoid loops)
-async function silentRefresh(): Promise<{ accessToken: string; refreshToken: string } | null> {
-  try {
-    const refreshToken = localStorage.getItem('refreshToken');
-    if (!refreshToken) return null;
-    const { data } = await axios.post(`${API_BASE_URL}/auth/refresh`, { refreshToken });
-    return data;
-  } catch {
-    return null;
-  }
-}
 
 // Per-email memory of the last company (account) the user logged into, so the
 // "Выберите компанию" screen can be skipped on subsequent logins.
@@ -136,19 +122,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const { data } = await api.post<LoginResponse>('/auth/login', credentials);
 
-      localStorage.setItem('accessToken', data.accessToken);
-      localStorage.setItem('refreshToken', data.refreshToken);
+      // Токены ставит gateway в httpOnly-cookie — в localStorage их больше не
+      // храним (защита от XSS). Сохраняем только несекретный sessionId (для
+      // сверки force_logout) и маркер сессии.
       if (data.sessionId) localStorage.setItem('sessionId', String(data.sessionId));
       document.cookie = `crm-session=true; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
-      writeSsoTokens(data.accessToken, data.refreshToken);
 
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.ready.then((reg) => {
-          const sw = reg.active;
-          if (sw) {
-            sw.postMessage({ type: 'SET_TOKEN', token: data.accessToken });
-            sw.postMessage({ type: 'SYNC_NOW' });
-          }
+          reg.active?.postMessage({ type: 'SYNC_NOW' });
         }).catch(() => {});
       }
 
@@ -194,19 +176,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   complete2fa: async (token: string, code: string) => {
     const { data } = await api.post<LoginResponse>('/auth/2fa/login', { token, code });
 
-    localStorage.setItem('accessToken', data.accessToken);
-    localStorage.setItem('refreshToken', data.refreshToken);
     if (data.sessionId) localStorage.setItem('sessionId', String(data.sessionId));
     document.cookie = `crm-session=true; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
-    writeSsoTokens(data.accessToken, data.refreshToken);
 
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.ready.then((reg) => {
-        const sw = reg.active;
-        if (sw) {
-          sw.postMessage({ type: 'SET_TOKEN', token: data.accessToken });
-          sw.postMessage({ type: 'SYNC_NOW' });
-        }
+        reg.active?.postMessage({ type: 'SYNC_NOW' });
       }).catch(() => {});
     }
 
@@ -242,19 +217,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       /* ignore — proceed with logout regardless */
     }
 
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
+    // httpOnly-cookie нельзя удалить из JS — просим сервер их очистить и отозвать
+    // сессию. Даже при сетевой ошибке продолжаем локальный выход.
+    try {
+      await api.post('/auth/logout');
+    } catch {
+      /* ignore — всё равно чистим клиент и уходим на логин */
+    }
+
     localStorage.removeItem('sessionId');
     document.cookie = 'crm-session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-    clearSsoTokens();
 
     updateBadge(0);
-
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.ready.then((reg) => {
-        reg.active?.postMessage({ type: 'SET_TOKEN', token: null });
-      }).catch(() => {});
-    }
 
     set({ user: null, isAuthenticated: false });
     window.location.href = '/auth/login';
@@ -302,19 +276,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   switchCompany: async (accountId: number) => {
     const { data } = await api.post<LoginResponse>('/auth/switch-account', { accountId });
 
-    localStorage.setItem('accessToken', data.accessToken);
-    localStorage.setItem('refreshToken', data.refreshToken);
+    // Новую пару токенов ставит gateway в httpOnly-cookie; в localStorage не храним.
     if (data.sessionId) localStorage.setItem('sessionId', String(data.sessionId));
     document.cookie = `crm-session=true; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
-    writeSsoTokens(data.accessToken, data.refreshToken);
 
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.ready.then((reg) => {
-        const sw = reg.active;
-        if (sw) {
-          sw.postMessage({ type: 'SET_TOKEN', token: data.accessToken });
-          sw.postMessage({ type: 'SYNC_NOW' });
-        }
+        reg.active?.postMessage({ type: 'SYNC_NOW' });
       }).catch(() => {});
     }
 
@@ -334,8 +302,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   // Called on initialize() and can be called manually.
   refreshRole: async () => {
     try {
+      const currentRoleId = get().user?.roleId ?? null;
       const { data: me } = await api.get<User>('/auth/me');
-      const tokenRoleId = decodeJwt(localStorage.getItem('accessToken') ?? '')?.roleId;
       const freshRoleId = me.roleId ?? null;
 
       set((state) => ({
@@ -356,67 +324,54 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           : state.user,
       }));
 
-      // If role changed in DB vs token, silently get fresh tokens so
-      // subsequent API calls (and the next initialize) carry the new role.
-      if (freshRoleId !== tokenRoleId) {
-        const tokens = await silentRefresh();
-        if (tokens) {
-          localStorage.setItem('accessToken', tokens.accessToken);
-          localStorage.setItem('refreshToken', tokens.refreshToken);
-          writeSsoTokens(tokens.accessToken, tokens.refreshToken);
-        }
+      // Роль изменилась в БД — обновляем cookie (новый access несёт новую роль),
+      // чтобы последующие запросы шли уже с актуальными правами.
+      if (freshRoleId !== currentRoleId) {
+        await performRefresh().catch(() => {});
       }
     } catch {
-      // Network failure — keep the token-based data as-is
+      // Network failure — keep current data as-is
     }
   },
 
-  initialize: () => {
-    // First visit to the chat subdomain carries the session only in the shared
-    // cross-subdomain cookie — pull it into localStorage before reading.
-    hydrateTokensFromCookie();
-
-    const token = localStorage.getItem('accessToken');
-    if (!token) {
-      set({ isLoading: false, isAuthenticated: false });
-      return;
-    }
-
-    const payload = decodeJwt(token);
-    if (!payload || payload.exp * 1000 < Date.now()) {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      document.cookie = 'crm-session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-      clearSsoTokens();
-      set({ isLoading: false, isAuthenticated: false });
-      return;
-    }
-
+  initialize: async () => {
     const storedAccountId = localStorage.getItem('selectedAccountId');
-
-    // Fast path: set user from cached token immediately (no flicker)
     set({
-      user: {
-        id: payload.sub,
-        email: payload.email,
-        name: '',
-        accountId: payload.accountId,
-        accountName: payload.accountName,
-        accountLogoUrl: payload.accountLogoUrl,
-        isGlobalAdmin: payload.isGlobalAdmin ?? false,
-        roleId: payload.roleId ?? undefined,
-        isActive: true,
-        createdAt: '',
-        role: roleFromId(payload.roleId),
-      },
-      isAuthenticated: true,
-      isLoading: false,
       selectedAccountId: storedAccountId ? Number(storedAccountId) : null,
       selectedAccountName: localStorage.getItem('selectedAccountName'),
       selectedAccountLogo: localStorage.getItem('selectedAccountLogo'),
     });
 
-    // Background: refresh role from DB so changes made by admin take effect
-    get().refreshRole();
+    // Токен в httpOnly-cookie — читаем сессию через /auth/me. Если access
+    // протух, axios-интерсептор сам обновит его по cookie (refresh) и повторит;
+    // если сессии нет — вернётся 401 и мы считаем пользователя неавторизованным.
+    try {
+      const { data: me } = await api.get<User>('/auth/me');
+      const meAny = me as any;
+      set({
+        user: {
+          id: me.id,
+          email: me.email,
+          name: me.name || '',
+          accountId: me.accountId,
+          accountName: meAny.accountName,
+          accountLogoUrl: meAny.accountLogoUrl
+            ? (normalizeFileUrl(meAny.accountLogoUrl) ?? undefined)
+            : undefined,
+          isGlobalAdmin: meAny.isGlobalAdmin ?? false,
+          roleId: me.roleId ?? undefined,
+          isActive: me.isActive ?? true,
+          avatarUrl: me.avatarUrl ? (normalizeFileUrl(me.avatarUrl) ?? undefined) : undefined,
+          createdAt: '',
+          role: roleFromId(me.roleId ?? null),
+          mustChangePassword: meAny.mustChangePassword ?? false,
+        },
+        isAuthenticated: true,
+        isLoading: false,
+      });
+    } catch {
+      document.cookie = 'crm-session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      set({ user: null, isAuthenticated: false, isLoading: false });
+    }
   },
 }));

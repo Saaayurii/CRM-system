@@ -68,3 +68,22 @@ export function verifyJwtToken(token: string, config: ConfigService): any {
   }
   return jwt.verify(token, secret, { algorithms: ['HS256'] });
 }
+
+/**
+ * Достаёт access-токен из socket.io-хендшейка. Порядок: явный `auth.token`
+ * (старый клиент), затем заголовок Authorization, затем httpOnly-cookie `crm_at`
+ * (после перехода на cookie-авторизацию токен в JS недоступен, но хендшейк
+ * несёт cookie). Возвращает null, если токена нет.
+ */
+export function tokenFromHandshake(handshake: any): string | null {
+  const fromAuth = handshake?.auth?.token;
+  if (fromAuth) return fromAuth;
+  const fromHeader = handshake?.headers?.authorization?.replace('Bearer ', '');
+  if (fromHeader) return fromHeader;
+  const cookie: string | undefined = handshake?.headers?.cookie;
+  if (cookie) {
+    const m = cookie.match(/(?:^|;\s*)crm_at=([^;]+)/);
+    if (m) return decodeURIComponent(m[1]);
+  }
+  return null;
+}

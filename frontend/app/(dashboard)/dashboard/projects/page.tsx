@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { usePersistedState } from '@/hooks/usePersistedState';
 import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import ProjectFormModal from '@/components/dashboard/ProjectFormModal';
@@ -66,17 +67,9 @@ export default function ProjectsPage() {
   const [deleting, setDeleting] = useState(false);
   const addToast = useToastStore((s) => s.addToast);
   const { download: downloadPdf, loading: pdfLoading } = useDownloadPdf();
-  const [viewMode, setViewMode] = useState<ViewMode>(() => {
-    if (typeof window !== 'undefined') {
-      return (localStorage.getItem('dashViewMode') as ViewMode) || 'table';
-    }
-    return 'table';
-  });
+  const [viewMode, setViewMode] = usePersistedState<ViewMode>('dashViewMode', 'table');
 
-  const handleViewMode = (mode: ViewMode) => {
-    setViewMode(mode);
-    localStorage.setItem('dashViewMode', mode);
-  };
+  const handleViewMode = (mode: ViewMode) => setViewMode(mode);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('');

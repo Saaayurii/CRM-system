@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import api from '@/lib/api';
+import { getSystemSettings } from '@/lib/settingsRequest';
 import {
   AppearanceSettings,
   DEFAULT_APPEARANCE,
@@ -169,10 +170,10 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
   syncFromServer: async () => {
     if (serverSynced) return;
     // Фирменный акцент компании (доступен всем авторизованным)
-    api
-      .get('/system-settings')
-      .then(({ data }) => {
-        const accent = data?.settings?.defaultAccent || null;
+    getSystemSettings()
+      .then((data) => {
+        const accent =
+          (data?.settings as { defaultAccent?: string })?.defaultAccent || null;
         set({ companyAccent: accent });
         try {
           if (accent) localStorage.setItem('companyAccent', accent);

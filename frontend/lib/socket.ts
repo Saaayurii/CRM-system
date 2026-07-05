@@ -5,15 +5,16 @@ let socket: Socket | null = null;
 export function getSocket(): Socket {
   if (socket) return socket;
 
-  const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-
   // If env var is set and non-empty — use it directly (local dev).
   // Otherwise connect to current origin; Next.js rewrites /chat/* → localhost:3011/chat/*
   const envUrl = process.env.NEXT_PUBLIC_CHAT_WS_URL;
   const baseUrl = (envUrl && envUrl.trim()) ? envUrl : (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3011');
 
+  // Токен больше не кладём в auth — он в httpOnly-cookie, которую socket.io
+  // прикладывает к хендшейку при withCredentials. Сервер (chat.gateway/ws-jwt)
+  // читает `crm_at` из cookie хендшейка.
   socket = io(`${baseUrl}/chat`, {
-    auth: { token },
+    withCredentials: true,
     transports: ['polling', 'websocket'],
     autoConnect: false,
   });

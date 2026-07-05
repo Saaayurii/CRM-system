@@ -17,7 +17,7 @@ import { WsExceptionFilter } from '../../common/filters/ws-exception.filter';
 import { ChatService } from './chat.service';
 import { PresenceService } from '../presence/presence.service';
 import { NotificationsClientService } from './notifications-client.service';
-import { verifyJwtToken } from '../../common/guards/jwt-key.options';
+import { verifyJwtToken, tokenFromHandshake } from '../../common/guards/jwt-key.options';
 
 // Heartbeat-presence: живые сокеты продлеваются каждые 30с,
 // записи без продления дольше 75с считаются протухшими (2 пропущенных бита + запас)
@@ -94,9 +94,7 @@ export class ChatGateway
 
   async handleConnection(client: AuthenticatedSocket) {
     try {
-      const token =
-        client.handshake.auth?.token ||
-        client.handshake.headers?.authorization?.replace('Bearer ', '');
+      const token = tokenFromHandshake(client.handshake);
 
       if (!token) {
         this.logger.warn(`Connection rejected: no token (${client.id})`);

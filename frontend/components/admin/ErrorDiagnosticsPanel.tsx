@@ -75,13 +75,10 @@ export default function ErrorDiagnosticsPanel({ errors, onCheckAll, isChecking }
     setIsFixingAll(true);
     setFixAllSteps([]);
     try {
-      const token = localStorage.getItem('accessToken');
       const res = await fetch('/api/docker/auto-fix', {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'fix-all' }),
       });
       if (res.ok) {
@@ -100,13 +97,10 @@ export default function ErrorDiagnosticsPanel({ errors, onCheckAll, isChecking }
   async function handleFixService(serviceName: string) {
     setFixingService(serviceName);
     try {
-      const token = localStorage.getItem('accessToken');
       const res = await fetch('/api/docker/auto-fix', {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'fix-service', serviceName: `crm-${serviceName}` }),
       });
       if (res.ok) {

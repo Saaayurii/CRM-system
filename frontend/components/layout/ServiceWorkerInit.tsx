@@ -2,7 +2,6 @@
 
 import { useEffect } from 'react';
 import { useToastStore } from '@/stores/toastStore';
-import { useT } from '@/lib/i18n';
 
 /**
  * Registers /sw.js and sets up Periodic Background Sync.
@@ -15,18 +14,11 @@ import { useT } from '@/lib/i18n';
  *  4. Listen for SYNC_COMPLETE messages from SW
  */
 export default function ServiceWorkerInit() {
-  const t = useT();
   useEffect(() => {
     if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
 
-    let registration: ServiceWorkerRegistration | null = null;
-
-    const sendToken = (reg: ServiceWorkerRegistration) => {
-      const token = localStorage.getItem('accessToken');
-      if (!token) return;
-      const sw = reg.active ?? reg.installing ?? reg.waiting;
-      sw?.postMessage({ type: 'SET_TOKEN', token });
-    };
+    // Токен теперь в httpOnly-cookie — SW делает fetch с credencials и получает
+    // cookie сам; пробрасывать токен в SW (SET_TOKEN) больше не нужно.
 
     const registerPeriodicSync = async (reg: ServiceWorkerRegistration) => {
       if (!('periodicSync' in reg)) return;
@@ -76,11 +68,7 @@ export default function ServiceWorkerInit() {
     navigator.serviceWorker
       .register('/sw.js', { scope: '/' })
       .then((reg) => {
-        registration = reg;
         console.debug('[SW] Registered:', reg.scope);
-
-        // Send auth token to SW immediately
-        sendToken(reg);
 
         // Register periodic background sync
         registerPeriodicSync(reg);
@@ -96,25 +84,11 @@ export default function ServiceWorkerInit() {
           });
         });
 
-        // When a new SW takes control, re-send the token
-        navigator.serviceWorker.addEventListener('controllerchange', () => {
-          if (registration) sendToken(registration);
-        });
       })
       .catch((err) => console.warn('[SW] Registration failed:', err));
 
-    // Re-send token when localStorage changes (login in another tab)
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key === 'accessToken' && e.newValue && registration) {
-        const sw = registration.active ?? registration.installing ?? registration.waiting;
-        sw?.postMessage({ type: 'SET_TOKEN', token: e.newValue });
-      }
-    };
-    window.addEventListener('storage', handleStorage);
-
     return () => {
       navigator.serviceWorker.removeEventListener('message', handleSwMessage);
-      window.removeEventListener('storage', handleStorage);
     };
   }, []);
 

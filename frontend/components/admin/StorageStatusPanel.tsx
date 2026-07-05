@@ -45,10 +45,8 @@ export default function StorageStatusPanel() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('accessToken');
-      const res = await fetch('/api/v1/admin/storage/status', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      // Токен в httpOnly-cookie — браузер шлёт её same-origin автоматически.
+      const res = await fetch('/api/v1/admin/storage/status', { credentials: 'include' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setStatus(await res.json());
       setError('');

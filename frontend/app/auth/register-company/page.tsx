@@ -98,8 +98,7 @@ function RegisterCompanyForm() {
 
       // Use tokens returned directly from registration — avoids multi-account selector
       if (regData.accessToken) {
-        localStorage.setItem('accessToken', regData.accessToken);
-        localStorage.setItem('refreshToken', regData.refreshToken);
+        // Токены ставит gateway в httpOnly-cookie; храним только sessionId.
         if (regData.sessionId) localStorage.setItem('sessionId', String(regData.sessionId));
         document.cookie = `crm-session=true; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
       } else {

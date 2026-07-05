@@ -86,8 +86,9 @@ export default function MaintenancePage() {
     if (isAuthLoading) return;
     if (isSuperAdmin) return;
 
-    const token = localStorage.getItem('accessToken');
-    if (!token) return;
+    // Токен в httpOnly-cookie — гейтимся по читаемому маркеру сессии.
+    const hasSession = /(?:^|;\s*)crm-session=true/.test(document.cookie);
+    if (!hasSession) return;
 
     let closed = false;
 
@@ -101,7 +102,7 @@ export default function MaintenancePage() {
       }
     };
 
-    const es = new EventSource(sseUrl('/system-settings/events', token));
+    const es = new EventSource(sseUrl('/system-settings/events'), { withCredentials: true });
     es.onopen = () => { void checkOff(); };
     es.addEventListener('maintenance', (e: MessageEvent) => {
       try {

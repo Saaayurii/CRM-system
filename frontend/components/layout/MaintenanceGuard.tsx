@@ -4,8 +4,8 @@ import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { sseUrl } from '@/lib/sseUrl';
-import { getFreshAccessToken } from '@/lib/freshToken';
-import api from '@/lib/api';
+import { ensureFreshSession } from '@/lib/freshToken';
+import { getSystemSettings } from '@/lib/settingsRequest';
 
 interface MaintenanceEvent {
   mode: boolean;
@@ -38,8 +38,8 @@ export default function MaintenanceGuard({ children }: { children: React.ReactNo
     const checkNow = async () => {
       if (closed) return;
       try {
-        const res = await api.get('/system-settings');
-        const settings: Record<string, unknown> = res.data?.settings ?? {};
+        const data = await getSystemSettings();
+        const settings: Record<string, unknown> = data?.settings ?? {};
         const event: MaintenanceEvent = {
           mode: Boolean(settings.maintenance_mode),
           allowedRoles: (settings.maintenance_allowed_roles as string[]) ?? [],
@@ -59,10 +59,10 @@ export default function MaintenanceGuard({ children }: { children: React.ReactNo
     //    while disconnected.
     const connect = async () => {
       if (closed) return;
-      const token = await getFreshAccessToken();
-      if (closed || !token) return;
+      const ok = await ensureFreshSession();
+      if (closed || !ok) return;
 
-      const es = new EventSource(sseUrl('/system-settings/events', token));
+      const es = new EventSource(sseUrl('/system-settings/events'), { withCredentials: true });
       esRef.current = es;
 
       es.onopen = () => { void checkNow(); };

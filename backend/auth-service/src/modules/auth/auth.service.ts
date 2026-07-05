@@ -539,12 +539,33 @@ export class AuthService {
           tokenPair.refreshTokenExpiresAt,
         );
 
+        // Грейс-период: на ≈60с запоминаем связку старый→новый токен, чтобы
+        // опоздавшая вкладка со «старым» токеном не получила 401 → разлогин.
+        await this.sessionBlacklist.rememberRotation(
+          refreshTokenDto.refreshToken,
+          tokenPair.refreshToken,
+          session.id,
+        );
+
         const accessToken = this.tokenService.generateAccessToken({
           ...jwtPayload,
           sid: session.id,
         });
 
         return { accessToken, refreshToken: tokenPair.refreshToken };
+      }
+
+      // Гонка вкладок: токен уже ротирован другим запросом секунду назад.
+      // Отдаём актуальную пару из грейс-окна вместо разлогина.
+      const rotated = await this.sessionBlacklist.getRotatedPair(
+        refreshTokenDto.refreshToken,
+      );
+      if (rotated) {
+        const accessToken = this.tokenService.generateAccessToken({
+          ...jwtPayload,
+          sid: rotated.sessionId,
+        });
+        return { accessToken, refreshToken: rotated.newToken };
       }
 
       // Fallback: check User.refreshToken for old sessions
@@ -645,7 +666,14 @@ export class AuthService {
   async getMe(userId: number): Promise<UserResponseDto> {
     const user = await this.userRepository.findByIdWithRole(userId);
     if (!user) throw new NotFoundException('User not found');
-    return this.mapUserToResponse(user);
+    // accountName/logo нужны фронту на инициализации (при httpOnly он больше не
+    // достаёт их из JWT — токен недоступен JS).
+    const account = await this.accountRepository.findById(user.accountId);
+    return {
+      ...this.mapUserToResponse(user),
+      accountName: account?.name ?? undefined,
+      accountLogoUrl: (account?.settings as any)?.logoUrl ?? undefined,
+    };
   }
 
   // ── Registration Requests ──────────────────────────────────────────

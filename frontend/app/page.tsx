@@ -7,8 +7,10 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    const token = localStorage.getItem('accessToken');
-    router.replace(token ? '/dashboard' : '/landing');
+    // Токен теперь в httpOnly-cookie (JS не читает). Ориентируемся на читаемый
+    // маркер сессии `crm-session`, который ставится при входе.
+    const hasSession = /(?:^|;\s*)crm-session=true/.test(document.cookie);
+    router.replace(hasSession ? '/dashboard' : '/landing');
   }, [router]);
 
   return (
