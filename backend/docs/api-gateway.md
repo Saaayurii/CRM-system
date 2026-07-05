@@ -27,6 +27,20 @@
 
 ## Особенности
 - Все маршруты защищены `JwtAuthGuard` по умолчанию; публичные помечены `@Public()`
+- **Статика `/uploads/*` авторизуется** (`createUploadsAuthMiddleware`, до `useStaticAssets`)
+  — **за флагом `UPLOADS_AUTH=true` (по умолчанию ВЫКЛ)**. Токен из cookie `crm_at` /
+  `Authorization: Bearer` / `?token=` верифицируется тем же `JWT_ACCESS_SECRET` (при
+  `JWT_PUBLIC_KEY` — RS256). Без валидного токена — 401. Браузер сам шлёт httpOnly-cookie на
+  `<img src="/uploads/...">` и открытие PDF (same-origin), поэтому у авторизованных
+  пользователей файлы грузятся без изменений на фронте. Публичный allowlist — только логотипы
+  (`/uploads/logos/*`, показываются на странице логина до входа). Прод обычно на S3
+  (`STORAGE_PROVIDER=s3`), local `/uploads` — dev/fallback.
+  > ⚠️ Включать `UPLOADS_AUTH=true` только ПОСЛЕ выката cookie-слоя (`crm_at`): иначе браузер
+  > не сможет прислать токен на `<img>`/PDF и файлы начнут отдавать 401.
+- **Security-заголовки** на всех ответах шлюза: `X-Content-Type-Options: nosniff`,
+  `X-Frame-Options: SAMEORIGIN`, `Referrer-Policy: no-referrer`, `Strict-Transport-Security`
+  (в prod). `X-Powered-By` отключён (`app.disable('x-powered-by')`). Фронт (Next.js) выставляет
+  свой набор (CSP/HSTS/…) в `next.config.ts`.
 - **JWT валидируется локально** (HS256 по общему `JWT_ACCESS_SECRET`) — без HTTP-запроса в
   auth-service на каждый запрос. Дополнительно `JwtStrategy` проверяет Redis-блэклист
   `sess:revoked:<sid>` (`SessionRevocationService`) → отозванная сессия отвергается 401 в
