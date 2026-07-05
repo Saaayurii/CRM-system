@@ -9,7 +9,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { SkipThrottle } from '@nestjs/throttler';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 import { diskStorage } from 'multer';
-import { extname, join } from 'path';
+import { join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import { randomUUID } from 'crypto';
 import { StorageService } from '../../common/services/storage.service';
@@ -17,6 +17,14 @@ import { Roles, MANAGEMENT_ROLES } from '../../common/decorators/roles.decorator
 
 const UPLOAD_DIR = join(process.cwd(), 'uploads', 'reports');
 const APP_PUBLIC_URL = (process.env.APP_PUBLIC_URL || '').replace(/\/$/, '');
+
+const ALLOWED_MIME_TO_EXT: Record<string, string> = {
+  'text/csv': '.csv',
+  'application/csv': '.csv',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx',
+  'application/vnd.ms-excel': '.xls',
+  'application/pdf': '.pdf',
+};
 
 @Roles(...MANAGEMENT_ROLES)
 @SkipThrottle()
@@ -39,11 +47,18 @@ export class ReportsUploadController {
           cb(null, UPLOAD_DIR);
         },
         filename: (_req, file, cb) => {
-          const ext = extname(file.originalname);
+          const ext = ALLOWED_MIME_TO_EXT[file.mimetype] ?? '.bin';
           cb(null, `${randomUUID()}${ext}`);
         },
       }),
       limits: { fileSize: 50 * 1024 * 1024 }, // 50 MB
+      fileFilter: (_req, file, cb) => {
+        if (ALLOWED_MIME_TO_EXT[file.mimetype]) {
+          cb(null, true);
+        } else {
+          cb(new BadRequestException('Недопустимый тип файла. Разрешены: CSV, XLSX, XLS, PDF'), false);
+        }
+      },
     }),
   )
   async uploadFile(

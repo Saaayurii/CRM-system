@@ -14,7 +14,7 @@ import { FilesInterceptor } from '@nestjs/platform-express';
 import { SkipThrottle } from '@nestjs/throttler';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 import { diskStorage } from 'multer';
-import { extname, join, basename } from 'path';
+import { join, basename } from 'path';
 import { existsSync, mkdirSync, unlinkSync } from 'fs';
 import { randomUUID } from 'crypto';
 import { spawn } from 'child_process';
@@ -23,6 +23,29 @@ import { AnyRole } from '../../common/decorators/roles.decorator';
 
 const UPLOAD_DIR = join(process.cwd(), 'uploads', 'chat');
 const APP_PUBLIC_URL = (process.env.APP_PUBLIC_URL || '').replace(/\/$/, '');
+
+// Whitelist MIME → extension; HTML/JS/SVG намеренно исключены
+const ALLOWED_MIME_TO_EXT: Record<string, string> = {
+  'image/jpeg': '.jpg',
+  'image/png': '.png',
+  'image/gif': '.gif',
+  'image/webp': '.webp',
+  'video/mp4': '.mp4',
+  'video/webm': '.webm',
+  'video/quicktime': '.mov',
+  'audio/mpeg': '.mp3',
+  'audio/ogg': '.ogg',
+  'audio/wav': '.wav',
+  'audio/webm': '.weba',
+  'application/pdf': '.pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': '.pptx',
+  'text/plain': '.txt',
+  'application/zip': '.zip',
+  'application/x-zip-compressed': '.zip',
+};
+
 const VIDEO_VARIANTS = [
   { label: '480p', scale: '480', crf: '28' },
   { label: '720p', scale: '720', crf: '26' },
@@ -114,11 +137,18 @@ export class ChatUploadController {
           cb(null, UPLOAD_DIR);
         },
         filename: (_req, file, cb) => {
-          const ext = extname(file.originalname);
+          const ext = ALLOWED_MIME_TO_EXT[file.mimetype] ?? '.bin';
           cb(null, `${randomUUID()}${ext}`);
         },
       }),
-      limits: { fileSize: 1 * 1024 * 1024 * 1024 }, // 1 GB
+      limits: { fileSize: 100 * 1024 * 1024 }, // 100 MB
+      fileFilter: (_req, file, cb) => {
+        if (ALLOWED_MIME_TO_EXT[file.mimetype]) {
+          cb(null, true);
+        } else {
+          cb(new BadRequestException('Недопустимый тип файла'), false);
+        }
+      },
     }),
   )
   async uploadFiles(@UploadedFiles() files: Express.Multer.File[]) {

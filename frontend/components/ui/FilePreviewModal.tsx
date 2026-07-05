@@ -213,10 +213,13 @@ export default function FilePreviewModal({ fileUrl, fileName, mimeType, onClose 
           )}
 
           {state.kind === 'html' && (
-            <div className="absolute inset-0 overflow-auto p-6">
-              <div
-                className="prose prose-sm dark:prose-invert max-w-none [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-gray-300 [&_td]:px-2 [&_td]:py-1 [&_td]:text-xs [&_th]:border [&_th]:border-gray-300 [&_th]:px-2 [&_th]:py-1 [&_th]:text-xs [&_th]:bg-gray-100 dark:[&_th]:bg-gray-800 [&_table]:text-gray-800 dark:[&_table]:text-gray-200"
-                dangerouslySetInnerHTML={{ __html: state.content }}
+            <div className="absolute inset-0 p-4">
+              {/* sandbox без allow-scripts: HTML рендерится, скрипты не выполняются */}
+              <iframe
+                srcDoc={state.content}
+                sandbox="allow-same-origin"
+                className="w-full h-full border-0 rounded bg-white"
+                title={fileName ?? 'preview'}
               />
             </div>
           )}

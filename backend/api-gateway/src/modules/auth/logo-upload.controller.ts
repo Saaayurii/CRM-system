@@ -8,7 +8,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiConsumes } from '@nestjs/swagger';
 import { diskStorage } from 'multer';
-import { extname, join } from 'path';
+import { join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import { randomUUID } from 'crypto';
 import { Public } from '../../common/decorators/public.decorator';
@@ -16,7 +16,14 @@ import { StorageService } from '../../common/services/storage.service';
 
 const UPLOAD_DIR = join(process.cwd(), 'uploads', 'logos');
 const APP_PUBLIC_URL = (process.env.APP_PUBLIC_URL || '').replace(/\/$/, '');
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml'];
+
+// SVG исключён намеренно: SVG может содержать <script> → stored XSS при отдаче с того же origin
+const ALLOWED_MIME_TO_EXT: Record<string, string> = {
+  'image/jpeg': '.jpg',
+  'image/png': '.png',
+  'image/webp': '.webp',
+  'image/gif': '.gif',
+};
 
 @ApiTags('Auth')
 @Controller('api/v1/auth')
@@ -37,16 +44,16 @@ export class LogoUploadController {
           cb(null, UPLOAD_DIR);
         },
         filename: (_req, file, cb) => {
-          const ext = extname(file.originalname);
+          const ext = ALLOWED_MIME_TO_EXT[file.mimetype] ?? '.jpg';
           cb(null, `${randomUUID()}${ext}`);
         },
       }),
       limits: { fileSize: 2 * 1024 * 1024 }, // 2 MB
       fileFilter: (_req, file, cb) => {
-        if (ALLOWED_TYPES.includes(file.mimetype)) {
+        if (ALLOWED_MIME_TO_EXT[file.mimetype]) {
           cb(null, true);
         } else {
-          cb(new BadRequestException('Разрешены только изображения (JPEG, PNG, WebP, GIF, SVG)'), false);
+          cb(new BadRequestException('Разрешены только изображения (JPEG, PNG, WebP, GIF)'), false);
         }
       },
     }),

@@ -9,13 +9,21 @@ import { FilesInterceptor } from '@nestjs/platform-express';
 import { SkipThrottle } from '@nestjs/throttler';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 import { diskStorage } from 'multer';
-import { extname, join } from 'path';
+import { join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import { randomUUID } from 'crypto';
 import { StorageService } from '../../common/services/storage.service';
 import { AnyRole } from '../../common/decorators/roles.decorator';
 
 const UPLOAD_DIR = join(process.cwd(), 'uploads', 'inspections');
+
+const ALLOWED_MIME_TO_EXT: Record<string, string> = {
+  'image/jpeg': '.jpg',
+  'image/png': '.png',
+  'image/gif': '.gif',
+  'image/webp': '.webp',
+  'application/pdf': '.pdf',
+};
 
 @AnyRole()
 @SkipThrottle()
@@ -38,11 +46,18 @@ export class InspectionsUploadController {
           cb(null, UPLOAD_DIR);
         },
         filename: (_req, file, cb) => {
-          const ext = extname(file.originalname);
+          const ext = ALLOWED_MIME_TO_EXT[file.mimetype] ?? '.bin';
           cb(null, `${randomUUID()}${ext}`);
         },
       }),
       limits: { fileSize: 25 * 1024 * 1024 }, // 25 MB
+      fileFilter: (_req, file, cb) => {
+        if (ALLOWED_MIME_TO_EXT[file.mimetype]) {
+          cb(null, true);
+        } else {
+          cb(new BadRequestException('Недопустимый тип файла. Разрешены: изображения и PDF'), false);
+        }
+      },
     }),
   )
   async uploadFiles(@UploadedFiles() files: Express.Multer.File[]) {
