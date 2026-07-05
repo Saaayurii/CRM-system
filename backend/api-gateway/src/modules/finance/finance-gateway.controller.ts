@@ -21,10 +21,17 @@ import { Request, Response } from 'express';
 import { HttpService } from '@nestjs/axios';
 import { ProxyService } from '../../common/services/proxy.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { RequestContextService } from '../../common/services/request-context.service';
+
+// IDs доступных ролей (роли без финансового доступа: 10=worker, 11=supplier, 12=contractor, 13=observer, 15=client)
+const FINANCE_ROLES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 14];
+// Платёжные данные и зарплата — только финансово-ответственные роли
+const SENSITIVE_FINANCE_ROLES = [1, 2, 3, 4, 8];
 
 @ApiTags('Finance')
 @ApiBearerAuth()
+@Roles(...FINANCE_ROLES)
 @UseGuards(JwtAuthGuard)
 @Controller('api/v1')
 export class FinanceGatewayController {
@@ -36,6 +43,7 @@ export class FinanceGatewayController {
 
   // Payment Accounts
   @Get('payment-accounts')
+  @Roles(...SENSITIVE_FINANCE_ROLES)
   @ApiOperation({ summary: 'Get all payment accounts' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
@@ -53,6 +61,7 @@ export class FinanceGatewayController {
   }
 
   @Get('payment-accounts/:id')
+  @Roles(...SENSITIVE_FINANCE_ROLES)
   @ApiOperation({ summary: 'Get payment account by ID' })
   async findOnePaymentAccount(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('finance', {
@@ -63,6 +72,7 @@ export class FinanceGatewayController {
   }
 
   @Post('payment-accounts')
+  @Roles(...SENSITIVE_FINANCE_ROLES)
   @ApiOperation({ summary: 'Create payment account' })
   async createPaymentAccount(@Req() req: Request, @Body() body: any) {
     return this.proxyService.forward('finance', {
@@ -77,6 +87,7 @@ export class FinanceGatewayController {
   }
 
   @Put('payment-accounts/:id')
+  @Roles(...SENSITIVE_FINANCE_ROLES)
   @ApiOperation({ summary: 'Update payment account' })
   async updatePaymentAccount(
     @Req() req: Request,
@@ -95,6 +106,7 @@ export class FinanceGatewayController {
   }
 
   @Delete('payment-accounts/:id')
+  @Roles(...SENSITIVE_FINANCE_ROLES)
   @ApiOperation({ summary: 'Delete payment account' })
   async removePaymentAccount(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('finance', {
@@ -106,6 +118,7 @@ export class FinanceGatewayController {
 
   // Payments
   @Get('payments')
+  @Roles(...SENSITIVE_FINANCE_ROLES)
   @ApiOperation({ summary: 'Get all payments' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
@@ -150,6 +163,7 @@ export class FinanceGatewayController {
   }
 
   @Get('payments/stats')
+  @Roles(...SENSITIVE_FINANCE_ROLES)
   @ApiOperation({ summary: 'Aggregated finance stats' })
   @ApiQuery({ name: 'projectId', required: false })
   @ApiQuery({ name: 'constructionSiteId', required: false })
@@ -171,6 +185,7 @@ export class FinanceGatewayController {
   }
 
   @Get('payments/:id')
+  @Roles(...SENSITIVE_FINANCE_ROLES)
   @ApiOperation({ summary: 'Get payment by ID' })
   async findOnePayment(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('finance', {
@@ -181,6 +196,7 @@ export class FinanceGatewayController {
   }
 
   @Post('payments')
+  @Roles(...SENSITIVE_FINANCE_ROLES)
   @ApiOperation({ summary: 'Create payment' })
   async createPayment(@Req() req: Request, @Body() body: any) {
     return this.proxyService.forward('finance', {
@@ -195,6 +211,7 @@ export class FinanceGatewayController {
   }
 
   @Put('payments/:id')
+  @Roles(...SENSITIVE_FINANCE_ROLES)
   @ApiOperation({ summary: 'Update payment' })
   async updatePayment(
     @Req() req: Request,
@@ -213,6 +230,7 @@ export class FinanceGatewayController {
   }
 
   @Delete('payments/:id')
+  @Roles(...SENSITIVE_FINANCE_ROLES)
   @ApiOperation({ summary: 'Delete payment' })
   async removePayment(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('finance', {
@@ -404,6 +422,7 @@ export class FinanceGatewayController {
 
   // Bonuses
   @Get('bonuses')
+  @Roles(...SENSITIVE_FINANCE_ROLES)
   @ApiOperation({ summary: 'Get all bonuses' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
@@ -421,6 +440,7 @@ export class FinanceGatewayController {
   }
 
   @Get('bonuses/:id')
+  @Roles(...SENSITIVE_FINANCE_ROLES)
   @ApiOperation({ summary: 'Get bonus by ID' })
   async findOneBonus(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('finance', {
@@ -431,6 +451,7 @@ export class FinanceGatewayController {
   }
 
   @Post('bonuses')
+  @Roles(...SENSITIVE_FINANCE_ROLES)
   @ApiOperation({ summary: 'Create bonus' })
   async createBonus(@Req() req: Request, @Body() body: any) {
     return this.proxyService.forward('finance', {
@@ -445,6 +466,7 @@ export class FinanceGatewayController {
   }
 
   @Put('bonuses/:id')
+  @Roles(...SENSITIVE_FINANCE_ROLES)
   @ApiOperation({ summary: 'Update bonus' })
   async updateBonus(
     @Req() req: Request,
@@ -463,6 +485,7 @@ export class FinanceGatewayController {
   }
 
   @Delete('bonuses/:id')
+  @Roles(...SENSITIVE_FINANCE_ROLES)
   @ApiOperation({ summary: 'Delete bonus' })
   async removeBonus(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('finance', {
@@ -474,6 +497,7 @@ export class FinanceGatewayController {
 
   // Payroll
   @Get('payroll')
+  @Roles(...SENSITIVE_FINANCE_ROLES)
   @ApiOperation({ summary: 'Get all payroll records' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
@@ -491,6 +515,7 @@ export class FinanceGatewayController {
   }
 
   @Get('payroll/:id')
+  @Roles(...SENSITIVE_FINANCE_ROLES)
   @ApiOperation({ summary: 'Get payroll record by ID' })
   async findOnePayroll(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('finance', {
@@ -501,6 +526,7 @@ export class FinanceGatewayController {
   }
 
   @Post('payroll')
+  @Roles(...SENSITIVE_FINANCE_ROLES)
   @ApiOperation({ summary: 'Create payroll record' })
   async createPayroll(@Req() req: Request, @Body() body: any) {
     return this.proxyService.forward('finance', {
@@ -515,6 +541,7 @@ export class FinanceGatewayController {
   }
 
   @Put('payroll/:id')
+  @Roles(...SENSITIVE_FINANCE_ROLES)
   @ApiOperation({ summary: 'Update payroll record' })
   async updatePayroll(
     @Req() req: Request,
@@ -533,6 +560,7 @@ export class FinanceGatewayController {
   }
 
   @Delete('payroll/:id')
+  @Roles(...SENSITIVE_FINANCE_ROLES)
   @ApiOperation({ summary: 'Delete payroll record' })
   async removePayroll(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('finance', {
@@ -940,6 +968,7 @@ export class FinanceGatewayController {
   }
 
   @Get('financial-reports/project/:projectId/articles')
+  @Roles(...SENSITIVE_FINANCE_ROLES)
   @ApiOperation({ summary: 'List distinct expense articles for a project' })
   async listExpenseArticles(@Req() req: Request, @Param('projectId') projectId: string) {
     return this.proxyService.forward('finance', {
@@ -950,6 +979,7 @@ export class FinanceGatewayController {
   }
 
   @Get('financial-reports/project/:projectId/export')
+  @Roles(...SENSITIVE_FINANCE_ROLES)
   @ApiOperation({ summary: 'Export project financial report as PDF' })
   @ApiQuery({ name: 'format', enum: ['expense-statement', 'balance-detail'], required: true })
   @ApiQuery({ name: 'article', required: false })

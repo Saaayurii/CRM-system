@@ -25,7 +25,11 @@ import { MessageEvent } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ProxyService } from '../../common/services/proxy.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+
+const SETTINGS_WRITE_ROLES = [1, 2]; // super_admin, admin
+const BANK_ADMIN_ROLES = [1, 2, 8]; // super_admin, admin, accountant
 import { MaintenanceSubService } from '../../redis/maintenance-sub.service';
 import { RequestContextService } from '../../common/services/request-context.service';
 
@@ -85,6 +89,7 @@ export class SettingsGatewayController {
   }
 
   @Put('system-settings')
+  @Roles(...SETTINGS_WRITE_ROLES)
   @ApiOperation({ summary: 'Update current account system settings' })
   async updateCurrentSystemSettings(
     @Req() req: Request,
@@ -102,6 +107,7 @@ export class SettingsGatewayController {
   }
 
   @Put('system-settings/:id')
+  @Roles(...SETTINGS_WRITE_ROLES)
   @ApiOperation({ summary: 'Update system setting' })
   async updateSystemSetting(
     @Req() req: Request,
@@ -191,6 +197,7 @@ export class SettingsGatewayController {
   }
 
   @Post('company-bank-accounts')
+  @Roles(...BANK_ADMIN_ROLES)
   @ApiOperation({ summary: 'Create company bank account' })
   async createCompanyBankAccount(@Req() req: Request, @Body() body: any) {
     return this.proxyService.forward('settings', {
@@ -205,6 +212,7 @@ export class SettingsGatewayController {
   }
 
   @Put('company-bank-accounts/:id')
+  @Roles(...BANK_ADMIN_ROLES)
   @ApiOperation({ summary: 'Update company bank account' })
   async updateCompanyBankAccount(
     @Req() req: Request,
@@ -223,6 +231,7 @@ export class SettingsGatewayController {
   }
 
   @Delete('company-bank-accounts/:id')
+  @Roles(...BANK_ADMIN_ROLES)
   @ApiOperation({ summary: 'Delete company bank account' })
   async deleteCompanyBankAccount(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('settings', {

@@ -19,6 +19,9 @@ import {
 import { Request } from 'express';
 import { ProxyService } from '../../common/services/proxy.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+
+const USER_MANAGE_ROLES = [1, 2, 3]; // super_admin, admin, hr_manager
 
 @ApiTags('Users')
 @ApiBearerAuth()
@@ -65,6 +68,7 @@ export class UsersGatewayController {
   }
 
   @Post()
+  @Roles(...USER_MANAGE_ROLES)
   @ApiOperation({ summary: 'Create new user' })
   async create(@Req() req: Request, @Body() body: any) {
     return this.proxyService.forward('users', {
@@ -115,6 +119,7 @@ export class UsersGatewayController {
   }
 
   @Delete(':id')
+  @Roles(...USER_MANAGE_ROLES)
   @ApiOperation({ summary: 'Delete user' })
   async remove(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('users', {

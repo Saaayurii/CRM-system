@@ -38,6 +38,7 @@ import { ShareGatewayModule } from './modules/share/share-gateway.module';
 import { JwtStrategy } from './common/guards/jwt.strategy';
 import { SessionRevocationService } from './common/services/session-revocation.service';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
+import { RolesGuard } from './common/guards/roles.guard';
 import { ClientReadOnlyGuard } from './common/guards/client-readonly.guard';
 import { GatewayExceptionFilter } from './common/filters/gateway-exception.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
@@ -115,10 +116,14 @@ import { CookieAuthMiddleware } from './common/middleware/cookie-auth.middleware
     JwtStrategy,
     SessionRevocationService,
     KafkaProducerService,
-    // Global Guards
+    // Global Guards (order matters: JWT → Roles → ClientReadOnly)
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
     },
     {
       provide: APP_GUARD,
