@@ -503,6 +503,52 @@ export class ChatGatewayController {
     });
   }
 
+  // --- Scheduled messages (отложенные сообщения) ---
+  // Роуты есть в chat-service, но в шлюзе их не было → фронтовый fetchScheduled
+  // получал 404. Проксируем как остальные chat-channels-эндпоинты.
+
+  @Get('chat-channels/:id/scheduled')
+  @ApiOperation({ summary: 'List my scheduled messages in a channel' })
+  async getScheduledMessages(@Req() req: Request, @Param('id') id: string) {
+    return this.proxyService.forward('chat', {
+      method: 'GET',
+      path: `/chat-channels/${id}/scheduled`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  @Post('chat-channels/:id/scheduled')
+  @ApiOperation({ summary: 'Schedule a message in a channel' })
+  async scheduleMessage(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
+    return this.proxyService.forward('chat', {
+      method: 'POST',
+      path: `/chat-channels/${id}/scheduled`,
+      headers: {
+        authorization: req.headers.authorization || '',
+        'content-type': 'application/json',
+      },
+      data: body,
+    });
+  }
+
+  @Delete('chat-channels/:id/scheduled/:scheduledId')
+  @ApiOperation({ summary: 'Cancel a scheduled message' })
+  async cancelScheduledMessage(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Param('scheduledId') scheduledId: string,
+  ) {
+    return this.proxyService.forward('chat', {
+      method: 'DELETE',
+      path: `/chat-channels/${id}/scheduled/${scheduledId}`,
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
   // --- Message operations ---
 
   @Post('chat-messages/:id/burn-media')
