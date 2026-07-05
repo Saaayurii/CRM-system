@@ -21,6 +21,7 @@ import { SkipThrottle } from '@nestjs/throttler';
 import { Request, Response } from 'express';
 import * as http from 'http';
 import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 import { ProxyService } from '../../common/services/proxy.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { AnyRole } from '../../common/decorators/roles.decorator';
@@ -43,6 +44,7 @@ export class NotificationsGatewayController {
   constructor(
     private readonly proxyService: ProxyService,
     private readonly configService: ConfigService,
+    private readonly jwtService: JwtService,
   ) {}
 
   // SSE proxy — forward EventSource to notifications-service
@@ -64,7 +66,21 @@ export class NotificationsGatewayController {
     // httpOnly-cookie). Берём токен из cookie `crm_at` и передаём вниз тем же
     // ?token= — notifications-service остаётся без изменений.
     const authToken = token || tokenFromCookie(req);
-    const url = `${notificationsUrl}/notifications/events?token=${encodeURIComponent(authToken || '')}`;
+
+    // Проверяем JWT ДО writeHead(200): иначе клиент получал 200 даже без токена,
+    // так как headers пишутся немедленно, до ответа от notifications-service.
+    if (!authToken) {
+      res.status(401).json({ statusCode: 401, message: 'Unauthorized' });
+      return;
+    }
+    try {
+      this.jwtService.verify(authToken);
+    } catch {
+      res.status(401).json({ statusCode: 401, message: 'Unauthorized' });
+      return;
+    }
+
+    const url = `${notificationsUrl}/notifications/events?token=${encodeURIComponent(authToken)}`;
 
     // SSE headers — no-transform stops intermediaries from buffering/compressing
     res.writeHead(200, {
