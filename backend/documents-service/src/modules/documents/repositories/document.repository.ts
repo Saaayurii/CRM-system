@@ -18,6 +18,7 @@ export class DocumentRepository {
       constructionSiteId?: number;
       allowedProjectIds?: number[];
       search?: string;
+      excludeRestricted?: boolean;
     },
   ) {
     const skip = (page - 1) * limit;
@@ -47,6 +48,10 @@ export class DocumentRepository {
       where.projectId = filters.allowedProjectIds.length > 0
         ? { in: filters.allowedProjectIds }
         : -1;
+    }
+
+    if (filters?.excludeRestricted) {
+      where.accessLevel = { not: 'restricted' };
     }
 
     const [data, total] = await Promise.all([

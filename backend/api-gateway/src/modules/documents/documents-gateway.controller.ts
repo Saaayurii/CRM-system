@@ -22,9 +22,11 @@ import { Request } from 'express';
 import { HttpService } from '@nestjs/axios';
 import { ProxyService } from '../../common/services/proxy.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { AnyRole, Roles, DOC_WRITE_ROLES } from '../../common/decorators/roles.decorator';
 
 @ApiTags('Documents')
 @ApiBearerAuth()
+@AnyRole()
 @UseGuards(JwtAuthGuard)
 @Controller('api/v1')
 export class DocumentsGatewayController {
@@ -72,6 +74,7 @@ export class DocumentsGatewayController {
   }
 
   @Post('documents')
+  @Roles(...DOC_WRITE_ROLES)
   @ApiOperation({ summary: 'Create document' })
   async createDocument(@Req() req: Request, @Body() body: any) {
     return this.proxyService.forward('documents', {
@@ -86,6 +89,7 @@ export class DocumentsGatewayController {
   }
 
   @Put('documents/:id')
+  @Roles(...DOC_WRITE_ROLES)
   @ApiOperation({ summary: 'Update document' })
   async updateDocument(
     @Req() req: Request,
@@ -104,6 +108,7 @@ export class DocumentsGatewayController {
   }
 
   @Delete('documents/:id')
+  @Roles(...DOC_WRITE_ROLES)
   @ApiOperation({ summary: 'Delete document' })
   async removeDocument(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('documents', {
@@ -206,6 +211,7 @@ export class DocumentsGatewayController {
   }
 
   @Post('document-templates')
+  @Roles(...DOC_WRITE_ROLES)
   @ApiOperation({ summary: 'Create document template' })
   async createDocumentTemplate(@Req() req: Request, @Body() body: any) {
     return this.proxyService.forward('documents', {
@@ -220,6 +226,7 @@ export class DocumentsGatewayController {
   }
 
   @Put('document-templates/:id')
+  @Roles(...DOC_WRITE_ROLES)
   @ApiOperation({ summary: 'Update document template' })
   async updateDocumentTemplate(
     @Req() req: Request,
@@ -238,6 +245,7 @@ export class DocumentsGatewayController {
   }
 
   @Delete('document-templates/:id')
+  @Roles(...DOC_WRITE_ROLES)
   @ApiOperation({ summary: 'Delete document template' })
   async removeDocumentTemplate(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('documents', {

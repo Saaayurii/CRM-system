@@ -19,9 +19,11 @@ import {
 import { Request } from 'express';
 import { ProxyService } from '../../common/services/proxy.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { AnyRole, Roles, PM_ROLES } from '../../common/decorators/roles.decorator';
 
 @ApiTags('Projects')
 @ApiBearerAuth()
+@AnyRole()
 @UseGuards(JwtAuthGuard)
 @Controller('api/v1/projects')
 export class ProjectsGatewayController {
@@ -57,6 +59,7 @@ export class ProjectsGatewayController {
   }
 
   @Post()
+  @Roles(...PM_ROLES)
   @ApiOperation({ summary: 'Create new project' })
   async create(@Req() req: Request, @Body() body: any) {
     return this.proxyService.forward('projects', {
@@ -71,6 +74,7 @@ export class ProjectsGatewayController {
   }
 
   @Put(':id')
+  @Roles(...PM_ROLES)
   @ApiOperation({ summary: 'Update project' })
   async update(
     @Req() req: Request,
@@ -89,6 +93,7 @@ export class ProjectsGatewayController {
   }
 
   @Delete(':id')
+  @Roles(...PM_ROLES)
   @ApiOperation({ summary: 'Delete project' })
   async remove(@Req() req: Request, @Param('id') id: string) {
     return this.proxyService.forward('projects', {

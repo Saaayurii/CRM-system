@@ -9,6 +9,9 @@ import {
   getClientAllowedProjectIds,
 } from '../../common/helpers/client-access.helper';
 
+// Роли, которым разрешено видеть документы с accessLevel = 'restricted'
+const RESTRICTED_ALLOWED_ROLES = new Set([1, 2, 3, 4, 8, 14]);
+
 @Injectable()
 export class DocumentsService {
   constructor(
@@ -23,9 +26,11 @@ export class DocumentsService {
     filters?: { projectId?: number; documentType?: string; status?: string; constructionSiteId?: number; search?: string },
   ) {
     const allowedProjectIds = await getClientAllowedProjectIds(this.prisma, user);
+    const excludeRestricted = !RESTRICTED_ALLOWED_ROLES.has(user.roleId as number);
     return this.documentRepository.findAll(user.accountId, page, limit, {
       ...filters,
       allowedProjectIds,
+      excludeRestricted,
     });
   }
 
@@ -33,6 +38,9 @@ export class DocumentsService {
     const document = await this.documentRepository.findById(id, user.accountId);
     if (!document) {
       throw new NotFoundException(`Document with ID ${id} not found`);
+    }
+    if (document.accessLevel === 'restricted' && !RESTRICTED_ALLOWED_ROLES.has(user.roleId as number)) {
+      throw new ForbiddenException('Access denied');
     }
     if (user.roleId === CLIENT_ROLE_ID) {
       const allowed = await getClientAllowedProjectIds(this.prisma, user);

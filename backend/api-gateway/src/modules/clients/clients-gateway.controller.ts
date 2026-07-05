@@ -20,9 +20,11 @@ import { Request } from 'express';
 import { ProxyService } from '../../common/services/proxy.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Public } from '../../common/decorators/public.decorator';
+import { Roles, CRM_ROLES } from '../../common/decorators/roles.decorator';
 
 @ApiTags('Clients')
 @ApiBearerAuth()
+@Roles(...CRM_ROLES)
 @UseGuards(JwtAuthGuard)
 @Controller('api/v1')
 export class ClientsGatewayController {
