@@ -2,14 +2,17 @@
 
 import React, { useState, useRef, useEffect, useLayoutEffect, useCallback, memo } from 'react';
 import { createPortal } from 'react-dom';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useToastStore } from '@/stores/toastStore';
 import { ChatMessage as ChatMessageType, useChatStore } from '@/stores/chatStore';
-import MediaViewer, { MediaItem } from './MediaViewer';
+import type { MediaItem } from './MediaViewer';
 import SelfDestructMedia, { BurnedMediaPlaceholder } from './SelfDestructMedia';
-import FilePreviewModal from '@/components/ui/FilePreviewModal';
-import UserProfileModal from './UserProfileModal';
 import { haptic } from '@/lib/haptics';
+
+const MediaViewer = dynamic(() => import('./MediaViewer'), { ssr: false });
+const FilePreviewModal = dynamic(() => import('@/components/ui/FilePreviewModal'), { ssr: false });
+const UserProfileModal = dynamic(() => import('./UserProfileModal'), { ssr: false });
 import { useVoicePlayerStore } from '@/stores/voicePlayerStore';
 import { useThemeStore } from '@/stores/themeStore';
 import { nameColorClass } from '@/lib/appearance';

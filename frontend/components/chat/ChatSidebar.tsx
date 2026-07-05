@@ -1,13 +1,15 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { useChatStore, ChatChannel } from '@/stores/chatStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useIsClient } from '@/hooks/useIsClient';
-import CreateChannelModal from './CreateChannelModal';
-import ChatContextMenu from './ChatContextMenu';
-import ChatPreviewModal from './ChatPreviewModal';
 import api from '@/lib/api';
+
+const CreateChannelModal = dynamic(() => import('./CreateChannelModal'), { ssr: false });
+const ChatContextMenu = dynamic(() => import('./ChatContextMenu'), { ssr: false });
+const ChatPreviewModal = dynamic(() => import('./ChatPreviewModal'), { ssr: false });
 import { useToastStore } from '@/stores/toastStore';
 import { previewMessageText } from '@/lib/chat/messagePreview';
 import { profileColorBg } from '@/lib/chat/channelDisplay';

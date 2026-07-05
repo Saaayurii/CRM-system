@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useEffect, useCallback, useState, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import { useChatStore, ChatChannel, ChatMessage as ChatMessageType } from '@/stores/chatStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useThemeStore } from '@/stores/themeStore';
@@ -11,13 +12,14 @@ import { formatLastSeen } from '@/lib/chat/channelDisplay';
 import api from '@/lib/api';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
-import UserProfileModal from './UserProfileModal';
 import VoicePlayerBar from './VoicePlayerBar';
-import ForwardMessageModal from './ForwardMessageModal';
-import TopicListView from './TopicListView';
-import TopicTabsRail from './TopicTabsRail';
-import ScheduledMessagesView from './ScheduledMessagesView';
 import { useT } from '@/lib/i18n';
+
+const UserProfileModal = dynamic(() => import('./UserProfileModal'), { ssr: false });
+const ForwardMessageModal = dynamic(() => import('./ForwardMessageModal'), { ssr: false });
+const ScheduledMessagesView = dynamic(() => import('./ScheduledMessagesView'), { ssr: false });
+const TopicListView = dynamic(() => import('./TopicListView'), { ssr: false });
+const TopicTabsRail = dynamic(() => import('./TopicTabsRail'), { ssr: false });
 
 /* Плавающие «стеклянные» поверхности шапки и input-бара чата (Liquid Glass,
    как в Telegram iOS): полупрозрачное молочное стекло + блюр + тонкая рамка и
