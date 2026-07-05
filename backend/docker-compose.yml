@@ -197,6 +197,10 @@ services:
       # Public URL for building absolute file URLs (set to your domain in production)
       APP_PUBLIC_URL: ${APP_PUBLIC_URL:-}
 
+      # Авторизация статики /uploads/* (аудит #2). Включать true ТОЛЬКО после
+      # выката cookie-слоя crm_at, иначе браузер не пришлёт токен на <img>/PDF.
+      UPLOADS_AUTH: ${UPLOADS_AUTH:-false}
+
       # File storage: local (default) or s3 (REG.RU Object Storage)
       STORAGE_PROVIDER: ${STORAGE_PROVIDER:-local}
       AWS_S3_BUCKET_NAME: ${AWS_S3_BUCKET_NAME:-}
