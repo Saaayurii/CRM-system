@@ -16,6 +16,7 @@ export class UserRepository {
     }
     return (this.prisma as any).user.findMany({
       where,
+      omit: { passwordDigest: true },
       include: {
         role: {
           select: {
@@ -36,6 +37,7 @@ export class UserRepository {
         id,
         deletedAt: null,
       },
+      omit: { passwordDigest: true },
       include: {
         role: {
           select: {
@@ -66,6 +68,7 @@ export class UserRepository {
         roleId,
         deletedAt: null,
       },
+      omit: { passwordDigest: true },
       include: {
         role: {
           select: {
@@ -89,6 +92,7 @@ export class UserRepository {
         ...(data.passwordDigest ? { passwordDigest: data.passwordDigest } : {}),
         ...(data.mustChangePassword !== undefined ? { mustChangePassword: data.mustChangePassword } : {}),
       },
+      omit: { passwordDigest: true },
       include: {
         role: {
           select: {
@@ -104,6 +108,7 @@ export class UserRepository {
     return (this.prisma as any).user.update({
       where: { id },
       data,
+      omit: { passwordDigest: true },
       include: {
         role: {
           select: {

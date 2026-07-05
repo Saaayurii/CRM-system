@@ -40,9 +40,6 @@ export class UserResponseDto {
   @ApiPropertyOptional({ example: 'г. Москва, ул. Примерная, 1' })
   address?: string;
 
-  @ApiPropertyOptional({ description: 'Hashed password (read-only)' })
-  passwordDigest?: string;
-
   @ApiPropertyOptional({ example: false, description: 'User must change password on next login' })
   mustChangePassword?: boolean;
 

@@ -89,24 +89,26 @@ async function bootstrap() {
     }),
   );
 
-  // Swagger Setup
-  const config = new DocumentBuilder()
-    .setTitle('Construction CRM API')
-    .setDescription('API Gateway for Construction CRM System')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .addTag('Authentication', 'User authentication and authorization')
-    .addTag('Health', 'Service health checks')
-    .build();
+  // Swagger: только в non-production окружениях
+  if (!isProd) {
+    const config = new DocumentBuilder()
+      .setTitle('Construction CRM API')
+      .setDescription('API Gateway for Construction CRM System')
+      .setVersion('1.0')
+      .addBearerAuth()
+      .addTag('Authentication', 'User authentication and authorization')
+      .addTag('Health', 'Service health checks')
+      .build();
 
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api/docs', app, document);
+    logger.log(
+      `Swagger documentation available at http://localhost:${port}/api/docs`,
+    );
+  }
 
   await app.listen(port);
   logger.log(`API Gateway is running on port ${port}`);
-  logger.log(
-    `Swagger documentation available at http://localhost:${port}/api/docs`,
-  );
 }
 
 bootstrap();

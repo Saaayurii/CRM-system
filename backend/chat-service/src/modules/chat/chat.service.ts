@@ -173,7 +173,8 @@ export class ChatService {
     user: { id: number; roleId: number; accountId: number },
   ) {
     const channel = await this.findChannelById(id, user.accountId);
-    if (user.roleId === 15) {
+    // super_admin (1) и admin (2) могут читать метаданные канала без членства
+    if (user.roleId !== 1 && user.roleId !== 2) {
       const member = await this.chatRepository.findChannelMember(id, user.id);
       if (!member) {
         throw new ForbiddenException('Access denied');
@@ -575,7 +576,7 @@ export class ChatService {
   ) {
     const channel = await this.findChannelById(channelId, user.accountId);
     const member = (channel.members || []).find((m: any) => m.userId === user.id);
-    if (user.roleId === 15 && !member) {
+    if (!member) {
       throw new ForbiddenException('Access denied');
     }
 
