@@ -25,7 +25,7 @@ import { MessageEvent } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ProxyService } from '../../common/services/proxy.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
+import { Roles, AnyRole } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
 const SETTINGS_WRITE_ROLES = [1, 2]; // super_admin, admin
@@ -35,6 +35,7 @@ import { RequestContextService } from '../../common/services/request-context.ser
 
 @ApiTags('Settings')
 @ApiBearerAuth()
+@AnyRole()
 @UseGuards(JwtAuthGuard)
 @Controller('api/v1')
 export class SettingsGatewayController {

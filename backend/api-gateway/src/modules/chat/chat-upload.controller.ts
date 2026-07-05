@@ -19,6 +19,7 @@ import { existsSync, mkdirSync, unlinkSync } from 'fs';
 import { randomUUID } from 'crypto';
 import { spawn } from 'child_process';
 import { StorageService } from '../../common/services/storage.service';
+import { AnyRole } from '../../common/decorators/roles.decorator';
 
 const UPLOAD_DIR = join(process.cwd(), 'uploads', 'chat');
 const APP_PUBLIC_URL = (process.env.APP_PUBLIC_URL || '').replace(/\/$/, '');
@@ -27,6 +28,7 @@ const VIDEO_VARIANTS = [
   { label: '720p', scale: '720', crf: '26' },
 ];
 
+@AnyRole()
 @SkipThrottle()
 @ApiTags('Chat')
 @ApiBearerAuth()

@@ -20,9 +20,11 @@ import {
 import { Request } from 'express';
 import { ProxyService } from '../../common/services/proxy.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { AnyRole } from '../../common/decorators/roles.decorator';
 
 @ApiTags('Construction Sites')
 @ApiBearerAuth()
+@AnyRole()
 @UseGuards(JwtAuthGuard)
 @Controller('api/v1/construction-sites')
 export class ConstructionSitesGatewayController {

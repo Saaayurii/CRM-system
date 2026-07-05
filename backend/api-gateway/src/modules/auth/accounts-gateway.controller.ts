@@ -8,9 +8,11 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { ProxyService } from '../../common/services/proxy.service';
+import { Roles } from '../../common/decorators/roles.decorator';
 
 @ApiTags('Accounts')
 @ApiBearerAuth()
+@Roles(1)
 @Controller('api/v1/accounts')
 export class AccountsGatewayController {
   constructor(private readonly proxyService: ProxyService) {}

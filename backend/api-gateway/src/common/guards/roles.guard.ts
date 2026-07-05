@@ -25,7 +25,10 @@ export class RolesGuard implements CanActivate {
       [context.getHandler(), context.getClass()],
     );
 
-    if (!allowedRoles || allowedRoles.length === 0) return true;
+    if (allowedRoles === undefined) {
+      throw new ForbiddenException('Недостаточно прав');
+    }
+    if (allowedRoles.length === 0) return true;
 
     const request = context.switchToHttp().getRequest();
     const user = request.user as JwtPayload | undefined;

@@ -19,9 +19,11 @@ import {
 import { Request } from 'express';
 import { ProxyService } from '../../common/services/proxy.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { Roles, MANAGEMENT_ROLES } from '../../common/decorators/roles.decorator';
 
 @ApiTags('Reports')
 @ApiBearerAuth()
+@Roles(...MANAGEMENT_ROLES)
 @UseGuards(JwtAuthGuard)
 @Controller('api/v1')
 export class ReportsGatewayController {

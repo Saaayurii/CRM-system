@@ -19,9 +19,11 @@ import {
 import { Request } from 'express';
 import { ProxyService } from '../../common/services/proxy.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 
 @ApiTags('Suppliers')
 @ApiBearerAuth()
+@Roles(1, 2, 3, 4, 6, 7, 8, 14)
 @UseGuards(JwtAuthGuard)
 @Controller('api/v1')
 export class SuppliersGatewayController {

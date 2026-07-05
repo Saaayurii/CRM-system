@@ -21,9 +21,11 @@ import { Res } from '@nestjs/common';
 import { ProxyService } from '../../common/services/proxy.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Public } from '../../common/decorators/public.decorator';
+import { AnyRole } from '../../common/decorators/roles.decorator';
 
 @ApiTags('Calendar')
 @ApiBearerAuth()
+@AnyRole()
 @UseGuards(JwtAuthGuard)
 @Controller('api/v1')
 export class CalendarGatewayController {

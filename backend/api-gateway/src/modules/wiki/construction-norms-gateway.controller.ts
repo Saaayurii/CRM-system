@@ -14,6 +14,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { Request } from 'express';
 import { ProxyService } from '../../common/services/proxy.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { AnyRole } from '../../common/decorators/roles.decorator';
 
 /**
  * Gateway proxy for the Construction Wiki (Строительная ВИКИ) — global
@@ -22,6 +23,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
  */
 @ApiTags('Construction Norms')
 @ApiBearerAuth()
+@AnyRole()
 @UseGuards(JwtAuthGuard)
 @Controller('api/v1')
 export class ConstructionNormsGatewayController {

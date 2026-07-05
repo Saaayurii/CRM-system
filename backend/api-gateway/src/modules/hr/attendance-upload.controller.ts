@@ -13,10 +13,12 @@ import { extname, join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import { randomUUID } from 'crypto';
 import { StorageService } from '../../common/services/storage.service';
+import { AnyRole } from '../../common/decorators/roles.decorator';
 
 const UPLOAD_DIR = join(process.cwd(), 'uploads', 'attendance');
 const APP_PUBLIC_URL = (process.env.APP_PUBLIC_URL || '').replace(/\/$/, '');
 
+@AnyRole()
 @SkipThrottle()
 @ApiTags('Attendance')
 @ApiBearerAuth()

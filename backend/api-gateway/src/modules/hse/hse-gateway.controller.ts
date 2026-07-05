@@ -14,6 +14,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { ProxyService } from '../../common/services/proxy.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { AnyRole } from '../../common/decorators/roles.decorator';
 
 function authHeaders(req: Request) {
   return { authorization: req.headers.authorization || '' };
@@ -28,6 +29,7 @@ function jsonHeaders(req: Request) {
 
 @ApiTags('HSE')
 @ApiBearerAuth()
+@AnyRole()
 @UseGuards(JwtAuthGuard)
 @Controller('api/v1')
 export class HseGatewayController {

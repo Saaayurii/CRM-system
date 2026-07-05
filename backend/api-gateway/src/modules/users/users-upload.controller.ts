@@ -14,6 +14,7 @@ import { extname, join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import { randomUUID } from 'crypto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { AnyRole } from '../../common/decorators/roles.decorator';
 import { StorageService } from '../../common/services/storage.service';
 
 const UPLOAD_DIR = join(process.cwd(), 'uploads', 'avatars');
@@ -21,6 +22,7 @@ const UPLOAD_DIR = join(process.cwd(), 'uploads', 'avatars');
 @SkipThrottle()
 @ApiTags('Users')
 @ApiBearerAuth()
+@AnyRole()
 @UseGuards(JwtAuthGuard)
 @Controller('api/v1/users')
 export class UsersUploadController {

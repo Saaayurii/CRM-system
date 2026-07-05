@@ -19,12 +19,13 @@ import {
 import { Request } from 'express';
 import { ProxyService } from '../../common/services/proxy.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
+import { Roles, AnyRole } from '../../common/decorators/roles.decorator';
 
 const USER_MANAGE_ROLES = [1, 2, 3]; // super_admin, admin, hr_manager
 
 @ApiTags('Users')
 @ApiBearerAuth()
+@AnyRole()
 @UseGuards(JwtAuthGuard)
 @Controller('api/v1/users')
 export class UsersGatewayController {

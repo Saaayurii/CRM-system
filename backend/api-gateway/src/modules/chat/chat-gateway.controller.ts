@@ -22,6 +22,7 @@ import { existsSync, unlinkSync } from 'fs';
 import { join, basename } from 'path';
 import { ProxyService } from '../../common/services/proxy.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { AnyRole } from '../../common/decorators/roles.decorator';
 
 const CHAT_UPLOAD_DIR = join(process.cwd(), 'uploads', 'chat');
 
@@ -47,6 +48,7 @@ function deleteChatFile(fileUrl: string) {
 
 @ApiTags('Chat')
 @ApiBearerAuth()
+@AnyRole()
 @UseGuards(JwtAuthGuard)
 @Controller('api/v1')
 export class ChatGatewayController {

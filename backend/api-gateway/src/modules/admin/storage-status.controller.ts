@@ -2,11 +2,13 @@ import { Controller, Get, ForbiddenException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { StorageService } from '../../common/services/storage.service';
+import { Roles } from '../../common/decorators/roles.decorator';
 
 const SUPER_ADMIN_ROLE_ID = 1;
 
 @ApiTags('Admin')
 @ApiBearerAuth()
+@Roles(1)
 @Controller('api/v1/admin/storage')
 export class StorageStatusController {
   constructor(private readonly storage: StorageService) {}

@@ -23,6 +23,7 @@ import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import { ProxyService } from '../../common/services/proxy.service';
 import { Public } from '../../common/decorators/public.decorator';
+import { AnyRole } from '../../common/decorators/roles.decorator';
 
 // Strict rate limit for auth endpoints: 10 requests per minute per IP
 const AUTH_THROTTLE = { default: { ttl: 60_000, limit: 10 } };
@@ -40,6 +41,7 @@ interface TokenBody {
 }
 
 @ApiTags('Authentication')
+@AnyRole()
 @Controller('api/v1/auth')
 export class AuthGatewayController {
   constructor(private readonly proxyService: ProxyService) {}

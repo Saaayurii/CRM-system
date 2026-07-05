@@ -16,6 +16,7 @@ import { Request } from 'express';
 import { ProxyService } from '../../common/services/proxy.service';
 import { Public } from '../../common/decorators/public.decorator';
 import { SHARE_REGISTRY } from './share-registry';
+import { AnyRole } from '../../common/decorators/roles.decorator';
 
 // Внутренний read-only «гость»: observer-роль (13), чтобы не триггерить
 // клиентскую фильтрацию проектов (она завязана на roleId 15).
@@ -25,6 +26,7 @@ const SHARE_TOKEN_TTL = '60s';
 
 @ApiTags('Share')
 @ApiBearerAuth()
+@AnyRole()
 @Controller('api/v1')
 export class ShareGatewayController {
   private readonly logger = new Logger(ShareGatewayController.name);
