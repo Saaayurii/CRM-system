@@ -1417,9 +1417,11 @@ function ChatMessage({ message, isOwn, showAvatar, isRead, isDirect = false, rea
           initialIndex={viewerIndex}
           onClose={closeViewer}
           onEditAndSend={async (item) => {
-            // Скачиваем картинку, передаём инпуту текущего канала — он откроет редактор
             try {
-              const resp = await fetch(item.url);
+              // Proxy through Next.js server to avoid S3 CORS restrictions
+              const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(item.url)}`;
+              const resp = await fetch(proxyUrl, { credentials: 'include' });
+              if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
               const blob = await resp.blob();
               const name = item.name || item.url.split('/').pop() || 'image.jpg';
               const file = new File([blob], name, { type: blob.type || 'image/jpeg' });
@@ -1427,8 +1429,8 @@ function ChatMessage({ message, isOwn, showAvatar, isRead, isDirect = false, rea
                 detail: { file, channelId: message.channelId },
               }));
               closeViewer();
-            } catch {
-              // не скачалось — остаёмся в просмотрщике
+            } catch (err) {
+              console.error('[MediaViewer] edit-and-send fetch failed:', err);
             }
           }}
         />
