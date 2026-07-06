@@ -68,6 +68,10 @@ export class DefectsService {
   }
 
   async create(accountId: number, dto: CreateDefectDto, actorUserId?: number) {
+    if (!dto.defectNumber) {
+      const rand = Math.random().toString(36).slice(2, 5).toUpperCase();
+      (dto as any).defectNumber = `DEF-${Date.now()}-${rand}`;
+    }
     const defect = await this.defectRepository.create({
       ...dto,
       accountId,

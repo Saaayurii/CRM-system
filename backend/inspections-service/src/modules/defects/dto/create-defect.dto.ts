@@ -35,11 +35,11 @@ export class CreateDefectDto {
   @IsNumber()
   planId?: number;
 
-  @ApiProperty({ description: 'Unique defect number', maxLength: 100 })
-  @IsNotEmpty()
+  @ApiPropertyOptional({ description: 'Unique defect number (auto-generated if not provided)', maxLength: 100 })
+  @IsOptional()
   @IsString()
   @MaxLength(100)
-  defectNumber: string;
+  defectNumber?: string;
 
   @ApiPropertyOptional({ description: 'Defect type', maxLength: 100 })
   @IsOptional()

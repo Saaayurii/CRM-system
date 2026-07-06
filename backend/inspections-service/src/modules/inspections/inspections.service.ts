@@ -87,14 +87,19 @@ export class InspectionsService {
   }
 
   async create(accountId: number, dto: CreateInspectionDto, actorUserId?: number) {
+    const { checklistTemplateId, ...inspectionData } = dto as any;
     const inspection = await this.inspectionRepository.create({
-      ...dto,
+      ...inspectionData,
       accountId,
       scheduledDate: dto.scheduledDate
         ? new Date(dto.scheduledDate)
         : undefined,
       actualDate: dto.actualDate ? new Date(dto.actualDate) : undefined,
     });
+
+    if (checklistTemplateId) {
+      await this.inspectionRepository.saveChecklistResult(inspection.id, checklistTemplateId, []);
+    }
 
     void this.notificationsClient.broadcast({
       accountId,

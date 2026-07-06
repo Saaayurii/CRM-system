@@ -1406,6 +1406,7 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
           { value: 3, label: 'Не пройдена' },
         ],
       },
+      { key: 'checklistTemplateId', label: 'Шаблон чек-листа', type: 'select', fetchOptions: { endpoint: '/inspection-templates', valueKey: 'id', labelKey: 'name' } },
       { key: 'description', label: 'Описание', type: 'textarea' },
       { key: 'findings', label: 'Выводы', type: 'textarea' },
       { key: 'recommendations', label: 'Рекомендации', type: 'textarea' },

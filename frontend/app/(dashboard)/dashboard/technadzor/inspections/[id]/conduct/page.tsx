@@ -33,13 +33,14 @@ function normalize(items: any): Section[] {
   };
   const looksLikeSection = (el: any) =>
     el && typeof el === 'object' && (Array.isArray(el.items) || Array.isArray(el.points) || Array.isArray(el.children));
+  const hasContent = (p: any) => typeof p === 'string' ? p.trim() : !!(p.name || p.title || p.label || p.text || p.description || p.code);
   if (items.some(looksLikeSection)) {
     return items.map((sec: any, si: number) => {
-      const pts = sec.items || sec.points || sec.children || [];
+      const pts = (sec.items || sec.points || sec.children || []).filter(hasContent);
       return { title: sec.title || sec.name || `Раздел ${si + 1}`, points: pts.map((p: any, pi: number) => asPoint(p, si, pi)) };
-    });
+    }).filter((s) => s.points.length > 0);
   }
-  return [{ title: 'Пункты контроля', points: items.map((p: any, pi: number) => asPoint(p, 0, pi)) }];
+  return [{ title: 'Пункты контроля', points: items.filter(hasContent).map((p: any, pi: number) => asPoint(p, 0, pi)) }];
 }
 
 export default function ConductInspectionPage() {
@@ -197,7 +198,9 @@ export default function ConductInspectionPage() {
     setSaving(true);
     try {
       const photos = resMap[p.key]?.photos ?? [];
+      const rand = Math.random().toString(36).slice(2, 5).toUpperCase();
       const { data: d } = await api.post('/defects', {
+        defectNumber: `DEF-${Date.now()}-${rand}`,
         title: defTpl?.name || p.name,
         description: defTpl?.description || resMap[p.key]?.comment || undefined,
         category: defTpl?.category || undefined,

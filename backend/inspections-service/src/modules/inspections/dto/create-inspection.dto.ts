@@ -103,4 +103,9 @@ export class CreateInspectionDto {
   @IsOptional()
   @IsArray()
   documents?: any[];
+
+  @ApiPropertyOptional({ description: 'Checklist template ID to pre-assign' })
+  @IsOptional()
+  @IsNumber()
+  checklistTemplateId?: number;
 }
