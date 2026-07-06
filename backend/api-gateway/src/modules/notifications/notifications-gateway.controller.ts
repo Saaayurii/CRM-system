@@ -21,11 +21,9 @@ import { SkipThrottle } from '@nestjs/throttler';
 import { Request, Response } from 'express';
 import * as http from 'http';
 import { ConfigService } from '@nestjs/config';
-import { JwtService } from '@nestjs/jwt';
 import { ProxyService } from '../../common/services/proxy.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { AnyRole } from '../../common/decorators/roles.decorator';
-import { Public } from '../../common/decorators/public.decorator';
 
 /** Достаёт access-токен из httpOnly-cookie `crm_at` (для SSE через EventSource). */
 function tokenFromCookie(req: Request): string | null {
@@ -44,15 +42,17 @@ export class NotificationsGatewayController {
   constructor(
     private readonly proxyService: ProxyService,
     private readonly configService: ConfigService,
-    private readonly jwtService: JwtService,
   ) {}
 
-  // SSE proxy — forward EventSource to notifications-service
-  @Public()
+  // SSE proxy — forward EventSource to notifications-service.
+  // НЕ @Public(): JwtAuthGuard верифицирует токен (RS256 или HS256 через
+  // buildJwtKeyOptions) до writeHead(200). CookieAuthMiddleware уже подставил
+  // crm_at cookie → Authorization: Bearer, поэтому EventSource с
+  // { withCredentials: true } проходит без ?token= в URL.
   @SkipThrottle()
   @Get('notifications/events')
   @ApiOperation({ summary: 'SSE stream for real-time notifications' })
-  @ApiQuery({ name: 'token', required: true })
+  @ApiQuery({ name: 'token', required: false })
   async sseProxy(
     @Query('token') token: string,
     @Req() req: Request,
@@ -62,23 +62,14 @@ export class NotificationsGatewayController {
       this.configService.get<string>('services.notifications') ||
       'http://notifications-service:3010';
 
-    // httpOnly-режим: EventSource не может положить токен в URL (JS не читает
-    // httpOnly-cookie). Берём токен из cookie `crm_at` и передаём вниз тем же
-    // ?token= — notifications-service остаётся без изменений.
-    const authToken = token || tokenFromCookie(req);
-
-    // Проверяем JWT ДО writeHead(200): иначе клиент получал 200 даже без токена,
-    // так как headers пишутся немедленно, до ответа от notifications-service.
-    if (!authToken) {
-      res.status(401).json({ statusCode: 401, message: 'Unauthorized' });
-      return;
-    }
-    try {
-      this.jwtService.verify(authToken);
-    } catch {
-      res.status(401).json({ statusCode: 401, message: 'Unauthorized' });
-      return;
-    }
+    // Token для проксирования в notifications-service: берём из Authorization-заголовка
+    // (уже выставлен CookieAuthMiddleware из crm_at cookie) или из ?token= (старый клиент).
+    const bearer = req.headers.authorization;
+    const authToken =
+      token ||
+      (bearer?.startsWith('Bearer ') ? bearer.slice(7) : null) ||
+      tokenFromCookie(req) ||
+      '';
 
     const url = `${notificationsUrl}/notifications/events?token=${encodeURIComponent(authToken)}`;
 
