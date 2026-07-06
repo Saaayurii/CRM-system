@@ -24,6 +24,7 @@ import { ConfigService } from '@nestjs/config';
 import { ProxyService } from '../../common/services/proxy.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { AnyRole } from '../../common/decorators/roles.decorator';
+import { Public } from '../../common/decorators/public.decorator';
 
 /** Достаёт access-токен из httpOnly-cookie `crm_at` (для SSE через EventSource). */
 function tokenFromCookie(req: Request): string | null {
