@@ -33,7 +33,7 @@ function normalize(items: any): Section[] {
   };
   const looksLikeSection = (el: any) =>
     el && typeof el === 'object' && (Array.isArray(el.items) || Array.isArray(el.points) || Array.isArray(el.children));
-  const hasContent = (p: any) => typeof p === 'string' ? p.trim() : !!(p.name || p.title || p.label || p.text || p.description || p.code);
+  const hasContent = (p: any) => typeof p === 'string' ? p.trim() : !!(p.name || p.title || p.label || p.text || p.description || p.code || p.controlPointId != null || p.id != null);
   if (items.some(looksLikeSection)) {
     return items.map((sec: any, si: number) => {
       const pts = (sec.items || sec.points || sec.children || []).filter(hasContent);
