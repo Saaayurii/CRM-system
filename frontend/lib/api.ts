@@ -33,13 +33,17 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 // gateway ставит новую cookie в ответе. JS токен не видит. Web Locks сериализует
 // обновление между вкладками, а серверный грейс-период (auth-service) гасит
 // оставшиеся гонки, поэтому телу запроса больше не нужны токены.
-export async function performRefresh(): Promise<void> {
+// Возвращает новый accessToken из тела ответа — нужен для проверки идентичности.
+export async function performRefresh(): Promise<string | null> {
+  let newAccessToken: string | null = null;
+
   const doRefresh = async (): Promise<void> => {
-    await axios.post(
+    const resp = await axios.post<{ accessToken?: string }>(
       `${API_BASE_URL}/auth/refresh`,
       {},
       { withCredentials: true },
     );
+    newAccessToken = resp.data?.accessToken ?? null;
   };
 
   if (
@@ -48,9 +52,25 @@ export async function performRefresh(): Promise<void> {
     navigator.locks?.request
   ) {
     await navigator.locks.request('crm-token-refresh', doRefresh);
-    return;
+    return newAccessToken;
   }
   await doRefresh();
+  return newAccessToken;
+}
+
+/**
+ * Извлекает `sub` (userId) из JWT-тела без верификации подписи.
+ * Нужен только для сверки идентичности после refresh — не для авторизации.
+ */
+function parseTokenSub(token: string): string | null {
+  try {
+    const payload = JSON.parse(
+      atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))
+    );
+    return payload?.sub != null ? String(payload.sub) : null;
+  } catch {
+    return null;
+  }
 }
 
 // Response interceptor — handle 401 with token refresh

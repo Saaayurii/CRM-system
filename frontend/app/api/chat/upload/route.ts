@@ -20,6 +20,8 @@ const IMAGE_MIME_TYPES = new Set([
   'image/webp',
   'image/tiff',
   'image/bmp',
+  'image/heic',
+  'image/heif',
 ]);
 
 // Max dimension and quality for compression
@@ -108,22 +110,25 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Forward assembled file to api-gateway so it lands in the chat_uploads volume.
-    // Токен теперь в httpOnly-cookie `crm_at` (браузер шлёт её same-origin);
-    // заголовок Authorization оставлен как fallback для старого клиента.
-    const cookieToken = request.cookies.get('crm_at')?.value;
-    const authHeader =
-      request.headers.get('authorization') ??
-      (cookieToken ? `Bearer ${cookieToken}` : '');
-    const displayName = isImage ? fileName.replace(/\.[^.]+$/, '.webp') : fileName;
+    // Форвардим оба возможных носителя токена:
+    //   1. Cookie-заголовок (браузер шлёт crm_at same-origin) — gateway разберёт через CookieAuthMiddleware
+    //   2. Authorization — fallback для старого клиента / direct API calls
+    const cookieHeader = request.headers.get('cookie') ?? '';
+    const authHeader   = request.headers.get('authorization') ?? '';
+    const displayName  = isImage ? fileName.replace(/\.[^.]+$/, '.webp') : fileName;
 
     try {
       const fileBuffer = readFileSync(finalPath);
       const gwForm = new FormData();
       gwForm.append('files', new Blob([fileBuffer], { type: finalMime }), displayName);
 
+      const gwHeaders: Record<string, string> = {};
+      if (authHeader)   gwHeaders['authorization'] = authHeader;
+      if (cookieHeader) gwHeaders['cookie']         = cookieHeader;
+
       const gwRes = await fetch(`${API_GATEWAY}/api/v1/chat-channels/upload`, {
         method: 'POST',
-        headers: authHeader ? { authorization: authHeader } : {},
+        headers: gwHeaders,
         body: gwForm,
       });
 
@@ -199,6 +204,8 @@ function guessMimeType(ext: string): string {
     '.webp': 'image/webp',
     '.bmp':  'image/bmp',
     '.tiff': 'image/tiff',
+    '.heic': 'image/heic',
+    '.heif': 'image/heif',
     '.pdf':  'application/pdf',
     '.zip':  'application/zip',
     '.rar':  'application/vnd.rar',
