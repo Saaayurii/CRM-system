@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
+import Link from 'next/link';
 import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { useToastStore } from '@/stores/toastStore';
@@ -67,9 +68,23 @@ function WikiPageInner() {
   const [mainTab, setMainTab] = useState<MainTab>(
     (searchParams?.get('section') as MainTab) || 'corporate',
   );
+  // Открыт по кнопке «Нормативы (ГОСТ, СП)» из Технадзора — показываем
+  // хлебную крошку назад. При заходе через обычное левое меню её нет.
+  const fromTechnadzor = searchParams?.get('from') === 'technadzor';
 
   return (
     <div className="px-4 sm:px-6 py-6 max-w-screen-2xl mx-auto">
+      {fromTechnadzor && (
+        <nav className="mb-4 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 flex-wrap">
+          <Link href="/dashboard/technadzor" className="text-violet-500 hover:text-violet-600">
+            {t('Технадзор')}
+          </Link>
+          <svg className="w-3.5 h-3.5 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+          <span className="text-gray-700 dark:text-gray-200">{t('Нормативы (ГОСТ, СП)')}</span>
+        </nav>
+      )}
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
         <div>

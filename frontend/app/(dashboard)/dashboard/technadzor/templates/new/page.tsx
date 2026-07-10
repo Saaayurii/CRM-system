@@ -351,7 +351,7 @@ export default function TemplateConstructorPage() {
                         className="flex-1 text-sm rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-gray-800 dark:text-gray-100"
                       />
                       <label className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 shrink-0 cursor-pointer select-none">
-                        <input type="checkbox" checked={p.required} onChange={(e) => updatePoint(si, pi, { required: e.target.checked })} />
+                        <input type="checkbox" checked={p.required} onChange={(e) => updatePoint(si, pi, { required: e.target.checked })} className="w-4 h-4 accent-violet-500 cursor-pointer" />
                         {t('Обяз.')}
                       </label>
                       <button onClick={() => movePoint(si, pi, -1)} disabled={pi === 0} className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30">▲</button>

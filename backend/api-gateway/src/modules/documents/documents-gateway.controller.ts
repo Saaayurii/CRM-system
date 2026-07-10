@@ -142,9 +142,14 @@ export class DocumentsGatewayController {
   ) {
     try {
       const serviceUrl = this.proxyService.getServiceUrl('documents');
+      // documents-service's download route now requires the caller's JWT
+      // (accountId is needed to check file ownership) — forward it through.
       const response = await this.httpService.axiosRef.get(
         `${serviceUrl}/pdf/download/${filename}`,
-        { responseType: 'stream' },
+        {
+          responseType: 'stream',
+          headers: { authorization: req.headers.authorization || '' },
+        },
       );
       res.set({
         'Content-Type': 'application/pdf',
@@ -178,6 +183,17 @@ export class DocumentsGatewayController {
     return this.proxyService.forward('documents', {
       method: 'GET',
       path: '/pdf/list',
+      headers: { authorization: req.headers.authorization || '' },
+    });
+  }
+
+  @Delete('documents/pdf/:filename')
+  @Roles(...DOC_WRITE_ROLES)
+  @ApiOperation({ summary: 'Delete a generated PDF' })
+  async deletePdf(@Req() req: Request, @Param('filename') filename: string) {
+    return this.proxyService.forward('documents', {
+      method: 'DELETE',
+      path: `/pdf/${filename}`,
       headers: { authorization: req.headers.authorization || '' },
     });
   }

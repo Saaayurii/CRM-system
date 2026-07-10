@@ -51,10 +51,6 @@ export function useCrudData<T extends Record<string, unknown>>({ apiEndpoint, de
         page: state.page,
         limit: state.limit,
       };
-      if (state.sortKey) {
-        params.sortBy = state.sortKey;
-        params.sortOrder = state.sortDir;
-      }
       if (listParams) Object.assign(params, listParams);
 
       const { data: response } = await api.get(apiEndpoint, { params });
@@ -92,8 +88,12 @@ export function useCrudData<T extends Record<string, unknown>>({ apiEndpoint, de
       }
       setState((s) => ({ ...s, data: [], total: 0, loading: false }));
     }
+  // Sorting is client-side only (see displayData below) — no backend list
+  // endpoint honours sortBy/sortOrder, so sortKey/sortDir intentionally stay
+  // out of these deps: including them refetched (and flashed the loading
+  // skeleton) on every header click for a purely local re-sort.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiEndpoint, state.page, state.limit, state.sortKey, state.sortDir, listParamsKey, addToast]);
+  }, [apiEndpoint, state.page, state.limit, listParamsKey, addToast]);
 
   useEffect(() => {
     fetchData();

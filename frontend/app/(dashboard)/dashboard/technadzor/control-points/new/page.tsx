@@ -10,6 +10,11 @@ import { useT } from '@/lib/i18n';
 
 interface Pin { n: number; x: number; y: number; label?: string; color?: string }
 
+interface LibDefect {
+  id: number; defectNumber?: string; title: string; category?: string;
+  defectType?: string; severity?: number; description?: string;
+}
+
 interface TypicalDefect {
   name: string;
   code?: string;
@@ -160,6 +165,11 @@ export default function ControlPointBuilderPage() {
   // Шаг 2 — типовые дефекты
   const [defects, setDefects] = useState<TypicalDefect[]>([]);
   const [selDefect, setSelDefect] = useState(0);
+  // Библиотека уже существующих дефектов (из таблицы «Все дефекты») — можно
+  // взять готовый дефект как основу для типового вместо ручного ввода.
+  const [defectLibrary, setDefectLibrary] = useState<LibDefect[]>([]);
+  const [defectPickerOpen, setDefectPickerOpen] = useState(false);
+  const [defectPickerQ, setDefectPickerQ] = useState('');
 
   // Шаг 3 — шаблоны текстов
   const [statusTexts, setStatusTexts] = useState<Record<string, StatusText>>({
@@ -277,6 +287,13 @@ export default function ControlPointBuilderPage() {
 
   useEffect(() => { load(); }, [load]);
 
+  // Библиотека уже существующих дефектов для шага «Типовые дефекты»
+  useEffect(() => {
+    api.get('/defects', { params: { limit: 200 } })
+      .then(({ data }) => setDefectLibrary(data?.data || data?.items || (Array.isArray(data) ? data : [])))
+      .catch(() => {});
+  }, []);
+
   const uploadScheme = async (file: File | null) => {
     if (!file) return;
     const fd = new FormData();
@@ -393,6 +410,22 @@ export default function ControlPointBuilderPage() {
   const removeDefect = (i: number) => {
     setDefects((ds) => ds.filter((_, j) => j !== i));
     setSelDefect((s) => Math.max(0, s >= i ? s - 1 : s));
+  };
+  const addFromDefectLibrary = (ld: LibDefect) => {
+    setDefects((ds) => {
+      setSelDefect(ds.length);
+      return [...ds, {
+        ...emptyDefect(),
+        name: ld.title,
+        code: ld.defectNumber || '',
+        category: ld.category || '',
+        defectType: ld.defectType || '',
+        criticality: ld.severity ?? 2,
+        description: ld.description || '',
+      }];
+    });
+    setDefectPickerOpen(false);
+    addToast('success', 'Дефект добавлен из библиотеки');
   };
 
   if (loading) {
@@ -603,9 +636,12 @@ export default function ControlPointBuilderPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           {/* Список дефектов */}
           <div className="rounded-2xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-gray-800 p-4 shadow-xs">
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-3 gap-2">
               <h3 className="text-xs uppercase tracking-wide font-semibold text-violet-500">{t('Список дефектов')}</h3>
-              <button onClick={addDefect} className="text-sm text-violet-600 dark:text-violet-400 hover:underline">+ {t('Добавить')}</button>
+              <span className="flex items-center gap-3 shrink-0">
+                <button onClick={() => { setDefectPickerQ(''); setDefectPickerOpen(true); }} className="text-sm text-violet-600 dark:text-violet-400 hover:underline">{t('Из библиотеки')}</button>
+                <button onClick={addDefect} className="text-sm text-violet-600 dark:text-violet-400 hover:underline">+ {t('Добавить')}</button>
+              </span>
             </div>
             {defects.length === 0 ? (
               <p className="text-sm text-gray-400 py-6 text-center">{t('Дефектов нет')}</p>
@@ -654,7 +690,7 @@ export default function ControlPointBuilderPage() {
                     <div><label className={lbl}>{t('Вес дефекта (для рейтинга)')}</label><input type="number" value={d.weight ?? 0} onChange={(e) => set({ weight: Number(e.target.value) })} className={inputCls} /></div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {([
                       { k: 'blocksAcceptance', label: 'Блокирует приёмку' },
                       { k: 'blocksOperation', label: 'Блокирует эксплуатацию' },
@@ -680,6 +716,51 @@ export default function ControlPointBuilderPage() {
             })() : (
               <div className="py-12 text-center text-sm text-gray-400">{t('Добавьте дефект или выберите из списка')}</div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Модалка выбора типового дефекта из уже существующих дефектов */}
+      {defectPickerOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setDefectPickerOpen(false)}>
+          <div className="w-full max-w-2xl max-h-[80vh] flex flex-col rounded-2xl bg-white dark:bg-gray-800 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+              <h3 className="font-semibold text-gray-800 dark:text-gray-100">{t('Дефекты из библиотеки')}</h3>
+              <button onClick={() => setDefectPickerOpen(false)} className="text-gray-400 hover:text-gray-600">✕</button>
+            </div>
+            <div className="p-4 border-b border-gray-100 dark:border-gray-700">
+              <input value={defectPickerQ} onChange={(e) => setDefectPickerQ(e.target.value)} placeholder={t('Поиск по названию или номеру…')} className={inputCls} />
+            </div>
+            <div className="flex-1 overflow-y-auto p-2">
+              {defectLibrary.length === 0 ? (
+                <p className="text-sm text-gray-400 p-6 text-center">{t('Дефектов пока нет — создайте их в разделе «Дефекты».')}</p>
+              ) : (
+                (() => {
+                  const q = defectPickerQ.trim().toLowerCase();
+                  const list = q ? defectLibrary.filter((l) => `${l.defectNumber ?? ''} ${l.title}`.toLowerCase().includes(q)) : defectLibrary;
+                  if (list.length === 0) return <p className="text-sm text-gray-400 p-6 text-center">{t('Ничего не найдено')}</p>;
+                  return list.map((ld) => {
+                    const cr = ld.severity != null ? CRITICALITY.find((c) => c.v === ld.severity) : undefined;
+                    return (
+                      <button
+                        key={ld.id}
+                        onClick={() => addFromDefectLibrary(ld)}
+                        className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-violet-50 dark:hover:bg-violet-500/10 flex items-center justify-between gap-3"
+                      >
+                        <span className="min-w-0">
+                          <span className="block text-sm text-gray-800 dark:text-gray-100 truncate">{ld.title}</span>
+                          <span className="block text-xs text-gray-400">{[ld.defectNumber, ld.category, cr ? t(cr.label) : null].filter(Boolean).join(' · ') || '—'}</span>
+                        </span>
+                        <span className="text-violet-500 shrink-0">+</span>
+                      </button>
+                    );
+                  });
+                })()
+              )}
+            </div>
+            <div className="px-5 py-3 border-t border-gray-100 dark:border-gray-700 text-right">
+              <button onClick={() => setDefectPickerOpen(false)} className="px-4 py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-700 text-white">{t('Готово')}</button>
+            </div>
           </div>
         </div>
       )}

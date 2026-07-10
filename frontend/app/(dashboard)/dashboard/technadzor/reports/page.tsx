@@ -6,6 +6,7 @@ import api from '@/lib/api';
 import { useToastStore } from '@/stores/toastStore';
 import { useT } from '@/lib/i18n';
 import { DEFECT_STATUS } from '@/components/technadzor/Badge';
+import DeleteConfirmModal from '@/components/admin/DeleteConfirmModal';
 
 interface InspectionLite { id: number; inspectionNumber?: string; inspectionType?: string; }
 interface Defect { id: number; defectNumber?: string; title: string; status?: number; severity?: number; }
@@ -168,6 +169,8 @@ export default function ReportsPage() {
   const [lang, setLang] = useState('ru');
   const [generating, setGenerating] = useState(false);
   const [files, setFiles] = useState<GenFile[]>([]);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     api.get('/inspections', { params: { limit: 200 } })
@@ -195,6 +198,36 @@ export default function ReportsPage() {
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch { addToast('error', 'Не удалось скачать файл'); }
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await api.delete(`/documents/pdf/${deleteTarget}`);
+      setFiles((fs) => fs.filter((f) => f.filename !== deleteTarget));
+      addToast('success', 'Отчёт удалён');
+      setDeleteTarget(null);
+    } catch {
+      addToast('error', 'Не удалось удалить отчёт');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  // Файлы вида "7_report-6-1720000000000.pdf" (accountId-префикс для
+  // изоляции между компаниями, см. pdf.service.ts) → человекочитаемое имя.
+  const displayName = (filename: string) => {
+    const base = filename.replace(/\.pdf$/i, '').replace(/^\d+_/, '');
+    const withoutTimestamp = base.replace(/-\d{10,}$/, '');
+    const parts = withoutTimestamp.split('-').filter(Boolean);
+    if (!parts.length) return filename;
+    return parts.map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
+  };
+  const fmtDateTime = (v?: string) => {
+    if (!v) return '—';
+    const d = new Date(v);
+    return isNaN(d.getTime()) ? '—' : d.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
 
   const generate = async () => {
@@ -358,17 +391,34 @@ export default function ReportsPage() {
             <ul className="divide-y divide-gray-100 dark:divide-gray-700">
               {files.map((f) => (
                 <li key={f.filename} className="px-5 py-3 flex items-center justify-between gap-3">
-                  <span className="flex items-center gap-2 min-w-0">
+                  <span className="flex items-center gap-2.5 min-w-0">
                     <span>📄</span>
-                    <span className="text-sm text-gray-800 dark:text-gray-100 truncate">{f.filename}</span>
+                    <span className="min-w-0">
+                      <span className="block text-sm text-gray-800 dark:text-gray-100 truncate">{displayName(f.filename)}</span>
+                      <span className="block text-xs text-gray-400 dark:text-gray-500">{fmtDateTime(f.createdAt)}</span>
+                    </span>
                   </span>
-                  <button onClick={() => downloadFile(f.filename)} className="text-sm text-violet-600 dark:text-violet-400 hover:underline shrink-0">{t('Скачать')}</button>
+                  <span className="flex items-center gap-3 shrink-0">
+                    <button onClick={() => downloadFile(f.filename)} className="text-sm text-violet-600 dark:text-violet-400 hover:underline">{t('Скачать')}</button>
+                    <button onClick={() => setDeleteTarget(f.filename)} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors" title={t('Удалить')}>
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </span>
                 </li>
               ))}
             </ul>
           )}
         </div>
       )}
+
+      <DeleteConfirmModal
+        open={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+        loading={deleting}
+      />
     </div>
   );
 }

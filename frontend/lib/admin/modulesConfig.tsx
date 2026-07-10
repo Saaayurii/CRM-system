@@ -1356,8 +1356,16 @@ export const ADMIN_MODULES: Record<string, CrudModuleConfig> = {
         header: 'Проект',
         render: (v, row) => {
           const name = (row as any)?.projectName;
-          if (name) return <span className="text-sm text-gray-700 dark:text-gray-200">{String(name)}</span>;
-          return v ? <span className="text-sm text-gray-500 dark:text-gray-400">#{String(v)}</span> : <span className="text-gray-400">—</span>;
+          if (!v) return <span className="text-gray-400">—</span>;
+          return (
+            <Link
+              href={`/dashboard/projects/${String(v)}`}
+              onClick={(e) => e.stopPropagation()}
+              className="text-sm text-violet-600 dark:text-violet-400 hover:underline"
+            >
+              {name ? String(name) : `#${String(v)}`}
+            </Link>
+          );
         },
       },
       { key: 'scheduledDate', header: 'Дата', sortable: true, width: '120px', render: (v) => fmtDate(v) },

@@ -102,11 +102,11 @@ export class PdfService {
     }
   }
 
-  async generatePdf(dto: GeneratePdfDto): Promise<{ filename: string; downloadUrl: string }> {
+  async generatePdf(dto: GeneratePdfDto, accountId: number): Promise<{ filename: string; downloadUrl: string }> {
     const entityType = normalizeSlug(dto.entityType);
     const { entityId, entityData } = dto;
     const timestamp = Date.now();
-    const filename = `${entityType}-${entityId ?? timestamp}-${timestamp}.pdf`;
+    const filename = `${accountId}_${entityType}-${entityId ?? timestamp}-${timestamp}.pdf`;
     const filepath = path.join(PDF_DIR, filename);
 
     await new Promise<void>((resolve, reject) => {
@@ -314,10 +314,11 @@ export class PdfService {
     rawEntityType: string,
     rows: Record<string, unknown>[],
     title: string,
+    accountId: number,
   ): Promise<{ filename: string; downloadUrl: string }> {
     const entityType = normalizeSlug(rawEntityType);
     const timestamp = Date.now();
-    const filename = `${entityType}-list-${timestamp}.pdf`;
+    const filename = `${accountId}_${entityType}-list-${timestamp}.pdf`;
     const filepath = path.join(PDF_DIR, filename);
 
     await new Promise<void>((resolve, reject) => {
@@ -546,10 +547,10 @@ export class PdfService {
     payments: Record<string, unknown>[];
     budgets: Record<string, unknown>[];
     notes: string;
-  }): Promise<{ filename: string; downloadUrl: string }> {
+  }, accountId: number): Promise<{ filename: string; downloadUrl: string }> {
     const { project, assignments, tasks, payments, budgets, notes } = data;
     const timestamp = Date.now();
-    const filename = `project-report-${project.id ?? timestamp}-${timestamp}.pdf`;
+    const filename = `${accountId}_project-report-${project.id ?? timestamp}-${timestamp}.pdf`;
     const filepath = path.join(PDF_DIR, filename);
 
     await new Promise<void>((resolve, reject) => {
@@ -768,8 +769,32 @@ export class PdfService {
     return { filename, downloadUrl: `/pdf/download/${filename}` };
   }
 
-  streamPdf(filename: string): { stream: fs.ReadStream; size: number } {
-    const filepath = path.join(PDF_DIR, filename);
+  // path.basename() strips any directory components (../, /) so a filename
+  // param can't escape PDF_DIR; combined with the .pdf-only check this closes
+  // path traversal for both reading and deleting generated reports.
+  private safeFilePath(filename: string): string {
+    const base = path.basename(filename);
+    if (base !== filename || !base.endsWith('.pdf')) {
+      throw new NotFoundException('Файл не найден');
+    }
+    return path.join(PDF_DIR, base);
+  }
+
+  // Filenames are prefixed with `<accountId>_` at generation time (see
+  // generatePdf/generateListPdf/generateProjectReport) — this is the only
+  // ownership info we have (files live on a flat shared disk, no DB row per
+  // file), but it's enough to stop one account from listing/downloading/
+  // deleting another account's generated reports. Files generated before
+  // this prefix existed have no owner and are treated as inaccessible.
+  private assertOwnedByAccount(filename: string, accountId: number): void {
+    if (!filename.startsWith(`${accountId}_`)) {
+      throw new NotFoundException('Файл не найден');
+    }
+  }
+
+  streamPdf(filename: string, accountId: number): { stream: fs.ReadStream; size: number } {
+    this.assertOwnedByAccount(filename, accountId);
+    const filepath = this.safeFilePath(filename);
     if (!fs.existsSync(filepath)) {
       throw new NotFoundException('Файл не найден');
     }
@@ -777,8 +802,24 @@ export class PdfService {
     return { stream: fs.createReadStream(filepath), size: stat.size };
   }
 
-  listPdfs(): string[] {
+  deletePdf(filename: string, accountId: number): void {
+    this.assertOwnedByAccount(filename, accountId);
+    const filepath = this.safeFilePath(filename);
+    if (!fs.existsSync(filepath)) {
+      throw new NotFoundException('Файл не найден');
+    }
+    fs.unlinkSync(filepath);
+  }
+
+  listPdfs(accountId: number): Array<{ filename: string; createdAt: string; size: number }> {
     if (!fs.existsSync(PDF_DIR)) return [];
-    return fs.readdirSync(PDF_DIR).filter((f) => f.endsWith('.pdf'));
+    return fs
+      .readdirSync(PDF_DIR)
+      .filter((f) => f.endsWith('.pdf') && f.startsWith(`${accountId}_`))
+      .map((filename) => {
+        const stat = fs.statSync(path.join(PDF_DIR, filename));
+        return { filename, createdAt: stat.mtime.toISOString(), size: stat.size };
+      })
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt)); // eslint-disable-line unicorn/no-array-sort -- fresh array from map(), no aliasing
   }
 }

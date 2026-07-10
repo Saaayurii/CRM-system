@@ -8,6 +8,7 @@ import {
   IsObject,
   MaxLength,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateInspectionTemplateDto {
   @ApiProperty({ description: 'Template name', maxLength: 255 })
@@ -28,6 +29,13 @@ export class CreateInspectionTemplateDto {
   })
   @IsOptional()
   @IsArray()
+  // Without an explicit element type, the global ValidationPipe's
+  // enableImplicitConversion mangles nested plain objects in this array down
+  // to `[]` (class-transformer tries to implicitly coerce each element and,
+  // finding no primitive/class target, drops its contents). @Type(() =>
+  // Object) gives it an explicit non-primitive target so the raw
+  // section/point objects pass through untouched.
+  @Type(() => Object)
   checklistItems?: any[];
 
   @ApiPropertyOptional({ description: 'Is template active', default: true })

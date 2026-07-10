@@ -8,6 +8,7 @@ import {
   IsArray,
   MaxLength,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateDefectDto {
   @ApiPropertyOptional({ description: 'Project ID' })
@@ -131,10 +132,15 @@ export class CreateDefectDto {
   @ApiPropertyOptional({ description: 'Photos (JSON array)', default: [] })
   @IsOptional()
   @IsArray()
+  // See create-inspection-template.dto.ts checklistItems comment: without an
+  // explicit element type, enableImplicitConversion silently collapses every
+  // element of this array down to `[]`.
+  @Type(() => Object)
   photos?: any[];
 
   @ApiPropertyOptional({ description: 'Documents (JSON array)', default: [] })
   @IsOptional()
   @IsArray()
+  @Type(() => Object)
   documents?: any[];
 }
