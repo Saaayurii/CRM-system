@@ -190,7 +190,7 @@ export function useCrudData<T extends Record<string, unknown>>({ apiEndpoint, de
 
   // Client-side search filter applied on top of fetched data
   const searchLower = state.search.toLowerCase().trim();
-  const displayData = searchLower
+  let displayData = searchLower
     ? state.data.filter((item) =>
         Object.values(item).some((val) => {
           if (val === null || val === undefined) return false;
@@ -199,6 +199,23 @@ export function useCrudData<T extends Record<string, unknown>>({ apiEndpoint, de
         })
       )
     : state.data;
+
+  // Client-side sort fallback: most list endpoints don't honour sortBy/sortOrder
+  // server-side (params above are sent in case a backend does), so without this
+  // clicking a column header would visibly do nothing.
+  if (state.sortKey) {
+    const key = state.sortKey;
+    const dir = state.sortDir === 'asc' ? 1 : -1;
+    displayData = displayData.toSorted((a, b) => {
+      const av = a[key];
+      const bv = b[key];
+      if (av == null && bv == null) return 0;
+      if (av == null) return 1;
+      if (bv == null) return -1;
+      if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * dir;
+      return String(av).localeCompare(String(bv), 'ru', { numeric: true }) * dir;
+    });
+  }
 
   return {
     ...state,
