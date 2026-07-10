@@ -151,6 +151,17 @@ const STEP_SUB: Record<number, string> = {
   4: 'Настройте структуру и внешний вид отчёта по данной проверке',
   5: 'Опубликуйте пункт и сделайте его доступным для использования',
 };
+// Подшаги внутри шага 1 «Создание пункта» — листаются по одному кнопками
+// «Далее»/«Назад» в правом верхнем углу вместо одной длинной страницы.
+const SUB_STEPS = [
+  'Основная информация',
+  'Категоризация',
+  'Инструкция и нормативы',
+  'Схема для отметки дефектов',
+  'Фото и видео',
+  'Дополнительные настройки',
+  'Предпросмотр пункта',
+];
 
 export default function ControlPointBuilderPage() {
   const t = useT();
@@ -161,6 +172,8 @@ export default function ControlPointBuilderPage() {
   const authUser = useAuthStore((s) => s.user);
   const authorName = authUser ? (authUser.name || authUser.email || `#${authUser.id}`) : undefined;
   const [step, setStep] = useState(Number(params.get('step')) || 1);
+  // Текущий подшаг внутри шага 1 «Создание пункта» (1..SUB_STEPS.length)
+  const [subStep, setSubStep] = useState(1);
 
   // Шаг 2 — типовые дефекты
   const [defects, setDefects] = useState<TypicalDefect[]>([]);
@@ -447,7 +460,9 @@ export default function ControlPointBuilderPage() {
           <span className="w-9 h-9 rounded-full bg-violet-600 text-white flex items-center justify-center font-bold">{step}</span>
           <div>
             <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">{t(STEPS[step - 1]?.label || 'Создание пункта')}</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">{t(STEP_SUB[step] || '')}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {step === 1 ? `${t('Шаг')} ${subStep}/${SUB_STEPS.length}: ${t(SUB_STEPS[subStep - 1])}` : t(STEP_SUB[step] || '')}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-1">
@@ -461,7 +476,21 @@ export default function ControlPointBuilderPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
             </svg>
           </button>
-          {step < STEPS.length ? (
+          {/* Навигация по подшагам «Создание пункта» — только на шаге 1 */}
+          {step === 1 && subStep > 1 && (
+            <button onClick={() => setSubStep((s) => s - 1)} title={t('Назад')} className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700/40 transition cursor-pointer">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+              </svg>
+            </button>
+          )}
+          {step === 1 && subStep < SUB_STEPS.length ? (
+            <button onClick={() => setSubStep((s) => s + 1)} title={t('Далее')} className="p-2 rounded-lg text-violet-600 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-500/10 transition cursor-pointer">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+              </svg>
+            </button>
+          ) : step < STEPS.length ? (
             <button onClick={() => save('draft', true)} disabled={saving} title={t('Сохранить и далее')} className="p-2 rounded-lg text-violet-600 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-500/10 transition disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
@@ -496,7 +525,8 @@ export default function ControlPointBuilderPage() {
       </div>
 
       {step === 1 && (
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-5">
+      <div className="max-w-2xl">
+        {subStep === 1 && (
         <Card title="Основная информация">
           <div className="space-y-3">
             <div>
@@ -518,7 +548,9 @@ export default function ControlPointBuilderPage() {
             <div><label className={lbl}>{t('Описание')}</label><textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className={inputCls} /></div>
           </div>
         </Card>
+        )}
 
+        {subStep === 2 && (
         <Card title="Категоризация">
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-2">
@@ -547,7 +579,9 @@ export default function ControlPointBuilderPage() {
             <label className="flex items-center justify-between"><span className="text-sm text-gray-700 dark:text-gray-200">{t('Множественный объект')}</span><Toggle on={multipleObject} set={setMultipleObject} /></label>
           </div>
         </Card>
+        )}
 
+        {subStep === 3 && (
         <Card title="Инструкция и нормативы">
           <div className="space-y-3">
             <div><label className={lbl}>{t('Инструкция для инспектора')}</label><textarea value={instruction} onChange={(e) => setInstruction(e.target.value)} rows={4} className={inputCls} /></div>
@@ -556,7 +590,9 @@ export default function ControlPointBuilderPage() {
             <div><label className={lbl}>{t('Требование из норматива')}</label><textarea value={requirement} onChange={(e) => setRequirement(e.target.value)} rows={3} className={inputCls} /></div>
           </div>
         </Card>
+        )}
 
+        {subStep === 4 && (
         <Card title="Схема для отметки дефектов">
           <div className="space-y-3">
             {schemeImageUrl ? (
@@ -590,7 +626,9 @@ export default function ControlPointBuilderPage() {
             )}
           </div>
         </Card>
+        )}
 
+        {subStep === 5 && (
         <Card title="Фото и видео">
           <div className="space-y-3">
             <label className="flex items-center justify-between"><span className="text-sm text-gray-700 dark:text-gray-200">{t('Фото обязательно')}</span><Toggle on={photoRequired} set={setPhotoRequired} /></label>
@@ -602,7 +640,9 @@ export default function ControlPointBuilderPage() {
             <label className="flex items-center justify-between"><span className="text-sm text-gray-700 dark:text-gray-200">{t('Видео обязательно')}</span><Toggle on={videoRequired} set={setVideoRequired} /></label>
           </div>
         </Card>
+        )}
 
+        {subStep === 6 && (
         <Card title="Дополнительные настройки">
           <div className="space-y-3">
             <label className="flex items-start justify-between gap-3">
@@ -614,7 +654,9 @@ export default function ControlPointBuilderPage() {
             <div><label className={lbl}>{t('Порядок сортировки')}</label><input type="number" value={sortOrder} onChange={(e) => setSortOrder(Number(e.target.value))} className={inputCls} /></div>
           </div>
         </Card>
+        )}
 
+        {subStep === 7 && (
         <Card title="Предпросмотр пункта">
           <div className="text-sm space-y-1.5">
             <div className="flex items-center gap-2">
@@ -629,6 +671,7 @@ export default function ControlPointBuilderPage() {
             <div className="text-gray-400 pt-1">{t('Вес')}: {weight} · {normativeDoc}{normativeSection ? ` п. ${normativeSection}` : ''}</div>
           </div>
         </Card>
+        )}
       </div>
       )}
 
