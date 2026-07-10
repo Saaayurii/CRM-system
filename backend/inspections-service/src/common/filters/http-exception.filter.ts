@@ -7,7 +7,10 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+import {
+  PrismaClientKnownRequestError,
+  PrismaClientValidationError,
+} from '@prisma/client/runtime/library';
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -34,6 +37,13 @@ export class HttpExceptionFilter implements ExceptionFilter {
       message = 'Database error';
       error = 'Database Error';
       this.logger.error(`Prisma Error: ${exception.message}`, exception.stack);
+    } else if (exception instanceof PrismaClientValidationError) {
+      // Malformed payload (e.g. an unknown field reaching a Prisma write) —
+      // a client-input problem, not a server fault.
+      status = HttpStatus.BAD_REQUEST;
+      message = 'Invalid request data';
+      error = 'Validation Error';
+      this.logger.error(`Prisma Validation Error: ${exception.message}`);
     } else if (exception instanceof Error) {
       message = exception.message;
       this.logger.error(`Error: ${exception.message}`, exception.stack);

@@ -179,10 +179,19 @@ export default function TemplateConstructorPage() {
     setSaving(true);
     try {
       const payload = buildPayload(isActive);
-      if (editId) await api.put(`/inspection-templates/${editId}`, payload);
-      else await api.post('/inspection-templates', payload);
-      addToast('success', isActive ? 'Шаблон опубликован' : 'Черновик сохранён');
-      router.push('/dashboard/technadzor/templates');
+      if (editId) {
+        await api.put(`/inspection-templates/${editId}`, payload);
+        addToast('success', isActive ? 'Шаблон опубликован' : 'Черновик сохранён');
+        // Досинхронизируем локальное состояние с тем, что реально сохранилось —
+        // остаёмся на странице редактирования вместо возврата в таблицу.
+        await load();
+      } else {
+        const { data: created } = await api.post('/inspection-templates', payload);
+        addToast('success', isActive ? 'Шаблон опубликован' : 'Черновик сохранён');
+        // Переключаемся в режим редактирования созданного шаблона (без полной
+        // навигации), чтобы повторное «Сохранить» не создавало дубликат.
+        if (created?.id) router.replace(`/dashboard/technadzor/templates/new?id=${created.id}`);
+      }
     } catch {
       addToast('error', 'Не удалось сохранить шаблон');
     } finally {

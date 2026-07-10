@@ -126,7 +126,11 @@ export class InspectionsService {
   ) {
     const existing = await this.inspectionRepository.findById(id, accountId);
     if (!existing) throw new NotFoundException(`Inspection with ID ${id} not found`);
-    const data: any = { ...dto };
+    // checklistTemplateId isn't a column on Inspection (only used at creation
+    // to pre-attach a checklist result) — passing it through to Prisma's
+    // updateMany crashes with an unknown-argument error.
+    const { checklistTemplateId: _checklistTemplateId, ...updateDto } = dto as any;
+    const data: any = { ...updateDto };
     if (dto.scheduledDate) data.scheduledDate = new Date(dto.scheduledDate);
     if (dto.actualDate) data.actualDate = new Date(dto.actualDate);
 
